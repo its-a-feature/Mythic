@@ -1,0 +1,199 @@
+{
+  "callbacks":[
+    {
+      "GET": "/api/v1.0/callbacks/",
+      "explanation": "Gets all callback information",
+      "cli": "curl http://XX/api/v1.0/callbacks/"
+    },
+    {
+      "POST": "/api/v1.0/callbacks/",
+      "explanation": "Create a new callback",
+      "cli": "curl -X POST -d '{\"user\":\"mac\",\"host\":\"testmac\",\"pid\":561,\"ip\":\"192.168.12.52\",\"description\":\"initial callback\",\"payload_type\":\"apfell\", \"operator\":\"alice\"}' http://XX/api/v1.0/callbacks/",
+      "parameters":[
+        {
+          "name": "user",
+          "description": "The user account under which the payload is running.",
+          "requirements": "This is required."
+        },
+        {
+          "name": "host",
+          "description": "The hostname of the machine on which the payload is running.",
+          "requirements": "This is required."
+        },
+        {
+          "name": "pid",
+          "description": "The process id of the current payload running on the victim.",
+          "requirements": "This is required."
+        },
+        {
+          "name": "ip",
+          "description": "The local IP of the machine we're operating on.",
+          "requirements": "This is required."
+        },
+        {
+          "name": "payload_type",
+          "description": "The type of payload that is running on the system. This can include things like \"apfell-jxa\" for the JavaScript for Automation payload or even include payloads from other projects in the future.",
+          "requirements": "This is required. This type will determine what kinds of functions are available to execute."
+        },
+        {
+          "name": "description",
+          "description": "This is the description of the specific callback.",
+          "requirements": "This is optional, but can be helpful."
+        },
+        {
+          "name": "operator",
+          "description": "This is the name of the operator which created this callback.",
+          "requirements": "This isn't required as there can be instances where we don't know, but sometimes can be inferred based on the specific payload executed."
+        }
+      ]
+    },
+    {
+      "GET": "/api/v1.0/callbacks/(id:INTEGER)",
+      "explanation": "Get the callback information for a single callback identified by the specific ID.",
+      "cli": "curl http://XX/api/v1.0/callbacks/1"
+    },
+    {
+      "PUT": "/api/v1.0/callbacks/(id:INTEGER)",
+      "explanation": "Update some of the callback information",
+      "cli": "curl -X PUT '{\"description\":\"long-term callback\"}' http://XX/api/v1.0/callbacks/1",
+      "parameters":[
+        {
+          "name":"description",
+          "description": "Description of the role of the specific callback or any other note an operator has about the callback",
+          "requirements": "This is optional and defaults to an empty string."
+        },
+        {
+          "name":"operator",
+          "description": "Update the operator that created or spawned a specific callback",
+          "requirements": "Optional parameter, but encouraged if it can't be inferred"
+        }
+      ]
+    },
+    {
+      "DELETE": "/api/v1.0/callbacks/(id:INTEGER)",
+      "explanation": "Mark a specific callback as no longer active. It'll stay in the database for reporting, but will be removed from user interaction",
+      "cli": "curl -X DELETE http://XX/api/v1.0/callbacks/1"
+    }
+  ],
+  "operators":[
+    {
+      "GET": "/api/v1.0/operators/",
+      "explanation": "Gets all operators",
+      "cli": "curl http://XX/api/v1.0/operators/"
+    },
+    {
+      "POST": "/api/v1.0/operators/",
+      "explanation": "Creates a new operator account",
+      "cli": "curl -X POST -d '{\"username\": \"Bob\", \"password\": \"P@ssw0rd\"}' http://XX/api/v1.0/operators/",
+      "parameters":[
+        {
+          "name": "username",
+          "description": "This is the username for the operator.",
+          "requirements": "This must be unique across all operators."
+        },
+        {
+          "name": "password",
+          "description": "This is the password used by the operator to sign into Apfell. It is hashed before being stored in the database.",
+          "requirements": "It must be non-zero in length."
+        }
+      ]
+    },
+    {
+      "GET": "/api/v1.0/operators/(id:INTEGER)",
+      "explanation": "Gets the information about a single operator by their id number. In the future this might change to use the operator's username instead.",
+      "cli": "curl http://XX/api/v1.0/operators/1"
+    },
+    {
+      "PUT": "/api/v1.0/operators/(id:INTEGER)",
+      "explanation": "This updates the password and/or username for the identified operator.",
+      "cli": "curl -X PUT -d '{\"password\":\"NewP@55w0rd\"}' http://XX/api/v1.0/operators/1",
+      "parameters":[
+        {
+          "name": "username",
+          "description": "new username for the operator identified the the ID in the url.",
+          "requirements": "Optional parameter, but if specified, must be unique across all operators"
+        },
+        {
+          "name": "password",
+          "description": "new password for the operator identified by the ID in the url.",
+          "requirements": "Optional parameter."
+        }
+      ]
+    },
+    {
+      "DELETE": "/api/v1.0/operators/(id:INTEGER)",
+      "explanation": "Delete the identified operator from the system",
+      "cli": "curl -X DELETE http://XX/api/v1.0/operators/1"
+    }
+  ],
+  "tasks":[
+    {
+      "GET": "/api/v1.0/tasks/",
+      "explanation": "Gets all of the tasks for all of the callbacks",
+      "cli": "curl http://XX/api/v1.0/tasks/"
+    },
+    {
+      "GET": "/api/v1.0/tasks/callback/(cid:INTEGER)",
+      "explanation": "Gets all of the tasks for a specific callback identified by the URL",
+      "cli": "curl http://XX/api/v1.0/tasks/callback/1"
+    },
+    {
+      "GET": "/api/v1.0/tasks/callback/(cid:INTEGER)/nextTask",
+      "explanation": "Gets the next task, ordered by time, for a specific callback that is marked as \"submitted\"",
+      "cli": "curl http://XX/api/v1.0/tasks/1/nextTask"
+    },
+    {
+      "POST": "/api/v1.0/tasks/callback/(cid:INTEGER)/operator/(name:STRING)",
+      "explanation": "Adds a new task for the specified callback. All new tasks must be tagged with a specific operator. Unlike callbacks being spawned where we won't necessarily know who caused the callback initially, we will know who submitted each task.",
+      "cli": "curl -X POST '{\"command\":\"shell id\"}' http://XX/api/v1.0/tasks/callback/1/operator/alice",
+      "parameters":[
+        {
+          "name": "command",
+          "description": "The command to execute by the indicated callback.",
+          "requirements": "The command must be something that the specified callback can actually execute. If it's not a valid command, it will be rejected."
+        }
+      ]
+    },
+    {
+      "POST": "/api/v1.0/tasks/(tid:INTEGER)",
+      "explanation": "This is the response from executing tasks. Any given task can have multiple responses posted back for it, especially for long-running tasks like keylogging.",
+      "cli": "curl -X POST '{\"response\":\"completed command\"}' http://XX/api/v1.0/tasks/1",
+      "parameters":[
+        {
+          "name": "response",
+          "description": "This is the response from executing the task indicated by the tid value in the URL",
+          "requirements": "This must exist, but can be an empty string if there was no actual output."
+        }
+      ]
+    }
+  ],
+  "attacks":[
+    {
+      "GET": "/api/v1.0/attacks/host_file",
+      "explanation": "Gets all of the additional servers ever created/stopped during a single run of Apfell",
+      "cli": "curl http://XX/api/v1.0/attacks/host_file"
+    },
+    {
+      "POST": "/api/v1.0/attacks/host_file",
+      "explanation": "Create a new subprocess to host files that can be used via download cradles",
+      "cli": "curl -X POST '{\"port\":8080, \"directory\":\"/tmp\"}' http://XX/api/v1.0/attacks/host_file",
+      "parameters":[
+        {
+          "name": "port",
+          "description": "The port to bind to for a python web server",
+          "requirements": "Integer for the port that currently isn't in use and the user has access to bind to"
+        },
+        {
+          "name": "directory",
+          "description": "The directory that will be served up by the web server",
+          "requirements": "The directory must exist and should be identified by a full path"
+        }
+      ]
+    },
+    {
+      "DELETE": "/api/v1.0/attacks/host_file/(port:INTEGER)",
+      "explanation": "Find and stop the subprocess identified by a port that is serving up a web server",
+      "cli": "curl -X DELETE http://XX/api/v1.0/attacks/host_file/8080"
+    }
+  ]
+}

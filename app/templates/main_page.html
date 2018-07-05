@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="block1">
+    <h1>Hello {{name}}! Welcome to Apfell</h1>
+    <p>
+        Apfell is meant to be a post-exploit, collaborative, red teaming framework for macOS. Everything is open sourced as well. <br>
+        Check out <a href="https://its-a-feature.github.io">my github website</a> for more information on the process of creating Apfell, code repos, and blog posts on updates.<br>
+    </p>
+    <p>
+        This is the initial, bare-bones release of Apfell that accompanies my <a href="https://its-a-feature.github.io">Creating an Apfell</a> blog series.
+    </p>
+    <h3>
+        Future Updates
+    </h3>
+    <ul>
+        <li>Authentication to RESTful interfaces</li>
+        <li>Additional functions for recon</li>
+        <li>More payload formats</li>
+        <li>Listeners for saved callback info</li>
+        <li>Obfuscation</li>
+        <li>Secure Comms</li>
+    </ul>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

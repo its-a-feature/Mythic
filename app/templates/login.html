@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Sign In</h1>
+<form action="" method="post">
+{{ errors.token_errors }}
+<span style="color: red;">{{errors.validate_errors}}</span>
+    <br>
+{{ form.csrf_token }}
+    {{form.username.label}}
+    {{form.username(size=32)}}
+    <span style="color: red;">{{ errors.username_errors }}</span>
+    <br>
+    {{form.password.label}}
+    {{form.password(size=32)}}
+    <span style="color: red;">{{ errors.password_errors }}</span>
+    <br>
+    {{form.submit()}}
+</form>
+<p>New User? <a href="{{ links.register }}">Click to Register!</a></p>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

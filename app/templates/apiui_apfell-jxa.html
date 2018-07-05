@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>
+    apfell-jxa documentation
+</h1>
+<h3>
+    Design
+</h3>
+<p>
+    currently: refer to github documentation
+</p>
+<h3>
+    Commands
+</h3>
+<ul>
+    <dt>shell [command]</dt>
+    <dd>This runs [command] in a terminal by leveraging JXA's Application.doShellScript([command])</dd>
+    <dt>js [command]</dt>
+    <dd>This runs the JavaScript command, [command], and returns its output</dd>
+    <dt>jsb [command]</dt>
+    <dd>This runs the ObjectiveC bridge JavaScript command, [command], and returns its output. This will call deepunwrap on the output to convert the ObjectiveC objects to normal strings to be returned </dd>
+</ul>
+{% endblock %}
+{% block scripts %}
+
+{% endblock %}

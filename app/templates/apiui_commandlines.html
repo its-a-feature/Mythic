@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>
+    Interacting with Apfell API via CLI
+</h2>
+All of these APIs are subject to change in future versions, especially as authentication is applied to the RESTful interface.
+<!-- OPERATOR API INFORMATION -->
+<div class="panel panel-primary" id="OperatorInfo">
+    <div class="panel-heading">Operator API Information</div>
+    <div class="well well-sm pre-scrollable">
+        <table class="table table-striped table-hover table-condensed">
+            {% for option in cld.operators %}
+            <tr><td><dl>
+                <dt>
+                {% if option.GET %}
+                    GET {{option.GET}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% elif option.DELETE %}
+                    DELETE {{option.DELETE}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% else %}
+                    {% if option.POST %}
+                        POST {{option.POST}}
+                    {% else %}
+                        PUT {{option.PUT}}
+                    {% endif %}
+                    <dd><b>Explanation:</b> {{option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}}</dd>
+                    <dd>Parameters:<ul>
+                        {% for param in option.parameters %}
+                            <li><b>Name:</b> {{param.name}}</li>
+                            <ul>
+                                <li><b>Description:</b> {{param.description}}</li>
+                                <li><b>Requirements:</b> {{param.requirements}}</li>
+                            </ul>
+                        {% endfor %}
+                    </ul></dd>
+                {% endif %}
+                </dt>
+            </dl></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+<!-- CALLBACK API INFORMATION -->
+<div class="panel panel-primary" id="CallbackInfo">
+    <div class="panel-heading">Callback API Information</div>
+    <div class="well well-sm pre-scrollable">
+        <table class="table table-striped table-hover table-condensed">
+            {% for option in cld.callbacks %}
+            <tr><td><dl>
+                <dt>
+                {% if option.GET %}
+                    GET {{option.GET}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% elif option.DELETE %}
+                    DELETE {{option.DELETE}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% else %}
+                    {% if option.POST %}
+                        POST {{option.POST}}
+                    {% else %}
+                        PUT {{option.PUT}}
+                    {% endif %}
+                    <dd><b>Explanation:</b> {{option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}}</dd>
+                    <dd>Parameters:<ul>
+                        {% for param in option.parameters %}
+                            <li><b>Name:</b> {{param.name}}</li>
+                            <ul>
+                                <li><b>Description:</b> {{param.description}}</li>
+                                <li><b>Requirements:</b> {{param.requirements}}</li>
+                            </ul>
+                        {% endfor %}
+                    </ul></dd>
+                {% endif %}
+                </dt>
+            </dl></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+<!-- TASK API INFORMATION -->
+<div class="panel panel-primary" id="TaskInfo">
+    <div class="panel-heading">Task API Information</div>
+    <div class="well well-sm pre-scrollable">
+        <table class="table table-striped table-hover table-condensed">
+            {% for option in cld.tasks %}
+            <tr><td><dl>
+                <dt>
+                {% if option.GET %}
+                    GET {{option.GET}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% elif option.DELETE %}
+                    DELETE {{option.DELETE}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% else %}
+                    {% if option.POST %}
+                        POST {{option.POST}}
+                    {% else %}
+                        PUT {{option.PUT}}
+                    {% endif %}
+                    <dd><b>Explanation:</b> {{option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}}</dd>
+                    <dd>Parameters:<ul>
+                        {% for param in option.parameters %}
+                            <li><b>Name:</b> {{param.name}}</li>
+                            <ul>
+                                <li><b>Description:</b> {{param.description}}</li>
+                                <li><b>Requirements:</b> {{param.requirements}}</li>
+                            </ul>
+                        {% endfor %}
+                    </ul></dd>
+                {% endif %}
+                </dt>
+            </dl></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+<!-- ATTACKS API INFORMATION -->
+<div class="panel panel-primary" id="AttacksInfo">
+    <div class="panel-heading">Attacks API Information</div>
+    <div class="well well-sm pre-scrollable">
+        <table class="table table-striped table-hover table-condensed">
+            {% for option in cld.attacks %}
+            <tr><td><dl>
+                <dt>
+                {% if option.GET %}
+                    GET {{option.GET}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% elif option.DELETE %}
+                    DELETE {{option.DELETE}}
+                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}} </dd>
+                {% else %}
+                    {% if option.POST %}
+                        POST {{option.POST}}
+                    {% else %}
+                        PUT {{option.PUT}}
+                    {% endif %}
+                    <dd><b>Explanation:</b> {{option.explanation}}</dd>
+                    <dd><b>CLI example:</b> {{option.cli}}</dd>
+                    <dd>Parameters:<ul>
+                        {% for param in option.parameters %}
+                            <li><b>Name:</b> {{param.name}}</li>
+                            <ul>
+                                <li><b>Description:</b> {{param.description}}</li>
+                                <li><b>Requirements:</b> {{param.requirements}}</li>
+                            </ul>
+                        {% endfor %}
+                    </ul></dd>
+                {% endif %}
+                </dt>
+            </dl></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+
+{% endblock %}

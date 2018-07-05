@@ -1,0 +1,2 @@
+create file called: thing_routes.py
+in routes/__init__.py add routes to the list of imports

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% if title %}
+    <title>{{ title }} - Apfell</title>
+    {% else %}
+    <title>Welcome - Apfell</title>
+    {% endif %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" crossorigin="anonymous">
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.1.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" crossorigin="anonymous"></script>
+    <!-- vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.min.js"></script>
+
+</head>
+<body>
+    <nav class="navbar navbar-default navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+
+                <a class="navbar-brand" href="{{ links.index }}">Apfell<span class="glyphicon glyphicon-apple" aria-hidden="true"></span></a>
+
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <!-- These are the links across the top, above this is the main icon/name for home -->
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Operations <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ links.callbacks }}">Callbacks</a></li>
+                        </ul>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Payloads <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ links.payloads_jxa }}">JXA</a></li>
+                            <li class='disabled'><a href="#">Objective C - Coming Soon</a></li>
+                            <li class='disabled'><a href="#">DyLib - Coming Soon</a></li>
+                            <li role="separator" class="divider"></li>
+                            <li class='disabled'><a href="#">Python - Coming Soon</a></li>
+                        </ul>
+                    </li>
+                     <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Attacks <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ links.attacks_host_file }}">Host File</a></li>
+                        </ul>
+                    </li>
+                     <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            API <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ links.apiui_commandlines }}">CommandLines</a></li>
+                            <li><a href="{{ links.apiui_documentation }}">Documentation</a></li>
+                            <li role="separator" class="divider"></li>
+                            <li><a href="{{ links.apiui_apfell_jxa }}">apfell-jxa help</a></li>
+                        </ul>
+                    </li>
+                    {% if name %}
+                    <li><a href="{{ links.logout }}">Logout ({{name}})</a></li>
+                    {% else %}
+                    <li><a href="{{ links.login }}">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div id="main" class="container-fluid">
+
+    {% block body %}{% endblock %}
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
