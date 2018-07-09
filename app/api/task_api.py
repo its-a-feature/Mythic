@@ -3,6 +3,7 @@ from sanic.response import json
 from app.database_models.model import Callback, Operator, Task, Response
 from sanic import response
 import datetime
+import re
 
 
 # ---------- TASKS GET ---------------------------
@@ -67,6 +68,7 @@ async def add_task_to_callback(request, cid, name):
         op = await db_objects.get(Operator, username=name)
         cb = await db_objects.get(Callback, id=cid)
         # now check the task and add it if it's valid
+        # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
         task = await db_objects.create(Task, callback=cb, operator=op, command=data['command'], params=data['params'])
         return response.json({'status': 'success'}, status=200)
     except Exception as e:
@@ -88,6 +90,7 @@ async def update_task_for_callback(request, tid):
     try:
         if 'response' not in data:
             return json({'status': 'error', 'error': 'task response not in data'})
+        print(str(len(data['response'])))
         resp = await db_objects.create(Response, task=task, response=data['response'])
         task.status = "processed"
         await db_objects.update(task)

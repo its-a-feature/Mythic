@@ -7,7 +7,7 @@
     Design
 </h3>
 <p>
-    currently: refer to github documentation
+    coming in future blog posts. One thing to note right now: data comes back in a bunch of 7kB chunks. This is arbitrary, but tied to the current postgres table declarations.
 </p>
 <h3>
     Commands
@@ -19,6 +19,18 @@
     <dd>This runs the JavaScript command, [command], and returns its output</dd>
     <dt>jsb [command]</dt>
     <dd>This runs the ObjectiveC bridge JavaScript command, [command], and returns its output. This will call deepunwrap on the output to convert the ObjectiveC objects to normal strings to be returned </dd>
+    <dt>shell_elevated</dt>
+    <dd>This creates two popup dialogs prompting for a command to run and a prompt to give the user. The command will use your prompt to pop a dialog box for the user asking for them to input their password so that the command you entered will be executed in an elevated context</dd>
+    <dt>shell_api</dt>
+    <dd>This creates two popup dialogs prompting for a <strong>full</strong> binpath and then arguments for that binary. The command uses the ObjectiveC bridge to spawn that process with those arguments on the computer and get your output back. It is not interactive.</dd>
+    <dt>launchapp [bundle name]</dt>
+    <dd>This uses the Objective C bridge to launch the specified app asynchronously and 'hidden' (it'll still show up in the dock for now). An example of the bundle name is 'com.apple.itunes' for launching iTunes.</dd>
+    <dt>clipboard</dt>
+    <dd>This will return the current clipboard contents on the target machine.</dd>
+    <dt>clipboard [data]</dt>
+    <dd>This will set the clipboard data to [data]</dd>
+    <dt>exit</dt>
+    <dd>This exits the current apfell-jxa instance by leveraging the ObjectiveC bridge's NSApplication terminate function.</dd>
 </ul>
 {% endblock %}
 {% block scripts %}

@@ -67,6 +67,25 @@ var task_data = new Vue({
             if (task.length > 1){
                 params = task.slice(1, ).join(' '); //join index 1 to the end back into a string of params
             }
+            if (command == "shell_elevated"){
+                shell_elevate_cmd = prompt("Please enter the command to execute", "cat /etc/sudoers");
+                if (shell_elevate_cmd != null){
+                    shell_elevate_prompt = prompt("Please enter prompt to ask for credentials", "");
+                    if (shell_elevate_prompt != null){
+                        params = JSON.stringify({"command":shell_elevate_cmd, "prompt":shell_elevate_prompt});
+                    }
+                }
+            }
+            else if(command == "shell_api"){
+                shell_api_path = prompt("Please enter the path of the binary to execute", "/bin/ps");
+                if (shell_api_path != null){
+                    shell_api_args_string = prompt("Please enter the args for this binary", "");
+                    if(shell_api_args_string != null){
+                        shell_api_args = shell_api_args_string.split(" ");
+                        params = JSON.stringify({"path":shell_api_path, "args":shell_api_args});
+                    }
+                }
+            }
             httpGetAsync("http://{{links.server_ip}}/api/v1.0/tasks/callback/" + data['cid'] + "/operator/" + username,
             null, "POST", {"command":command,"params":params});
             //alert("submitting " + this.input_field);
@@ -150,7 +169,7 @@ function startwebsocket_updatedtasks(){
                     //but we haven't received any responses for the specified task_id
                     Vue.set(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']], 'response', {});
                 }
-                console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
+                //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
                 Vue.set(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': rsp['response']});
             }
         }
