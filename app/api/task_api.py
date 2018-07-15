@@ -3,7 +3,7 @@ from sanic.response import json
 from app.database_models.model import Callback, Operator, Task, Response
 from sanic import response
 import datetime
-import re
+import base64
 
 
 # ---------- TASKS GET ---------------------------
@@ -81,7 +81,10 @@ async def add_task_to_callback(request, cid, name):
 @apfell.route("/api/v1.0/tasks/<tid:int>", methods=['POST'])
 async def update_task_for_callback(request, tid):
     data = request.json
-    print(data)
+    # print(data)
+    # print(len(data['response']))
+    decoded = base64.b64decode(data['response']).decode("utf-8")
+    # print(decoded)
     try:
         task = await db_objects.get(Task, id=tid)
     except Exception as e:
@@ -91,7 +94,7 @@ async def update_task_for_callback(request, tid):
         if 'response' not in data:
             return json({'status': 'error', 'error': 'task response not in data'})
         print(str(len(data['response'])))
-        resp = await db_objects.create(Response, task=task, response=data['response'])
+        resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
         await db_objects.update(task)
         return json({'status': 'success'})

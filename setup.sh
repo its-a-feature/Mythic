@@ -25,5 +25,5 @@ fi
 #install the pip3 requirements
 pip3 install -r requirements.txt
 
-echo -e "\n[*] don\'t forget to edit app/__init__.py with the username and password for postgres and your IP"
+echo -e "\n[*] don\'t forget to edit app/__init__.py with the username and password for postgres"
 echo -e "\n[*] start server with \"python3 server.py\"\n"
