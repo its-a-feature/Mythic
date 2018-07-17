@@ -10,17 +10,17 @@ Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bone
 ```bash
 git clone https://github.com/its-a-feature/Apfell
 ```
-- Install and setup the requirements (Note: This only runs on Linux right now):
+- Install and setup the requirements (Note: The Sanic webserver says it only works on Linux):
 ```bash
-# Install postgres and pip3 install the requirements
-cd Apfell && ./setup.sh && cd ..
+# The setup.sh will install postgres and pip3 install the requirements
+cd Apfell && chmod +x setup.sh && sudo ./setup.sh && cd ..
 ```
 - Configure the installation in app/\_\_init\_\_.py:
 ```bash
 # -------- CONFIGURE SETTINGS HERE -----------
 db_name = 'apfell_db'
-db_user = 'postgres'
-db_pass = 'postgres'
+db_user = 'apfell_user'
+db_pass = 'super_secret_apfell_user_password'
 server_ip = '192.168.0.119'
 ```
 - Optionally configure the IP and port for the server to listen on in Server.py:

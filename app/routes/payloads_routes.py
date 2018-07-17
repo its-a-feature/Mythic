@@ -21,7 +21,7 @@ async def payloads_jxa(request, user):
 
         try:
             # take these inputs to create our payload and write it to output_directory
-            base_jxa = open('./payloads/JXA.js', 'r')
+            base_jxa = open('./app/payloads/JXA.js', 'r')
             custom_jxa = open(output_directory, 'w')
             # read base_jxa and write it out to custom_jxa with our modifications
             # for now, obfuscation doesn't do anything
