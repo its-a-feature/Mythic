@@ -7,8 +7,8 @@ from peewee_async import Manager, PooledPostgresqlDatabase
 # --------------------------------------------
 # -------- CONFIGURE SETTINGS HERE -----------
 db_name = 'apfell_db'
-db_user = 'postgres'
-db_pass = 'postgres'
+db_user = 'apfell_user'
+db_pass = 'super_secret_apfell_user_password'
 server_ip = '192.168.0.119'
 # --------------------------------------------
 # --------------------------------------------
