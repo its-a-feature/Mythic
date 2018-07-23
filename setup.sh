@@ -35,9 +35,14 @@ fi
 if ! which pip3 > /dev/null; then
     apt-get -y install python3-pip
 fi
+#check for openssl
+if ! which openssl > /dev/null; then
+    apt-get -y install openssl
+fi
+#generate a self-signed cert for us to use
+openssl req -new -x509 -keyout ./app/ssl/apfell-ssl.key -out ./app/ssl/apfell-cert.pem -days 365 -nodes -subj "/C=US" >/dev/null 2>&1
 
 #install the pip3 requirements
 pip3 install -r requirements.txt
 
-echo -e "\n[*] don\'t forget to edit app/__init__.py with the username and password for postgres"
 echo -e "\n[*] start server with \"python3 server.py\"\n"
