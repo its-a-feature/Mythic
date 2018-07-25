@@ -1,4 +1,4 @@
-from app import apfell, auth, links
+from app import apfell, auth, links, use_ssl
 from app.routes.routes import env
 from sanic import response
 
@@ -7,7 +7,10 @@ from sanic import response
 @auth.login_required(user_keyword='user')
 async def callbacks(request, user):
     template = env.get_template('callbacks.html')
-    content = template.render(links=links, name=user.name)
+    if use_ssl:
+        content = template.render(links=links, name=user.name, http="https", ws="wss")
+    else:
+        content = template.render(links=links, name=user.name, http="http", ws="ws")
     return response.html(content)
 
 # add links to these routes at the bottom

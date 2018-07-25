@@ -27,15 +27,17 @@ db_objects = Manager(apfell_db, loop=dbloop)
 apfell = Sanic(__name__)
 apfell.config.AUTH_LOGIN_ENDPOINT = 'login'
 apfell.config['WTF_CSRF_SECRET_KEY'] = 'really secure super secret key here, and change me!'
-apfell.config['SERVER_IP_ADDRESS'] = server_ip  # change this to be IP/hostname of server
-apfell.config['DB_USER'] = db_user  # change to actual username
-apfell.config['DB_PASS'] = db_pass  # change to actual password
-apfell.config['DB_NAME'] = db_name  # change to actual db if needed from default
+apfell.config['SERVER_IP_ADDRESS'] = server_ip  
+apfell.config['SERVER_PORT'] = listen_port
+apfell.config['DB_USER'] = db_user  
+apfell.config['DB_PASS'] = db_pass  
+apfell.config['DB_NAME'] = db_name  
 apfell.config['DB_POOL_CONNECT_STRING'] = 'dbname=' + apfell.config['DB_NAME'] + ' user=' + apfell.config['DB_USER'] + ' password=' + apfell.config['DB_PASS']
 auth = Auth(apfell)
 
 session = {}
-links = {'server_ip': apfell.config['SERVER_IP_ADDRESS']}
+links = {'server_ip': apfell.config['SERVER_IP_ADDRESS'],
+         'server_port': apfell.config['SERVER_PORT']}
 
 
 @apfell.middleware('request')

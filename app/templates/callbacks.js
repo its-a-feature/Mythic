@@ -32,7 +32,7 @@ var callback_table = new Vue({
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
-            httpGetAsync("http://{{links.server_ip}}/api/v1.0/tasks/callback/" + callback['id'] + "/operator/" + username,
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/tasks/callback/" + callback['id'] + "/operator/" + username,
             null, "POST", {"command":"exit","params":""});
         },
         remove_callback: function(callback){
@@ -43,7 +43,7 @@ var callback_table = new Vue({
             this.$delete(meta, callback.id);
             this.$delete(callbacks, callback.id);
             //update the callback to be active=false
-            httpGetAsync("http://{{links.server_ip}}/api/v1.0/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
         }
     },
     delimiters: ['[[',']]']
@@ -86,7 +86,7 @@ var task_data = new Vue({
                     }
                 }
             }
-            httpGetAsync("http://{{links.server_ip}}/api/v1.0/tasks/callback/" + data['cid'] + "/operator/" + username,
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/tasks/callback/" + data['cid'] + "/operator/" + username,
             null, "POST", {"command":command,"params":params});
             //alert("submitting " + this.input_field);
             this.input_field = "";
@@ -99,7 +99,7 @@ var task_data = new Vue({
     delimiters: ['[[', ']]']
 });
 function startwebsocket_callbacks(){
-    var ws = new WebSocket('ws://{{links.server_ip}}/ws/callbacks');
+    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks');
     ws.onmessage = function(event){
         if (event.data != ""){
 
@@ -138,7 +138,7 @@ function startwebsocket_callbacks(){
     }
 };
 function startwebsocket_newtasks(){
-    var ws = new WebSocket('ws://{{links.server_ip}}/ws/tasks');
+    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/tasks');
     ws.onmessage = function(event){
         if (event.data != ""){
             tsk = JSON.parse(event.data);
@@ -159,7 +159,7 @@ function startwebsocket_newtasks(){
     };
 };
 function startwebsocket_updatedtasks(){
-    var ws = new WebSocket('ws://{{links.server_ip}}/ws/responses');
+    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/responses');
     ws.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);
@@ -176,7 +176,7 @@ function startwebsocket_updatedtasks(){
     };
 };
 function startwebsocket_updatedcallbacks(){
-var ws = new WebSocket('ws://{{links.server_ip}}/ws/updatedcallbacks');
+var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updatedcallbacks');
     ws.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);
