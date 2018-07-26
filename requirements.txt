@@ -8,3 +8,4 @@ sanic-auth
 sanic-wtf
 cryptography
 wtforms
+websockets==5.0.1
