@@ -9,4 +9,5 @@ class Payloads_JXA_Form(SanicForm):
     obfuscation = BooleanField('Obfuscation')
     output_directory = StringField('Output Directory', validators=[DataRequired()])
     callback_interval = IntegerField('Callback Interval', validators=[DataRequired()])
+    default_tag = StringField('Default tag')
     submit = SubmitField('Create Payload')

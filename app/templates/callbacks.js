@@ -27,6 +27,54 @@ var callback_table = new Vue({
             meta[callback.id]['tasks'] = true;
             meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
         },
+        spawn_menu: function(callback){
+            //display a modal menu for the user to get some information about spawning a new callback
+            possiblePayloads = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/payloads/"));
+            var payloads = '<option value="-1">current callback as template for new payload</option>';
+            for(var i = 0; i < possiblePayloads.length; i++){
+                if(possiblePayloads[i].tag !== ""){
+                    //if there's already a default tag, just use it to ID the payload
+                    payloads = payloads + '<option value="' + possiblePayloads[i].uuid + '">'
+                    + possiblePayloads[i].tag + '</option>';
+                }
+                else{
+                    //if there is no tag associated, ID it with uuid for now
+                    payloads = payloads + '<option value="' + possiblePayloads[i].uuid + '">'
+                    + possiblePayloads[i].uuid + '</option>';
+                }
+            }
+            $( '#spawnPayload' ).html(payloads);
+            var defaultNewTag = username + " on " + callback.id + " using " + $('#spawnMethod').val();
+            $( '#spawnTag').val(defaultNewTag);
+            $( '#spawnModal' ).modal('show');
+            // because we do this 'binding' with .click in this function, it happens every time we make the modal show
+            //   if we don't unbind each time, then we'll bind multiple times and call the function repeatedly for each click
+            $( '#spawnSubmit' ).unbind('click').click(function(){
+                //Now we have everything we need to submit this post request!
+                post_data = {'pcallback': callback.id, 'task': true, 'operator': username, 'command': $('#spawnMethod').val().split(" ")[0], 'params': $('#spawnMethod').val().split(" ").slice(1, ).join(' ')}
+                if( $('#spawnPayload').val() == -1){
+                    //we selected to use our current payload
+                    post_data['payload'] = callback.registered_payload;
+                }
+                else{
+                    //we selected an already existing payload that was registered, so use that uuid
+                    post_data['payload'] = $('#spawnPayload').val();
+                }
+                if( $('#spawnNewTag').val() == "on"){
+                    post_data['tag'] = $('#spawnTag').val();
+                }
+                else{
+                    if($('#spawnPayload').val() == -1){
+                        //we didn't specify a new tag and we want to use a new payload, so create a meaningful new tag
+                        post_data['tag'] = username + " on " + callback.id + " using " + $('#spawnMethod').val();
+                    }
+                }
+                //should have all the data we need, submit the POST request
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/payloads/create-jxa",
+                null, "POST", post_data);
+            });
+
+        },
         hide_tasks: function(callback){
             meta[callback.id]['tasks'] = false;
         },
@@ -38,8 +86,6 @@ var callback_table = new Vue({
         remove_callback: function(callback){
             //remove callback from our current view until we potentially get a checkin from it
             meta[callback.id]['tasks'] = false;
-            //delete meta[callback.id];
-            //delete callbacks[callback.id];
             this.$delete(meta, callback.id);
             this.$delete(callbacks, callback.id);
             //update the callback to be active=false
@@ -61,7 +107,7 @@ var task_data = new Vue({
         task_button: function(data){
             //submit the input_field data as a task, need to know the current callback id though
             //httpGetAsync(theUrl, callback, method, data)
-            task = this.input_field.split(" ");
+            task = this.input_field.trim().split(" ");
             command = task[0];
             params = "";
             if (task.length > 1){
@@ -79,7 +125,7 @@ var task_data = new Vue({
             else if(command == "shell_api"){
                 shell_api_path = prompt("Please enter the path of the binary to execute", "/bin/ps");
                 if (shell_api_path != null){
-                    shell_api_args_string = prompt("Please enter the args for this binary", "");
+                    shell_api_args_string = prompt("Please enter the args for this binary", "-ax");
                     if(shell_api_args_string != null){
                         shell_api_args = shell_api_args_string.split(" ");
                         params = JSON.stringify({"path":shell_api_path, "args":shell_api_args});
@@ -104,7 +150,7 @@ function startwebsocket_callbacks(){
         if (event.data != ""){
 
             cb = JSON.parse(event.data);
-            console.log(cb);
+            //console.log(cb);
             if(cb['active'] == false){
                 return; //don't process this if the callback is no longer active
             }
@@ -113,7 +159,7 @@ function startwebsocket_callbacks(){
                     delete cb.operator;
                 }
                 else{
-                    op = cb['operator']['username'].slice(0);
+                    op = cb['operator'].slice(0);
                     delete cb.operator;
                     cb['operator'] = op;
                 }
@@ -144,17 +190,22 @@ function startwebsocket_newtasks(){
             tsk = JSON.parse(event.data);
             //console.log("new task");
             //console.log(tsk);
-            if (tsk['callback']['active'] == false){
-                return;
+            if (callbacks[tsk['callback']]){
+                if (callbacks[tsk['callback']]['active'] == false){
+                    return;
+                }
             }
-            if ( !(tsk['callback']['id'] in all_tasks) ){
+            if ( !(tsk['callback'] in all_tasks) ){
                 // if there is NOT this specific callback.id in the tasks dictionary
                 // then create it as an empty dictionary
-                Vue.set(all_tasks, tsk['callback']['id'], {}); //create an empty dictionary
+                Vue.set(all_tasks, tsk['callback'], {}); //create an empty dictionary
             }
-            Vue.set(all_tasks[tsk['callback']['id']], tsk['id'], tsk);
+            Vue.set(all_tasks[tsk['callback']], tsk['id'], tsk);
             // in case this is the first task and we're waiting for it to show up, reset this
-            meta[tsk['callback']['id']].data = all_tasks[tsk['callback']['id']];
+            if(!meta[tsk['callback']]){
+                meta[tsk['callback']] = {};
+            }
+            meta[tsk['callback']].data = all_tasks[tsk['callback']];
         }
     };
 };
@@ -163,14 +214,15 @@ function startwebsocket_updatedtasks(){
     ws.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);
-            if(rsp['task']['callback']['id'] in all_tasks){
+            //console.log(rsp);
+            if(rsp['task']['callback'] in all_tasks){
                 //if we have that callback id in our all_tasks list
-                if(!all_tasks[rsp['task']['callback']['id']][rsp['task']['id']]['response']){
+                if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]['response']){
                     //but we haven't received any responses for the specified task_id
-                    Vue.set(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']], 'response', {});
+                    Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']], 'response', {});
                 }
                 //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
-                Vue.set(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': rsp['response'].replace(/\\n/g, '\n')});
+                Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': rsp['response'].replace(/\\n/g, '\n')});
             }
         }
     };
@@ -201,22 +253,7 @@ function timeConversion(millisec){
     var days = Math.trunc(((millisec / (1000 * 60 * 60 * 24)).toFixed(1)) % 365);
     return days + ":" + hours + ":" + minutes + ":" + seconds;
 }
-function httpGetAsync(theUrl, callback, method, data){
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-            if (callback){ //post might not have a callback
-                callback(xmlHttp.responseText);
-            }
-    }
-    xmlHttp.open(method, theUrl, true); // true for asynchronous
-    xmlHttp.send(JSON.stringify(data));
-}
-function display_callback_tasks(data){
-    // update the callback's task data
-    tsk = JSON.parse(data);
-    console.log(tsk);
-}
+
 
 startwebsocket_callbacks();
 setInterval(updateClocks, 1000);

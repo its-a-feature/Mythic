@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator
+from app.database_models.model import Callback, Operator, Payload
 from sanic import response
 from sanic.exceptions import abort
 
@@ -8,12 +8,8 @@ from sanic.exceptions import abort
 # ---------- CALLBACKS ---------------------------
 @apfell.route("/api/v1.0/callbacks/", methods=['GET'])
 async def get_all_callbacks(request):
-    #callbacks = await db_objects.execute(Callback.select(Callback, Operator).join(Operator))
-    #return json([c.to_json() for c in callbacks])
     callbacks = Callback.select()
-    operators = Operator.select()
-    callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
-    return json([c.to_json() for c in callbacks_with_operators])
+    return json([c.to_json() for c in callbacks])
 
 
 @apfell.route("/api/v1.0/callbacks/", methods=['POST'])
@@ -32,31 +28,33 @@ async def create_callback(request):
     if not 'ip' in data:
         return json({'status': 'error',
                      'error': 'IP required'})
-    if not 'payload_type' in data:
+    if not 'uuid' in data:
         return json({'status': 'error',
-                     'error': 'payload type required'})
-    if not 'description' in data:
-        data['description'] = ""
-    if not 'operator' in data:
-        try:
-            cal = await db_objects.create(Callback, user=data['user'], host=data['host'], pid=data['pid'],
-                                          ip=data['ip'],
-                                          description=data['description'], payload_type=data['payload_type'])
-        except Exception as e:
-            return json({'status': 'error',
-                         'error': 'Failed to create callback',
-                         'msg': str(e)})
-    else:
-        # operator listed, see if they exist
-        try:
-            op = await db_objects.get(Operator, username=data['operator'])
-            cal = await db_objects.create(Callback, user=data['user'], host=data['host'], pid=data['pid'],
-                                          ip=data['ip'],
-                                          description=data['description'], payload_type=data['payload_type'],
-                                          operator=op)
-        except Exception as e:
-            return json({'status': 'error',
-                         'error': 'Operator doesn\'t exist or failed to create callback'})
+                     'error': 'uuid required'})
+    # Get the corresponding Payload object based on the uuid
+    try:
+        payload = await db_objects.get(Payload, uuid=data['uuid'])
+        # now that we have a uuid and payload, we should check if there's a matching parent callback
+        if payload.pcallback:
+            pcallback = await db_objects.get(Callback, id=payload.pcallback)
+        else:
+            pcallback = None
+    except Exception as e:
+        print(e)
+        return json({'status': 'error',
+                     'error': 'Failed to find payload',
+                     'msg': str(e)})
+    try:
+        cal = await db_objects.create(Callback, user=data['user'], host=data['host'], pid=data['pid'],
+                                      ip=data['ip'], payload_type=payload.payload_type,
+                                      description=payload.tag, operator=payload.operator,
+                                      registered_payload=payload, pcallback=pcallback)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error',
+                     'error': 'Failed to create callback',
+                     'msg': str(e)})
+
     return response.json({'status': 'success', 'id': cal.id}, status=201)
 
 

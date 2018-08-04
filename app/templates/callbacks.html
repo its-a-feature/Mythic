@@ -19,15 +19,16 @@
             <tr v-for="callback in callbacks" :key="callback.id">
                 <td>
                     <!-- Split button -->
-                    <div class="btn-group">
+                    <div class="btn-group dropdown">
                       <button type="button" class="btn btn-primary btn-sm" @click="interact_button(callback)">Interact</button>
                       <button type="button" class="btn btn-info dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="caret"></span>
                         <span class="sr-only">Toggle Dropdown</span>
                       </button>
-                      <ul class="dropdown-menu" >
-                          <li><a href="#">Keystrokes</a></li>
-                          <li><a href="#">Screenshots</a></li>
+                      <ul class="dropdown-menu">
+                          <li class='disabled' ><a href="#">Keystrokes</a></li>
+                          <li class="disabled"><a href="#">Screenshots</a></li>
+                          <li><a @click="spawn_menu(callback)" href="#">spawn menu</a></li>
                           <li role="separator" class="divider"></li>
                           <li><a @click="hide_tasks(callback)" href="#">Hide Tasks</a></li>
                           <li role="separator" class="divider"></li>
@@ -62,8 +63,8 @@
             <div class="well-sm pre-scrollable "  v-bind:id="'tasks' + metadata.id + 'data'" style="overflow:auto;resize:vertical">
                 <!-- REPEAT for each task for the specific callback that's selected -->
                 <span v-for="task in metadata.data" :key="task.id">
-                    <font color="green">([[task.operator.username]])</font>&nbsp;
-                    <font color="red">[[task.callback.user]]@[[task.callback.host]]([[task.callback.pid]])#&nbsp;</font>
+                    <font color="green">([[task.operator]])</font>&nbsp;
+                    <font color="red">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</font>
                     [[task.command]]&nbsp;[[task.params]]<br>
                     <span v-for="rsp in task.response" :key="rsp.id" style="white-space: pre-wrap">
                         <font color="blue">([[rsp.timestamp]])</font>
@@ -86,11 +87,38 @@
         </div>
     </div>
 </div>
-
+<!-- THIS IS OUR MODAL FOR SPAWN MENU -->
+<div class="modal fade bs-example-modal-sm" id="spawnModal" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3 id="myModalLabel">Spawn Menu</h3>
+            </div>
+              <div class="modal-body" id="spawnBody">
+                  <h4>Select Spawn Method:</h4>
+                  <select id="spawnMethod">
+                      <option value="spawn shell_api oneliner">shell_api oneliner</option>
+                  </select>
+                  <h4>Select payload to use:</h4>
+                  <select id="spawnPayload">
+                      <option value="-1">use current callback's payload</option>
+                  </select>
+                  <br>
+                  <h4>Use new tag:<input type="checkbox" id="spawnNewTag"></h4>
+                  <input type="text" name="tag" id="spawnTag">
+              </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="spawnSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR SPAWN MENU -->
 {% endblock %}
 
 {% block scripts %}
-<script type="text/javascript">
 {% include "callbacks.js" %}
-</script>
+{% include "shared_javascript.js" %}
 {% endblock %}

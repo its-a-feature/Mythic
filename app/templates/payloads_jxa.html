@@ -34,6 +34,12 @@
     {{form.callback_interval(size=10)}}
      <span style="color: red;">{{ errors.callback_interval_errors }}</span>
     Time in seconds
+
+    <br>
+    {{form.default_tag.label}}
+    {{form.default_tag(size=32)}}
+    <span style="color: red;">{{ errors.default_tag_errors }}</span>
+
     <br>
     {{form.submit()}}
 </form>

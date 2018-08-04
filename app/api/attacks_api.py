@@ -18,14 +18,15 @@ async def get_all_web_servers(request):
 async def create_new_host_file(request):
     # expects to get port, directory
     data = request.json
-    if not 'port' in data:
+    if 'port' not in data:
         return json({'status': 'error',
                      'error': '"port" field is required'})
-    if not 'directory' in data:
+    if 'directory' not in data:
         return json({'status': 'error',
                      'error': '"directory" field is required'})
     null = open('/dev/null', 'w')
     try:
+        # if we try to open the same port twice, this will fail
         p = subprocess.Popen(
             [sys.executable, '-m', 'http.server', str(data['port'])],
             cwd=data['directory'],
@@ -33,10 +34,15 @@ async def create_new_host_file(request):
             stderr=null
         )
         sleep(1)
+        # if we already had one of these port/directory combos in there, delete it so we can add the updated one
+        for x in web_servers:
+            if x['port'] == data['port'] and x['directory'] == data['directory']:
+                web_servers.remove(x)
         web_servers.append({'port': data['port'],
                             'directory': data['directory'],
                             'process': p,
-                            'status': 'running'})
+                            'status': 'running',
+                            'encryption': False})
         return json({'status': 'success'})
     except Exception as e:
         print(e)
@@ -47,7 +53,7 @@ async def create_new_host_file(request):
 @apfell.route("/api/v1.0/attacks/host_file/<port:int>", methods=['DELETE'])
 async def delete_host_file(request, port):
     for server in web_servers:
-        if server['port'] == port:
+        if server['port'] == str(port):
             server['process'].terminate()
             server['status'] = 'stopped'
             return json({'status': 'success'})

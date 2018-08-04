@@ -34,6 +34,9 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a href="{{ links.callbacks }}">Callbacks</a></li>
+                            <li><a href="{{ links.database_management }}">Database Management</a></li>
+                            <li class="disabled"><a href="#">Payload Management</a></li>
+                            <li class="disabled"><a href="#">Analytics</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -42,7 +45,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a href="{{ links.payloads_jxa }}">JXA</a></li>
-                            <li class='disabled'><a href="#">Objective C - Coming Soon</a></li>
+                            <li class='disabled'><a href="#">Application Bundle - Coming Soon</a></li>
                             <li class='disabled'><a href="#">DyLib - Coming Soon</a></li>
                             <li role="separator" class="divider"></li>
                             <li class='disabled'><a href="#">Python - Coming Soon</a></li>
@@ -67,6 +70,22 @@
                             <li><a href="{{ links.apiui_apfell_jxa }}">apfell-jxa help</a></li>
                         </ul>
                     </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Reporting <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li class="disabled"><a href="#">ATT&CK Mappings</a></li>
+                            <li class="disabled"><a href="#">Full Timeline</a></li>
+                            <li role="separator" class="divider"></li>
+                            <li><h5 class="dropdown-header">Component Reports</h5></li>
+                            <li class="disabled"><a href="#">Operators</a></li>
+                            <li class="disabled"><a href="#">Hosts</a></li>
+                            <li class="disabled"><a href="#">Compromised Users</a></li>
+                            <li class="disabled"><a href="#">Callbacks</a></li>
+                            <li class="disabled"><a href="#">Days</a></li>
+                        </ul>
+                    </li>
                     {% if name %}
                     <li><a href="{{ links.logout }}">Logout ({{name}})</a></li>
                     {% else %}
@@ -80,6 +99,8 @@
 
     {% block body %}{% endblock %}
     </div>
+    <script type="text/javascript">
     {% block scripts %}{% endblock %}
+    </script>
 </body>
 </html>

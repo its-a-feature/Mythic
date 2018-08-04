@@ -31,17 +31,65 @@ class Operator(p.Model):
         return self.password == temp_pass.decode("utf-8")
 
 
+class Payload(p.Model):
+    # this is actually a sha256 from other information about the payload
+    uuid = p.CharField(unique=True, null=True)
+    # tag a payload with information like spearphish, custom bypass, lat mov, etc (indicates "how")
+    tag = p.CharField(null=True)
+    # creator of the payload, cannot be null! must be attributed to somebody (indicates "who")
+    operator = p.ForeignKeyField(Operator, null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.now, null=False)  # (indicates "when")
+    payload_type = p.CharField(null=False)
+    # this will signify if a current callback made / spawned a new callback that's checking in
+    #   this helps track how we're getting callbacks (which payloads/tags/parents/operators)
+    pcallback = p.ForeignKeyField(p.DeferredRelation('Callback'), null=True)
+    callback_host = p.CharField(null=False)
+    callback_port = p.IntegerField(null=False)
+    obfuscation = p.BooleanField(null=False)
+    callback_interval = p.IntegerField(null=False)
+    use_ssl = p.BooleanField(null=False)
+    location = p.CharField(null=True)  # location on disk of the payload
+
+    class Meta:
+        database = apfell_db
+
+    async def create_uuid(self, info):
+        hash = await crypto.hash_SHA256(info)
+        return hash
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'operator':
+                    r[k] = getattr(self, k).username
+                elif k == 'pcallback':
+                    r[k] = getattr(self, k).id
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 class Callback(p.Model):
     init_callback = p.DateTimeField(default=datetime.datetime.now, null=False)
     last_checkin = p.DateTimeField(default=datetime.datetime.now, null=False)
-    user = p.CharField(max_length=64, null=False)
-    host = p.CharField(max_length=255, null=False)
+    user = p.CharField(null=False)
+    host = p.CharField(null=False)
     pid = p.IntegerField(null=False)
     ip = p.CharField(max_length=100, null=False)
     description = p.CharField(max_length=1024, null=True)
     operator = p.ForeignKeyField(Operator, null=True)
-    payload_type = p.CharField(null=True)
+    payload_type = p.CharField(null=False)
     active = p.BooleanField(default=True, null=False)
+    # keep track of the parent callback from this one
+    pcallback = p.ForeignKeyField(p.DeferredRelation('Callback'), null=True)
+    registered_payload = p.ForeignKeyField(Payload, null=False)  # what payload is associated with this callback
 
     class Meta:
         unique_together = ['host', 'pid']
@@ -51,8 +99,12 @@ class Callback(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                if k == 'operator':
-                    r[k] = (getattr(self, k)).to_json()
+                if k == 'pcallback':
+                    r[k] = (getattr(self, k)).id
+                elif k == 'operator':
+                    r[k] = (getattr(self, k)).username
+                elif k == 'registered_payload':
+                    r[k] = (getattr(self, k)).uuid
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -67,7 +119,7 @@ class Callback(p.Model):
 
 class Task(p.Model):
     command = p.CharField(null=False)
-    params = p.CharField(null=True, max_length=8000)
+    params = p.CharField(null=True)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
     attack_id = p.IntegerField(null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
@@ -84,8 +136,10 @@ class Task(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                if k == 'operator' or k == 'callback':
-                    r[k] = (getattr(self, k)).to_json()
+                if k == 'callback':
+                    r[k] = (getattr(self, k)).id
+                elif k == 'operator':
+                    r[k] = (getattr(self, k)).username
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -98,7 +152,7 @@ class Task(p.Model):
 
 
 class Response(p.Model):
-    response = p.CharField(null=True, max_length=8000)
+    response = p.CharField(null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
     task = p.ForeignKeyField(Task, null=False)
 
@@ -198,7 +252,9 @@ def pg_register_newresponse():
 
 
 # Create the Tables
+# don't forget to add in a new truncate command in database_api.py to clear the rows
 Operator.create_table(True)
+Payload.create_table(True)
 Callback.create_table(True)
 Task.create_table(True)
 Response.create_table(True)

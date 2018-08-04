@@ -13,5 +13,17 @@ async def callbacks(request, user):
         content = template.render(links=links, name=user.name, http="http", ws="ws")
     return response.html(content)
 
+
+@apfell.route("/db_management")
+@auth.login_required(user_keyword='user')
+async def db_management(request, user):
+    template = env.get_template('database_management.html')
+    if use_ssl:
+        content = template.render(links=links, name=user.name, http="https", ws="wss")
+    else:
+        content = template.render(links=links, name=user.name, http="http", ws="ws")
+    return response.html(content)
+
 # add links to these routes at the bottom
 links['callbacks'] = apfell.url_for('callbacks')
+links['database_management'] = apfell.url_for('db_management')

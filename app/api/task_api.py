@@ -3,7 +3,6 @@ from sanic.response import json
 from app.database_models.model import Callback, Operator, Task, Response
 from sanic import response
 import datetime
-import base64
 
 
 # ---------- TASKS GET ---------------------------
@@ -45,16 +44,16 @@ async def get_next_task(request, cid):
                      'error': 'callback does not exist'})
     try:
         callback.last_checkin = datetime.datetime.now()
-        callback.active = True # always set this to true regardless of what it was before because it's clearly active
+        callback.active = True  # always set this to true regardless of what it was before because it's clearly active
         await db_objects.update(callback)  # update the last checkin time
         tasks = await db_objects.get(Task.select().join(Callback).where(
             (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
     except Exception as e:
         print(e)
-        return json({'command':'none'})  # return empty if there are no tasks that meet the criteria
+        return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
     tasks.status = "processing"
     await db_objects.update(tasks)
-    return json({"command": tasks.command, "params":tasks.params, "id": tasks.id})
+    return json({"command": tasks.command, "params": tasks.params, "id": tasks.id})
 
 
 # ---------- TASKS POST -------------------------
@@ -63,6 +62,10 @@ async def get_next_task(request, cid):
 async def add_task_to_callback(request, cid, name):
     data = request.json
     print(data)
+    return json(await add_task_to_callback_func(data, cid, name))
+
+
+async def add_task_to_callback_func(data, cid, name):
     try:
         # first see if the operator and callback exists
         op = await db_objects.get(Operator, username=name)
@@ -70,36 +73,7 @@ async def add_task_to_callback(request, cid, name):
         # now check the task and add it if it's valid
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
         task = await db_objects.create(Task, callback=cb, operator=op, command=data['command'], params=data['params'])
-        return response.json({'status': 'success'}, status=200)
+        return {'status': 'success'}
     except Exception as e:
-        return json({'status': 'error',
-                     'error': 'Failed to create task',
-                     'msg': str(e)})
+        return {'status': 'error', 'error': 'Failed to create task',  'msg': str(e)}
 
-
-# implant calling back to update with response from executing a task
-@apfell.route("/api/v1.0/tasks/<tid:int>", methods=['POST'])
-async def update_task_for_callback(request, tid):
-    data = request.json
-    # print(data)
-    # print(len(data['response']))
-    decoded = base64.b64decode(data['response']).decode("utf-8")
-    # print(decoded)
-    try:
-        task = await db_objects.get(Task, id=tid)
-    except Exception as e:
-        return json({'status': 'error',
-                     'error': 'Task does not exist'})
-    try:
-        if 'response' not in data:
-            return json({'status': 'error', 'error': 'task response not in data'})
-        print(str(len(data['response'])))
-        resp = await db_objects.create(Response, task=task, response=decoded)
-        task.status = "processed"
-        await db_objects.update(task)
-        return json({'status': 'success'})
-    except Exception as e:
-        print(e)
-        return json({'status': 'error',
-                     'error': 'Failed to update task',
-                     'msg': str(e)})
