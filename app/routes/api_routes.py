@@ -9,7 +9,7 @@ env = Environment(loader=PackageLoader('app', 'templates'))
 @apfell.route("/apiui/commandlines")
 @auth.login_required(user_keyword='user')
 async def apiui_commandline(request, user):
-    api_data = js.load(open("api/cli_api.json"))
+    api_data = js.load(open("./app/api/cli_api.json"))
     template = env.get_template('apiui_commandlines.html')
     content = template.render(name=user.name, links=links, cld=api_data)
     return response.html(content)
