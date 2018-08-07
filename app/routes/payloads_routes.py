@@ -52,6 +52,7 @@ async def payloads_jxa(request, user):
                 payload.location = str(pathlib.Path(output_directory).resolve())
                 await db_objects.update(payload)
                 success = "true"
+                errors['uuid'] = resp['uuid']  # kind of hacky, but it works
             except Exception as e:
                 print(e)
                 errors['validate_errors'] = "Failed to create payload"

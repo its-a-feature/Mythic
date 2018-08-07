@@ -46,4 +46,4 @@ openssl req -new -x509 -keyout ./app/ssl/apfell-ssl.key -out ./app/ssl/apfell-ce
 #install the pip3 requirements
 pip3 install -r requirements.txt
 
-echo -e "\n[*] start server with \"sudo python3 server.py\"\n"
+echo -e "\n[*] start server with \"python3 server.py\"\n"

@@ -32,7 +32,7 @@ use_ssl = True
 You need to edit Sanic with a slight update (I'm going to make a pull request for Sanic so we don't need to do this, but that'll take a little while). In the meantime, do `sudo find / -type f -name "app.py"` to find the appropriate Sanic file to edit.
 In here, find the line that says `protocol = request.transport._protocol` and edit it to be:
 ```python
-if hasattr(request.transport, '_app_protocol') 
+if hasattr(request.transport, '_app_protocol'): 
     protocol = request.transport._app_protocol
 else: 
     protocol = request.transport._protocol
@@ -53,11 +53,8 @@ By default, the server will bind to 0.0.0.0 on port 443. This is an alias meanin
 - Create a new payload:  
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/apfell-create-jxa.JPG)
 
-- Use the attacks_api to host the new file (this will eventually get updated with a GUI):  
-```bash
-# assuming we created a payload in our local '/tmp' directory
-curl -X POST'{"port":8080, "directory":"/tmp"}' https://192.168.0.119/api/v1.0/attacks/host_file
-```
+- Host the new payload:  
+![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/web_hosting.JPG)
 This will start a python simple web server in the `/tmp` directory on port `8080`.
 
 - Pull down and execute payload in memory:

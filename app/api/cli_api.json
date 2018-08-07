@@ -11,7 +11,7 @@
         {
           "POST": "/api/v1.0/callbacks/",
           "explanation": "Create a new callback",
-          "cli": "curl -X POST -d '{\"user\":\"mac\",\"host\":\"testmac\",\"pid\":561,\"ip\":\"192.168.12.52\",\"description\":\"initial callback\",\"payload_type\":\"apfell\", \"operator\":\"alice\"}' http://XX/api/v1.0/callbacks/",
+          "cli": "curl -X POST -d '{\"user\":\"mac\",\"host\":\"testmac\",\"pid\":561,\"ip\":\"192.168.12.52\",\"description\":\"initial callback\",\"uuid\":\"SHA256_UUID_HERE\"}' http://XX/api/v1.0/callbacks/",
           "parameters":[
             {
               "name": "user",
@@ -34,19 +34,14 @@
               "requirements": "This is required."
             },
             {
-              "name": "payload_type",
-              "description": "The type of payload that is running on the system. This can include things like \"apfell-jxa\" for the JavaScript for Automation payload or even include payloads from other projects in the future.",
-              "requirements": "This is required. This type will determine what kinds of functions are available to execute."
-            },
-            {
               "name": "description",
               "description": "This is the description of the specific callback.",
               "requirements": "This is optional, but can be helpful."
             },
             {
-              "name": "operator",
-              "description": "This is the name of the operator which created this callback.",
-              "requirements": "This isn't required as there can be instances where we don't know, but sometimes can be inferred based on the specific payload executed."
+              "name": "uuid",
+              "description": "This is the uuid of the payload which created this callback.",
+              "requirements": "This is always required since this tells us a bit more information about the payload and helps track it."
             }
           ]
         },
