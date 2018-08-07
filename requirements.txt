@@ -9,3 +9,4 @@ sanic-wtf
 cryptography
 wtforms
 anytree
+websockets==5.0.1
