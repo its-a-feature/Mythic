@@ -8,3 +8,9 @@ async def hash_SHA512(data):
     digest.update(str.encode(data))
     return base64.b64encode(digest.finalize())
 
+
+async def hash_SHA256(data):
+    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+    digest.update(str.encode(data))
+    return digest.finalize().hex()
+
