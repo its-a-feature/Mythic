@@ -7,9 +7,9 @@ from peewee_async import Manager, PooledPostgresqlDatabase
 # --------------------------------------------
 # -------- CONFIGURE SETTINGS HERE -----------
 db_name = 'apfell_db'
-db_user = 'postgres'
-db_pass = 'postgres'
-server_ip = '192.168.0.119'  # this will be used by the browser to callback here
+db_user = 'apfell_user'
+db_pass = 'super_secret_apfell_user_password'
+server_ip = 'localhost'  # this will be used by the browser to callback here
 listen_port = '443'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
