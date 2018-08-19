@@ -14,12 +14,13 @@ service postgresql start
 
 #create a new db and user for us to use
 sudo -u postgres createdb apfell_db
-sudo -u postgres psql -s apfell_db<<EOF
+sudo -u postgres psql -S apfell_db<<EOF
 create user apfell_user password 'super_secret_apfell_user_password'
 EOF
-sudo -u postgres psql -s apfell_db<<EOF
+sudo -u postgres psql -S apfell_db<<EOF
 GRANT ALL PRIVILEGES ON DATABASE apfell_db TO apfell_user
 EOF
+
 #update file locations
 updatedb
 

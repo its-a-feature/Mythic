@@ -4,14 +4,14 @@
       "name": "Callback",
       "api": [
         {
-          "GET": "/api/v1.0/callbacks/",
+          "GET": "API_BASE/callbacks/",
           "explanation": "Gets all callback information",
-          "cli": "curl http://XX/api/v1.0/callbacks/"
+          "cli": "curl http://localhostAPI_BASE/callbacks/"
         },
         {
-          "POST": "/api/v1.0/callbacks/",
+          "POST": "API_BASE/callbacks/",
           "explanation": "Create a new callback",
-          "cli": "curl -X POST -d '{\"user\":\"mac\",\"host\":\"testmac\",\"pid\":561,\"ip\":\"192.168.12.52\",\"description\":\"initial callback\",\"uuid\":\"SHA256_UUID_HERE\"}' http://XX/api/v1.0/callbacks/",
+          "cli": "curl -X POST -d '{\"user\":\"mac\",\"host\":\"testmac\",\"pid\":561,\"ip\":\"192.168.12.52\",\"description\":\"initial callback\",\"uuid\":\"SHA256_UUID_HERE\"}' http://localhostAPI_BASE/callbacks/",
           "parameters":[
             {
               "name": "user",
@@ -46,14 +46,14 @@
           ]
         },
         {
-          "GET": "/api/v1.0/callbacks/(id:INTEGER)",
+          "GET": "API_BASE/callbacks/(id:INTEGER)",
           "explanation": "Get the callback information for a single callback identified by the specific ID.",
-          "cli": "curl http://XX/api/v1.0/callbacks/1"
+          "cli": "curl http://localhostAPI_BASE/callbacks/1"
         },
         {
-          "PUT": "/api/v1.0/callbacks/(id:INTEGER)",
+          "PUT": "API_BASE/callbacks/(id:INTEGER)",
           "explanation": "Update some of the callback information",
-          "cli": "curl -X PUT '{\"description\":\"long-term callback\"}' http://XX/api/v1.0/callbacks/1",
+          "cli": "curl -X PUT '{\"description\":\"long-term callback\"}' http://localhostAPI_BASE/callbacks/1",
           "parameters":[
             {
               "name":"description",
@@ -68,9 +68,9 @@
           ]
         },
         {
-          "DELETE": "/api/v1.0/callbacks/(id:INTEGER)",
+          "DELETE": "API_BASE/callbacks/(id:INTEGER)",
           "explanation": "Mark a specific callback as no longer active. It'll stay in the database for reporting, but will be removed from user interaction",
-          "cli": "curl -X DELETE http://XX/api/v1.0/callbacks/1"
+          "cli": "curl -X DELETE http://localhostAPI_BASE/callbacks/1"
         }
       ]
     },
@@ -78,14 +78,14 @@
       "name": "Operator",
       "api": [
         {
-          "GET": "/api/v1.0/operators/",
+          "GET": "API_BASE/operators/",
           "explanation": "Gets all operators",
-          "cli": "curl http://XX/api/v1.0/operators/"
+          "cli": "curl http://localhostAPI_BASE/operators/"
         },
         {
-          "POST": "/api/v1.0/operators/",
+          "POST": "API_BASE/operators/",
           "explanation": "Creates a new operator account",
-          "cli": "curl -X POST -d '{\"username\": \"Bob\", \"password\": \"P@ssw0rd\"}' http://XX/api/v1.0/operators/",
+          "cli": "curl -X POST -d '{\"username\": \"Bob\", \"password\": \"P@ssw0rd\"}' http://localhostAPI_BASE/operators/",
           "parameters":[
             {
               "name": "username",
@@ -100,14 +100,14 @@
           ]
         },
         {
-          "GET": "/api/v1.0/operators/(id:INTEGER)",
+          "GET": "API_BASE/operators/(id:INTEGER)",
           "explanation": "Gets the information about a single operator by their id number. In the future this might change to use the operator's username instead.",
-          "cli": "curl http://XX/api/v1.0/operators/1"
+          "cli": "curl http://localhostAPI_BASE/operators/1"
         },
         {
-          "PUT": "/api/v1.0/operators/(id:INTEGER)",
+          "PUT": "API_BASE/operators/(id:INTEGER)",
           "explanation": "This updates the password and/or username for the identified operator.",
-          "cli": "curl -X PUT -d '{\"password\":\"NewP@55w0rd\"}' http://XX/api/v1.0/operators/1",
+          "cli": "curl -X PUT -d '{\"password\":\"NewP@55w0rd\"}' http://localhostAPI_BASE/operators/1",
           "parameters":[
             {
               "name": "username",
@@ -122,9 +122,9 @@
           ]
         },
         {
-          "DELETE": "/api/v1.0/operators/(id:INTEGER)",
+          "DELETE": "API_BASE/operators/(id:INTEGER)",
           "explanation": "Delete the identified operator from the system",
-          "cli": "curl -X DELETE http://XX/api/v1.0/operators/1"
+          "cli": "curl -X DELETE http://localhostAPI_BASE/operators/1"
         }
       ]
     },
@@ -132,24 +132,24 @@
       "name": "Task",
       "api": [
         {
-          "GET": "/api/v1.0/tasks/",
+          "GET": "API_BASE/tasks/",
           "explanation": "Gets all of the tasks for all of the callbacks",
-          "cli": "curl http://XX/api/v1.0/tasks/"
+          "cli": "curl http://localhostAPI_BASE/tasks/"
         },
         {
-          "GET": "/api/v1.0/tasks/callback/(cid:INTEGER)",
+          "GET": "API_BASE/tasks/callback/(cid:INTEGER)",
           "explanation": "Gets all of the tasks for a specific callback identified by the URL",
-          "cli": "curl http://XX/api/v1.0/tasks/callback/1"
+          "cli": "curl http://localhostAPI_BASE/tasks/callback/1"
         },
         {
-          "GET": "/api/v1.0/tasks/callback/(cid:INTEGER)/nextTask",
+          "GET": "API_BASE/tasks/callback/(cid:INTEGER)/nextTask",
           "explanation": "Gets the next task, ordered by time, for a specific callback that is marked as \"submitted\"",
-          "cli": "curl http://XX/api/v1.0/tasks/1/nextTask"
+          "cli": "curl http://localhostAPI_BASE/tasks/1/nextTask"
         },
         {
-          "POST": "/api/v1.0/tasks/callback/(cid:INTEGER)/operator/(name:STRING)",
+          "POST": "API_BASE/tasks/callback/(cid:INTEGER)/operator/(name:STRING)",
           "explanation": "Adds a new task for the specified callback. All new tasks must be tagged with a specific operator. Unlike callbacks being spawned where we won't necessarily know who caused the callback initially, we will know who submitted each task.",
-          "cli": "curl -X POST '{\"command\":\"shell id\"}' http://XX/api/v1.0/tasks/callback/1/operator/alice",
+          "cli": "curl -X POST '{\"command\":\"shell id\"}' http://localhostAPI_BASE/tasks/callback/1/operator/alice",
           "parameters":[
             {
               "name": "command",
@@ -159,9 +159,9 @@
           ]
         },
         {
-          "POST": "/api/v1.0/tasks/(tid:INTEGER)",
+          "POST": "API_BASE/tasks/(tid:INTEGER)",
           "explanation": "This is the response from executing tasks. Any given task can have multiple responses posted back for it, especially for long-running tasks like keylogging.",
-          "cli": "curl -X POST '{\"response\":\"completed command\"}' http://XX/api/v1.0/tasks/1",
+          "cli": "curl -X POST '{\"response\":\"completed command\"}' http://localhostAPI_BASE/tasks/1",
           "parameters":[
             {
               "name": "response",
@@ -176,14 +176,14 @@
       "name": "Attack",
       "api": [
         {
-          "GET": "/api/v1.0/attacks/host_file",
+          "GET": "API_BASE/attacks/host_file",
           "explanation": "Gets all of the additional servers ever created/stopped during a single run of Apfell",
-          "cli": "curl http://XX/api/v1.0/attacks/host_file"
+          "cli": "curl http://localhostAPI_BASE/attacks/host_file"
         },
         {
-          "POST": "/api/v1.0/attacks/host_file",
+          "POST": "API_BASE/attacks/host_file",
           "explanation": "Create a new subprocess to host files that can be used via download cradles",
-          "cli": "curl -X POST '{\"port\":8080, \"directory\":\"/tmp\"}' http://XX/api/v1.0/attacks/host_file",
+          "cli": "curl -X POST '{\"port\":8080, \"directory\":\"/tmp\"}' http://localhostAPI_BASE/attacks/host_file",
           "parameters":[
             {
               "name": "port",
@@ -198,9 +198,9 @@
           ]
         },
         {
-          "DELETE": "/api/v1.0/attacks/host_file/(port:INTEGER)",
+          "DELETE": "API_BASE/attacks/host_file/(port:INTEGER)",
           "explanation": "Find and stop the subprocess identified by a port that is serving up a web server",
-          "cli": "curl -X DELETE http://XX/api/v1.0/attacks/host_file/8080"
+          "cli": "curl -X DELETE http://localhostAPI_BASE/attacks/host_file/8080"
         }
       ]
     },
@@ -208,19 +208,19 @@
       "name": "Database",
       "api": [
         {
-          "GET": "/api/v1.0/database/clear_entries",
+          "GET": "API_BASE/database/clear_entries",
           "explanation": "Clears everything except for operations from the database",
-          "cli": "curl http://XX/api/v1.0/database/clear_entries"
+          "cli": "curl http://localhostAPI_BASE/database/clear_entries"
         },
         {
-          "GET": "/api/v1.0/database/clear_operators",
+          "GET": "API_BASE/database/clear_operators",
           "explanation": "Clears operators from the database",
-          "cli": "curl http://XX/api/v1.0/database/clear_operators"
+          "cli": "curl http://localhostAPI_BASE/database/clear_operators"
         },
         {
-          "GET": "/api/v1.0/database/clear_all_files",
+          "GET": "API_BASE/database/clear_all_files",
           "explanation": "Clears all extra payload files created during operations in the \"payloads/operations\" folder",
-          "cli": "curl http://XX/api/v1.0/database/clear_all_files"
+          "cli": "curl http://localhostAPI_BASE/database/clear_all_files"
         }
       ]
     },
@@ -228,17 +228,17 @@
       "name": "Payload",
       "api": [
         {
-          "GET": "/api/v1.0/payloads/",
+          "GET": "API_BASE/payloads/",
           "explanation": "Gets all the registered payloads from the database",
-          "cli": "curl http://XX/api/v1.0/payloads"
+          "cli": "curl http://localhostAPI_BASE/payloads"
         },
         {
-          "GET": "/api/v1.0/payloads/get/<pload:string>",
+          "GET": "API_BASE/payloads/get/<pload:string>",
           "explanation": "Get the contents of a payload that's registered in the database",
-          "cli": "curl http://XX/api/v1.0/payloads/get/f4f0da012da81df795e403bdbbbc69db434cc771d60a48eaaaa4f1dfaba888ab"
+          "cli": "curl http://localhostAPI_BASE/payloads/get/f4f0da012da81df795e403bdbbbc69db434cc771d60a48eaaaa4f1dfaba888ab"
         },
         {
-          "POST": "/api/v1.0/payloads/register",
+          "POST": "API_BASE/payloads/register",
           "explanation": "Registers a payload to the Apfell system to be tracked",
           "cli": "curl -X POST '{\"tag\":\"spearphish\",\"operator\":\"alice\",\"payload_type\":\"apfell-jxa\",\"callback_host\":\"192.168.0.119\",\"callback_port\":443,\"callback_interval\":10,\"obfuscation\":False, \"use_ssl\":True, \"location\": \"/home/test/test.js\"}",
           "parameters":[
@@ -295,8 +295,8 @@
           ]
         },
         {
-          "POST": "/api/v1.0/payloads/create-jxa",
-          "explanation": "automatically create a payload, register the payload, and even task a callback to spawn the payload. If \"payload\" isn't specified, then you will need to include \"payload_type\", \"callback_host\", \"callback_port\", \"callback_interval\", \"obfuscation\", \"use_ssl\", and \"location\" here as well. See the \"/api/v1.0/payloads/register\" API for requirements on these other parameters.",
+          "POST": "API_BASE/payloads/create-jxa",
+          "explanation": "automatically create a payload, register the payload, and even task a callback to spawn the payload. If \"payload\" isn't specified, then you will need to include \"payload_type\", \"callback_host\", \"callback_port\", \"callback_interval\", \"obfuscation\", \"use_ssl\", and \"location\" here as well. See the \"API_BASE/payloads/register\" API for requirements on these other parameters.",
           "cli": "curl -X POST '{\"payload\":\"uuid\",\"tag\":\"something\",\"pcallback\":3,\"task\":\"True\",\"operator\":\"alice\",\"command\":\"spawn shell_api oneliner\"",
           "parameters":[
             {
@@ -337,10 +337,28 @@
       "name": "Analytic",
       "api": [
         {
-          "GET": "/api/v1.0/analytics/callback_tree",
-          "explanation": "Gets a tree format visualization of the callbacks in your database (active and killed",
-          "cli": "curl http://XX/api/v1.0/analytics/callback_tree"
-        }
+          "GET": "API_BASE/analytics/callback_tree",
+          "explanation": "Gets a tree format visualization of the callbacks in your database (active only)",
+          "cli": "curl http://localhostAPI_BASE/analytics/callback_tree"
+        },
+	{
+	  "POST": "API_BASE/analytics/callback_tree",
+	  "explanation": "Gets a tree format visualization of the callbacks in your database. This POST version allows you to specify different parameters to customize the output a bit.",
+	  "cli": "curl -X POST -d '{\"invactive\":True, \"strikethrough\":True}' http://localhostAPI_BASE/analytics/callback_tree",
+	  "parameters":
+	  [
+	    {
+	      "name": "inactive",
+	      "description": "Specifies if we should include inactive callbacks in the analytic",
+	      "requirements": "This should be either True or False. If it's not specified, the default is False"
+	    },
+	    {
+	      "name": "strikethrough",
+	      "description": "If we are showing inactive callbacks, should we indicate inactive ones by putting a line through them so it's easier to see",
+	      "requirements": "This should be either True or False. If it's not specified, thet default is False (no strikethrough on inactive callbacks)"
+  	    }
+	  ]
+	}
       ]
     }
   ]

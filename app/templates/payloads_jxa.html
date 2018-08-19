@@ -8,40 +8,61 @@
     <span style="color: red;">{{errors.validate_errors}}</span>
     {{ form.csrf_token }}
 
-    <br>
-    {{form.callback_host.label}}
-    {{form.callback_host(size=64)}}
-    <span style="color: red;">{{ errors.callback_host_errors }}</span>
-
-    <br>
-    {{form.callback_port.label}}
-    {{form.callback_port(size=32)}}
-    <span style="color: red;">{{ errors.callback_port_errors }}</span>
-
-    <br>
-    {{form.obfuscation.label}}
-    {{form.obfuscation(size=10)}}
-    <span style="color: red;">{{ errors.obfuscation_errors }}</span>
-
-    <br>
-    {{form.output_directory.label}}
-    {{form.output_directory(size=32)}}
-    <span style="color: red;">{{ errors.output_directory_errors }}</span>
-    Full Path
-
-    <br>
-    {{form.callback_interval.label}}
-    {{form.callback_interval(size=10)}}
-     <span style="color: red;">{{ errors.callback_interval_errors }}</span>
-    Time in seconds
-
-    <br>
-    {{form.default_tag.label}}
-    {{form.default_tag(size=32)}}
-    <span style="color: red;">{{ errors.default_tag_errors }}</span>
-
-    <br>
-    {{form.submit()}}
+    <table>
+	<tr>
+	    <td> {{form.callback_host.label}} </td>
+	    <td> {{form.callback_host(size=64)}} 
+		    <br>
+		    <span style="color:red;">{{ errors.callback_host_errors }}</span>
+	    </td>
+	</tr>
+        <tr>
+	    <td> {{form.callback_port.label}} </td>
+	    <td> {{form.callback_port(size=64)}}
+		    <br>
+    		<span style="color: red;">{{ errors.callback_port_errors }}</span>
+	    </td>
+	</tr>
+        <tr>
+	    <td> {{form.obfuscation.label}} </td>
+	    <td> {{form.obfuscation(size=10)}}
+		    <br>
+            <span style="color: red;">{{ errors.obfuscation_errors }}</span>
+	    </td>
+	</tr>
+	<tr>
+	    <td> {{form.output_directory.label}} </td>
+	    <td> {{form.output_directory(size=64)}} (Full Path on server)
+		    <br>
+            <span style="color: red;">{{ errors.output_directory_errors }}</span>
+   	    </td>
+	</tr>
+	<tr>
+	    <td> {{form.callback_interval.label}} </td>
+	    <td> {{form.callback_interval(size=10)}} (Seconds)
+		    <br>
+            <span style="color: red;">{{ errors.callback_interval_errors }}</span>
+	    </td>
+	</tr>
+	<tr>
+	    <td> {{form.default_tag.label}} </td>
+	    <td> {{form.default_tag(size=32)}}
+		    <br>
+   		    <span style="color: red;">{{ errors.default_tag_errors }}</span>
+	    </td>
+	</tr>
+	<tr>
+	    <td> {{form.c2_profile.label}} </td>
+	    <td> {{form.c2_profile()}}
+		    <br>
+            <span style="color: red;">{{ errors.c2_profile_errors }}</span>
+	    </td>
+	</tr>
+	<tr>
+	    <td> {{form.submit()}} </td>
+	    <td></td>
+	</tr>
+    </table>
 </form>
 {% if success %}
 <p>

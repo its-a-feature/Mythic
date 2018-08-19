@@ -1,11 +1,12 @@
-from app import apfell, db_objects, auth, links
+from app import apfell, db_objects, auth, links, use_ssl
 from sanic.response import json
 from sanic import response
-from sanic.exceptions import NotFound
+from sanic.exceptions import NotFound, abort
 from jinja2 import Environment, PackageLoader
 from sanic_auth import User
 from app.database_models.model import Operator
 from app.forms.loginform import LoginForm, RegistrationForm
+import datetime
 import app.crypto as crypto
 
 
@@ -30,10 +31,17 @@ async def login(request):
         try:
             user = await db_objects.get(Operator, username=username)
             if await user.check_password(password):
-                login_user = User(id=user.id, name=user.username)
-                auth.login_user(request, login_user)
-                return response.redirect("/")
-        except:
+                try:
+                    user.last_login = datetime.datetime.now()
+                    await db_objects.update(user)  # update the last login time to be now
+                    login_user = User(id=user.id, name=user.username)
+                    auth.login_user(request, login_user)
+                    return response.redirect("/")
+                except Exception as e:
+                    print(e)
+                    errors['validate_errors'] = "failed to update login time"
+        except Exception as e:
+            print(e)
             errors['validate_errors'] = "Username or password invalid"
     errors['token_errors'] = '<br>'.join(form.csrf_token.errors)
     errors['username_errors'] = '<br>'.join(form.username.errors)
@@ -53,6 +61,8 @@ async def register(request):
         # we need to create a new user
         try:
             user = await db_objects.create(Operator, username=username, password=password)
+            user.last_login = datetime.datetime.now()
+            await db_objects.update(user)  # update the last login time to be now
             login_user = User(id=user.id, name=user.username)
             auth.login_user(request, login_user)
             return response.redirect("/")
@@ -65,6 +75,23 @@ async def register(request):
     template = env.get_template('register.html')
     content = template.render(links=links, form=form, errors=errors)
     return response.html(content)
+
+
+@apfell.route("/settings", methods=['GET'])
+@auth.login_required(user_keyword='user')
+async def settings(request, user):
+    template = env.get_template('settings.html')
+    try:
+        operator = Operator.get(Operator.username == user.name)
+        if use_ssl:
+            content = template.render(links=links, name=user.name, http="https", ws="wss", op=operator.to_json())
+        else:
+            content = template.render(links=links, name=user.name, http="http", ws="ws", op=operator.to_json())
+        return response.html(content)
+    except Exception as e:
+        print(e)
+        return abort(404)
+
 
 
 @apfell.route("/logout")
@@ -84,3 +111,4 @@ links['index'] = apfell.url_for('index')
 links['login'] = apfell.url_for('login')
 links['logout'] = apfell.url_for('logout')
 links['register'] = apfell.url_for('register')
+links['settings'] = apfell.url_for('settings')

@@ -33,10 +33,12 @@
                             Operations <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{{ links.callbacks }}">Callbacks</a></li>
+                            <li><a href="{{ links.callbacks }}">Current Operation</a></li>
                             <li><a href="{{ links.database_management }}">Database Management</a></li>
-                            <li class="disabled"><a href="#">Payload Management</a></li>
-                            <li class="disabled"><a href="#">Analytics</a></li>
+                            <li><a href="{{ links.payload_management }}">Payload Management</a></li>
+                            <li><a href="{{ links.analytics }}">Analytics Dashboard</a></li>
+                            <li><a href="{{ links.c2profile_management }}">C2 Profiles Management</a></li>
+                            <li class='disabled'><a href="#">Operations Management</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -44,11 +46,11 @@
                             Payloads <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{{ links.payloads_jxa }}">JXA</a></li>
+                            <li><a href="{{ links.payloads_jxa }}">Create JXA</a></li>
                             <li class='disabled'><a href="#">Application Bundle - Coming Soon</a></li>
                             <li class='disabled'><a href="#">DyLib - Coming Soon</a></li>
                             <li role="separator" class="divider"></li>
-                            <li class='disabled'><a href="#">Python - Coming Soon</a></li>
+                            <li class='disabled'><a href="#">Foreign Payload - Empire OSX</a></li>
                         </ul>
                     </li>
                      <li class="dropdown">
@@ -87,7 +89,13 @@
                         </ul>
                     </li>
                     {% if name %}
-                    <li><a href="{{ links.logout }}">Logout ({{name}})</a></li>
+		    <li class="dropdown">
+			    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false">Profile ({{name}})<span class="caret"></span></a>
+			    <ul class="dropdown-menu">
+                    		<li><a href="{{ links.logout }}">Logout</a></li>
+				<li><a href="{{ links.settings }}">Settings</a></li>
+			    </ul>
+		    </li>
                     {% else %}
                     <li><a href="{{ links.login }}">Login</a></li>
                     {% endif %}

@@ -2,19 +2,19 @@ from app import apfell
 from sanic.response import json
 import subprocess
 import sys
-from time import sleep
+import asyncio
 
 # this is temporary, it will be stored in the database soon
 web_servers = []  # will have dicts of {handle, port, directory}
 
 
 # ------------ HOST FILE ------------------------
-@apfell.route("/api/v1.0/attacks/host_file", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/attacks/host_file", methods=['GET'])
 async def get_all_web_servers(request):
     return json(web_servers)
 
 
-@apfell.route("/api/v1.0/attacks/host_file", methods=['POST'])
+@apfell.route(apfell.config['API_BASE'] + "/attacks/host_file", methods=['POST'])
 async def create_new_host_file(request):
     # expects to get port, directory
     data = request.json
@@ -33,7 +33,7 @@ async def create_new_host_file(request):
             stdout=null,
             stderr=null
         )
-        sleep(1)
+        await asyncio.sleep(1)
         # if we already had one of these port/directory combos in there, delete it so we can add the updated one
         for x in web_servers:
             if x['port'] == data['port'] and x['directory'] == data['directory']:
@@ -50,7 +50,7 @@ async def create_new_host_file(request):
                      'error': 'failed to open port for web server'})
 
 
-@apfell.route("/api/v1.0/attacks/host_file/<port:int>", methods=['DELETE'])
+@apfell.route(apfell.config['API_BASE'] + "/attacks/host_file/<port:int>", methods=['DELETE'])
 async def delete_host_file(request, port):
     for server in web_servers:
         if server['port'] == str(port):

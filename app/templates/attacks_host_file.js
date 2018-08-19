@@ -7,13 +7,11 @@ var hosting_table = new Vue({
     methods: {
         start_button: function(host){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/attacks/host_file",
-            null, "POST", {'port': host.port, 'directory': host.directory});
-            getServices(); //update our information
+            getServices, "POST", {'port': host.port, 'directory': host.directory});
         },
         stop_button: function(host){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/attacks/host_file/" + host.port.toString(),
-            null, "DELETE", null);
-            getServices(); //update our information
+            getServices, "DELETE", null);
         }
     },
     delimiters: ['[[',']]']
@@ -32,8 +30,8 @@ function create_button(){
         var dir = $( '#serviceDirectory' ).val();
         //should have all the data we need, submit the POST request
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/attacks/host_file",
-        null, "POST", {'port': port, 'directory': dir});
-        getServices(); //update our information
+        getServices, "POST", {'port': port, 'directory': dir});
+        //getServices(); //update our information
     });
 }
 getServices();

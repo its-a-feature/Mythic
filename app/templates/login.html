@@ -3,18 +3,29 @@
 <h1>Sign In</h1>
 <form action="" method="post">
 {{ errors.token_errors }}
-<span style="color: red;">{{errors.validate_errors}}</span>
-    <br>
-{{ form.csrf_token }}
-    {{form.username.label}}
-    {{form.username(size=32)}}
-    <span style="color: red;">{{ errors.username_errors }}</span>
-    <br>
-    {{form.password.label}}
-    {{form.password(size=32)}}
-    <span style="color: red;">{{ errors.password_errors }}</span>
-    <br>
-    {{form.submit()}}
+    <span style="color: red;">{{errors.validate_errors}}</span>
+    {{ form.csrf_token }}
+
+    <table>
+        <tr>
+            <td>{{form.username.label}}</td>
+            <td>{{form.username(size=32)}}
+                <br>
+                <span style="color: red;">{{ errors.username_errors }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td>{{form.password.label}}</td>
+            <td>{{form.password(size=32)}}
+                <br>
+                <span style="color: red;">{{ errors.password_errors }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td> {{form.submit()}}</td>
+            <td></td>
+        </tr>
+    </table>
 </form>
 <p>New User? <a href="{{ links.register }}">Click to Register!</a></p>
 {% endblock %}

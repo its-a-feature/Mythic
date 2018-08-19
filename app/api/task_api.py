@@ -1,13 +1,12 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Task, Response
-from sanic import response
+from app.database_models.model import Callback, Operator, Task
+from urllib.parse import unquote_plus
 import datetime
 
 
-# ---------- TASKS GET ---------------------------
 # This gets all tasks in the database
-@apfell.route("/api/v1.0/tasks/", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/tasks/", methods=['GET'])
 async def get_all_tasks(request):
     callbacks = Callback.select()
     operators = Operator.select()
@@ -17,7 +16,7 @@ async def get_all_tasks(request):
     return json([c.to_json() for c in full_task_data])
 
 
-@apfell.route("/api/v1.0/tasks/callback/<cid:int>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['GET'])
 async def get_all_tasks_for_callback(request, cid):
     try:
         callback = await db_objects.get(Callback, id=cid)
@@ -34,7 +33,7 @@ async def get_all_tasks_for_callback(request, cid):
                      'msg': str(e)})
 
 
-@apfell.route("/api/v1.0/tasks/callback/<cid:int>/nextTask", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/nextTask", methods=['GET'])
 async def get_next_task(request, cid):
     # gets the next task by time for the callback to do
     try:
@@ -56,10 +55,10 @@ async def get_next_task(request, cid):
     return json({"command": tasks.command, "params": tasks.params, "id": tasks.id})
 
 
-# ---------- TASKS POST -------------------------
 # add an operator's task to a specific callback
-@apfell.route("/api/v1.0/tasks/callback/<cid:int>/operator/<name:string>", methods=['POST'])
+@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/operator/<name:string>", methods=['POST'])
 async def add_task_to_callback(request, cid, name):
+    name = unquote_plus(name)
     data = request.json
     print(data)
     return json(await add_task_to_callback_func(data, cid, name))

@@ -2,9 +2,10 @@ from app import apfell, db_objects
 import aiopg
 import json as js
 import asyncio
-from app.database_models.model import Operator, Callback, Task, Response
+from app.database_models.model import Operator, Callback, Task, Response, Payload, C2Profile
 
 
+# --------------- TASKS --------------------------
 # notifications for new tasks
 @apfell.websocket('/ws/tasks')
 async def ws_tasks(request, ws):
@@ -40,6 +41,7 @@ async def ws_tasks(request, ws):
         pool.close()
 
 
+# --------------- RESPONSES ---------------------------
 # notifications for task updates
 @apfell.websocket('/ws/responses')
 async def ws_task_updates(request, ws):
@@ -74,7 +76,7 @@ async def ws_task_updates(request, ws):
         pool.close()
 
 
-# notifications for new callbacks
+# --------------------- CALLBACKS ------------------
 @apfell.websocket('/ws/callbacks')
 async def ws_callbacks(request, ws):
     try:
@@ -104,7 +106,6 @@ async def ws_callbacks(request, ws):
                             print(e)
                             return
     finally:
-        # print("closed /ws/callbacks")
         pool.close()
 
 
@@ -133,5 +134,125 @@ async def ws_callbacks(request, ws):
                             print(e)
                             return
     finally:
-        # print("closed /ws/callbacks")
+        pool.close()
+
+
+# --------------- PAYLOADS -----------------------
+# notifications for new payloads
+@apfell.websocket('/ws/payloads')
+async def ws_payloads(request, ws):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newpayload";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    payloads = await db_objects.execute(Payload.select())
+                    for p in payloads:
+                        await ws.send(js.dumps(p.to_json()))
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (js.loads(msg.payload))['id']
+                            p = await db_objects.get(Payload, id=id)
+                            await ws.send(js.dumps(p.to_json()))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# --------------- C2PROFILES -----------------------
+# notifications for new c2profiles
+@apfell.websocket('/ws/c2profiles')
+async def ws_payloads(request, ws):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newc2profile";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    profiles = await db_objects.execute(C2Profile.select())
+                    for p in profiles:
+                        await ws.send(js.dumps(p.to_json()))
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (js.loads(msg.payload))['id']
+                            p = await db_objects.get(C2Profile, id=id)
+                            await ws.send(js.dumps(p.to_json()))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# ---------------- OPERATORS --------------------------
+# notifications for new operators
+@apfell.websocket('/ws/operators')
+async def ws_payloads(request, ws):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newoperator";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    operators = await db_objects.execute(Operator.select())
+                    for o in operators:
+                        await ws.send(js.dumps(o.to_json()))
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (js.loads(msg.payload))['id']
+                            p = await db_objects.get(Operator, id=id)
+                            await ws.send(js.dumps(p.to_json()))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# notifications for updated operators
+@apfell.websocket('/ws/updatedoperators')
+async def ws_callbacks(request, ws):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "updatedoperator";')
+                    # just want updates, not anything else
+                    while True:
+                        # msg = await conn.notifies.get()
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            # print("got an update for a callback")
+                            id = (js.loads(msg.payload))['id']
+                            cb = await db_objects.get(Operator, id=id)
+                            await ws.send(js.dumps(cb.to_json()))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("") # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
         pool.close()

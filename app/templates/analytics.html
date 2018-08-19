@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block body %}
+<h2>Basic Analytics Dashboard</h2>
+<h4>Current Callback Tree:</h4>
+<div id="callbacktree" style="white-space: pre-wrap">[[callback_tree_data]]</div>
+<button type="button" class="btn btn-info btn-md" onclick="show_removed_button()">Toggle Removed</button>
+<button type="button" class="btn btn-info btn-md" onclick="show_removed_strike_button()">Toggle Strikethrough</button>
+<br>
+<h4>Payload, C2Profile, Callback Relationship:</h4>
+<p>Which payloads are being used by which callbacks.</p>
+<div id="payloadtree" style="white-space: pre-wrap">[[pload_tree]]</div>
+<button type="button" class="btn btn-info btn-md" onclick="show_removed_payload_button()">Toggle Removed</button>
+<button type="button" class="btn btn-info btn-md" onclick="show_removed_payload_strike_button()">Toggle Strikethrough</button>
+<br>
+<h4 hidden>List of Compromised Hosts:</h4>
+<h4 hidden>Total Commands issued, Sorted by User:</h4>
+<h4 hidden>Total Commands issued, Sorted by Host:</h4>
+<h4 hidden>Total Commands issued, Sorted by Callback:</h4>
+<h4 hidden>Most Callbacks created, Sorted by User:</h4>
+<h4 hidden>Host with most inactive callbacks:</h4>
+<h4 hidden>Tasks with the average biggest response:</h4>
+<h4 hidden>Tasks that took the longest to execute:</h4>
+
+{% endblock %}
+
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "analytics.js" %}
+{% endblock %}

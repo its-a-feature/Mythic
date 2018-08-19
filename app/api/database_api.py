@@ -4,7 +4,7 @@ from sanic.response import json
 import aiopg
 
 
-@apfell.route("/api/v1.0/database/clear_entries", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/database/clear_entries", methods=['GET'])
 async def database_clear_entries(request):
     response = {}
     try:
@@ -16,6 +16,7 @@ async def database_clear_entries(request):
                     await cur.execute('TRUNCATE callback CASCADE;')
                     await cur.execute('TRUNCATE task CASCADE;')
                     await cur.execute('TRUNCATE response CASCADE;')
+                    await cur.execute('TRUNCATE c2profile CASCADE;')
                     response = {'status': 'success'}
     except Exception as e:
         print(e)
@@ -25,7 +26,7 @@ async def database_clear_entries(request):
         return json(response)
 
 
-@apfell.route("/api/v1.0/database/clear_all_files", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/database/clear_all_files", methods=['GET'])
 async def database_clear_all_files(request):
     # just remove the operational files
     try:
@@ -36,7 +37,7 @@ async def database_clear_all_files(request):
         return json({'status': 'error', 'error': 'failed to delete files in operations folder'})
 
 
-@apfell.route("/api/v1.0/database/clear_operators", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/database/clear_operators", methods=['GET'])
 async def databaes_clear_operators(request):
     # just remove the operators
     response = {}

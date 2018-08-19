@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block body %}
-<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="callback_table">
+<div style="resize: vertical; overflow:scroll" class="panel panel-primary" id="callback_table">
     <div class="panel-heading">Current callbacks</div>
         <table class="table table-striped table-hover table-condensed" >
             <tr>
@@ -119,6 +119,6 @@
 {% endblock %}
 
 {% block scripts %}
-{% include "callbacks.js" %}
 {% include "shared_javascript.js" %}
+{% include "callbacks.js" %}
 {% endblock %}

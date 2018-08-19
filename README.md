@@ -10,12 +10,13 @@ Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bone
 ```bash
 git clone https://github.com/its-a-feature/Apfell
 ```
-- Install and setup the requirements (Note: The Sanic webserver says it only works on Linux):
+- Install and setup the requirements (Note: The Sanic webserver says it only works on Linux). The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though.
 ```bash
 # The setup.sh will install postgres and pip3 install the requirements
 cd Apfell && chmod +x setup.sh && sudo ./setup.sh && cd ..
 ```
-- Configure the installation in app/\_\_init\_\_.py:
+
+- Configure the installation in app/\_\_init\_\_.py. If you change any of the `db_*` variables here, you will need to reflect these changes in the `reset_db` script. I will eventually make one place to do all this, but right now the setup script creates things and this config file uses things.
 ```bash
 # -------- CONFIGURE SETTINGS HERE -----------
 db_name = 'apfell_db'
@@ -48,6 +49,7 @@ By default, the server will bind to 0.0.0.0 on port 443. This is an alias meanin
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/Welcome.JPG)
 
 - Create a new user:  
+When you run the server, a default user account "apfell_admin" with a password of "apfell_password" is created. This allows me to setup the default c2 profiles as well since they have to be tied to a specific operator. You can either use this account or create a new one.
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/Register.JPG)
 
 - Create a new payload:  

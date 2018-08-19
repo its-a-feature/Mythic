@@ -5,6 +5,8 @@ from app.forms.payloads_form import Payloads_JXA_Form
 from app.api import payloads_api
 from app.database_models.model import Payload
 import pathlib
+from app.api.c2profiles_api import get_c2profiles_by_type_function
+from app.api.payloads_api import write_jxa_payload_func
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -15,6 +17,11 @@ async def payloads_jxa(request, user):
     form = Payloads_JXA_Form(request)
     errors = {}
     success = ""
+    try:
+        jxa_choices = await get_c2profiles_by_type_function('apfell-jxa')
+    except Exception as e:
+        jxa_choices = []
+    form.c2_profile.choices = [(p['name'], p['name'] + ": " + p['description']) for p in jxa_choices]
     if request.method == 'POST' and form.validate():
         callback_host = form.callback_host.data
         callback_port = form.callback_port.data
@@ -22,37 +29,26 @@ async def payloads_jxa(request, user):
         output_directory = form.output_directory.data
         callback_interval = form.callback_interval.data
         default_tag = form.default_tag.data
-
+        c2_profile = form.c2_profile.data
         # Now that we have the data, we need to register it
         data = {"tag": default_tag, "operator": user.name, "payload_type": "apfell-jxa",
                 "callback_host": callback_host, "callback_port": callback_port,
                 "callback_interval": callback_interval, "obfuscation": obfuscation,
-                "use_ssl": use_ssl, "location": output_directory}
+                "use_ssl": use_ssl, "location": output_directory, "c2_profile": c2_profile}
         resp = await payloads_api.register_payload_func(data)  # process this with our api
         if resp['status'] == "success":
             try:
-                # take these inputs to create our payload and write it to output_directory
-                base_jxa = open('./app/payloads/JXA.js', 'r')
-                custom_jxa = open(output_directory, 'w')
-                # read base_jxa and write it out to custom_jxa with our modifications
-                # for now, obfuscation doesn't do anything
-                http = "https" if use_ssl else "http"
-                for line in base_jxa:
-                    if "C2 = new RestC2(10" in line:
-                        custom_jxa.write("C2 = new RestC2(" + str(callback_interval) + ", \"" + http + "://" +
-                                         callback_host + ":" + str(callback_port) + "/\");")
-                    elif 'this.uuid = "XXXX";' in line:
-                        custom_jxa.write('this.uuid = "' + resp['uuid'] + '";')
-                    else:
-                        custom_jxa.write(line)
-                base_jxa.close()
-                custom_jxa.close()
-                # now that we have a payload on disk, update the corresponding Payload object
-                payload = await db_objects.get(Payload, uuid=resp['uuid'])
-                payload.location = str(pathlib.Path(output_directory).resolve())
-                await db_objects.update(payload)
-                success = "true"
-                errors['uuid'] = resp['uuid']  # kind of hacky, but it works
+                create_rsp = await write_jxa_payload_func({'uuid': resp['uuid'], 'loc': output_directory})
+                if create_rsp['status'] == "success":
+                    # now that we have a payload on disk, update the corresponding Payload object
+                    payload = await db_objects.get(Payload, uuid=resp['uuid'])
+                    payload.location = str(pathlib.Path(output_directory).resolve())
+                    await db_objects.update(payload)
+                    success = "true"
+                    errors['uuid'] = resp['uuid']  # kind of hacky, but it works
+                else:
+                    success = "false"
+                    print(create_rsp['error'])
             except Exception as e:
                 print(e)
                 errors['validate_errors'] = "Failed to create payload"
@@ -66,6 +62,7 @@ async def payloads_jxa(request, user):
     errors['output_directory_errors'] = '<br>'.join(form.output_directory.errors)
     errors['default_tag_errors'] = '<br>'.join(form.default_tag.errors)
     errors['callback_interval_errors'] = '<br>'.join(form.callback_interval.errors)
+    errors['c2_profile_errors'] = '<br>'.join(form.c2_profile.errors)
 
     template = env.get_template('payloads_jxa.html')
     content = template.render(name=user.name, links=links, form=form, errors=errors, success=success)

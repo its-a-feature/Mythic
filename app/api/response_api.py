@@ -4,9 +4,8 @@ from app.database_models.model import Task, Response
 import base64
 
 
-# ---------- RESPONSE GET ---------------------------
 # This gets all responses in the database
-@apfell.route("/api/v1.0/responses/", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/responses/", methods=['GET'])
 async def get_all_tasks(request):
     try:
         all_responses = await db_objects.execute(Response.select())
@@ -17,7 +16,7 @@ async def get_all_tasks(request):
 
 
 # implant calling back to update with response from executing a task
-@apfell.route("/api/v1.0/responses/<tid:int>", methods=['POST'])
+@apfell.route(apfell.config['API_BASE'] + "/responses/<tid:int>", methods=['POST'])
 async def update_task_for_callback(request, tid):
     data = request.json
     # print(data)

@@ -3,6 +3,8 @@ var tasks = []; //current tasks we're displaying
 var all_tasks = {}; //dictionary of arrays of tasks (for each callback's tasks)
 var meta = {}; //dictionary of dictionary of metadata
 var username = "{{name}}"; //gets the logged in name from the base.html
+var finished_callbacks = false;
+var finished_tasks = false;
 var callback_table = new Vue({
     el: '#callback_table',
     data: {
@@ -172,6 +174,12 @@ function startwebsocket_callbacks(){
                                                'data':task_data.tasks,
                                                'display': ''});
         }
+        else{
+            if(finished_callbacks == false){
+                startwebsocket_newtasks();
+                finished_callbacks = true;
+            }
+        }
     };
     ws.onclose = function(){
         console.log("socket closed");
@@ -207,6 +215,12 @@ function startwebsocket_newtasks(){
             }
             meta[tsk['callback']].data = all_tasks[tsk['callback']];
         }
+        else{
+            if(finished_tasks == false){
+                startwebsocket_updatedtasks();
+                finished_tasks = true;
+            }
+        }
     };
 };
 function startwebsocket_updatedtasks(){
@@ -235,6 +249,8 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
             if(callbacks[rsp['id']]){
                 callbacks[rsp['id']]['last_checkin'] = rsp['last_checkin'];
             }
+	    // we ned to handle the case wehre something was not active, so we didn't populate it in the global tables, but it called back in and got updated
+	    //TODO
         }
     }
 };
@@ -257,6 +273,5 @@ function timeConversion(millisec){
 
 startwebsocket_callbacks();
 setInterval(updateClocks, 1000);
-startwebsocket_newtasks();
-startwebsocket_updatedtasks();
+
 startwebsocket_updatedcallbacks();

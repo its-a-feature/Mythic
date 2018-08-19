@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block body %}
+
+
+<div id="page_heading">
+    <h1 v-if="current_operator.admin == true">Admin Settings</h1>
+    <h1 v-if="current_operator.admin == false">User Settings</h1>
+    <div style="resize: vertical; overflow:visible" class="panel panel-primary" v-if="current_operator.admin == false">
+        <div class="panel-heading">Operator Information</div>
+            <table class="table table-striped table-hover table-condensed" >
+                <tr>
+                    <td>Delete Account</td>
+                    <td>Change Password</td>
+                    <td>Change Username</td>
+                    <td>Last Login</td>
+                    <td>Account Creation Date</td>
+                    <td>Admin Status</td>
+                </tr>
+                <tr>
+                    <td><button type="button" class="btn btn-danger btn-sm" onclick="delete_button(current_operator)" >Delete</button></td>
+                    <td><button type="button" class="btn btn-warning btn-sm" onclick="password_button(current_operator)" >Change</button></td>
+                    <td><button type="button" class="btn btn-warning btn-sm" onclick="username_button(current_operator)" >Change</button></td>
+                    <td>[[ current_operator.last_login ]]</td>
+                    <td>[[ current_operator.creation_time ]]</td>
+                    <td>[[ current_operator.admin ]]</td>
+                </tr>
+            </table>
+    </div>
+</div>
+<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="operators_table" v-if="current_operator.admin">
+    <div class="panel-heading">Operator Information</div>
+        <table class="table table-striped table-hover table-condensed" >
+            <tr>
+                <td><b>Delete</b></td>
+		        <td><b>Change Password</b></td>
+                <td><b>Change Username</b></td>
+                <td><b>Toggle Admin</b></td>
+                <td><b>Operator</b></td>
+                <td><b>Last Login</b></td>
+                <td><b>Creation Date</b></td>
+                <td><b>Admin</b></td>
+            </tr>
+        <!-- Repeat this for each web service -->
+            <tr v-for="o in operators" :key="o.creation_time">
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" @click="delete_operator_button(o)" >Delete</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-warning btn-sm" @click="set_password_button(o)">Change Password</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-warning btn-sm" @click="change_username_button(o)">Change Username</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-warning btn-sm" @click="change_admin_button(o)" v-if="o.username != 'apfell_admin'">Toggle Admin</button>
+                </td>
+                <td>[[ o.username ]]</td>
+                <td>[[ o.last_login ]]</td>
+                <td>[[ o.creation_time ]]</td>
+                <td>[[ o.admin ]]</td>
+            </tr>
+        <!-- End of the repeating -->
+        </table>
+</div>
+
+<!-- THIS IS OUR MODAL FOR DELETING OPERATOR -->
+<div class="modal fade bs-example-modal-sm" id="operatorDeleteModal" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Are you sure? This could have implications elsewhere.</h3>
+            </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-danger" data-dismiss="modal" id="operatorDeleteSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR DELETING OPERATOR -->
+<!-- THIS IS OUR MODAL FOR CHANGING OPERATOR PASSWORD-->
+<div class="modal fade bs-example-modal-md" id="operatorPasswordModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Are you sure? This could have implications elsewhere. If you're admin, you can leave the old password field blank.</h3>
+            </div>
+            <div class="modal-body" id="operatorUpdatePasswordBody">
+                <table cellpadding="10" style="width:100%">
+                    <tr>
+                        <td style="width:150px">Old Password</td>
+                        <td><input type="password" id="operatorOldPassword" size="64"></td>
+                    </tr>
+                    <tr>
+                        <td>New Password</td>
+                        <td> <input type="password" id="operatorNewPassword1" size="64"></td>
+                    </tr>
+                    <tr>
+                        <td>New Password Again</td>
+                        <td><input type="password" id="operatorNewPassword2" size="64"></td>
+                    </tr>
+                </table>
+            </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="operatorPasswordSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR CHANGING OPERATOR PASSWORD-->
+<!-- THIS IS OUR MODAL FOR CHANGING OPERATOR USERNAME-->
+<div class="modal fade bs-example-modal-md" id="operatorUsernameModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Are you sure? This could have implications elsewhere. Your username must be unique.</h3>
+            </div>
+            <div class="modal-body" id="operatorUpdateUsernameBody">
+                <table cellpadding="10" style="width:100%">
+                    <tr>
+                        <td style="width:150px">New Username</td>
+                        <td><input type="text" id="operatorNewUsername" size="64"></td>
+                    </tr>
+                </table>
+            </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="operatorUsernameSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR CHANGING OPERATOR USERNAME-->
+{% endblock %}
+
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "settings.js" %}
+{% endblock %}

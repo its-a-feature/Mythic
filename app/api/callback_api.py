@@ -5,17 +5,16 @@ from sanic import response
 from sanic.exceptions import abort
 
 
-# ---------- CALLBACKS ---------------------------
-@apfell.route("/api/v1.0/callbacks/", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['GET'])
 async def get_all_callbacks(request):
     callbacks = Callback.select()
     return json([c.to_json() for c in callbacks])
 
 
-@apfell.route("/api/v1.0/callbacks/", methods=['POST'])
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['POST'])
 async def create_callback(request):
     data = request.json
-    print(data)
+    #print(data)
     if not 'user' in data:
         return json({'status': 'error',
                      'error': 'User required'})
@@ -58,7 +57,7 @@ async def create_callback(request):
     return response.json({'status': 'success', 'id': cal.id}, status=201)
 
 
-@apfell.route("/api/v1.0/callbacks/<id:int>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['GET'])
 async def get_one_callback(request, id):
     try:
         cal = await db_objects.get(Callback, id=id)
@@ -67,7 +66,7 @@ async def get_one_callback(request, id):
         return abort(404)
 
 
-@apfell.route("/api/v1.0/callbacks/<id:int>", methods=['PUT'])
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['PUT'])
 async def update_callback(request, id):
     data = request.json
     try:
@@ -78,23 +77,37 @@ async def update_callback(request, id):
             op = await db_objects.get(Operator, username=data['operator'])
             cal.operator = op
         if 'active' in data:
-            if data['active'] == "false":
-                cal.active = False
-            elif data['active'] == "true":
+            if data['active'] == 'true':
                 cal.active = True
+            elif data['active'] == 'false':
+                cal.active = False
         await db_objects.update(cal)
-        return json({'status': 'success'})
+        success = {'status': 'success'}
+        updated_cal = cal.to_json()
+        return json(**success, **updated_cal)
     except:
-        return abort(404)
+        return json({'status': 'error', 'error': 'failed to update callback'})
 
 
-@apfell.route("/api/v1.0/callbacks/<id:int>", methods=['DELETE'])
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['DELETE'])
 async def remove_callback(request, id):
     try:
         cal = await db_objects.get(Callback, id=id)
         cal.active = False
         await db_objects.update(cal)
-        return json({'status': 'success'})
+        success = {'status': 'success'}
+        deleted_cal = cal.to_json()
+        return json({**success, **deleted_cal})
     except:
-        return abort(404)
+        return json({'status': 'error', 'error': "failed to delete callback"})
 
+
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/check_active", methods=['GET'])
+async def check_active_callbacks(request):
+    try:
+        all_callbacks = await db_objects.get(Callback.select())
+        # if a callback is more than 3x late for a checkin, it's considered inactive
+        # TODO finish this part for adding a task to periodically do this to the event loop
+    except Exception as e:
+        print(e)
+        return json({'status':'error','error': str(e)})

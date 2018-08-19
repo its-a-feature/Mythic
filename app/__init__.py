@@ -33,11 +33,15 @@ apfell.config['DB_USER'] = db_user
 apfell.config['DB_PASS'] = db_pass
 apfell.config['DB_NAME'] = db_name
 apfell.config['DB_POOL_CONNECT_STRING'] = 'dbname=' + apfell.config['DB_NAME'] + ' user=' + apfell.config['DB_USER'] + ' password=' + apfell.config['DB_PASS']
+apfell.config['API_VERSION'] = "1.0"
+apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
 auth = Auth(apfell)
+
 
 session = {}
 links = {'server_ip': apfell.config['SERVER_IP_ADDRESS'],
-         'server_port': apfell.config['SERVER_PORT']}
+         'server_port': apfell.config['SERVER_PORT'],
+         'api_base': "/api/v" + apfell.config['API_VERSION']}
 
 
 @apfell.middleware('request')

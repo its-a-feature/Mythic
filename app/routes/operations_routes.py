@@ -24,6 +24,43 @@ async def db_management(request, user):
         content = template.render(links=links, name=user.name, http="http", ws="ws")
     return response.html(content)
 
+
+@apfell.route("/payload_management",methods=['GET'])
+@auth.login_required(user_keyword='user')
+async def payload_management(request, user):
+    template = env.get_template('payload_management.html')
+    if use_ssl:
+        content = template.render(links=links, name=user.name, http="https", ws="wss")
+    else:
+        content = template.render(links=links, name=user.name, http="http", ws="ws")
+    return response.html(content)
+
+
+@apfell.route("/analytics", methods=['GET'])
+@auth.login_required(user_keyword='user')
+async def analytics(request, user):
+    template = env.get_template('analytics.html')
+    if use_ssl:
+        content = template.render(links=links, name=user.name, http="https", ws="wss")
+    else:
+        content = template.render(links=links, name=user.name, http="http", ws="ws")
+    return response.html(content)
+
+
+@apfell.route("/c2profile_management", methods=['GET'])
+@auth.login_required(user_keyword='user')
+async def c2profile_management(request, user):
+    template = env.get_template('c2profile_management.html')
+    if use_ssl:
+        content = template.render(links=links, name=user.name, http="https", ws="wss")
+    else:
+        content = remplate.render(links=links, name=user.name, http="http", ws="ws")
+    return response.html(content)
+
+
 # add links to these routes at the bottom
 links['callbacks'] = apfell.url_for('callbacks')
 links['database_management'] = apfell.url_for('db_management')
+links['payload_management'] = apfell.url_for('payload_management')
+links['analytics'] = apfell.url_for('analytics')
+links['c2profile_management'] = apfell.url_for('c2profile_management')
