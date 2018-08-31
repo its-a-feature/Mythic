@@ -16,7 +16,7 @@
                 <td><b>Description</b></td>
             </tr>
         <!-- Repeat this for each callback -->
-            <tr v-for="callback in callbacks" :key="callback.id">
+            <tr v-for="callback in callbacks" :key="callback.id" v-bind:style="callback.active ? 'false' : 'background-color:red'">
                 <td>
                     <!-- Split button -->
                     <div class="btn-group dropdown">

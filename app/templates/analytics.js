@@ -61,10 +61,10 @@ function send_callback_tree_data(){
         var data = {};
         data['inactive'] = callback_tree.show_removed;
         data['strikethrough'] = callback_tree.show_strikethrough;
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links_server_port}}/api/v1.0/analytics/callback_tree", update_callback_tree, "POST", data);
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/analytics/callback_tree", update_callback_tree, "POST", data);
     }
     else{
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links_server_port}}/api/v1.0/analytics/callback_tree", update_callback_tree, "GET", null);
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/analytics/callback_tree", update_callback_tree, "GET", null);
     }
 }
 function send_pload_tree_data(){
@@ -72,10 +72,10 @@ function send_pload_tree_data(){
         var data = {};
         data['inactive'] = pload_tree.show_removed;
         data['strikethrough'] = pload_tree.show_strikethrough;
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links_server_port}}/api/v1.0/analytics/payload_tree", update_payload_tree, "POST", data);
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/analytics/payload_tree", update_payload_tree, "POST", data);
     }
     else{
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links_server_port}}/api/v1.0/analytics/payload_tree", update_payload_tree, "GET", null);
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/analytics/payload_tree", update_payload_tree, "GET", null);
     }
 }
 send_pload_tree_data();

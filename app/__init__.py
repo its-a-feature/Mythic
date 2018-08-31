@@ -1,7 +1,7 @@
 from sanic import Sanic
-from sanic_auth import Auth
 import uvloop
 from peewee_async import Manager, PooledPostgresqlDatabase
+from sanic_jwt import Initialize
 
 # -------------------------------------------
 # --------------------------------------------
@@ -10,11 +10,11 @@ db_name = 'apfell_db'
 db_user = 'apfell_user'
 db_pass = 'super_secret_apfell_user_password'
 server_ip = 'localhost'  # this will be used by the browser to callback here
-listen_port = '443'
+listen_port = '80'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
 ssl_key_path = './app/ssl/apfell-ssl.key'
-use_ssl = True
+use_ssl = False
 # --------------------------------------------
 # --------------------------------------------
 # --------------------------------------------
@@ -24,8 +24,7 @@ apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass)
 apfell_db.connect_async(loop=dbloop)
 db_objects = Manager(apfell_db, loop=dbloop)
 
-apfell = Sanic(__name__)
-apfell.config.AUTH_LOGIN_ENDPOINT = 'login'
+apfell = Sanic(__name__, strict_slashes=False)
 apfell.config['WTF_CSRF_SECRET_KEY'] = 'really secure super secret key here, and change me!'
 apfell.config['SERVER_IP_ADDRESS'] = server_ip
 apfell.config['SERVER_PORT'] = listen_port
@@ -35,18 +34,42 @@ apfell.config['DB_NAME'] = db_name
 apfell.config['DB_POOL_CONNECT_STRING'] = 'dbname=' + apfell.config['DB_NAME'] + ' user=' + apfell.config['DB_USER'] + ' password=' + apfell.config['DB_PASS']
 apfell.config['API_VERSION'] = "1.0"
 apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
-auth = Auth(apfell)
 
-
-session = {}
 links = {'server_ip': apfell.config['SERVER_IP_ADDRESS'],
          'server_port': apfell.config['SERVER_PORT'],
-         'api_base': "/api/v" + apfell.config['API_VERSION']}
+         'api_base': apfell.config['API_BASE']}
 
-
-@apfell.middleware('request')
-async def add_session(request):
-    request['session'] = session
+if use_ssl:
+    links['WEB_BASE'] = "https://" + server_ip + ":" + listen_port
+else:
+    links['WEB_BASE'] = "http://" + server_ip + ":" + listen_port
 
 import app.routes
 import app.api
+
+my_views = (
+    ('/register', app.routes.routes.Register),
+    ('/login', app.routes.routes.Login),
+    ('/uirefresh', app.routes.routes.UIRefresh),
+)
+Initialize(apfell,
+           authenticate=app.routes.authentication.authenticate,
+           retrieve_user=app.routes.authentication.retrieve_user,
+           cookie_set=True,
+           cookie_strict=False,
+           cookie_access_token_name='access_token',
+           cookie_refresh_token_name='refresh_token',
+           cookie_httponly=True,
+           scopes_enabled=True,
+           add_scopes_to_payload=app.routes.authentication.add_scopes_to_payload,
+           scopes_name='scope',
+           secret='apfell_secret jwt for signing here',
+           url_prefix='/',
+           class_views=my_views,
+           path_to_authenticate='/auth',
+           path_to_retrieve_user='/me',
+           path_to_verify='/verify',
+           path_to_refresh='/refresh',
+           refresh_token_enabled=True,
+           store_refresh_token=app.routes.authentication.store_refresh_token,
+           retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token)

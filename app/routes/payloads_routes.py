@@ -1,4 +1,4 @@
-from app import apfell, auth, links, use_ssl, db_objects
+from app import apfell, links, use_ssl, db_objects
 from sanic import response
 from jinja2 import Environment, PackageLoader
 from app.forms.payloads_form import Payloads_JXA_Form
@@ -7,12 +7,14 @@ from app.database_models.model import Payload
 import pathlib
 from app.api.c2profiles_api import get_c2profiles_by_type_function
 from app.api.payloads_api import write_jxa_payload_func
+from sanic_jwt.decorators import protected, inject_user
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
 
 @apfell.route("/payloads/jxa", methods=['GET', 'POST'])
-@auth.login_required(user_keyword='user')
+@inject_user()
+@protected()
 async def payloads_jxa(request, user):
     form = Payloads_JXA_Form(request)
     errors = {}
@@ -55,7 +57,6 @@ async def payloads_jxa(request, user):
         else:
             print(resp)
 
-    errors['token_errors'] = '<br>'.join(form.csrf_token.errors)
     errors['callback_host_errors'] = '<br>'.join(form.callback_host.errors)
     errors['callback_port_errors'] = '<br>'.join(form.callback_port.errors)
     errors['obfuscation_errors'] = '<br>'.join(form.obfuscation.errors)
@@ -65,7 +66,7 @@ async def payloads_jxa(request, user):
     errors['c2_profile_errors'] = '<br>'.join(form.c2_profile.errors)
 
     template = env.get_template('payloads_jxa.html')
-    content = template.render(name=user.name, links=links, form=form, errors=errors, success=success)
+    content = template.render(name=user['username'], links=links, form=form, errors=errors, success=success)
     return response.html(content)
 
 # add links to the routes in this file at the bottom

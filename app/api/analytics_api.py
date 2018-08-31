@@ -2,11 +2,14 @@ from app import apfell, db_objects
 from app.database_models.model import Callback, Payload
 from sanic.response import text
 from anytree import Node, find_by_attr, RenderTree, DoubleStyle
+from sanic_jwt.decorators import protected, inject_user
 
 
 # ------- ANALYTIC-BASED API FUNCTION -----------------
 @apfell.route(apfell.config['API_BASE'] + "/analytics/callback_tree", methods=['GET', 'POST'])
-async def analytics_callback_tree_api(request):
+@inject_user()
+@protected()
+async def analytics_callback_tree_api(request, user):
     # look at the current callbacks and return their data in a more manageable tree format
     # http://anytree.readthedocs.io/en/latest/
     dbcallbacks = await db_objects.execute(Callback.select())
@@ -72,7 +75,9 @@ async def analytics_payload_tree_api_function(payload, config):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/analytics/payload_tree", methods=['GET', 'POST'])
-async def analytics_payload_tree_api(request):
+@inject_user()
+@protected()
+async def analytics_payload_tree_api(request, user):
     # each payload is the root of a tree, all of the corresponding callbacks that use it are under that tree
     dbpayloads = await db_objects.execute(Payload.select())
     display_config = {}

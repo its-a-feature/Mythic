@@ -3,16 +3,21 @@ from sanic.response import json
 from app.database_models.model import Callback, Operator, Payload
 from sanic import response
 from sanic.exceptions import abort
+from sanic_jwt.decorators import protected, inject_user
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['GET'])
-async def get_all_callbacks(request):
+@inject_user()
+@protected()
+async def get_all_callbacks(request, user):
     callbacks = Callback.select()
     return json([c.to_json() for c in callbacks])
 
 
+# this one is specifically not @protect or @inject_user because our callback needs to be able to access this
+#   and we don't know when the callback will actually happen, so we don't want the JWT to be timed out
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['POST'])
-async def create_callback(request):
+async def create_callback(request, user):
     data = request.json
     #print(data)
     if not 'user' in data:
@@ -58,7 +63,9 @@ async def create_callback(request):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['GET'])
-async def get_one_callback(request, id):
+@inject_user()
+@protected()
+async def get_one_callback(request, id, user):
     try:
         cal = await db_objects.get(Callback, id=id)
         return json(cal)
@@ -67,15 +74,14 @@ async def get_one_callback(request, id):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['PUT'])
-async def update_callback(request, id):
+@inject_user()
+@protected()
+async def update_callback(request, id, user):
     data = request.json
     try:
         cal = await db_objects.get(Callback, id=id)
         if 'description' in data:
             cal.description = data['description']
-        if 'operator' in data:
-            op = await db_objects.get(Operator, username=data['operator'])
-            cal.operator = op
         if 'active' in data:
             if data['active'] == 'true':
                 cal.active = True
@@ -90,7 +96,9 @@ async def update_callback(request, id):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['DELETE'])
-async def remove_callback(request, id):
+@inject_user()
+@protected()
+async def remove_callback(request, id, user):
     try:
         cal = await db_objects.get(Callback, id=id)
         cal.active = False
@@ -103,11 +111,15 @@ async def remove_callback(request, id):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/check_active", methods=['GET'])
-async def check_active_callbacks(request):
+@inject_user()
+@protected()
+async def check_active_callbacks(request, user):
+    # Add this as a 'Task' in Sanic's loop so it repeatedly get calls to update this behind the scenes
     try:
         all_callbacks = await db_objects.get(Callback.select())
         # if a callback is more than 3x late for a checkin, it's considered inactive
         # TODO finish this part for adding a task to periodically do this to the event loop
+
     except Exception as e:
         print(e)
-        return json({'status':'error','error': str(e)})
+        return json({'status': 'error', 'error': str(e)})

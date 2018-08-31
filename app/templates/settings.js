@@ -30,7 +30,7 @@ var operators_table = new Vue({
                 else{
                     data['admin'] = false;
                 }
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/operators/" + o.username, update_operatorview_callback, "PUT", data);
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, update_operatorview_callback, "PUT", data);
             }
         },
         set_password_button: function(o){
@@ -79,7 +79,7 @@ function username_button(op){
         data = {};
         if($( '#operatorNewUsername' ).val() != "" && op['username'] != 'apfell_admin'){
             data['username'] = $( '#operatorNewUsername' ).val();
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/operators/" + op.username, update_operatorview_callback, "PUT", data);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + op.username, update_operatorview_callback, "PUT", data);
          }
          else{
             alert("Cannot change name to empty or change the name of apfell_admin");
@@ -98,14 +98,14 @@ function password_button(op){
         }
         else{
             data['password'] = $( '#operatorNewPassword1' ).val();
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/operators/" + op.username, update_operator_callback, "PUT", data);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + op.username, update_operator_callback, "PUT", data);
         }
     });
 }
 function delete_button(op){
     $( '#operatorDeleteModal' ).modal('show');
     $( '#operatorDeleteSubmit' ).unbind('click').click(function(){
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/operators/" + op.username, delete_operator_callback, "DELETE", null);
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + op.username, delete_operator_callback, "DELETE", null);
     });
 }
 function delete_operator_callback(response){

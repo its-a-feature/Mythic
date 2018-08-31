@@ -3,11 +3,14 @@ from sanic.response import json
 from app.database_models.model import Callback, Operator, Task
 from urllib.parse import unquote_plus
 import datetime
+from sanic_jwt.decorators import protected, inject_user
 
 
 # This gets all tasks in the database
 @apfell.route(apfell.config['API_BASE'] + "/tasks/", methods=['GET'])
-async def get_all_tasks(request):
+@inject_user()
+@protected()
+async def get_all_tasks(request, user):
     callbacks = Callback.select()
     operators = Operator.select()
     tasks = Task.select()
@@ -17,7 +20,9 @@ async def get_all_tasks(request):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['GET'])
-async def get_all_tasks_for_callback(request, cid):
+@inject_user()
+@protected()
+async def get_all_tasks_for_callback(request, cid, user):
     try:
         callback = await db_objects.get(Callback, id=cid)
     except Exception as e:
@@ -33,8 +38,9 @@ async def get_all_tasks_for_callback(request, cid):
                      'msg': str(e)})
 
 
+# We don't put @protected or @inject_user here since the callback needs to be able to call this function
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/nextTask", methods=['GET'])
-async def get_next_task(request, cid):
+async def get_next_task(request, cid, user):
     # gets the next task by time for the callback to do
     try:
         callback = await db_objects.get(Callback, id=cid)
@@ -55,9 +61,11 @@ async def get_next_task(request, cid):
     return json({"command": tasks.command, "params": tasks.params, "id": tasks.id})
 
 
-# add an operator's task to a specific callback
+# create a new task to a specific callback
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/operator/<name:string>", methods=['POST'])
-async def add_task_to_callback(request, cid, name):
+@inject_user()
+@protected()
+async def add_task_to_callback(request, cid, name, user):
     name = unquote_plus(name)
     data = request.json
     print(data)

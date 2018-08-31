@@ -3,6 +3,7 @@ from sanic.response import json
 import subprocess
 import sys
 import asyncio
+from sanic_jwt.decorators import protected, inject_user
 
 # this is temporary, it will be stored in the database soon
 web_servers = []  # will have dicts of {handle, port, directory}
@@ -10,12 +11,16 @@ web_servers = []  # will have dicts of {handle, port, directory}
 
 # ------------ HOST FILE ------------------------
 @apfell.route(apfell.config['API_BASE'] + "/attacks/host_file", methods=['GET'])
-async def get_all_web_servers(request):
+@inject_user()
+@protected()
+async def get_all_web_servers(request, user):
     return json(web_servers)
 
 
 @apfell.route(apfell.config['API_BASE'] + "/attacks/host_file", methods=['POST'])
-async def create_new_host_file(request):
+@inject_user()
+@protected()
+async def create_new_host_file(request, user):
     # expects to get port, directory
     data = request.json
     if 'port' not in data:
@@ -51,7 +56,9 @@ async def create_new_host_file(request):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/attacks/host_file/<port:int>", methods=['DELETE'])
-async def delete_host_file(request, port):
+@inject_user()
+@protected()
+async def delete_host_file(request, port, user):
     for server in web_servers:
         if server['port'] == str(port):
             server['process'].terminate()

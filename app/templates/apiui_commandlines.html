@@ -3,8 +3,9 @@
 <h2>
     Interacting with Apfell API via CLI
 </h2>
-All of these APIs are subject to change in future versions, especially as authentication is applied to the RESTful interface.
+All of these APIs are subject to change in future versions.
 <br><strong>Note:</strong> If you're using SSL with a self-signed cert on the server, you'll need to add "--insecure" to the curl commands.
+<br><strong>Note:</strong> You MUST get a valid JWT and pass it along for your CLI requests (this is part of the authenticated RESTful interface).
 {% for group in cld.all_api %}
 <div class="panel panel-primary" id="OperatorInfo">
     <div class="panel-heading">{{ group.name}} API Information</div>

@@ -9,7 +9,7 @@ var payloads_table = new Vue({
         delete_button: function(p){
             $( '#profileDeleteModal' ).modal('show');
             $( '#profileDeleteSubmit' ).unbind('click').click(function(){
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/c2profiles/" + p.name, delete_profile, "DELETE", null);
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, delete_profile, "DELETE", null);
             });
         },
 	    update_button: function(p){
@@ -22,7 +22,7 @@ var payloads_table = new Vue({
                 var data = {"name": p.name,
                         "description": $( '#profileUpdateDescription' ).val(),
                         "payload_types": $( '#profileUpdatePayloads' ).val()};
-                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/c2profiles/" + p.name, update_profile, "PUT", data);
+                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, update_profile, "PUT", data);
 		    });
 	    },
 	    running_button: function(p){
@@ -32,7 +32,7 @@ var payloads_table = new Vue({
 	        else{
 	            command = "start";
 	        }
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/c2profiles/" + p.name + "/" + command, update_profile, "GET", null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/" + command, update_profile, "GET", null);
 	    }
     },
     delimiters: ['[[',']]']
@@ -102,7 +102,7 @@ function register_button(){
                     "description": $( '#profileCreateDescription' ).val(),
                     "payload_types": $( '#profileCreatePayloads' ).val(),
                     "operator": username};
-         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/c2profiles/", create_profile, "POST", data);
+         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile, "POST", data);
 
     });
 }

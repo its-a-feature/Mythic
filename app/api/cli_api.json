@@ -1,6 +1,50 @@
 {
   "all_api":[
     {
+      "name": "REST Components",
+      "api": [
+        {
+          "POST": "/auth",
+          "explanation": "Authenticate to the server to create a new JWT (JSON Web Token) for you to use for a period of time",
+          "cli": "curl -X POST -d '{\"username\":\"apfell_admin\", \"password\": \"apfell_password\"}' http://localhost/auth",
+          "parameters": [
+            {
+              "name": "username",
+              "description": "The username you want to log in with",
+              "requirements": "This is a required field."
+            },
+            {
+              "name": "password",
+              "description": "The corresponding plain-text password for the specified user",
+              "requirements": "This is a required field"
+            }
+          ]
+        },
+        {
+          "GET": "/me",
+          "explanation": "Get information about yourself based on the JWT you provide",
+          "cli": "curl -H \"Authorization: Bearer JWT_HERE\" http://localhost/me"
+        },
+        {
+          "GET": "/verify",
+          "explanation": "Verify that the provided JWT is valid",
+          "cli": "curl -H \"Authorization: Bearer JWT_HERE\" http://localhost/verify"
+        },
+        {
+          "POST": "/refresh",
+          "explantion": "If your authentication_token times out, then you'll need to use your refresh token to get a new authentication token",
+          "cli": "curl -H \"Authorization: Bearer JWT_HERE\" -X POST -d '{\"refresh_token\": \"refresh_token_here\"}' http://localhost/refresh",
+          "parameters": [
+            {
+              "name": "refresh_token",
+              "description": "The refresh token provided when you did the initial authentication to /auth",
+              "requirements": "This is a required field. You must also provide your authorization token in the Header as indicated, or you'll fail to get a new token"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Callback",
       "api": [
         {

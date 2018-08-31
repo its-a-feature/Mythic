@@ -1,60 +1,66 @@
-from app import apfell, auth, links, use_ssl
+from app import apfell, links, use_ssl
 from app.routes.routes import env
 from sanic import response
+from sanic_jwt.decorators import protected, inject_user
 
 
 @apfell.route("/callbacks")
-@auth.login_required(user_keyword='user')
+@inject_user()
+@protected()
 async def callbacks(request, user):
     template = env.get_template('callbacks.html')
     if use_ssl:
-        content = template.render(links=links, name=user.name, http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss")
     else:
-        content = template.render(links=links, name=user.name, http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws")
     return response.html(content)
 
 
 @apfell.route("/db_management")
-@auth.login_required(user_keyword='user')
+@inject_user()
+@protected()
 async def db_management(request, user):
     template = env.get_template('database_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user.name, http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss")
     else:
-        content = template.render(links=links, name=user.name, http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws")
     return response.html(content)
 
 
 @apfell.route("/payload_management",methods=['GET'])
-@auth.login_required(user_keyword='user')
+@inject_user()
+@protected()
 async def payload_management(request, user):
     template = env.get_template('payload_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user.name, http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss")
     else:
-        content = template.render(links=links, name=user.name, http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws")
     return response.html(content)
 
 
 @apfell.route("/analytics", methods=['GET'])
-@auth.login_required(user_keyword='user')
+@inject_user()
+@protected()
 async def analytics(request, user):
     template = env.get_template('analytics.html')
     if use_ssl:
-        content = template.render(links=links, name=user.name, http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss")
     else:
-        content = template.render(links=links, name=user.name, http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws")
     return response.html(content)
 
 
 @apfell.route("/c2profile_management", methods=['GET'])
-@auth.login_required(user_keyword='user')
+@inject_user()
+@protected()
 async def c2profile_management(request, user):
     template = env.get_template('c2profile_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user.name, http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss")
     else:
-        content = remplate.render(links=links, name=user.name, http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws")
     return response.html(content)
 
 

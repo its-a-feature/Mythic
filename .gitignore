@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+# Sphinx documentation
+docs/_build/
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+# created payloads
+operations/
+# pycharm
+.idea/
+# ssl certs
+ssl/

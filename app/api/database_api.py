@@ -2,10 +2,13 @@ from app import apfell
 import shutil
 from sanic.response import json
 import aiopg
+from sanic_jwt.decorators import protected, inject_user
 
 
 @apfell.route(apfell.config['API_BASE'] + "/database/clear_entries", methods=['GET'])
-async def database_clear_entries(request):
+@inject_user()
+@protected()
+async def database_clear_entries(request, user):
     response = {}
     try:
         # purposefully not deleting operators right here. might need special flag for it?
@@ -27,7 +30,9 @@ async def database_clear_entries(request):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/database/clear_all_files", methods=['GET'])
-async def database_clear_all_files(request):
+@inject_user()
+@protected()
+async def database_clear_all_files(request, user):
     # just remove the operational files
     try:
         shutil.rmtree("./payloads/operations/default")
@@ -38,7 +43,9 @@ async def database_clear_all_files(request):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/database/clear_operators", methods=['GET'])
-async def databaes_clear_operators(request):
+@inject_user()
+@protected()
+async def databaes_clear_operators(request, user):
     # just remove the operators
     response = {}
     try:

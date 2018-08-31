@@ -4,9 +4,9 @@ aiopg==0.13.2
 peewee==2.10.2
 jinja2
 uvloop==0.9.1
-sanic-auth
 sanic-wtf
 cryptography
 wtforms
 anytree
 websockets==5.0.1
+sanic-jwt

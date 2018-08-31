@@ -3,10 +3,12 @@ import aiopg
 import json as js
 import asyncio
 from app.database_models.model import Operator, Callback, Task, Response, Payload, C2Profile
+from sanic_jwt.decorators import protected
 
 
 # --------------- TASKS --------------------------
 # notifications for new tasks
+@protected()
 @apfell.websocket('/ws/tasks')
 async def ws_tasks(request, ws):
     try:
@@ -43,6 +45,7 @@ async def ws_tasks(request, ws):
 
 # --------------- RESPONSES ---------------------------
 # notifications for task updates
+@protected()
 @apfell.websocket('/ws/responses')
 async def ws_task_updates(request, ws):
     try:
@@ -77,6 +80,7 @@ async def ws_task_updates(request, ws):
 
 
 # --------------------- CALLBACKS ------------------
+@protected()
 @apfell.websocket('/ws/callbacks')
 async def ws_callbacks(request, ws):
     try:
@@ -110,6 +114,7 @@ async def ws_callbacks(request, ws):
 
 
 # notifications for updated callbacks
+@protected()
 @apfell.websocket('/ws/updatedcallbacks')
 async def ws_callbacks(request, ws):
     try:
@@ -139,6 +144,7 @@ async def ws_callbacks(request, ws):
 
 # --------------- PAYLOADS -----------------------
 # notifications for new payloads
+@protected()
 @apfell.websocket('/ws/payloads')
 async def ws_payloads(request, ws):
     try:
@@ -170,6 +176,7 @@ async def ws_payloads(request, ws):
 
 # --------------- C2PROFILES -----------------------
 # notifications for new c2profiles
+@protected()
 @apfell.websocket('/ws/c2profiles')
 async def ws_payloads(request, ws):
     try:
@@ -201,6 +208,7 @@ async def ws_payloads(request, ws):
 
 # ---------------- OPERATORS --------------------------
 # notifications for new operators
+@protected()
 @apfell.websocket('/ws/operators')
 async def ws_payloads(request, ws):
     try:
@@ -231,6 +239,7 @@ async def ws_payloads(request, ws):
 
 
 # notifications for updated operators
+@protected()
 @apfell.websocket('/ws/updatedoperators')
 async def ws_callbacks(request, ws):
     try:

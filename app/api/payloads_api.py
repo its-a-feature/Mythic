@@ -3,16 +3,21 @@ from sanic.response import json, text
 from app.database_models.model import Operator, Payload, Callback, C2Profile
 from app.api.task_api import add_task_to_callback_func
 import pathlib
+from sanic_jwt.decorators import protected, inject_user
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/", methods=['GET'])
-async def get_all_payloads(request):
+@inject_user()
+@protected()
+async def get_all_payloads(request, user):
     payloads = await db_objects.execute(Payload.select())
     return json([p.to_json() for p in payloads])
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/<puuid:string>", methods=['DELETE'])
-async def remove_payload(request, puuid):
+@inject_user()
+@protected()
+async def remove_payload(request, puuid, user):
     try:
         payload = await db_objects.get(Payload, uuid=puuid)
     except Exception as e:
@@ -29,7 +34,9 @@ async def remove_payload(request, puuid):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/register/", methods=['POST'])
-async def register_payload(request):
+@inject_user()
+@protected()
+async def register_payload(request, user):
     data = request.json
     return await json(register_payload_func(data))
 
@@ -151,7 +158,9 @@ async def write_jxa_payload_func(data):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/create-jxa", methods=['POST'])
-async def create_jxa_payload(request):
+@inject_user()
+@protected()
+async def create_jxa_payload(request, user):
     data = request.json
     print(data)
     # configuration parameters are passed in
@@ -216,7 +225,9 @@ async def create_jxa_payload(request):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/get/<pload:string>", methods=['GET'])
-async def get_payload(request, pload):
+@inject_user()
+@protected()
+async def get_payload(request, pload, user):
     # return a blob of the requested payload
     # the pload string will be the uuid of a payload registered in the system
     try:

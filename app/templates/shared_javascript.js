@@ -16,8 +16,8 @@ function httpGetSync(theUrl){
     return xmlHttp.responseText; // should just use this to get JSON data from RESTful APIs
 }
 function pythonToJSJson(string){
-updated = string.replace(/\'/g, "\"");
-updated = updated.replace("True", "true");
-updated = updated.replace("False", "false");
-return updated;
+    updated = string.replace(/\'/g, "\"");
+    updated = updated.replace("True", "true");
+    updated = updated.replace("False", "false");
+    return updated;
 }

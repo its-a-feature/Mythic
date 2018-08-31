@@ -5,20 +5,26 @@ from urllib.parse import unquote_plus
 import subprocess
 import sys
 import asyncio
+from sanic_jwt.decorators import protected, inject_user
 
 # this information is only valid for a single run of the server
 running_profiles = []  # will have dicts of process information
 
+
 # Get all the currently registered profiles
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/", methods=['GET'])
-async def get_all_c2profiles(request):
+@inject_user()
+@protected()
+async def get_all_c2profiles(request, user):
     profiles = await db_objects.execute(C2Profile.select())
     return json([p.to_json() for p in profiles])
 
 
 # Get all currently registered profiles that support a given payload type
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>", methods=['GET'])
-async def get_c2profiles_by_type(request, info):
+@inject_user()
+@protected()
+async def get_c2profiles_by_type(request, info, user):
     ptype = unquote_plus(info)
     try:
         profiles = await get_c2profiles_by_type_function(ptype)
@@ -39,7 +45,9 @@ async def get_c2profiles_by_type_function(ptype):
 
 # Register a new profile
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/", methods=['POST'])
-async def register_new_c2profile(request):
+@inject_user()
+@protected()
+async def register_new_c2profile(request, user):
     data = request.json
     if 'name' not in data or data['name'] is "":
         return json({'status':'error', 'error':'name is required'})
@@ -64,7 +72,9 @@ async def register_new_c2profile(request):
 
 # Update a current profile
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>", methods=['PUT'])
-async def update_c2profile(request, info):
+@inject_user()
+@protected()
+async def update_c2profile(request, info, user):
     name = unquote_plus(info)
     data = request.json
     try:
@@ -88,7 +98,9 @@ async def update_c2profile(request, info):
 
 # Start/stop running a profile's server side code
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/<command:string>", methods=['GET'])
-async def start_stop_c2profile(request, info, command):
+@inject_user()
+@protected()
+async def start_stop_c2profile(request, info, command, user):
     name = unquote_plus(info)
     command = unquote_plus(command)
     if name == "default":
@@ -136,7 +148,9 @@ async def start_stop_c2profile(request, info, command):
 
 # Delete a profile
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>", methods=['DELETE'])
-async def delete_c2profile(request, info):
+@inject_user()
+@protected()
+async def delete_c2profile(request, info, user):
     try:
         info = unquote_plus(info)
         profile = await db_objects.get(C2Profile, name=info)

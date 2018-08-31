@@ -1,19 +1,25 @@
-from app import apfell, db_objects, auth
+from app import apfell, db_objects
 from sanic.response import json
 from app.database_models.model import Operator
 from sanic import response
 from app import crypto
 from urllib.parse import unquote_plus
+from sanic_jwt.decorators import inject_user
+from sanic_jwt import protected
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['GET'])
-async def get_all_operators(request):
+@inject_user()
+@protected()
+async def get_all_operators(request, user):
     ops = await db_objects.execute(Operator.select())
     return json([p.to_json() for p in ops])
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['POST'])
-async def create_operator(request):
+@inject_user()
+@protected()
+async def create_operator(request, user):
     data = request.json
     if not 'username' in data:
         return json({'status': 'error',
@@ -37,7 +43,9 @@ async def create_operator(request):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=['GET'])
-async def get_one_operator(request, name):
+@inject_user()
+@protected()
+async def get_one_operator(request, name, user):
     name = unquote_plus(name)
     try:
         op = await db_objects.get(Operator, username=name)
@@ -48,7 +56,8 @@ async def get_one_operator(request, name):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=["PUT"])
-@auth.login_required(user_keyword='user')
+@inject_user()
+@protected()
 async def update_operator(request, name, user):
     name = unquote_plus(name)
     try:
@@ -61,11 +70,10 @@ async def update_operator(request, name, user):
         if 'password' in data:
             # first verify old_password matches
             old_password = await crypto.hash_SHA512(data['old_password'])
-            if old_password.lower() == op.password.lower() or user.name == 'apfell_admin':  # TODO once I do RESTful auth, add "OR user is type admin"
+            if old_password.lower() == op.password.lower() or user['admin']:
                 op.password = await crypto.hash_SHA512(data['password'])
-        if 'admin' in data and user.name == 'apfell_admin':
-            op.admin = data['admin']  # YES, anybody can change themselves to admin right now
-                                      # this will change when I do authenticated RESTful queries
+        if 'admin' in data and user['admin']:
+            op.admin = data['admin']
         await db_objects.update(op)
         success = {'status': 'success'}
         updated_operator = op.to_json()
@@ -75,7 +83,9 @@ async def update_operator(request, name, user):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=["DELETE"])
-async def remove_operator(request, name):
+@inject_user()
+@protected()
+async def remove_operator(request, name, user):
     name = unquote_plus(name)
     try:
         op = await db_objects.get(Operator, username=name)

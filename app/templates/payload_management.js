@@ -10,7 +10,7 @@ var payloads_table = new Vue({
         delete_button: function(p){
 		$( '#payloadDeleteModal' ).modal('show');
 		$( '#payloadDeleteSubmit' ).unbind('click').click(function(){
-			httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/payloads/" + p.uuid, delete_callback, "DELETE", null);
+			httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/" + p.uuid, delete_callback, "DELETE", null);
 		});
         },
 	show_uuid_button: function(p){

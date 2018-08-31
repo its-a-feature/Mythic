@@ -31,7 +31,7 @@ var callback_table = new Vue({
         },
         spawn_menu: function(callback){
             //display a modal menu for the user to get some information about spawning a new callback
-            possiblePayloads = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/payloads/"));
+            possiblePayloads = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/"));
             var payloads = '<option value="-1">current callback as template for new payload</option>';
             for(var i = 0; i < possiblePayloads.length; i++){
                 if(possiblePayloads[i].tag !== ""){
@@ -72,7 +72,7 @@ var callback_table = new Vue({
                     }
                 }
                 //should have all the data we need, submit the POST request
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/payloads/create-jxa",
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create-jxa",
                 null, "POST", post_data);
             });
 
@@ -82,7 +82,7 @@ var callback_table = new Vue({
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/tasks/callback/" + callback['id'] + "/operator/" + username,
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'] + "/operator/" + username,
             null, "POST", {"command":"exit","params":""});
         },
         remove_callback: function(callback){
@@ -91,7 +91,7 @@ var callback_table = new Vue({
             this.$delete(meta, callback.id);
             this.$delete(callbacks, callback.id);
             //update the callback to be active=false
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
         }
     },
     delimiters: ['[[',']]']
@@ -134,7 +134,7 @@ var task_data = new Vue({
                     }
                 }
             }
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/api/v1.0/tasks/callback/" + data['cid'] + "/operator/" + username,
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'] + "/operator/" + username,
             null, "POST", {"command":command,"params":params});
             //alert("submitting " + this.input_field);
             this.input_field = "";
@@ -249,7 +249,7 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
             if(callbacks[rsp['id']]){
                 callbacks[rsp['id']]['last_checkin'] = rsp['last_checkin'];
             }
-	    // we ned to handle the case wehre something was not active, so we didn't populate it in the global tables, but it called back in and got updated
+	    // we ned to handle the case where something was not active, so we didn't populate it in the global tables, but it called back in and got updated
 	    //TODO
         }
     }
