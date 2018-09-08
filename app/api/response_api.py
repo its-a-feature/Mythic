@@ -27,13 +27,13 @@ async def get_one_response(request, user, rid):
         resp = await db_objects.get(Response, id=rid)
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
-    return json(resp.to_jso())
+    return json(resp.to_json())
 
 
 # implant calling back to update with base64 encoded response from executing a task
 # We don't add @protected or @injected_user here because the callback needs to be able to post here for responses
 @apfell.route(apfell.config['API_BASE'] + "/responses/<tid:int>", methods=['POST'])
-async def update_task_for_callback(request, tid, user):
+async def update_task_for_callback(request, tid):
     data = request.json
     # print(data)
     # print(len(data['response']))
@@ -47,11 +47,12 @@ async def update_task_for_callback(request, tid, user):
     try:
         if 'response' not in data:
             return json({'status': 'error', 'error': 'task response not in data'})
-        # print(str(len(data['response'])))
         resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
         await db_objects.update(task)
-        return json({'status': 'success'})
+        status = {'status': 'success'}
+        resp_json = resp.to_json()
+        return json({**status, **resp_json}, status=201)
     except Exception as e:
         print(e)
         return json({'status': 'error',

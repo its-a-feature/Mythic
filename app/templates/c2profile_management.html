@@ -46,7 +46,7 @@
                 <td>[[ p.operator ]]</td>
                 <td>[[ p.name ]]</td>
                 <td>[[ p.description ]]</td>
-		        <td>[[ p.payload_types ]]</td>
+		        <td>[[ p.payload_types.join(", ") ]]</td>
             </tr>
         <!-- End of the repeating -->
         </table>
@@ -81,15 +81,15 @@
             <table cellpadding="10" style="width:100%">
                 <tr>
                     <td style="width:150px">Name</td>
-                    <td><input type="text" id="profileUpdateName" size="64" disabled></td>
+                    <td><input type="text" id="profileUpdateName" size="50" disabled></td>
                 </tr>
                 <tr>
                     <td>Description</td>
-                    <td> <input type="text" id="profileUpdateDescription" size="64"></td>
+                    <td> <input type="text" id="profileUpdateDescription" size="50"></td>
                 </tr>
                 <tr>
                     <td>Supported Payloads</td>
-                    <td><input type="text" id="profileUpdatePayloads" size="64"></td>
+                    <td><input type="text" id="profileUpdatePayloads" size="50"></td>
                 </tr>
             </table>
         </div>
@@ -115,15 +115,15 @@
             <table cellpadding="10" style="width:100%">
                 <tr>
                     <td style="width:150px">Name</td>
-                    <td><input type="text" id="profileCreateName" size="64"></td>
+                    <td><input type="text" id="profileCreateName" size="50"></td>
                 </tr>
                 <tr>
                     <td>Description</td>
-                    <td> <input type="text" id="profileCreateDescription" size="64"></td>
+                    <td> <input type="text" id="profileCreateDescription" size="50"></td>
                 </tr>
                 <tr>
                     <td>Supported Payloads</td>
-                    <td><input type="text" id="profileCreatePayloads" size="64"></td>
+                    <td><input type="text" id="profileCreatePayloads" size="50"></td>
                 </tr>
             </table>
         </div>

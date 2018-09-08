@@ -31,8 +31,10 @@ async def apiui_documentation(request, user):
 @inject_user()
 @protected()
 async def apiui_apfell_jxa(request, user):
+    data = open("./app/templates/default_commands.json", 'r').read()
+    json_data = js.loads(data)
     template = env.get_template('apiui_apfell-jxa.html')
-    content = template.render(name=user['username'], links=links)
+    content = template.render(name=user['username'], links=links, cmd=json_data)
     return response.html(content)
 
 # add links to the routes in this file at the bottom

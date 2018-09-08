@@ -12,95 +12,28 @@
 <h3>
     Commands
 </h3>
+{% for type in cmd.payload_types %}
 <div style="resize: vertical; overflow:visible" class="panel panel-primary">
-    <div class="panel-heading">Current Command Listing</div>
+    <div class="panel-heading">{{ type.name }} Command Listing</div>
         <table class="table table-striped table-hover table-condensed" >
             <tr>
                 <td><b>Command</b></td>
-                <td><b>Information</b></td>
+                <td><b>Help</b></td>
+                <td><b>description</b></td>
+                <td><b>Needs Admin</b></td>
             </tr>
+            {% for c in type.commands %}
             <tr>
-                <td>shell {command}</td>
-                <td>This runs {command} in a terminal by leveraging JXA's Application.doShellScript({command})</td>
+                <td>{{ c.cmd }}</td>
+                <td>{{ c.help }}</td>
+                <td>{{ c.description }}</td>
+                <td>{{ c.needs_admin }}</td>
             </tr>
-            <tr>
-                <td>js {command}</td>
-                <td>This runs the JavaScript command, {command}, and returns its output</td>
-            </tr>
-            <tr>
-                <td>jsb {command}</td>
-                <td>This runs the ObjectiveC bridge JavaScript command, {command}, and returns its output. This will call deepunwrap on the output to convert the ObjectiveC objects to normal strings to be returned</td>
-            </tr>
-            <tr>
-                <td>shell_elevated</td>
-                <td>This creates two popup dialogs prompting for a command to run and a prompt to give the user. The command will use your prompt to pop a dialog box for the user asking for them to input their password so that the command you entered will be executed in an elevated context</td>
-            </tr>
-            <tr>
-                <td>shell_api</td>
-                <td>This creates two popup dialogs prompting for a <strong>full</strong> binpath and then arguments for that binary. The command uses the ObjectiveC bridge to spawn that process with those arguments on the computer and get your output back. It is not interactive.</td>
-            </tr>
-            <tr>
-                <td>launchapp {bundle name}</td>
-                <td>This uses the Objective C bridge to launch the specified app asynchronously and 'hidden' (it'll still show up in the dock for now). An example of the bundle name is 'com.apple.itunes' for launching iTunes.</td>
-            </tr>
-            <tr>
-                <td>clipboard</td>
-                <td>This will return the current clipboard contents on the target machine.</td>
-            </tr>
-            <tr>
-                <td>clipboard [data]</td>
-                <td>This will set the clipboard data to [data]</td>
-            </tr>
-            <tr>
-                <td>list_apps [verbose]</td>
-                <td>This uses JXA to list the currently running processes on the sytem and provides some information about them. To get a lot of information, use the <strong>verbose</strong> optional parameter</td>
-            </tr>
-            <tr>
-                <td>list_users [method]</td>
-                <td>This uses JXA to list the non-service user accounts on the system. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods.</td>
-            </tr>
-            <tr>
-                <td>current_user [method]</td>
-                <td>This uses JXA to list information about the current user. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods.</td>
-            </tr>
-            <tr>
-                <td>security_info [method]</td>
-                <td>This uses JXA to list some security information about the system. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods.</td>
-            </tr>
-            <tr>
-                <td>chrome_tabs</td>
-                <td>This uses JXA to list information about all of the open tabs in all of the open Chrome instances. If Chrome is not currently running, this will launch Chrome (potential OPSEC issue) and might have a conflict with trying to access Chrome tabs as Chrome is starting. It's recommended to not use this unless Chrome is already running. Use the <strong>list_apps</strong> function to check if Chrome is running.</td>
-            </tr>
-            <tr>
-                <td>chrome_bookmarks</td>
-                <td>This uses JXA to list information about all of the bookmarks in Chrome. If Chrome is not currently running, this will launch Chrome (potential OPSEC issue) and might have a conflict with trying to access Chrome's bookmarks as Chrome is starting. It's recommended to not use this unless Chrome is already running. Use the <strong>list_apps</strong> function to check if Chrome is running.</td>
-            </tr>
-            <tr>
-                <td>js_chrome {window ID number} {tab ID number} {JavaScript}</td>
-                <td>This uses JXA to execute the specified JavaScript code into a specific browser tab. The <strong>chrome_tabs</strong> function will specify for each tab the window/tab numbers that you can use for this function.</td>
-            </tr>
-            <tr>
-                <td>system_info [method]</td>
-                <td>This uses JXA to get some system information. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods.</td>
-            </tr>
-            <tr>
-                <td>terminals read [history] [contents]</td>
-                <td>This uses JXA to read information about open instances of Apple's Terminal.app. The <strong>contents</strong> flag allows you to see exactly what the user can see at that moment on the screen. The <strong>history</strong> flag allows you to see everything that's in that tab's scroll history. This can be a lot of information, so keep that in mind. This function will also give you the window/tab information for each open session and a bunch of other information.</td>
-            </tr>
-            <tr>
-                <td>terminals send {window ID number} {tab ID number} {command}</td>
-                <td>This uses JXA to inject the shell command, {command}, into the specified terminal shell as if the user typed it from the keyboard. This is pretty powerful. Consider the instance where the user is SSH-ed into another machine via terminal - with this you can inject commands to run on the remote host. Just remember, the user will be able to see the command, but you can always see what they see as well with the <strong>terminals read contents</strong> command.</td>
-            </tr>
-            <tr>
-                <td>spawn shell_api oneliner apfell-jxa {payload UUID}</td>
-                <td>This pulls down the payload specified by {payload UUID} and uses the shell_api to execute it in a sub-process. I'll look into spawning it in such a way that it doesn't end up being a subprocess, but you can still interact with each of them at the same time.</td>
-            </tr>
-            <tr>
-                <td>exit</td>
-                <td>This exits the current apfell-jxa instance by leveraging the ObjectiveC bridge's NSApplication terminate function.</td>
-            </tr>
+            {% endfor %}
+
         </table>
 </div>
+{% endfor %}
 {% endblock %}
 {% block scripts %}
 

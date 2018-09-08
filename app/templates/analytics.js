@@ -1,5 +1,6 @@
 var callback_tree_data = "";
 var payload_tree_data = "";
+var process_new_callbacks = false;
 var callback_tree = new Vue({
 	el: '#callbacktree',
 	data: {
@@ -21,10 +22,14 @@ var pload_tree = new Vue({
 function startwebsocket_callbacks(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks');
 	ws.onmessage = function(event){
-		if(event.data != ""){
+		if(event.data != "" && process_new_callbacks){
 			cdata = JSON.parse(event.data);
 			//for now, when we get a new callback, just re call the tree function
 			send_callback_tree_data();
+		}
+		else if(event.data == "" && process_new_callbacks == false){
+		    process_new_callbacks = true;
+		    send_callback_tree_data();
 		}
 	}
 	ws.onclose = function(){}
@@ -39,7 +44,7 @@ function update_payload_tree(response){
     payload_tree_data = response;
     $( '#payloadtree' ).html(payload_tree_data);
 }
-startwebsocket_callbacks();
+
 function show_removed_button(){
     callback_tree.show_removed = !callback_tree.show_removed;
     send_callback_tree_data();
@@ -78,5 +83,6 @@ function send_pload_tree_data(){
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/analytics/payload_tree", update_payload_tree, "GET", null);
     }
 }
+startwebsocket_callbacks();
 send_pload_tree_data();
 

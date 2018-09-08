@@ -1,6 +1,6 @@
 from sanic_jwt import exceptions
 from app import db_objects
-from app.database_models.model import Operator
+from app.database_models.model import Operator, Operation, OperatorOperation
 import datetime
 
 refresh_tokens = {}  # having this not persist past reboot of the server and forcing re-auth is perfectly fine
@@ -40,7 +40,16 @@ async def retrieve_user(request, payload, *args, **kwargs):
     try:
         user = await db_objects.get(Operator, id=user_id)
         user_json = user.to_json()
-        return {**user_json, "user_id": user.id}
+        operationmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operator == user))
+        operations = []
+        for operation in operationmap:
+            op = await db_objects.get(Operation, id=operation)
+            operations.append(op.name)
+        admin_operations = await db_objects.execute(Operation.select().where(Operation.admin == user))
+        admin_ops = []
+        for op in admin_operations:
+            admin_ops.append(op.name)
+        return {**user_json, "user_id": user.id, "operations": operations, "admin_operations": admin_ops}
     except Exception as e:
         print("failed to get user in retrieve_user")
         return {}
@@ -48,15 +57,25 @@ async def retrieve_user(request, payload, *args, **kwargs):
 
 async def add_scopes_to_payload(user, *args, **kwargs):
     # return an array of scopes
+    scopes = []
     try:
         user = await db_objects.get(Operator, id=user['user_id'])
     except Exception as e:
         print(e)
-        return ['']
-    if user.admin:
-        return ['admin']
-    else:
-        return ['user']
+        return []
+    try:
+        operationsmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operator == user))
+        if user.admin:
+            scopes.append('admin')
+        for map in operationsmap:
+            # map is an OperatorOperation object that points to an operator and operation
+            # need to get that corresponding operation's name to add to our scope list
+            operation = await db_objects.get(Operation, id=map.operation)
+            scopes.append(operation.name)
+        return scopes
+    except Exception as e:
+        print(e)
+        return []
 
 
 async def store_refresh_token(user_id, refresh_token, *args, **kwargs):

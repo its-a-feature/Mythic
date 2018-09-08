@@ -39,6 +39,7 @@
                 <td><b>Last Login</b></td>
                 <td><b>Creation Date</b></td>
                 <td><b>Admin</b></td>
+                <td><b>Active?</b></td>
             </tr>
         <!-- Repeat this for each web service -->
             <tr v-for="o in operators" :key="o.creation_time">
@@ -58,6 +59,7 @@
                 <td>[[ o.last_login ]]</td>
                 <td>[[ o.creation_time ]]</td>
                 <td>[[ o.admin ]]</td>
+                <td>[[ o.active ]]</td>
             </tr>
         <!-- End of the repeating -->
         </table>

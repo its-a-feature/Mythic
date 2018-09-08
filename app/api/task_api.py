@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Task
+from app.database_models.model import Callback, Operator, Task, Command
 from urllib.parse import unquote_plus
 import datetime
 from sanic_jwt.decorators import protected, inject_user
@@ -40,7 +40,7 @@ async def get_all_tasks_for_callback(request, cid, user):
 
 # We don't put @protected or @inject_user here since the callback needs to be able to call this function
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/nextTask", methods=['GET'])
-async def get_next_task(request, cid, user):
+async def get_next_task(request, cid):
     # gets the next task by time for the callback to do
     try:
         callback = await db_objects.get(Callback, id=cid)
@@ -58,29 +58,32 @@ async def get_next_task(request, cid, user):
         return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
     tasks.status = "processing"
     await db_objects.update(tasks)
-    return json({"command": tasks.command, "params": tasks.params, "id": tasks.id})
+    return json({"command": tasks.command.cmd, "params": tasks.params, "id": tasks.id})
 
 
 # create a new task to a specific callback
-@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/operator/<name:string>", methods=['POST'])
+@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['POST'])
 @inject_user()
 @protected()
-async def add_task_to_callback(request, cid, name, user):
-    name = unquote_plus(name)
+async def add_task_to_callback(request, cid, user):
     data = request.json
-    print(data)
-    return json(await add_task_to_callback_func(data, cid, name))
+    data['operator'] = user['username']
+    return json(await add_task_to_callback_func(data, cid))
 
 
-async def add_task_to_callback_func(data, cid, name):
+async def add_task_to_callback_func(data, cid):
     try:
         # first see if the operator and callback exists
-        op = await db_objects.get(Operator, username=name)
+        op = await db_objects.get(Operator, username=data['operator'])
         cb = await db_objects.get(Callback, id=cid)
         # now check the task and add it if it's valid
+        cmd = await db_objects.get(Command, cmd=data['command'])
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
-        task = await db_objects.create(Task, callback=cb, operator=op, command=data['command'], params=data['params'])
-        return {'status': 'success'}
+        task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
+        status = {'status': 'success'}
+        task_json = task.to_json()
+        return {**status, **task_json}
     except Exception as e:
+        print("failed to get something in add_task_to_callback_func " + str(e))
         return {'status': 'error', 'error': 'Failed to create task',  'msg': str(e)}
 

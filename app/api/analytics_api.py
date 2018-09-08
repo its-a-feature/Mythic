@@ -69,7 +69,7 @@ async def analytics_callback_tree_api_function(callback, config):
 
 async def analytics_payload_tree_api_function(payload, config):
     display = ""
-    display += payload.operator.username + "'s " + payload.payload_type + " payload with " + payload.c2_profile.name + " c2 profile with tag: "
+    display += payload.operator.username + "'s " + payload.payload_type.ptype + " payload with " + payload.c2_profile.name + " c2 profile with tag: "
     display += payload.tag
     return display
 

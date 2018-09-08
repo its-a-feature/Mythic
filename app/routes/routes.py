@@ -1,7 +1,7 @@
 from app import apfell, db_objects, links, use_ssl
 from sanic.response import json
 from sanic import response
-from sanic.exceptions import NotFound, abort
+from sanic.exceptions import NotFound
 from jinja2 import Environment, PackageLoader
 from app.database_models.model import Operator
 from app.forms.loginform import LoginForm, RegistrationForm
@@ -169,7 +169,7 @@ async def settings(request, user):
         return response.html(content)
     except Exception as e:
         print(e)
-        return abort(404)
+        return json({'status': 'error', 'error': 'Failed to find operator'})
 
 
 @apfell.route("/logout")
@@ -183,7 +183,7 @@ async def logout(request):
 
 @apfell.exception(NotFound)
 async def handler_404(request, exception):
-    return json({'error': 'Not Found'})
+    return json({'error': 'Not Found'}, status=404)
 
 
 @apfell.middleware('request')
@@ -205,6 +205,18 @@ async def reroute_to_refresh(request, resp):
             if request.cookies['refresh_token'] and request.cookies['access_token']:
                 # auto generate a new
                 return response.redirect("/uirefresh")
+
+
+@apfell.middleware('response')
+async def failed_refresh(request, resp):
+    # you were redirected to /uirefresh, but your refresh failed (maybe the server restarted?)
+    if 'uirefresh' in request.path:
+        if resp and resp.status == 401 and resp.content_type == "application/json":
+            if request.cookies['refresh_token'] and request.cookies['access_token']:
+                newresp = response.redirect("/login")
+                del newresp.cookies['access_token']
+                del newresp.cookies['refresh_token']
+                return newresp
 
 
 # add links to the routes in this file at the bottom

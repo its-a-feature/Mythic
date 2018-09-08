@@ -3,6 +3,7 @@ import shutil
 from sanic.response import json
 import aiopg
 from sanic_jwt.decorators import protected, inject_user
+from app.database_models.model import setup
 
 
 @apfell.route(apfell.config['API_BASE'] + "/database/clear_entries", methods=['GET'])
@@ -20,6 +21,9 @@ async def database_clear_entries(request, user):
                     await cur.execute('TRUNCATE task CASCADE;')
                     await cur.execute('TRUNCATE response CASCADE;')
                     await cur.execute('TRUNCATE c2profile CASCADE;')
+                    await cur.execute('TRUNCATE payloadtype CASCADE;')
+                    await cur.execute('TRUNCATE payloadtypec2profile CASCADE;')
+                    setup()  # put our defaults back in place
                     response = {'status': 'success'}
     except Exception as e:
         print(e)
@@ -35,7 +39,7 @@ async def database_clear_entries(request, user):
 async def database_clear_all_files(request, user):
     # just remove the operational files
     try:
-        shutil.rmtree("./payloads/operations/default")
+        shutil.rmtree("./app/payloads/operations/default")
         return json({'status': 'success'})
     except OSError as e:
         print(e)

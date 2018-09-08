@@ -28,15 +28,13 @@ async def create_operator(request, user):
         return json({'status': 'error',
                      'error': '"username" must be string with at least one character'})
     password = await crypto.hash_SHA512(data['password'])
-    admin = False
-    if 'admin' in data:
-        admin = data['admin']
+    admin = False  # cannot create a user initially as admin
     # we need to create a new user
     try:
         user = await db_objects.create(Operator, username=data['username'], password=password, admin=admin)
         success = {'status': 'success'}
         new_user = user.to_json()
-        return response.json({**success, **new_user})
+        return response.json({**success, **new_user}, status=201)
     except:
         return json({'status': 'error',
                      'error': 'failed to add user'})
@@ -52,7 +50,7 @@ async def get_one_operator(request, name, user):
         return json(op.to_json())
     except:
         print("Failed to get operator")
-        return json({'status':'error', 'error':'failed to get operator'})
+        return json({'status': 'error', 'error': 'failed to get operator'}, status=404)
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=["PUT"])
@@ -72,7 +70,7 @@ async def update_operator(request, name, user):
             old_password = await crypto.hash_SHA512(data['old_password'])
             if old_password.lower() == op.password.lower() or user['admin']:
                 op.password = await crypto.hash_SHA512(data['password'])
-        if 'admin' in data and user['admin']:
+        if 'admin' in data and user['admin']:  # only a current admin can make somebody an admin
             op.admin = data['admin']
         await db_objects.update(op)
         success = {'status': 'success'}

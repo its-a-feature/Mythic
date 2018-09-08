@@ -1,5 +1,6 @@
 var profiles = []; //all profiles data
 var username = "{{name}}";
+var finished_profiles = false;
 var payloads_table = new Vue({
     el: '#c2profiles_table',
     data: {
@@ -21,7 +22,8 @@ var payloads_table = new Vue({
             $( '#profileUpdateSubmit' ).unbind('click').click(function(){
                 var data = {"name": p.name,
                         "description": $( '#profileUpdateDescription' ).val(),
-                        "payload_types": $( '#profileUpdatePayloads' ).val()};
+                        "payload_types": $( '#profileUpdatePayloads' ).val().split(",")
+                        };
                  httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, update_profile, "PUT", data);
 		    });
 	    },
@@ -81,8 +83,39 @@ function startwebsocket_c2profiles(){
 	ws.onmessage = function(event){
 		if(event.data != ""){
 			pdata = JSON.parse(event.data);
+			pdata['payload_types'] = [];
 			profiles.push(pdata);
-			
+		}
+		else{
+		    if(finished_profiles == false){
+		        finished_profiles = true;
+		        startwebsocket_payloadtypec2profile();
+		    }
+		}
+	}
+	ws.onclose = function(){
+		//console.log("payloads socket closed");
+	}
+	ws.onerror = function(){
+		//console.log("payloads socket errored");
+	}
+	ws.onopen = function(){
+		//console.log("payloads socket opened");
+	}
+}
+function startwebsocket_payloadtypec2profile(){
+	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloadtypec2profile');
+	ws.onmessage = function(event){
+		if(event.data != ""){
+			pdata = JSON.parse(event.data);
+			//profiles.push(pdata);
+            for(var i = 0; i < profiles.length; i++){
+                if(profiles[i]['id'] == pdata['c2_profile_id']){
+                    if( !profiles[i]['payload_types'].includes(pdata['payload_type'])){
+                        profiles[i]['payload_types'].push(pdata['payload_type']);
+                    }
+                }
+            }
 		}
 	}
 	ws.onclose = function(){
@@ -100,8 +133,7 @@ function register_button(){
     $( '#profileCreateSubmit' ).unbind('click').click(function(){
         var data = {"name": $( '#profileCreateName' ).val(),
                     "description": $( '#profileCreateDescription' ).val(),
-                    "payload_types": $( '#profileCreatePayloads' ).val(),
-                    "operator": username};
+                    "payload_types": $( '#profileCreatePayloads' ).val().split(",")};
          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile, "POST", data);
 
     });

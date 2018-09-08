@@ -1,0 +1,123 @@
+{
+  "payload_types": [
+    {
+      "name": "apfell-jxa",
+      "commands": [
+        {
+          "cmd": "shell",
+          "description": "This runs {command} in a terminal by leveraging JXA's Application.doShellScript({command})",
+          "help": "shell {command}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "js",
+          "description": "This runs the JavaScript command, {command}, and returns its output. If you're trying to do ObjC commands and expect native types to come back, use the jsb (javscript bridge) command.",
+          "help": "js {command}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "jsb",
+          "description": "This runs the JavaScript (objectiveC) bridge command, {command}, and returns its output. This will call deepunwrap on the output to convert the ObjectiveC objects to normal strings to be returned.",
+          "help": "jsb {command}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "shell_elevated",
+          "description": "This creates two popup dialogs prompting for a command to run and a prompt to give the user. The command will use your prompt to pop a dialog box for the user asking for them to input their password so that the command you entered will be executed in an elevated context.",
+          "help": "From the GUI: shell_elevated. From the cmd-line: shell_elevated {\"command\":\"whoami\",\"prompt\":\"my fake prompt\"}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "shell_api",
+          "description": "This creates two popup dialogs prompting for a full binpath and then arguments for that binary. The command uses the ObjectiveC bridge to spawn that process with those arguments on the computer and get your output back. It is not interactive.",
+          "help": "From the GUI: shell_api. From the cmd-line: shell_api {\"path\":\"/bin/ps\",\"args\":[\"-ax\"]}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "launchapp",
+          "description": "This uses the Objective C bridge to launch the specified app asynchronously and 'hidden' (it'll still show up in the dock for now). An example of the bundle name is 'com.apple.itunes' for launching iTunes.",
+          "help": "launchapp {bundle name}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "clipboard",
+          "description": "This will return the current clipboard contents on the target machine. If [data] is supplied, it will set the clipboard to [data].",
+          "help": "clipboard [data]",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "list_apps",
+          "description": "This uses JXA to list the currently running processes on the system and provides some information about them. To get a lot of information, use the [verbose] optional parameter.",
+          "help": "list_apps [verbose]",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "list_users",
+          "description": "This uses JXA to list the non-service user accounts on the system. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods. Right now this defaults to \"jxa\".",
+          "help": "list_users [method]",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "current_user",
+          "description": "This uses JXA to list information about the current user. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods. Right now this defaults to \"jxa\".",
+          "help": "current_user [method]",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "security_info",
+          "description": "This uses JXA to list some security information about the system. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods. Right now this defaults to \"jxa\".",
+          "help": "security_info [method]",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "chrome_tabs",
+          "description": "This uses JXA to list information about all of the open tabs in all of the open Chrome instances. If Chrome is not currently running, this will launch Chrome (potential OPSEC issue) and might have a conflict with trying to access Chrome tabs as Chrome is starting. It's recommended to not use this unless Chrome is already running. Use the list_apps function to check if Chrome is running.",
+          "help": "chrome_tabs",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "chrome_bookmarks",
+          "description": "This uses JXA to list information about all of the bookmarks in Chrome. If Chrome is not currently running, this will launch Chrome (potential OPSEC issue) and might have a conflict with trying to access Chrome's bookmarks as Chrome is starting. It's recommended to not use this unless Chrome is already running. Use the list_apps function to check if Chrome is running.",
+          "help": "chrome_bookmarks",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "js_chrome",
+          "description": "This uses JXA to execute the specified JavaScript code into a specific browser tab. The chrome_tabs function will specify for each tab the window/tab numbers that you can use for this function.",
+          "help": "js_chrome {window ID number} {tab ID number} {JavaScript}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "system_info",
+          "description": "This uses JXA to get some system information. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods. Right now this defaults to \"jxa\"",
+          "help": "system_info [method]",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "terminals_read",
+          "description": "This uses JXA to read information about open instances of Apple's Terminal.app. The contents flag allows you to see exactly what the user can see at that moment on the screen. The history flag allows you to see everything that's in that tab's scroll history. This can be a lot of information, so keep that in mind. This function will also give you the window/tab information for each open session and a bunch of other information.",
+          "help": "terminals_read [history] [contents]",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "terminals_send",
+          "description": "This uses JXA to inject the shell command, {command}, into the specified terminal shell as if the user typed it from the keyboard. This is pretty powerful. Consider the instance where the user is SSH-ed into another machine via terminal - with this you can inject commands to run on the remote host. Just remember, the user will be able to see the command, but you can always see what they see as well with the \"terminals_read contents\" command.",
+          "help": "terminals_send {window ID number} {tab ID number} {command}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "spawn",
+          "description": "This pulls down the payload specified by {payload UUID} and uses the shell_api to execute it in a sub-process. I'll look into spawning it in such a way that it doesn't end up being a subprocess, but you can still interact with each of them at the same time.",
+          "help": "spawn shell_api oneliner apfell-jxa {payload UUID}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "exit",
+          "description": "This exits the current apfell-jxa instance by leveraging the ObjectiveC bridge's NSApplication terminate function.",
+          "help": "exit",
+          "needs_admin": "false"
+        }
+      ]
+    }
+  ]
+}

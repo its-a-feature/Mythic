@@ -82,7 +82,7 @@ var callback_table = new Vue({
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'] + "/operator/" + username,
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'],
             null, "POST", {"command":"exit","params":""});
         },
         remove_callback: function(callback){
@@ -134,7 +134,7 @@ var task_data = new Vue({
                     }
                 }
             }
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'] + "/operator/" + username,
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],
             null, "POST", {"command":command,"params":params});
             //alert("submitting " + this.input_field);
             this.input_field = "";

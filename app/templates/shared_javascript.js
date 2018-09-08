@@ -17,7 +17,7 @@ function httpGetSync(theUrl){
 }
 function pythonToJSJson(string){
     updated = string.replace(/\'/g, "\"");
-    updated = updated.replace("True", "true");
-    updated = updated.replace("False", "false");
+    updated = updated.replace(/True/g, "true");
+    updated = updated.replace(/False/g, "false");
     return updated;
 }

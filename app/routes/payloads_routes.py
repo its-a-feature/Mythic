@@ -20,10 +20,10 @@ async def payloads_jxa(request, user):
     errors = {}
     success = ""
     try:
-        jxa_choices = await get_c2profiles_by_type_function('apfell-jxa')
+        jxa_choices = await get_c2profiles_by_type_function('apfell-jxa', user)
     except Exception as e:
         jxa_choices = []
-    form.c2_profile.choices = [(p['name'], p['name'] + ": " + p['description']) for p in jxa_choices]
+    form.c2_profile.choices = [(p['c2_profile'], p['c2_profile'] + ": " + p['c2_profile_description']) for p in jxa_choices]
     if request.method == 'POST' and form.validate():
         callback_host = form.callback_host.data
         callback_port = form.callback_port.data
@@ -33,7 +33,7 @@ async def payloads_jxa(request, user):
         default_tag = form.default_tag.data
         c2_profile = form.c2_profile.data
         # Now that we have the data, we need to register it
-        data = {"tag": default_tag, "operator": user.name, "payload_type": "apfell-jxa",
+        data = {"tag": default_tag, "operator": user['username'], "payload_type": "apfell-jxa",
                 "callback_host": callback_host, "callback_port": callback_port,
                 "callback_interval": callback_interval, "obfuscation": obfuscation,
                 "use_ssl": use_ssl, "location": output_directory, "c2_profile": c2_profile}
