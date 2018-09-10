@@ -3,6 +3,8 @@ from sanic.response import json
 from app.database_models.model import Task, Response
 import base64
 from sanic_jwt.decorators import protected, inject_user
+from app.api.file_api import create_filemeta_in_database_func, download_file_to_database_func
+import json as js
 
 
 # This gets all responses in the database
@@ -35,10 +37,7 @@ async def get_one_response(request, user, rid):
 @apfell.route(apfell.config['API_BASE'] + "/responses/<tid:int>", methods=['POST'])
 async def update_task_for_callback(request, tid):
     data = request.json
-    # print(data)
-    # print(len(data['response']))
     decoded = base64.b64decode(data['response']).decode("utf-8")
-    # print(decoded)
     try:
         task = await db_objects.get(Task, id=tid)
     except Exception as e:
@@ -47,6 +46,15 @@ async def update_task_for_callback(request, tid):
     try:
         if 'response' not in data:
             return json({'status': 'error', 'error': 'task response not in data'})
+        if task.command.cmd == "download":
+            try:
+                download_response = js.loads(decoded)
+                if 'total_chunks' in download_response:
+                    return await create_filemeta_in_database_func(download_response)
+                elif 'chunk_data' in download_response:
+                    return await download_file_to_database_func(download_response)
+            except Exception as e:
+                pass
         resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
         await db_objects.update(task)

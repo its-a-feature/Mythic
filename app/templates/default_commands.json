@@ -112,6 +112,18 @@
           "needs_admin": "false"
         },
         {
+          "cmd": "download",
+          "description": "Download a file from the victim machine into the database in chunks.",
+          "help": "download {path to remote file}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "upload",
+          "description": "Take a file from the database and store it on disk through the callback.",
+          "help": "upload \"{path to local file}\" \"{path to remote location}\" (you MUST suround the paths with quotes).",
+          "needs_admin": "false"
+        },
+        {
           "cmd": "exit",
           "description": "This exits the current apfell-jxa instance by leveraging the ObjectiveC bridge's NSApplication terminate function.",
           "help": "exit",

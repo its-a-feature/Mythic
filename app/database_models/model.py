@@ -296,7 +296,7 @@ class Callback(p.Model):
     operation = p.ForeignKeyField(Operation, null=False)
 
     class Meta:
-        unique_together = ['host', 'pid']
+        indexes = ((('host', 'pid'), True),)
         database = apfell_db
 
     def to_json(self):
@@ -375,6 +375,56 @@ class Response(p.Model):
                 if k == 'task':
                     r[k] = (getattr(self, k)).to_json()
                 else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+class FileMeta(p.Model):
+    total_chunks = p.IntegerField(null=False)  # how many total chunks will there be
+    task = p.ForeignKeyField(Task, null=True)  # what task caused this file to exist in the database
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'task':
+                    r[k] = getattr(self, k).id
+                    r['cmd'] = getattr(self, k).command.cmd
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+class FileData(p.Model):
+    chunk_num = p.IntegerField()  # what chunk number is this
+    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
+    chunk_data = p.BlobField()
+    meta_data = p.ForeignKeyField(FileMeta)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'meta_data':
+                    r[k] = getattr(self, k).id
+                elif k != 'chunk_data':
                     r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k))
@@ -490,6 +540,8 @@ Payload.create_table(True)
 Callback.create_table(True)
 Task.create_table(True)
 Response.create_table(True)
+FileMeta.create_table(True)
+FileData.create_table(True)
 # setup default admin user and c2 profile
 setup()
 # Create the ability to do LISTEN / NOTIFY on these tables
