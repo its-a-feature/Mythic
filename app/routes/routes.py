@@ -3,7 +3,7 @@ from sanic.response import json
 from sanic import response
 from sanic.exceptions import NotFound
 from jinja2 import Environment, PackageLoader
-from app.database_models.model import Operator
+from app.database_models.model import Operator, Operation, OperatorOperation
 from app.forms.loginform import LoginForm, RegistrationForm
 import datetime
 import app.crypto as crypto
@@ -92,6 +92,9 @@ class Register(BaseEndpoint):
                 user = await db_objects.create(Operator, username=username, password=password)
                 user.last_login = datetime.datetime.now()
                 await db_objects.update(user)  # update the last login time to be now
+                default_operation = await db_objects.get(Operation, name="default")
+                # now add the new user to the default operation
+                await db_objects.create(OperatorOperation, operator=user, operation=default_operation)
                 # generate JWT token to be stored in a cookie
                 access_token, output = await self.responses.get_access_token_output(
                     request,

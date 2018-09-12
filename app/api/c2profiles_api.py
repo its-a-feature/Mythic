@@ -16,8 +16,7 @@ running_profiles = []  # will have dicts of process information
 @inject_user()
 @protected()
 async def get_all_c2profiles(request, user):
-    #  this syntax is atrocious for getting a pretty version of the results from a many-to-many join table
-    print(user)
+    #  this syntax is atrocious for getting a pretty version of the results from a many-to-many join table)
     all_profiles = await db_objects.execute(C2Profile.select())
     profiles = await db_objects.execute(PayloadTypeC2Profile.select(PayloadTypeC2Profile, C2Profile, PayloadType).join(C2Profile).switch(PayloadTypeC2Profile).join(PayloadType))
     results = []
@@ -25,7 +24,7 @@ async def get_all_c2profiles(request, user):
     for p in all_profiles:
         # only show profiles for operations the user is part of
         #   overall admins can see all operations
-        if p.operation in user['operations'] or user['admin']:
+        if p.operation.name in user['operations'] or user['admin']:
             inter[p.name] = p.to_json()
             # create an empty array for ptypes that we'll populate in the next for loop
             inter[p.name]['ptype'] = []

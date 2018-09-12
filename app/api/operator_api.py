@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Operator
+from app.database_models.model import Operator, Operation, OperatorOperation
 from sanic import response
 from app import crypto
 from urllib.parse import unquote_plus
@@ -32,6 +32,9 @@ async def create_operator(request, user):
     # we need to create a new user
     try:
         user = await db_objects.create(Operator, username=data['username'], password=password, admin=admin)
+        default_operation = await db_objects.get(Operation, name="default")
+        # now add the new user to the default operation
+        await db_objects.create(OperatorOperation, operator=user, operation=default_operation)
         success = {'status': 'success'}
         new_user = user.to_json()
         return response.json({**success, **new_user}, status=201)

@@ -43,7 +43,7 @@ async def retrieve_user(request, payload, *args, **kwargs):
         operationmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operator == user))
         operations = []
         for operation in operationmap:
-            op = await db_objects.get(Operation, id=operation)
+            op = await db_objects.get(Operation, id=operation.operation)
             operations.append(op.name)
         admin_operations = await db_objects.execute(Operation.select().where(Operation.admin == user))
         admin_ops = []
