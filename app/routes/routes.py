@@ -42,27 +42,30 @@ class Login(BaseEndpoint):
             try:
                 user = await db_objects.get(Operator, username=username)
                 if await user.check_password(password):
-                    try:
-                        user.last_login = datetime.datetime.now()
-                        await db_objects.update(user)  # update the last login time to be now
-                        access_token, output = await self.responses.get_access_token_output(
-                            request,
-                            {'user_id': user.id},
-                            self.config,
-                            self.instance)
-                        refresh_token = await self.instance.auth.generate_refresh_token(request, {'user_id': user.id})
-                        output.update({
-                            self.config.refresh_token_name(): refresh_token
-                        })
-                        resp = response.redirect("/")
-                        resp.cookies[self.config.cookie_access_token_name()] = access_token
-                        resp.cookies[self.config.cookie_access_token_name()]['httponly'] = True
-                        resp.cookies[self.config.cookie_refresh_token_name()] = refresh_token
-                        resp.cookies[self.config.cookie_refresh_token_name()]['httponly'] = True
-                        return resp
-                    except Exception as e:
-                        print(e)
-                        errors['validate_errors'] = "failed to update login time"
+                    if not user.active:
+                        errors['validate_errors'] = "account is deactivated, cannot log in"
+                    else:
+                        try:
+                            user.last_login = datetime.datetime.now()
+                            await db_objects.update(user)  # update the last login time to be now
+                            access_token, output = await self.responses.get_access_token_output(
+                                request,
+                                {'user_id': user.id},
+                                self.config,
+                                self.instance)
+                            refresh_token = await self.instance.auth.generate_refresh_token(request, {'user_id': user.id})
+                            output.update({
+                                self.config.refresh_token_name(): refresh_token
+                            })
+                            resp = response.redirect("/")
+                            resp.cookies[self.config.cookie_access_token_name()] = access_token
+                            resp.cookies[self.config.cookie_access_token_name()]['httponly'] = True
+                            resp.cookies[self.config.cookie_refresh_token_name()] = refresh_token
+                            resp.cookies[self.config.cookie_refresh_token_name()]['httponly'] = True
+                            return resp
+                        except Exception as e:
+                            print(e)
+                            errors['validate_errors'] = "failed to update login time"
             except Exception as e:
                 print(e)
             errors['validate_errors'] = "Username or password invalid"

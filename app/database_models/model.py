@@ -124,7 +124,10 @@ class Operation(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                r[k] = getattr(self, k)
+                if k == 'admin':
+                    r[k] = getattr(self, k).username
+                else:
+                    r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k))
         return r
@@ -493,7 +496,7 @@ def setup():
                                    "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (name) DO NOTHING;"
         apfell_db.execute_sql(create_default_c2profile)
         # Create default payload types, only one supported by default right now
-        default_payload_types = ['apfell-jxa', 'apfell-app']
+        default_payload_types = ['apfell-jxa']
         for ptype in default_payload_types:
             create_payload_type = "INSERT INTO payloadtype (ptype, operator_id, creation_time) VALUES ('" + ptype + \
                 "', (SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + \

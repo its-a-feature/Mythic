@@ -52,6 +52,7 @@ async def retrieve_user(request, payload, *args, **kwargs):
         return {**user_json, "user_id": user.id, "operations": operations, "admin_operations": admin_ops}
     except Exception as e:
         print("failed to get user in retrieve_user")
+        print(e)
         return {}
 
 

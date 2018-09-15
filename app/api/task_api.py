@@ -93,6 +93,9 @@ async def add_task_to_callback_func(data, cid):
                 data['params'] = str(status['file_id']) + " " + params[1]
             else:
                 return status
+        if cmd.cmd == "download":
+            if '"' in data['params']:
+                data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
         task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
         if cmd.cmd == "upload":
             # now we can associate the task with the filemeta object

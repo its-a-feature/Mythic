@@ -15,4 +15,9 @@ TRUNCATE callback CASCADE;
 TRUNCATE task CASCADE;
 TRUNCATE response CASCADE;
 TRUNCATE c2profile CASCADE;
+TRUNCATE operation CASCADE;
+TRUNCATE operatoroperation CASCADE;
+TRUNCATE payloadtype CASCADE;
+TRUNCATE command CASCADE;
+TRUNCATE payloadtypec2profile CASCADE;
 EOF

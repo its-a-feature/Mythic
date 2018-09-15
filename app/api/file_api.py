@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from app.database_models.model import FileMeta, FileData, Task
-from sanic.response import json, html
+from sanic.response import json, raw
 import base64
 from sanic_jwt.decorators import protected, inject_user
 
@@ -30,7 +30,7 @@ async def get_file_from_database(request, id):
         for piece in file_pieces:
             data += piece.chunk_data.tobytes()
         encdata = base64.b64encode(data).decode("utf-8")
-        return html(encdata)
+        return raw(data)
     except Exception as e:
         print(e)
         return json({}, status=500)

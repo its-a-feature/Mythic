@@ -6,11 +6,13 @@ function httpGetAsync(theUrl, callback, method, data){
                 callback(xmlHttp.responseText);
             }
     }
+    xmlHttp.withCredentials = true;
     xmlHttp.open(method, theUrl, true); // true for asynchronous
     xmlHttp.send(JSON.stringify(data));
 }
 function httpGetSync(theUrl){
     var xmlHttp = new XMLHttpRequest();
+    xmlHttp.withCredentials = true;
     xmlHttp.open( "GET", theUrl, false); //false means synchronous
     xmlHttp.send( null );
     return xmlHttp.responseText; // should just use this to get JSON data from RESTful APIs
