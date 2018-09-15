@@ -83,6 +83,7 @@ class customC2 extends baseC2{
 				return jsondata;
 			}
 			catch(error){
+			    $.NSThread.sleepForTimeInterval(C2.interval);  // don't spin out crazy if the connection fails
 			}
 		}
 	}
