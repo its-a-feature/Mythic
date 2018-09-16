@@ -124,6 +124,12 @@
           "needs_admin": "false"
         },
         {
+          "cmd": "sleep",
+          "description": "Modify the time between callbacks.",
+          "help": "sleep {integer interval}",
+          "needs_admin": "false"
+        },
+        {
           "cmd": "exit",
           "description": "This exits the current apfell-jxa instance by leveraging the ObjectiveC bridge's NSApplication terminate function.",
           "help": "exit",

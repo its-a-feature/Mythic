@@ -37,6 +37,7 @@ async def get_one_response(request, user, rid):
 @apfell.route(apfell.config['API_BASE'] + "/responses/<tid:int>", methods=['POST'])
 async def update_task_for_callback(request, tid):
     data = request.json
+    decoded = base64.b64decode(data['response']).decode("utf-8")
     try:
         task = await db_objects.get(Task, id=tid)
     except Exception as e:
@@ -49,12 +50,12 @@ async def update_task_for_callback(request, tid):
             try:
                 decoded = base64.b64decode(data['response']).decode("utf-8")
                 download_response = js.loads(decoded)
-                print(download_response)
+                # print(download_response)
                 if 'total_chunks' in download_response:
-                    print("creating file")
+                    # print("creating file")
                     return await create_filemeta_in_database_func(download_response)
                 elif 'chunk_data' in download_response:
-                    print("storing chunk: " + str(download_response['chunk_num']))
+                    # print("storing chunk: " + str(download_response['chunk_num']))
                     return await download_file_to_database_func(download_response)
             except Exception as e:
                 print(e)

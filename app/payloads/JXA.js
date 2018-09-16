@@ -549,6 +549,14 @@ sleepWakeUp = function(t){
                 }
 
 			}
+			else if(command == "sleep") {
+				// Update agent sleep
+				timer.invalidate;
+				C2.interval = parseInt(params);
+				timer = $.NSTimer.scheduledTimerWithTimeIntervalRepeatsBlock(C2.interval, true, sleepWakeUp);
+				$.NSRunLoop.currentRunLoop.addTimerForMode(timer, "timer");
+				output = "Sleep updated";
+			}
 			else {
 				output = "command not supported: " + command + " " + params;
 			}
