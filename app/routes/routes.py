@@ -179,6 +179,21 @@ async def settings(request, user):
         return json({'status': 'error', 'error': 'Failed to find operator'})
 
 
+@apfell.route("/settings", methods=['PUT'])
+@inject_user()
+@protected()
+async def settings(request, user):
+    data = request.json
+    if user['admin']:
+        if 'registration' in data:
+            apfell.remove_route("/register")
+            links['register'] = "#"
+            return json({'status': 'success'})
+    else:
+        return json({'status': 'error', 'error': "Must be admin to change settings."})
+
+
+
 @apfell.route("/logout")
 @protected()
 async def logout(request):

@@ -71,7 +71,9 @@
         <!-- End of the repeating -->
         </table>
 </div>
-
+<div v-if="current_operator.admin">
+    <button type="button" class="btn btn-success btn-sm" onclick="disable_registration_button()">Disable New Registrations</button>
+</div>
 <!-- THIS IS OUR MODAL FOR DELETING OPERATOR -->
 <div class="modal fade bs-example-modal-sm" id="operatorDeleteModal" role="dialog">
     <div class="modal-dialog modal-sm" role="document">

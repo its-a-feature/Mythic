@@ -156,3 +156,16 @@ function update_operatorview_callback(response){
         alert("Error: " + data['error']);
     }
 }
+function disable_registration_button(){
+    var data = {'registration': false};
+    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/settings", disable_registration_callback, "PUT", data);
+}
+function disable_registration_callback(response){
+    data = JSON.parse(response);
+    if(data['status'] == 'success'){
+        alert("New operator registration is disabled until server restart.");
+    }
+    else{
+        alert(data['error']);
+    }
+}
