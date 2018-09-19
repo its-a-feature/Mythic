@@ -17,6 +17,8 @@ async def authenticate(request):
     except Exception as e:
         print("invalid username")
         raise exceptions.AuthenticationFailed("Incorrect username or password")
+    if not user.active:
+        raise exceptions.AuthenticationFailed("Account is deactivated")
     if await user.check_password(password):
         try:
             user.last_login = datetime.datetime.now()

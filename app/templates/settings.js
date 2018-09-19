@@ -38,6 +38,16 @@ var operators_table = new Vue({
         },
         change_username_button: function(o){
             username_button(o);
+        },
+        change_active_button: function(o){
+        data = {};
+                if(o['active'] == false){
+                    data['active'] = true;
+                }
+                else{
+                    data['active'] = false;
+                }
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, update_operatorview_callback, "PUT", data);
         }
     }
 });

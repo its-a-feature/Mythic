@@ -41,7 +41,7 @@
                 <td><b>Admin</b></td>
                 <td><b>Active?</b></td>
             </tr>
-        <!-- Repeat this for each web service -->
+        <!-- Repeat this for each operator -->
             <tr v-for="o in operators" :key="o.creation_time">
                 <td>
                     <button type="button" class="btn btn-danger btn-sm" @click="delete_operator_button(o)" >Delete</button>
@@ -59,7 +59,14 @@
                 <td>[[ o.last_login ]]</td>
                 <td>[[ o.creation_time ]]</td>
                 <td>[[ o.admin ]]</td>
-                <td>[[ o.active ]]</td>
+                <td>
+                    <div v-if="o.active">
+                        <button type="button" class="btn btn-warning btn-sm" v-if="o.username != 'apfell_admin'" @click="change_active_button(o)">Deactivate</button>
+                    </div>
+                    <div v-else>
+                        <button type="button" class="btn btn-success btn-sm" @click="change_active_button(o)">Activate</button>
+                    </div>
+                </td>
             </tr>
         <!-- End of the repeating -->
         </table>

@@ -66,9 +66,10 @@ class Login(BaseEndpoint):
                         except Exception as e:
                             print(e)
                             errors['validate_errors'] = "failed to update login time"
+                else:
+                    errors['validate_errors'] = "Username or password invalid"
             except Exception as e:
                 print(e)
-            errors['validate_errors'] = "Username or password invalid"
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('login.html')
