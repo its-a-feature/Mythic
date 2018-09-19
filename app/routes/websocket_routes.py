@@ -2,7 +2,7 @@ from app import apfell, db_objects
 import aiopg
 import json as js
 import asyncio
-from app.database_models.model import Operator, Callback, Task, Response, Payload, C2Profile, PayloadTypeC2Profile
+from app.database_models.model import Operator, Callback, Task, Response, Payload, C2Profile, PayloadTypeC2Profile, Operation, OperatorOperation
 from sanic_jwt.decorators import protected, inject_user
 
 

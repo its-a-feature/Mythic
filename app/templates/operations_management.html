@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block body %}
+
+<h1>
+    Operations Management
+</h1>
+<div style="resize: vertical; overflow:scroll" class="panel panel-primary" id="operations_table" >
+    <div class="panel-heading">Operations Information</div>
+        <table class="table table-striped table-hover table-condensed well-sm" >
+            <tr>
+                <td><b>Delete</b></td>
+                <td><b>Modify</b></td>
+                <td><b>Completed</b></td>
+                <td><b>Name</b></td>
+                <td><b>Admin</b></td>
+                <td><b>Members</b></td>
+            </tr>
+        <!-- Repeat this for each operation -->
+            <tr v-for="o in operations" :key="o.name">
+                <td>
+                    <button v-show="o.admin == username || admin" type="button" class="btn btn-danger btn-sm" @click="delete_button(o)" >Delete</button>
+                </td>
+                <td>
+			        <button v-show="o.admin == username || admin" type="button" class="btn btn-info btn-sm" @click="modify_button(o)">Modify</button>
+		        </td>
+                <td>
+                     <div v-if="o.complete">Completed</div>
+                     <div v-else-if="o.admin == username || admin">
+                        <button type="button" class="btn btn-warning btn-sm" @click="complete_button(o)">Complete Operation</button>
+                     </div>
+                     <div v-else>Ongoing</div>
+
+                </td>
+                <td>[[ o.name ]]</td>
+                <td>[[ o.admin ]]</td>
+                <td>[[ o.members.join(", ") ]]</td>
+            </tr>
+        <!-- End of the repeating -->
+        </table>
+</div>
+<!-- THIS IS OUR MODAL FOR DELETING OPERATION -->
+<div class="modal fade bs-example-modal-sm" id="operationDeleteModal" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3 id="modalLabel">Are you sure? This could have implications elsewhere.</h3>
+                Remove the specified operation from the database.
+            </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="operationDeleteSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR DELETING OPERATION -->
+<!-- THIS IS OUR MODAL FOR COMPLETING OPERATION -->
+<div class="modal fade bs-example-modal-sm" id="operationCompleteModal" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Are you sure? This could have implications elsewhere.</h3>
+                This completes the operation. You can no longer change anything about the operation and all callbacks will be tasked to exit when they check in.
+            </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="operationCompleteSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR COMPLETING OPERATION -->
+<!-- THIS IS OUR MODAL FOR MODIFYING OPERATION -->
+<div class="modal fade bs-example-modal-lg" id="operationModifyModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Modify Operation</h3>
+                You can modify aspects of an operation here.
+            </div>
+            <div class="modal-body" id="operationModifyBody">
+                <table cellpadding="10" style="width:100%">
+                    <tr>
+                        <td style="width:150px">Name</td>
+                        <td><input type="text" id="operationModifyName" size="50"></td>
+                    </tr>
+                    <tr>
+                        <td>Admin</td>
+                        <td> <input type="text" id="operationModifyAdmin" size="50"></td>
+                    </tr>
+                    <tr>
+                        <td>Operators</td>
+                        <td><input type="text" id="operationModifyMembers" size="50"></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+              <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn-primary" data-dismiss="modal" id="operationModifySubmit">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR MODIFYING OPERATION -->
+<!-- THIS IS OUR MODAL FOR CREATING OPERATION -->
+<div class="modal fade bs-example-modal-lg" id="operationNewModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Create a new Operation</h3>
+                You can modify aspects of an operation here. The name must be unique, and list operators separated by ",".
+            </div>
+            <div class="modal-body" id="operationNewBody">
+                <table cellpadding="10" style="width:100%">
+                    <tr>
+                        <td style="width:150px">Name</td>
+                        <td><input type="text" id="operationNewName" size="50"></td>
+                    </tr>
+                    <tr>
+                        <td>Admin</td>
+                        <td> <input type="text" id="operationNewAdmin" size="50"></td>
+                    </tr>
+                    <tr>
+                        <td>Operators</td>
+                        <td><input type="text" id="operationNewMembers" size="50"></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+              <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn-primary" data-dismiss="modal" id="operationNewSubmit">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR CREATING OPERATION -->
+<button type="button" class="btn btn-info btn-md" onclick="new_operation_button()">New Operation</button>
+
+{% endblock %}
+
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "operations_management.js" %}
+{% endblock %}

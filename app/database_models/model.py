@@ -116,6 +116,7 @@ class Command(p.Model):
 class Operation(p.Model):
     name = p.CharField(null=False, unique=True)
     admin = p.ForeignKeyField(Operator, null=False)  # who is an admin of this operation
+    complete = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -329,7 +330,7 @@ class Callback(p.Model):
 
 class Task(p.Model):
     command = p.ForeignKeyField(Command, null=False)
-    params = p.CharField(null=True)  #TODO this will have the instance specific params (ex: id)
+    params = p.CharField(null=True)  #this will have the instance specific params (ex: id)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
     attack_id = p.IntegerField(null=True)  # task will be more granular than command, so attack_id should live here
     timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
@@ -390,7 +391,12 @@ class Response(p.Model):
 
 class FileMeta(p.Model):
     total_chunks = p.IntegerField(null=False)  # how many total chunks will there be
+    chunks_received = p.IntegerField(null=False, default=0)  # how many we've received so far
     task = p.ForeignKeyField(Task, null=True)  # what task caused this file to exist in the database
+    complete = p.BooleanField(null=False, default=False)
+    path = p.CharField(null=False, max_length=5000)  # where the file is located on local disk
+    operation = p.ForeignKeyField(Operation, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
 
     class Meta:
         database = apfell_db
@@ -402,32 +408,9 @@ class FileMeta(p.Model):
                 if k == 'task':
                     r[k] = getattr(self, k).id
                     r['cmd'] = getattr(self, k).command.cmd
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
                 else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k))
-        return r
-
-    def __str__(self):
-        return str(self.to_json())
-
-
-class FileData(p.Model):
-    chunk_num = p.IntegerField()  # what chunk number is this
-    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
-    chunk_data = p.BlobField()
-    meta_data = p.ForeignKeyField(FileMeta)
-
-    class Meta:
-        database = apfell_db
-
-    def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == 'meta_data':
-                    r[k] = getattr(self, k).id
-                elif k != 'chunk_data':
                     r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k))
@@ -441,7 +424,7 @@ class FileData(p.Model):
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
-               'command', 'operatoroperation', 'payloadtypec2profile']
+               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -459,7 +442,7 @@ def pg_register_newinserts():
 
 def pg_register_updates():
     updates = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
-               'command', 'operatoroperation', 'payloadtypec2profile']
+               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -485,8 +468,8 @@ def setup():
                               "True, DEFAULT, '" + current_time + "',True) ON CONFLICT (username) DO NOTHING;"
         apfell_db.execute_sql(create_apfell_admin)
         # Create 'default' operation
-        create_default_operation = "INSERT INTO operation (name, admin_id) VALUES ('default', " + \
-                                   "(SELECT id FROM operator WHERE username='apfell_admin')) ON CONFLICT (name) DO NOTHING"
+        create_default_operation = "INSERT INTO operation (name, admin_id, complete) VALUES ('default', " + \
+                                   "(SELECT id FROM operator WHERE username='apfell_admin'), false) ON CONFLICT (name) DO NOTHING"
         apfell_db.execute_sql(create_default_operation)
         # Create default C2 profile
         create_default_c2profile = "INSERT INTO c2profile (name, description, operator_id, " + \
@@ -544,7 +527,6 @@ Callback.create_table(True)
 Task.create_table(True)
 Response.create_table(True)
 FileMeta.create_table(True)
-FileData.create_table(True)
 # setup default admin user and c2 profile
 setup()
 # Create the ability to do LISTEN / NOTIFY on these tables

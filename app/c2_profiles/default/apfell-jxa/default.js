@@ -31,7 +31,7 @@ class customC2 extends baseC2{
 	postResponse(urlEnding, data){
 		//depending on the amount of data we're sending, we might need to chunk it
 		//  current chunks at 5kB, but we can change that later
-		var size=5000;
+		var size= 512000; //5000;
 		var offset = 0;
 		//console.log("total response size: " + data.length);
 		do{

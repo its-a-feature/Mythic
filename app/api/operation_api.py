@@ -10,7 +10,22 @@ from sanic_jwt.decorators import protected, inject_user
 @protected()
 async def get_all_operations(request, user):
     # we already get this information populated as part of our user authentication
-    return json({"operations": user['operations'], "admin_operations": user['admin_operations']})
+    output = []
+    for op in user['operations']:
+        data = {}
+        # for each operation you're a member of, get all members and the admin name
+        operation = await db_objects.get(Operation, name=op)
+        data['admin'] = operation.admin.username
+        data['members'] = [data['admin']]
+        operationmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operation == operation))
+        for map in operationmap:
+            o = await db_objects.get(Operator, id=map.operator)
+            if o.username not in data['members']:
+                data['members'].append(o.username)
+        data['name'] = op
+        data['complete'] = operation.complete
+        output.append(data)
+    return json(output)
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/<op:string>", methods=['GET'])
@@ -49,19 +64,22 @@ async def create_operation(request, user):
         if 'admin' not in data:
             return json({'status': 'error', 'error': '"admin" operator name is a required parameter'})
         try:
-            admin_operator = await db_objects.get(Operator, username=data['name'])
+            admin_operator = await db_objects.get(Operator, username=data['admin'])
         except Exception as e:
             return json({'status': 'error', 'error': 'admin operator does not exist'})
         try:
             operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator)
         except Exception as e:
             return json({'status': 'error', 'error': 'failed to create operation, is the name unique?'})
-        if 'users' in data:
-            status = await add_user_to_operation_func(operation, data['users'])
-            if status['status'] == 'success':
-                return json({'status': 'success', **operation.to_json(), 'users': status['users']})
-            else:
-                return json({'status': 'error', 'error': status['error']})
+        if 'members' not in data:
+            data['members'] = [data['admin']]
+        elif data['name'] not in data['members']:
+            data['members'].append(data['admin'])
+        status = await add_user_to_operation_func(operation, data['members'])
+        if status['status'] == 'success':
+            return json({'status': 'success', **operation.to_json(), 'members': data['members']})
+        else:
+            return json({'status': 'error', 'error': status['error']})
     else:
         return json({'status': 'error', 'error': 'must be admin to create new operations'})
 
@@ -91,39 +109,62 @@ async def update_operation(request, user, op):
     if op in user['admin_operations'] or user['admin']:
         data = request.json
         operation = await db_objects.get(Operation, name=op)
-        if 'name' in data:
-            try:
-                operation.name = data['name']
-                await db_objects.update(operation)
-            except Exception as e:
-                return json({'status': 'error', 'error': 'failed to update operation name. Is it unique?'})
-        if 'admin' in data:
-            try:
-                new_admin = await db_objects.get(Operator, username=data['admin'])
-                operation.admin = new_admin
-                await db_objects.update(operation)
-            except Exception as e:
-                return json({'status': 'error', 'error': 'failed to update the admin'})
-        if 'add_users' in data:
-            for new_member in data['add_users']:
+        if not operation.complete:
+            if 'name' in data:
                 try:
-                    operator = await db_objects.get(Operator, username=new_member)
-                    map = await db_objects.create(OperatorOperation, operator=operator, operation=operation)
+                    operation.name = data['name']
+                    await db_objects.update(operation)
                 except Exception as e:
-                    return json({'status': 'error', 'error': 'failed to add user to the operation'})
-        if 'remove_users' in data:
-            for old_member in data['remove_users']:
+                    return json({'status': 'error', 'error': 'failed to update operation name. Is it unique?'})
+            if 'admin' in data:
                 try:
-                    operator = await db_objects.get(Operator, username=old_member)
-                    operatoroperation = await db_objects.get(OperatorOperation, operator=operator, operation=operation)
-                    await db_objects.delete(operatoroperation)
+                    new_admin = await db_objects.get(Operator, username=data['admin'])
+                    operation.admin = new_admin
+                    await db_objects.update(operation)
                 except Exception as e:
-                    return json({'status': 'error', 'error': 'failed to remove user from operation. Were they a member?'})
-        all_users = []
-        current_members = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operation == operation))
-        for mem in current_members:
-            member = await db_objects.get(Operator, id=mem.operator)
-            all_users.append(member.username)
-        return json({'status': 'success', 'operators': all_users, **operation.to_json()})
+                    return json({'status': 'error', 'error': 'failed to update the admin'})
+            if 'add_users' in data:
+                for new_member in data['add_users']:
+                    try:
+                        operator = await db_objects.get(Operator, username=new_member)
+                        map = await db_objects.create(OperatorOperation, operator=operator, operation=operation)
+                    except Exception as e:
+                        return json({'status': 'error', 'error': 'failed to add user to the operation'})
+            if 'remove_users' in data:
+                for old_member in data['remove_users']:
+                    try:
+                        operator = await db_objects.get(Operator, username=old_member)
+                        operatoroperation = await db_objects.get(OperatorOperation, operator=operator, operation=operation)
+                        await db_objects.delete(operatoroperation)
+                    except Exception as e:
+                        return json({'status': 'error', 'error': 'failed to remove user from operation. Were they a member?'})
+            all_users = []
+            current_members = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operation == operation))
+            for mem in current_members:
+                member = await db_objects.get(Operator, id=mem.operator)
+                all_users.append(member.username)
+            if 'complete' in data:
+                operation.complete = data['complete']
+                await db_objects.update(operation)
+            return json({'status': 'success', 'operators': all_users, **operation.to_json()})
+        else:
+            return json({'status': 'error', 'error': 'operation is complete and cannot be modified'})
     else:
         return json({'status': 'error', 'error': 'not authorized to make the change'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/operations/<op:string>", methods=['DELETE'])
+@inject_user()
+@protected()
+async def update_operation(request, user, op):
+    # only the admin of an operation or an overall admin can delete an operation
+    op = unquote_plus(op)
+    if op in user['admin_operations'] or user['admin']:
+        try:
+            operation = await db_objects.get(Operation, name=op)
+            await db_objects.delete(operation, recursive=True)
+            return json({'status': 'success', **operation.to_json()})
+        except Exception as e:
+            print(e)
+            return json({'status': 'error', 'error': 'failed to delete operation'})
+    return json({'status': 'error', 'error': 'Not authorized to delete the operation'})

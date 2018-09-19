@@ -1,8 +1,9 @@
 from app import apfell, db_objects
-from app.database_models.model import FileMeta, FileData, Task
+from app.database_models.model import FileMeta, Task
 from sanic.response import json, raw
 import base64
 from sanic_jwt.decorators import protected, inject_user
+import os
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -17,39 +18,19 @@ async def get_all_files_meta(request, user):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['GET'])
-async def get_file_from_database(request, id):
+async def get_one_file(request, id):
     try:
         file_meta = await db_objects.get(FileMeta, id=id)
     except Exception as e:
         print(e)
         return json({}, status=404)
-    # now that we have the file metadata, get all the pieces to send back
-    try:
-        file_pieces = await db_objects.execute(FileData.select().where(FileData.meta_data == file_meta).order_by(FileData.chunk_num))
-        data = bytearray()
-        for piece in file_pieces:
-            data += piece.chunk_data.tobytes()
-        encdata = base64.b64encode(data).decode("utf-8")
-        return raw(data)
-    except Exception as e:
-        print(e)
-        return json({}, status=500)
-
-
-@apfell.route(apfell.config['API_BASE'] + "/files/<id:int>/<chunk:int>", methods=['GET'])
-async def get_chunk_from_database(request, id, chunk):
-    # get a chunk of a file from the database
-    try:
-        file_meta = await db_objects.get(FileMeta, id=id)
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to get file object'})
-    try:
-        file_chunk = await db_objects.get(FileData, meta_data=file_meta, chunk_num=chunk)
-        return json(file_chunk.to_json())
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to get chunk'})
+    # now that we have the file metadata, get the file if it's done downloading
+    if file_meta.complete:
+        file = open(file_meta.path, 'rb').read()
+        encoded = base64.b64encode(file)
+        return raw(encoded)
+    else:
+        return json({'status': 'error', 'error': 'file not done downloading'})
 
 
 #  when an implant gets the task to download a file, first reaches out here
@@ -67,11 +48,24 @@ async def create_filemeta_in_database_func(data):
         return json({'status': 'error', 'error': 'corresponding task id required'})
     try:
         task = await db_objects.get(Task, id=data['task'])
+        operation = task.callback.operation
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': "failed to find task"})
     try:
-        filemeta = await db_objects.create(FileMeta, total_chunks=data['total_chunks'], task=task)
+        filename = os.path.split(task.params)[1]
+        save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, task.callback.host, filename))
+        count = 1
+        tmp_path = save_path
+        while os.path.exists(tmp_path):
+            # the path already exists, so the file needs a new name
+            tmp_path = save_path + str(count)
+            count = count + 1
+        save_path = tmp_path
+        if not os.path.exists(os.path.split(save_path)[0]):
+            os.makedirs(os.path.split(save_path)[0])
+        filemeta = await db_objects.create(FileMeta, total_chunks=data['total_chunks'], task=task, operation=operation,
+                                           path=save_path)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': "failed to create file"})
@@ -81,11 +75,11 @@ async def create_filemeta_in_database_func(data):
 
 # after calling the above path, the implant calls this to upload the content
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['POST'])
-async def download_file_to_database(request, id):
-    return await download_file_to_database_func({**request.json, "file_id": id})
+async def download_file_to_disk(request, id):
+    return await download_file_to_disk_func({**request.json, "file_id": id})
 
 
-async def download_file_to_database_func(data):
+async def download_file_to_disk_func(data):
     #  upload content blobs to be associated with filemeta id
     if 'chunk_num' not in data:
         return json({'status': 'error', 'error': 'missing chunk_num'})
@@ -98,8 +92,13 @@ async def download_file_to_database_func(data):
         return json({'status': 'error', 'error': 'failed to get File info'})
     try:
         chunk_data = base64.b64decode(data['chunk_data'])
-        piece = await db_objects.create(FileData, chunk_num=data['chunk_num'],
-                                        chunk_data=chunk_data, meta_data=file_meta)
+        f = open(file_meta.path, 'ab')
+        f.write(chunk_data)
+        f.close()
+        file_meta.chunks_received = file_meta.chunks_received + 1
+        if file_meta.chunks_received == file_meta.total_chunks:
+            file_meta.complete = True
+        await db_objects.update(file_meta)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to store chunk'})

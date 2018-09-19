@@ -4,7 +4,7 @@ from app.database_models.model import Callback, Operator, Task, Command, FileMet
 from urllib.parse import unquote_plus
 import datetime
 from sanic_jwt.decorators import protected, inject_user
-from app.api.utils import breakout_quoted_params, store_local_file_into_db
+from app.api.utils import breakout_quoted_params
 
 
 # This gets all tasks in the database
@@ -79,30 +79,24 @@ async def add_task_to_callback_func(data, cid):
         cb = await db_objects.get(Callback, id=cid)
         # now check the task and add it if it's valid
         cmd = await db_objects.get(Command, cmd=data['command'])
-        status = {}
+        file_meta = ""
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
         if cmd.cmd == "upload":
             # we need to get the file into the database before we can signal for the callback to pull it down
             # this will have {path to local file} {path to remote file} in the data['params'] section
-            params = await breakout_quoted_params(data['params'])
-            # now read and store the local file into the database
-            status = await store_local_file_into_db({'origin_location': params[0],
-                                                     'origin_host': 'apfell'})
-            if status['status'] == "success":
-                #  the final params for the implant shall just be the id to ask for and where to store it
-                data['params'] = str(status['file_id']) + " " + params[1]
-            else:
-                return status
+            upload_params = await breakout_quoted_params(data['params'])
+            file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
+                                                path=upload_params[0], operation=cb.operation)
+            data['params'] = str(file_meta.id) + " " + upload_params[1]
+
         if cmd.cmd == "download":
             if '"' in data['params']:
                 data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
         task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
         if cmd.cmd == "upload":
             # now we can associate the task with the filemeta object
-            print(status)
-            filemeta = await db_objects.get(FileMeta, id=status['filemeta_id'])
-            filemeta.task = task
-            await db_objects.update(filemeta)
+            file_meta.task = task
+            await db_objects.update(file_meta)
         status = {'status': 'success'}
         task_json = task.to_json()
         return {**status, **task_json}

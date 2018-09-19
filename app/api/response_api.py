@@ -3,7 +3,7 @@ from sanic.response import json
 from app.database_models.model import Task, Response
 import base64
 from sanic_jwt.decorators import protected, inject_user
-from app.api.file_api import create_filemeta_in_database_func, download_file_to_database_func
+from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
 import json as js
 
 
@@ -56,7 +56,7 @@ async def update_task_for_callback(request, tid):
                     return await create_filemeta_in_database_func(download_response)
                 elif 'chunk_data' in download_response:
                     # print("storing chunk: " + str(download_response['chunk_num']))
-                    return await download_file_to_database_func(download_response)
+                    return await download_file_to_disk_func(download_response)
             except Exception as e:
                 print(e)
                 pass
