@@ -129,7 +129,12 @@ function new_operation_button(){
         data['members'] = [];
         members = $( '#operationNewMembers' ).val().split(",");
         for(var i = 0; i < members.length; i++){
-            data['members'].push(members[i].trim());
+            if(members[i].trim() != ""){
+                data['members'].push(members[i].trim());
+            }
+        }
+        if( data['members'].length == 0){
+            delete data['members'];
         }
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/", create_operation, "POST", data);
     });

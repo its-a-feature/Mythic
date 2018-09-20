@@ -39,7 +39,7 @@ async def database_clear_entries(request, user):
 async def database_clear_all_files(request, user):
     # just remove the operational files
     try:
-        shutil.rmtree("./app/payloads/operations/default")
+        shutil.rmtree("./app/payloads/operations/")
         return json({'status': 'success'})
     except OSError as e:
         print(e)

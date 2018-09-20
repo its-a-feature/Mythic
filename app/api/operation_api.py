@@ -156,7 +156,7 @@ async def update_operation(request, user, op):
 @apfell.route(apfell.config['API_BASE'] + "/operations/<op:string>", methods=['DELETE'])
 @inject_user()
 @protected()
-async def update_operation(request, user, op):
+async def delete_operation(request, user, op):
     # only the admin of an operation or an overall admin can delete an operation
     op = unquote_plus(op)
     if op in user['admin_operations'] or user['admin']:

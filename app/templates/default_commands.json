@@ -113,7 +113,7 @@
         },
         {
           "cmd": "download",
-          "description": "Download a file from the victim machine into the database in chunks.",
+          "description": "Download a file from the victim machine to the apfell server in chunks. It will be saved to app/files/{operation name}/downloads/{hostname}/{filename}",
           "help": "download {path to remote file}",
           "needs_admin": "false"
         },
