@@ -62,8 +62,7 @@ async def ws_task_updates(request, ws):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            # print(msg.payload)
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             rsp = await db_objects.get(Response, id=id)
                             await ws.send(js.dumps(rsp.to_json()))
                             # print(msg.payload)

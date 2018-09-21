@@ -551,5 +551,6 @@ FileMeta.create_table(True)
 setup()
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()
+pg_register_bignewinserts()
 pg_register_updates()
 
