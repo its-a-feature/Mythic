@@ -19,7 +19,6 @@ async def get_all_callbacks(request, user):
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['POST'])
 async def create_callback(request):
     data = request.json
-    #print(data)
     if not 'user' in data:
         return json({'status': 'error',
                      'error': 'User required'})

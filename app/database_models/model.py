@@ -13,6 +13,7 @@ class Operator(p.Model):
     last_login = p.DateTimeField(default=None, null=True)
     # option to simply de-activate an account instead of delete it so you keep all your relational data intact
     active = p.BooleanField(null=False, default=True)
+    current_operation = p.ForeignKeyField(p.DeferredRelation('Operation'), null=True)
 
     class Meta:
         ordering = ['-id', ]
@@ -22,7 +23,9 @@ class Operator(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                if k != 'password':
+                if k == 'current_operation':
+                    r[k] = getattr(self, k).name
+                elif k != 'password':
                     r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k))
@@ -365,7 +368,7 @@ class Task(p.Model):
 
 
 class Response(p.Model):
-    response = p.CharField(null=True, max_length=10000)
+    response = p.CharField(null=True, max_length=512000)
     timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
     task = p.ForeignKeyField(Task, null=False)
 
@@ -423,13 +426,30 @@ class FileMeta(p.Model):
 
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
-    inserts = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
+    inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
                                     "() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_notify('new" + table + \
                                     "', row_to_json(NEW)::text); RETURN NULL; END; $$;"
+        create_trigger_on_insert = "CREATE TRIGGER new" + table + \
+                                   "_trigger AFTER INSERT ON " + table + " FOR EACH ROW EXECUTE PROCEDURE notify_new" + \
+                                   table + "();"
+        try:
+            apfell_db.execute_sql(create_function_on_insert)
+            apfell_db.execute_sql(create_trigger_on_insert)
+        except Exception as e:
+            print(e)
+
+
+def pg_register_bignewinserts():
+    inserts = ['response']
+    for table in inserts:
+        create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
+                                    "CREATE FUNCTION notify_new" + table + \
+                                    "() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_notify('new" + table + \
+                                    "', NEW.id::text); RETURN NULL; END; $$;"
         create_trigger_on_insert = "CREATE TRIGGER new" + table + \
                                    "_trigger AFTER INSERT ON " + table + " FOR EACH ROW EXECUTE PROCEDURE notify_new" + \
                                    table + "();"
