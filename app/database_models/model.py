@@ -170,7 +170,7 @@ class OperatorOperation(p.Model):
 
 # an instance of a c2profile
 class C2Profile(p.Model):
-    name = p.CharField(unique=True, null=False)  # registered unique name for this c2 profile
+    name = p.CharField(null=False)  # registered unique name for this c2 profile
     # server location of the profile on disk so we can start it as a sub process (needs to be a python 3+ module), it will be in a predictable location and named based on the name field here
     # no client locations are needed to be specified because there is a required structure to where the profile will be located
     description = p.CharField(null=True, default="")
@@ -182,6 +182,7 @@ class C2Profile(p.Model):
     operation = p.ForeignKeyField(Operation, null=False)
 
     class Meta:
+        indexes = ((('name', 'operation'), True),)
         database = apfell_db
 
     def to_json(self):
@@ -496,7 +497,7 @@ def setup():
                                    "creation_time, running, operation_id) VALUES ('default', 'default RESTful C2 channel', " + \
                                    "(SELECT id FROM operator WHERE username='apfell_admin'), " + \
                                    "'" + current_time + "',True," + \
-                                   "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (name) DO NOTHING;"
+                                   "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (name, operation_id) DO NOTHING;"
         apfell_db.execute_sql(create_default_c2profile)
         # Create default payload types, only one supported by default right now
         default_payload_types = ['apfell-jxa']
@@ -516,7 +517,7 @@ def setup():
         for ptype in default_payload_types:
             create_ptype_c2_mappings = "INSERT INTO payloadtypec2profile (payload_type_id, c2_profile_id) VALUES (" + \
                 "(SELECT id FROM payloadtype WHERE ptype='" + ptype + "')," + \
-                "(SELECT id FROM c2profile WHERE name='default')) ON CONFLICT (payload_type_id, c2_profile_id) DO NOTHING"
+                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id from operation where name='default'))) ON CONFLICT (payload_type_id, c2_profile_id) DO NOTHING"
             apfell_db.execute_sql(create_ptype_c2_mappings)
         # Create default commands that are associated with payloadtypes
         file = open('./app/templates/default_commands.json', 'r')

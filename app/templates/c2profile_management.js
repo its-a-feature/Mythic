@@ -79,7 +79,7 @@ function create_profile(response){
     }
 }
 function startwebsocket_c2profiles(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/c2profiles');
+	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/c2profiles/current_operation');
 	ws.onmessage = function(event){
 		if(event.data != ""){
 			pdata = JSON.parse(event.data);

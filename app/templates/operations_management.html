@@ -14,6 +14,7 @@
                 <td><b>Name</b></td>
                 <td><b>Admin</b></td>
                 <td><b>Members</b></td>
+                <td><b>Current Operation</b></td>
             </tr>
         <!-- Repeat this for each operation -->
             <tr v-for="o in operations" :key="o.name">
@@ -34,6 +35,12 @@
                 <td>[[ o.name ]]</td>
                 <td>[[ o.admin ]]</td>
                 <td>[[ o.members.join(", ") ]]</td>
+                <td>
+                    <div v-if="current_operation == o.name">Yes</div>
+                    <div v-else>
+                        <button type="button" class="btn btn-info btn-sm" @click="current_operation_button(o)">Make Current</button>
+                    </div>
+                </td>
             </tr>
         <!-- End of the repeating -->
         </table>

@@ -1,5 +1,5 @@
 from sanic_jwt import exceptions
-from app import db_objects
+from app import db_objects, links
 from app.database_models.model import Operator, Operation, OperatorOperation
 import datetime
 
@@ -51,6 +51,10 @@ async def retrieve_user(request, payload, *args, **kwargs):
         admin_ops = []
         for op in admin_operations:
             admin_ops.append(op.name)
+        if user_json['current_operation'] != "" and user_json['current_operation'] != 'null':
+            links['current_operation'] = user.current_operation.name
+        else:
+            links['current_operation'] = ""
         return {**user_json, "user_id": user.id, "operations": operations, "admin_operations": admin_ops}
     except Exception as e:
         print("failed to get user in retrieve_user")

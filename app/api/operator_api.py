@@ -80,6 +80,10 @@ async def update_operator(request, name, user):
             op.admin = data['admin']
         if 'active' in data:  # this way you can deactivate accounts without deleting them
             op.active = data['active']
+        if 'current_operation' in data:
+            if data['current_operation'] in user['operations']:
+                current_op = await db_objects.get(Operation, name=data['current_operation'])
+                op.current_operation = current_op
         await db_objects.update(op)
         success = {'status': 'success'}
         updated_operator = op.to_json()

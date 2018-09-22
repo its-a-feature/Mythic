@@ -31,7 +31,7 @@ var callback_table = new Vue({
         },
         spawn_menu: function(callback){
             //display a modal menu for the user to get some information about spawning a new callback
-            possiblePayloads = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/"));
+            possiblePayloads = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/current_operation"));
             var payloads = '<option value="-1">current callback as template for new payload</option>';
             for(var i = 0; i < possiblePayloads.length; i++){
                 if(possiblePayloads[i].tag !== ""){
@@ -147,7 +147,7 @@ var task_data = new Vue({
     delimiters: ['[[', ']]']
 });
 function startwebsocket_callbacks(){
-    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks');
+    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
     ws.onmessage = function(event){
         if (event.data != ""){
 
@@ -192,7 +192,7 @@ function startwebsocket_callbacks(){
     }
 };
 function startwebsocket_newtasks(){
-    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/tasks');
+    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/tasks/current_operation');
     ws.onmessage = function(event){
         if (event.data != ""){
             tsk = JSON.parse(event.data);
@@ -224,7 +224,7 @@ function startwebsocket_newtasks(){
     };
 };
 function startwebsocket_updatedtasks(){
-    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/responses');
+    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/responses/current_operation');
     ws.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);
@@ -244,7 +244,7 @@ function startwebsocket_updatedtasks(){
     };
 };
 function startwebsocket_updatedcallbacks(){
-var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updatedcallbacks');
+var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updatedcallbacks/current_operation');
     ws.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);

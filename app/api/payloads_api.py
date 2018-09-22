@@ -15,6 +15,16 @@ async def get_all_payloads(request, user):
     return json([p.to_json() for p in payloads])
 
 
+@apfell.route(apfell.config['API_BASE'] + "/payloads/current_operation", methods=['GET'])
+@inject_user()
+@protected()
+async def get_all_payloads(request, user):
+    if user['current_operation'] != "":
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        payloads = await db_objects.execute(Payload.select().where(Payload.operation == operation))
+        return json([p.to_json() for p in payloads])
+
+
 @apfell.route(apfell.config['API_BASE'] + "/payloads/<puuid:string>", methods=['DELETE'])
 @inject_user()
 @protected()
@@ -40,6 +50,7 @@ async def remove_payload(request, puuid, user):
 async def register_payload(request, user):
     data = request.json
     data['operator'] = user['username']
+    data['current_operation'] = user['current_operation']
     return await json(register_payload_func(data))
 
 
@@ -50,6 +61,8 @@ async def register_payload(request, user):
 #  "c2profile": "default-apfell-jxa"}
 # returns either error or uuid
 async def register_payload_func(data):
+    if data['current_operation'] == "":
+        return {'status': 'error', 'error': "must be in an active operation"}
     if 'payload_type' not in data:
         return {'status': 'error', 'error': '"payload_type" field is required'}
     if 'callback_host' not in data:
@@ -86,13 +99,12 @@ async def register_payload_func(data):
     try:
         tag = data['tag'] if 'tag' in data else ""
         location = data['location'] if 'location' in data else "./app/payloads/operations/default/"
-        # TODO incorporate operations here, for now, all 'default' operations
-        operation = await db_objects.get(Operation, name='default')
+        operation = await db_objects.get(Operation, name=data['current_operation'])
         # parent will be the ID of the parent callback if it exists
         uuid = await create_uuid(str(tag) + str(operator.username) + str(location) + str(payload_type.ptype) +
                                  str(data['callback_host']) + str(data['callback_port']) +
                                  str(data['callback_interval']) + str(data['obfuscation']) +
-                                 str(data['use_ssl']) + str(c2_profile.name))
+                                 str(data['use_ssl']) + str(c2_profile.name) + str(data['current_operation']))
 
         payload, create = await db_objects.create_or_get(Payload, operator=operator, payload_type=payload_type,
                                                  tag=tag, pcallback=pcallback, callback_host=data['callback_host'],

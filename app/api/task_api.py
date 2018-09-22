@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Task, Command, FileMeta
+from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation
 from urllib.parse import unquote_plus
 import datetime
 from sanic_jwt.decorators import protected, inject_user
@@ -52,8 +52,13 @@ async def get_next_task(request, cid):
         callback.last_checkin = datetime.datetime.now()
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active
         await db_objects.update(callback)  # update the last checkin time
-        tasks = await db_objects.get(Task.select().join(Callback).where(
-            (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
+        operation = await db_objects.get(Operation, name=callback.operation.name)
+        if not operation.complete:
+            tasks = await db_objects.get(Task.select().join(Callback).where(
+                (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
+        else:
+            #  if the operation is done, kill anything that still tries to get tasking
+            return json({"command": "exit", "params": ""})
     except Exception as e:
         print(e)
         return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria

@@ -36,6 +36,35 @@ async def get_all_c2profiles(request, user):
     return json(results)
 
 
+# Get all profiles for the user's current operation
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/current_operation", methods=['GET'])
+@inject_user()
+@protected()
+async def get_all_c2profiles_for_current_operation(request, user):
+    if user['current_operation'] != "":
+        try:
+            operation = await db_objects.get(Operation, name=user['current_operation'])
+            all_profiles = await db_objects.execute(C2Profile.select().where(C2Profile.operation == operation))
+            profiles = await db_objects.execute(
+                PayloadTypeC2Profile.select(PayloadTypeC2Profile, C2Profile, PayloadType).join(C2Profile).switch(
+                    PayloadTypeC2Profile).join(PayloadType))
+            results = []
+            inter = {}
+            for p in all_profiles:
+                inter[p.name] = p.to_json()
+                inter[p.name]['ptype'] = []
+            for p in profiles:
+                inter[p.c2_profile.name]['ptype'].append(p.payload_type.ptype)
+            for k in inter.keys():
+                results.append(inter[k])
+            return json(results)
+        except Exception as e:
+            print(e)
+            return json([""])
+    else:
+        return json([""])
+
+
 # Get all currently registered profiles that support a given payload type
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>", methods=['GET'])
 @inject_user()
@@ -43,25 +72,44 @@ async def get_all_c2profiles(request, user):
 async def get_c2profiles_by_type(request, info, user):
     ptype = unquote_plus(info)
     try:
-        profiles = await get_c2profiles_by_type_function(ptype, user)
+        profiles = await get_c2profiles_by_type_function(ptype, user, False)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get c2 profiles'})
     return json(profiles)
 
 
+# Get all currently registered profiles that support a given payload type
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/current_operation/<info:string>", methods=['GET'])
+@inject_user()
+@protected()
+async def get_c2profiles_by_type(request, info, user):
+    ptype = unquote_plus(info)
+    if user['current_operation'] != "":
+        try:
+            profiles = await get_c2profiles_by_type_function(ptype, user, True)
+            profiles = [p for p in profiles if p.operation == user['current_operation']]
+            return json(profiles)
+        except Exception as e:
+            print(e)
+            return json({'status': 'error', 'error': 'failed to get c2 profiles'})
+
+
 # this function will be useful by other files, so make it easier to use
-async def get_c2profiles_by_type_function(ptype, user_dict):
+async def get_c2profiles_by_type_function(ptype, user_dict, use_current):
     try:
         payload_type = await db_objects.get(PayloadType, ptype=ptype)
         profiles = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.payload_type == payload_type))
     except Exception as e:
         print(e)
         raise Exception
-    return [p.to_json() for p in profiles if p.c2_profile.operation in user_dict['operations'] or user_dict['admin']]
+    if use_current:
+        return [p.to_json() for p in profiles if p.c2_profile.operation.name == user_dict['current_operation']]
+    else:
+        return [p.to_json() for p in profiles if p.c2_profile.operation.name in user_dict['operations'] or user_dict['admin']]
 
 
-# Register a new profile
+# Register a new profile, each new profile gets the default c2_profile automatically
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/", methods=['POST'])
 @inject_user()
 @protected()
@@ -86,20 +134,41 @@ async def register_new_c2profile(request, user):
         print(e)
         return json({'status': 'error', 'error': 'operator could not be found'})
     try:
-        # TODO update this to incorporate information about a specific operation to tie this new profile to
-        operation = await db_objects.get(Operation, name='default')
-        profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op,
+        if user['current_operation'] != "":
+            operation = await db_objects.get(Operation, name=user['current_operation'])
+            profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op,
+                                              operation=operation)
+            # now create the payloadtypec2profile entries
+            for t in data['payload_types']:
+                payload_type = await db_objects.get(PayloadType, ptype=t.strip())
+                await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+            profile_json = profile.to_json()
+            status = {'status': 'success'}
+            return json({**status, **profile_json})
+        else:
+            return json({'status': 'error', 'error': 'must be part of an active operation'})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'Profile name already taken'})
+
+
+async def register_default_profile_operation(user_dict, operation_name):
+    try:
+        operator = await db_objects.get(Operator, username=user_dict['username'])
+        operation = await db_objects.get(Operation, name=operation_name)
+        profile = await db_objects.create(C2Profile, name='default', description='Default RESTful HTTP(S)', operator=operator,
                                           operation=operation)
-        # now create the payloadtypec2profile entries
-        for t in data['payload_types']:
+        #TODO make this dynamic instead of manual, but it won't change often
+        payload_types = ['apfell-jxa']
+        for t in payload_types:
             payload_type = await db_objects.get(PayloadType, ptype=t.strip())
             await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
         profile_json = profile.to_json()
         status = {'status': 'success'}
-        return json({**status, **profile_json})
+        return{**status, **profile_json}
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'Profile name already taken'})
+        return {'status': 'error', 'error': 'failed to create default profile for new operation'}
 
 
 # Update a current profile

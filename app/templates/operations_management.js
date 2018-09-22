@@ -1,10 +1,12 @@
 var operations = [];
 var username = "{{name}}";
 var admin = ("{{admin}}" === "True");
+var current_operation = "{{current_operation}}";
 var operations_table = new Vue({
     el: '#operations_table',
     data: {
-        operations
+        operations,
+        current_operation
     },
     methods: {
         delete_button: function(o){
@@ -56,6 +58,9 @@ var operations_table = new Vue({
 		    $( '#operationCompleteSubmit' ).unbind('click').click(function(){
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/" + o.name, complete_operation, "PUT", {'complete': true});
             });
+        },
+        current_operation_button: function(o){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + username, current_operation_callback, "PUT", {'current_operation': o.name});
         }
     },
     delimiters: ['[[',']]']
@@ -64,7 +69,13 @@ function modify_operation(response){
     data = JSON.parse(response);
     if(data['status'] == "success"){
         for (var i = 0; i < operations.length; i++){
-            if(operations[i]['name'] == data['name']){
+            if(data['old_name']){
+                if(operations[i]['name'] == data['old_name']){
+                    operations_table.operations[i]['name'] = data['name'];
+                    operations_table.operations[i].members = data['operators'];
+                }
+            }
+            else if(operations[i]['name'] == data['name']){
                 operations_table.operations[i].members = data['operators'];
             }
         }
@@ -107,7 +118,7 @@ function complete_operation(response){
             }
         }
     }
-}
+};
 function get_operations(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/", get_operations_callback, "GET", null);
 };
@@ -116,7 +127,7 @@ function get_operations_callback(response){
     for(var i = 0; i < data.length; i++){
         Vue.set(operations_table.operations, i, data[i]);
     }
-}
+};
 function new_operation_button(){
     $( '#operationNewName' ).val("");
     $( '#operationNewAdmin' ).val("");
@@ -139,5 +150,14 @@ function new_operation_button(){
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/", create_operation, "POST", data);
     });
 
+};
+function current_operation_callback(response){
+    data = JSON.parse(response);
+    if(data['status'] == 'success'){
+        operations_table.current_operation = data['current_operation'];
+    }
+    else{
+        alert(data['error']);
+    }
 };
 get_operations();

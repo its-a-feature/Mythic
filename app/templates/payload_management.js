@@ -36,7 +36,7 @@ function delete_callback(response){
 	}
 }
 function startwebsocket_payloads(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads');
+	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
 	ws.onmessage = function(event){
 		if(event.data != ""){
 			pdata = JSON.parse(event.data);

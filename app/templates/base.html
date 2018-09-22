@@ -89,13 +89,14 @@
                         </ul>
                     </li>
                     {% if name %}
-		    <li class="dropdown">
-			    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false">Profile ({{name}})<span class="caret"></span></a>
-			    <ul class="dropdown-menu">
-                    		<li><a href="{{ links.logout }}">Logout</a></li>
-				<li><a href="{{ links.settings }}">Settings</a></li>
-			    </ul>
-		    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false">Profile ({{name}})<span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                                    <li><a href="{{ links.logout }}">Logout</a></li>
+                        <li><a href="{{ links.settings }}">Settings</a></li>
+                        </ul>
+                    </li>
+                    <li><h4 style="color:green">Current Operation: {{links.current_operation}}</h4></li>
                     {% else %}
                     <li><a href="{{ links.login }}">Login</a></li>
                     {% endif %}

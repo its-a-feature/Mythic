@@ -3,6 +3,7 @@ from sanic.response import json
 from app.database_models.model import Operator, Operation, OperatorOperation
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import protected, inject_user
+from app.api.c2profiles_api import register_default_profile_operation
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
@@ -77,7 +78,12 @@ async def create_operation(request, user):
             data['members'].append(data['admin'])
         status = await add_user_to_operation_func(operation, data['members'])
         if status['status'] == 'success':
-            return json({'status': 'success', **operation.to_json(), 'members': data['members']})
+            # we need to make the default c2_profile for this operation
+            default_status = await register_default_profile_operation(user, data['name'])
+            if default_status['status'] == "success":
+                return json({'status': 'success', **operation.to_json(), 'members': data['members']})
+            else:
+                return json(default_status)
         else:
             return json({'status': 'error', 'error': status['error']})
     else:
@@ -146,7 +152,7 @@ async def update_operation(request, user, op):
             if 'complete' in data:
                 operation.complete = data['complete']
                 await db_objects.update(operation)
-            return json({'status': 'success', 'operators': all_users, **operation.to_json()})
+            return json({'status': 'success', 'operators': all_users, **operation.to_json(), 'old_name': op})
         else:
             return json({'status': 'error', 'error': 'operation is complete and cannot be modified'})
     else:

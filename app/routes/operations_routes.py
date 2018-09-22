@@ -70,9 +70,11 @@ async def c2profile_management(request, user):
 async def operations_management(request, user):
     template = env.get_template('operations_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'])
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'])
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'])
     return response.html(content)
 
 # add links to these routes at the bottom

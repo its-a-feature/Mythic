@@ -20,8 +20,11 @@ async def payloads_jxa(request, user):
     errors = {}
     success = ""
     try:
-        jxa_choices = await get_c2profiles_by_type_function('apfell-jxa', user)
+        # pass True as the 3rd parameter indicating we only want to do this for our current operation's c2 profiles
+        jxa_choices = await get_c2profiles_by_type_function('apfell-jxa', user, True)
     except Exception as e:
+        jxa_choices = []
+    if jxa_choices is None:
         jxa_choices = []
     form.c2_profile.choices = [(p['c2_profile'], p['c2_profile'] + ": " + p['c2_profile_description']) for p in jxa_choices]
     if request.method == 'POST' and form.validate():
@@ -36,7 +39,8 @@ async def payloads_jxa(request, user):
         data = {"tag": default_tag, "operator": user['username'], "payload_type": "apfell-jxa",
                 "callback_host": callback_host, "callback_port": callback_port,
                 "callback_interval": callback_interval, "obfuscation": obfuscation,
-                "use_ssl": use_ssl, "location": output_directory, "c2_profile": c2_profile}
+                "use_ssl": use_ssl, "location": output_directory, "c2_profile": c2_profile,
+                "current_operation": user['current_operation']}
         resp = await payloads_api.register_payload_func(data)  # process this with our api
         if resp['status'] == "success":
             try:
