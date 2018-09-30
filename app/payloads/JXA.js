@@ -72,7 +72,7 @@ shell = function(command){
 		response = currentApp.doShellScript(command);
 	}
 	catch(error){
-		response = error;
+		response = error.toString();
 	}
 	return response;
 }
@@ -82,7 +82,7 @@ shell_elevated = function(command, prompt){
 		response = currentApp.doShellScript(command, {administratorPrivileges:true,withPrompt:prompt});
 	}
 	catch(error){
-		response = error;
+		response = error.toString();
 	}
 	return response;
 }
@@ -92,7 +92,7 @@ js = function(command){
 		response = eval(command);
 	}
 	catch(error){
-		response = error;
+		response = error.toString();
 	}
 	return response;
 }
@@ -121,7 +121,7 @@ shell_api = function(path, args){
         }
 	}
 	catch(error){
-		response = error;
+		response = error.toString();
 	}
 	return response;
 }
@@ -137,7 +137,7 @@ launch_app = function(identifier){
 		response = 'success';
 	}
 	catch(error){
-		response = error;
+		response = error.toString();
 	}
 	return response;
 }
@@ -146,7 +146,7 @@ clipboard_read = function(){
 		return currentApp.theClipboard();
 	}
 	catch(error){
-		return error;
+		return error.toString();
 	}
 }
 clipboard_set = function(data){
@@ -155,7 +155,7 @@ clipboard_set = function(data){
 		response = 'success';
 	}
 	catch(error){
-		response = error;
+		response = error.toString();
 	}
 	return response;
 }
@@ -239,7 +239,7 @@ list_chrome_tabs = function(){
 			}
 		}
 	}catch(error){
-		return error;
+		return error.toString();
 	}
 	return JSON.stringify(tabs);
 }
@@ -261,7 +261,7 @@ list_chrome_bookmarks = function(){
 			}
 		}
 	}catch(error){
-		return error;
+		return error.toString();
 	}
 	return JSON.stringify(all_data);
 }
@@ -271,7 +271,7 @@ js_in_chrome_tab = function(win, tab, code){
 		return "completed";
 	}
 	catch(error){
-		return error;
+		return error.toString();
 	}
 }
 get_system_info = function(method){
@@ -313,7 +313,7 @@ list_terminal_info = function(history, contents){
 		}
 
 	}catch(error){
-		all_data['error'] = error;
+		all_data['error'] = error.toString();
 	}
 	return JSON.stringify(all_data);
 }
@@ -324,7 +324,7 @@ shell_in_term_tab = function(window, tab, command){
 		term.doScript(command, {in:term.windows[window].tabs[tab]});
 	}
 	catch(error){
-		output = error;
+		output = error.toString();
 	}
 	return output;
 }
