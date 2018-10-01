@@ -168,6 +168,8 @@ async def delete_operation(request, user, op):
     if op in user['admin_operations'] or user['admin']:
         try:
             operation = await db_objects.get(Operation, name=op)
+            # Need to go through and delete all the things that relate to this operation, then delete the operation
+            # callbacks, payloads, profiles, mappings (operatoroperation, payloadtypec2profile), tasks, responses
             await db_objects.delete(operation, recursive=True)
             return json({'status': 'success', **operation.to_json()})
         except Exception as e:

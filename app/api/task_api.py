@@ -1,7 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation
-from urllib.parse import unquote_plus
+from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response
 import datetime
 from sanic_jwt.decorators import protected, inject_user
 from app.api.utils import breakout_quoted_params
@@ -12,12 +11,15 @@ from app.api.utils import breakout_quoted_params
 @inject_user()
 @protected()
 async def get_all_tasks(request, user):
-    callbacks = Callback.select()
-    operators = Operator.select()
-    tasks = Task.select()
-    # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
-    full_task_data = await db_objects.prefetch(tasks, callbacks, operators)
-    return json([c.to_json() for c in full_task_data])
+    if user['admin']:
+        callbacks = Callback.select()
+        operators = Operator.select()
+        tasks = Task.select()
+        # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
+        full_task_data = await db_objects.prefetch(tasks, callbacks, operators)
+        return json([c.to_json() for c in full_task_data])
+    else:
+        return json({'status': 'error', 'error': 'must be admin to see all tasks'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['GET'])
@@ -26,17 +28,20 @@ async def get_all_tasks(request, user):
 async def get_all_tasks_for_callback(request, cid, user):
     try:
         callback = await db_objects.get(Callback, id=cid)
+        operation = await db_objects.get(Operation, id=callback.operation)
     except Exception as e:
         return json({'status': 'error',
                      'error': 'Callback does not exist'})
-    try:
-        tasks = Task.select()
-        cb_task_data = await db_objects.execute(Task.select().where(Task.callback == callback))
-        return json([c.to_json() for c in cb_task_data])
-    except Exception as e:
-        return json({'status': 'error',
-                     'error': 'No Tasks',
-                     'msg': str(e)})
+    if operation.name in user['operations']:
+        try:
+            cb_task_data = await db_objects.execute(Task.select().where(Task.callback == callback))
+            return json([c.to_json() for c in cb_task_data])
+        except Exception as e:
+            return json({'status': 'error',
+                         'error': 'No Tasks',
+                         'msg': str(e)})
+    else:
+        return json({'status': 'error', 'error': 'You must be part of the right operation to see this information'})
 
 
 # We don't put @protected or @inject_user here since the callback needs to be able to call this function
@@ -74,10 +79,10 @@ async def get_next_task(request, cid):
 async def add_task_to_callback(request, cid, user):
     data = request.json
     data['operator'] = user['username']
-    return json(await add_task_to_callback_func(data, cid))
+    return json(await add_task_to_callback_func(data, cid, user))
 
 
-async def add_task_to_callback_func(data, cid):
+async def add_task_to_callback_func(data, cid, user):
     try:
         # first see if the operator and callback exists
         op = await db_objects.get(Operator, username=data['operator'])
@@ -97,7 +102,32 @@ async def add_task_to_callback_func(data, cid):
         if cmd.cmd == "download":
             if '"' in data['params']:
                 data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
-        task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
+        # if the task is for something that doesn't actually go down to the client, we'll handle it a little differently
+        if cmd.cmd == "tasks":
+            # this means we're just listing out the not-completed tasks, so nothing actually goes to the agent
+            task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'], status="processed")
+            raw_rsp = await get_all_not_completed_tasks_for_callback_func(cb.id, user)
+            if raw_rsp['status'] == 'success':
+                rsp = ""
+                for t in raw_rsp['tasks']:
+                    rsp += "\nOperator: " + t['operator'] + "\nTask " + str(t['id']) + ": " + t['command'] + " " + t['params']
+                await db_objects.create(Response, task=task, response=rsp)
+            else:
+                return {'status': 'error', 'error': 'failed to get tasks'}
+        elif cmd.cmd == "clear":
+            # this means we're going to be clearing out some tasks depending on our access levels
+            task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
+                                           status="processed")
+            raw_rsp = await clear_tasks_for_callback_func(data['params'], cb.id, user)
+            if raw_rsp['status'] == 'success':
+                rsp = "Removed the following:"
+                for t in raw_rsp['tasks_removed']:
+                    rsp += "\nOperator: " + t['operator'] + "\nTask " + str(t['id']) + ": " + t['command'] + " " + t['params']
+                await db_objects.create(Response, task=task, response=rsp)
+            else:
+                return {'status': 'error', 'error': raw_rsp['error']}
+        else:
+            task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
         if cmd.cmd == "upload":
             # now we can associate the task with the filemeta object
             file_meta.task = task
@@ -109,3 +139,57 @@ async def add_task_to_callback_func(data, cid):
         print("failed to get something in add_task_to_callback_func " + str(e))
         return {'status': 'error', 'error': 'Failed to create task',  'msg': str(e)}
 
+
+@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/notcompleted", methods=['GET'])
+@inject_user()
+@protected()
+async def get_all_not_completed_tasks_for_callback(request, cid, user):
+    return json(await get_all_not_completed_tasks_for_callback_func(cid, user))
+
+
+async def get_all_not_completed_tasks_for_callback_func(cid, user):
+    try:
+        callback = await db_objects.get(Callback, id=cid)
+        operation = await db_objects.get(Operation, id=callback.operation)
+    except Exception as e:
+        print(e)
+        return {'status': 'error', 'error': 'failed to get callback or operation'}
+    if operation.name in user['operations']:
+        # Get all tasks that have a status of submitted or processing
+        tasks = await db_objects.execute(Task.select().join(Callback).where(
+            (Task.callback == callback) & (Task.status != "processed")).order_by(Task.timestamp))
+        return {'status': 'success', 'tasks': [x.to_json() for x in tasks]}
+    else:
+        return {'status': 'error', 'error': 'You must be part of the operation to view this information'}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/clear", methods=['POST'])
+@inject_user()
+@protected()
+async def clear_tasks_for_callback(request, cid, user):
+    return json(await clear_tasks_for_callback_func(request.json, cid, user))
+
+
+async def clear_tasks_for_callback_func(data, cid, user):
+    try:
+        callback = await db_objects.get(Callback, id=cid)
+        operation = await db_objects.get(Operation, id=callback.operation)
+    except Exception as e:
+        print(e)
+        return {'status': 'error', 'error': 'failed to get callback or operation'}
+    tasks_removed = []
+    if "all" == data:
+        tasks = await db_objects.execute(Task.select().join(Callback).where(
+            (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
+    else:
+        tasks = await db_objects.execute(Task.select().where(Task.id == data))
+    for t in tasks:
+        if user['username'] == t.operator.username or user['admin']:
+            try:
+                t_removed = t.to_json()
+                await db_objects.delete(t)
+                tasks_removed.append(t_removed)
+            except Exception as e:
+                print(e)
+                return {'status': 'error', 'error': 'failed to delete task: ' + t.command.cmd}
+    return {'status': 'success', 'tasks_removed': tasks_removed}

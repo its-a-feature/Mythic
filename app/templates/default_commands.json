@@ -83,7 +83,7 @@
         },
         {
           "cmd": "js_chrome",
-          "description": "This uses JXA to execute the specified JavaScript code into a specific browser tab. The chrome_tabs function will specify for each tab the window/tab numbers that you can use for this function.",
+          "description": "This uses JXA to execute the specified JavaScript code into a specific browser tab. The chrome_tabs function will specify for each tab the window/tab numbers that you can use for this function. Note: by default this ability is disabled in Chrome now, you will need to go to view->Developer->Allow JavaScript from Apple Events.",
           "help": "js_chrome {window ID number} {tab ID number} {JavaScript}",
           "needs_admin": "false"
         },
@@ -127,6 +127,18 @@
           "cmd": "sleep",
           "description": "Modify the time between callbacks.",
           "help": "sleep {integer interval}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "clear",
+          "description": "Clears all tasks scheduled for the specific callback that you scheduled. Only an admin can clear tasks schedule by other members on the team.",
+          "help": "clear {all | id_number}",
+          "needs_admin": "false"
+        },
+        {
+          "cmd": "tasks",
+          "description": "View all tasks that are submitting or processing.",
+          "help": "tasks",
           "needs_admin": "false"
         },
         {
