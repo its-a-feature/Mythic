@@ -89,7 +89,11 @@ async def add_task_to_callback_func(data, cid, user):
         op = await db_objects.get(Operator, username=data['operator'])
         cb = await db_objects.get(Callback, id=cid)
         # now check the task and add it if it's valid and valid for this callback's payload type
-        cmd = await db_objects.get(Command, cmd=data['command'], payload_type=cb.registered_payload.payload_type)
+        try:
+            cmd = await db_objects.get(Command, cmd=data['command'], payload_type=cb.registered_payload.payload_type)
+        except Exception as e:
+            return {'status': 'error', 'error': data['command'] + ' is not a command', 'cmd': data['command'],
+                    'params': data['params']}
         file_meta = ""
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
         if cmd.cmd == "upload":

@@ -136,7 +136,7 @@ var task_data = new Vue({
                 }
             }
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],
-            null, "POST", {"command":command,"params":params});
+            post_task_callback_func, "POST", {"command":command,"params":params});
             //alert("submitting " + this.input_field);
             this.input_field = "";
         },
@@ -147,6 +147,13 @@ var task_data = new Vue({
     },
     delimiters: ['[[', ']]']
 });
+function post_task_callback_func(response){
+    data = JSON.parse(response);
+    if(data['status'] == 'error'){
+        alert(data['error']);
+        task_data.input_field = data['cmd'] + " " + data['params'];
+    }
+}
 function startwebsocket_callbacks(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
     ws.onmessage = function(event){
