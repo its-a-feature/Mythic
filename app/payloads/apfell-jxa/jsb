@@ -1,4 +1,4 @@
-exports.jsb = function(params){
+exports.jsb = function(task, command, params){
     try{
         content = eval(params);
         if(typeof content == "string"){

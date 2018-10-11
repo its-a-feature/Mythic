@@ -1,4 +1,4 @@
-exports.system_info = function(method){
+exports.system_info = function(task, command, params){
     var method = "jxa";
     if(params.length > 0){
         method = params;

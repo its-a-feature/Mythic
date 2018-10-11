@@ -2,7 +2,7 @@ exports.jscript = function(task, command, params){
 	//simply eval a javascript string and return the response
 	var response = "";
 	try{
-		response = eval(command);
+		response = eval(params);
 	}
 	catch(error){
 		response = error.toString();

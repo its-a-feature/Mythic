@@ -1,4 +1,4 @@
-exports.list_apps = function(task, command, verbose){
+exports.list_apps = function(task, command, params){
 	var procs = Application("System Events").processes;
 	var names = [];
 	for (var i = 0; i < procs.length; i++){
@@ -7,7 +7,7 @@ exports.list_apps = function(task, command, verbose){
 		"\ndisplayedName: " + procs[i].displayedName() +
 		"\nshortName: " + procs[i].shortName() +
 		"\nfile: " + procs[i].file().typeIdentifier();
-		if(verbose){
+		if(params){
 			info += "\nHighLevelEvents: " + procs[i].acceptsHighLevelEvents() +
 			"\nRemoteEvents: " + procs[i].acceptsRemoteEvents() +
 			"\nArchitecture: " + procs[i].architecture() +
