@@ -3,6 +3,7 @@ from sanic.response import json
 from app.database_models.model import Operator, PayloadType
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
+import os
 
 
 # payloadtypes aren't inherent to an operation
@@ -26,6 +27,7 @@ async def create_payloadtype(request, user):
             return json({'status': 'error', 'error': '"ptype" is a required field and must be unique'})
         operator = await db_objects.get(Operator, username=user['username'])
         payloadtype = await db_objects.create(PayloadType, ptype=data['ptype'], operator=operator)
+        os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to create new payload type: ' + str(e)})
     status = {'status': 'success'}
@@ -37,7 +39,7 @@ async def create_payloadtype(request, user):
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>", methods=['DELETE'])
 @inject_user()
 @protected()
-async def delete_one_payloadtypes(request, user, ptype):
+async def delete_one_payloadtype(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
         payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
