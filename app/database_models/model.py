@@ -101,7 +101,7 @@ class Command(p.Model):
                 if k == 'operator':
                     r[k] = getattr(self, k).username
                 elif k == 'payload_type':
-                    r[k] = getattr(self, k).name
+                    r[k] = getattr(self, k).ptype
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -287,6 +287,36 @@ class Payload(p.Model):
         return str(self.to_json())
 
 
+# a specific payload instance has multiple commands associated with it, so we need to track that
+#   commands can be loaded/unloaded at run time, so we need to track creation_time
+class PayloadCommand(p.Model):
+    payload = p.ForeignKeyField(Payload, null=False)
+    command = p.ForeignKeyField(Command, null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.now, null=False)
+
+    class Meta:
+        indexes = ((('payload', 'command'), True),)
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'payload':
+                    r[k] = getattr(self, k).uuid
+                elif k == 'command':
+                    r[k] = getattr(self, k).cmd
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 class Callback(p.Model):
     init_callback = p.DateTimeField(default=datetime.datetime.now, null=False)
     last_checkin = p.DateTimeField(default=datetime.datetime.now, null=False)
@@ -334,7 +364,7 @@ class Callback(p.Model):
 
 class Task(p.Model):
     command = p.ForeignKeyField(Command, null=False)
-    params = p.CharField(null=True)  #this will have the instance specific params (ex: id)
+    params = p.CharField(null=True, max_length=512000)  #this will have the instance specific params (ex: id)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
     attack_id = p.IntegerField(null=True)  # task will be more granular than command, so attack_id should live here
     timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
@@ -428,7 +458,7 @@ class FileMeta(p.Model):
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
-               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta']
+               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -463,7 +493,7 @@ def pg_register_bignewinserts():
 
 def pg_register_updates():
     updates = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
-               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta']
+               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -526,7 +556,7 @@ def setup():
             for cmd in cmd_group['commands']:
                 create_cmd = "INSERT INTO command (cmd, needs_admin, description, help_cmd, payload_type_id, operator_id, creation_time) " + \
                     "VALUES ('" + cmd['cmd'] + "', " + cmd['needs_admin'] + ", '" + cmd['description'].replace("'", "''") + "', '" + \
-                    cmd['help'] + "', (SELECT id FROM payloadtype WHERE ptype='" + cmd_group['name'] + "')," + \
+                    cmd['help_cmd'] + "', (SELECT id FROM payloadtype WHERE ptype='" + cmd_group['name'] + "')," + \
                     "(SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + "') ON CONFLICT " + \
                     "(cmd, payload_type_id) DO NOTHING"
                 apfell_db.execute_sql(create_cmd)
@@ -548,6 +578,7 @@ Callback.create_table(True)
 Task.create_table(True)
 Response.create_table(True)
 FileMeta.create_table(True)
+PayloadCommand.create_table(True)
 # setup default admin user and c2 profile
 setup()
 # Create the ability to do LISTEN / NOTIFY on these tables

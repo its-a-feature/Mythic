@@ -4,6 +4,7 @@ from app.database_models.model import Callback, Operator, Task, Command, FileMet
 import datetime
 from sanic_jwt.decorators import protected, inject_user
 from app.api.utils import breakout_quoted_params
+import base64
 
 
 # This gets all tasks in the database
@@ -87,8 +88,8 @@ async def add_task_to_callback_func(data, cid, user):
         # first see if the operator and callback exists
         op = await db_objects.get(Operator, username=data['operator'])
         cb = await db_objects.get(Callback, id=cid)
-        # now check the task and add it if it's valid
-        cmd = await db_objects.get(Command, cmd=data['command'])
+        # now check the task and add it if it's valid and valid for this callback's payload type
+        cmd = await db_objects.get(Command, cmd=data['command'], payload_type=cb.registered_payload.payload_type)
         file_meta = ""
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
         if cmd.cmd == "upload":
@@ -126,6 +127,18 @@ async def add_task_to_callback_func(data, cid, user):
                 await db_objects.create(Response, task=task, response=rsp)
             else:
                 return {'status': 'error', 'error': raw_rsp['error']}
+        elif cmd.cmd == "load":
+            try:
+                # open the file that contains the code we're going to load in
+                new_func = open("./app/payloads/{}/{}".format(cb.registered_payload.payload_type.ptype, data['params']), 'rb')
+                # base64 encode it and configure the parameters correctly
+                encoded = base64.b64encode(new_func.read())
+                params = {"cmd": data['params'], "code": encoded.decode("utf-8")}
+            except Exception as e:
+                print(e)
+                return {'status': 'error', 'error': 'failed to open and encode new function'}
+            task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=params)
+
         else:
             task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
         if cmd.cmd == "upload":

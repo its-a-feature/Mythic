@@ -14,6 +14,13 @@ var payloads_table = new Vue({
             });
         },
 	    update_button: function(p){
+	        var possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
+            var types = "";
+            for(var i = 0; i < possiblePayloadTypes.length; i++){
+                types = types + '<option value="' + possiblePayloadTypes[i].ptype + '">'
+                + possiblePayloadTypes[i].ptype + '</option>';
+            }
+            $( '#profileUpdatePayloads' ).html(types);
             // before we show the fields, populate them with the current data
             $( '#profileUpdateName' ).val(p.name);
             $( '#profileUpdateDescription' ).val(p.description);
@@ -22,7 +29,7 @@ var payloads_table = new Vue({
             $( '#profileUpdateSubmit' ).unbind('click').click(function(){
                 var data = {"name": p.name,
                         "description": $( '#profileUpdateDescription' ).val(),
-                        "payload_types": $( '#profileUpdatePayloads' ).val().split(",")
+                        "payload_types": $( '#profileUpdatePayloads' ).val()
                         };
                  httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, update_profile, "PUT", data);
 		    });
@@ -129,11 +136,21 @@ function startwebsocket_payloadtypec2profile(){
 	}
 }
 function register_button(){
+    var possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
+    console.log(possiblePayloadTypes);
+    var types = "";
+    for(var i = 0; i < possiblePayloadTypes.length; i++){
+        types = types + '<option value="' + possiblePayloadTypes[i].ptype + '">'
+        + possiblePayloadTypes[i].ptype + '</option>';
+    }
+    $( '#profileCreatePayloadTypes' ).html(types);
+
+
 	$( '#profileCreateModal' ).modal('show');
     $( '#profileCreateSubmit' ).unbind('click').click(function(){
         var data = {"name": $( '#profileCreateName' ).val(),
                     "description": $( '#profileCreateDescription' ).val(),
-                    "payload_types": $( '#profileCreatePayloads' ).val().split(",")};
+                    "payload_types": $( '#profileCreatePayloadTypes' ).val()};
          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile, "POST", data);
 
     });

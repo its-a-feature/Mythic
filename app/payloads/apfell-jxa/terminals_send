@@ -1,0 +1,12 @@
+exports.terminals_send = function(task, command, params){
+    split_params = params.split(" ");
+	var output = "";
+	try{
+		var term = Application("Terminal");
+		term.doScript(split_params.slice(3, ).join(" "), {in:term.windows[split_params[1]].tabs[split_params[2]]});
+	}
+	catch(error){
+		output = error.toString();
+	}
+	return output;
+};

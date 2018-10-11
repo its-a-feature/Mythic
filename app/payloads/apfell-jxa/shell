@@ -1,0 +1,11 @@
+exports.shell = function(task, command, params){
+	//simply run a shell command via doShellScript and return the response
+	var response = ""; 
+	try{
+		response = currentApp.doShellScript(params);
+	}
+	catch(error){
+		response = error.toString();
+	}
+	return response;
+};

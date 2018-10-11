@@ -3,7 +3,7 @@ from sanic import response
 from jinja2 import Environment, PackageLoader
 from app.forms.payloads_form import Payloads_JXA_Form
 from app.api import payloads_api
-from app.database_models.model import Payload
+from app.database_models.model import Payload, PayloadType, Command
 import pathlib
 from app.api.c2profiles_api import get_c2profiles_by_type_function
 from app.api.payloads_api import write_jxa_payload_func
@@ -27,6 +27,16 @@ async def payloads_jxa(request, user):
     if jxa_choices is None:
         jxa_choices = []
     form.c2_profile.choices = [(p['c2_profile'], p['c2_profile'] + ": " + p['c2_profile_description']) for p in jxa_choices]
+    # now get all of the available commands
+    try:
+        payload_type = await db_objects.get(PayloadType, ptype='apfell-jxa')
+        commands = await db_objects.execute(Command.select().where(Command.payload_type == payload_type))
+    except Exception as e:
+        print(e)
+        commands = []
+    if commands is None:
+        commands = []
+    form.commands.choices = [(c.cmd, c.cmd) for c in commands]
     if request.method == 'POST' and form.validate():
         callback_host = form.callback_host.data
         callback_port = form.callback_port.data
@@ -35,16 +45,17 @@ async def payloads_jxa(request, user):
         callback_interval = form.callback_interval.data
         default_tag = form.default_tag.data
         c2_profile = form.c2_profile.data
+        cmds = form.commands.data
         # Now that we have the data, we need to register it
         data = {"tag": default_tag, "operator": user['username'], "payload_type": "apfell-jxa",
                 "callback_host": callback_host, "callback_port": callback_port,
                 "callback_interval": callback_interval, "obfuscation": obfuscation,
                 "use_ssl": use_ssl, "location": output_directory, "c2_profile": c2_profile,
-                "current_operation": user['current_operation']}
+                "current_operation": user['current_operation'], "commands": cmds}
         resp = await payloads_api.register_payload_func(data)  # process this with our api
         if resp['status'] == "success":
             try:
-                create_rsp = await write_jxa_payload_func({'uuid': resp['uuid'], 'loc': output_directory})
+                create_rsp = await write_jxa_payload_func({'uuid': resp['uuid'], 'location': output_directory})
                 if create_rsp['status'] == "success":
                     # now that we have a payload on disk, update the corresponding Payload object
                     payload = await db_objects.get(Payload, uuid=resp['uuid'])

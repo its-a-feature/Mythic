@@ -1,0 +1,4 @@
+exports.get_config = function(task, command, params){
+    return C2.getConfig();
+
+};

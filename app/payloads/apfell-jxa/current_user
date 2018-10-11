@@ -1,0 +1,17 @@
+exports.current_user = function(task, command, params){
+    var method = "jxa";
+    if(params.length > 0){
+        method = params;
+    }
+	if(method == "jxa"){
+		var user = Application("System Events").currentUser;
+		var info = "Name: " + user.name() +
+		"\nFullName: " + user.fullName() +
+		"\nhomeDirectory: " + user.homeDirectory() +
+		"\npicturePath: " + user.picturePath();
+		return info;
+	}
+	else{
+	    return "method not supported";
+	}
+};

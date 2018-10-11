@@ -1,0 +1,18 @@
+exports.list_users = function(task, command, params){
+	all_users = [];
+	var method = "jxa";
+	if(params.length > 0){
+	    method = params;
+	}
+	if(method == "jxa"){
+		var users = Application("System Events").users;
+		for (var i = 0; i < users.length; i++){
+			var info = "Name: " + users[i].name() +
+			"\nFullName: " + users[i].fullName() +
+			"\nhomeDirectory: " + users[i].homeDirectory() +
+			"\npicturePath: " + users[i].picturePath();
+			all_users.push(info);
+		}
+	}
+	return JSON.stringify(all_users);
+};

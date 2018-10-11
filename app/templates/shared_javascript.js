@@ -10,6 +10,46 @@ function httpGetAsync(theUrl, callback, method, data){
     xmlHttp.open(method, theUrl, true); // true for asynchronous
     xmlHttp.send(JSON.stringify(data));
 }
+function uploadFile(url, callback, file){
+    var xhr = new XMLHttpRequest();
+    var fd = new FormData();
+    xhr.open("POST", url, true);
+    xhr.withCredentials = true;
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            // Every thing ok, file uploaded
+            if (callback){ //post might not have a callback
+                callback(xhr.responseText);
+            }
+        }
+    };
+    fd.append("upload_file", file);
+    xhr.send(fd);
+}
+function uploadFileAndJSON(url, callback, file, data, method){
+    var xhr = new XMLHttpRequest();
+    var fd = new FormData();
+    xhr.open(method, url, true);
+    xhr.withCredentials = true;
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            // Every thing ok, file uploaded
+            if (callback){ //post might not have a callback
+                callback(xhr.responseText);
+            }
+        }
+    };
+    fd.append("upload_file", file);
+    fd.append("json", JSON.stringify(data));
+    xhr.send(fd);
+
+}
+function base64Encode(data){
+
+}
+function base64Decode(data){
+
+}
 function httpGetSync(theUrl){
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.withCredentials = true;

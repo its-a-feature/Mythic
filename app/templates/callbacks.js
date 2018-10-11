@@ -72,6 +72,7 @@ var callback_table = new Vue({
                     }
                 }
                 //should have all the data we need, submit the POST request
+                //TODO this shouldn't be hard coded to the create-jxa payload type
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create-jxa",
                 null, "POST", post_data);
             });

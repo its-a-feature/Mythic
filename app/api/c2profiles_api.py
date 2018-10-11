@@ -3,7 +3,6 @@ from sanic.response import json
 from app.database_models.model import C2Profile, Operator, PayloadTypeC2Profile, PayloadType, Operation
 from urllib.parse import unquote_plus
 import subprocess
-import sys
 import asyncio
 from sanic_jwt.decorators import protected, inject_user
 
@@ -244,13 +243,21 @@ async def start_stop_c2profile(request, info, command, user):
     elif command == 'start':
         null = open('/dev/null', 'w')
         try:
+            # TODO test this for xorrior
             p = subprocess.Popen(
-                [sys.executable, '\"./app/c2_profiles/' + name + "/" + name + "_server.py\""],
+                ["/bin/bash", '\"./app/c2_profiles/{}/{}_server\"'.format(name, name)],
                 cwd='\"./app/c2_profiles/' + name + "/\"",
                 stdout=null,
                 stderr=null
             )
+            #p = subprocess.Popen(
+            #    [sys.executable, '\"./app/c2_profiles/' + name + "/" + name + "_server.py\""],
+            #    cwd='\"./app/c2_profiles/' + name + "/\"",
+            #    stdout=null,
+            #    stderr=null
+            #)
             await asyncio.sleep(1)  # let the process start
+            # if it was already in our dictionary of information, just remove it so we can add in the new data
             for x in running_profiles:
                 if x['name'] == name:
                     running_profiles.remove(x)

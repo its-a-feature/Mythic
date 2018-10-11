@@ -1,0 +1,10 @@
+exports.js_chrome = function(task, command, params){
+    split_params = params.split(" ");
+	try{
+		Application("Chrome").windows[split_params[0]].tabs[split_params[1]].execute({javascript:split_params.slice(2, ).join(" ")});
+		return "completed";
+	}
+	catch(error){
+		return error.toString();
+	}
+};

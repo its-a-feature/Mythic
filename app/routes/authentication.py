@@ -55,6 +55,7 @@ async def retrieve_user(request, payload, *args, **kwargs):
             links['current_operation'] = user.current_operation.name
         else:
             links['current_operation'] = ""
+            user_json['current_operation'] = ""
         return {**user_json, "user_id": user.id, "operations": operations, "admin_operations": admin_ops}
     except Exception as e:
         print("failed to get user in retrieve_user")

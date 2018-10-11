@@ -1,0 +1,23 @@
+exports.clipboard = function(task, command, params){
+    var response;
+    if(params){
+        // Try setting the clipboard to whatever is in params
+        try{
+            currentApp.setTheClipboardTo(params);
+            response = 'success';
+        }
+        catch(error){
+            response = error.toString();
+        }
+        return response;
+    }
+    else{
+        //try just reading the clipboard data and returning it
+        try{
+            return currentApp.theClipboard();
+        }
+        catch(error){
+            return error.toString();
+        }
+    }
+};

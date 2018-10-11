@@ -1,0 +1,9 @@
+exports.system_info = function(method){
+    var method = "jxa";
+    if(params.length > 0){
+        method = params;
+    }
+	if(method == "jxa"){
+		return JSON.stringify(currentApp.systemInfo());
+	}
+};

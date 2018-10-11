@@ -30,10 +30,10 @@
                     <!-- These are the links across the top, above this is the main icon/name for home -->
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                            Operations <span class="caret"></span>
+                            Manage Operations <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{{ links.callbacks }}">Current Operation</a></li>
+                            <li><a href="{{ links.callbacks }}">View Current Operation</a></li>
                             <li><a href="{{ links.database_management }}">Database Management</a></li>
                             <li><a href="{{ links.payload_management }}">Payload Management</a></li>
                             <li><a href="{{ links.analytics }}">Analytics Dashboard</a></li>
@@ -43,7 +43,7 @@
                     </li>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                            Payloads <span class="caret"></span>
+                            Create Payloads <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
                             <li><a href="{{ links.payloads_jxa }}">Create JXA</a></li>
@@ -55,10 +55,13 @@
                     </li>
                      <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                            Attacks <span class="caret"></span>
+                            Services <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{{ links.attacks_host_file }}">Host File</a></li>
+                            <li><a href="{{ links.attacks_host_file }}">Host Files</a></li>
+                            <li class="disabled"><a href="#">Macro Generation</a></li>
+                            <li class="disabled"><a href="#">Bash Obfuscation</a></li>
+                            <li class="disabled"><a href="#">JavaScript Obfuscation</a></li>
                         </ul>
                     </li>
                      <li class="dropdown">
@@ -96,7 +99,9 @@
                         <li><a href="{{ links.settings }}">Settings</a></li>
                         </ul>
                     </li>
-                    <li><h4 style="color:green">Current Operation: {{links.current_operation}}</h4></li>
+                    <li>
+                        <h4 style="color:green">Current Operation: {{links.current_operation}}</h4>
+                    </li>
                     {% else %}
                     <li><a href="{{ links.login }}">Login</a></li>
                     {% endif %}

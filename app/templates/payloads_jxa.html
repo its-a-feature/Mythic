@@ -25,7 +25,7 @@
 	</tr>
         <tr>
 	    <td> {{form.obfuscation.label}} </td>
-	    <td> {{form.obfuscation(size=10)}}
+	    <td> {{form.obfuscation(size=10)}} *Coming in future release*
 		    <br>
             <span style="color: red;">{{ errors.obfuscation_errors }}</span>
 	    </td>
@@ -57,6 +57,16 @@
 		    <br>
             <span style="color: red;">{{ errors.c2_profile_errors }}</span>
 	    </td>
+	</tr>
+	<tr>
+		<td>
+			{{form.commands.label}}
+		</td>
+		<td>
+			{{form.commands(size=30)}}
+			<br>
+			<span style="color: red;">{{ errors.command_errors}}</span>
+		</td>
 	</tr>
 	<tr>
 	    <td> {{form.submit()}} </td>

