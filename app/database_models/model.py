@@ -54,6 +54,9 @@ class PayloadType(p.Model):
     ptype = p.CharField(null=False, unique=True)  # name of the payload type, default one will be apfell-jxa for now
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.now)
+    file_extension = p.CharField(null=True)
+    compile_command = p.CharField(null=True, max_length=4096)
+
 
     class Meta:
         database = apfell_db
@@ -332,6 +335,10 @@ class Callback(p.Model):
     registered_payload = p.ForeignKeyField(Payload, null=False)  # what payload is associated with this callback
     integrity_level = p.IntegerField(null=True, default=2)  # keep track of a callback's integrity level, check default integrity level numbers though and what they correspond to. Might be different for windows/mac/linuxl
     operation = p.ForeignKeyField(Operation, null=False)
+    # the following information comes from the c2 profile if it wants to provide some form of encryption
+    encryption_type = p.CharField(null=True)  # the kind of encryption on this callback (aes, xor, rc4, etc)
+    decryption_key = p.CharField(null=True, max_length=4096)  # base64 of the key to use to decrypt traffic
+    encryption_key = p.CharField(null=True, max_length=4096)  # base64 of the key to use to encrypt traffic
 
     class Meta:
         indexes = ((('host', 'pid'), True),)
@@ -350,6 +357,8 @@ class Callback(p.Model):
                     r['payload_type'] = getattr(self, k).payload_type.ptype
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'encryption_key' or k == 'decryption_key':
+                    pass  # we don't need to include these things all over the place, explicitly ask for them for more control
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -532,9 +541,9 @@ def setup():
         # Create default payload types, only one supported by default right now
         default_payload_types = ['apfell-jxa']
         for ptype in default_payload_types:
-            create_payload_type = "INSERT INTO payloadtype (ptype, operator_id, creation_time) VALUES ('" + ptype + \
+            create_payload_type = "INSERT INTO payloadtype (ptype, operator_id, creation_time, file_extension, compile_command) VALUES ('" + ptype + \
                 "', (SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + \
-                "') ON CONFLICT (ptype) DO NOTHING"
+                "', 'js', '') ON CONFLICT (ptype) DO NOTHING"
             apfell_db.execute_sql(create_payload_type)
         # Add apfell_admin to the default operation
         create_default_assignment = "INSERT INTO operatoroperation (operator_id, operation_id) VALUES (" + \

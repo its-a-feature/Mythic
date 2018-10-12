@@ -4,6 +4,7 @@ from app.database_models.model import Callback, Operator, Payload
 from sanic import response
 from datetime import datetime
 from sanic_jwt.decorators import protected, inject_user
+import base64
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['GET'])
@@ -51,6 +52,13 @@ async def create_callback(request):
         cal = await db_objects.create(Callback, user=data['user'], host=data['host'], pid=data['pid'],
                                       ip=data['ip'], description=payload.tag, operator=payload.operator,
                                       registered_payload=payload, pcallback=pcallback, operation=payload.operation)
+        if 'encryption_type' in data:
+            cal.encryption_type = data['encryption_type']
+        if 'decryption_key' in data:
+            cal.decryption_key = data['decryption_key']
+        if 'encryption_key' in data:
+            cal.encryption_key = data['encryption_key']
+        await db_objects.update(cal)
     except Exception as e:
         print(e)
         return json({'status': 'error',
@@ -67,7 +75,7 @@ async def create_callback(request):
 async def get_one_callback(request, id, user):
     try:
         cal = await db_objects.get(Callback, id=id)
-        return json(cal)
+        return json(cal.to_json())
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get callback'}, 404)
@@ -117,7 +125,7 @@ async def update_active_callbacks(request, user):
     # Add this as a 'Task' in Sanic's loop so it repeatedly get calls to update this behind the scenes
     #   It can also be done manually at any time via this GET request to update all callback statuses
     try:
-        all_callbacks = await db_objects.get(Callback, active=True)
+        all_callbacks = await db_objects.execute(Callback.select().where(Callback.active == True))
         # if a callback is more than 3x late for a checkin, it's considered inactive
         #   if/when it does finally callback, its status will be updated to active again
         #   There's no need to look at callbacks already set to 'inactive'
@@ -133,3 +141,19 @@ async def update_active_callbacks(request, user):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>/keys", methods=['GET'])
+@inject_user()
+@protected()
+async def get_callback_keys(request, user, id):
+    try:
+        callback = await db_objects.get(Callback, id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find callback'})
+    encryption_type = callback.encryption_type if callback.encryption_type else ""
+    decryption_key = callback.decryption_key if callback.decryption_key else ""
+    encryption_key = callback.encryption_key if callback.encryption_key else ""
+    return json({'status': 'success', 'encryption_type': encryption_type, 'decryption_key': decryption_key,
+                 'encryption_key': encryption_key})

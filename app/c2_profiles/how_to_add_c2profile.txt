@@ -1,14 +1,14 @@
 To add a new C2 Profile:
 Create a new directory in this folder with the name of the profile you're going to use (ex: twitter).
 Inside of that directory:
-	Your server side will be called "{profile name}_server.py"
+	Your server side will be called "{profile name}_server"
 	For each client side version you support (such as apfell-jxa, apfell-app, apfell-macho, etc):
 		create a new folder with that type. Inside of this folder, you'll have your code with the same name as your profile.
 
 Example:
 My profile name is twitter, and I created client-side versions for apfell-jxa and apfell-macho. Thus, I should have the following structure:
 Apfell/app/c2profiles/twitter
-Apfell/app/c2profiles/twitter/twitter_server.py
+Apfell/app/c2profiles/twitter/twitter_server
 Apfell/app/c2profiles/twitter/apfell-jxa
 Apfell/app/c2profiles/twitter/apfell-jxa/twitter.js
 Apfell/app/c2profiles/twitter/apfell-macho

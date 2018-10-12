@@ -156,7 +156,6 @@ async def write_jxa_payload_func(data):
         print(e)
         return {'status': 'error', 'error': 'failed to get payload'}
     try:
-        #base_jxa = open('./app/payloads/JXA.js', 'r')
         base_jxa = open('./app/payloads/apfell-jxa/apfell-jxa.js')
         if 'location' in data:
             output_path = data['location']
@@ -179,7 +178,7 @@ async def write_jxa_payload_func(data):
             # after we've written all of the C2 profile data, add instantiation
             custom_jxa.write("C2 = new customC2(" + str(payload.callback_interval) + ", \"" + http + "://" +
                              payload.callback_host + ":" + str(payload.callback_port) + "/\");\n")
-        elif 'this.uuid = "XXXX";' in line:
+        elif 'XXXX' in line:
             custom_jxa.write('this.uuid = "' + data['uuid'] + '";\n')
         elif "COMMAND DECLARATIONS AND IMPLEMENTATIONS" in line:
             # Go through all of the commands associated with this payload and stamp in their functions

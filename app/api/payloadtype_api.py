@@ -54,6 +54,6 @@ async def delete_one_payloadtype(request, user, ptype):
             return json({'status': 'success', **payloadtype_json})
         except Exception as e:
             print(e)
-            return json({'status': 'error', 'error': 'failed to delete payloadtype'})
+            return json({'status': 'error', 'error': 'failed to delete payloadtype. There are probably a lot of things dependent on this. Try clearing those out with the database management tab first.'})
     else:
         return json({'status': 'error', 'error': 'you must be admin or the creator of the payload type to delete it'})
