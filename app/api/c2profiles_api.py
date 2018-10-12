@@ -179,8 +179,9 @@ async def update_c2profile(request, info, user):
     data = request.json
     payload_types = []
     try:
-        # TODO make sure the user has appropriate access to the c2_profile by checking operations scopes
         profile = await db_objects.get(C2Profile, name=name)
+        if profile.operation.name not in user['operations']:
+            return json({'status': 'error', 'error': 'must be part of the right operation to modify the profile'})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -228,6 +229,8 @@ async def start_stop_c2profile(request, info, command, user):
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
     try:
         profile = await db_objects.get(C2Profile, name=name)
+        if profile.operation.name not in user['operations']:
+            return json({'status': 'error', 'error': 'must be part of the operation to start/stop the profile'})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -243,19 +246,13 @@ async def start_stop_c2profile(request, info, command, user):
     elif command == 'start':
         null = open('/dev/null', 'w')
         try:
-            # TODO test this for xorrior
+            # run profiles with just /bin/bash, so they should be set up appropriately
             p = subprocess.Popen(
                 ["/bin/bash", '\"./app/c2_profiles/{}/{}_server\"'.format(name, name)],
                 cwd='\"./app/c2_profiles/' + name + "/\"",
                 stdout=null,
                 stderr=null
             )
-            #p = subprocess.Popen(
-            #    [sys.executable, '\"./app/c2_profiles/' + name + "/" + name + "_server.py\""],
-            #    cwd='\"./app/c2_profiles/' + name + "/\"",
-            #    stdout=null,
-            #    stderr=null
-            #)
             await asyncio.sleep(1)  # let the process start
             # if it was already in our dictionary of information, just remove it so we can add in the new data
             for x in running_profiles:
@@ -283,6 +280,8 @@ async def delete_c2profile(request, info, user):
     try:
         info = unquote_plus(info)
         profile = await db_objects.get(C2Profile, name=info)
+        if profile.operation.name not in user['operations']:
+            return json({'status': 'error', 'error': 'must be part of the operation to delete the profile'})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 profile'})
