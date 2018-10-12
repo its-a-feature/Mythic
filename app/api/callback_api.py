@@ -95,6 +95,12 @@ async def update_callback(request, id, user):
                 cal.active = True
             elif data['active'] == 'false':
                 cal.active = False
+        if 'encryption_type' in data:
+            cal.encryption_type = data['encryption_type']
+        if 'encryption_key' in data:
+            cal.encryption_key = data['encryption_key']
+        if 'decryption_key' in data:
+            cal.decryption_key = data['decryption_key']
         await db_objects.update(cal)
         success = {'status': 'success'}
         updated_cal = cal.to_json()
