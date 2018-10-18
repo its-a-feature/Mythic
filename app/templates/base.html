@@ -20,9 +20,9 @@
 <body>
     <nav class="navbar navbar-default navbar-inverse">
         <div class="container-fluid">
-            <div class="navbar-header">
+            <div class="navbar-header" align="top">
 
-                <a class="navbar-brand" href="{{ links.index }}">Apfell<span class="glyphicon glyphicon-apple" aria-hidden="true"></span></a>
+                <a class="navbar-brand" href="{{ links.index }}"><img src="/apfell-dark.png" style="width:35px;height:40px"></a>
 
             </div>
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -46,9 +46,8 @@
                             Create Payloads <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{{ links.payloads_jxa }}">Create JXA</a></li>
-                            <li class='disabled'><a href="#">Application Bundle - Coming Soon</a></li>
-                            <li class='disabled'><a href="#">DyLib - Coming Soon</a></li>
+                            <li><a href="{{ links.payloads_creation }}">Create Base Payload</a></li>
+                            <li class='disabled'><a href="#">Create Wrapper Payload</a></li>
                             <li role="separator" class="divider"></li>
                             <li class='disabled'><a href="#">Foreign Payload - Empire OSX</a></li>
                         </ul>

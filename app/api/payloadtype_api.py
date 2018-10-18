@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Operator, PayloadType
+from app.database_models.model import Operator, PayloadType, Command
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
 import os
@@ -57,3 +57,20 @@ async def delete_one_payloadtype(request, user, ptype):
             return json({'status': 'error', 'error': 'failed to delete payloadtype. There are probably a lot of things dependent on this. Try clearing those out with the database management tab first.'})
     else:
         return json({'status': 'error', 'error': 'you must be admin or the creator of the payload type to delete it'})
+
+
+# get all the commands associated with a specitic payload_type
+@apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/commands", methods=['GET'])
+@inject_user()
+@protected()
+async def get_commands_for_paylooadtype(request, user, ptype):
+    payload_type = unquote_plus(ptype)
+    try:
+        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get payload type'})
+    commands = await db_objects.execute(Command.select().where(Command.payload_type == payloadtype))
+    status = {'status': 'success'}
+    cmd_list = [x.to_json() for x in commands]
+    return json({**status, 'commands': cmd_list})

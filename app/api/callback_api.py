@@ -4,7 +4,6 @@ from app.database_models.model import Callback, Operator, Payload
 from sanic import response
 from datetime import datetime
 from sanic_jwt.decorators import protected, inject_user
-import base64
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['GET'])

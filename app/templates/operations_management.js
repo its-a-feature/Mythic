@@ -16,9 +16,16 @@ var operations_table = new Vue({
             });
         },
         modify_button: function(o){
+            var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
+            var members = "";
+            for(var i = 0; i < potential_operators.length; i++){
+                members = members + '<option value="' + potential_operators[i]['username'] + '">' + potential_operators[i]['username'] + '</option>';
+            }
+            $( '#operationModifyAdmin' ).html(members);
+            $( '#operationModifyMembers' ).html(members);
             $( '#operationModifyName' ).val(o.name);
             $( '#operationModifyAdmin' ).val(o.admin);
-            $( '#operationModifyMembers' ).val(o.members.join(", "));
+            $( '#operationModifyMembers' ).val(o.members);
             $( '#operationModifyModal' ).modal('show');
 		    $( '#operationModifySubmit' ).unbind('click').click(function(){
 		        var data = {};
@@ -28,10 +35,7 @@ var operations_table = new Vue({
 		        if($( '#operationModifyAdmin' ).val() != o.admin){
 		            data['admin'] = $( '#operationModifyAdmin' ).val();
 		        }
-		        new_members = $( '#operationModifyMembers' ).val().split(",");
-		        for(var i = 0; i < new_members.length; i++){
-		            new_members[i] = new_members[i].trim();  // remove potential spaces
-		        }
+		        new_members = $( '#operationModifyMembers' ).val();
 		        add_users = [];
 		        remove_users = [];
 		        for( var i = 0; i < new_members.length; i++){
@@ -50,6 +54,7 @@ var operations_table = new Vue({
 		        if(remove_users.length > 0){
 		            data['remove_users'] = remove_users;
 		        }
+		        // make sure the admin didn't get added to the 'remove-users' group
 			    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/" + o.name, modify_operation, "PUT", data);
 		    });
         },
@@ -130,20 +135,19 @@ function get_operations_callback(response){
 };
 function new_operation_button(){
     $( '#operationNewName' ).val("");
-    $( '#operationNewAdmin' ).val("");
-    $( '#operationNewMembers' ).val("");
+    var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
+    var members = "";
+    for(var i = 0; i < potential_operators.length; i++){
+        members = members + '<option value="' + potential_operators[i]['username'] + '">' + potential_operators[i]['username'] + '</option>';
+    }
+    $( '#operationNewAdmin' ).html(members);
+    $( '#operationNewMembers' ).html(members);
     $( '#operationNewModal' ).modal('show');
     $( '#operationNewSubmit' ).unbind('click').click(function(){
         data = {};
         data['name'] = $( '#operationNewName' ).val();
         data['admin'] = $( '#operationNewAdmin' ).val();
-        data['members'] = [];
-        members = $( '#operationNewMembers' ).val().split(",");
-        for(var i = 0; i < members.length; i++){
-            if(members[i].trim() != ""){
-                data['members'].push(members[i].trim());
-            }
-        }
+        data['members'] = $( '#operationNewMembers' ).val();
         if( data['members'].length == 0){
             delete data['members'];
         }

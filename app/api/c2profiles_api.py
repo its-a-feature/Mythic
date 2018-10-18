@@ -1,10 +1,12 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import C2Profile, Operator, PayloadTypeC2Profile, PayloadType, Operation
+from app.database_models.model import C2Profile, Operator, PayloadTypeC2Profile, PayloadType, Operation, C2ProfileParameters, C2ProfileParametersInstance
 from urllib.parse import unquote_plus
 import subprocess
 import asyncio
 from sanic_jwt.decorators import protected, inject_user
+import shutil
+import os
 
 # this information is only valid for a single run of the server
 running_profiles = []  # will have dicts of process information
@@ -51,10 +53,11 @@ async def get_all_c2profiles_for_current_operation(request, user):
             inter = {}
             for p in all_profiles:
                 inter[p.name] = p.to_json()
-                inter[p.name]['ptype'] = []
+                inter[p.name]['ptype'] = [] # start to keep track of which payload types this profile supports
             for p in profiles:
-                inter[p.c2_profile.name]['ptype'].append(p.payload_type.ptype)
-            for k in inter.keys():
+                if p.c2_profile.operation == operation:
+                    inter[p.c2_profile.name]['ptype'].append(p.payload_type.ptype)
+            for k in inter.keys():  # make an array of dictionaries
                 results.append(inter[k])
             return json(results)
         except Exception as e:
@@ -65,7 +68,7 @@ async def get_all_c2profiles_for_current_operation(request, user):
 
 
 # Get all currently registered profiles that support a given payload type
-@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/type/<info:string>", methods=['GET'])
 @inject_user()
 @protected()
 async def get_c2profiles_by_type(request, info, user):
@@ -75,20 +78,19 @@ async def get_c2profiles_by_type(request, info, user):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get c2 profiles'})
-    return json(profiles)
+    return json({'status': 'success', 'profile': profiles})
 
 
 # Get all currently registered profiles that support a given payload type
-@apfell.route(apfell.config['API_BASE'] + "/c2profiles/current_operation/<info:string>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/current_operation/type/<info:string>", methods=['GET'])
 @inject_user()
 @protected()
-async def get_c2profiles_by_type(request, info, user):
+async def get_c2profiles_by_type_in_current_operation(request, info, user):
     ptype = unquote_plus(info)
     if user['current_operation'] != "":
         try:
             profiles = await get_c2profiles_by_type_function(ptype, user, True)
-            profiles = [p for p in profiles if p.operation == user['current_operation']]
-            return json(profiles)
+            return json({'status': 'success', 'profiles': profiles})
         except Exception as e:
             print(e)
             return json({'status': 'error', 'error': 'failed to get c2 profiles'})
@@ -108,13 +110,14 @@ async def get_c2profiles_by_type_function(ptype, user_dict, use_current):
         return [p.to_json() for p in profiles if p.c2_profile.operation.name in user_dict['operations'] or user_dict['admin']]
 
 
-# Register a new profile, each new profile gets the default c2_profile automatically
+# Register a new profile
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/", methods=['POST'])
 @inject_user()
 @protected()
 async def register_new_c2profile(request, user):
     data = request.json
     #print(data)
+    # also takes in an array of 'name', 'key' values to aid in payload creation, not a requirement though
     data['operator'] = user['username']
     if 'name' not in data or data['name'] is "":
         return json({'status': 'error', 'error': 'name is required'})
@@ -141,6 +144,10 @@ async def register_new_c2profile(request, user):
             for t in data['payload_types']:
                 payload_type = await db_objects.get(PayloadType, ptype=t.strip())
                 await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+            # now create the c2profileparameters entries so we can generate the right form to fill out
+            if 'c2profileparameters' in data:
+                for params in data['c2profileparameters']:
+                    await db_objects.create(C2ProfileParameters, c2_profile=profile, key=params['key'], name=params['name'])
             profile_json = profile.to_json()
             status = {'status': 'success'}
             return json({**status, **profile_json})
@@ -151,23 +158,33 @@ async def register_new_c2profile(request, user):
         return json({'status': 'error', 'error': 'Profile name already taken'})
 
 
+# this is called when a new operation is created so we can staff it with the default c2 profiles as needed
 async def register_default_profile_operation(user_dict, operation_name):
     try:
         operator = await db_objects.get(Operator, username=user_dict['username'])
         operation = await db_objects.get(Operation, name=operation_name)
         profile = await db_objects.create(C2Profile, name='default', description='Default RESTful HTTP(S)', operator=operator,
                                           operation=operation)
+        c2profile_parameters = [('callback_host', 'callback_host'), ('callback_port', 'callback_port'),
+                                ('callback_interval', 'callback_interval')]
+        for name,key in c2profile_parameters:
+            await db_objects.create(C2ProfileParameters, c2_profile=profile, name=name, key=key)
         #TODO make this dynamic instead of manual, but it won't change often
         payload_types = ['apfell-jxa']
         for t in payload_types:
             payload_type = await db_objects.get(PayloadType, ptype=t.strip())
             await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+        # now that we registered everything, copy the default code to the new operation directory
+        # we will recursively copy all of the default c2 profiles over in case there's more than one in the future
+        if os.path.exists("./app/c2_profiles/{}/default".format(operation_name)):
+            shutil.rmtree("./app/c2_profiles/{}/default".format(operation_name))
+        shutil.copytree("./app/c2_profiles/default/default", "./app/c2_profiles/{}/default".format(operation_name))
         profile_json = profile.to_json()
         status = {'status': 'success'}
         return{**status, **profile_json}
     except Exception as e:
         print(e)
-        return {'status': 'error', 'error': 'failed to create default profile for new operation'}
+        return {'status': 'error', 'error': str(e)}
 
 
 # Update a current profile
@@ -179,9 +196,8 @@ async def update_c2profile(request, info, user):
     data = request.json
     payload_types = []
     try:
-        profile = await db_objects.get(C2Profile, name=name)
-        if profile.operation.name not in user['operations']:
-            return json({'status': 'error', 'error': 'must be part of the right operation to modify the profile'})
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -218,58 +234,70 @@ async def update_c2profile(request, info, user):
         return json({'status': 'error', 'error': 'failed to update C2 Profile'})
 
 
-# Start/stop running a profile's server side code
-@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/<command:string>", methods=['GET'])
+# Start running a profile's server side code
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/start", methods=['GET'])
 @inject_user()
 @protected()
-async def start_stop_c2profile(request, info, command, user):
+async def start_stop_c2profile(request, info, user):
     name = unquote_plus(info)
-    command = unquote_plus(command)
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
     try:
-        profile = await db_objects.get(C2Profile, name=name)
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
         if profile.operation.name not in user['operations']:
             return json({'status': 'error', 'error': 'must be part of the operation to start/stop the profile'})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
-    if command == 'stop':
-        #  if we had running profiles and they weren't stopped before shutdown, this should still be fine
+    null = open('/dev/null', 'w')
+    try:
+        # run profiles with just /bin/bash, so they should be set up appropriately
+        p = subprocess.Popen(
+            ["/bin/bash", '\"./app/c2_profiles/{}/{}_server\"'.format(name, name)],
+            cwd='\"./app/c2_profiles/' + name + "/\"",
+            stdout=null,
+            stderr=null
+        )
+        await asyncio.sleep(1)  # let the process start
+        # if it was already in our dictionary of information, just remove it so we can add in the new data
         for x in running_profiles:
             if x['name'] == name:
-                x['process'].terminate()
-                x['status'] = 'stopped'
-        profile.running = False
+                running_profiles.remove(x)
+                break
+        running_profiles.append({'name': name,
+                                 'process': p,
+                                 'status': 'running'})
+        profile.running = True
         await db_objects.update(profile)
         return json({'status': 'success'})
-    elif command == 'start':
-        null = open('/dev/null', 'w')
-        try:
-            # run profiles with just /bin/bash, so they should be set up appropriately
-            p = subprocess.Popen(
-                ["/bin/bash", '\"./app/c2_profiles/{}/{}_server\"'.format(name, name)],
-                cwd='\"./app/c2_profiles/' + name + "/\"",
-                stdout=null,
-                stderr=null
-            )
-            await asyncio.sleep(1)  # let the process start
-            # if it was already in our dictionary of information, just remove it so we can add in the new data
-            for x in running_profiles:
-                if x['name'] == name:
-                    running_profiles.remove(x)
-                    break
-            running_profiles.append({'name': name,
-                                     'process': p,
-                                     'status': 'running'})
-            profile.running = True
-            await db_objects.update(profile)
-            return json({'status': 'success'})
-        except Exception as e:
-            print(e)
-            return json({'status': 'error', 'error': 'failed to start profile.'})
-    else:
-        return json({'status': 'error', 'error': 'command not known'})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to start profile.'})
+
+
+# Start running a profile's server side code
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/stop", methods=['GET'])
+@inject_user()
+@protected()
+async def start_stop_c2profile(request, info, user):
+    name = unquote_plus(info)
+    if name == "default":
+        return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    #  if we had running profiles and they weren't stopped before shutdown, this should still be fine
+    for x in running_profiles:
+        if x['name'] == name:
+            x['process'].terminate()
+            x['status'] = 'stopped'
+    profile.running = False
+    await db_objects.update(profile)
+    return json({'status': 'success'})
 
 
 # Delete a profile
@@ -279,9 +307,8 @@ async def start_stop_c2profile(request, info, command, user):
 async def delete_c2profile(request, info, user):
     try:
         info = unquote_plus(info)
-        profile = await db_objects.get(C2Profile, name=info)
-        if profile.operation.name not in user['operations']:
-            return json({'status': 'error', 'error': 'must be part of the operation to delete the profile'})
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=info, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 profile'})
@@ -293,3 +320,97 @@ async def delete_c2profile(request, info, user):
         return json({**success, **updated_json})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to delete c2 profile'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters/", methods=['GET'])
+@inject_user()
+@protected()
+async def get_c2profile_parameters(request, info, user):
+    name = unquote_plus(info)
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find the c2 profile'})
+    try:
+        parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
+        parameters_json = [p.to_json() for p in parameters]
+        return json({'status': 'success', 'c2profileparameters': parameters_json})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get c2 profile parameters'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters/<id:int>", methods=['PUT'])
+@inject_user()
+@protected()
+async def edit_c2profile_parameters(request, info, user, id):
+    data = request.json
+    name = unquote_plus(info)
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find the c2 profile'})
+    try:
+        c2_profile_parameter = await db_objects.get(C2ProfileParameters, id=id)
+        if 'name' in data:
+            c2_profile_parameter.name = data['name']
+        if 'key' in data:
+            c2_profile_parameter.key = data['key']
+        await db_objects.update(c2_profile_parameter)
+        return json({'status': 'success', **c2_profile_parameter.to_json()})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to update c2 profile parameters'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters", methods=['POST'])
+@inject_user()
+@protected()
+async def create_c2profile_parameters(request, info, user):
+    data = request.json
+    name = unquote_plus(info)
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find the c2 profile'})
+    try:
+        if 'name' not in data:
+            return json({'status': 'error', 'error': '"name" is a required parameter'})
+        if 'key' not in data:
+            return json({'status': 'error', 'error': '"key" is a required parameter'})
+        c2_profile_param = await db_objects.create(C2ProfileParameters, c2_profile=profile, name=data['name'], key=data['key'])
+        return json({'status': 'success', **c2_profile_param.to_json()})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters/<id:int>", methods=['DELETE'])
+@inject_user()
+@protected()
+async def delete_c2profile_parameter(request, info, id, user):
+    name = unquote_plus(info)
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get the c2 profile'})
+    try:
+        parameter = await db_objects.get(C2ProfileParameters, id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find the c2 profile parameter'})
+    try:
+        parameter_json = parameter.to_json()
+        await db_objects.delete(parameter, recursive=True)
+        return json({'status': 'success', **parameter_json})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': str(e)})

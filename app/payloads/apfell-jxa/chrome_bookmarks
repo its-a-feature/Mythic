@@ -9,9 +9,9 @@ exports.chrome_bookmarks = function(task, command, params){
 			all_data.push("Folder Name: " + folder.title());
 			for (var j = 0; j < bookmarks.length; j++){
 				var info = "Title: " + bookmarks[j].title() +
-				"\nURL: " + bookmarks[j].url() +
-				"\nindex: " + bookmarks[j].index() +
-				"\nFolder/bookmark: " + i + "/" + j;
+				"\\nURL: " + bookmarks[j].url() +
+				"\\nindex: " + bookmarks[j].index() +
+				"\\nFolder/bookmark: " + i + "/" + j;
 				all_data.push(info); //populate our array
 			}
 		}

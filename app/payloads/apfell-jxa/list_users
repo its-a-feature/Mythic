@@ -8,9 +8,9 @@ exports.list_users = function(task, command, params){
 		var users = Application("System Events").users;
 		for (var i = 0; i < users.length; i++){
 			var info = "Name: " + users[i].name() +
-			"\nFullName: " + users[i].fullName() +
-			"\nhomeDirectory: " + users[i].homeDirectory() +
-			"\npicturePath: " + users[i].picturePath();
+			"\\nFullName: " + users[i].fullName() +
+			"\\nhomeDirectory: " + users[i].homeDirectory() +
+			"\\npicturePath: " + users[i].picturePath();
 			all_users.push(info);
 		}
 	}

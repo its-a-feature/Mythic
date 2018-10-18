@@ -1,3 +1,0 @@
-exports.test_command = function(task, command, params){
-return "test";
-};

@@ -6,11 +6,11 @@ exports.security_info = function(task, command, params){
 	if(method == "jxa"){
 		var secObj = Application("System Events").securityPreferences();
 		var info = "automaticLogin: " + secObj.automaticLogin() +
-		"\nlogOutWhenInactive: " + secObj.logOutWhenInactive() +
-		"\nlogOutWhenInactiveInterval: " + secObj.logOutWhenInactiveInterval() +
-		"\nrequirePasswordToUnlock: " + secObj.requirePasswordToUnlock() +
-		"\nrequirePasswordToWake: " + secObj.requirePasswordToWake();
-		//"\nsecureVirtualMemory: " + secObj.secureVirtualMemory(); //might need to be in an elevated context
+		"\\nlogOutWhenInactive: " + secObj.logOutWhenInactive() +
+		"\\nlogOutWhenInactiveInterval: " + secObj.logOutWhenInactiveInterval() +
+		"\\nrequirePasswordToUnlock: " + secObj.requirePasswordToUnlock() +
+		"\\nrequirePasswordToWake: " + secObj.requirePasswordToWake();
+		//"\\nsecureVirtualMemory: " + secObj.secureVirtualMemory(); //might need to be in an elevated context
 		return info;
 	}
 };

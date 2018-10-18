@@ -241,6 +241,9 @@ async def failed_refresh(request, resp):
                 return newresp
 
 
+apfell.static('/apfell-dark.png', './app/static/apfell_cropped_dark.png', name='apfell-dark')
+apfell.static('/apfell-white.png', './app/static/apfell_cropped.png', name='apfell-white')
+
 # add links to the routes in this file at the bottom
 links['index'] = apfell.url_for('index')
 links['login'] = links['WEB_BASE'] + "/login"

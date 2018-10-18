@@ -12,7 +12,12 @@ from app.api.c2profiles_api import register_default_profile_operation
 async def get_all_operations(request, user):
     # we already get this information populated as part of our user authentication
     output = []
-    for op in user['operations']:
+    if user['admin']:
+        db_ops = await db_objects.execute(Operation.select())
+        operations = [o.name for o in db_ops]
+    else:
+        operations = user['operations']
+    for op in operations:
         data = {}
         # for each operation you're a member of, get all members and the admin name
         operation = await db_objects.get(Operation, name=op)
@@ -74,7 +79,7 @@ async def create_operation(request, user):
             return json({'status': 'error', 'error': 'failed to create operation, is the name unique?'})
         if 'members' not in data:
             data['members'] = [data['admin']]
-        elif data['name'] not in data['members']:
+        elif data['admin'] not in data['members']:
             data['members'].append(data['admin'])
         status = await add_user_to_operation_func(operation, data['members'])
         if status['status'] == 'success':

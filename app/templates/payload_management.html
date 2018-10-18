@@ -14,7 +14,6 @@
                 <td><b>Creator</b></td>
                 <td><b>Creation Time</b></td>
                 <td><b>Payload Type</b></td>
-                <td><b>Host:Port (Interval)</b></td>
                 <td><b>C2 Profile</b></td>
                 <td><b>Location</b></td>
             </tr>
@@ -30,7 +29,6 @@
                 <td>[[ p.operator ]]</td>
                 <td>[[ p.creation_time ]]</td>
                 <td>[[ p.payload_type ]]</td>
-                <td>[[ p.callback_host]]:[[p.callback_port]]([[ p.callback_interval ]])</td>
                 <td>[[ p.c2_profile ]]</td>
                 <td>
                     <div v-if="p.location.includes('/payloads/operations/')">

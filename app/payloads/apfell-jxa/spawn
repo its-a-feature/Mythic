@@ -10,8 +10,8 @@ exports.spawn = function(task, command, params){
                 command = command + "'" + full_url + "')),$.NSUTF8StringEncoding)));";
                 args.push(command);
                 args.push("&");
-                shell_api(path, args);
-                return "command executed";
+
+                return commands_dict["shell_api"](null, null, JSON.stringify({"path": path, "args": args}));
             }
         }
     }

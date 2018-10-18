@@ -52,7 +52,7 @@
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
                 <h3 id="modalLabel">Are you sure? This could have implications elsewhere.</h3>
-                Remove the specified operation from the database.
+                Remove the specified operation from the database. If you want to still access the data for reporting later on, you should just complete the operation instead.
             </div>
               <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
@@ -96,11 +96,11 @@
                     </tr>
                     <tr>
                         <td>Admin</td>
-                        <td> <input type="text" id="operationModifyAdmin" size="50"></td>
+                        <td> <select id="operationModifyAdmin"></select></td>
                     </tr>
                     <tr>
                         <td>Operators</td>
-                        <td><input type="text" id="operationModifyMembers" size="50"></td>
+                        <td><select multiple id="operationModifyMembers" size="10"></td>
                     </tr>
                 </table>
             </div>
@@ -129,11 +129,11 @@
                     </tr>
                     <tr>
                         <td>Admin</td>
-                        <td> <input type="text" id="operationNewAdmin" size="50"></td>
+                        <td> <select id="operationNewAdmin"></select></td>
                     </tr>
                     <tr>
                         <td>Operators</td>
-                        <td><input type="text" id="operationNewMembers" size="50"></td>
+                        <td><select multiple id="operationNewMembers" size="10"></select></td>
                     </tr>
                 </table>
             </div>

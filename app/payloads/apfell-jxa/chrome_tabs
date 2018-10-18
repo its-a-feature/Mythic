@@ -7,8 +7,8 @@ exports.chrome_tabs = function(task, command, params){
 			for (var j = 0; j < win.tabs.length; j++){
 				var tab = win.tabs[j];
 				var info = "Title: " + tab.title() +
-				"\nURL: " + tab.url() +
-				"\nWin/Tab: " + i + "/" + j;
+				"\\nURL: " + tab.url() +
+				"\\nWin/Tab: " + i + "/" + j;
 				tabs.push(info);
 			}
 		}

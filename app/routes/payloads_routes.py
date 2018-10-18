@@ -6,12 +6,12 @@ from app.api import payloads_api
 from app.database_models.model import Payload, PayloadType, Command
 import pathlib
 from app.api.c2profiles_api import get_c2profiles_by_type_function
-from app.api.payloads_api import write_jxa_payload_func
+#from app.api.payloads_api import write_jxa_payload_func
 from sanic_jwt.decorators import protected, inject_user
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
-
+"""
 @apfell.route("/payloads/jxa", methods=['GET', 'POST'])
 @inject_user()
 @protected()
@@ -81,8 +81,25 @@ async def payloads_jxa(request, user):
     errors['c2_profile_errors'] = '<br>'.join(form.c2_profile.errors)
 
     template = env.get_template('payloads_jxa.html')
-    content = template.render(name=user['username'], links=links, form=form, errors=errors, success=success)
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", form=form, errors=errors, success=success)
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", form=form, errors=errors, success=success)
     return response.html(content)
 
+"""
+@apfell.route("/payloads/", methods=['GET'])
+@inject_user()
+@protected()
+async def payloads_creation(request, user):
+    template = env.get_template('payloads_creation.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+    return response.html(content)
+
+
 # add links to the routes in this file at the bottom
-links['payloads_jxa'] = apfell.url_for('payloads_jxa')
+#links['payloads_jxa'] = apfell.url_for('payloads_jxa')
+links['payloads_creation'] = apfell.url_for('payloads_creation')

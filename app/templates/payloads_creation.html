@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div id="payloadCreation">
+        <table>
+            <tr>
+                <td><h2>C2 Profile Information</h2></td>
+                <td colspan="2"><h2>Payload Type Information</h2></td>
+            </tr>
+            <tr>
+                <td valign="top">
+                    <!-- This will house all of the C2 profile specific data -->
+                    <select id="c2_profile">
+                        <!-- This selection will dynamically update the form fields-->
+                        <!-- If this is updated to something that the payload-type doesn't have a match for, the payload-type will be cleared -->
+                        <option value="Select One">Select One...</option>
+                    </select>
+                </td>
+                <td valign="top">
+                    <select id="payload_type">
+                        <!-- This selection will dynamically update the payload form fields and commands options-->
+                        <!-- The options here will be based on the c2_profile that's selected -->
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td valign="top">
+                    <div id="c2ParameterFormFields">
+                        <table class="table table-striped table-hover table-condensed">
+                            <tr>
+                                <td><b>Parameter Name</b></td>
+                                <td><b>Parameter Value</b></td>
+                            </tr>
+                            <tr v-for="(value, index) in c2_profile_parameters" :key="index">
+                                <td>
+                                   [[value.name]]
+                                </td>
+                                <td>
+                                    <input type="text" size="50" v-bind:id="[[value.key]]">
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+
+                <td valign="top">
+                    <!-- This will hosue all of the payload specific data-->
+                    <div id="payloadParameterFormFields">
+                        <table class="table table-striped table-hover table-condensed">
+                            <tr>
+                                <td><b>Parameter Name</b></td>
+                                <td><b>Parameter Value</b></td>
+                            </tr>
+                            <tr v-for="(value, index) in payload_parameters" :key="index">
+                                <td>
+                                    [[value.name]]
+                                </td>
+                                <td>
+                                    <input type="text" size="50" name="[[value.id]]">
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <input type="text" size="50" placeholder="File Output Location on Apfell's server" id="location"><br>
+                    <input type="text" size="50" placeholder="Default Tag" id="default_tag">
+
+                </td>
+                <td valign="top">
+                    <select multiple id="payload_commands" size="30">
+
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><button id="payloadSubmit" @click="submit_payload()">Submit</button></td>
+                <td></td>
+            </tr>
+        </table>
+
+    <p id="errors" style="color:red"></p><br>
+    <p id="success"></p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "payloads_creation.js" %}
+{% endblock %}

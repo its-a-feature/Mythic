@@ -12,7 +12,7 @@ exports.shell_api = function(task, command, params){
 		task.arguments = args; //['ax']
 		task.standardOutput = pipe;  // if not specified, literally writes to file handles 1 and 2
 		task.standardError = pipe;
-		task.launch; // Run the command `ps ax`
+		task.launch; // Run the command 'ps ax'
 		if(args[args.length - 1] != "&"){
 		    //if we aren't tasking this to run in the background, then try to read the output from the program
 		    //  this will hang our main program though for now

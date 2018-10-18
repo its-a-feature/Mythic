@@ -55,8 +55,7 @@ class PayloadType(p.Model):
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.now)
     file_extension = p.CharField(null=True)
-    compile_command = p.CharField(null=True, max_length=4096)
-
+    compile_command = p.CharField(max_length=4096, default="")
 
     class Meta:
         database = apfell_db
@@ -253,11 +252,6 @@ class Payload(p.Model):
     # this will signify if a current callback made / spawned a new callback that's checking in
     #   this helps track how we're getting callbacks (which payloads/tags/parents/operators)
     pcallback = p.ForeignKeyField(p.DeferredRelation('Callback'), null=True)
-    callback_host = p.CharField(null=False)
-    callback_port = p.IntegerField(null=False)
-    obfuscation = p.BooleanField(null=False)
-    callback_interval = p.IntegerField(null=False)
-    use_ssl = p.BooleanField(null=False)
     location = p.CharField(null=True)  # location on disk of the payload
     c2_profile = p.ForeignKeyField(C2Profile, null=False)  # identify which C2 profile is being used
     operation = p.ForeignKeyField(Operation, null=False)
@@ -314,6 +308,66 @@ class PayloadCommand(p.Model):
             except:
                 r[k] = json.dumps(getattr(self, k))
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+#  C2 profiles will have various parameters that need to be stamped in at payload creation time
+#    this will specify the name and value to look for
+class C2ProfileParameters(p.Model):
+    c2_profile = p.ForeignKeyField(C2Profile)
+    name = p.CharField(null=False)  # what the parameter is called. ex: Callback address
+    key = p.CharField(null=False)  # what the stamping should look for. ex: XXXXX
+
+    class Meta:
+        indexes = ((('c2_profile', 'name'), True),)
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'c2_profile':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+# c2 profiles will have various parameters that need to be stamped in when the payload is created
+#   This is an opportunity to specify key-value pairs for specific C2 profiles
+#   There can be many of these per c2 profile or none
+#   This holds the specific values used in the C2ProfileParameters and which payload they're associated with
+class C2ProfileParametersInstance(p.Model):
+    c2_profile_parameters = p.ForeignKeyField(C2ProfileParameters)
+    value = p.CharField(null=False, max_length=4096)  # this is what we will stamp in instead
+    payload = p.ForeignKeyField(Payload)  # the specific payload instance these values apply to
+
+    class Meta:
+        indexes = ((('c2_profile_parameters', 'value', 'payload'), True), )
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'c2_profile_parameters':
+                    r['c2_profile'] = getattr(self, k).c2_profile.name
+                    r['c2_profile_name'] = getattr(self, k).name
+                    r['c2_profile_key'] = getattr(self, k).key
+                elif k == 'payload':
+                    r[k] = getattr(self, k).uuid
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
         return r
 
     def __str__(self):
@@ -527,10 +581,12 @@ def setup():
                               "'E3D5B5899BA81F553666C851A66BEF6F88FC9713F82939A52BC8D0C095EBA68E604B788347D489CC93A61599C6A37D0BE51EE706F405AF5D862947EF8C36A201', " + \
                               "True, DEFAULT, '" + current_time + "',True) ON CONFLICT (username) DO NOTHING;"
         apfell_db.execute_sql(create_apfell_admin)
+        print("created default admin")
         # Create 'default' operation
         create_default_operation = "INSERT INTO operation (name, admin_id, complete) VALUES ('default', " + \
-                                   "(SELECT id FROM operator WHERE username='apfell_admin'), false) ON CONFLICT (name) DO NOTHING"
+                                   "(SELECT id FROM operator WHERE username='apfell_admin'), false) ON CONFLICT (name) DO NOTHING;"
         apfell_db.execute_sql(create_default_operation)
+        print("created default operation")
         # Create default C2 profile
         create_default_c2profile = "INSERT INTO c2profile (name, description, operator_id, " + \
                                    "creation_time, running, operation_id) VALUES ('default', 'default RESTful C2 channel', " + \
@@ -538,26 +594,37 @@ def setup():
                                    "'" + current_time + "',True," + \
                                    "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (name, operation_id) DO NOTHING;"
         apfell_db.execute_sql(create_default_c2profile)
+        print("created default c2_profile")
+        c2profile_parameters = [('callback_host', 'callback_host'), ('callback_port', 'callback_port'), ('callback_interval', 'callback_interval')]
+        for name,key in c2profile_parameters:
+            create_default_c2profile_params = "INSERT INTO c2profileparameters (c2_profile_id, name, key) VALUES (" + \
+                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id FROM operation WHERE name='default')), '" + name + "', '" + key + "') on CONFLICT (c2_profile_id, name) DO NOTHING;"
+            apfell_db.execute_sql(create_default_c2profile_params)
+            print("created default c2_profile parameter: " + str(name))
+
         # Create default payload types, only one supported by default right now
         default_payload_types = ['apfell-jxa']
         for ptype in default_payload_types:
             create_payload_type = "INSERT INTO payloadtype (ptype, operator_id, creation_time, file_extension, compile_command) VALUES ('" + ptype + \
                 "', (SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + \
-                "', 'js', '') ON CONFLICT (ptype) DO NOTHING"
+                "', 'js', '') ON CONFLICT (ptype) DO NOTHING;"
             apfell_db.execute_sql(create_payload_type)
+            print("created default payload type: " + str(ptype))
         # Add apfell_admin to the default operation
         create_default_assignment = "INSERT INTO operatoroperation (operator_id, operation_id) VALUES (" + \
             "(SELECT id FROM operator WHERE username='apfell_admin')," + \
-            "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (operator_id, operation_id) DO NOTHING"
+            "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (operator_id, operation_id) DO NOTHING;"
         apfell_db.execute_sql(create_default_assignment)
+        print("created default operator-operation assignment")
         # Add default commands to default profiles
         # one manual example for now, but need an easier way to automate this
         # Add default payload_type and c2_profile mapping
         for ptype in default_payload_types:
             create_ptype_c2_mappings = "INSERT INTO payloadtypec2profile (payload_type_id, c2_profile_id) VALUES (" + \
                 "(SELECT id FROM payloadtype WHERE ptype='" + ptype + "')," + \
-                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id from operation where name='default'))) ON CONFLICT (payload_type_id, c2_profile_id) DO NOTHING"
+                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id from operation where name='default'))) ON CONFLICT (payload_type_id, c2_profile_id) DO NOTHING;"
             apfell_db.execute_sql(create_ptype_c2_mappings)
+            print("created default c2 to payload type mapping for: " + ptype)
         # Create default commands that are associated with payloadtypes
         file = open('./app/templates/default_commands.json', 'r')
         command_file = json.load(file)
@@ -567,8 +634,9 @@ def setup():
                     "VALUES ('" + cmd['cmd'] + "', " + cmd['needs_admin'] + ", '" + cmd['description'].replace("'", "''") + "', '" + \
                     cmd['help_cmd'] + "', (SELECT id FROM payloadtype WHERE ptype='" + cmd_group['name'] + "')," + \
                     "(SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + "') ON CONFLICT " + \
-                    "(cmd, payload_type_id) DO NOTHING"
+                    "(cmd, payload_type_id) DO NOTHING;"
                 apfell_db.execute_sql(create_cmd)
+
         file.close()
     except Exception as e:
         print(e)
@@ -588,6 +656,8 @@ Task.create_table(True)
 Response.create_table(True)
 FileMeta.create_table(True)
 PayloadCommand.create_table(True)
+C2ProfileParameters.create_table(True)
+C2ProfileParametersInstance.create_table(True)
 # setup default admin user and c2 profile
 setup()
 # Create the ability to do LISTEN / NOTIFY on these tables

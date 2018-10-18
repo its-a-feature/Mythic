@@ -10,7 +10,7 @@ from sanic_jwt import protected, scoped
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['GET'])
 @inject_user()
-@scoped('admin')
+@protected()
 async def get_all_operators(request, user):
     ops = await db_objects.execute(Operator.select())
     return json([p.to_json() for p in ops])

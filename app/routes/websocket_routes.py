@@ -24,6 +24,7 @@ async def ws_tasks(request, ws):
                     # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                     for task in tasks_with_all_info:
                         await ws.send(js.dumps(task.to_json()))
+                    await ws.send("")
                     # now pull off any new tasks we got queued up while processing the old data
                     while True:
                         try:
@@ -62,6 +63,7 @@ async def ws_tasks(request, ws, user):
                         # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                         for task in tasks_with_all_info:
                             await ws.send(js.dumps(task.to_json()))
+                        await ws.send("")
                         # now pull off any new tasks we got queued up while processing the old data
                         while True:
                             try:
@@ -97,6 +99,7 @@ async def ws_task_updates(request, ws):
                     responses_with_tasks = await db_objects.prefetch(responses, tasks)
                     for resp in responses_with_tasks:
                         await ws.send(js.dumps(resp.to_json()))
+                    await ws.send("")
                     # now pull off any new responses we got queued up while processing old responses
                     while True:
                         try:
@@ -135,6 +138,7 @@ async def ws_task_updates(request, ws, user):
                         responses_with_tasks = await db_objects.prefetch(responses, tasks, callbacks)
                         for resp in responses_with_tasks:
                             await ws.send(js.dumps(resp.to_json()))
+                        await ws.send("")
                         # now pull off any new responses we got queued up while processing old responses
                         while True:
                             try:
@@ -171,6 +175,7 @@ async def ws_callbacks(request, ws):
                     callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                     for cb in callbacks_with_operators:
                         await ws.send(js.dumps(cb.to_json()))
+                    await ws.send("")
                     # now pull off any new callbacks we got queued up while processing the old data
                     while True:
                         # msg = await conn.notifies.get()
@@ -207,6 +212,7 @@ async def ws_callbacks(request, ws, user):
                         callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                         for cb in callbacks_with_operators:
                             await ws.send(js.dumps(cb.to_json()))
+                        await ws.send("")
                         # now pull off any new callbacks we got queued up while processing the old data
                         while True:
                             # msg = await conn.notifies.get()
@@ -302,6 +308,7 @@ async def ws_payloads(request, ws):
                     payloads = await db_objects.execute(Payload.select())
                     for p in payloads:
                         await ws.send(js.dumps(p.to_json()))
+                    await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:
@@ -336,6 +343,7 @@ async def ws_payloads(request, ws, user):
                         payloads = await db_objects.execute(Payload.select().where(Payload.operation == operation))
                         for p in payloads:
                             await ws.send(js.dumps(p.to_json()))
+                        await ws.send("")
                         # now pull off any new payloads we got queued up while processing old data
                         while True:
                             try:
@@ -370,6 +378,7 @@ async def ws_payloads(request, ws, user):
                     profiles = await db_objects.execute(C2Profile.select())
                     for p in profiles:
                         await ws.send(js.dumps(p.to_json()))
+                    await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:
@@ -404,6 +413,7 @@ async def ws_payloads(request, ws, user):
                         profiles = await db_objects.execute(C2Profile.select().where(C2Profile.operation == operation))
                         for p in profiles:
                             await ws.send(js.dumps(p.to_json()))
+                        await ws.send("")
                         # now pull off any new payloads we got queued up while processing old data
                         while True:
                             try:
@@ -435,6 +445,7 @@ async def ws_payloadtypec2profile(request, ws):
                     profiles = await db_objects.execute(PayloadTypeC2Profile.select())
                     for p in profiles:
                         await ws.send(js.dumps(p.to_json()))
+                    await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:
@@ -467,6 +478,7 @@ async def ws_payloads(request, ws):
                     operators = await db_objects.execute(Operator.select())
                     for o in operators:
                         await ws.send(js.dumps(o.to_json()))
+                    await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:
@@ -528,6 +540,7 @@ async def ws_payloadtypes(request, ws):
                     payloadtypes = await db_objects.execute(PayloadType.select())
                     for p in payloadtypes:
                         await ws.send(js.dumps(p.to_json()))
+                    await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:
@@ -560,6 +573,7 @@ async def ws_payloads(request, ws):
                     commands = await db_objects.execute(Command.select())
                     for c in commands:
                         await ws.send(js.dumps(c.to_json()))
+                    await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:

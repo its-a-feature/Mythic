@@ -20,6 +20,7 @@
                 <td><b>Creator</b></td>
                 <td><b>Name</b></td>
                 <td><b>Description</b></td>
+                <td><b>Parameters</b></td>
                 <td><b>Payload Types</b></td>
             </tr>
         <!-- Repeat this for each web service -->
@@ -46,6 +47,9 @@
                 <td>[[ p.operator ]]</td>
                 <td>[[ p.name ]]</td>
                 <td>[[ p.description ]]</td>
+                <td>
+                     <button type="button" class="btn btn-info btn-sm" @click="parameters_button(p)">Edit</button>
+                </td>
 		        <td>[[ p.payload_types.join(", ") ]]</td>
             </tr>
         <!-- End of the repeating -->
@@ -141,6 +145,47 @@
     </div>
 </div>
 <!-- END MODAL FOR CREATING A PROFILE -->
+<!-- THIS IS OUR MODAL FOR EDITING A PROFILE'S PARAMETERS -->
+<div class="modal fade bs-example-modal-lg" id="profileEditParametersModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+	<div class="modal-content">
+	    <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">x</button>
+		<h3>Add / Edit / Remove Profile Parameters</h3>
+		C2 profiles can have parameters that will get stamped in at payload creation time. Here, you will specify the "name" that will be presented to the user for the parameter and the "key" that will be stamped out when the profile is created.
+            When creating a payload, user's will specify the actual value that will stamp out this "key".
+	    </div>
+	    <div class="modal-body" id="profileEditParametersBody">
+            <div id="profileEditParametersTable">
+                <table cellpadding="10" style="width:100%">
+                    <tr>
+                        <td></td>
+                        <td><b>Name</b></td>
+                        <td><b>Key</b></td>
+                    </tr>
+                    <tr v-for="(i,p) in parameters" :key="p">
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" @click="remove_parameter_button(p)">X</button>
+                        </td>
+                        <td>
+                            <input type="text" size="50" :value="i.name" v-model="i.name">
+                        </td>
+                        <td>
+                            <input type="text" size="50" :value="i.key" v-model="i.key">
+                        </td>
+                    </tr>
+                </table>
+                <button type="button" class="btn btn-success btn-sm" @click="add_parameter_button()">Add</button>
+            </div>
+        </div>
+	    <div class="modal-footer">
+		<button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+		<button class="btn btn-primary" data-dismiss="modal" id="profileEditParametersSubmit">Submit</button>
+	    </div>
+	</div>
+    </div>
+</div>
+<!-- END MODAL FOR EDITING A PROFILE'S PARAMETERS -->
 <button type="button" class="btn btn-success btn-md" onclick="register_button()">Register C2 Profile</button>
 {% endblock %}
 
