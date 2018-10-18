@@ -115,6 +115,6 @@ function submit_payload_callback(response){
         }
     }
     else{
-        $('#errors').val((data['error']));
+        $('#errors').html((data['error']));
     }
 }
