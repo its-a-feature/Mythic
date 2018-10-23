@@ -10,3 +10,4 @@ wtforms
 anytree
 websockets==5.0.1
 sanic-jwt
+fpdf

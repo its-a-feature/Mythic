@@ -73,22 +73,23 @@
     <div class="panel-heading">Global PayloadType and Command Information</div>
         <table class="table table-striped table-hover table-condensed well-sm" >
             <tr>
-                <td><b>Delete</b></td>
+                <td><b>Action</b></td>
                 <td><b>Name</b></td>
                 <td><b>Creator</b></td>
-                <td><b>Registered Commands</b></td> <!-- Take you to an auto-generated page similar to apiui_apfell-jxa based on payloadtype and command information in the database?-->
+                <td><b>Registered Commands</b></td>
                 <td><b>Edit Commands</b></td>
-                <td><b>Export Commands</b></td>
-                <td><b>Import Commands</b></td>
+                <td><b>Compile Command</b></td>
+                <td><b>Wrapper Info</b></td>
             </tr>
         <!-- Repeat this for each web service -->
             <tr v-for="p in payloadtypes" :key="p.creation_time">
                 <td>
-                    <button type="button" class="btn btn-danger btn-sm" @click="delete_payloadtype_button(p)" >Delete</button>
+                    <button type="button" class="btn btn-danger btn-sm" @click="delete_payloadtype_button(p)" >Delete</button><br>
+                    <button type="button" class="btn btn-info btn-sm" @click="edit_payloadtype_button(p)">Edit</button>
                 </td>
                 <td> [[ p.ptype ]] </td>
                 <td> [[ p.operator ]] </td>
-                <td width="800">
+                <td width="750">
                     <span v-for="c in p.commands">
                         [[c.cmd]]
                     </span>
@@ -96,13 +97,22 @@
                 <td>
                     <button type="button" class="btn btn-success btn-sm" @click="add_commands_button(p)" >Add</button>
                     <button type="button" class="btn btn-info btn-sm" @click="edit_commands_button(p)" >Edit</button><br>
-                    <button type="button" class="btn btn-danger btn-sm" @click="remove_commands_button(p)" >Remove</button>
-                </td>
-                <td>
+                    <button type="button" class="btn btn-danger btn-sm" @click="remove_commands_button(p)" >Remove</button><br>
                     <button type="button" class="btn btn-dark btn-sm" @click="export_commands_button(p)" >Export</button>
+                    <button type="button" class="btn btn-success btn-sm" @click="import_commands_button(p)" >Import</button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-success btn-sm" @click="import_commands_button(p)" >Import</button>
+                    [[ p.compile_command ]]
+                </td>
+                <td>
+                    <div v-if="p.wrapper">
+                        <!-- Provide wrapper payload type specific things here -->
+                        [[p.wrapped_encoding_type]]&nbsp;encoded&nbsp;[[p.wrapped_payload_type]]
+                    </div>
+                    <div v-else>
+                        <!-- Not a wrapper, so just display something generic -->
+                        False
+                    </div>
                 </td>
             </tr>
         <!-- End of the repeating -->
@@ -119,10 +129,42 @@
             </div>
               <div class="modal-body" id="payloadtypeCreateBody">
                   <table cellpadding="10" style="width:100%">
-                <tr>
-                    <td style="width:150px">Name</td>
-                    <td><input type="text" id="payloadtypeCreatePtype" size="50"></td>
-                </tr>
+                    <tr>
+                        <td style="width:150px">Name</td>
+                        <td><input type="text" id="payloadtypeCreatePtype" size="50"></td>
+                    </tr>
+                      <tr>
+                          <td style="width:150px">Payload file extension</td>
+                          <td><input type="text" id="payloadtypeCreateFileExtension" size="50"></td>
+                      </tr>
+                      <tr>
+                          <td style="width:150px">Compile command</td>
+                          <td><input type="text" id="payloadtypeCreateCompileCommand" size="50"></td>
+                      </tr>
+                      <tr>
+                          <td style="width:150px">Is this payload a wrapper for another payload?</td>
+                          <td><input type="checkbox" id="payloadtypeCreateWrapper"></td>
+                      </tr>
+                      <tr hidden id="payloadtypeCreateWrappedEncodingTypeRow">
+                          <td style="width:150px">Wrapped Payload Encoding Type</td>
+                          <td>
+                              <select id="payloadtypeCreateWrappedEncodingType">
+                                <option name="base64">base64</option>
+                              </select>
+                          </td>
+                      </tr>
+                      <tr hidden id="payloadtypeCreateWrappedPayloadTypeRow">
+                          <td style="width:150px">What kind of payload does this wrap?</td>
+                          <td>
+                              <select id="payloadtypeCreateWrappedPayloadType">
+
+                              </select>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td>Select code files to upload:</td>
+                          <td><input multiple type="file" id="payloadtypeCreateUploadFiles"></td>
+                      </tr>
             </table>
               </div>
               <div class="modal-footer">
@@ -133,6 +175,62 @@
     </div>
 </div>
 <!-- END MODAL FOR CREATING PAYLOADTYPE -->
+<!-- THIS IS OUR MODAL FOR EDITING PAYLOADTYPE -->
+<div class="modal fade bs-example-modal-md" id="payloadtypeEditModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Register a new PayloadType</h3>
+            </div>
+              <div class="modal-body">
+                  <table cellpadding="10" style="width:100%">
+                    <tr>
+                        <td style="width:150px">Name</td>
+                        <td><input type="text" id="payloadtypeEditPtype" size="50"></td>
+                    </tr>
+                      <tr>
+                          <td style="width:150px">Payload file extension</td>
+                          <td><input type="text" id="payloadtypeEditFileExtension" size="50"></td>
+                      </tr>
+                      <tr>
+                          <td style="width:150px">Compile command</td>
+                          <td><input type="text" id="payloadtypeEditCompileCommand" size="50"></td>
+                      </tr>
+                      <tr>
+                          <td style="width:150px">Is this payload a wrapper for another payload?</td>
+                          <td><input type="checkbox" id="payloadtypeEditWrapper"></td>
+                      </tr>
+                      <tr hidden id="payloadtypeEditWrappedEncodingTypeRow">
+                          <td style="width:150px">Wrapped Payload Encoding Type</td>
+                          <td>
+                              <select id="payloadtypeEditWrappedEncodingType">
+                                <option name="base64">base64</option>
+                              </select>
+                          </td>
+                      </tr>
+                      <tr hidden id="payloadtypeEditWrappedPayloadTypeRow">
+                          <td style="width:150px">What kind of payload does this wrap?</td>
+                          <td>
+                              <select id="payloadtypeEditWrappedPayloadType">
+
+                              </select>
+                          </td>
+                      </tr>
+                      <tr>
+                          <td>Select code files to upload:</td>
+                          <td><input multiple type="file" id="payloadtypeEditUploadFiles"></td>
+                      </tr>
+            </table>
+              </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="payloadtypeEditSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR EDITING PAYLOADTYPE -->
 <!-- THIS IS OUR MODAL FOR DELETING PAYLOADTYPE -->
 <div class="modal fade bs-example-modal-md" id="payloadtypeDeleteModal" role="dialog">
     <div class="modal-dialog modal-md" role="document">
@@ -143,7 +241,7 @@
                 Are you sure? This could have a lot of consequences for payload creation based on this and for tracking current/old callbacks based on this payloadtype.
             </div>
               <div class="modal-body" id="payloadtypeDeleteBody">
-
+                Delete from disk? &nbsp;<input type="checkbox" id="payloadtypeDeleteFromDisk">
               </div>
               <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>

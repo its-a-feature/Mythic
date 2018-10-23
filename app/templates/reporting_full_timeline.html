@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block body %}
+
+<h2>Reporting a Full Timeline of on-host activity</h2>
+
+<p>This page will generate a PDF for you to download based on your configuration preferences.</p><br>
+
+<div id="full_reporting">
+    <table>
+        <tr>
+            <td><b>Command Output</b></td>
+            <td><input type="checkbox" id="cmd_output"></td>
+            <td>Sample Img here</td>
+        </tr>
+        <tr>
+            <td><b>Strict ordering by time</b></td>
+            <td><input type="checkbox" id="strict_time"></td>
+            <td>Sample Img here</td>
+        </tr>
+        <tr>
+            <td><b>Group output</b></td>
+            <td><input type="checkbox" id="strict_task"></td>
+            <td>Sample Img here</td>
+        </tr>
+    </table>
+    <button class="btn btn-success" onclick="generate_report()">Generate</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "reporting_full_timeline.js" %}
+{% endblock %}

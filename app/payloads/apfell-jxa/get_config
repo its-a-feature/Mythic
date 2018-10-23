@@ -1,4 +1,12 @@
 exports.get_config = function(task, command, params){
-    return C2.getConfig();
-
+    var output = "C2 Config: " + C2.getConfig();
+    output = output +
+    "\\nApfell Config: " +
+    "\\n\\tUser: " + apfell.user +
+    "\\n\\tFull Name: " + apfell.fullName +
+    "\\n\\tEnvironment: " + JSON.stringify(apfell.environment) +
+    "\\n\\tUpTime: " + apfell.uptime +
+    "\\n\\tArgs: " + apfell.args +
+    "\\n\\tOS Version: " + apfell.osVersion;
+    return output;
 };

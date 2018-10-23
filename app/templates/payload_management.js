@@ -67,16 +67,68 @@ function toggle_all_button(){
 
 // #################### PAYLOADTYPE AND COMMAND SECTION ###############################
 var payloadtypes = [];
+var payloadtypeCreateWrapperSelected = false;
 var payloadtypes_table = new Vue({
     el: '#payloadtypes_table',
     data:{
-        payloadtypes
+        payloadtypes,
     },
     methods: {
         delete_payloadtype_button: function(p){
             $( '#payloadtypeDeleteModal' ).modal('show');
             $( '#payloadtypeDeleteSubmit' ).unbind('click').click(function(){
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype, delete_payloadtype_callback, "DELETE", null);
+            var fromDisk = 0;
+                if( $('#payloadtypeDeleteFromDisk').is(":checked")){
+                    fromDisk = 1;
+                }
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype + "/" + fromDisk, delete_payloadtype_callback, "DELETE", null);
+            });
+        },
+        edit_payloadtype_button: function(p){
+            $('#payloadtypeEditPtype').val(p['ptype']);
+            $('#payloadtypeEditPtype').prop("disabled", true); //don't want this to be edited
+            $('#payloadtypeEditFileExtension').val(p['file_extension']);
+            $('#payloadtypeEditCompileCommand').val(p['compile_command']);
+            if(p['wrapper']){
+                $('#payloadtypeEditWrapper').prop('checked', true);
+                $('#payloadtypeEditWrappedEncodingType').val(p['wrapped_encoding_type']);
+                $('#payloadtypeEditWrappedPayloadType').val(p['wrapped_payload_type']);
+                $('#payloadtypeEditWrappedEncodingTypeRow').attr("hidden", false);
+                $('#payloadtypeEditWrappedPayloadTypeRow').attr("hidden", false);
+            }
+            else{
+                $('#payloadtypeEditWrapper').prop('checked', false);
+                $('#payloadtypeEditWrappedEncodingTypeRow').attr("hidden", true);
+                $('#payloadtypeEditWrappedPayloadTypeRow').attr("hidden", true);
+            }
+            $( '#payloadtypeEditWrapper').unbind('click').click(function(){
+                if( $('#payloadtypeEditWrapper').is(":checked")){
+                    $('#payloadtypeEditWrappedEncodingTypeRow').attr("hidden", false);
+                    $('#payloadtypeEditWrappedPayloadTypeRow').attr("hidden", false);
+                }
+                else{
+                    $('#payloadtypeEditWrappedEncodingTypeRow').attr("hidden", true);
+                    $('#payloadtypeEditWrappedPayloadTypeRow').attr("hidden", true);
+                }
+            });
+            $('#payloadtypeEditModal').modal('show');
+            $( '#payloadtypeEditSubmit' ).unbind('click').click(function(){
+                var data = {"file_extension": $( '#payloadtypeEditFileExtension').val(),
+                "compile_command": $( '#payloadtypeEditCompileCommand').val()};
+                data["wrapper"]= $('#payloadtypeEditWrapper').is(":checked");
+                if($('#payloadtypeEditWrapper').is(":checked")){
+                    data["wrapped_encoding_type"]= $('#payloadtypeEditWrappedEncodingType').val();
+                    data["wrapped_payload_type"]= $('#payloadtypeEditWrappedPayloadType').val();
+                }
+                var file = document.getElementById('payloadtypeEditUploadFiles');
+                if(file.files.length > 0){
+                    var filedata = file.files;
+                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p['ptype'], edit_payloadtype_callback, filedata, data, "PUT");
+                    file.value = file.defaultValue;
+                }
+                else{
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p['ptype'], edit_payloadtype_callback, "PUT", data);
+                }
             });
         },
         add_commands_button: function(p){
@@ -284,6 +336,21 @@ function delete_payloadtype_callback(response){
         alert("Error: " + data['error']);
     }
 }
+function edit_payloadtype_callback(response){
+    data = JSON.parse(response);
+    if(data['status'] == "success"){
+        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['ptype']){
+                Vue.set(payloadtypes_table.payloadtypes, i, data);
+                //payloadtypes_table.payloadtypes[i] = data;
+                return;
+            }
+        }
+    }
+    else{
+        alert("Error: " + data['error']);
+    }
+};
 var gotCommandData = false;
 function startwebsocket_payloadtypes(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloadtypes');
@@ -347,12 +414,52 @@ function create_payloadtype_callback(response){
         alert(data['error']);
     }
 }
+
 function create_payloadtype_button(){
     $( '#payloadtypeCreatePtype' ).val('');
+    $( '#payloadtypeCreateFileExtension' ).val('');
+    $( '#payloadtypeCreateCompileCommand' ).val('');
+    if( $('#payloadtypeCreateWrapper').is(":checked")){
+        $( '#payloadtypeCreateWrapper' ).click();
+    }
     $( '#payloadtypeCreateModal' ).modal('show');
+    $( '#payloadtypeCreateWrapper').unbind('click').click(function(){
+        if( $('#payloadtypeCreateWrapper').is(":checked")){
+            $('#payloadtypeCreateWrappedEncodingTypeRow').prop("hidden", false);
+            $('#payloadtypeCreateWrappedPayloadTypeRow').prop("hidden", false);
+        }
+        else{
+            $('#payloadtypeCreateWrappedEncodingTypeRow').prop("hidden", true);
+            $('#payloadtypeCreateWrappedPayloadTypeRow').prop("hidden", true);
+        }
+    });
     $( '#payloadtypeCreateSubmit' ).unbind('click').click(function(){
-        var data = {"ptype": $( '#payloadtypeCreatePtype' ).val()};
-         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/", create_payloadtype_callback, "POST", data);
-
+        var data = {"ptype": $( '#payloadtypeCreatePtype' ).val(),
+        "file_extension": $( '#payloadtypeCreateFileExtension').val(),
+        "compile_command": $( '#payloadtypeCreateCompileCommand').val()};
+        data["wrapper"]= $('#payloadtypeCreateWrapper').is(":checked");
+        if($('#payloadtypeCreateWrapper').is(":checked")){
+            data["wrapped_encoding_type"]= $('#payloadtypeCreateWrappedEncodingType').val();
+            data["wrapped_payload_type"]= $('#payloadtypeCreateWrappedPayloadType').val();
+        }
+        var file = document.getElementById('payloadtypeCreateUploadFiles');
+        if(file.files.length > 0){
+            var filedata = file.files;
+            uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/", null, filedata, data, "POST");
+            file.value = file.defaultValue;
+        }
+        else{
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/", create_payloadtype_callback, "POST", data);
+        }
     });
 };
+function set_wrapped_payload_type_options(response){
+    var types = JSON.parse(response);
+    var option_string = "";
+    for(var i = 0; i < types.length; i++){
+        option_string = option_string + "<option name='" + types[i]['ptype'] + "'>" + types[i]['ptype'] + "</option>";
+    }
+    $('#payloadtypeCreateWrappedPayloadType').html(option_string);
+    $('#payloadtypeEditWrappedPayloadType').html(option_string);
+};
+httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/", set_wrapped_payload_type_options, "GET", null);

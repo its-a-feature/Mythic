@@ -51,11 +51,17 @@ class Operator(p.Model):
 #   This will have multiple Command class objects associated with it
 #   Users can create their own commands and payload types as well
 class PayloadType(p.Model):
-    ptype = p.CharField(null=False, unique=True)  # name of the payload type, default one will be apfell-jxa for now
+    ptype = p.CharField(null=False, unique=True)  # name of the payload type
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.now)
     file_extension = p.CharField(null=True)
     compile_command = p.CharField(max_length=4096, default="")
+    # if this type requires another payload to be already created
+    wrapper = p.BooleanField(default=False, null=False)
+    # how to encode the internal payload if needed
+    wrapped_encoding_type = p.CharField(default="", null=False)
+    # which payload is this one wrapping
+    wrapped_payload_type = p.ForeignKeyField(p.DeferredRelation('PayloadType'), null=True)
 
     class Meta:
         database = apfell_db
@@ -66,6 +72,8 @@ class PayloadType(p.Model):
             try:
                 if k == 'operator':
                     r[k] = getattr(self, k).username
+                elif k == 'wrapped_payload_type':
+                    r[k] = getattr(self, k).ptype
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -581,12 +589,10 @@ def setup():
                               "'E3D5B5899BA81F553666C851A66BEF6F88FC9713F82939A52BC8D0C095EBA68E604B788347D489CC93A61599C6A37D0BE51EE706F405AF5D862947EF8C36A201', " + \
                               "True, DEFAULT, '" + current_time + "',True) ON CONFLICT (username) DO NOTHING;"
         apfell_db.execute_sql(create_apfell_admin)
-        print("created default admin")
         # Create 'default' operation
         create_default_operation = "INSERT INTO operation (name, admin_id, complete) VALUES ('default', " + \
                                    "(SELECT id FROM operator WHERE username='apfell_admin'), false) ON CONFLICT (name) DO NOTHING;"
         apfell_db.execute_sql(create_default_operation)
-        print("created default operation")
         # Create default C2 profile
         create_default_c2profile = "INSERT INTO c2profile (name, description, operator_id, " + \
                                    "creation_time, running, operation_id) VALUES ('default', 'default RESTful C2 channel', " + \
@@ -594,7 +600,6 @@ def setup():
                                    "'" + current_time + "',True," + \
                                    "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (name, operation_id) DO NOTHING;"
         apfell_db.execute_sql(create_default_c2profile)
-        print("created default c2_profile")
         c2profile_parameters = [('callback_host', 'callback_host'), ('callback_port', 'callback_port'), ('callback_interval', 'callback_interval')]
         for name,key in c2profile_parameters:
             create_default_c2profile_params = "INSERT INTO c2profileparameters (c2_profile_id, name, key) VALUES (" + \
@@ -605,9 +610,9 @@ def setup():
         # Create default payload types, only one supported by default right now
         default_payload_types = ['apfell-jxa']
         for ptype in default_payload_types:
-            create_payload_type = "INSERT INTO payloadtype (ptype, operator_id, creation_time, file_extension, compile_command) VALUES ('" + ptype + \
+            create_payload_type = "INSERT INTO payloadtype (ptype, operator_id, creation_time, file_extension, compile_command, wrapper, wrapped_encoding_type, wrapped_payload_type_id) VALUES ('" + ptype + \
                 "', (SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + \
-                "', 'js', '') ON CONFLICT (ptype) DO NOTHING;"
+                "', 'js', '', False, '', null) ON CONFLICT (ptype) DO NOTHING;"
             apfell_db.execute_sql(create_payload_type)
             print("created default payload type: " + str(ptype))
         # Add apfell_admin to the default operation

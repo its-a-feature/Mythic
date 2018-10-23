@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Payload
+from app.database_models.model import Callback, Operator, Payload, Operation
 from sanic import response
 from datetime import datetime
 from sanic_jwt.decorators import protected, inject_user
@@ -10,8 +10,12 @@ from sanic_jwt.decorators import protected, inject_user
 @inject_user()
 @protected()
 async def get_all_callbacks(request, user):
-    callbacks = Callback.select()
-    return json([c.to_json() for c in callbacks])
+    if user['current_operation'] != "":
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+        return json([c.to_json() for c in callbacks])
+    else:
+        return json([])
 
 
 # this one is specifically not @protect or @inject_user because our callback needs to be able to access this

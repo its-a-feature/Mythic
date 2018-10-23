@@ -193,7 +193,6 @@ async def settings(request, user):
         return json({'status': 'error', 'error': "Must be admin to change settings."})
 
 
-
 @apfell.route("/logout")
 @protected()
 async def logout(request):

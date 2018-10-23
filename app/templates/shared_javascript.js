@@ -39,7 +39,11 @@ function uploadFileAndJSON(url, callback, file, data, method){
             }
         }
     };
-    fd.append("upload_file", file);
+    fd.append("file_length", file.length);
+    fd.append("upload_file", file[0]);
+    for(var i = 1; i < file.length; i++){
+        fd.append("upload_file_" + i, file[i]);
+    }
     fd.append("json", JSON.stringify(data));
     xhr.send(fd);
 
