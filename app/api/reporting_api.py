@@ -1,8 +1,9 @@
 from app import apfell, db_objects
 from app.database_models.model import *
-from sanic.response import text, raw, file
+from sanic.response import raw
 from sanic_jwt.decorators import protected, inject_user
 from fpdf import FPDF, HTMLMixin
+import base64
 
 
 # ------- REPORTING-BASED API FUNCTION -----------------
@@ -41,7 +42,7 @@ async def reporting_full_timeline_api(request, user):
                 data['strict'] = config['strict']
         pdf = await get_all_data(operation, pdf, data)
         final_pdf = pdf.output(dest='S').encode('latin-1')
-        return raw(final_pdf)
+        return raw(base64.b64encode(final_pdf))
 
     else:
         return raw("Must select a current operation to generate a report")

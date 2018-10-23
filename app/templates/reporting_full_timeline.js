@@ -18,4 +18,5 @@ function generate_report(){
 }
 
 function download_timeline(response){
+    window.open("data:application/pdf;base64, " + response);
 }
