@@ -360,6 +360,8 @@ async def edit_c2profile_parameters(request, info, user, id):
             c2_profile_parameter.name = data['name']
         if 'key' in data:
             c2_profile_parameter.key = data['key']
+        if 'hint' in data:
+            c2_profile_parameter.hint = data['hint']
         await db_objects.update(c2_profile_parameter)
         return json({'status': 'success', **c2_profile_parameter.to_json()})
     except Exception as e:
@@ -384,7 +386,9 @@ async def create_c2profile_parameters(request, info, user):
             return json({'status': 'error', 'error': '"name" is a required parameter'})
         if 'key' not in data:
             return json({'status': 'error', 'error': '"key" is a required parameter'})
-        c2_profile_param = await db_objects.create(C2ProfileParameters, c2_profile=profile, name=data['name'], key=data['key'])
+        if 'hint' not in data:
+            data['hint'] = "";
+        c2_profile_param = await db_objects.create(C2ProfileParameters, c2_profile=profile, name=data['name'], key=data['key'], hint=data['hint'])
         return json({'status': 'success', **c2_profile_param.to_json()})
     except Exception as e:
         print(e)

@@ -4,6 +4,7 @@ from sanic.response import raw
 from sanic_jwt.decorators import protected, inject_user
 from fpdf import FPDF, HTMLMixin
 import base64
+import json as js
 
 
 # ------- REPORTING-BASED API FUNCTION -----------------
@@ -24,12 +25,12 @@ async def reporting_full_timeline_api(request, user):
         pdf.add_page()
         pdf.set_font('Times', 'B', 20)
         pdf.set_fill_color(224, 224, 224)
-        pdf.cell(w=38, h=pdf.font_size, txt="Timestamp", border=0, align="L", fill=True, ln=0)
-        pdf.cell(w=35, h=pdf.font_size, txt="Host", border=0, align="L", fill=True, ln=0)
-        pdf.cell(w=30, h=pdf.font_size, txt="User", border=0, align="L", fill=True, ln=0)
-        pdf.cell(w=20, h=pdf.font_size, txt="PID", border=0, align="L", fill=True, ln=0)
-        pdf.cell(w=0, h=pdf.font_size, txt="Task", border=0, align="L", fill=True, ln=1)
-        pdf.set_font('Times', '', 12)
+        pdf.cell(w=36, h=pdf.font_size, txt="Timestamp", border=0, align="C", fill=True, ln=0)
+        pdf.cell(w=35, h=pdf.font_size, txt="Host", border=0, align="C", fill=True, ln=0)
+        pdf.cell(w=30, h=pdf.font_size, txt="User", border=0, align="C", fill=True, ln=0)
+        pdf.cell(w=20, h=pdf.font_size, txt="PID", border=0, align="C", fill=True, ln=0)
+        pdf.cell(w=0, h=pdf.font_size, txt="Task", border=0, align="C", fill=True, ln=1)
+        pdf.set_font('Times', '', 10)
         pdf.set_fill_color(244, 244, 244)
         data = {}
         data['cmd_output'] = False
@@ -52,6 +53,7 @@ async def get_all_data(operation, pdf, config):
     # need to get all callbacks, tasks, responses in a dict with the key being the timestamp
     all_data = {}
     callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+    height = pdf.font_size + 1
     for c in callbacks:
         all_data[c.init_callback] = {"callback": c}
         tasks = await db_objects.execute(Task.select().where(Task.callback == c))
@@ -75,24 +77,37 @@ async def get_all_data(operation, pdf, config):
         if "callback" in all_data[key]:
             pdf.set_fill_color(255, 204, 204)
             c = all_data[key]['callback'].to_json()
-            pdf.cell(w=38, h=pdf.font_size, txt=c['init_callback'], border=0, align="L", fill=True, ln=0)
-            pdf.cell(w=35, h=pdf.font_size, txt=c['host'], border=0, align="L", fill=True, ln=0)
-            pdf.cell(w=30, h=pdf.font_size, txt=c['user'], border=0, align="L", fill=True, ln=0)
-            pdf.cell(w=20, h=pdf.font_size, txt=str(c['pid']), border=0, align="L", fill=True, ln=0)
+            pdf.cell(w=36, h=height, txt=c['init_callback'], border=2, align="L", fill=True, ln=0)
+            pdf.cell(w=35, h=height, txt=c['host'], border=2, align="C", fill=True, ln=0)
+            pdf.cell(w=30, h=height, txt=c['user'], border=2, align="C", fill=True, ln=0)
+            pdf.cell(w=20, h=height, txt=str(c['pid']), border=2, align="C", fill=True, ln=0)
             output = "New Callback of type " + all_data[key]['callback'].registered_payload.payload_type.ptype + \
                 " with description: " + c['description']
-            pdf.multi_cell(w=0, h=pdf.font_size, txt=output, border=0, align="L", fill=True)
+            if len(output) > 45:
+                pdf.cell(w=0, h=height, txt=output[0:45], border=0, align="L", fill=True, ln=1)
+                # it's too long to fit on one line, start a new line for it and do a multi-cell
+                pdf.multi_cell(w=0, h=height, txt=output[45:], border=0, align="L", fill=True)
+            else:
+                pdf.cell(w=0, h=height, txt=output, border=0, align="L", fill=highlight, ln=1)
         elif "task" in all_data[key]:
             pdf.set_fill_color(244, 244, 244)
             task = all_data[key]['task']
             task_json = task.to_json()
             callback = all_data[key]['task'].callback.to_json()
-            pdf.cell(w=38, h=pdf.font_size, txt=task_json['timestamp'], border=0, align="L", fill=highlight, ln=0)
-            pdf.cell(w=35, h=pdf.font_size, txt=callback['host'], border=0, align="L", fill=highlight, ln=0)
-            pdf.cell(w=30, h=pdf.font_size, txt=callback['user'], border=0, align="L", fill=highlight, ln=0)
-            pdf.cell(w=20, h=pdf.font_size, txt=str(callback['pid']), border=0, align="L", fill=highlight, ln=0)
-            command = task.command.cmd + " " + task_json['params']
-            pdf.multi_cell(w=0, h=pdf.font_size, txt=command, border=0, align="L", fill=highlight)
+            pdf.cell(w=36, h=height, txt=task_json['timestamp'], border=0, align="L", fill=highlight, ln=0)
+            pdf.cell(w=35, h=height, txt=callback['host'], border=0, align="C", fill=highlight, ln=0)
+            pdf.cell(w=30, h=height, txt=callback['user'], border=0, align="C", fill=highlight, ln=0)
+            pdf.cell(w=20, h=height, txt=str(callback['pid']), border=0, align="C", fill=highlight, ln=0)
+            if task.command.cmd == "load":
+                command = task.command.cmd + " " + js.loads(task_json['params'].replace("'", "\""))['cmd']
+            else:
+                command = task.command.cmd + " " + task_json['params']
+            if len(command) > 45:
+                pdf.cell(w=0, h=height, txt=command[0:45], border=0, align="L", fill=highlight, ln=1)
+                # it's too long to fit on one line, start a new line for it and do a multi-cell
+                pdf.multi_cell(w=0, h=pdf.font_size, txt=command[45:], border=0, align="L", fill=highlight)
+            else:
+                pdf.cell(w=0, h=height, txt=command, border=0, align="L", fill=highlight, ln=1)
             highlight = not highlight
             if 'cmd_output' in config and config['cmd_output']:
                 if 'response' in all_data[key]:
@@ -100,14 +115,14 @@ async def get_all_data(operation, pdf, config):
                     for r in sorted(all_data[key]['response'].keys()):
                         r_json = all_data[key]['response'][r]['response'].to_json()
                         pdf.set_fill_color(204, 229, 255)
-                        pdf.cell(w=38, h=pdf.font_size, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=0)
-                        pdf.multi_cell(w=0, h=pdf.font_size, txt=r_json['response'], border=0, align="L", fill=True)
+                        pdf.cell(w=36, h=height, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=0)
+                        pdf.multi_cell(w=0, h=height, txt=r_json['response'], border=0, align="L", fill=True)
         elif "response" in all_data[key]:
             # this means we're doing true time, not grouping all responses with their tasks
             r_json = all_data[key]['response'].to_json()
             pdf.set_fill_color(204, 229, 255)
-            pdf.cell(w=38, h=pdf.font_size, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=0)
-            pdf.multi_cell(w=0, h=pdf.font_size, txt=r_json['response'], border=0, align="L", fill=True)
+            pdf.cell(w=38, h=height, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=0)
+            pdf.multi_cell(w=0, h=height, txt=r_json['response'], border=0, align="L", fill=True)
     return pdf
 
 

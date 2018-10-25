@@ -23,6 +23,8 @@ async def database_clear_entries(request, user):
                     await cur.execute('TRUNCATE c2profile CASCADE;')
                     await cur.execute('TRUNCATE payloadtype CASCADE;')
                     await cur.execute('TRUNCATE payloadtypec2profile CASCADE;')
+                    await cur.execute('TRUNCATE c2profileparameters CASCADE;')
+                    await cur.execute('TRUNCATE c2profileparametersinstance CASCADE;')
                     setup()  # put our defaults back in place
                     response = {'status': 'success'}
     except Exception as e:

@@ -189,13 +189,13 @@ function startwebsocket_callbacks(){
         }
     };
     ws.onclose = function(){
-        console.log("socket closed");
+        //console.log("socket closed");
     }
     ws.onerror = function(){
-        console.log("websocket error");
+        //console.log("websocket error");
     }
     ws.onopen = function(event){
-        console.debug("opened");
+        //console.debug("opened");
     }
 };
 function startwebsocket_newtasks(){

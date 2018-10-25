@@ -162,16 +162,20 @@
                         <td></td>
                         <td><b>Name</b></td>
                         <td><b>Key</b></td>
+                        <td><b>User Hint</b></td>
                     </tr>
                     <tr v-for="(i,p) in parameters" :key="p">
                         <td>
                             <button type="button" class="btn btn-danger btn-sm" @click="remove_parameter_button(p)">X</button>
                         </td>
                         <td>
-                            <input type="text" size="50" :value="i.name" v-model="i.name">
+                            <input type="text" size="31" :value="i.name" v-model="i.name">
                         </td>
                         <td>
-                            <input type="text" size="50" :value="i.key" v-model="i.key">
+                            <input type="text" size="31" :value="i.key" v-model="i.key">
+                        </td>
+                        <td>
+                            <input type="text" size="31" :value="i.hint" v-model="i.hint">
                         </td>
                     </tr>
                 </table>

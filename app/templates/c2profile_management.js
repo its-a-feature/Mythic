@@ -85,7 +85,8 @@ var payloads_table = new Vue({
                 // We now have a mix of old, new, modified, and deleted parameters
                 for(var i = 0; i < profile_parameters_table.parameters.length; i ++){
                     data = {'key': profile_parameters_table.parameters[i]['key'],
-                            'name': profile_parameters_table.parameters[i]['name']};
+                            'name': profile_parameters_table.parameters[i]['name'],
+                            'hint': profile_parameters_table.parameters[i]['hint']};
                     if(profile_parameters_table.parameters[i].hasOwnProperty('id')){
                         //this means it's a parameter we've had before, so send an update
                         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters/" + profile_parameters_table.parameters[i]['id'], edit_parameter_callback, "PUT", data);
@@ -209,7 +210,7 @@ function startwebsocket_payloadtypec2profile(){
 }
 function register_button(){
     var possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
-    console.log(possiblePayloadTypes);
+    //console.log(possiblePayloadTypes);
     var types = "";
     for(var i = 0; i < possiblePayloadTypes.length; i++){
         types = types + '<option value="' + possiblePayloadTypes[i].ptype + '">'

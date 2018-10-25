@@ -242,6 +242,9 @@ async def failed_refresh(request, resp):
 
 apfell.static('/apfell-dark.png', './app/static/apfell_cropped_dark.png', name='apfell-dark')
 apfell.static('/apfell-white.png', './app/static/apfell_cropped.png', name='apfell-white')
+apfell.static('/strict_time.png', './app/static/strict_time.png', name='strict_time')
+apfell.static('/grouped_output.png', './app/static/grouped_output.png', name='grouped_output')
+apfell.static('/no_cmd_output.png', './app/static/no_cmd_output.png', name='no_cmd_output')
 
 # add links to the routes in this file at the bottom
 links['index'] = apfell.url_for('index')

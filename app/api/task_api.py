@@ -92,7 +92,7 @@ async def add_task_to_callback_func(data, cid, user):
         try:
             cmd = await db_objects.get(Command, cmd=data['command'], payload_type=cb.registered_payload.payload_type)
         except Exception as e:
-            return {'status': 'error', 'error': data['command'] + ' is not a command', 'cmd': data['command'],
+            return {'status': 'error', 'error': data['command'] + ' is not a registered command', 'cmd': data['command'],
                     'params': data['params']}
         file_meta = ""
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
@@ -118,7 +118,7 @@ async def add_task_to_callback_func(data, cid, user):
                     rsp += "\nOperator: " + t['operator'] + "\nTask " + str(t['id']) + ": " + t['command'] + " " + t['params']
                 await db_objects.create(Response, task=task, response=rsp)
             else:
-                return {'status': 'error', 'error': 'failed to get tasks'}
+                return {'status': 'error', 'error': 'failed to get tasks', 'cmd': data['command'], 'params': data['params']}
         elif cmd.cmd == "clear":
             # this means we're going to be clearing out some tasks depending on our access levels
             task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
@@ -130,7 +130,7 @@ async def add_task_to_callback_func(data, cid, user):
                     rsp += "\nOperator: " + t['operator'] + "\nTask " + str(t['id']) + ": " + t['command'] + " " + t['params']
                 await db_objects.create(Response, task=task, response=rsp)
             else:
-                return {'status': 'error', 'error': raw_rsp['error']}
+                return {'status': 'error', 'error': raw_rsp['error'], 'cmd': data['command'], 'params': data['params']}
         elif cmd.cmd == "load":
             try:
                 # open the file that contains the code we're going to load in
@@ -140,7 +140,7 @@ async def add_task_to_callback_func(data, cid, user):
                 params = {"cmd": data['params'], "code": encoded.decode("utf-8")}
             except Exception as e:
                 print(e)
-                return {'status': 'error', 'error': 'failed to open and encode new function'}
+                return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params']}
             task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=params)
 
         else:
@@ -154,7 +154,7 @@ async def add_task_to_callback_func(data, cid, user):
         return {**status, **task_json}
     except Exception as e:
         print("failed to get something in add_task_to_callback_func " + str(e))
-        return {'status': 'error', 'error': 'Failed to create task',  'msg': str(e)}
+        return {'status': 'error', 'error': 'Failed to create task',  'msg': str(e), 'cmd': data['command'], 'params': data['params']}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/notcompleted", methods=['GET'])

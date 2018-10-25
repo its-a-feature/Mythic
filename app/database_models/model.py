@@ -328,6 +328,7 @@ class C2ProfileParameters(p.Model):
     c2_profile = p.ForeignKeyField(C2Profile)
     name = p.CharField(null=False)  # what the parameter is called. ex: Callback address
     key = p.CharField(null=False)  # what the stamping should look for. ex: XXXXX
+    hint = p.CharField(null=False, default="")  # Hint for the user when setting the parameters
 
     class Meta:
         indexes = ((('c2_profile', 'name'), True),)
@@ -526,6 +527,31 @@ class FileMeta(p.Model):
         return str(self.to_json())
 
 
+class ATTACKId(p.Model):
+    t_num = p.IntegerField(null=False)
+    name = p.CharField(null=False)
+    cmd = p.ForeignKeyField(Command, null=False)
+
+    class Meta:
+        indexes = ((('t_num', 'cmd'), True),)
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'cmd':
+                    r[k] = getattr(self, k).cmd
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
@@ -600,10 +626,10 @@ def setup():
                                    "'" + current_time + "',True," + \
                                    "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (name, operation_id) DO NOTHING;"
         apfell_db.execute_sql(create_default_c2profile)
-        c2profile_parameters = [('callback_host', 'callback_host'), ('callback_port', 'callback_port'), ('callback_interval', 'callback_interval')]
-        for name,key in c2profile_parameters:
-            create_default_c2profile_params = "INSERT INTO c2profileparameters (c2_profile_id, name, key) VALUES (" + \
-                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id FROM operation WHERE name='default')), '" + name + "', '" + key + "') on CONFLICT (c2_profile_id, name) DO NOTHING;"
+        c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'), ('callback port', 'callback_port', '80'), ('callback interval (in seconds)', 'callback_interval', '10')]
+        for name,key,hint in c2profile_parameters:
+            create_default_c2profile_params = "INSERT INTO c2profileparameters (c2_profile_id, name, key, hint) VALUES (" + \
+                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id FROM operation WHERE name='default')), '" + name + "', '" + key + "', '" + hint + "') on CONFLICT (c2_profile_id, name) DO NOTHING;"
             apfell_db.execute_sql(create_default_c2profile_params)
             print("created default c2_profile parameter: " + str(name))
 
@@ -663,6 +689,7 @@ FileMeta.create_table(True)
 PayloadCommand.create_table(True)
 C2ProfileParameters.create_table(True)
 C2ProfileParametersInstance.create_table(True)
+ATTACKId.create_table(True)
 # setup default admin user and c2 profile
 setup()
 # Create the ability to do LISTEN / NOTIFY on these tables
