@@ -17,6 +17,18 @@ async def get_all_payloadtypes(request, user):
     return json([p.to_json() for p in payloads])
 
 
+@apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>", methods=['GET'])
+@inject_user()
+@protected()
+async def get_all_payloadtypes(request, user, ptype):
+    payload_type = unquote_plus(ptype)
+    try:
+        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find payload type'})
+    return json({'status': 'success', **payloadtype.to_json()})
+
+
 # anybody can create a payload type for now, maybe just admins in the future?
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/", methods=['POST'])
 @inject_user()
@@ -188,7 +200,7 @@ async def delete_one_payloadtype(request, user, ptype, fromDisk):
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/commands", methods=['GET'])
 @inject_user()
 @protected()
-async def get_commands_for_paylooadtype(request, user, ptype):
+async def get_commands_for_payloadtype(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
         payloadtype = await db_objects.get(PayloadType, ptype=payload_type)

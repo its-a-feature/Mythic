@@ -7,6 +7,8 @@ from sanic_jwt.decorators import protected, inject_user
 from app.crypto import create_uuid
 import os
 import asyncio
+from urllib.parse import unquote_plus
+import base64
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/", methods=['GET'])
@@ -58,8 +60,6 @@ async def register_new_payload_func(data, user):
         return {'status': 'error', 'error': '"payload_type" field is required'}
     if 'c2_profile' not in data:
         return {'status': 'error', 'error': '"c2_profile" field is required'}
-    if 'commands' not in data:
-        return {'status': 'error', 'error': '"commands" field is required'}
     # the other parameters are based on the payload_type, c2_profile, or other payloads
     try:
         operator = await db_objects.get(Operator, username=data['operator'])
@@ -86,40 +86,58 @@ async def register_new_payload_func(data, user):
         return {'status': 'error', 'error': 'failed to get payload type when registering payload'}
     tag = data['tag'] if 'tag' in data else ""
     operation = await db_objects.get(Operation, name=data['current_operation'])
+    # if the type of payload is a wrapper, then it doesn't have any commands associated with it
     # Get all of the commands and make sure they're valid
-    db_commands = {}
-    for cmd in data['commands']:
-        try:
-            db_commands[cmd] = await db_objects.get(Command, cmd=cmd, payload_type=payload_type)
-        except Exception as e:
-            return {'status': 'error', 'error': 'failed to get command {}'.format(cmd)}
-    # Generate the UUID - this will involve going through to read key-value pairs for c2 and payload_type parameters
+    if not payload_type.wrapper:
+        db_commands = {}
+        if 'commands' not in data:
+            return {'status': 'error', 'error': '"commands" field is required'}
+        for cmd in data['commands']:
+            try:
+                db_commands[cmd] = await db_objects.get(Command, cmd=cmd, payload_type=payload_type)
+            except Exception as e:
+                return {'status': 'error', 'error': 'failed to get command {}'.format(cmd)}
+        # Generate the UUID - this will involve going through to read key-value pairs for c2 and payload_type parameters
+    if payload_type.wrapper:
+        data['wrapper'] = True
+    else:
+        data['wrapper'] = False
     uuid = await generate_uuid(data, user, tag)
     file_extension = "." + payload_type.file_extension if payload_type.file_extension != "" else ""
     location = data['location'] if 'location' in data else "./app/payloads/operations/{}/{}{}".format(
         user['current_operation'],uuid, file_extension)
     # Register payload
-    payload, create = await db_objects.create_or_get(Payload, operator=operator, payload_type=payload_type,
-                                                     tag=tag, pcallback=pcallback, location=location, c2_profile=c2_profile,
-                                                     uuid=uuid, operation=operation)
-    if create:
-        for cmd in db_commands:
-            await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd])
-        # Get all of the c2 profile parameters and create their instantiations
-        db_c2_profile_parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == c2_profile))
-        for param in db_c2_profile_parameters:
-            # find the matching data in the data['c2_profile_parameters']
-            try:
-
+    if not payload_type.wrapper:
+        payload, create = await db_objects.create_or_get(Payload, operator=operator, payload_type=payload_type,
+                                                         tag=tag, pcallback=pcallback, location=location, c2_profile=c2_profile,
+                                                         uuid=uuid, operation=operation)
+        if create:
+            for cmd in db_commands:
+                await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd])
+    else:
+        wrapped_payload = await db_objects.get(Payload, uuid=data['wrapped_payload'])
+        payload, create = await db_objects.create_or_get(Payload, operator=operator, payload_type=payload_type,
+                                                         tag=tag, pcallback=pcallback, location=location, c2_profile=c2_profile,
+                                                         uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
+    # Get all of the c2 profile parameters and create their instantiations
+    db_c2_profile_parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == c2_profile))
+    for param in db_c2_profile_parameters:
+        # find the matching data in the data['c2_profile_parameters']
+        try:
+            if create:
                 await db_objects.create(C2ProfileParametersInstance, c2_profile_parameters=param, value=data['c2_profile_parameters'][param.name], payload=payload)
-            except Exception as e:
-                return {'status': 'error', 'error': 'failed to create parameter instance'}
+        except Exception as e:
+            print(e)
+            return {'status': 'error', 'error': 'failed to create parameter instance'}
     return {'status': 'success', **payload.to_json()}
 
 
 async def generate_uuid(data, user, tag):
-    string = tag + user['username'] + data['payload_type'] + data['c2_profile'] + user['current_operation'] + \
-             str(data['commands'])
+    string = tag + user['username'] + data['payload_type'] + data['c2_profile'] + user['current_operation']
+    if not data['wrapper']:
+        string += str(data['commands'])
+    else:
+        string += data['wrapped_payload']
     # now add in the key-value pairs for the c2 profile parameters
     for key,value in data['c2_profile_parameters'].items():
         string += key + value
@@ -143,11 +161,14 @@ async def write_payload(uuid, user):
         payload_directory = os.path.dirname(payload.location)
         pathlib.Path(payload_directory).mkdir(parents=True, exist_ok=True)
         custom = open(payload.location, 'w')
-        base_c2 = open('./app/c2_profiles/{}/{}/{}/{}{}'.format(payload.operation.name,
-                                                                payload.c2_profile.name,
-                                                                payload.payload_type.ptype,
-                                                                payload.c2_profile.name,
-                                                                extension))
+        # wrappers won't necessarily have a c2 profile associated with them
+        if not payload.payload_type.wrapper:
+            base_c2 = open('./app/c2_profiles/{}/{}/{}/{}{}'.format(payload.operation.name,
+                                                                    payload.c2_profile.name,
+                                                                    payload.payload_type.ptype,
+                                                                    payload.c2_profile.name,
+                                                                    extension))
+
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to opan all needed files'}
@@ -157,7 +178,8 @@ async def write_payload(uuid, user):
             await write_c2(custom, base_c2, payload)
         # this will eventually be write_ptype_params like above, but not yet
         elif 'XXXX' in line:
-            custom.write('this.uuid = "' + uuid + '";\n')
+            replaced_line = line.replace("XXXX", uuid)
+            custom.write(replaced_line)
         elif 'COMMAND DECLARATIONS AND IMPLEMENTATIONS' in line:
             # go through all the commands and write them to the payload
             try:
@@ -170,10 +192,18 @@ async def write_payload(uuid, user):
             except Exception as e:
                 print(e)
                 return {'status': 'error', 'error': 'failed to get and write commands to payload on disk'}
+        elif 'WRAPPEDPAYLOADHERE' in line and payload.payload_type.wrapper:
+            # first we need to do the proper encoding, then we write it do the appropriate spot
+            wrapped_payload = open(payload.wrapped_payload.location, 'rb').read()
+            if payload.payload_type.wrapped_encoding_type == "base64":
+                wrapped_payload = base64.b64encode(wrapped_payload).decode("UTF-8")
+            replaced_line = line.replace("WRAPPEDPAYLOADHERE", str(wrapped_payload))
+            custom.write(replaced_line)
         else:
             custom.write(line)
     base.close()
-    base_c2.close()
+    if not payload.payload_type.wrapper:
+        base_c2.close()
     custom.close()
     # now that it's written to disk, we need to potentially do some compilation or extra command
     if payload.payload_type.compile_command != "":
@@ -207,6 +237,9 @@ async def create_payload(request, user):
             data['c2_profile_parameters'] = final_c2_params
             if 'tag' not in data:
                 data['tag'] = old_payload.tag
+            if old_payload.payload_type.wrapper:
+                data['wrapper'] = True
+                data['wrapped_payload'] = old_payload.wrapped_payload
         except Exception as e:
             print(e)
             return json({'status': 'error', 'error': 'failed to get old payload values'})
@@ -221,7 +254,8 @@ async def create_payload(request, user):
     # first we need to register the payload
     rsp = await register_new_payload_func(data, user)
     if rsp['status'] == "success":
-        # now that it's registered, write the file
+        # now that it's registered, write the file, if we fail out here then we need to delete the db object
+        payload = await db_objects.get(Payload, uuid=rsp['uuid'])
         create_rsp = await write_payload(rsp['uuid'], user)
         if create_rsp['status'] == "success":
             # if this was a task, we need to now issue the task to use this payload
@@ -233,6 +267,7 @@ async def create_payload(request, user):
             else:
                 return json({'status': 'success'})
         else:
+            await db_objects.delete(payload, recursive=True)
             return json({'status': 'error', 'error': create_rsp['error']})
     else:
         print(rsp['error'])
@@ -277,3 +312,38 @@ async def get_payload(request, pload):
         print(e)
         return json({'status': 'error', 'error': 'failed to open payload'})
     return text(base_data)  # just return raw data
+
+
+@apfell.route(apfell.config['API_BASE'] + "/payloads/bytype/<ptype:string>", methods=['GET'])
+@inject_user()
+@protected()
+async def get_payloads_by_type(request, ptype, user):
+    payload_type = unquote_plus(ptype)
+    try:
+        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find payload type'})
+    if user['current_operation'] != "":
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+    else:
+        return json({'status': 'error', 'error': 'must be part of an active operation'})
+    payloads = await db_objects.execute(Payload.select().where((Payload.operation == operation) & (Payload.payload_type == payloadtype)))
+    payloads_json = [p.to_json() for p in payloads]
+    return json({'status': 'success', "payloads": payloads_json})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/payloads/<uuid:string>", methods=['GET'])
+@inject_user()
+@protected()
+async def get_one_payload_info(request, uuid, user):
+    try:
+        payload = await db_objects.get(Payload, uuid=uuid)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find payload'})
+    if payload.operation.name in user['operations']:
+        payloadcommands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
+        commands = [c.command.cmd for c in payloadcommands]
+        return json({'status': 'success', **payload.to_json(), "commands": commands})
+    else:
+        return json({'status': 'error', 'error': 'you need to be part of the right operation to see this'})

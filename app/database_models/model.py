@@ -263,6 +263,7 @@ class Payload(p.Model):
     location = p.CharField(null=True)  # location on disk of the payload
     c2_profile = p.ForeignKeyField(C2Profile, null=False)  # identify which C2 profile is being used
     operation = p.ForeignKeyField(Operation, null=False)
+    wrapped_payload = p.ForeignKeyField(p.DeferredRelation('Payload'), null=True)
 
     class Meta:
         database = apfell_db
@@ -281,6 +282,8 @@ class Payload(p.Model):
                     r[k] = getattr(self, k).ptype
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'wrapped_payload':
+                    r[k] = getattr(self, k).uuid
                 else:
                     r[k] = getattr(self, k)
             except:

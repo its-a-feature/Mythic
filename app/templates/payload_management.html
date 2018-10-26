@@ -95,11 +95,11 @@
                     </span>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-success btn-sm" @click="add_commands_button(p)" >Add</button>
-                    <button type="button" class="btn btn-info btn-sm" @click="edit_commands_button(p)" >Edit</button><br>
-                    <button type="button" class="btn btn-danger btn-sm" @click="remove_commands_button(p)" >Remove</button><br>
-                    <button type="button" class="btn btn-dark btn-sm" @click="export_commands_button(p)" >Export</button>
-                    <button type="button" class="btn btn-success btn-sm" @click="import_commands_button(p)" >Import</button>
+                    <button v-if="!p.wrapper" type="button" class="btn btn-success btn-sm" @click="add_commands_button(p)" >Add</button>
+                    <button v-if="!p.wrapper" type="button" class="btn btn-info btn-sm" @click="edit_commands_button(p)" >Edit</button><br>
+                    <button v-if="!p.wrapper" type="button" class="btn btn-danger btn-sm" @click="remove_commands_button(p)" >Remove</button><br>
+                    <button v-if="!p.wrapper" type="button" class="btn btn-dark btn-sm" @click="export_commands_button(p)" >Export</button>
+                    <button v-if="!p.wrapper" type="button" class="btn btn-success btn-sm" @click="import_commands_button(p)" >Import</button>
                 </td>
                 <td>
                     [[ p.compile_command ]]

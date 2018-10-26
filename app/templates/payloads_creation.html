@@ -51,6 +51,13 @@
                                 <td><b>Parameter Name</b></td>
                                 <td><b>Parameter Value</b></td>
                             </tr>
+                            <tr hidden id="payloadWrapperRow">
+                                <td>Select Payload to Wrap: </td>
+                                <td>
+                                    <select id="wrappedPayload"></select>
+                                </td>
+
+                            </tr>
                             <tr v-for="(value, index) in payload_parameters" :key="index">
                                 <td>
                                     [[value.name]]
@@ -63,6 +70,7 @@
                     </div>
                     <input type="text" size="50" placeholder="File Output Location on Apfell's server" id="location"><br>
                     <input type="text" size="50" placeholder="Default Tag" id="default_tag">
+
 
                 </td>
                 <td valign="top">
