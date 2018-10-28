@@ -104,9 +104,13 @@ async def add_task_to_callback_func(data, cid, user):
                                                 path=upload_params[0], operation=cb.operation)
             data['params'] = str(file_meta.id) + " " + upload_params[1]
 
-        if cmd.cmd == "download":
+        elif cmd.cmd == "download":
             if '"' in data['params']:
                 data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
+        elif cmd.cmd == "screencapture":
+            # we need to specify here the name of the file that we'll be creating
+            # since it'll already be saved in a directory structure that indicates the computer name, we'll indicate time
+            data['params'] = data['params'] + " " + datetime.datetime.now().strftime('%m/%d/%Y%H:%M:%S') + ".png"
         # if the task is for something that doesn't actually go down to the client, we'll handle it a little differently
         if cmd.cmd == "tasks":
             # this means we're just listing out the not-completed tasks, so nothing actually goes to the agent

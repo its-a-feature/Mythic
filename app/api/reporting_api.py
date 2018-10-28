@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from app.database_models.model import *
-from sanic.response import raw
+from sanic.response import raw, file
 from sanic_jwt.decorators import protected, inject_user
 from fpdf import FPDF, HTMLMixin
 import base64
@@ -42,8 +42,11 @@ async def reporting_full_timeline_api(request, user):
             if 'strict' in config:
                 data['strict'] = config['strict']
         pdf = await get_all_data(operation, pdf, data)
-        final_pdf = pdf.output(dest='S').encode('latin-1')
-        return raw(base64.b64encode(final_pdf))
+        pdf.output("./app/files/{}/full_timeline.pdf".format(user['current_operation']), dest='F')
+        #return await file("./app/files/{}/full_timeline.pdf".format(user['current_operation']))
+        #final_pdf = pdf.output(dest='S').encode('latin-1')
+        contents = open("./app/files/{}/full_timeline.pdf".format(user['current_operation']), 'rb').read()
+        return raw(base64.b64encode(contents))
 
     else:
         return raw("Must select a current operation to generate a report")

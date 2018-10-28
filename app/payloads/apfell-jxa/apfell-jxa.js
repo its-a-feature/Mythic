@@ -80,6 +80,9 @@ write_data_to_file = function(data, file_path){
         //currentApp.setEof(open_file, { to: 0 }); //clear the current file
         //currentApp.write(data, { to: open_file, startingAt: currentApp.getEof(open_file) });
         //currentApp.closeAccess(open_file);
+        if(typeof data == "string"){
+            data = convert_to_nsdata(data);
+        }
         if (data.writeToFileAtomically($(file_path), true)){
             return "file written";
         }

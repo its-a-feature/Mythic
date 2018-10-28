@@ -62,11 +62,11 @@
         <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.tasks" v-bind:id="'tasks' + metadata.id" >
             <div class="well-sm pre-scrollable "  v-bind:id="'tasks' + metadata.id + 'data'" style="overflow:auto;resize:vertical">
                 <!-- REPEAT for each task for the specific callback that's selected -->
-                <span v-for="task in metadata.data" :key="task.id">
+                <span v-for="task in metadata.data" :key="task.id" v-bind:id="'task' + task.id">
                     <font color="green">([[task.operator]])</font>&nbsp;
                     <font color="red">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</font>
                     [[task.command]]&nbsp;[[task.params]]<br>
-                    <span v-for="rsp in task.response" :key="rsp.id" style="white-space: pre-wrap">
+                    <span v-for="rsp in task.response" :key="rsp.id" v-bind:id="'response' + rsp.id" style="white-space: pre-wrap">
                         <font color="blue">([[rsp.timestamp]])</font>
                         <font color="black">[[rsp.response]]</font><br>
                     </span>
