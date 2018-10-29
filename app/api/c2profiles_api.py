@@ -147,7 +147,9 @@ async def register_new_c2profile(request, user):
             # now create the c2profileparameters entries so we can generate the right form to fill out
             if 'c2profileparameters' in data:
                 for params in data['c2profileparameters']:
-                    await db_objects.create(C2ProfileParameters, c2_profile=profile, key=params['key'], name=params['name'])
+                    if not 'hint' in params:
+                        params['hint'] = ""
+                    await db_objects.create(C2ProfileParameters, c2_profile=profile, key=params['key'], name=params['name'], hint=params['hint'])
             profile_json = profile.to_json()
             status = {'status': 'success'}
             return json({**status, **profile_json})
@@ -387,7 +389,7 @@ async def create_c2profile_parameters(request, info, user):
         if 'key' not in data:
             return json({'status': 'error', 'error': '"key" is a required parameter'})
         if 'hint' not in data:
-            data['hint'] = "";
+            data['hint'] = ""
         c2_profile_param = await db_objects.create(C2ProfileParameters, c2_profile=profile, name=data['name'], key=data['key'], hint=data['hint'])
         return json({'status': 'success', **c2_profile_param.to_json()})
     except Exception as e:

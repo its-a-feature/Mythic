@@ -1,5 +1,5 @@
 from app import apfell, db_objects
-from app.database_models.model import Callback, Payload
+from app.database_models.model import Callback, Payload, Operation
 from sanic.response import text
 from anytree import Node, find_by_attr, RenderTree, DoubleStyle
 from sanic_jwt.decorators import protected, inject_user
@@ -12,11 +12,12 @@ from sanic_jwt.decorators import protected, inject_user
 async def analytics_callback_tree_api(request, user):
     # look at the current callbacks and return their data in a more manageable tree format
     # http://anytree.readthedocs.io/en/latest/
-    dbcallbacks = await db_objects.execute(Callback.select())
+    operation = await db_objects.get(Operation, name=user['current_operation'])
+    dbcallbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
     callbacks = []
     # Default values here
     display_config = {}
-    display_config['inactive'] = False  # by default, include only active callbacks
+    display_config['inactive'] = True  # by default, include all callbacks
     display_config['strikethrough'] = False
     # The POST version of this API function will provide modifiers for what specific information to provide in the callback tree, but the main logic remains the same
     if request.method == 'POST':
@@ -31,6 +32,10 @@ async def analytics_callback_tree_api(request, user):
             callbacks.append(dbc.to_json())
         elif dbc.active:
             callbacks.append(dbc.to_json())
+        elif not dbc.active:
+            json_val = dbc.to_json()
+            json_val['description'] = "CALLBACK DEAD " + json_val['description']
+            callbacks.append(json_val)
     # every callback with a pcallback of null should be at the root (remove them from list as we place them)
     tree = []
     while len(callbacks) != 0:  # when we hit 0 we are done processing

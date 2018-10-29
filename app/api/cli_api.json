@@ -45,12 +45,253 @@
       ]
     },
     {
+      "name": "Analytics",
+      "api": [
+        {
+          "GET": "API_BASE/analytics/callback_tree",
+          "explanation": "Get a basic callback tree for active callbacks",
+          "cli": "curl http://localhostAPI_BASE/analytics/callback_tree",
+          "output": "text output such as: \ncody@codys-mbp(70209): spearphish \ncody@codys-macbook-pro.local(70234): spearphish \n╚══ cody@codys-mbp(70235): apfell_admin on 14 using spawn shell_api oneliner"
+        },
+        {
+          "POST": "API_BASE/analytics/callback_tree",
+          "explanation": "Get a basic callback tree for active callbacks",
+          "cli": "curl -X POST -d '{\"inactive\": \"True\", \"strikethrough\": \"True\"}' http://localhostAPI_BASE/analytics/callback_tree",
+          "parameters":[
+            {
+              "name": "inactive",
+              "description": "T/F to include callbacks that are no longer active for the current operation",
+              "requirements": "This is an optional parameter"
+            },
+            {
+              "name": "strikethrough",
+              "description": "T/F to strikethrough inactive callacks",
+              "requirements": "This is an optional parameter"
+            }
+          ],
+          "output": "text output such as: \ncody@codys-mbp(70209): spearphish \ncody@codys-macbook-pro.local(70234): CALLBACK DEAD spearphish \n╚══ cody@codys-mbp(70235): apfell_admin on 14 using spawn shell_api oneliner"
+        },
+        {
+          "GET": "API_BASE/analytics/payload_tree",
+          "explanation": "Get a basic tree relating callbacks and payloads together",
+          "cli": "curl http://localhostAPI_BASE/analytics/payload_tree",
+          "output": "text output such as: \napfell_admin's apfell-jxa payload with default c2 profile with tag: spearphish \n╚══ cody@codys-mbp(70209): spearphish \napfell_admin's apfell-jxa payload with default c2 profile with tag: apfell_admin on 14 using spawn shell_api oneliner \n╚══ cody@codys-mbp(70235): apfell_admin on 14 using spawn shell_api oneliner"
+        },
+        {
+          "POST": "API_BASE/analytics/payload_tree",
+          "explanation": "Get a basic tree relating callbacks and payloads together",
+          "cli": "curl -X POST -d '{\"inactive\": \"True\", \"strikethrough\": \"True\"}' http://localhostAPI_BASE/analytics/payload_tree",
+          "parameters":[
+            {
+              "name": "inactive",
+              "description": "T/F to include callbacks that are no longer active for the current operation",
+              "requirements": "This is an optional parameter"
+            },
+            {
+              "name": "strikethrough",
+              "description": "T/F to strikethrough inactive callacks",
+              "requirements": "This is an optional parameter"
+            }
+          ],
+          "output": "text output such as: \napfell_admin's apfell-jxa payload with default c2 profile with tag: spearphish \n╚══ cody@codys-mbp(70209): spearphish \napfell_admin's apfell-jxa payload with default c2 profile with tag: apfell_admin on 14 using spawn shell_api oneliner \n╚══ cody@codys-mbp(70235): apfell_admin on 14 using spawn shell_api oneliner"
+        }
+      ]
+    },
+    {
+      "name": "Attack",
+      "api": [
+        {
+          "GET": "API_BASE/attacks/host_file",
+          "explanation": "Gets all of the additional servers ever created/stopped during a single run of Apfell",
+          "cli": "curl http://localhostAPI_BASE/attacks/host_file",
+          "output": "An array of JSON blobs representing the currently running file hosts: [{\"port\":\"8080\",\"directory\":\"\/home\/its-a-feature\/\",\"process\":{\"args\":[\"\/usr\/bin\/python3.6\",\"-m\",\"http.server\",\"8080\"],\"encoding\":null,\"errors\":null,\"pid\":24723,\"returncode\":null,\"stderr\":null,\"stdin\":null,\"stdout\":null,\"universal_newlines\":false},\"status\":\"running\",\"encryption\":false}]"
+        },
+        {
+          "POST": "API_BASE/attacks/host_file",
+          "explanation": "Create a new subprocess to host files that can be used via download cradles",
+          "cli": "curl -X POST -d '{\"port\":8080, \"directory\":\"/tmp\"}' http://localhostAPI_BASE/attacks/host_file",
+          "parameters":[
+            {
+              "name": "port",
+              "description": "The port to bind to for a python web server",
+              "requirements": "Integer for the port that currently isn't in use and the user has access to bind to"
+            },
+            {
+              "name": "directory",
+              "description": "The directory that will be served up by the web server",
+              "requirements": "The directory must exist and should be identified by a full path"
+            }
+          ],
+          "output": "A JSON blob indicating success or failure: {\"status\": \"success\"}"
+        },
+        {
+          "DELETE": "API_BASE/attacks/host_file/(port:INTEGER)",
+          "explanation": "Find and stop the subprocess identified by a port that is serving up a web server",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/attacks/host_file/8080",
+          "output": "A JSON blob indicating success or failure: {\"status\": \"success\"}"
+        }
+      ]
+    },
+    {
+      "name": "C2Profile",
+      "api": [
+        {
+          "GET": "API_BASE/c2profiles/",
+          "explanation": "Get all c2 profiles that you can see across all of the operations you're in as well as what payload types each one supports",
+          "cli": "curl http://localhostAPI_BASE/c2profiles/",
+          "output": "A array of JSON blobs of all the profiles: [{\"description\":\"default RESTful C2 channel\",\"running\":true,\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":40,\"name\":\"default\",\"operator\":\"apfell_admin\",\"operation\":\"default\",\"ptype\":[\"apfell-jxa\"]}]"
+        },
+        {
+          "GET": "API_BASE/c2profiles/current_operation",
+          "explanation": "Get all the c2 profiles that you can see for the current operation",
+          "cli": "curl http://localhostAPI_BASE/c2profiles/current_operation",
+          "output": "A array of JSON blobs of all the profiles: [{\"description\":\"default RESTful C2 channel\",\"running\":true,\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":40,\"name\":\"default\",\"operator\":\"apfell_admin\",\"operation\":\"default\",\"ptype\":[\"apfell-jxa\"]}]"
+        },
+        {
+          "GET": "API_BASE/c2profiles/type/(info:STRING)",
+          "explanation": "Get all of the c2 profiles for a specific payload type",
+          "cli": "curl http://localhostAPI_BASE/c2profiles/type/apfell-jxa",
+          "output": "{\"status\":\"success\",\"profile\":[{\"id\":43,\"payload_type\":\"apfell-jxa\",\"payload_type_id\":44,\"c2_profile\":\"default\",\"c2_profile_id\":40,\"c2_profile_description\":\"default RESTful C2 channel\"}]}"
+        },
+        {
+          "GET": "API_BASE/c2profiles/current_operation/type/(info:STRING)",
+          "explanation": "Get all the c2 profiles for a specific payload type for the current operation",
+          "cli": "curl http://localhostAPI_BASE/c2profiles/current_operation/type/apfell-jxa",
+          "output": "{\"status\":\"success\",\"profile\":[{\"id\":43,\"payload_type\":\"apfell-jxa\",\"payload_type_id\":44,\"c2_profile\":\"default\",\"c2_profile_id\":40,\"c2_profile_description\":\"default RESTful C2 channel\"}]}"
+        },
+        {
+          "POST": "API_BASE/c2profiles/",
+          "explanation": "Register a new C2 profile for the current operation",
+          "cli": "curl -X POST -d '{\"name\": \"twitter\", \"description\": \"uses twitter for c2\", \"payload_types\": [\"apfell-jxa\"], \"c2profileparameters\": [{\"name\": \"API Key\", \"key\": \"APIKEY\", \"hint\": \"put your api key here\"}]}' http://localhostAPI_BASE/c2profiles/",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the new c2 profile",
+              "requirements": "This is a required parameter and must be unique"
+            },
+            {
+              "name": "description",
+              "description": "The description of what the c2 profile is",
+              "requirements": "This isn't required, but is really helpful"
+            },
+            {
+              "name": "payload_types",
+              "description": "An array of names of the payload types that this c2 profile supports",
+              "requirements": "This is an array of payload types that have already been registered with the system"
+            },
+            {
+              "name": "c2profileparameters",
+              "description": "This specifies the name, key, and hint values for the different parameters that the c2 profile needs",
+              "requirements": "This is optional as not all c2 profiles will necessarily have parameters"
+            }
+
+          ],
+          "output": "A successful status and a JSON representation of the new c2profile that was created"
+        },
+        {
+          "PUT": "API_BASE/c2profiles/(info:STRING)",
+          "explanation": "Update an already registered c2 profile for the current operation",
+          "cli": "curl -X PUT -d '{\"description\": \"new description here\", \"payload_types\": [\"apfell-jxa\",\"new-type\"]}' http://localhostAPI_BASE/c2profiles/twitter",
+          "parameters": [
+            {
+              "name": "description",
+              "description": "Updated description for the c2 profile",
+              "requirements": "This isn't required"
+            },
+            {
+              "name": "payload_types",
+              "description": "The list of payload types you wanted supported. If you had something here and you don't include it in the update, it will be removed.",
+              "requirements": "This isn't required."
+            }
+          ],
+          "output": "A JSON blob indicating success or failure, a json representation of the c2 profile, and a list of all the supported payload_types"
+        },
+        {
+          "GET": "API_BASE/c2profiles/(info:STRING)/start",
+          "explanation": "Start the c2 profile indicated by the name in place of \"info\"",
+          "cli": "curl http://localhostAPI_BASE/c2profiles/twitter/start",
+          "output": "JSON blob indicating a status of success or failure"
+        },
+        {
+          "GET": "API_BASE/c2profiles/(info:STRING)/stop",
+          "explanation": "Stop the c2 profile indicated by the name in place of \"info\"",
+          "cli": "curl http://localhostAPI_BASE/c2profiles/twitter/stop",
+          "output": "{\"status\": \"success\"}"
+        },
+        {
+          "DELETE": "API_BASE/c2profiles/(info:STRING)",
+          "explanation": "Delete the specified c2 profile from the current operation",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/c2profiles/twitter",
+          "output": "JSON blob for success or failure, and upon success also returns the JSON blob of the c2 profile that was deleted"
+        },
+        {
+          "GET": "API_BASE/c2profiles/(info:STRING)/parameters/",
+          "explanation": "Get the parameters associated with the current operation's c2 profile indicated by \"info\"",
+          "cli": "curl http://localhostAPI_BASE/c2profiles/twitter/parameters",
+          "output": "{\"status\":\"success\",\"c2profileparameters\":[{\"hint\":\"http(s):\/\/domain.com\",\"id\":118,\"c2_profile\":\"default\",\"name\":\"callback host\",\"key\":\"callback_host\"},{\"hint\":\"10\",\"id\":120,\"c2_profile\":\"default\",\"name\":\"callback interval (in seconds)\",\"key\":\"callback_interval\"},{\"hint\":\"80\",\"id\":119,\"c2_profile\":\"default\",\"name\":\"callback port\",\"key\":\"callback_port\"}]}"
+        },
+        {
+          "PUT": "API_BASE/c2profiles/(info:STRING)/parameters/(id:INTEGER)",
+          "explanation": "Update a specific c2 profile's parameter indicated by its ID",
+          "cli": "curl -X PUT -d '{\"name\": \"http:\/\/domain.com\", \"key\": \"domain_name\", \"hint\": \"full domain name with protocol\"}' http://localhostAPI_BASE/c2profiles/default/118",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "This is the name presented to the user when they go to fill in a specific instance during payload creation",
+              "requirements": "This is an optional parameter"
+            },
+            {
+              "name": "key",
+              "description": "This is the value in the c2profile code that will be stamped out with the actual value specified during payload creation",
+              "requirements": "This is an optional parameter"
+            },
+            {
+              "name": "hint",
+              "description": "This is an optional example to show the user when they're creating the payload for how to structure the data",
+              "requirements": "This is an optional parameter"
+            }
+          ],
+          "output": "Success or failure 'status' JSON key and either the 'error' message or a JSON representation of the updated parameter"
+        },
+        {
+          "POST": "API_BASE/c2profiles/(info:STRING)/parameters",
+          "explanation": "Add new parameters to the c2 profile indicated by the info string",
+          "cli": "curl -X POST -d '{\"name\": \"http:\/\/domain.com\", \"key\": \"domain_name\", \"hint\": \"full domain name with protocol\"}' http://localhostAPI_BASE/c2profiles/default/118",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name that will be presented to the user",
+              "requirements": "This is a required field and must be unique within the c2 profile"
+            },
+            {
+              "name": "key",
+              "description": "The actual value that will be located in the c2 profile to indicate what part will be swapped out with what the user provides when creating a payload",
+              "requirements": "This is a required field and must be unique within the c2 profile"
+            },
+            {
+              "name": "hint",
+              "description": "This is a hint to the user about what format and information needs to be provided",
+              "requirements": "This is an optionl parameter"
+            }
+          ],
+          "output": "A status message in the 'status' key and either an error message or a JSON representation of the new parameter"
+        },
+        {
+          "DELETE": "API_BASE/c2profiles/(info:STRING)/parameters/(id:INTEGER)",
+          "explanation": "Delete the c2 profile parameter from the current operation's c2 profile",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/c2profiles/twitter/parameters/2",
+          "output": "A 'status' key and either the 'error' message or a JSON representation of the parameter that was deleted"
+        }
+      ]
+    },
+    {
       "name": "Callback",
       "api": [
         {
           "GET": "API_BASE/callbacks/",
-          "explanation": "Gets all callback information",
-          "cli": "curl http://localhostAPI_BASE/callbacks/"
+          "explanation": "Gets all callback information for the current operation",
+          "cli": "curl http://localhostAPI_BASE/callbacks/",
+          "output": "[{\"active\":true,\"integrity_level\":2,\"init_callback\":\"10\/27\/2018 20:25:35\",\"last_checkin\":\"10\/27\/2018 23:19:35\",\"id\":15,\"user\":\"cody\",\"host\":\"codys-mbp\",\"pid\":70235,\"ip\":\"192.168.0.6\",\"description\":\"apfell_admin on 14 using spawn shell_api oneliner\",\"operator\":\"apfell_admin\",\"pcallback\":14,\"registered_payload\":\"07428d4bde02c69f1df0f7886b01e17dde759adfb94fd9c1d5641787bcb2ec4f\",\"payload_type\":\"apfell-jxa\",\"operation\":\"default\",\"encryption_type\":null}]"
         },
         {
           "POST": "API_BASE/callbacks/",
@@ -74,7 +315,7 @@
             },
             {
               "name": "ip",
-              "description": "The local IP of the machine we're operating on.",
+              "description": "The local IP of the machine we're operating on as a string.",
               "requirements": "This is required."
             },
             {
@@ -86,18 +327,35 @@
               "name": "uuid",
               "description": "This is the uuid of the payload which created this callback.",
               "requirements": "This is always required since this tells us a bit more information about the payload and helps track it."
+            },
+            {
+              "name": "encryption_type",
+              "description": "the type of encryption being used to secure the comms of this callback. This is typically set by the c2 profile that sits in the middle of these RESTful requests",
+              "requirements": "This is an optional parameter, but just takes a string and should be meaningful to the associated c2 profile"
+            },
+            {
+              "name": "decryption_key",
+              "description": "base64 encoded key used to decrypt the messages for this callback",
+              "requirements": "This is required if there is an encryption_type and encryption_key"
+            },
+            {
+              "name": "encryption_key",
+              "description": "base64 encoded key used to encrypt the messages for this callback",
+              "requirements": "This is required if there is an encryption_type and decryption_key"
             }
-          ]
+          ],
+          "output": "A JSON blob indicating a 'status' of success or error and either an error message of the JSON blob of this callback's information"
         },
         {
           "GET": "API_BASE/callbacks/(id:INTEGER)",
           "explanation": "Get the callback information for a single callback identified by the specific ID.",
-          "cli": "curl http://localhostAPI_BASE/callbacks/1"
+          "cli": "curl http://localhostAPI_BASE/callbacks/1",
+          "output": "{\"active\":true,\"integrity_level\":2,\"init_callback\":\"10\/27\/2018 20:25:35\",\"last_checkin\":\"10\/27\/2018 23:19:35\",\"id\":15,\"user\":\"cody\",\"host\":\"codys-mbp\",\"pid\":70235,\"ip\":\"192.168.0.6\",\"description\":\"apfell_admin on 14 using spawn shell_api oneliner\",\"operator\":\"apfell_admin\",\"pcallback\":14,\"registered_payload\":\"07428d4bde02c69f1df0f7886b01e17dde759adfb94fd9c1d5641787bcb2ec4f\",\"payload_type\":\"apfell-jxa\",\"operation\":\"default\",\"encryption_type\":null}"
         },
         {
           "PUT": "API_BASE/callbacks/(id:INTEGER)",
           "explanation": "Update some of the callback information",
-          "cli": "curl -X PUT '{\"description\":\"long-term callback\"}' http://localhostAPI_BASE/callbacks/1",
+          "cli": "curl -X PUT -d '{\"description\":\"long-term callback\"}' http://localhostAPI_BASE/callbacks/1",
           "parameters":[
             {
               "name":"description",
@@ -105,16 +363,153 @@
               "requirements": "This is optional and defaults to an empty string."
             },
             {
-              "name":"operator",
-              "description": "Update the operator that created or spawned a specific callback",
-              "requirements": "Optional parameter, but encouraged if it can't be inferred"
+              "name": "active",
+              "description": "Mark this callback as no longer active, but don't delete it from the database. This can typically happen when you 'remove' the callback from the UI but not exit necessarily",
+              "requirements": "This is an optional parameter"
+            },
+            {
+              "name": "encryption_type",
+              "description": "the type of encryption being used to secure the comms of this callback. This is typically set by the c2 profile that sits in the middle of these RESTful requests",
+              "requirements": "This is an optional parameter, but just takes a string and should be meaningful to the associated c2 profile"
+            },
+            {
+              "name": "decryption_key",
+              "description": "base64 encoded key used to decrypt the messages for this callback",
+              "requirements": "This is required if there is an encryption_type and encryption_key"
+            },
+            {
+              "name": "encryption_key",
+              "description": "base64 encoded key used to encrypt the messages for this callback",
+              "requirements": "This is required if there is an encryption_type and decryption_key"
             }
-          ]
+          ],
+          "output": "A JSON blob indicating success/failure in a 'status' key and either an error message or a JSON representation of the updated callback object"
         },
         {
           "DELETE": "API_BASE/callbacks/(id:INTEGER)",
           "explanation": "Mark a specific callback as no longer active. It'll stay in the database for reporting, but will be removed from user interaction",
-          "cli": "curl -X DELETE http://localhostAPI_BASE/callbacks/1"
+          "cli": "curl -X DELETE http://localhostAPI_BASE/callbacks/1",
+          "output": "A JSON 'status' message and potentially a JSON representation of the callback that was just marked inactive"
+        },
+        {
+          "GET": "API_BASE/callbacks/(id:INTEGER)/keys",
+          "explanation": "Get the encryption information associated with the specified callback in the user's current operation",
+          "cli": "curl http://localhostAPI_BASE/callbacks/1/keys",
+          "output": "{\"status\": \"success\", \"encryption_type\": \"xor\", \"decryption_key\": \"mysecretkey\",\"encryption_key\": \"mysecretkey\"}"
+        }
+      ]
+    },
+    {
+      "name": "Command",
+      "api": [
+        {
+          "GET": "API_BASE/commands/",
+          "explanation": "Get all of the command metadata for all commands registered across all payload types",
+          "cli": "curl http://localhostAPI_BASE/commands/",
+          "output": "[{\"needs_admin\":false,\"help_cmd\":\"shell {command}\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":1017,\"description\":\"This runs {command} in a terminal by leveraging JXA's Application.doShellScript({command})\",\"cmd\":\"shell\",\"payload_type\":\"apfell-jxa\",\"operator\":\"apfell_admin\"}...]"
+        },
+        {
+          "GET": "API_BASE/commands/(ptype:STRING)/(cmd:STRING)",
+          "explanation": "Get all of the information about a specific command for a specific payload (this includes getting the code if the correct file exists)",
+          "cli": "curl http://localhostAPI_BASE/commands/apfell-jxa/shell",
+          "output": "If the file with code exists, there will be a 'code' key with the base64 encoded code. If the command is registered in the database, a JSON blob of that information will be returned as well"
+        },
+        {
+          "DELETE": "API_BASE/commands/(id:INTEGER)",
+          "explanation": "Deletes the identified command from the database and recursively deletes the associated mappings",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/commands/2",
+          "output": "Returns the JSON blob of the command that was deleted or an error code"
+        },
+        {
+          "GET": "API_BASE/commands/(id:INTEGER)/code/(resp_type:STRING)",
+          "explanation": "Returns the code associated with the specified command either as a file or a base64 encoded blob. If resp_type is \"file\" it'll be a file, otherwise it'll be the base64 encoded blob",
+          "cli": "curl http://localhostAPI_BASE/commands/2/code/file",
+          "output": "A file stream of the code associated with a command or a base64 encoded blob (no JSON)"
+        },
+        {
+          "PUT": "API_BASE/commands/(id:INTEGER)",
+          "explanation": "Update the information for the associated command",
+          "cli": "curl -X PUT -d '{\"description\":\"Just updating the description here\"}' http://localhostAPI_BASE/commands/1",
+          "output": "A JSON representation of the updated command (not including the code)",
+          "parameters": [
+            {
+              "name": "description",
+              "description": "A description of what the command is and how it works",
+              "requirements": "This isn't a required parameter"
+            },
+            {
+              "name": "needs_admin",
+              "description": "T/F indicates if the command needs to be elevated to work",
+              "requirements": "This is a requirement when creating a command, but not when updating"
+            },
+            {
+              "name": "help_cmd",
+              "description": "CLI help description for the command",
+              "requirements": "Not required, but highly encouraged especially during command creation"
+            },
+            {
+              "name": "code",
+              "description": "The code that will be associated with the command as a file on disk",
+              "requirements": "This is passed in as a base64 encoded blob. It isn't required on update."
+            }
+          ]
+        },
+        {
+          "POST": "API_BASE/commands",
+          "explanation": "Register a new command in the database. This must happen before it can be used via the CLI",
+          "cli": "curl -X POST -d '{{\"needs_admin\":false,\"help_cmd\":\"shell {command}\",\"description\":\"This runs {command} in a terminal by leveraging JXA's Application.doShellScript({command})\",\"cmd\":\"shell\",\"payload_type\":\"apfell-jxa\",\"code\":\"Base64_blob_here\"}' http://localhostAPI_BASE/commands",
+          "output": "A 'status' message and if successful, a JSON representation of the data stored for the command (does not include the code)",
+          "parameters": [
+            {
+              "name": "needs_admin",
+              "description": "T/F of if the command needs elevated permissions to execute",
+              "requirements": "This is a required parameter"
+            },
+            {
+              "name": "help_cmd",
+              "description": "CLI Help for how to run the command and what arguments it takes",
+              "requirements": "This is a required field"
+            },
+            {
+              "name": "description",
+              "description": "Description of how the command works",
+              "requirements": "This is a required field"
+            },
+            {
+              "name": "cmd",
+              "description": "The one word that indicates this command",
+              "requirements": "This MUST be a single word (no spaces) and must be unique within a payload type"
+            },
+            {
+              "name": "payload_type",
+              "description": "The payload type that this command is associated with",
+              "requirements": "This must be specified and must correspond to an already registered payload type"
+            },
+            {
+              "name": "code",
+              "description": "This is the code that will be used for this command",
+              "requirements": "This must be a base64 encoded blob"
+            }
+          ]
+        },
+        {
+          "GET": "API_BASE/commands/(ptype:STRING)/export",
+          "explanation": "Export a JSON representation of all the registered commands for a specific payload type so that they can be imported later if needed",
+          "cli": "curl http://localhostAPI_BASE/commands/apfell-jxa/export",
+          "output": "A JSON blob indicating the payload type and all of the command information (not including code) that can be used as an import later"
+        },
+        {
+          "POST": "API_BASE/commands/import",
+          "explanation": "Import a set of commands at once to be registered (not including code)",
+          "cli": "curl -X POST -d '{}' http://localhostAPI_BASE/commands/import",
+          "output": "Returns a list of potential errors for each command it tried to import in a JSON blob",
+          "parameters": [
+            {
+              "name": "",
+              "description": "Just send in exactly what you get back from exporting",
+              "requirements": "This is a required parameter"
+            }
+          ]
         }
       ]
     },
@@ -217,34 +612,129 @@
       ]
     },
     {
-      "name": "Attack",
+      "name": "File",
       "api": [
         {
-          "GET": "API_BASE/attacks/host_file",
-          "explanation": "Gets all of the additional servers ever created/stopped during a single run of Apfell",
-          "cli": "curl http://localhostAPI_BASE/attacks/host_file"
+          "GET": "API_BASE/files",
+          "explanation": "Get information about all the files registered for all the operations you're part of.",
+          "cli": "curl http://localhostAPI_BASE/files",
+          "output": "[{\"chunks_received\":4,\"complete\":true,\"timestamp\":\"10\/27\/2018 19:53:40\",\"id\":42,\"total_chunks\":4,\"task\":104,\"cmd\":\"screencapture\",\"path\":\"\/home\/its-a-feature\/Apfell\/app\/files\/default\/downloads\/codys-mbp\/201819:53:33\",\"operation\":\"default\"}]"
         },
         {
-          "POST": "API_BASE/attacks/host_file",
-          "explanation": "Create a new subprocess to host files that can be used via download cradles",
-          "cli": "curl -X POST '{\"port\":8080, \"directory\":\"/tmp\"}' http://localhostAPI_BASE/attacks/host_file",
-          "parameters":[
+          "GET": "API_BASE/files/(id:INTEGER)",
+          "explanation": "Get the contents of a specific file indicated by id. Currently, this isn't locked behind a login requirement because it needs to be accessed by callbacks for uploading a file to the remote computer. This might change in the future.",
+          "cli": "curl http://localhostAPI_BASE/files/1",
+          "output": "raw base64 encoded contents of the file"
+        },
+        {
+          "POST": "API_BASE/files",
+          "explanation": "Register the initial file meta data so we know how to handle the contents of the file when they come in",
+          "cli": "curl -X POST -d '{\"total_chunks\": 3, \"task\": 15}' http://localhostAPI_BASE/files",
+          "output": "{\"chunks_received\": 0, \"complete\": false, \"timestamp\": \"10/27/2018 19:53:40\", \"total_chunks\": 4, \"task\": 104, \"cmd\": \"screencapture\", \"operation\": \"default\", \"path\": \"/home/its-a-feature/Apfell/app/files/default/downloads/codys-mbp/201819:53:33\", \"id\": 42}",
+          "parameters": [
             {
-              "name": "port",
-              "description": "The port to bind to for a python web server",
-              "requirements": "Integer for the port that currently isn't in use and the user has access to bind to"
+              "name": "total_chunks",
+              "description": "The total number of chunks we can expect to get, this is based on chunk size in the agent",
+              "requirements": "This is a required field so we know when we're done"
             },
             {
-              "name": "directory",
-              "description": "The directory that will be served up by the web server",
-              "requirements": "The directory must exist and should be identified by a full path"
+              "name": "task",
+              "description": "The task that caused this file to be created",
+              "requirements": "This is a required field and is identified by task number"
             }
           ]
         },
         {
-          "DELETE": "API_BASE/attacks/host_file/(port:INTEGER)",
-          "explanation": "Find and stop the subprocess identified by a port that is serving up a web server",
-          "cli": "curl -X DELETE http://localhostAPI_BASE/attacks/host_file/8080"
+          "POST": "API_BASE/files/(id:INTEGER)",
+          "explanation": "Post chunk of a file to disk after the meta data object has already been created",
+          "cli": "curl -X POST -d '{\"chunk_num\": 2, \"chunk_data\": \"base64 encoded blob\"}' http://localhostAPI_BASE/files/4",
+          "output": "{\"status\": \"success\", \"chunk\": 2}",
+          "parameters": [
+            {
+              "name": "chunk_num",
+              "description": "The chunk number this corresponds to",
+              "requirements": "This is a required field"
+            },
+            {
+              "name": "chunk_data",
+              "description": "The base64 encoded blob that we will decode and write to disk",
+              "requirements": "This is a required field"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Operation",
+      "api": [
+        {
+          "GET": "API_BASE/operations",
+          "explanation": "Get information about all of the operations that you're a member of or are leading",
+          "cli": "curl http://localhostAPI_BASE/operations",
+          "output": "[{\"admin\":\"apfell_admin\",\"members\":[\"apfell_admin\"],\"name\":\"default\",\"complete\":false}]"
+        },
+        {
+          "GET": "API_BASE/operations/(op:STRING)",
+          "explanation": "Get information about a specific operation that you're a member of or are leading",
+          "cli": "curl http://localhostAPI-BASE/operations/default",
+          "output": "[{\"admin\":\"apfell_admin\",\"members\":[\"apfell_admin\"],\"name\":\"default\",\"complete\":false}]"
+        },
+        {
+          "POST": "API_BASE/operations",
+          "explanation": "Create a new operation",
+          "cli": "curl -X POST -d '{\"name\":\"unique name\", \"admin\": \"apfell_admin\", \"members\":[\"apfell_admin\", \"bob\"]}' http://localhostAPI_BASE/operations",
+          "output": "{\"status\": \"success\", \"admin\":\"apfell_admin\",\"members\":[\"apfell_admin\", \"bob\"],\"name\":\"unique name\",\"complete\":false}",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the operation",
+              "requirements": "The name must be globally unique"
+            },
+            {
+              "name": "admin",
+              "description": "The name of the operator that will be admin of this operation",
+              "requirements": "This must be a valid user, identified by username"
+            },
+            {
+              "name": "members",
+              "description": "The list of all members of this operation",
+              "requirements": "An array of usernames of valid operators"
+            }
+          ]
+        },
+        {
+          "PUT": "API_BASE/operations/(op:STRING)",
+          "explanation": "Update an operation that is not marked as \"complete\"",
+          "cli": "curl -X PUT -d '{\"admin\":\"apfell_admin\"}' http://localhostAPI_BASE/operations/default",
+          "output": "{\"status\": \"success\", \"operators\":[\"apfell_admin\", \"bob\"], \"admin\":\"apfell_admin\", \"name\":\"unique name\",\"complete\":false}",
+          "parameters": [
+            {
+              "name": "admin ",
+              "description": "The username of the operator that should lead the operation",
+              "requirements": "This is not a requirement, but should be a valid operator's username"
+            },
+            {
+              "name": "add_users",
+              "description": "The list of users to add to the operation",
+              "requirements": "Not a required parameter, but should be a list of valid operator usernames"
+            },
+            {
+              "name": "remove_users",
+              "description": "The list of users to be removed from the operation",
+              "requirements": "Not a required paramter, but should be a list of valid operator usernames"
+            },
+            {
+              "name": "complete",
+              "description": "T/F parameter to indicate if the operation is done or not",
+              "requirements": "Not a requirement, but the boolean value if it should change"
+            }
+          ]
+        },
+        {
+          "DELETE": "API_BASE/operations/(op:STRING)",
+          "explanation": "Delete an operation from the database and recursively delete all the objects that depend on it. It is recommended to instead mark an operate as complete so that all of the data stays in the database.",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/operations/default",
+          "output": "The JSON for the operation that was just deleted"
         }
       ]
     },
@@ -254,17 +744,20 @@
         {
           "GET": "API_BASE/database/clear_entries",
           "explanation": "Clears everything except for operations from the database",
-          "cli": "curl http://localhostAPI_BASE/database/clear_entries"
+          "cli": "curl http://localhostAPI_BASE/database/clear_entries",
+          "output": ""
         },
         {
           "GET": "API_BASE/database/clear_operators",
           "explanation": "Clears operators from the database",
-          "cli": "curl http://localhostAPI_BASE/database/clear_operators"
+          "cli": "curl http://localhostAPI_BASE/database/clear_operators",
+          "output": ""
         },
         {
           "GET": "API_BASE/database/clear_all_files",
           "explanation": "Clears all extra payload files created during operations in the \"payloads/operations\" folder",
-          "cli": "curl http://localhostAPI_BASE/database/clear_all_files"
+          "cli": "curl http://localhostAPI_BASE/database/clear_all_files",
+          "output": ""
         }
       ]
     },
@@ -375,34 +868,6 @@
             }
           ]
         }
-      ]
-    },
-    {
-      "name": "Analytic",
-      "api": [
-        {
-          "GET": "API_BASE/analytics/callback_tree",
-          "explanation": "Gets a tree format visualization of the callbacks in your database (active only)",
-          "cli": "curl http://localhostAPI_BASE/analytics/callback_tree"
-        },
-	{
-	  "POST": "API_BASE/analytics/callback_tree",
-	  "explanation": "Gets a tree format visualization of the callbacks in your database. This POST version allows you to specify different parameters to customize the output a bit.",
-	  "cli": "curl -X POST -d '{\"invactive\":True, \"strikethrough\":True}' http://localhostAPI_BASE/analytics/callback_tree",
-	  "parameters":
-	  [
-	    {
-	      "name": "inactive",
-	      "description": "Specifies if we should include inactive callbacks in the analytic",
-	      "requirements": "This should be either True or False. If it's not specified, the default is False"
-	    },
-	    {
-	      "name": "strikethrough",
-	      "description": "If we are showing inactive callbacks, should we indicate inactive ones by putting a line through them so it's easier to see",
-	      "requirements": "This should be either True or False. If it's not specified, thet default is False (no strikethrough on inactive callbacks)"
-  	    }
-	  ]
-	}
       ]
     }
   ]

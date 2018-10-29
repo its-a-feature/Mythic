@@ -121,12 +121,6 @@ async def update_operation(request, user, op):
         data = request.json
         operation = await db_objects.get(Operation, name=op)
         if not operation.complete:
-            if 'name' in data:
-                try:
-                    operation.name = data['name']
-                    await db_objects.update(operation)
-                except Exception as e:
-                    return json({'status': 'error', 'error': 'failed to update operation name. Is it unique?'})
             if 'admin' in data:
                 try:
                     new_admin = await db_objects.get(Operator, username=data['admin'])
@@ -157,7 +151,7 @@ async def update_operation(request, user, op):
             if 'complete' in data:
                 operation.complete = data['complete']
                 await db_objects.update(operation)
-            return json({'status': 'success', 'operators': all_users, **operation.to_json(), 'old_name': op})
+            return json({'status': 'success', 'operators': all_users, **operation.to_json()})
         else:
             return json({'status': 'error', 'error': 'operation is complete and cannot be modified'})
     else:

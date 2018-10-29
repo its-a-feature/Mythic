@@ -54,6 +54,8 @@ async def create_filemeta_in_database_func(data):
         print(e)
         return {'status': 'error', 'error': "failed to find task"}
     try:
+        if task.command.cmd not in ["download", "upload", "screencapture"]:
+            return {'status': 'error', 'error': "that task wouldn't result in a file being created"}
         filename = os.path.split(task.params)[1]
         save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, task.callback.host, filename))
         count = 1

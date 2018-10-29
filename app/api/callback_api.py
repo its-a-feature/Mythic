@@ -118,11 +118,14 @@ async def update_callback(request, id, user):
 async def remove_callback(request, id, user):
     try:
         cal = await db_objects.get(Callback, id=id)
-        cal.active = False
-        await db_objects.update(cal)
-        success = {'status': 'success'}
-        deleted_cal = cal.to_json()
-        return json({**success, **deleted_cal})
+        if user['admin'] or cal.operation.name in user['operations']:
+            cal.active = False
+            await db_objects.update(cal)
+            success = {'status': 'success'}
+            deleted_cal = cal.to_json()
+            return json({**success, **deleted_cal})
+        else:
+            return json({'status': 'error', 'error': 'must be an admin or part of that operation to mark it as no longer active'})
     except:
         return json({'status': 'error', 'error': "failed to delete callback"})
 
@@ -157,7 +160,8 @@ async def update_active_callbacks(request, user):
 @protected()
 async def get_callback_keys(request, user, id):
     try:
-        callback = await db_objects.get(Callback, id=id)
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        callback = await db_objects.get(Callback, id=id, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find callback'})
