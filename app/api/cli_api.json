@@ -523,7 +523,8 @@
         {
           "GET": "API_BASE/operators/",
           "explanation": "Gets all operators",
-          "cli": "curl http://localhostAPI_BASE/operators/"
+          "cli": "curl http://localhostAPI_BASE/operators/",
+          "output": "[{\"admin\":true,\"active\":true,\"creation_time\":\"10\/25\/2018 17:34:27\",\"id\":1,\"username\":\"apfell_admin\",\"last_login\":\"10\/27\/2018 23:01:08\",\"current_operation\":\"default\"}]"
         },
         {
           "POST": "API_BASE/operators/",
@@ -540,17 +541,19 @@
               "description": "This is the password used by the operator to sign into Apfell. It is hashed before being stored in the database.",
               "requirements": "It must be non-zero in length."
             }
-          ]
+          ],
+          "output": "{\"status\": \"success\", \"admin\":false,\"active\":true,\"creation_time\":\"10\/25\/2018 17:34:27\",\"id\":1,\"username\":\"bob\",\"last_login\":\"10\/27\/2018 23:01:08\",\"current_operation\":\"\"}"
         },
         {
-          "GET": "API_BASE/operators/(id:INTEGER)",
+          "GET": "API_BASE/operators/(name:STRING)",
           "explanation": "Gets the information about a single operator by their id number. In the future this might change to use the operator's username instead.",
-          "cli": "curl http://localhostAPI_BASE/operators/1"
+          "cli": "curl http://localhostAPI_BASE/operators/apfell_admin",
+          "output": "{\"admin\":true,\"active\":true,\"creation_time\":\"10\/25\/2018 17:34:27\",\"id\":1,\"username\":\"apfell_admin\",\"last_login\":\"10\/27\/2018 23:01:08\",\"current_operation\":\"default\"}"
         },
         {
-          "PUT": "API_BASE/operators/(id:INTEGER)",
-          "explanation": "This updates the password and/or username for the identified operator.",
-          "cli": "curl -X PUT -d '{\"password\":\"NewP@55w0rd\"}' http://localhostAPI_BASE/operators/1",
+          "PUT": "API_BASE/operators/(name:STRING)",
+          "explanation": "This updates the password and/or username for the identified operator. Only that user or a user marked as a global \"admin\" can do this. You also can't change apfell_admin's name",
+          "cli": "curl -X PUT -d '{\"password\":\"NewP@55w0rd\"}' http://localhostAPI_BASE/operators/apfell_admin",
           "parameters":[
             {
               "name": "username",
@@ -561,13 +564,30 @@
               "name": "password",
               "description": "new password for the operator identified by the ID in the url.",
               "requirements": "Optional parameter."
+            },
+            {
+              "name": "admin",
+              "description": "Change the status of the user, T/F, to be a global admin or not. This can only be changed by somebody that already is admin",
+              "requirements": "Can only be changed by a current global admin, should be True or False"
+            },
+            {
+              "name": "active",
+              "description": "Deactivate or Reactivate an account without having to delete it and break a bunch of things.",
+              "requirements": "True or False on if you want the account to be active or not."
+            },
+            {
+              "name": "current_operation",
+              "description": "Set the user's current operation to this value. The user must already be added to this operation for this to work.",
+              "requirements": "The user must already be added to this operation for this to work. Just supply the operation's name"
             }
-          ]
+          ],
+          "output": "{\"admin\":true,\"active\":true,\"creation_time\":\"10\/25\/2018 17:34:27\",\"id\":1,\"username\":\"apfell_admin\",\"last_login\":\"10\/27\/2018 23:01:08\",\"current_operation\":\"default\"}"
         },
         {
-          "DELETE": "API_BASE/operators/(id:INTEGER)",
-          "explanation": "Delete the identified operator from the system",
-          "cli": "curl -X DELETE http://localhostAPI_BASE/operators/1"
+          "DELETE": "API_BASE/operators/(name:STRING)",
+          "explanation": "Delete the identified operator from the system. Only you or an admin can delete your account.",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/operators/bob",
+          "output": "{\"status\": \"success\", \"username\": \"bob\"}"
         }
       ]
     },

@@ -32,9 +32,9 @@ async def create_operator(request, user):
     # we need to create a new user
     try:
         user = await db_objects.create(Operator, username=data['username'], password=password, admin=admin)
-        default_operation = await db_objects.get(Operation, name="default")
+        # default_operation = await db_objects.get(Operation, name="default")
         # now add the new user to the default operation
-        await db_objects.create(OperatorOperation, operator=user, operation=default_operation)
+        # await db_objects.create(OperatorOperation, operator=user, operation=default_operation)
         success = {'status': 'success'}
         new_user = user.to_json()
         return response.json({**success, **new_user}, status=201)
@@ -67,15 +67,10 @@ async def update_operator(request, name, user):
     try:
         op = await db_objects.get(Operator, username=name)
         data = request.json
-        if 'old_password' not in data and 'password' in data:
-            return json({'status': 'error', 'error': 'cannot set a new password without verifying original password'})
         if 'username' in data and data['username'] is not "apfell_admin":  # TODO right now hard-coded to not change this username
             op.username = data['username']
         if 'password' in data:
-            # first verify old_password matches
-            old_password = await crypto.hash_SHA512(data['old_password'])
-            if old_password.lower() == op.password.lower() or user['admin']:
-                op.password = await crypto.hash_SHA512(data['password'])
+            op.password = await crypto.hash_SHA512(data['password'])
         if 'admin' in data and user['admin']:  # only a current admin can make somebody an admin
             op.admin = data['admin']
         if 'active' in data:  # this way you can deactivate accounts without deleting them
@@ -106,7 +101,7 @@ async def remove_operator(request, name, user):
         return json({'status': 'error', 'error': 'failed to find operator'})
     try:
         updated_operator = {'username': str(op.username)}
-        await db_objects.delete(op)
+        await db_objects.delete(op, recursive=True)
         success = {'status': 'success'}
         return json({**success, **updated_operator})
     except Exception as e:
