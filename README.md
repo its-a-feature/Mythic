@@ -4,6 +4,7 @@ A macOS, post-exploit, red teaming framework built with python3 and JavaScript. 
 ## Details
 Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bones-apfell-server-code-release/) on the initial release of the framework and what the bare bones content can do.
 
+Note: The back-end is for Python 3.5 and 3.6. It looks like Python 3.7 has some issues with the other libraries used in this project. I'm working on adjusting those versions so it works with 3.7 as well.
 ## Installation
 
 - Get the code from this github:
