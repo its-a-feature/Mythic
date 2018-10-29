@@ -18,10 +18,12 @@ All of these APIs are subject to change in future versions.
                     GET {{option.GET}}
                     <dd><b>Explanation:</b> {{ option.explanation}}</dd>
                     <dd><b>CLI example:</b> {{option.cli}} </dd>
+                    <dd><b>Output Sample:</b> {{option.output}}</dd>
                 {% elif option.DELETE %}
                     DELETE {{option.DELETE}}
                     <dd><b>Explanation:</b> {{ option.explanation}}</dd>
                     <dd><b>CLI example:</b> {{option.cli}} </dd>
+                    <dd><b>Output Sample:</b> {{option.output}}</dd>
                 {% else %}
                     {% if option.POST %}
                         POST {{option.POST}}
@@ -30,6 +32,7 @@ All of these APIs are subject to change in future versions.
                     {% endif %}
                     <dd><b>Explanation:</b> {{option.explanation}}</dd>
                     <dd><b>CLI example:</b> {{option.cli}}</dd>
+                    <dd><b>Output Sample:</b> {{option.output}}</dd>
                     <dd>Parameters:<ul>
                         {% for param in option.parameters %}
                             <li><b>Name:</b> {{param.name}}</li>

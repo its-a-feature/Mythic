@@ -18,17 +18,20 @@
               "description": "The corresponding plain-text password for the specified user",
               "requirements": "This is a required field"
             }
-          ]
+          ],
+          "output": ""
         },
         {
           "GET": "/me",
           "explanation": "Get information about yourself based on the JWT you provide",
-          "cli": "curl -H \"Authorization: Bearer JWT_HERE\" http://localhost/me"
+          "cli": "curl -H \"Authorization: Bearer JWT_HERE\" http://localhost/me",
+          "output": ""
         },
         {
           "GET": "/verify",
           "explanation": "Verify that the provided JWT is valid",
-          "cli": "curl -H \"Authorization: Bearer JWT_HERE\" http://localhost/verify"
+          "cli": "curl -H \"Authorization: Bearer JWT_HERE\" http://localhost/verify",
+          "output": ""
         },
         {
           "POST": "/refresh",
@@ -40,7 +43,8 @@
               "description": "The refresh token provided when you did the initial authentication to /auth",
               "requirements": "This is a required field. You must also provide your authorization token in the Header as indicated, or you'll fail to get a new token"
             }
-          ]
+          ],
+          "output": ""
         }
       ]
     },
