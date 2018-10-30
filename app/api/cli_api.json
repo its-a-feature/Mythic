@@ -982,7 +982,7 @@
           "DELETE": "API_BASE/payloadtypes/(ptype:STRING)/(fromDisk:INTEGER)",
           "explanation": "Delete a payloadtype from the database and optionally from the disk if \"fromDisk\" is 1",
           "cli": "curl -X DELETE http://localhostAPI_BASE/apfell-macho/1",
-          "output": "{\"status\": \"success\", \"compile_command\":\"\",\"wrapper\":false,\"wrapped_encoding_type\":\"\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":45,\"ptype\":\"apfell-macho\",\"operator\":\"apfell_admin\",\"file_extension\":\"\",\"wrapped_payload_type\":\"null\"}",
+          "output": "{\"status\": \"success\", \"compile_command\":\"\",\"wrapper\":false,\"wrapped_encoding_type\":\"\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":45,\"ptype\":\"apfell-macho\",\"operator\":\"apfell_admin\",\"file_extension\":\"\",\"wrapped_payload_type\":\"null\"}"
         },
         {
           "GET": "API_BASE/payloadtypes/(ptype:STRING)/commands",
