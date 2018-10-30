@@ -1,5 +1,5 @@
 from app import apfell, db_objects
-from sanic.response import json, text
+from sanic.response import json, text, raw
 from app.database_models.model import Operator, Payload, Callback, C2Profile, C2ProfileParameters, C2ProfileParametersInstance, PayloadType, Operation, PayloadCommand, Command
 from app.api.task_api import add_task_to_callback_func
 import pathlib
@@ -15,8 +15,11 @@ import base64
 @inject_user()
 @protected()
 async def get_all_payloads(request, user):
-    payloads = await db_objects.execute(Payload.select())
-    return json([p.to_json() for p in payloads])
+    if user['admin']:
+        payloads = await db_objects.execute(Payload.select())
+        return json([p.to_json() for p in payloads])
+    else:
+        return json({"status": "error", 'error': 'Must be an admin to see all payloads'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/current_operation", methods=['GET'])
@@ -27,6 +30,8 @@ async def get_all_payloads(request, user):
         operation = await db_objects.get(Operation, name=user['current_operation'])
         payloads = await db_objects.execute(Payload.select().where(Payload.operation == operation))
         return json([p.to_json() for p in payloads])
+    else:
+        return json({"status": "error", 'error': 'must be part of a current operation'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/<puuid:string>/<from_disk:int>", methods=['DELETE'])
@@ -115,7 +120,11 @@ async def register_new_payload_func(data, user):
             for cmd in db_commands:
                 await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd])
     else:
-        wrapped_payload = await db_objects.get(Payload, uuid=data['wrapped_payload'])
+        try:
+            wrapped_payload = await db_objects.get(Payload, uuid=data['wrapped_payload'], operation=operation)
+        except Exception as e:
+            print(e)
+            return {'status': 'error', 'error': 'failed to find the wrapped payload specified in our current operation'}
         payload, create = await db_objects.create_or_get(Payload, operator=operator, payload_type=payload_type,
                                                          tag=tag, pcallback=pcallback, location=location, c2_profile=c2_profile,
                                                          uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
@@ -223,7 +232,8 @@ async def create_payload(request, user):
     data['current_operation'] = user['current_operation']
     if 'payload' in data:
         try:
-            old_payload = await db_objects.get(Payload, uuid=data['payload'])
+            operation = await db_objects.get(Operation, name=user['current_operation'])
+            old_payload = await db_objects.get(Payload, uuid=data['payload'], operation=operation)
             db_commands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == old_payload))
             commands = [c.command.cmd for c in db_commands]
             data['payload_type'] = old_payload.payload_type.ptype
@@ -311,7 +321,7 @@ async def get_payload(request, pload):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to open payload'})
-    return text(base_data)  # just return raw data
+    return raw(base_data)  # just return raw data
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/bytype/<ptype:string>", methods=['GET'])

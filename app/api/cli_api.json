@@ -790,107 +790,92 @@
       "api": [
         {
           "GET": "API_BASE/payloads/",
-          "explanation": "Gets all the registered payloads from the database",
-          "cli": "curl http://localhostAPI_BASE/payloads"
+          "explanation": "Gets all the registered payloads from the database if you're a global admin, otherwise returns a status error",
+          "cli": "curl http://localhostAPI_BASE/payloads",
+          "output": "[{\"creation_time\":\"10\/27\/2018 19:52:25\",\"id\":25,\"uuid\":\"811f973316c0737156d3df03f03776a1d505fab9f4d2425b1b860e0b23cc6e4f\",\"tag\":\"spearphish\",\"operator\":\"apfell_admin\",\"payload_type\":\"apfell-jxa\",\"pcallback\":\"null\",\"location\":\"\/home\/its-a-feature\/test.js\",\"c2_profile\":\"default\",\"operation\":\"default\",\"wrapped_payload\":\"null\"},{\"creation_time\":\"10\/27\/2018 20:25:33\",\"id\":26,\"uuid\":\"07428d4bde02c69f1df0f7886b01e17dde759adfb94fd9c1d5641787bcb2ec4f\",\"tag\":\"apfell_admin on 14 using spawn shell_api oneliner\",\"operator\":\"apfell_admin\",\"payload_type\":\"apfell-jxa\",\"pcallback\":14,\"location\":\".\/app\/payloads\/operations\/default\/07428d4bde02c69f1df0f7886b01e17dde759adfb94fd9c1d5641787bcb2ec4f.js\",\"c2_profile\":\"default\",\"operation\":\"default\",\"wrapped_payload\":\"null\"}]"
         },
         {
-          "GET": "API_BASE/payloads/get/<pload:string>",
-          "explanation": "Get the contents of a payload that's registered in the database",
-          "cli": "curl http://localhostAPI_BASE/payloads/get/f4f0da012da81df795e403bdbbbc69db434cc771d60a48eaaaa4f1dfaba888ab"
+          "GET": "API_BASE/payloads/current_operation",
+          "explanation": "Get the payload information for the current operation only",
+          "cli": "curl http://localhostAPI_BASE/payloads/current_operation",
+          "output": "[{\"creation_time\":\"10\/27\/2018 19:52:25\",\"id\":25,\"uuid\":\"811f973316c0737156d3df03f03776a1d505fab9f4d2425b1b860e0b23cc6e4f\",\"tag\":\"spearphish\",\"operator\":\"apfell_admin\",\"payload_type\":\"apfell-jxa\",\"pcallback\":\"null\",\"location\":\"\/home\/its-a-feature\/test.js\",\"c2_profile\":\"default\",\"operation\":\"default\",\"wrapped_payload\":\"null\"},{\"creation_time\":\"10\/27\/2018 20:25:33\",\"id\":26,\"uuid\":\"07428d4bde02c69f1df0f7886b01e17dde759adfb94fd9c1d5641787bcb2ec4f\",\"tag\":\"apfell_admin on 14 using spawn shell_api oneliner\",\"operator\":\"apfell_admin\",\"payload_type\":\"apfell-jxa\",\"pcallback\":14,\"location\":\".\/app\/payloads\/operations\/default\/07428d4bde02c69f1df0f7886b01e17dde759adfb94fd9c1d5641787bcb2ec4f.js\",\"c2_profile\":\"default\",\"operation\":\"default\",\"wrapped_payload\":\"null\"}]"
         },
         {
-          "POST": "API_BASE/payloads/register",
-          "explanation": "Registers a payload to the Apfell system to be tracked",
-          "cli": "curl -X POST '{\"tag\":\"spearphish\",\"operator\":\"alice\",\"payload_type\":\"apfell-jxa\",\"callback_host\":\"192.168.0.119\",\"callback_port\":443,\"callback_interval\":10,\"obfuscation\":False, \"use_ssl\":True, \"location\": \"/home/test/test.js\"}",
-          "parameters":[
+          "DELETE": "API_BASE/payloads/(uuid:STRING)/(fromDisk:INTEGER)",
+          "explanation": "delete the specified payload from the database and optionally from disk if \"fromDisk\" is 1",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/payloads/811f973316c0737156d3df03f03776a1d505fab9f4d2425b1b860e0b23cc6e4f/1",
+          "output": "{\"status\": \"success\", \"creation_time\":\"10\/27\/2018 19:52:25\",\"id\":25,\"uuid\":\"811f973316c0737156d3df03f03776a1d505fab9f4d2425b1b860e0b23cc6e4f\",\"tag\":\"spearphish\",\"operator\":\"apfell_admin\",\"payload_type\":\"apfell-jxa\",\"pcallback\":\"null\",\"location\":\"\/home\/its-a-feature\/test.js\",\"c2_profile\":\"default\",\"operation\":\"default\",\"wrapped_payload\":\"null\"}"
+        },
+        {
+          "POST": "API_BASE/payloads/create",
+          "explanation": "Create a new payload, register it with the database, and write it to disk",
+          "cli": "curl -X POST -d '{\"payload_type\": \"apfell-jxa\", \"c2_profile\": \"default\", \"location\": \"/home/its-a-feature/test.js\", \"tag\": \"spearphishing payload with jxa payloads\", \"c2_profile_parameters\": {\"callback host\": \"http://192.168.205.131\", \"callback interval (in seconds)\": \"5\", \"callback port\": \"80\"}, \"commands\": [\"screencapture\", \"get_config\", \"load\", \"exit\"], \"wrapper\": False}' http://localhostAPI_BASE/payloads/create",
+          "output": "",
+          "parameters": [
             {
-              "name": "tag",
-              "description": "This helps keep track of why a callback is checking in. This value is used to default populate the description field of a callback when it checks in. This way when you get a new callback, you'll know right away that it was your spearphish, crontab persistence, or bob's lateral movement on box a to box b that just called home.",
-              "requirements": "None. If not provided, will default to empty."
+              "name": "payload",
+              "description": "Get most of the data for a new payload from an already generated payload specified by this payload uuid",
+              "requirements": "This is not a required parameter, but if it is, needs to be the uuid of a payload already registered in this operation"
             },
             {
-              "name": "operator",
-              "description": "This is the name of the operator that's registering the payload. This is so we can keep track of who created what payloads.",
-              "requirements": "Must be the username of a valid operator in the system."
+              "name": "tag",
+              "description": "A description of this payload that can be used to auto populate the description field of a callback. A way to identify this payload compared to others you generate",
+              "requirements": "This is an optional parameter"
             },
             {
               "name": "payload_type",
-              "description": "This describes the payload. Right now the only option is \"apfell-jxa\", but that will change in the future.",
-              "requirements": "This must be a valid potential payload type."
+              "description": "The name of the payload type that this payload is based off of",
+              "requirements": "This is a required parameter"
             },
             {
-              "name": "callback_host",
-              "description": "The IP or hostname where the payload should call back to.",
-              "requirements": "This can be an IP address or a DNS hostname."
-            },
-            {
-              "name": "callback_port",
-              "description": "This is the matching port on the callback_host to make the callbacks to.",
-              "requirements": "This needs to be a valid port number"
-            },
-            {
-              "name": "callback_interval",
-              "description": "This is how frequently the host should check for additional tasking in seconds.",
-              "requirements": "This needs to be a positive integer."
-            },
-            {
-              "name": "obfuscation",
-              "description": "This indicates if the payload is obfuscated in some way. This isn't implemented yet, but will eventually.",
-              "requirements": "Boolean value of if the payload is obfuscation, right now this will always be False."
-            },
-            {
-              "name": "use_ssl",
-              "description": "This is a boolean value indicating if the callback_host:callback_port requires SSL or not. This comes into play for if we need to do http or https.",
-              "requirements": "Boolean value if we need to use SSL or not (i.e. HTTP or HTTPS)."
-            },
-            {
-              "name": "location",
-              "description": "This is the exact location of where the payload lives on disk.",
-              "requirements": "path to the payload on the system where this server is running. If a location isn't provided, it will default to \"payloads/operations/[operation_name]/uuid.extension\". Since I haven't implemented the operations classifier yet, operation_name will default to default."
+              "name": "c2_profile",
+              "description": "The name of the c2 profile that this payload uses",
+              "requirements": "This is a required parameter"
             },
             {
               "name": "pcallback",
-              "description": "This indicates the parent callback that is registering this payload. We use this to track which callbacks (and operators) created which payloads and for which reasons.",
-              "requirements": "This is either not specified or needs to be the ID of a callback"
+              "description": "The parent callback that's causing this payload to be generated. This allows us to do higher level tracking of which callbacks spawn new callbacks.",
+              "requirements": "This is an optional parameter, but this is the ID of the callback that's spawning this payload"
+            },
+            {
+              "name": "commands",
+              "description": "If the payload type isn't a \"wrapper\" for another payload, then we need to specify the commands that will get stamped into this payload.",
+              "requirements": "This is optional (maybe you don't want any functionality in your payload?), but if you do specify it, it should be a list of command names that are registered with the payload_type you're creating"
+            },
+            {
+              "name": "location",
+              "description": "the location on the apfell server where you want the output to be saved. If you don't specify this, it is saved automatically in your payloads/operation name folder with its name being the generated UUID of the payload",
+              "requirements": "This is an optional parameter, but is much easier to locate and leverage if you give it a location and name"
+            },
+            {
+              "name": "c2_profile_parameters",
+              "description": "This is the name:value pair for all of the c2 profile parameters that will be used during payload creation",
+              "requirements": "This is specified as {\"c2_profile_parameters\": {\"param name\": \"param value\", \"param2 name\", \"param2 value\"}}. You must include something for each parameter, even if it's just an empty string"
+            },
+            {
+              "name": "wrapped_payload",
+              "description": "This is the UUID of the already created payload that we will wrap in our new payload if our payload type is a wrapper",
+              "requirements": "This is the UUID of a payload already created of the correct type specified by the payload_type and in the same operation as our current one"
             }
           ]
         },
         {
-          "POST": "API_BASE/payloads/create-jxa",
-          "explanation": "automatically create a payload, register the payload, and even task a callback to spawn the payload. If \"payload\" isn't specified, then you will need to include \"payload_type\", \"callback_host\", \"callback_port\", \"callback_interval\", \"obfuscation\", \"use_ssl\", and \"location\" here as well. See the \"API_BASE/payloads/register\" API for requirements on these other parameters.",
-          "cli": "curl -X POST '{\"payload\":\"uuid\",\"tag\":\"something\",\"pcallback\":3,\"task\":\"True\",\"operator\":\"alice\",\"command\":\"spawn shell_api oneliner\"",
-          "parameters":[
-            {
-              "name": "payload",
-              "description": "As a shortcut to creating a new payload, there's the option to specify a current payload's UUID. We will then copy the values from that payload for the new payload.",
-              "requirements": "If present, it must be a valid UUID for a registered payload."
-            },
-            {
-              "name": "tag",
-              "description": "This helps keep track of why a callback is checking in. This value is used to default populate the description field of a callback when it checks in. This way when you get a new callback, you'll know right away that it was your spearphish, crontab persistence, or bob's lateral movement on box a to box b that just called home.",
-              "requirements": "None. If not provided, will default to empty."
-            },
-            {
-              "name": "pcallback",
-              "description": "This indicates the parent callback that is registering this payload. We use this to track which callbacks (and operators) created which payloads and for which reasons.",
-              "requirements": "This is either not specified or needs to be the ID of a callback"
-            },
-            {
-              "name": "task",
-              "description": "This indicates if we are going to task the \"pcallback\" callback to do something after we created this payload, registered it, and linked them together.",
-              "requirements": "If present, this is a boolean value."
-            },
-            {
-              "name": "operator",
-              "description": "This is the name of the operator that's registering the payload. This is so we can keep track of who created what payloads.",
-              "requirements": "Must be the username of a valid operator in the system."
-            },
-            {
-              "name": "command",
-              "description": "The command to execute on \"pcallback\" after we created and registered a new payload. The common scenario for this is to then execute the new payload we created so we get a new callback that is linked to the \"pcallback\" callback",
-              "requirements": "This command must be present if the \"task\" parameter is \"True\". This can be any valid command to execute, most commonly will be \"spawn shell_api oneliner\""
-            }
-          ]
+          "GET": "API_BASE/payloads/get/<pload:string>",
+          "explanation": "Get the contents of a payload that's registered in the database and return it as raw output",
+          "cli": "curl http://localhostAPI_BASE/payloads/get/f4f0da012da81df795e403bdbbbc69db434cc771d60a48eaaaa4f1dfaba888ab",
+          "output": "<just the raw apfell-jxa payload here>"
+        },
+        {
+          "GET": "API_BASE/payloads/bytype/(ptype:STRING)",
+          "explanation": "Get all of the already created payloads for the current operation by their type. This is helpful for when you need a list of payloads to select for a new wrapper payload",
+          "cli": "curl http://localhostAPI_BASE/payloads/bytype/apfell-jxa",
+          "output": "{\"status\": \"success\", \"payloads\": [\"creation_time\":\"10\/27\/2018 19:52:25\",\"id\":25,\"uuid\":\"811f973316c0737156d3df03f03776a1d505fab9f4d2425b1b860e0b23cc6e4f\",\"tag\":\"spearphish\",\"operator\":\"apfell_admin\",\"payload_type\":\"apfell-jxa\",\"pcallback\":\"null\",\"location\":\"\/home\/its-a-feature\/test.js\",\"c2_profile\":\"default\",\"operation\":\"default\",\"wrapped_payload\":\"null\"]}"
+        },
+        {
+          "GET": "API_BASE/payloads/(uuid:STRING)",
+          "explanation": "Gets the metadata about a specific payload identified by the UUID. This also includes what commands were initially bundled with it when the payload was created.",
+          "cli": "curl http://localhostAPI_BASE/payloads/811f973316c0737156d3df03f03776a1d505fab9f4d2425b1b860e0b23cc6e4f",
+          "output": "{\"creation_time\":\"10\/27\/2018 19:52:25\",\"id\":25,\"uuid\":\"811f973316c0737156d3df03f03776a1d505fab9f4d2425b1b860e0b23cc6e4f\",\"tag\":\"spearphish\",\"operator\":\"apfell_admin\",\"payload_type\":\"apfell-jxa\",\"pcallback\":\"null\",\"location\":\"\/home\/its-a-feature\/test.js\",\"c2_profile\":\"default\",\"operation\":\"default\",\"wrapped_payload\":\"null\", \"commands\": [\"screencapture\", \"shell\", \"load\", \"exit\"]}"
         }
       ]
     }
