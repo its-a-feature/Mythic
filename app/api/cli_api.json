@@ -991,6 +991,35 @@
           "output": "{\"status\":\"success\",\"commands\":[{\"needs_admin\":false,\"help_cmd\":\"get_config\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":1042,\"description\":\"Gets the current running config via the C2 class\",\"cmd\":\"get_config\",\"payload_type\":\"apfell-jxa\",\"operator\":\"apfell_admin\"},{\"needs_admin\":false,\"help_cmd\":\"load {registered_cmd_name}\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":1041,\"description\":\"This loads a new function into memory via the C2 channel to be used by the operator. The code will be base64 encoded and sent down with the task.\",\"cmd\":\"load\",\"payload_type\":\"apfell-jxa\",\"operator\":\"apfell_admin\"}]}"
         }
       ]
+    },
+    {
+      "name": "Reporting",
+      "api": [
+        {
+          "GET": "API_BASE/reporting/full_timeline",
+          "explanation": "Get a full reporting timeline with no command output and ordering exactly how you'd see it at the operator screen for the current operation",
+          "cli": "curl http://localhostAPI_BASE/reporting/full_timeline",
+          "output": "A RAW PDF file"
+        },
+        {
+          "POST": "API_BASE/reporting/full_timeline",
+          "explanation": "Configure the full timeline reporting with a few parameters",
+          "cli": "curl -X POST -d '{}' http://localhostAPI_BASE/reporting/full_timeline",
+          "parameters": [
+            {
+              "name": "cmd_output",
+              "description": "Whether or not to include command output",
+              "requirements": "This is not required and defaults to false if not specified."
+            },
+            {
+              "name": "strict",
+              "description": "Determines how to process the ordering of command output that might have come out of order with other output and other new commands",
+              "requirements": "This needs to be either \"task\" or \"time\" to describe how to order it. This isn't a required parameter though and will default to \"task\" if not specified."
+            }
+          ],
+          "output": "A RAW PDF file"
+        }
+      ]
     }
   ]
 }
