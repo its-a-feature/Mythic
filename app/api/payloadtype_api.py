@@ -112,7 +112,12 @@ async def create_payloadtype(request, user, ptype):
         if 'compile_command' in data:
             payloadtype.compile_command = data['compile_command']
         if 'wrapper' in data:
+            if data['wrapper'] and not payloadtype.wrapper:
+                # this means we're changing from it not being a wrapper to it being a wrapper
+                if 'wrapped_encoding_type' not in data or 'wrapped_payload_type' not in data:
+                    return json({"status": 'error', 'error': 'missing required fields for the requested change'})
             payloadtype.wrapper = data['wrapper']
+
         if 'wrapped_encoding_type' in data:
             payloadtype.wrapped_encoding_type = data['wrapped_encoding_type']
         if 'wrapped_payload_type' in data:
@@ -165,6 +170,7 @@ async def upload_payload_code(request, user, ptype):
                     "w")
                 code_file.write(code)
                 code_file.close()
+            return json({'status': 'success'})
     else:
         return json({'status': 'error', 'error': 'must be an admin or the original creator to change the file on disk'})
 
