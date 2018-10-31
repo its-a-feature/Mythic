@@ -28,12 +28,12 @@ async def get_all_responses(request, user):
 
 
 # Get a single response
-@apfell.route(apfell.config['API_BASE'] + "/responses/<rid:int>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['GET'])
 @inject_user()
 @protected()
-async def get_one_response(request, user, rid):
+async def get_one_response(request, user, id):
     try:
-        resp = await db_objects.get(Response, id=rid)
+        resp = await db_objects.get(Response, id=id)
         if resp.task.callback.operation.name == user['current_operation']:
             return json(resp.to_json())
         else:
@@ -44,12 +44,12 @@ async def get_one_response(request, user, rid):
 
 # implant calling back to update with base64 encoded response from executing a task
 # We don't add @protected or @injected_user here because the callback needs to be able to post here for responses
-@apfell.route(apfell.config['API_BASE'] + "/responses/<tid:int>", methods=['POST'])
-async def update_task_for_callback(request, tid):
+@apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['POST'])
+async def update_task_for_callback(request, id):
     data = request.json
     decoded = base64.b64decode(data['response']).decode("utf-8")
     try:
-        task = await db_objects.get(Task, id=tid)
+        task = await db_objects.get(Task, id=id)
     except Exception as e:
         return json({'status': 'error',
                      'error': 'Task does not exist'})
@@ -78,7 +78,7 @@ async def update_task_for_callback(request, tid):
                         decoded = rsp['error']
                 elif 'chunk_data' in download_response:
                     # print("storing chunk: " + str(download_response['chunk_num']))
-                    print(download_response)
+                    #print(download_response)
                     rsp = await download_file_to_disk_func(download_response)
                     if rsp['status'] == "success":
                         decoded = "Received chunk: " + str(rsp['chunk'])
