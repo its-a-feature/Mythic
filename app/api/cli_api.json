@@ -596,40 +596,56 @@
       "api": [
         {
           "GET": "API_BASE/tasks/",
-          "explanation": "Gets all of the tasks for all of the callbacks",
-          "cli": "curl http://localhostAPI_BASE/tasks/"
+          "explanation": "Gets all of the tasks for all of the callbacks within the current operation (or for all operations if the user is a global admin)",
+          "cli": "curl http://localhostAPI_BASE/tasks/",
+          "output": "[{\"status\":\"processed\",\"timestamp\":\"10\/27\/2018 19:52:49\",\"id\":102,\"command\":\"shell\",\"params\":\"whoami\",\"attack_id\":null,\"callback\":13,\"operator\":\"apfell_admin\"}]"
         },
         {
           "GET": "API_BASE/tasks/callback/(cid:INTEGER)",
           "explanation": "Gets all of the tasks for a specific callback identified by the URL",
-          "cli": "curl http://localhostAPI_BASE/tasks/callback/1"
+          "cli": "curl http://localhostAPI_BASE/tasks/callback/102",
+          "output": "{\"status\":\"processed\",\"timestamp\":\"10\/27\/2018 19:52:49\",\"id\":102,\"command\":\"shell\",\"params\":\"whoami\",\"attack_id\":null,\"callback\":13,\"operator\":\"apfell_admin\"}"
         },
         {
           "GET": "API_BASE/tasks/callback/(cid:INTEGER)/nextTask",
-          "explanation": "Gets the next task, ordered by time, for a specific callback that is marked as \"submitted\"",
-          "cli": "curl http://localhostAPI_BASE/tasks/1/nextTask"
+          "explanation": "Gets the next task, ordered by time, for a specific callback that is marked as \"submitted\". Because the agents calling back need to be able to access this, there is no required authentication for this interface at this time",
+          "cli": "curl http://localhostAPI_BASE/tasks/1/nextTask",
+          "output": "{\"command\": \"shell\", \"params\": \"whoami\", \"id\": 20}"
         },
         {
-          "POST": "API_BASE/tasks/callback/(cid:INTEGER)/operator/(name:STRING)",
-          "explanation": "Adds a new task for the specified callback. All new tasks must be tagged with a specific operator. Unlike callbacks being spawned where we won't necessarily know who caused the callback initially, we will know who submitted each task.",
-          "cli": "curl -X POST '{\"command\":\"shell id\"}' http://localhostAPI_BASE/tasks/callback/1/operator/alice",
+          "POST": "API_BASE/tasks/callback/(cid:INTEGER)",
+          "explanation": "Adds a new task for the specified callback. Unlike callbacks being spawned where we won't necessarily know who caused the callback initially, we will know who submitted each task.",
+          "cli": "curl -X POST -d '{\"command\":\"shell\", \"params\": \"id\"}' http://localhostAPI_BASE/tasks/callback/1",
+          "output": "{\"status\": \"success\", \"task_status\":\"submitted\",\"timestamp\":\"10\/27\/2018 19:52:49\",\"id\":102,\"command\":\"shell\",\"params\":\"whoami\",\"attack_id\":null,\"callback\":13,\"operator\":\"apfell_admin\"}",
           "parameters":[
             {
               "name": "command",
               "description": "The command to execute by the indicated callback.",
-              "requirements": "The command must be something that the specified callback can actually execute. If it's not a valid command, it will be rejected."
+              "requirements": "This is a required field. The command must be something that the specified callback can actually execute. If it's not a valid command, it will be rejected. This is indicated by the command being registered for that callback's payload type"
+            },
+            {
+              "name": "params",
+              "description": "This is a string of the parameters required by the registered command to execute. The format here can be a normal string or even a JSON string, it all just depends on what the specific command requires",
+              "requirements": "This is a required field, but can be \"\" (an empty string) if the command doesn't take any parameters. Some commands will automatically convert what you type into something that's more usable by the agent such as the \"upload\", \"download\", \"screencapture\", \"tasks\", \"clear\", and \"load\" commands."
             }
           ]
         },
         {
-          "POST": "API_BASE/tasks/(tid:INTEGER)",
-          "explanation": "This is the response from executing tasks. Any given task can have multiple responses posted back for it, especially for long-running tasks like keylogging.",
-          "cli": "curl -X POST '{\"response\":\"completed command\"}' http://localhostAPI_BASE/tasks/1",
-          "parameters":[
+          "GET": "API_BASE/tasks/callback/(cid:INTEGER)/notcompleted",
+          "explanation": "Get all of the tasks for the specified callback that have not been completed (status is submitted or processing)",
+          "cli": "curl http://localhostAPI_BASE/tasks/callback/3/notcompleted",
+          "output": "{\"status\": \"success\", \"tasks\": [{\"status\":\"submitted\",\"timestamp\":\"10\/27\/2018 19:52:49\",\"id\":102,\"command\":\"shell\",\"params\":\"whoami\",\"attack_id\":null,\"callback\":13,\"operator\":\"apfell_admin\"}]}"
+        },
+        {
+          "POST": "API_BASE/tasks/callback/(cid:INTEGER)/clear",
+          "explanation": "Remove certain tasks from the queue for a specific callback if they aren't already finished being processed",
+          "cli": "curl -X POST -d '{\"task\": \"all\"}' http://localhostAPI_BASE/tasks/callback/13/clear",
+          "output": "{\"status\", \"success\", \"tasks_removed\": [{\"status\":\"submitted\",\"timestamp\":\"10\/27\/2018 19:52:49\",\"id\":102,\"command\":\"shell\",\"params\":\"whoami\",\"attack_id\":null,\"callback\":13,\"operator\":\"apfell_admin\"}]}",
+          "parameters": [
             {
-              "name": "response",
-              "description": "This is the response from executing the task indicated by the tid value in the URL",
-              "requirements": "This must exist, but can be an empty string if there was no actual output."
+              "name": "task",
+              "description": "The tasks to clear (or \"all\" to clear all tasks for that callback)",
+              "requirements": "The is the task ID number or the string \"all\" if you want to remove all currently not processed tasks for a specific callback. You must be either a global admin, operation admin, or the operator that issued the command to clear it."
             }
           ]
         }

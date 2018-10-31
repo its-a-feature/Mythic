@@ -12,15 +12,18 @@ import base64
 @inject_user()
 @protected()
 async def get_all_tasks(request, user):
+    callbacks = Callback.select()
+    operators = Operator.select()
+    tasks = Task.select()
+    full_task_data = await db_objects.prefetch(tasks, callbacks, operators)
     if user['admin']:
-        callbacks = Callback.select()
-        operators = Operator.select()
-        tasks = Task.select()
         # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
-        full_task_data = await db_objects.prefetch(tasks, callbacks, operators)
         return json([c.to_json() for c in full_task_data])
+    elif user['current_operation'] != "":
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        return json([c.to_json() for c in full_task_data if c.callback.operation == operation])
     else:
-        return json({'status': 'error', 'error': 'must be admin to see all tasks'})
+        return json({'status': 'error', 'error': 'must be admin to see all tasks or part of a current operation'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['GET'])
@@ -127,7 +130,7 @@ async def add_task_to_callback_func(data, cid, user):
             # this means we're going to be clearing out some tasks depending on our access levels
             task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
                                            status="processed")
-            raw_rsp = await clear_tasks_for_callback_func(data['params'], cb.id, user)
+            raw_rsp = await clear_tasks_for_callback_func({"task": data['params']}, cb.id, user)
             if raw_rsp['status'] == 'success':
                 rsp = "Removed the following:"
                 for t in raw_rsp['tasks_removed']:
@@ -155,6 +158,8 @@ async def add_task_to_callback_func(data, cid, user):
             await db_objects.update(file_meta)
         status = {'status': 'success'}
         task_json = task.to_json()
+        task_json['task_status'] = task_json['status']  # we don't want the two status keys to conflict
+        task_json.pop('status')
         return {**status, **task_json}
     except Exception as e:
         print("failed to get something in add_task_to_callback_func " + str(e))
@@ -198,14 +203,16 @@ async def clear_tasks_for_callback_func(data, cid, user):
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get callback or operation'}
+    if "task" not in data:
+        return {'status': 'error', 'error': 'must specify the task to clear'}
     tasks_removed = []
-    if "all" == data:
+    if "all" == data['task']:
         tasks = await db_objects.execute(Task.select().join(Callback).where(
             (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
     else:
-        tasks = await db_objects.execute(Task.select().where(Task.id == data))
+        tasks = await db_objects.execute(Task.select().where(Task.id == data['task']))
     for t in tasks:
-        if user['username'] == t.operator.username or user['admin']:
+        if user['username'] == t.operator.username or user['admin'] or operation.name in user['admin_operations']:
             try:
                 t_removed = t.to_json()
                 await db_objects.delete(t)
