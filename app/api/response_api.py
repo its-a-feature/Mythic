@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Task, Response
+from app.database_models.model import Task, Response, Operation, Callback
 import base64
 from sanic_jwt.decorators import protected, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
@@ -13,23 +13,33 @@ import json as js
 @protected()
 async def get_all_responses(request, user):
     try:
-        all_responses = await db_objects.execute(Response.select())
+        responses = []
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+        for c in callbacks:
+            tasks = await db_objects.execute(Task.select().where(Task.callback == c))
+            for t in tasks:
+                task_responses = await db_objects.execute(Response.select().where(Response.task == t))
+                responses += [r.to_json() for r in task_responses]
     except Exception as e:
         return json({'status': 'error',
                      'error': 'Cannot get responses'})
-    return json([c.to_json() for c in all_responses])
+    return json(responses)
 
 
 # Get a single response
-@apfell.route(apfell.config['API_BASE'] + "/response/<rid:int>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/responses/<rid:int>", methods=['GET'])
 @inject_user()
 @protected()
 async def get_one_response(request, user, rid):
     try:
         resp = await db_objects.get(Response, id=rid)
+        if resp.task.callback.operation.name == user['current_operation']:
+            return json(resp.to_json())
+        else:
+            return json({'status': 'error', 'error': 'that task isn\'t in your current operation'})
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
-    return json(resp.to_json())
 
 
 # implant calling back to update with base64 encoded response from executing a task

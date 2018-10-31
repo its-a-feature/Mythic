@@ -1020,6 +1020,36 @@
           "output": "A RAW PDF file"
         }
       ]
+    },
+    {
+      "name": "Response",
+      "api": [
+        {
+          "GET": "API_BASE/responses/",
+          "explanation": "Get all the responses for the current operation",
+          "cli": "curl http://localhostAPI_BASE/responses/",
+          "output": "[{\"timestamp\":\"10\/27\/2018 19:53:40\",\"id\":253,\"response\":\"Recieved meta data: {\\\"chunks_received\\\": 0, \\\"complete\\\": false, \\\"timestamp\\\": \\\"10\/27\/2018 19:53:40\\\", \\\"total_chunks\\\": 4, \\\"task\\\": 104, \\\"cmd\\\": \\\"screencapture\\\", \\\"operation\\\": \\\"default\\\", \\\"path\\\": \\\"\/home\/its-a-feature\/Apfell\/app\/files\/default\/downloads\/codys-mbp\/201819:53:33\\\", \\\"id\\\": 42}\",\"task\":{\"status\":\"processed\",\"timestamp\":\"10\/27\/2018 19:53:33\",\"id\":104,\"command\":\"screencapture\",\"params\":\" 10\/27\/201819:53:33\",\"attack_id\":null,\"callback\":13,\"operator\":\"apfell_admin\"}}]"
+        },
+        {
+          "GET": "API_BASE/responses/(rid:INTEGER)",
+          "explanation": "Get the information for one specific response identified by its ID number",
+          "cli": "curl http://localhostAPI_BASE/responses/253",
+          "output": "{\"timestamp\":\"10\/27\/2018 19:53:40\",\"id\":253,\"response\":\"Recieved meta data: {\\\"chunks_received\\\": 0, \\\"complete\\\": false, \\\"timestamp\\\": \\\"10\/27\/2018 19:53:40\\\", \\\"total_chunks\\\": 4, \\\"task\\\": 104, \\\"cmd\\\": \\\"screencapture\\\", \\\"operation\\\": \\\"default\\\", \\\"path\\\": \\\"\/home\/its-a-feature\/Apfell\/app\/files\/default\/downloads\/codys-mbp\/201819:53:33\\\", \\\"id\\\": 42}\",\"task\":{\"status\":\"processed\",\"timestamp\":\"10\/27\/2018 19:53:33\",\"id\":104,\"command\":\"screencapture\",\"params\":\" 10\/27\/201819:53:33\",\"attack_id\":null,\"callback\":13,\"operator\":\"apfell_admin\"}}"
+        },
+        {
+          "POST": "API_BASE/responses/(tid:INTEGER)",
+          "explanation": "Post a response to a specific task (identified by the tid - the task ID)",
+          "cli": "curl -X POST -d '{\"response\": \"aXRzLWEtZmVhdHVyZQ==\"}' http://localhostAPI_BASE/responses/15",
+          "output": "{\"status\": \"success\"}",
+          "parameters": [
+            {
+              "name": "response",
+              "description": "This contains the output of the command that was tasked to execute",
+              "requirements": "This is a required field. Typically this is just a string for the output of the command, but some commands have some other specific information that needs to be passed back as well. This MUST be base64 encoded."
+            }
+          ]
+        }
+      ]
     }
   ]
 }
