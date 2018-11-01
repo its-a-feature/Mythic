@@ -7,13 +7,13 @@
     <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll" class="panel panel-primary" id="'callback'+callback.id" :key="callback.id" v-show="Object.keys(callback.screencaptures).length > 0">
         <div class="panel-heading" >[[callback.display]] Screencaptures</div>
             <div  v-bind:id="'screencaptures' + callback.id">
-                <div v-for="(image,i) in callback.screencaptures">
+                <div v-for="(image,i) in callback.screencaptures" :key="image.timestamp">
                     <div v-if="image.complete">
                         <button v-bind:id="'image' + image.id" class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_image(image)">[[callback.operator]]'s screencapture: [[image.path.split("/").slice(-1).toString()]]</button>
                         <img :src='image.remote_path' width="100%" height="100%" style="display:none">
                     </div>
                     <div v-else>
-                        <button v-bind:id="'image' + image.id" class="accordion" style="background-color: #ffd8d8;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_image(image)">[[callback.operator]]'s screencapture: [[image.path.split("/").slice(-1).toString()]]</button>
+                        <button v-bind:id="'image' + image.id" class="accordion" style="background-color: #ffd8d8;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_image(image)">[[callback.operator]]'s screencapture: [[image.path.split("/").slice(-1).toString()]]. Parts [[image.chunks_received]] of [[image.total_chunks]] received so far.</button>
                     </div>
                 </div>
             </div>
