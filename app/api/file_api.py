@@ -1,5 +1,5 @@
 from app import apfell, db_objects
-from app.database_models.model import FileMeta, Task, Operation
+from app.database_models.model import FileMeta, Task, Operation, Callback, Command
 from sanic.response import json, raw, file
 import base64
 from sanic_jwt.decorators import protected, inject_user
@@ -57,7 +57,12 @@ async def create_filemeta_in_database_func(data):
         if task.command.cmd not in ["download", "upload", "screencapture"]:
             return {'status': 'error', 'error': "that task wouldn't result in a file being created"}
         filename = os.path.split(task.params)[1]
-        save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, task.callback.host, filename))
+        if task.command.cmd == "screencapture":
+            # we want to save these in a specific folder
+            save_path = os.path.abspath(
+                './app/files/{}/downloads/{}/{}/{}'.format(operation.name, task.callback.host, "screenshots", filename))
+        else:
+            save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, task.callback.host, filename))
         count = 1
         tmp_path = save_path
         while os.path.exists(tmp_path):
@@ -113,3 +118,54 @@ async def download_file_to_disk_func(data):
         print("Failed to save chunk to disk: " + str(e))
         return {'status': 'error', 'error': 'failed to store chunk'}
     return {'status': 'success', 'chunk': file_meta.chunks_received}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures")
+@inject_user()
+@protected()
+async def list_all_screencaptures_per_operation(request, user):
+    if user['current_operation'] != "":
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        screencaptures = await db_objects.execute(FileMeta.select().where(FileMeta.path.regexp(".*{}/downloads/.*/screenshots/".format(operation.name))))
+        screencapture_paths = []
+        for s in screencaptures:
+            screencapture_paths.append(s.to_json())
+        return json({'status': 'success', 'files': screencapture_paths})
+    else:
+        return json({"status": 'error', 'error': 'must be part of a current operation to see an operation\'s screencaptures'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/bycallback/<id:int>")
+@inject_user()
+@protected()
+async def list_all_screencaptures_per_callback(request, user, id):
+    try:
+        callback = await db_objects.get(Callback, id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find callback'})
+    screencapture_paths = []
+    if callback.operation.name in user['operations']:
+        screencaptures = await db_objects.execute(
+            FileMeta.select().where(FileMeta.path.regexp(".*{}/downloads/.*/screenshots/".format(callback.operation.name))))
+        for s in screencaptures:
+            if s.task.callback == callback:
+                screencapture_paths.append(s.to_json())
+        return json({'status': 'success', 'callback': callback.id, 'files': screencapture_paths})
+    else:
+        return json({'status': 'error', 'error': 'must be part of that callback\'s operation to see its screenshots'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/<id:int>")
+@inject_user()
+@protected()
+async def get_screencapture(request, user, id):
+    try:
+        file_meta = await db_objects.get(FileMeta, id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find callback'})
+    if file_meta.task.callback.operation.name in user['operations']:
+        return await file(file_meta.path, filename=file_meta.path.split("/")[-1])
+    else:
+        return json({"status": 'error', 'error': 'must be part of that callback\'s operation to see its screenshot'})

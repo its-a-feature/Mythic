@@ -77,6 +77,20 @@ async def operations_management(request, user):
                                   current_operation=user['current_operation'])
     return response.html(content)
 
+
+@apfell.route("/screencapture_management", methods=['GET'])
+@inject_user()
+@protected()
+async def screencapture_management(request, user):
+    template = env.get_template('screencapture_management.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'])
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'])
+    return response.html(content)
+
 # add links to these routes at the bottom
 links['callbacks'] = apfell.url_for('callbacks')
 links['database_management'] = apfell.url_for('db_management')
@@ -84,3 +98,5 @@ links['payload_management'] = apfell.url_for('payload_management')
 links['analytics'] = apfell.url_for('analytics')
 links['c2profile_management'] = apfell.url_for('c2profile_management')
 links['operations_management'] = apfell.url_for('operations_management')
+links['screencapture_management'] = apfell.url_for('screencapture_management')
+

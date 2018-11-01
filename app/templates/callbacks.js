@@ -79,6 +79,7 @@ var callback_table = new Vue({
         },
         hide_tasks: function(callback){
             meta[callback.id]['tasks'] = false;
+            meta[callback.id]['screencaptures'] = false;
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
@@ -92,6 +93,11 @@ var callback_table = new Vue({
             this.$delete(callbacks, callback.id);
             //update the callback to be active=false
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
+        },
+        show_screencaptures: function(callback){
+            Vue.set(meta[callback.id], 'screencaptures', true);
+             meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/screencaptures/bycallback/" + callback['id'],view_callback_screenshots,"GET");
         }
     },
     delimiters: ['[[',']]']
@@ -136,16 +142,45 @@ var task_data = new Vue({
             }
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],
             post_task_callback_func, "POST", {"command":command,"params":params});
-            //alert("submitting " + this.input_field);
             this.input_field = "";
         },
-        select_tab: function(tab_data, tab_id){
-            task_data.input_field_placeholder['data'] = tab_data;
-            task_data.input_field_placeholder['cid'] = tab_id;
+        select_tab: function(metadata){
+            task_data.input_field_placeholder['data'] = metadata.display;
+            task_data.input_field_placeholder['cid'] = metadata.id;
+            Object.keys(meta).forEach(function(key){
+                Vue.set(meta[key], 'selected', false);
+            });
+            Object.keys(callback_table.callbacks).forEach(function(key){
+                Vue.set(callback_table.callbacks[key], 'selected', false);
+            });
+            Vue.set(metadata, 'selected', true);
+            Vue.set(callback_table.callbacks[metadata['id']], 'selected', true);
+        },
+        toggle_image: function(image){
+            var panel = document.getElementById(image.remote_path).nextElementSibling;
+            if (panel.style.display === "") {
+                panel.style.display = "none";
+            } else {
+                panel.style.display = "";
+            }
         }
     },
     delimiters: ['[[', ']]']
 });
+function view_callback_screenshots(response){
+    data = JSON.parse(response);
+    if(data['status'] == "success"){
+        meta[data['callback']]['images'] = [];
+        for(var i = 0; i < data['files'].length; i++){
+            var path = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/screencaptures/" + data['files'][i]['id'];
+            data['files'][i]['remote_path'] = path;
+            Vue.set(meta[data['callback']]['images'], i, data['files'][i]);
+        }
+    }
+    else{
+        alert(data['error']);
+    }
+}
 function post_task_callback_func(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
@@ -173,13 +208,18 @@ function startwebsocket_callbacks(){
                     cb['operator'] = op;
                 }
             }
+            var color = generate_background_color();
             cb['real_time'] = "0:0:0:0";
+            cb['bg_color'] = color;
+            cb['selected'] = false;
             //callbacks.push(cb);
             Vue.set(callbacks, cb['id'], cb);
             Vue.set(task_data.meta, cb['id'], {'id': cb['id'],
                                                'tasks': false,
                                                'data':task_data.tasks,
-                                               'display': ''});
+                                               'display': '',
+                                               'screencaptures': false,
+                                               'bg_color': color});
         }
         else{
             if(finished_callbacks == false){
@@ -278,9 +318,23 @@ function timeConversion(millisec){
     var days = Math.trunc(((millisec / (1000 * 60 * 60 * 24)).toFixed(1)) % 365);
     return days + ":" + hours + ":" + minutes + ":" + seconds;
 }
-
+function generate_background_color(){
+    //https://github.com/davidmerfield/randomColor
+    var color = randomColor({luminosity: 'light'});
+    return color;
+}
+function shadeBlend(p,c0,c1) {
+    var n=p<0?p*-1:p,u=Math.round,w=parseInt;
+    if(c0.length>7){
+        var f=c0.split(","),t=(c1?c1:p<0?"rgb(0,0,0)":"rgb(255,255,255)").split(","),R=w(f[0].slice(4)),G=w(f[1]),B=w(f[2]);
+        return "rgb("+(u((w(t[0].slice(4))-R)*n)+R)+","+(u((w(t[1])-G)*n)+G)+","+(u((w(t[2])-B)*n)+B)+")"
+    }else{
+        var f=w(c0.slice(1),16),t=w((c1?c1:p<0?"#000000":"#FFFFFF").slice(1),16),R1=f>>16,G1=f>>8&0x00FF,B1=f&0x0000FF;
+        return "#"+(0x1000000+(u(((t>>16)-R1)*n)+R1)*0x10000+(u(((t>>8&0x00FF)-G1)*n)+G1)*0x100+(u(((t&0x0000FF)-B1)*n)+B1)).toString(16).slice(1)
+    }
+}
 
 startwebsocket_callbacks();
-setInterval(updateClocks, 1000);
+setInterval(updateClocks, 100);
 
 startwebsocket_updatedcallbacks();

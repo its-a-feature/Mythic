@@ -2,7 +2,7 @@ from app import apfell, db_objects
 import aiopg
 import json as js
 import asyncio
-from app.database_models.model import Operator, Callback, Task, Response, Payload, PayloadType, C2Profile, PayloadTypeC2Profile, Operation, OperatorOperation, Command
+from app.database_models.model import Operator, Callback, Task, Response, Payload, PayloadType, C2Profile, PayloadTypeC2Profile, Operation, OperatorOperation, Command, FileMeta
 from sanic_jwt.decorators import protected, inject_user
 
 
@@ -581,6 +581,75 @@ async def ws_payloads(request, ws):
                             id = (js.loads(msg.payload))['id']
                             p = await db_objects.get(Command, id=id)
                             await ws.send(js.dumps(p.to_json()))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# ------------- FILEMETA ---------------------------
+# notifications for new screenshots
+@apfell.websocket('/ws/screenshots')
+@inject_user()
+@protected()
+async def ws_payloads(request, ws, user):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newfilemeta";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    operation = await db_objects.get(Operation, name=user['current_operation'])
+                    files = await db_objects.execute(FileMeta.select().where(FileMeta.operation == operation))
+                    for f in files:
+                        if "{}/downloads/".format(user['current_operation']) in f.path and "/screenshots/" in f.path:
+                            await ws.send(js.dumps({**f.to_json(), 'callback_id': f.task.callback.id, 'operator': f.task.operator.username}))
+                    await ws.send("")
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            blob = js.loads(msg.payload)
+                            if "{}/downloads/".format(user['current_operation']) in blob['path'] and "/screenshots" in blob['path']:
+                                f = await db_objects.get(FileMeta, id=blob['id'])
+                                callback_id = f.task.callback.id
+                                await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# notifications for updated screenshots
+@apfell.websocket('/ws/updated_screenshots')
+@inject_user()
+@protected()
+async def ws_payloads(request, ws, user):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "updatedfilemeta";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    operation = await db_objects.get(Operation, name=user['current_operation'])
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            blob = js.loads(msg.payload)
+                            if "{}/downloads/".format(user['current_operation']) in blob['path'] and "/screenshots" in blob['path']:
+                                f = await db_objects.get(FileMeta, id=blob['id'])
+                                callback_id = f.task.callback.id
+                                await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there
