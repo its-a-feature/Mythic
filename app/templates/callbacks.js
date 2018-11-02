@@ -163,7 +163,19 @@ var task_data = new Vue({
             } else {
                 panel.style.display = "";
             }
+        },
+        console_tab_close: function(metadata){
+            var tabContentId = document.getElementById('tasks' + metadata.id + "tab");
+            //$(this).parent().parent().hide(); //remove li of tab
+            //$('#myTab a:last').tab('show'); // Select first tab
+            //$(tabContentId).hide(); //remove respective tab content
+            //$(document.getElementById('tasks' + metadata.id + 'data')).hide();
+            meta[metadata.id]['tasks'] = false;
+        },
+        screencaptures_tab_close: function(metadata){
+            meta[metadata.id]['screencaptures'] = false;
         }
+
     },
     delimiters: ['[[', ']]']
 });
