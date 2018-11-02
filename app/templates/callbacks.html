@@ -29,7 +29,7 @@
                       </button>
                       <ul class="dropdown-menu">
                           <li class='disabled' ><a href="#">Keystrokes</a></li>
-                          <li><a @click="show_screencaptures(callback)" href="#">Screenshots</a></li>
+                          <li><a @click="show_screencaptures(callback)" href="#">Screencaptures</a></li>
                           <li><a @click="spawn_menu(callback)" href="#">spawn menu</a></li>
                           <li role="separator" class="divider"></li>
                           <li><a @click="hide_tasks(callback)" href="#">Hide Tabs</a></li>
@@ -56,10 +56,10 @@
     <!-- Tabs at the bottom of the screen - just the names at the top though-->
     <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
         <li v-for="metadata in meta" v-if="metadata.tasks" role="button" key="metadata.id">
-            <a v-bind:id="'tasks' + metadata.id + 'tab'" v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.90, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]]<span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
+            <a v-bind:id="'tasks' + metadata.id + 'tab'" v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.90, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]] <span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
         </li>
         <li v-for="metadata in meta" v-if="metadata.screencaptures" role="button">
-            <a v-bind:href="'#screencaptures' + metadata.id" v-bind:aria-controls="'screencaptures' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.90, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures<span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
+            <a v-bind:href="'#screencaptures' + metadata.id" v-bind:aria-controls="'screencaptures' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.90, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
         </li>
     </ul>
     <!-- Now actually deal with the content in each tab-->
