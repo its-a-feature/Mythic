@@ -16,3 +16,5 @@ operations/
 .idea/
 # ssl certs
 ssl/
+# downloaded files
+files/

@@ -95,7 +95,6 @@ async def register_new_payload_func(data, user):
     # Get all of the commands and make sure they're valid
     if not payload_type.wrapper:
         db_commands = {}
-        print(data)
         if 'commands' not in data or data['commands'] is None:
             return {'status': 'error', 'error': '"commands" field is required, select some on the right-hand side'}
         for cmd in data['commands']:
@@ -181,7 +180,7 @@ async def write_payload(uuid, user):
 
     except Exception as e:
         print(e)
-        return {'status': 'error', 'error': 'failed to opan all needed files'}
+        return {'status': 'error', 'error': 'failed to open all needed files. ' + str(e)}
     for line in base:
         if "C2Profile" in line:
             # this means we need to write out the c2 profile and all parameters here

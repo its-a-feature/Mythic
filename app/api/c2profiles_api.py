@@ -259,8 +259,8 @@ async def start_c2profile(request, info, user):
     try:
         # run profiles with just /bin/bash, so they should be set up appropriately
         p = subprocess.Popen(
-            ['./app/c2_profiles/{}/{}/{}_server'.format(operation.name, name, name), '&'],
-            cwd='./app/c2_profiles/{}/{}'.format(operation.name, name),
+            ['./{}_server'.format(name), '&'],
+            cwd='./app/c2_profiles/{}/{}/'.format(operation.name, name),
             stdout=null,
             stderr=null,
             stdin=null
