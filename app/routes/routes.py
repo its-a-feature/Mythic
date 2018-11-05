@@ -19,7 +19,7 @@ env = Environment(loader=PackageLoader('app', 'templates'))
 @protected()
 async def index(request, user):
     template = env.get_template('main_page.html')
-    content = template.render(name=user['username'], links=links)
+    content = template.render(name=user['username'], links=links, current_operation=user['current_operation'])
     return response.html(content)
 
 

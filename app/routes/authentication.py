@@ -60,7 +60,7 @@ async def retrieve_user(request, payload, *args, **kwargs):
     except Exception as e:
         print("failed to get user in retrieve_user")
         print(e)
-        return {}
+        raise exceptions.AuthenticationFailed("Delete your cookies")
 
 
 async def add_scopes_to_payload(user, *args, **kwargs):
