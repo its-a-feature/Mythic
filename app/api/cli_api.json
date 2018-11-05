@@ -413,7 +413,7 @@
           "output": "[{\"needs_admin\":false,\"help_cmd\":\"shell {command}\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":1017,\"description\":\"This runs {command} in a terminal by leveraging JXA's Application.doShellScript({command})\",\"cmd\":\"shell\",\"payload_type\":\"apfell-jxa\",\"operator\":\"apfell_admin\"}...]"
         },
         {
-          "GET": "API_BASE/commands/(ptype:STRING)/(cmd:STRING)",
+          "GET": "API_BASE/commands/(ptype:STRING)/check/(cmd:STRING)",
           "explanation": "Get all of the information about a specific command for a specific payload (this includes getting the code if the correct file exists)",
           "cli": "curl http://localhostAPI_BASE/commands/apfell-jxa/shell",
           "output": "If the file with code exists, there will be a 'code' key with the base64 encoded code. If the command is registered in the database, a JSON blob of that information will be returned as well"
@@ -514,6 +514,78 @@
               "requirements": "This is a required parameter"
             }
           ]
+        },
+        {
+          "POST": "API_BASE/commands/(id:INTEGER)/parameters",
+          "explanation": "Create a new parameter for the command specified by id",
+          "cli": "curl -X POST -d '{\"name\":\"password\", \"isString\": \"True\", \"required\": \"True\", \"isCredential\":\"True\",\"hint\":\"The user's plaintext password\"}' http://localhostAPI_BASE/commands/1/parameters",
+          "output": "{\"status\":\"success\", \"name\":\"password\", \"isString\": \"True\", \"required\": \"True\", \"isCredential\":\"True\",\"hint\":\"The user's plaintext password\"}",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the parameter that will be displayed to the user",
+              "requirements": "This is a required string parameter"
+            },
+            {
+              "name": "isString",
+              "description": "A boolean variable indicating if this parameter is a String or boolean",
+              "requirements": "This is a required parameter as it helps determine how information is presented to the operator"
+            },
+            {
+              "name": "required",
+              "description": "A boolean variable indicating if this parameter is required or not",
+              "requirements": "This is a required parameter"
+            },
+            {
+              "name": "hint",
+              "description": "A descriptive hint or example data that will be provided to the user if \"isString\" is True",
+              "requirements": "This is a required parameter if \"isString\" is True"
+            },
+            {
+              "name": "isCredential",
+              "description": "This is a boolean value to help indicate if this parameter should be leveraging information from the credential store, only valid if \"isString\" is True",
+              "requirements": "This is an optional parameter if \"isString\" is True"
+            }
+          ]
+        },
+        {
+          "PUT": "API_BASE/commands/(cid:INTEGER)/parameters/(pid:INTEGER)",
+          "explanation": "Update a specific parameter of a specific command",
+          "cli": "curl -X PUT -d '{\"required\":\"False\"}' http://localhostAPI_BASE/commands/1/parameters/15",
+          "output": "{\"status\":\"success\", \"name\":\"password\", \"isString\": \"True\", \"required\": \"False\", \"isCredential\":\"True\",\"hint\":\"The user's plaintext password\"}",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the parameter that will be displayed to the user",
+              "requirements": "This is a required string parameter"
+            },
+            {
+              "name": "isString",
+              "description": "A boolean variable indicating if this parameter is a String or boolean",
+              "requirements": "This is a required parameter as it helps determine how information is presented to the operator"
+            },
+            {
+              "name": "required",
+              "description": "A boolean variable indicating if this parameter is required or not",
+              "requirements": "This is a required parameter"
+            },
+            {
+              "name": "hint",
+              "description": "A descriptive hint or example data that will be provided to the user if \"isString\" is True",
+              "requirements": "This is a required parameter if \"isString\" is True"
+            },
+            {
+              "name": "isCredential",
+              "description": "This is a boolean value to help indicate if this parameter should be leveraging information from the credential store, only valid if \"isString\" is True",
+              "requirements": "This is an optional parameter if \"isString\" is True"
+            }
+          ]
+        },
+        {
+          "DELETE": "API_BASE/commands/(cid:INTEGER)/parameters/(pid:INTEGER)",
+          "explanation": "Remove a specific parameter from a command",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/commands/1/parameters/12",
+          "output": "{\"status\":\"success\", \"name\":\"password\", \"isString\": \"True\", \"required\": \"False\", \"isCredential\":\"True\",\"hint\":\"The user's plaintext password\"}"
         }
       ]
     },

@@ -165,7 +165,7 @@ var payloadtypes_table = new Vue({
             });
             $( '#commandAddCheckCmd' ).unbind('click').click(function(){
                 // make a request out to see if the command exists already or if the file exists (and command was deleted)?
-                var data = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/" + $('#commandAddCmd').val());
+                var data = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + $('#commandAddCmd').val());
                 data_json = JSON.parse(data);
                 if(data_json.hasOwnProperty("cmd")){
                     $('#commandAddDescription').val(data_json['description']);

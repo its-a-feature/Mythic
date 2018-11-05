@@ -3,7 +3,7 @@ import shutil
 from sanic.response import json
 import aiopg
 from sanic_jwt.decorators import protected, inject_user, scoped
-from app.database_models.model import setup
+from app.routes.routes import initial_setup
 
 
 @apfell.route(apfell.config['API_BASE'] + "/database/clear_entries", methods=['GET'])
@@ -25,7 +25,9 @@ async def database_clear_entries(request, user):
                     await cur.execute('TRUNCATE payloadtypec2profile CASCADE;')
                     await cur.execute('TRUNCATE c2profileparameters CASCADE;')
                     await cur.execute('TRUNCATE c2profileparametersinstance CASCADE;')
-                    setup()  # put our defaults back in place
+                    await cur.execute('TRUNCATE credential CASCADE;')
+                    await cur.execute('TRUNCATE keylog CASCADE;')
+                    await initial_setup()  # put our defaults back in place
                     response = {'status': 'success'}
     except Exception as e:
         print(e)

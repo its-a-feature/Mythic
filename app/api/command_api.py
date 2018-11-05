@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, file, text
-from app.database_models.model import Operator, PayloadType, Command
+from app.database_models.model import Operator, PayloadType, Command, CommandParameters
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
 import json as js
@@ -12,11 +12,16 @@ import base64
 @inject_user()
 @protected()
 async def get_all_commands(request, user):
+    all_commands = []
     commands = await db_objects.execute(Command.select())
-    return json([c.to_json() for c in commands])
+    for cmd in commands:
+        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == cmd))
+        all_commands.append({**cmd.to_json(), "params": [p.to_json() for p in params]})
+    return json(all_commands)
 
 
-@apfell.route(apfell.config['API_BASE'] + "/commands/<ptype:string>/<cmd:string>", methods=['GET'])
+# Get information about a specific command, including its code, if it exists (used in checking before creating a new command)
+@apfell.route(apfell.config['API_BASE'] + "/commands/<ptype:string>/check/<cmd:string>", methods=['GET'])
 @inject_user()
 @protected()
 async def check_command(request, user, ptype, cmd):
@@ -28,7 +33,8 @@ async def check_command(request, user, ptype, cmd):
         return json({'status': 'error', 'error': 'failed to get payload type'})
     try:
         command = await db_objects.get(Command, cmd=cmd, payload_type=payload_type)
-        status = {**status, **command.to_json()}
+        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
+        status = {**status, **command.to_json(), "params": [p.to_json() for p in params]}
     except Exception as e:
         # the command doesn't exist yet, which is good
         pass
@@ -49,6 +55,9 @@ async def check_command(request, user, ptype, cmd):
 async def remove_command(request, user, id):
     try:
         command = await db_objects.get(Command, id=id)
+        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
+        for p in params:
+            await db_objects.delete(p, recursive=True)
         await db_objects.delete(command, recursive=True)
         return json({'status': 'success', **command.to_json()})
     except Exception as e:
@@ -198,6 +207,16 @@ async def export_command_list(request, user, ptype):
             del cmd_json['creation_time']
             del cmd_json['operator']
             del cmd_json['payload_type']
+            params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == c))
+            params_list = []
+            for p in params:
+                p_json = p.to_json()
+                del p_json['id']
+                del p_json['command']
+                del p_json['cmd']
+                del p_json['operator']
+                params_list.append(p_json)
+            cmd_json['parameters'] = params_list
             cmdlist.append(cmd_json)
     except Exception as e:
         print(e)
@@ -268,3 +287,95 @@ async def import_command_list(request, user):
         # now roll all of these sucess or error lists up for the payload
         error_list.append({type['name']: payload_cmd_error_list})
     return json(error_list)
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/parameters", methods=['POST'])
+@inject_user()
+@protected()
+async def create_command_parameter(request, user, id):
+    try:
+        operator = await db_objects.get(Operator, username=user['username'])
+        command = await db_objects.get(Command, id=id)
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find command'})
+    data = request.json
+    if "name" not in data:
+        return json({'status': 'error', 'error': '"name" is required'})
+    if 'isString' not in data:
+        return json({'status': 'error', 'error': '"isString" is a required parameter'})
+    if 'required' not in data:
+        return json({'status': 'error', 'error': '"required" is a required parameter'})
+    if data['isString'] and 'hint' not in data:
+        return json({'status': 'error', 'error': "\"hint\" required if \"isString\" is True"})
+    if 'isCredential' in data and data['isCredential'] and not data['isString']:
+        return json({'status': 'error', 'error': '\"isCredential\" can only be true if the parameter is a string'})
+    if 'hint' not in data:
+        data['hint'] = ""
+    if 'isCredential' not in data:
+        data['isCredential'] = False
+    try:
+        param, created = await db_objects.get_or_create(CommandParameters, name=data['name'], isString=data['isString'],
+                                                        required=data['required'], hint=data['hint'],
+                                                        isCredential=data['isCredential'], command=command,
+                                                        operator=operator)
+        return json({'status': 'success', **param.to_json()})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to create parameter' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/parameters/<pid:int>", methods=['PUT'])
+@inject_user()
+@protected()
+async def update_command_parameter(request, user, cid, pid):
+    try:
+        operator = await db_objects.get(Operator, username=user['username'])
+        command = await db_objects.get(Command, id=cid)
+        parameter = await db_objects.get(CommandParameters, id=pid, command=command)
+    except Exception as e:
+        print(e)
+        return json({"status": 'error', 'error': 'failed to find command or parameter'})
+    data = request.json
+    if "name" in data:
+        try:
+            parameter.name = data['name']
+            parameter.operator = operator
+            await db_objects.update(parameter)
+        except Exception as e:
+            print(e)
+            return json({"status": 'error', 'error': 'parameter name must be unique across a command'})
+    if "required" in data:
+        parameter.required = data['required']
+    if 'isString' in data and not data['isString']:
+        parameter.isString = data['isString']
+        parameter.hint = ""
+        parameter.isCredential = False
+    if 'isString' in data and data['isString'] and not parameter.isString:
+        # going from boolean to now a string
+        if 'hint' not in data:
+            return json({'status': 'error', 'error': 'hint is required for string parameters'})
+        if 'isCredential' not in data:
+            data['isCredential'] = False
+        parameter.isString = data['isString']
+        parameter.hint = data['hint']
+        parameter.isCredential = data['isCredential']
+    elif 'hint' in data:
+        parameter.hint = data['hint']
+    parameter.operator = operator
+    await db_objects.update(parameter)
+    return json({'status': 'success', **parameter.to_json()})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/parameters/<pid:int>", methods=['DELETE'])
+@inject_user()
+@protected()
+async def remove_command_parameter(request, user, cid, pid):
+    try:
+        command = await db_objects.get(Command, id=cid)
+        parameter = await db_objects.get(CommandParameters, id=pid, command=command)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find command or parameter'})
+    p_json = parameter.to_json()
+    await db_objects.delete(parameter)
+    return json({'status': 'success', **p_json})

@@ -47,6 +47,8 @@ async def get_one_response(request, user, id):
 @apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['POST'])
 async def update_task_for_callback(request, id):
     data = request.json
+    if 'response' not in data:
+        return json({'status': 'error', 'error': 'task response not in data'})
     decoded = base64.b64decode(data['response']).decode("utf-8")
     try:
         task = await db_objects.get(Task, id=id)
@@ -54,8 +56,6 @@ async def update_task_for_callback(request, id):
         return json({'status': 'error',
                      'error': 'Task does not exist'})
     try:
-        if 'response' not in data:
-            return json({'status': 'error', 'error': 'task response not in data'})
         # the process is a little bit different if we're going to save things to disk, like a file or a screenshot instead of saving it into the database
         if task.command.cmd == "download" or task.command.cmd == "screencapture":
             try:
@@ -85,8 +85,20 @@ async def update_task_for_callback(request, id):
                     else:
                         decoded = rsp['error']
             except Exception as e:
-                print("error when trying to handle a download command: " + str(e))
+                print("error when trying to handle a download/screencapture command: " + str(e))
                 pass
+        elif task.command.cmd == "keylog":
+            try:
+                keylog_response = js.loads(decoded)  # keylogging has a special dictionary of data it passes back
+                if "window_title" not in keylog_response:
+                    keylog_response['window_title'] = "UNKNOWN"
+                if "keystrokes" not in keylog_response:
+                    return json({'status': 'error', 'error': 'keylogging response has no keystrokes'})
+
+            except Exception as e:
+                print("error when handling a keylog response: " + str(e))
+                pass
+
         resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
         await db_objects.update(task)
