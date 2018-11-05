@@ -259,10 +259,11 @@ async def start_c2profile(request, info, user):
     try:
         # run profiles with just /bin/bash, so they should be set up appropriately
         p = subprocess.Popen(
-            ["/bin/bash", '\"./app/c2_profiles/{}/{}/{}_server\"'.format(operation.name, name, name)],
-            cwd='\"./app/c2_profiles/{}/{}\"'.format(operation.name, name),
+            ['./app/c2_profiles/{}/{}/{}_server'.format(operation.name, name, name), '&'],
+            cwd='./app/c2_profiles/{}/{}'.format(operation.name, name),
             stdout=null,
-            stderr=null
+            stderr=null,
+            stdin=null
         )
         await asyncio.sleep(1)  # let the process start
         # if it was already in our dictionary of information, just remove it so we can add in the new data

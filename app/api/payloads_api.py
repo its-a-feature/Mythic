@@ -95,8 +95,9 @@ async def register_new_payload_func(data, user):
     # Get all of the commands and make sure they're valid
     if not payload_type.wrapper:
         db_commands = {}
-        if 'commands' not in data:
-            return {'status': 'error', 'error': '"commands" field is required'}
+        print(data)
+        if 'commands' not in data or data['commands'] is None:
+            return {'status': 'error', 'error': '"commands" field is required, select some on the right-hand side'}
         for cmd in data['commands']:
             try:
                 db_commands[cmd] = await db_objects.get(Command, cmd=cmd, payload_type=payload_type)
