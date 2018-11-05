@@ -3,7 +3,7 @@ from sanic.response import json
 from sanic import response
 from sanic.exceptions import NotFound
 from jinja2 import Environment, PackageLoader
-from app.database_models.model import Operator, Operation, OperatorOperation
+from app.database_models.model import Operator, Operation, OperatorOperation, C2Profile, C2ProfileParameters, PayloadType, PayloadTypeC2Profile, Command, CommandParameters
 from app.forms.loginform import LoginForm, RegistrationForm
 import datetime
 import app.crypto as crypto
@@ -238,6 +238,81 @@ async def failed_refresh(request, resp):
                 del newresp.cookies['access_token']
                 del newresp.cookies['refresh_token']
                 return newresp
+
+
+@apfell.listener('before_server_start')
+async def setup_initial_info(app, loop):
+    await initial_setup()
+
+
+async def initial_setup():
+    # create apfell_admin
+    admin, created = await db_objects.get_or_create(Operator, username="apfell_admin", password="E3D5B5899BA81F553666C851A66BEF6F88FC9713F82939A52BC8D0C095EBA68E604B788347D489CC93A61599C6A37D0BE51EE706F405AF5D862947EF8C36A201",
+                                   admin=True, active=True)
+    print("Created Admin")
+    # create default operation
+    operation, created = await db_objects.get_or_create(Operation, name='default', admin=admin, complete=False)
+    print("Created Operation")
+    # create default restful c2 profile
+    c2_profile, created = await db_objects.get_or_create(C2Profile, name='default', description="Default RESTful C2 channel",
+                                                operator=admin, operation=operation)
+    print("Created C2 Profile")
+    # create default c2 profile parameters
+    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
+                            ('callback port', 'callback_port', '80'),
+                            ('callback interval (in seconds)', 'callback_interval', '10')]
+    for name,key,hint in c2profile_parameters:
+        await db_objects.get_or_create(C2ProfileParameters, c2_profile=c2_profile, name=name, key=key, hint=hint)
+    print("Registered C2 Profile Parameters")
+    # create default payload types
+    payload_type_apfell_jxa, created = await db_objects.get_or_create(PayloadType, ptype='apfell-jxa', operator=admin,
+                                                             file_extension="js", compile_command="", wrapper=False)
+    print("Created Apfell-jxa payload type")
+    # add the apfell_admin to the default operation
+    await db_objects.get_or_create(OperatorOperation, operator=admin, operation=operation)
+    print("Registered Admin with the default operation")
+    # add payload_type c2_profile mapping
+    await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type_apfell_jxa, c2_profile=c2_profile)
+    print("Registered apfell-jxa with the default c2 profile")
+    # Register commands for created payload types
+    file = open("./app/templates/default_commands.json", "r")
+    command_file = js.load(file)
+    for cmd_group in command_file['payload_types']:
+        for cmd in cmd_group['commands']:
+            if cmd['needs_admin'] == "false":
+                cmd['needs_admin'] = False
+            else:
+                cmd['needs_admin'] = True
+            command, created = await db_objects.get_or_create(Command, cmd=cmd['cmd'], needs_admin=cmd['needs_admin'],
+                                                     description=cmd['description'], help_cmd=cmd['help_cmd'],
+                                                     payload_type=payload_type_apfell_jxa,
+                                                     operator=admin)
+            for param in cmd['parameters']:
+                if param['isString'] == "false":
+                    param['isString'] = False
+                else:
+                    param['isString'] = True
+                if not param['isString']:
+                    param['hint'] = ""
+                if 'isCredential' not in param:
+                    param['isCredential'] = False
+                elif param['isCredential'] == "false":
+                    param['isCredential'] = False
+                else:
+                    param['isCredential'] = True
+                if param['required'] == "false":
+                    param['required'] = False
+                else:
+                    param['required'] = True
+                try:
+                    await db_objects.get_or_create(CommandParameters, command=command, name=param['name'],
+                                               hint=param['hint'], isString=param['isString'],
+                                               isCredential=param['isCredential'], required=param['required'],
+                                                   operator=admin)
+                except Exception as e:
+                    print(e)
+    print("Created all commands and command parameters")
+    file.close()
 
 
 apfell.static('/apfell-dark.png', './app/static/apfell_cropped_dark.png', name='apfell-dark')
