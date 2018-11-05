@@ -140,10 +140,13 @@ async def register_new_c2profile(request, user):
             operation = await db_objects.get(Operation, name=user['current_operation'])
             profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op,
                                               operation=operation)
+            # make the right directory structure
+            os.makedirs("./app/c2_profiles/{}/{}".format(operation.name, data['name']), exist_ok=True)
             # now create the payloadtypec2profile entries
             for t in data['payload_types']:
                 payload_type = await db_objects.get(PayloadType, ptype=t.strip())
                 await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+                os.makedirs("./app/c2_profiles/{}/{}/{}".format(operation.name, data['name'], payload_type.ptype), exist_ok=True)
             # now create the c2profileparameters entries so we can generate the right form to fill out
             if 'c2profileparameters' in data:
                 for params in data['c2profileparameters']:
@@ -240,7 +243,7 @@ async def update_c2profile(request, info, user):
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/start", methods=['GET'])
 @inject_user()
 @protected()
-async def start_stop_c2profile(request, info, user):
+async def start_c2profile(request, info, user):
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
@@ -256,8 +259,8 @@ async def start_stop_c2profile(request, info, user):
     try:
         # run profiles with just /bin/bash, so they should be set up appropriately
         p = subprocess.Popen(
-            ["/bin/bash", '\"./app/c2_profiles/{}/{}_server\"'.format(name, name)],
-            cwd='\"./app/c2_profiles/' + name + "/\"",
+            ["/bin/bash", '\"./app/c2_profiles/{}/{}/{}_server\"'.format(operation.name, name, name)],
+            cwd='\"./app/c2_profiles/{}/{}\"'.format(operation.name, name),
             stdout=null,
             stderr=null
         )
@@ -282,7 +285,7 @@ async def start_stop_c2profile(request, info, user):
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/stop", methods=['GET'])
 @inject_user()
 @protected()
-async def start_stop_c2profile(request, info, user):
+async def stop_c2profile(request, info, user):
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
@@ -317,6 +320,8 @@ async def delete_c2profile(request, info, user):
     try:
         # we will do this recursively because there can't be payloadtypec2profile mappings if the profile doesn't exist
         await db_objects.delete(profile, recursive=True)
+        # remove it from disk
+        shutil.rmtree("./app/c2_profiles/{}/{}".format(operation.name, info))
         success = {'status': 'success'}
         updated_json = profile.to_json()
         return json({**success, **updated_json})
