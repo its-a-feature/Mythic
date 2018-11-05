@@ -123,6 +123,39 @@ class Command(p.Model):
         return str(self.to_json())
 
 
+# these parameters are used to create an easily parsible JSON 'params' field for the agent to utilize
+class CommandParameters(p.Model):
+    command = p.ForeignKeyField(Command)
+    name = p.CharField(null=False)  # what is the name of the parameter (what is displayed in the UI)
+    hint = p.CharField()  # give a hint as to what the operator should input here, only used if isBool is false
+    isString = p.BooleanField(null=False, default=True)  # is this a string parameter? if False, then we treat as Bool
+    isCredential = p.BooleanField(null=False, default=False)  # can opt to select a piece of a credential object
+    required = p.BooleanField(null=False, default=False)  # is this a required parameter
+    operator = p.ForeignKeyField(Operator, null=False)
+
+    class Meta:
+        indexes = ((('command', 'name'), True),)
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'command':
+                    r[k] = getattr(self, k).id
+                    r['cmd'] = getattr(self, k).cmd
+                elif k == 'operator':
+                    r[k] = getattr(self, k).username
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 # users will be associated with operations
 #   payload_types and commands are associated with all operations
 #   when creating a new operation, associate all the default c2profiles with it
@@ -534,6 +567,7 @@ class ATTACKId(p.Model):
     t_num = p.IntegerField(null=False)
     name = p.CharField(null=False)
     cmd = p.ForeignKeyField(Command, null=False)
+    task = p.ForeignKeyField(Task, null=True)  # optionally specify which specific task is a certain att&ck ID
 
     class Meta:
         indexes = ((('t_num', 'cmd'), True),)
@@ -555,10 +589,75 @@ class ATTACKId(p.Model):
         return str(self.to_json())
 
 
+class Credential(p.Model):
+    type = p.CharField(null=False)  # what kind of credential is it? [hash, password, certificate, etc]
+    # if you know the task, you know who, what, where, when, etc that caused this thing to exist
+    # task can be null though which means it was manually entered
+    task = p.ForeignKeyField(Task)  # what task caused this credential to be here?
+    user = p.CharField(null=False)  # whose credential is this
+    domain = p.CharField()  # which domain does this credential apply?
+    operation = p.ForeignKeyField(Operation)  # which operation does this credential belong to?
+    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)  # when did we get it?
+    credential = p.CharField(null=False, max_length=2048)  # the actual credential we captured
+    operator = p.ForeignKeyField(Operator, null=False)  # who got us this credential? Especially needed if manual entry
+
+    class Meta:
+        indexes = ((('user', 'domain', 'credential', 'operation'), True),)
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'task':
+                    r[k] = getattr(self, k).id
+                    r['task_command'] = getattr(self, k).command.cmd
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+class Keylog(p.Model):
+    # if you know the task, you know who, where, when, etc
+    task = p.ForeignKeyField(Task)  # what command caused this to exist
+    keystrokes = p.CharField(null=False)  # what did you actually capture
+    window = p.CharField()  # if possible, what's the window title for where these keystrokes happened
+    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)  # when did we get these keystrokes?
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'task':
+                    r[k] = getattr(self, k).id
+                    r['task_command'] = getattr(self, k).command.cmd
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
-               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand']
+               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
+               'attackid', 'credential', 'keylog', 'CommandParameters']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -593,7 +692,8 @@ def pg_register_bignewinserts():
 
 def pg_register_updates():
     updates = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
-               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand']
+               'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
+               'attackid', 'credential', 'keylog', 'CommandParameters']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -609,77 +709,11 @@ def pg_register_updates():
             print(e)
 
 
-def setup():
-    current_time = str(datetime.datetime.now())
-    try:
-        # Create default apfell_admin
-        create_apfell_admin = "INSERT INTO operator (username, password, admin, last_login, creation_time, active)" + \
-                              " VALUES ('apfell_admin', " + \
-                              "'E3D5B5899BA81F553666C851A66BEF6F88FC9713F82939A52BC8D0C095EBA68E604B788347D489CC93A61599C6A37D0BE51EE706F405AF5D862947EF8C36A201', " + \
-                              "True, DEFAULT, '" + current_time + "',True) ON CONFLICT (username) DO NOTHING;"
-        apfell_db.execute_sql(create_apfell_admin)
-        # Create 'default' operation
-        create_default_operation = "INSERT INTO operation (name, admin_id, complete) VALUES ('default', " + \
-                                   "(SELECT id FROM operator WHERE username='apfell_admin'), false) ON CONFLICT (name) DO NOTHING;"
-        apfell_db.execute_sql(create_default_operation)
-        # Create default C2 profile
-        create_default_c2profile = "INSERT INTO c2profile (name, description, operator_id, " + \
-                                   "creation_time, running, operation_id) VALUES ('default', 'default RESTful C2 channel', " + \
-                                   "(SELECT id FROM operator WHERE username='apfell_admin'), " + \
-                                   "'" + current_time + "',True," + \
-                                   "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (name, operation_id) DO NOTHING;"
-        apfell_db.execute_sql(create_default_c2profile)
-        c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'), ('callback port', 'callback_port', '80'), ('callback interval (in seconds)', 'callback_interval', '10')]
-        for name,key,hint in c2profile_parameters:
-            create_default_c2profile_params = "INSERT INTO c2profileparameters (c2_profile_id, name, key, hint) VALUES (" + \
-                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id FROM operation WHERE name='default')), '" + name + "', '" + key + "', '" + hint + "') on CONFLICT (c2_profile_id, name) DO NOTHING;"
-            apfell_db.execute_sql(create_default_c2profile_params)
-            print("created default c2_profile parameter: " + str(name))
-
-        # Create default payload types, only one supported by default right now
-        default_payload_types = ['apfell-jxa']
-        for ptype in default_payload_types:
-            create_payload_type = "INSERT INTO payloadtype (ptype, operator_id, creation_time, file_extension, compile_command, wrapper, wrapped_encoding_type, wrapped_payload_type_id) VALUES ('" + ptype + \
-                "', (SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + \
-                "', 'js', '', False, '', null) ON CONFLICT (ptype) DO NOTHING;"
-            apfell_db.execute_sql(create_payload_type)
-            print("created default payload type: " + str(ptype))
-        # Add apfell_admin to the default operation
-        create_default_assignment = "INSERT INTO operatoroperation (operator_id, operation_id) VALUES (" + \
-            "(SELECT id FROM operator WHERE username='apfell_admin')," + \
-            "(SELECT id FROM operation WHERE name='default')) ON CONFLICT (operator_id, operation_id) DO NOTHING;"
-        apfell_db.execute_sql(create_default_assignment)
-        print("created default operator-operation assignment")
-        # Add default commands to default profiles
-        # one manual example for now, but need an easier way to automate this
-        # Add default payload_type and c2_profile mapping
-        for ptype in default_payload_types:
-            create_ptype_c2_mappings = "INSERT INTO payloadtypec2profile (payload_type_id, c2_profile_id) VALUES (" + \
-                "(SELECT id FROM payloadtype WHERE ptype='" + ptype + "')," + \
-                "(SELECT id FROM c2profile WHERE name='default' and operation_id=(SELECT id from operation where name='default'))) ON CONFLICT (payload_type_id, c2_profile_id) DO NOTHING;"
-            apfell_db.execute_sql(create_ptype_c2_mappings)
-            print("created default c2 to payload type mapping for: " + ptype)
-        # Create default commands that are associated with payloadtypes
-        file = open('./app/templates/default_commands.json', 'r')
-        command_file = json.load(file)
-        for cmd_group in command_file['payload_types']:
-            for cmd in cmd_group['commands']:
-                create_cmd = "INSERT INTO command (cmd, needs_admin, description, help_cmd, payload_type_id, operator_id, creation_time) " + \
-                    "VALUES ('" + cmd['cmd'] + "', " + cmd['needs_admin'] + ", '" + cmd['description'].replace("'", "''") + "', '" + \
-                    cmd['help_cmd'] + "', (SELECT id FROM payloadtype WHERE ptype='" + cmd_group['name'] + "')," + \
-                    "(SELECT id FROM operator WHERE username='apfell_admin'), '" + current_time + "') ON CONFLICT " + \
-                    "(cmd, payload_type_id) DO NOTHING;"
-                apfell_db.execute_sql(create_cmd)
-
-        file.close()
-    except Exception as e:
-        print(e)
-
-
 # don't forget to add in a new truncate command in database_api.py to clear the rows if you add a new table
 Operator.create_table(True)
 PayloadType.create_table(True)
 Command.create_table(True)
+CommandParameters.create_table(True)
 Operation.create_table(True)
 OperatorOperation.create_table(True)
 C2Profile.create_table(True)
@@ -693,8 +727,9 @@ PayloadCommand.create_table(True)
 C2ProfileParameters.create_table(True)
 C2ProfileParametersInstance.create_table(True)
 ATTACKId.create_table(True)
+Credential.create_table(True)
+Keylog.create_table(True)
 # setup default admin user and c2 profile
-setup()
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()
 pg_register_bignewinserts()
