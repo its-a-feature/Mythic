@@ -173,8 +173,10 @@ function submit_payload_callback(response){
         else{
             $('#success').html("<p>Success!</p>");
         }
+        alertTop("success", "Success!");
     }
     else{
         $('#errors').html((data['error']));
+        alertTop("danger", "Error: " + data['error']);
     }
 }
