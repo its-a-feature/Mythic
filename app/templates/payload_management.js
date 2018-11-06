@@ -192,6 +192,12 @@ var payloadtypes_table = new Vue({
                     $('#commandAddCode').val("");
                     $('#commandAddCode').attr('disabled', false);
                 }
+                if(data_json.hasOwnProperty("params")){
+                    add_command_parameters_table.add_command_parameters = data_json['params'];
+                }
+                else{
+                    add_command_parameters_table.add_command_parameters = [];
+                }
             });
 
         },
@@ -207,6 +213,7 @@ var payloadtypes_table = new Vue({
                 // Populate the various parts of the modal on select changes
                 cmd = $(this).find("option:selected").attr('value');
                 set_edit_command_params(cmd, p);
+
             });
             $( '#commandEditSubmit' ).unbind('click').click(function(){
                 //check for changes between what we have and what's in the fields, only submit those differences
@@ -228,6 +235,18 @@ var payloadtypes_table = new Vue({
                                 code = btoa( $( '#commandEditCode' ).val() );
                                 data['code'] = code;
                                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, null, "PUT", data);
+                            }
+                            //Now handle sending updates for the command parameters at the bottom
+                            for(var j = 0; j < command_parameters_table.command_parameters.length; j++){
+                                data = command_parameters_table.command_parameters[j];
+                                if(data.hasOwnProperty('id')){
+                                    //this means it's a parameter we had before, so send an update
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters/" + data['id'], null, "PUT", data);
+                                }
+                                else if(data['name'] != ""){
+                                    //make sure they entered something for the name, and send a POST to create the parameter
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters", null, "POST", data);
+                                }
                             }
                           }
                         });
@@ -282,6 +301,8 @@ function set_edit_command_params(command, curr_payload){
                 $( '#commandEditHelpCmd' ).val(cmd.help_cmd);
                 $( '#commandEditNeedsAdmin' ).prop('checked', cmd.needs_admin);
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cmd.id + "/code/string", set_edit_code_callback, "GET", null);
+                // Get the associated command parameters for this command
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cmd.id + "/parameters/", set_edit_command_parameters, "GET", null);
               }
             });
         }
@@ -290,11 +311,75 @@ function set_edit_command_params(command, curr_payload){
 function set_edit_code_callback(response){
     $( '#commandEditCode' ).val(atob(response));
 }
-function add_command_callback(response){
+var command_parameters = [];
+var command_parameters_table = new Vue({
+    el: '#edit_command_parameters_table',
+    data: {
+        command_parameters
+    },
+    methods: {
+        remove_parameter_button: function(i, p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + i.command + "/parameters/" + i.id, edit_remove_parameter, "DELETE", null);
+        },
+        add_parameter_button: function(){
+            this.command_parameters.push({"name": "", "isString": false, "isCredential": false, "hint": "", "required": false});
+        }
+    },
+    delimiters: ['[[',']]']
+});
+function set_edit_command_parameters(response){
     data = JSON.parse(response);
-    if(data['status'] != "success"){
+    if(data.hasOwnProperty('status')){
         alert(data['error']);
     }
+    else{
+        command_parameters_table.command_parameters = data;
+    }
+}
+function edit_remove_parameter(response){
+    data = JSON.parse(response);
+    if(data['status'] == "success"){
+        //now find the parameter and remove it from our array
+        for(var i = 0; i < command_parameters_table.command_parameters.length; i++){
+            if(command_parameters_table.command_parameters[i]['id'] == data['id']){
+                command_parameters_table.command_parameters.splice(i,1);
+            }
+        }
+    }
+    else{
+        alert(data['error']);
+    }
+}
+var add_command_parameters = [];
+var add_command_parameters_table = new Vue({
+    el: '#add_command_parameters_table',
+    data: {
+        add_command_parameters
+    },
+    methods: {
+        remove_parameter_button: function(i, p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + i.command + "/parameters/" + i.id, edit_remove_parameter, "DELETE", null);
+        },
+        add_parameter_button: function(){
+            this.add_command_parameters.push({"name": "", "isString": false, "isCredential": false, "hint": "", "required": false});
+        }
+    },
+    delimiters: ['[[',']]']
+});
+function add_command_callback(response){
+    cdata = JSON.parse(response);
+    if(cdata['status'] != "success"){
+        alert(cdata['error']);
+    }
+    //Now handle sending updates for the command parameters at the bottom
+    for(var j = 0; j < add_command_parameters_table.add_command_parameters.length; j++){
+        var data = add_command_parameters_table.add_command_parameters[j];
+        if(data['name'] != ""){
+            //make sure they entered something for the name, and send a POST to create the parameter
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cdata['id'] + "/parameters", null, "POST", data);
+        }
+    }
+    add_command_parameters_table.add_command_parameters = [];
 }
 function remove_commands_callback(response){
     var data = JSON.parse(response);
@@ -377,6 +462,7 @@ function startwebsocket_payloadtypes(){
 	}
 };
 startwebsocket_payloadtypes();
+
 function startwebsocket_commands(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/commands');
 	ws.onmessage = function(event){

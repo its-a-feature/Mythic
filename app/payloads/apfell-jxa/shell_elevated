@@ -2,13 +2,24 @@ exports.shell_elevated = function(task, command, params){
     var response = "";
     var pieces = JSON.parse(params);
     var cmd = pieces['command'];
-    var prompt = pieces['prompt'];
-	//this will prompt the user for creds - if successful, they'll be cached for us for 5 min
-	try{
-		response = currentApp.doShellScript(cmd, {administratorPrivileges:true,withPrompt:prompt});
-	}
-	catch(error){
-		response = error.toString();
-	}
+    if(!pieces['use_creds']){
+        var prompt = pieces['prompt'];
+        try{
+            response = currentApp.doShellScript(cmd, {administratorPrivileges:true,withPrompt:prompt});
+        }
+        catch(error){
+            response = error.toString();
+        }
+    }
+    else{
+        var userName = pieces['user'];
+        var password = pieces['credential'];
+        try{
+            response = currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:userName, password:password});
+        }
+        catch(error){
+            response = error.toString();
+        }
+    }
 	return response;
 };

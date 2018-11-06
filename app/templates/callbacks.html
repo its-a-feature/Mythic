@@ -129,6 +129,40 @@
     </div>
 </div>
 <!-- END MODAL FOR SPAWN MENU -->
+<!-- THIS IS OUR MODEL FOR PROMPTING FOR COMMAND PARAMETERS -->
+<div class="modal fade bs-example-modal-md" id="paramsModal" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3 id="paramsModalHeader">Command Parameters</h3>
+                <p>A * indicates a required parameter</p>
+            </div>
+              <div class="modal-body" id="paramsBody">
+                <table id="paramsTable">
+                    <tr v-for="param in command_params" :key="param.id">
+                        <td>
+                            [[param.name]]<span v-if="param.required">*</span>&nbsp;
+                        </td>
+                        <td>
+                            <span v-if="param.isString">
+                                <input type="text" :placeholder="param.hint" v-model="param.svalue" size="60">
+                            </span>
+                            <span v-else>
+                                &nbsp;<input type="checkbox" v-model="param.bvalue">
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+              </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="paramsSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR PROMPTING FOR COMMAND PARAMETERS -->
 {% endblock %}
 
 {% block scripts %}

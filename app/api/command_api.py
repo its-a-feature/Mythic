@@ -379,3 +379,16 @@ async def remove_command_parameter(request, user, cid, pid):
     p_json = parameter.to_json()
     await db_objects.delete(parameter)
     return json({'status': 'success', **p_json})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/parameters/", methods=['GET'])
+@inject_user()
+@protected()
+async def get_all_parameters_for_command(request, user, id):
+    try:
+        command = await db_objects.get(Command, id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command'})
+    params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
+    return json([p.to_json() for p in params])

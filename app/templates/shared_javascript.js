@@ -67,3 +67,16 @@ function pythonToJSJson(string){
     updated = updated.replace(/False/g, "false");
     return updated;
 }
+
+function alertTop(type, string){
+    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +
+    string +
+    "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
+    $( '#top-alert' ).html(html);
+}
+function alertBottom(type, string){
+    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +
+    string +
+    "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
+    $( '#bottom-alert' ).html(html);
+}

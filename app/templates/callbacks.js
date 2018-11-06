@@ -5,6 +5,7 @@ var meta = {}; //dictionary of dictionary of metadata
 var username = "{{name}}"; //gets the logged in name from the base.html
 var finished_callbacks = false;
 var finished_tasks = false;
+var ptype_cmd_params = {}; //where we keep track of payload type -> command -> command_parameter mappings for what has called in
 var callback_table = new Vue({
     el: '#callback_table',
     data: {
@@ -121,28 +122,49 @@ var task_data = new Vue({
             if (task.length > 1){
                 params = task.slice(1, ).join(' '); //join index 1 to the end back into a string of params
             }
-            if (command == "shell_elevated"){
-                shell_elevate_cmd = prompt("Please enter the command to execute", "cat /etc/sudoers");
-                if (shell_elevate_cmd != null){
-                    shell_elevate_prompt = prompt("Please enter prompt to ask for credentials", "");
-                    if (shell_elevate_prompt != null){
-                        params = JSON.stringify({"command":shell_elevate_cmd, "prompt":shell_elevate_prompt});
+            if(ptype_cmd_params.hasOwnProperty(callbacks[data['cid']]['payload_type'])){
+                for(var i = 0; i < ptype_cmd_params[callbacks[data['cid']]['payload_type']].length; i++){
+                    if(command == "help"){
+                        if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == params){
+                            alertBottom("info", ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
+                            //alert(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
+                        }
+                    }
+                    else if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == command){
+                        if(params.length == 0 && ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length != 0){
+                            //if somebody specified command arguments on the commandline without going through the GUI, by all means, let them
+                            //  This is for if they want the GUI to auto populate for them
+                            //  Also make sure that there are actually parameters for them to fill out
+                            params_table.command_params = [];
+                            for(var j = 0; j < ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length; j++){
+                                var param = Object.assign({}, {"svalue": "", "bvalue": false}, ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
+                                params_table.command_params.push(param);
+                            }
+                            $( '#paramsModalHeader' ).text(command + "'s Parameters");
+                            $( '#paramsModal' ).modal('show');
+                            $( '#paramsSubmit' ).unbind('click').click(function(){
+                                param_data = {};
+                                for(var k = 0; k < params_table.command_params.length; k++){
+                                    if(params_table.command_params[k]['isString']){
+                                        param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['svalue'];
+                                    }
+                                    else{
+                                        param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['bvalue'];
+                                    }
+                                }
+                                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
+                            });
+                            this.input_field = "";
+                        }
+                        else{
+                            //somebody knows what they're doing or a command just doesn't have parameters, send it off
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params":params});
+                            this.input_field = "";
+                        }
+
                     }
                 }
             }
-            else if(command == "shell_api"){
-                shell_api_path = prompt("Please enter the path of the binary to execute", "/bin/ps");
-                if (shell_api_path != null){
-                    shell_api_args_string = prompt("Please enter the args for this binary", "-ax");
-                    if(shell_api_args_string != null){
-                        shell_api_args = shell_api_args_string.split(" ");
-                        params = JSON.stringify({"path":shell_api_path, "args":shell_api_args});
-                    }
-                }
-            }
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],
-            post_task_callback_func, "POST", {"command":command,"params":params});
-            this.input_field = "";
         },
         select_tab: function(metadata){
             task_data.input_field_placeholder['data'] = metadata.display;
@@ -178,6 +200,17 @@ var task_data = new Vue({
 
     },
     delimiters: ['[[', ']]']
+});
+var command_params = [];
+var params_table = new Vue({
+    el: '#paramsTable',
+    data: {
+        command_params
+    },
+    methods:{
+
+    },
+    delimiters: ['[[',']]']
 });
 function view_callback_screenshots(response){
     data = JSON.parse(response);
@@ -232,6 +265,11 @@ function startwebsocket_callbacks(){
                                                'display': '',
                                                'screencaptures': false,
                                                'bg_color': color});
+            // check to see if we have this payload type in our list, if not, request the commands for it
+            if( !ptype_cmd_params.hasOwnProperty(cb['payload_type'])){
+                ptype_cmd_params[cb['payload_type']] = [];
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + cb['payload_type'] + "/commands", register_new_command_info, "GET", null);
+            }
         }
         else{
             if(finished_callbacks == false){
@@ -250,6 +288,20 @@ function startwebsocket_callbacks(){
         //console.debug("opened");
     }
 };
+//we will get back a series of commands and their parameters for a specific payload type, keep track of this in ptype_cmd_params so we can
+//  respond to help requests and build dynamic forms for getting command data
+function register_new_command_info(response){
+    data = JSON.parse(response);
+    if(data['status'] == "success"){
+        delete data['status'];
+        if(data['commands'].length > 0){
+            ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
+        }
+    }
+    else{
+        alert(data['error']);
+    }
+}
 function startwebsocket_newtasks(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/tasks/current_operation');
     ws.onmessage = function(event){

@@ -247,6 +247,10 @@ async def setup_initial_info(app, loop):
 
 async def initial_setup():
     # create apfell_admin
+    operators = await db_objects.execute(Operator.select())
+    if len(operators) != 0:
+        print("Users already exist, exiting initial setup early")
+        return
     admin, created = await db_objects.get_or_create(Operator, username="apfell_admin", password="E3D5B5899BA81F553666C851A66BEF6F88FC9713F82939A52BC8D0C095EBA68E604B788347D489CC93A61599C6A37D0BE51EE706F405AF5D862947EF8C36A201",
                                    admin=True, active=True)
     print("Created Admin")

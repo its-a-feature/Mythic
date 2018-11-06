@@ -586,6 +586,12 @@
           "explanation": "Remove a specific parameter from a command",
           "cli": "curl -X DELETE http://localhostAPI_BASE/commands/1/parameters/12",
           "output": "{\"status\":\"success\", \"name\":\"password\", \"isString\": \"True\", \"required\": \"False\", \"isCredential\":\"True\",\"hint\":\"The user's plaintext password\"}"
+        },
+        {
+          "GET": "API_BASE/commands/(cid:INTEGER)/parameters",
+          "explanation": "Get all of the parameters associated with a specific command",
+          "cli": "curl http://localhostAPI_BASE/commands/1/parameters",
+          "output": "[]"
         }
       ]
     },

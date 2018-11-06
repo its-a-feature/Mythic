@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Operator, PayloadType, Command
+from app.database_models.model import Operator, PayloadType, Command, CommandParameters
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
 import os
@@ -214,6 +214,9 @@ async def get_commands_for_payloadtype(request, user, ptype):
         print(e)
         return json({'status': 'error', 'error': 'failed to get payload type'})
     commands = await db_objects.execute(Command.select().where(Command.payload_type == payloadtype))
+    all_commands = []
+    for cmd in commands:
+        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == cmd))
+        all_commands.append({**cmd.to_json(), "params": [p.to_json() for p in params]})
     status = {'status': 'success'}
-    cmd_list = [x.to_json() for x in commands]
-    return json({**status, 'commands': cmd_list})
+    return json({**status, 'commands': all_commands})

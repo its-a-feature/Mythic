@@ -331,11 +331,44 @@
                     <tr>
                         <td> Code: </td>
                         <td>
-                            <textarea id="commandAddCode" rows="30" cols="80"></textarea>
+                            <textarea id="commandAddCode" rows="15" cols="80"></textarea>
                             <input type="file" id="commandAddFile">
                         </td>
                     </tr>
                 </table>
+                  <h3>Command Parameters:</h3>
+                  <table id="add_command_parameters_table">
+                      <tr v-for="(i,p) in add_command_parameters" :key="i.id">
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" @click="remove_parameter_button(i,p)">X</button>
+                        </td>
+                        <td>
+                            &nbsp;Name: <input type="text" size="10" :value="i.name" v-model="i.name">
+                        </td>
+                          <td>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Required? <input type="checkbox" :value="i.required" v-model="i.required">
+                          </td>
+                        <td>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String? <input type="checkbox" :value="i.isString" v-model="i.isString">
+                        </td>
+                          <td>
+                              <div v-show="i.isString">
+                                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Credential? <input type="checkbox" :value="i.isCredential" v-model="i.isCredential">
+                              </div>
+                          </td>
+                        <td>
+                            <div v-show="i.isString">
+                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hint: <input type="text" size="31" :value="i.hint" v-model="i.hint" v-show="i.isString">
+                            </div>
+                        </td>
+                    </tr>
+                      <tr>
+                          <td>
+                              <button type="button" class="btn btn-success btn-sm" @click="add_parameter_button()">Add</button>
+                          </td>
+                      </tr>
+
+                  </table>
               </div>
               <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true" id="commandAddCancel">Cancel</button>
@@ -374,11 +407,44 @@
                     <tr>
                         <td> Code: </td>
                         <td>
-                            <textarea id="commandEditCode" rows="30" cols="80"></textarea>
+                            <textarea id="commandEditCode" rows="15" cols="80"></textarea>
                             <input type="file" id="commandEditFile">
                         </td>
                     </tr>
                 </table>
+                  <h3>Command Parameters:</h3>
+                  <table id="edit_command_parameters_table">
+                      <tr v-for="(i,p) in command_parameters" :key="i.id">
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" @click="remove_parameter_button(i,p)">X</button>
+                        </td>
+                        <td>
+                            &nbsp;Name: <input type="text" size="10" :value="i.name" v-model="i.name">
+                        </td>
+                          <td>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Required? <input type="checkbox" :value="i.required" v-model="i.required">
+                          </td>
+                        <td>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String? <input type="checkbox" :value="i.isString" v-model="i.isString">
+                        </td>
+                          <td>
+                              <div v-show="i.isString">
+                                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Credential? <input type="checkbox" :value="i.isCredential" v-model="i.isCredential">
+                              </div>
+                          </td>
+                        <td>
+                            <div v-show="i.isString">
+                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hint: <input type="text" size="31" :value="i.hint" v-model="i.hint" v-show="i.isString">
+                            </div>
+                        </td>
+                    </tr>
+                      <tr>
+                          <td>
+                              <button type="button" class="btn btn-success btn-sm" @click="add_parameter_button()">Add</button>
+                          </td>
+                      </tr>
+
+                  </table>
               </div>
               <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true" id="commandEditCancel">Cancel</button>
