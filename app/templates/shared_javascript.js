@@ -26,6 +26,26 @@ function uploadFile(url, callback, file){
     fd.append("upload_file", file);
     xhr.send(fd);
 }
+function uploadFiles(url, callback, file){
+    var xhr = new XMLHttpRequest();
+    var fd = new FormData();
+    xhr.open("POST", url, true);
+    xhr.withCredentials = true;
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            // Every thing ok, file uploaded
+            if (callback){ //post might not have a callback
+                callback(xhr.responseText);
+            }
+        }
+    };
+    fd.append("file_length", file.length);
+    fd.append("upload_file", file[0]);
+    for(var i = 1; i < file.length; i++){
+        fd.append("upload_file_" + i, file[i]);
+    }
+    xhr.send(fd);
+}
 function uploadFileAndJSON(url, callback, file, data, method){
     var xhr = new XMLHttpRequest();
     var fd = new FormData();

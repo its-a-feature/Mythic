@@ -98,6 +98,16 @@
                         </select>
                     </td>
                 </tr>
+                <tr>
+                    <td>Server file(s)</td>
+                    <td><input multiple type="file" id="profileEditServerFile"></td>
+                </tr>
+                <tr v-for="p in edit_payload_file_list">
+                    <td>[[p]]'s Code:</td>
+                    <td>
+                        <input multiple type="file" :id="'edit_payload_file_list' + [[p]]">
+                    </td>
+                </tr>
             </table>
         </div>
 	    <div class="modal-footer">
@@ -133,6 +143,16 @@
                     <td>
                         <select multiple id="profileCreatePayloadTypes">
                         </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Server file(s)</td>
+                    <td><input multiple type="file" id="profileCreateServerFile"></td>
+                </tr>
+                <tr v-for="p in payload_file_list">
+                    <td>[[p]]'s Code:</td>
+                    <td>
+                        <input multiple type="file" :id="'payload_file_list' + [[p]]">
                     </td>
                 </tr>
             </table>

@@ -9,12 +9,11 @@ var profile_parameters_table = new Vue({
     },
     methods: {
         add_parameter_button: function(){
-            this.parameters.push({"name": "", "key": ""});
+            this.parameters.push({"name": "", "key": "", "hint": ""});
         },
         remove_parameter_button: function(p){
             //remove it from the list and also remove it from the back-end database
             parameter = this.parameters[p];
-            console.log(parameter);
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + parameter['c2_profile'] + "/parameters/" + parameter['id'], delete_parameter_callback, "DELETE", null);
             this.parameters.splice(p,1);
         },
@@ -44,7 +43,11 @@ var payloads_table = new Vue({
             // before we show the fields, populate them with the current data
             $( '#profileUpdateName' ).val(p.name);
             $( '#profileUpdateDescription' ).val(p.description);
-            $( '#profileUpdatePayloads').val(p.payload_types);
+            edit_payload_files.edit_payload_file_list = [];
+            $( '#profileUpdatePayloads' ).unbind('change').change(function(){
+                edit_payload_files.edit_payload_file_list = $('#profileUpdatePayloads').val();
+            });
+            $( '#profileUpdatePayloads').val(p.payload_types).change();
             $( '#profileUpdateModal' ).modal('show');
             $( '#profileUpdateSubmit' ).unbind('click').click(function(){
                 var data = {"name": p.name,
@@ -52,6 +55,24 @@ var payloads_table = new Vue({
                         "payload_types": $( '#profileUpdatePayloads' ).val()
                         };
                  httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, update_profile, "PUT", data);
+                 //we will upload files with this as well for the server code
+                var file = document.getElementById('profileEditServerFile');
+                if(file.files.length > 0){
+                    var filedata = file.files;
+                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files, {"payload_type": ""}, "POST");
+                    file.value = file.defaultValue;
+                }
+                // now iterate and upload files for all of the payload types as needed
+                for(var i = 0; i < edit_payload_files.edit_payload_file_list.length; i++){
+                    var file = document.getElementById('edit_payload_file_list' + edit_payload_files.edit_payload_file_list[i]);
+                    if(file.files.length > 0){
+                        var filedata = file.files;
+                        var json_data = {"payload_type":  edit_payload_files.edit_payload_file_list[i]}
+                        uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files,filedata, json_data, "POST");
+                        //uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/, edit_payloadtype_callback, filedata);
+                        file.value = file.defaultValue;
+                    }
+                }
 		    });
 	    },
 	    running_button: function(p){
@@ -75,7 +96,7 @@ var payloads_table = new Vue({
                 }
             }
             else{
-                alert("failed to get parameters");
+                alertTop("danger", "failed to get parameters");
             }
 
             // for each one we get back, create a new row
@@ -101,22 +122,30 @@ var payloads_table = new Vue({
     },
     delimiters: ['[[',']]']
 });
+var edit_payload_file_list = [];
+var edit_payload_files = new Vue({
+    el: '#profileUpdateBody',
+    data: {
+        edit_payload_file_list
+    },
+    delimiters: ['[[', ']]']
+});
 function add_parameter_callback(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 };
 function edit_parameter_callback(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 };
 function delete_parameter_callback(response){
     data = JSON.parse(response);
     if(data['status'] == "error"){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 };
 function update_profile(response){
@@ -133,8 +162,14 @@ function update_profile(response){
 	}
 	else{
 		//there was an error, so we should tell the user
-		alert("Error: " + data['error']);
+		alertTop("danger", "Error: " + data['error']);
 	}
+}
+function update_profile_files(response){
+    data = JSON.parse(response);
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
 }
 function delete_profile(response){
 	data = JSON.parse(response);
@@ -149,14 +184,8 @@ function delete_profile(response){
 	}
 	else{
 		//there was an error, so we should tell the user
-		alert("Error: " + data['error']);
+		alertTop("danger", "Error: " + data['error']);
 	}
-}
-function create_profile(response){
-    data = JSON.parse(response);
-    if(data['status'] == 'error'){
-        alert(data['error']);
-    }
 }
 function startwebsocket_c2profiles(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/c2profiles/current_operation');
@@ -217,15 +246,53 @@ function register_button(){
         + possiblePayloadTypes[i].ptype + '</option>';
     }
     $( '#profileCreatePayloadTypes' ).html(types);
-
-
+    payload_files.payload_file_list = [];
+    $( '#profileCreatePayloadTypes' ).unbind('change').change(function(){
+        payload_files.payload_file_list = $('#profileCreatePayloadTypes').val();
+    });
 	$( '#profileCreateModal' ).modal('show');
     $( '#profileCreateSubmit' ).unbind('click').click(function(){
         var data = {"name": $( '#profileCreateName' ).val(),
                     "description": $( '#profileCreateDescription' ).val(),
                     "payload_types": $( '#profileCreatePayloadTypes' ).val()};
-         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile, "POST", data);
-
+        //we will upload files with this as well for the server code
+        var file = document.getElementById('profileCreateServerFile');
+        var filedata = file.files;
+        uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile,filedata, data, "POST");
+        file.value = file.defaultValue;
     });
+
 }
+function create_profile(response){
+    data = JSON.parse(response);
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+        return;
+    }
+    // we didn't get an error when we tried to create the initial c2 profile, now try to upload all of the code files for the selected types
+    for(var i = 0; i < payload_files.payload_file_list.length; i++){
+        var file = document.getElementById('payload_file_list' + payload_files.payload_file_list[i]);
+        if(file.files.length > 0){
+            var filedata = file.files;
+            var json_data = {"payload_type":  payload_files.payload_file_list[i]}
+            uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + data['name'] + "/upload", upload_profile_file,filedata, json_data, "POST");
+            //uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/, edit_payloadtype_callback, filedata);
+            file.value = file.defaultValue;
+        }
+    }
+}
+function upload_profile_file(response){
+    data = JSON.parse(response);
+    if(data['status'] != "success"){
+        alertTop("danger", data['error']);
+    }
+}
+var payload_file_list = [];
+var payload_files = new Vue({
+    el: '#profileCreateBody',
+    data: {
+        payload_file_list
+    },
+    delimiters: ['[[', ']]']
+});
 startwebsocket_c2profiles();

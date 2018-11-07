@@ -7,6 +7,8 @@ import asyncio
 from sanic_jwt.decorators import protected, inject_user
 import shutil
 import os
+import json as js
+import base64
 
 # this information is only valid for a single run of the server
 running_profiles = []  # will have dicts of process information
@@ -115,15 +117,18 @@ async def get_c2profiles_by_type_function(ptype, user_dict, use_current):
 @inject_user()
 @protected()
 async def register_new_c2profile(request, user):
-    data = request.json
+    if request.form:
+        data = js.loads(request.form.get('json'))
+    else:
+        data = request.json
     #print(data)
     # also takes in an array of 'name', 'key' values to aid in payload creation, not a requirement though
     data['operator'] = user['username']
-    if 'name' not in data or data['name'] is "":
+    if 'name' not in data or data['name'] is "" or data['name'] is None:
         return json({'status': 'error', 'error': 'name is required'})
     if 'description' not in data:
         data['description'] = ""
-    if 'payload_types' not in data:
+    if 'payload_types' not in data or data['payload_types'] is None:
         return json({'status': 'error', 'error': 'payload_types is required information'})
     # we need to 1. make sure these are all valid payload types, and 2. create payloadtypec2profile entries as well
     for t in data['payload_types']:
@@ -144,7 +149,11 @@ async def register_new_c2profile(request, user):
             os.makedirs("./app/c2_profiles/{}/{}".format(operation.name, data['name']), exist_ok=True)
             # now create the payloadtypec2profile entries
             for t in data['payload_types']:
-                payload_type = await db_objects.get(PayloadType, ptype=t.strip())
+                try:
+                    payload_type = await db_objects.get(PayloadType, ptype=t.strip())
+                except Exception as e:
+                    print(e)
+                    return json({'status': 'error', 'error': 'failed to find payload type: ' + t})
                 await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
                 os.makedirs("./app/c2_profiles/{}/{}/{}".format(operation.name, data['name'], payload_type.ptype), exist_ok=True)
             # now create the c2profileparameters entries so we can generate the right form to fill out
@@ -154,6 +163,25 @@ async def register_new_c2profile(request, user):
                         params['hint'] = ""
                     await db_objects.create(C2ProfileParameters, c2_profile=profile, key=params['key'], name=params['name'], hint=params['hint'])
             profile_json = profile.to_json()
+            # Now that the profile is created and registered, write the server code files to the appropriate directory
+            if request.files:
+                code = request.files['upload_file'][0].body.decode('UTF-8')
+                code_file = open("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, request.files['upload_file'][0].name),"w")
+                code_file.write(code)
+                code_file.close()
+                for i in range(1, int(request.form.get('file_length'))):
+                    code = request.files['upload_file_' + str(i)][0].body.decode('UTF-8')
+                    code_file = open(
+                        "./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name,
+                                                      request.files['upload_file_' + str(i)][0].name),"w")
+                    code_file.write(code)
+                    code_file.close()
+            elif 'code' in data and 'file_name' in data:
+                # if the user is doing this through the API instead of UI, they can specify a file this way
+                code = base64.b64decode(data['code'])
+                code_file = open("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, data['file_name']), 'w')
+                code_file.write(code)
+                code_file.close()
             status = {'status': 'success'}
             return json({**status, **profile_json})
         else:
@@ -190,6 +218,55 @@ async def register_default_profile_operation(user_dict, operation_name):
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': str(e)}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/upload", methods=['POST'])
+@inject_user()
+@protected()
+async def upload_c2_profile_payload_type_code(request, info, user):
+    c2profile = unquote_plus(info)
+    # we either get a file from the browser or somebody uploads it via a base64 encoded "code" field
+    if request.form:
+        data = js.loads(request.form.get('json'))
+    else:
+        data = request.json
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=c2profile, operation=operation)
+        registered_ptypes = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.c2_profile == profile))
+        ptypes = [p.payload_type.ptype for p in registered_ptypes]  # just get an array of all the names
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find profile or operation'})
+    if "payload_type" not in data:
+        return json({'status': 'error', 'error': 'must associate this code with a specific payload type'})
+    if data['payload_type'] not in ptypes and data['payload_type'] != "":
+        return json({'status': 'error', 'error': 'trying to upload code for a payload time not registered with this c2 profile'})
+    try:
+        if data['payload_type'] == "":
+            data['payload_type'] = "."  # don't change directories and we'll still be in the main c2_profile directory
+        if "code" in data and "file_name" in data:
+            # get a base64 blob of the code and the filename to save it as in the right directory
+            code = base64.b64decode(data['code'])
+            code_file = open("./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name, data['payload_type'], data['file_name']), 'w')
+            code_file.write(code)
+            code_file.close()
+        elif request.files:
+            code = request.files['upload_file'][0].body.decode('UTF-8')
+            code_file = open(
+                "./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name, data['payload_type'],request.files['upload_file'][0].name),"w")
+            code_file.write(code)
+            code_file.close()
+            for i in range(1, int(request.form.get('file_length'))):
+                code = request.files['upload_file_' + str(i)][0].body.decode('UTF-8')
+                code_file = open(
+                    "./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name,data['payload_type'],
+                                                        request.files['upload_file_' + str(i)][0].name), "w")
+                code_file.write(code)
+                code_file.close()
+        return json({'status': 'success'})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to write code to file: ' + str(e)})
 
 
 # Update a current profile
@@ -315,11 +392,17 @@ async def delete_c2profile(request, info, user):
         info = unquote_plus(info)
         operation = await db_objects.get(Operation, name=user['current_operation'])
         profile = await db_objects.get(C2Profile, name=info, operation=operation)
+        parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
+        ptypec2profile = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.c2_profile == profile))
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 profile'})
     try:
         # we will do this recursively because there can't be payloadtypec2profile mappings if the profile doesn't exist
+        for p in parameters:
+            await db_objects.delete(p, recursive=True)
+        for p in ptypec2profile:
+            await db_objects.delete(p, recursive=True)
         await db_objects.delete(profile, recursive=True)
         # remove it from disk
         shutil.rmtree("./app/c2_profiles/{}/{}".format(operation.name, info))

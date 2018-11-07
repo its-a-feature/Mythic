@@ -187,6 +187,16 @@
               "name": "c2profileparameters",
               "description": "This specifies the name, key, and hint values for the different parameters that the c2 profile needs",
               "requirements": "This is optional as not all c2 profiles will necessarily have parameters"
+            },
+            {
+              "name": "code",
+              "description": "This is a base64 encoded blob for the name_server code that will be uploaded to the server",
+              "requirements": "This is required if you're not uploading files through the UI and want code on disk to run"
+            },
+            {
+              "name": "file_name",
+              "description": "This is the name of the file that will be created with your code from the \"code\" section",
+              "requirements": "This is required if you specified the \"code\" block as well, it should be name_server, but you can upload multiple files if needed. Only the name_server file will be executed by the server though"
             }
 
           ],
@@ -209,6 +219,29 @@
             }
           ],
           "output": "A JSON blob indicating success or failure, a json representation of the c2 profile, and a list of all the supported payload_types"
+        },
+        {
+          "POST": "API_BASE/c2profiles/(info:STRING)/upload",
+          "explanation": "Upload code for a specific registered payload type or for the main profile",
+          "cli": "curl -X POST -d '{}' http://localhostAPI_BASE/c2profiles/slack",
+          "output": "{\"status\": \"success\"}",
+          "parameters": [
+            {
+              "name": "code",
+              "description": "The base64 encoded blob that will be decoded and written to disk",
+              "requirements": "This is a required field"
+            },
+            {
+              "name": "file_name",
+              "description": "The name of the file to write to disk",
+              "requirements": "This is a required field"
+            },
+            {
+              "name": "payload_type",
+              "description": "The name of the payload type that's registered with the associated c2_profile that you're trying to upload the code for",
+              "requirements": "This should be a valid payload_type name, and the payload type should already be registered with the c2 profile. If you want to upload to main profile, leave this blank"
+            }
+          ]
         },
         {
           "GET": "API_BASE/c2profiles/(info:STRING)/start",

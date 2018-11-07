@@ -90,6 +90,7 @@ var callback_table = new Vue({
         remove_callback: function(callback){
             //remove callback from our current view until we potentially get a checkin from it
             meta[callback.id]['tasks'] = false;
+            meta[callback.id]['screencaptures'] = false;
             this.$delete(meta, callback.id);
             this.$delete(callbacks, callback.id);
             //update the callback to be active=false
