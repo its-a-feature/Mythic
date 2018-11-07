@@ -5,6 +5,7 @@ import base64
 from sanic_jwt.decorators import protected, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
 import json as js
+import datetime
 
 
 # This gets all responses in the database
@@ -52,6 +53,11 @@ async def update_task_for_callback(request, id):
     decoded = base64.b64decode(data['response']).decode("utf-8")
     try:
         task = await db_objects.get(Task, id=id)
+        callback = await db_objects.get(Callback, id=task.callback.id)
+        # update the callback's last checkin time since it just posted a response
+        callback.last_checkin = datetime.datetime.utcnow()
+        callback.active = True  # always set this to true regardless of what it was before because it's clearly active
+        await db_objects.update(callback)  # update the last checkin time
     except Exception as e:
         return json({'status': 'error',
                      'error': 'Task does not exist'})

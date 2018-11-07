@@ -224,13 +224,13 @@ function view_callback_screenshots(response){
         }
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 }
 function post_task_callback_func(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
-        alert(data['error']);
+        alertTop("danger", data['error']);
         task_data.input_field = data['cmd'] + " " + data['params'];
     }
 }
@@ -300,7 +300,7 @@ function register_new_command_info(response){
         }
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 }
 function startwebsocket_newtasks(){

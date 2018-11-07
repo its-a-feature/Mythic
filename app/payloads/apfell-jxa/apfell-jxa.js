@@ -186,7 +186,6 @@ sleepWakeUp = function(t){
 			    }
 			}
 			if ((typeof output) == "string"){
-			    console.log("converting output to nsdata");
 			    output = convert_to_nsdata(output);
 			}
 			C2.postResponse(task, output);
