@@ -9,7 +9,7 @@ class Operator(p.Model):
     username = p.CharField(max_length=64, unique=True, null=False)
     password = p.CharField(max_length=1024, null=False)
     admin = p.BooleanField(null=True, default=False)
-    creation_time = p.DateTimeField(default=datetime.datetime.now, null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     last_login = p.DateTimeField(default=None, null=True)
     # option to simply de-activate an account instead of delete it so you keep all your relational data intact
     active = p.BooleanField(null=False, default=True)
@@ -53,7 +53,7 @@ class Operator(p.Model):
 class PayloadType(p.Model):
     ptype = p.CharField(null=False, unique=True)  # name of the payload type
     operator = p.ForeignKeyField(Operator, null=False)
-    creation_time = p.DateTimeField(null=False, default=datetime.datetime.now)
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
     file_extension = p.CharField(null=True)
     compile_command = p.CharField(max_length=4096, default="")
     # if this type requires another payload to be already created
@@ -98,7 +98,7 @@ class Command(p.Model):
     # this command applies to what payload types (just apfell-jxa, maybe apfell-app or empire)
     payload_type = p.ForeignKeyField(PayloadType, null=False)
     operator = p.ForeignKeyField(Operator, null=False)
-    creation_time = p.DateTimeField(null=False, default=datetime.datetime.now)
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)
@@ -188,6 +188,7 @@ class Operation(p.Model):
 class OperatorOperation(p.Model):
     operator = p.ForeignKeyField(Operator)
     operation = p.ForeignKeyField(Operation)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
 
     class Meta:
         indexes = ( (('operator', 'operation'), True), )
@@ -205,6 +206,7 @@ class OperatorOperation(p.Model):
                     r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k))
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
     def __str__(self):
@@ -220,7 +222,7 @@ class C2Profile(p.Model):
     # list of payload types that are supported (i.e. have a corresponding module created for them on the client side
     operator = p.ForeignKeyField(Operator, null=False)  # keep track of who created/registred this profile
     # This has information about supported payload types, but that information is in a separate join table
-    creation_time = p.DateTimeField(default=datetime.datetime.now, null=False)  # (indicates "when")
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # (indicates "when")
     running = p.BooleanField(null=False, default=False)
     operation = p.ForeignKeyField(Operation, null=False)
 
@@ -287,7 +289,7 @@ class Payload(p.Model):
     tag = p.CharField(null=True)
     # creator of the payload, cannot be null! must be attributed to somebody (indicates "who")
     operator = p.ForeignKeyField(Operator, null=False)
-    creation_time = p.DateTimeField(default=datetime.datetime.now, null=False)  # (indicates "when")
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # (indicates "when")
     # this is fine because this is an instance of a payload, so it's tied to one PayloadType
     payload_type = p.ForeignKeyField(PayloadType, null=False)
     # this will signify if a current callback made / spawned a new callback that's checking in
@@ -333,7 +335,7 @@ class Payload(p.Model):
 class PayloadCommand(p.Model):
     payload = p.ForeignKeyField(Payload, null=False)
     command = p.ForeignKeyField(Command, null=False)
-    creation_time = p.DateTimeField(default=datetime.datetime.now, null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
 
     class Meta:
         indexes = ((('payload', 'command'), True),)
@@ -420,8 +422,8 @@ class C2ProfileParametersInstance(p.Model):
 
 
 class Callback(p.Model):
-    init_callback = p.DateTimeField(default=datetime.datetime.now, null=False)
-    last_checkin = p.DateTimeField(default=datetime.datetime.now, null=False)
+    init_callback = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    last_checkin = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     user = p.CharField(null=False)
     host = p.CharField(null=False)
     pid = p.IntegerField(null=False)
@@ -475,7 +477,7 @@ class Task(p.Model):
     params = p.CharField(null=True, max_length=512000)  #this will have the instance specific params (ex: id)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
     attack_id = p.IntegerField(null=True)  # task will be more granular than command, so attack_id should live here
-    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     # every task is associated with a specific callback that executes the task
     callback = p.ForeignKeyField(Callback, null=False)
     # the operator to issue the command can be different from the one that spawned the callback
@@ -508,7 +510,7 @@ class Task(p.Model):
 
 class Response(p.Model):
     response = p.CharField(null=True, max_length=512000)
-    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     task = p.ForeignKeyField(Task, null=False)
 
     class Meta:
@@ -538,7 +540,7 @@ class FileMeta(p.Model):
     complete = p.BooleanField(null=False, default=False)
     path = p.CharField(null=False, max_length=5000)  # where the file is located on local disk
     operation = p.ForeignKeyField(Operation, null=False)
-    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
 
     class Meta:
         database = apfell_db
@@ -597,7 +599,7 @@ class Credential(p.Model):
     user = p.CharField(null=False)  # whose credential is this
     domain = p.CharField()  # which domain does this credential apply?
     operation = p.ForeignKeyField(Operation)  # which operation does this credential belong to?
-    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)  # when did we get it?
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # when did we get it?
     credential = p.CharField(null=False, max_length=2048)  # the actual credential we captured
     operator = p.ForeignKeyField(Operator, null=False)  # who got us this credential? Especially needed if manual entry
 
@@ -630,7 +632,7 @@ class Keylog(p.Model):
     task = p.ForeignKeyField(Task)  # what command caused this to exist
     keystrokes = p.CharField(null=False)  # what did you actually capture
     window = p.CharField()  # if possible, what's the window title for where these keystrokes happened
-    timestamp = p.DateTimeField(default=datetime.datetime.now, null=False)  # when did we get these keystrokes?
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # when did we get these keystrokes?
 
     class Meta:
         database = apfell_db

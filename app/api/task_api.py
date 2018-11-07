@@ -58,7 +58,7 @@ async def get_next_task(request, cid):
         return json({'status': 'error',
                      'error': 'callback does not exist'})
     try:
-        callback.last_checkin = datetime.datetime.now()
+        callback.last_checkin = datetime.datetime.utcnow()
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active
         await db_objects.update(callback)  # update the last checkin time
         operation = await db_objects.get(Operation, name=callback.operation.name)

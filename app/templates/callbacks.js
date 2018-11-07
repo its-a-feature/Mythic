@@ -369,7 +369,8 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
     }
 };
 function updateClocks(){
-    now = new Date();
+    date = new Date();
+    now = date.getTime() + date.getTimezoneOffset() * 60000;
     for(var key in callbacks){
         // update each 'last_checkin' time to be now - that value
         checkin_time = new Date(callbacks[key]['last_checkin']);
@@ -400,6 +401,6 @@ function shadeBlend(p,c0,c1) {
 }
 
 startwebsocket_callbacks();
-setInterval(updateClocks, 100);
+setInterval(updateClocks, 50);
 
 startwebsocket_updatedcallbacks();
