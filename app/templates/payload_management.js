@@ -330,7 +330,7 @@ var command_parameters_table = new Vue({
 function set_edit_command_parameters(response){
     data = JSON.parse(response);
     if(data.hasOwnProperty('status')){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
     else{
         command_parameters_table.command_parameters = data;
@@ -347,7 +347,7 @@ function edit_remove_parameter(response){
         }
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 }
 var add_command_parameters = [];
@@ -369,7 +369,7 @@ var add_command_parameters_table = new Vue({
 function add_command_callback(response){
     cdata = JSON.parse(response);
     if(cdata['status'] != "success"){
-        alert(cdata['error']);
+        alertTop("danger", cdata['error']);
     }
     //Now handle sending updates for the command parameters at the bottom
     for(var j = 0; j < add_command_parameters_table.add_command_parameters.length; j++){
@@ -398,7 +398,7 @@ function remove_commands_callback(response){
         }
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 };
 function import_commands_button_callback(response){
@@ -418,7 +418,7 @@ function delete_payloadtype_callback(response){
         }
     }
     else{
-        alert("Error: " + data['error']);
+        alertTop("danger", "Error: " + data['error']);
     }
 }
 function edit_payloadtype_callback(response){
@@ -433,7 +433,7 @@ function edit_payloadtype_callback(response){
         }
     }
     else{
-        alert("Error: " + data['error']);
+        alertTop("danger", "Error: " + data['error']);
     }
 };
 var gotCommandData = false;
@@ -497,7 +497,7 @@ function startwebsocket_commands(){
 function create_payloadtype_callback(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 }
 

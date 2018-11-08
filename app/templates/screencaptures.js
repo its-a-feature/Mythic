@@ -17,7 +17,7 @@ var screencapture_div = new Vue({
                 }
             }
             else {
-                    alert("Image not done downloading from host. We have " + image.chunks_received + " out of " + image.total_chunks + " total chunks.");
+                    alertTop("warning", "Image not done downloading from host. We have " + image.chunks_received + " out of " + image.total_chunks + " total chunks.");
                 }
 
         }

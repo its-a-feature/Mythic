@@ -135,25 +135,25 @@ function delete_operator_callback(response){
 	}
 	else{
 		//there was an error, so we should tell the user
-		alert("Error: " + data['error']);
+		alertTop("danger", "Error: " + data['error']);
 	}
 }
 function update_operator_callback(response){
     data = JSON.parse(response);
     if(data['status'] == 'success'){
-        alert("Password successfully changed");
+        alertTop("success", "Password successfully changed");
     }
     else{
-        alert("Error: " + data['error']);
+        alertTop("danger", "Error: " + data['error']);
     }
 }
 function update_operatorview_callback(response){
     data = JSON.parse(response);
     if(data['status'] == 'success'){
-
+        alertTop("success", "success");
     }
     else{
-        alert("Error: " + data['error']);
+        alertTop("danger", "Error: " + data['error']);
     }
 }
 function disable_registration_button(){
@@ -163,9 +163,9 @@ function disable_registration_button(){
 function disable_registration_callback(response){
     data = JSON.parse(response);
     if(data['status'] == 'success'){
-        alert("New operator registration is disabled until server restart.");
+        alertTop("warning", "New operator registration is disabled until server restart.");
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 }

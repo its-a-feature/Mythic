@@ -315,7 +315,7 @@ async def get_payload(request, pload):
         return json({'status': 'error', 'error': 'payload not found'})
     try:
         print(payload.location)
-        with open(payload.location, 'r') as f:
+        with open(payload.location, 'rb') as f:
             base_data = f.read()
         # b64_data = str(base64.b64encode(str.encode(base_data)))
     except Exception as e:

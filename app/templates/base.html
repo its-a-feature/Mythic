@@ -18,11 +18,11 @@
 
 </head>
 <body>
-    <nav class="navbar navbar-default navbar-inverse">
+    <nav class="navbar navbar-light navbar-inverse">
         <div class="container-fluid">
             <div class="navbar-header" align="top">
 
-                <a class="navbar-brand" href="{{ links.index }}"><img src="/apfell-dark.png" style="width:35px;height:40px"></a>
+                <a class="navbar-brand-expand-md" href="{{ links.index }}"><img src="/apfell-dark.png" style="width:45px;height:50px"></a>
 
             </div>
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -33,13 +33,21 @@
                             Manage Operations <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{{ links.callbacks }}">View Current Operation</a></li>
-                            <li><a href="{{ links.screencapture_management}}">View Operation's Screencaptures</a></li>
                             <li><a href="{{ links.database_management }}">Database Management</a></li>
                             <li><a href="{{ links.payload_management }}">Payload Management</a></li>
                             <li><a href="{{ links.analytics }}">Analytics Dashboard</a></li>
                             <li><a href="{{ links.c2profile_management }}">C2 Profiles Management</a></li>
                             <li><a href="{{ links.operations_management }}">Operations Management</a></li>
+                        </ul>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Operational Views <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ links.callbacks }}">Active Callbacks</a></li>
+                            <li><a href="{{ links.screencaptures}}">Screencaptures</a></li>
+                            <li><a href="{{ links.keylogs }}">Keylogs</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -99,7 +107,12 @@
                         </ul>
                     </li>
                     <li>
-                        <h4 style="color:green">Current Operation: {{links.current_operation}}</h4>
+                        {% if links.current_operation != "" %}
+                            <font style="color:green" size="6">{{links.current_operation}}</font>
+                        {% else %}
+                            <font style="color:red" size="5">Select an operation!</font>
+                        {% endif %}
+
                     </li>
                     {% else %}
                     <li><a href="{{ links.login }}">Login</a></li>

@@ -23,9 +23,9 @@ function clear_operation_files(){
 function clear_callback(response){
 	data = JSON.parse(response);
 	if(data['status'] == 'success'){
-		alert("Successfully cleared");	
+		alertTop("succes", "Successfully cleared");
 	}
 	else{
-		alert("Failed to clear: " + data['error']);
+		alertTop("danger", "Failed to clear: " + data['error']);
 	}
 }

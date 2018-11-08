@@ -62,7 +62,7 @@ function c2_profile_parameters_callback(response){
         $( '#payload_type').html(payload_type_options);
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 };
 $( '#payload_type' ).change(function(){
@@ -87,9 +87,13 @@ function commands_callback(response){
             cmd_options = cmd_options + '<option value="' + data['commands'][i]['cmd'] + '">' + data['commands'][i]['cmd'] + '</option>';
         }
         $( '#payload_commands' ).html(cmd_options);
+        //now we need to get information about this payload type besides just the commands
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + $('#payload_type').val(), payload_type_callback, "GET", null);
     }
-    //now we need to get information about this payload type besides just the commands
-    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + $('#payload_type').val(), payload_type_callback, "GET", null);
+    else{
+        alertTop("danger", data['error']);
+    }
+
 };
 function payload_type_callback(response){
     data = JSON.parse(response);
@@ -104,6 +108,9 @@ function payload_type_callback(response){
             $('#payload_commands').attr("disabled", false);
         }
     }
+    else{
+        alertTop("danger", data['error']);
+    }
 }
 function wrapped_payloads_callback(response){
     data = JSON.parse(response)
@@ -116,6 +123,9 @@ function wrapped_payloads_callback(response){
         }
         $('#wrappedPayload').html(options);
         $('#payloadWrapperRow').attr("hidden", false);
+    }
+    else{
+        alertTop("danger", data['error']);
     }
 }
 //any time the wrapped payload selection changes, we need to get information on that payload so we can update other sections of the page
@@ -138,6 +148,9 @@ function update_wrapped_payloads_callback(response){
         $('#payload_commands').html(selected_options);
         $('#payload_commands').attr("disabled", true);
         //TODO when we add in payload specific parameters, update those here as well
+    }
+    else{
+        alertTop("danger", data['error']);
     }
 }
 function submit_payload(){

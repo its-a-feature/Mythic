@@ -1177,6 +1177,41 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Keylog",
+      "api": [
+        {
+          "GET": "API_BASE/keylogs/current_operation",
+          "explanation": "Get keylog data for the current operation sorted by host and window title",
+          "cli": "curl http://localhostAPI_BASE/keylogs/current_operation",
+          "output": "{\"status\":\"success\",\"grouping\":\"host\",\"sub_grouping\":\"window\",\"keylogs\":{\"Codys-MacBook-Pro.local\":{\"Notepad\":[{\"timestamp\":\"11\/08\/2018 00:37:31\",\"id\":4,\"task\":9,\"task_command\":\"keylog\",\"keystrokes\":\"hello world\",\"window\":\"Notepad\",\"operation\":\"default\",\"user\":\"cody\",\"callback\":{\"active\":true,\"integrity_level\":2,\"init_callback\":\"11\/08\/2018 00:21:36\",\"last_checkin\":\"11\/08\/2018 00:39:16\",\"id\":1,\"user\":\"cody\",\"host\":\"Codys-MacBook-Pro.local\",\"pid\":49754,\"ip\":\"192.168.0.5\",\"description\":\"spearphish\",\"operator\":\"apfell_admin\",\"pcallback\":\"null\",\"registered_payload\":\"2c023ba28e3ead3d838612612db77231aa0f20c8dea60fee784e5d495db8e116\",\"payload_type\":\"apfell-jxa\",\"operation\":\"default\",\"encryption_type\":null}}]}}}"
+        },
+        {
+          "POST": "API_BASE/keylogs/current_operation",
+          "explanation": "Get keylog data for the current operation, but with the ability to specify how the information is grouped together",
+          "cli": "curl -X POST -d '{\"grouping\": \"user\"}' http://localhostAPI_BASE/keylogs/current_operation",
+          "output": "",
+          "parameters": [
+            {
+              "name": "grouping",
+              "description": "The highest level grouping for how the keylogging data is returned to the operator",
+              "requirements": "This can be either \"host\" or \"user\" to describe how everything will be organized. This is an optional parameter and defaults to \"host\"."
+            },
+            {
+              "name": "sub_grouping",
+              "description": "The second level grouping for how the keylogging data is presented to the operator",
+              "requirements": "This can be either \"window\" (for grouping by window title) or \"time\" (for a strict ordering by time of when the data came in). This is an optional parameter and defaults to \"window\""
+            }
+          ]
+        },
+        {
+          "GET": "API_BASE/keylogs/callback/(id:INTEGER)",
+          "explanation": "Get all of the keylog data registered to a specific callback",
+          "cli": "curl http://localhostAPI_BASE/keylogs/callback/1",
+          "output": "{\"status\":\"success\",\"callback\": 1, \"keylogs\":[{\"timestamp\":\"11\/08\/2018 00:31:21\",\"id\":3,\"task\":8,\"task_command\":\"keylog\",\"keystrokes\":\"hello world\",\"window\":\"Notepad\",\"operation\":\"default\",\"user\":\"its-a-feature\"}]}"
+        }
+      ]
     }
   ]
 }

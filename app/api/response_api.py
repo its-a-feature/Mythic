@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Task, Response, Operation, Callback
+from app.database_models.model import Task, Response, Operation, Callback, Keylog
 import base64
 from sanic_jwt.decorators import protected, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
@@ -96,10 +96,21 @@ async def update_task_for_callback(request, id):
         elif task.command.cmd == "keylog":
             try:
                 keylog_response = js.loads(decoded)  # keylogging has a special dictionary of data it passes back
-                if "window_title" not in keylog_response:
-                    keylog_response['window_title'] = "UNKNOWN"
-                if "keystrokes" not in keylog_response:
-                    return json({'status': 'error', 'error': 'keylogging response has no keystrokes'})
+                if "status" in keylog_response:
+                    # this is just a message saying that the background task has started or stopped
+                    # we don't want to flood the operator view with useless "got keystroke" messages if we can avoid it
+                    decoded = keylog_response['status']
+                else:
+                    if "window_title" not in keylog_response or keylog_response['window_title'] is None:
+                        keylog_response['window_title'] = "UNKNOWN"
+                    if "keystrokes" not in keylog_response or keylog_response['keystrokes'] is None:
+                        return json({'status': 'error', 'error': 'keylogging response has no keystrokes'})
+                    if "user" not in keylog_response or keylog_response['user'] is None:
+                        keylog_response['user'] = "UNKONWN"
+                    await db_objects.create(Keylog, task=task, window=keylog_response['window_title'],
+                                            keystrokes=keylog_response['keystrokes'], operation=callback.operation,
+                                            user=keylog_response['user'])
+                    return json({'status': 'success'})
 
             except Exception as e:
                 print("error when handling a keylog response: " + str(e))

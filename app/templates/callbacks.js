@@ -98,8 +98,13 @@ var callback_table = new Vue({
         },
         show_screencaptures: function(callback){
             Vue.set(meta[callback.id], 'screencaptures', true);
-             meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
+            meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/screencaptures/bycallback/" + callback['id'],view_callback_screenshots,"GET");
+        },
+        show_keylogs: function(callback){
+            Vue.set(meta[callback.id], 'keylogs', true);
+            meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/keylogs/callback/" + callback['id'],view_callback_keylogs,"GET");
         }
     },
     delimiters: ['[[',']]']
@@ -197,6 +202,9 @@ var task_data = new Vue({
         },
         screencaptures_tab_close: function(metadata){
             meta[metadata.id]['screencaptures'] = false;
+        },
+        keylogs_tab_close: function(metadata){
+            meta[metadata.id]['keylogs'] = false;
         }
 
     },
@@ -222,6 +230,16 @@ function view_callback_screenshots(response){
             data['files'][i]['remote_path'] = path;
             Vue.set(meta[data['callback']]['images'], i, data['files'][i]);
         }
+    }
+    else{
+        alertTop("danger", data['error']);
+    }
+}
+function view_callback_keylogs(response){
+    data = JSON.parse(response);
+    if(data['status'] == "success"){
+        //meta[data['callback']]['keylog_data'] = [];
+        Vue.set(meta[data['callback']], 'keylog_data', data['keylogs']);
     }
     else{
         alertTop("danger", data['error']);

@@ -28,7 +28,7 @@
                         <span class="sr-only">Toggle Dropdown</span>
                       </button>
                       <ul class="dropdown-menu">
-                          <li class='disabled' ><a href="#">Keystrokes</a></li>
+                          <li><a @click="show_keylogs(callback)" href="#">Keystrokes</a></li>
                           <li><a @click="show_screencaptures(callback)" href="#">Screencaptures</a></li>
                           <li><a @click="spawn_menu(callback)" href="#">spawn menu</a></li>
                           <li role="separator" class="divider"></li>
@@ -56,17 +56,20 @@
     <!-- Tabs at the bottom of the screen - just the names at the top though-->
     <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
         <li v-for="metadata in meta" v-if="metadata.tasks" role="button" key="metadata.id">
-            <a v-bind:id="'tasks' + metadata.id + 'tab'" v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.90, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]] <span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
+            <a v-bind:id="'tasks' + metadata.id + 'tab'" v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]] <span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
         </li>
         <li v-for="metadata in meta" v-if="metadata.screencaptures" role="button">
-            <a v-bind:href="'#screencaptures' + metadata.id" v-bind:aria-controls="'screencaptures' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.90, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
+            <a v-bind:href="'#screencaptures' + metadata.id" v-bind:aria-controls="'screencaptures' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
+        </li>
+        <li v-for="metadata in meta" v-if="metadata.keylogs" role="button">
+            <a v-bind:href="'#keylogs' + metadata.id" v-bind:aria-controls="'keylogs' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Keylogs <span class="btn btn-sm btn-danger" @click="keylog_tab_close(metadata)">X</span></a>
         </li>
     </ul>
     <!-- Now actually deal with the content in each tab-->
     <div class="tab-content" id="bottom-tabs-content" style="overflow:auto;resize:vertical">
+        <!-- REPEAT for each task for the specific callback that's selected -->
         <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.tasks" v-bind:id="'tasks' + metadata.id" >
             <div  v-bind:id="'tasks' + metadata.id + 'data'" >
-                <!-- REPEAT for each task for the specific callback that's selected -->
                 <span v-for="task in metadata.data" :key="task.id" v-bind:id="'task' + task.id">
                     <font color="green">([[task.operator]])</font>&nbsp;
                     <font color="red">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</font>
@@ -77,9 +80,10 @@
                     </span>
                     <br>
                 </span>
-                <!-- END REPEAT-->
             </div>
         </div>
+        <!-- END REPEAT-->
+        <!-- REPEAT FOR SCREENCAPTURE INFORMATION -->
         <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.screencaptures" v-bind:id="'screencaptures' + metadata.id">
             <div  v-bind:id="'screencaptures' + metadata.id + 'view'">
                 <div v-for="image,i in metadata.images">
@@ -88,6 +92,18 @@
                 </div>
             </div>
         </div>
+        <!-- END REPEAT-->
+        <!-- REPEAT FOR KEYLOG INFORMATION -->
+        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.keylogs" v-bind:id="'keylogs' + metadata.id">
+            <div  v-bind:id="'keylogs' + metadata.id + 'view'">
+                <div v-for="log,i in metadata.keylog_data">
+                    Keystrokes from <font color="red">[[log.user]]</font> in window <font color="green">[[log.window]]</font><br>
+                    <font color="blue">([[log.timestamp]])</font>
+                    <font color="black">[[log.keystrokes]]</font>
+                </div>
+            </div>
+        </div>
+        <!-- END REPEAT-->
     </div>
     <div class="panel-footer" >
         <div class="input-group mb-3">

@@ -633,6 +633,8 @@ class Keylog(p.Model):
     keystrokes = p.CharField(null=False)  # what did you actually capture
     window = p.CharField()  # if possible, what's the window title for where these keystrokes happened
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # when did we get these keystrokes?
+    operation = p.ForeignKeyField(Operation, null=False)
+    user = p.CharField(null=False)  # whose keystrokes are these? The agent needs to tell us
 
     class Meta:
         database = apfell_db
@@ -644,6 +646,8 @@ class Keylog(p.Model):
                 if k == 'task':
                     r[k] = getattr(self, k).id
                     r['task_command'] = getattr(self, k).command.cmd
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
                 else:
                     r[k] = getattr(self, k)
             except:

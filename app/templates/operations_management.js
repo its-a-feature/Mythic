@@ -92,7 +92,7 @@ function modify_operation(response){
 function delete_operation(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
     else{
         for(i = 0; i < operations.length; i++){
@@ -105,7 +105,7 @@ function delete_operation(response){
 function create_operation(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
     else{
         operations_table.operations.push(data);
@@ -114,7 +114,7 @@ function create_operation(response){
 function complete_operation(response){
     data = JSON.parse(response);
     if(data['status'] == 'error'){
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
     else{
         for (var i = 0; i < operations.length; i++){
@@ -161,7 +161,7 @@ function current_operation_callback(response){
         operations_table.current_operation = data['current_operation'];
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 };
 get_operations();
