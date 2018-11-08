@@ -30,7 +30,7 @@ class Operator(p.Model):
             except:
                 r[k] = json.dumps(getattr(self, k))
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
-        if 'last_login' in r:
+        if 'last_login' in r and r['last_login'] is not None:
             r['last_login'] = r['last_login'].strftime('%m/%d/%Y %H:%M:%S')
         else:
             r['last_login'] = ""  # just indicate that account created, but they never logged in
