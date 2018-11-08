@@ -73,7 +73,7 @@ if [[ "$(python3 --version)" == *"3.6"* ]]; then
     pip3 install -r requirements.txt
 else
     # we need to rewrite requirements.txt with the right values
-    echo "sanic" > requirements.txt
+    echo "sanic==0.7.0" > requirements.txt
     echo "peewee-async==0.5.12" >> requirements.txt
     echo "aiopg==0.15" >> requirements.txt
     echo "peewee==2.10.2" >> requirements.txt
