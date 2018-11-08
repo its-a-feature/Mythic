@@ -456,6 +456,7 @@ class Callback(p.Model):
                 elif k == 'registered_payload':
                     r[k] = getattr(self, k).uuid
                     r['payload_type'] = getattr(self, k).payload_type.ptype
+                    r['c2_profile'] = getattr(self, k, ).c2_profile.name
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
                 elif k == 'encryption_key' or k == 'decryption_key':
