@@ -68,6 +68,25 @@ mkdir ./app/ssl > /dev/null 2>&1
 openssl req -new -x509 -keyout ./app/ssl/apfell-ssl.key -out ./app/ssl/apfell-cert.pem -days 365 -nodes -subj "/C=US" >/dev/null 2>&1
 
 #install the pip3 requirements
-pip3 install -r requirements.txt
+# python3.7 breaks stuff from python3.6 of course, so check the version and write out and use the appropriate requirements.txt
+if [[ "$(python3 --version)" == *"3.6"* ]]; then
+    pip3 install -r requirements.txt
+else
+    # we need to rewrite requirements.txt with the right values
+    echo "sanic" > requirements.txt
+    echo "peewee-async==0.5.12" >> requirements.txt
+    echo "aiopg==0.15" >> requirements.txt
+    echo "peewee==2.10.2" >> requirements.txt
+    echo "jinja2" >> requirements.txt
+    echo "uvloop==0.11.2" >> requirements.txt
+    echo "sanic-wtf" >> requirements.txt
+    echo "cryptography" >> requirements.txt
+    echo "wtforms" >> requirements.txt
+    echo "anytree" >> requirements.txt
+    echo "websockets==5.0.1" >> requirements.txt
+    echo "sanic-jwt" >> requirements.txt
+    echo "fpdf" >> requirements.txt
+    pip3 install -r requirements.txt
+fi
 
 echo -e "\n[*] start server with \"sudo python3 server.py\"\n"
