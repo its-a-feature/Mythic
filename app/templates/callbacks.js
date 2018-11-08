@@ -203,7 +203,7 @@ var task_data = new Vue({
         screencaptures_tab_close: function(metadata){
             meta[metadata.id]['screencaptures'] = false;
         },
-        keylogs_tab_close: function(metadata){
+        keylog_tab_close: function(metadata){
             meta[metadata.id]['keylogs'] = false;
         }
 
