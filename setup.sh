@@ -1,6 +1,6 @@
 #!/bin/bash
 # Mac specific config setup
-if [[ $(uname) -eq "Darwin" ]]; then
+if [[ uname == "Darwin" ]]; then
     if ! which brew > /dev/null; then
         /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
     fi
