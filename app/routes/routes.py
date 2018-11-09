@@ -214,8 +214,6 @@ async def reroute_to_login(request):
         if "/login" not in request.path and "/register" not in request.path and "/auth" not in request.path:
             if apfell.config['API_BASE'] not in request.path:
                 return response.redirect("/login")
-            else:
-                return json({'status': 'error', 'error': 'Authentication expired'})
 
 
 @apfell.middleware('response')
