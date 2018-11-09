@@ -216,10 +216,19 @@ async def write_payload(uuid, user):
     custom.close()
     # now that it's written to disk, we need to potentially do some compilation or extra command
     if payload.payload_type.compile_command != "":
-        cmd = ["/bin/bash"] + payload.payload_type.compile_command.split(" ")
-        p = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE )
+        compile_command = payload.payload_type.compile_command
+        # do some pre-processing on the compile command before executing it
+        # {{output}} will be replaced with the same folder location as where we saved the stamped payload to
+        # {{input}} will be replaced with the path to the payload we just stamped together
+        compile_command = compile_command.replace("{{input}}", payload.location)
+        compile_command = compile_command.replace("{{output}}", os.path.dirname(payload.location))
+        cmd = compile_command.split(" ")
+        p = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                                                 cwd="./app/payloads/{}/".format(payload.payload_type.ptype))
         stdout, stderr = await p.communicate()
-        return {'status': 'success', 'path': payload.location, 'stdout': str(stdout.decode()), 'stderr': str(stderr.decode())}
+        stdout = str(stdout.decode())
+        stderr = str(stderr.decode())
+        return {'status': 'success', 'path': payload.location, 'stdout': stdout, 'stderr': stderr}
     return {'status': 'success', 'path': payload.location}
 
 
