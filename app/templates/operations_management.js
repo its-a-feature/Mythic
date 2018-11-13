@@ -148,7 +148,7 @@ function new_operation_button(){
         data['name'] = $( '#operationNewName' ).val();
         data['admin'] = $( '#operationNewAdmin' ).val();
         data['members'] = $( '#operationNewMembers' ).val();
-        if( data['members'].length == 0){
+        if( data['members'] != null && data['members'].length == 0){
             delete data['members'];
         }
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/", create_operation, "POST", data);

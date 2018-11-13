@@ -44,14 +44,12 @@ async def create_payloadtype(request, user):
             return json({'status': 'error', 'error': '"ptype" is a required field and must be unique'})
         if "file_extension" not in data:
             data["file_extension"] = ""
-        if "compile_command" not in data:
-            data['compile_command'] = ""
+        elif "." not in data['file_extension']:
+            data['file_extension'] = "." + data['file_extension']
         if 'wrapper' not in data:
             data['wrapper'] = False
         operator = await db_objects.get(Operator, username=user['username'])
         if data['wrapper']:
-            if "wrapped_encoding_type" not in data:
-                return json({"status": 'error', 'error': '"wrapped_encoding_type" is required for a wraper type payload'})
             if "wrapped_payload_type" not in data:
                 return json({'status': 'error', 'error': '"wrapped_payload_type" is required for a wraper type payload'})
             try:
@@ -61,14 +59,11 @@ async def create_payloadtype(request, user):
                 return json({'status': 'error', 'error': "failed to find that wrapped payload type"})
             payloadtype = await db_objects.create(PayloadType, ptype=data['ptype'], operator=operator,
                                                   file_extension=data['file_extension'],
-                                                  compile_command=data['compile_command'],
                                                   wrapper=data['wrapper'],
-                                                  wrapped_encoding_type=data['wrapped_encoding_type'],
                                                   wrapped_payload_type=wrapped_payload_type)
         else:
             payloadtype = await db_objects.create(PayloadType, ptype=data['ptype'], operator=operator,
                                                   file_extension=data['file_extension'],
-                                                  compile_command=data['compile_command'],
                                                   wrapper=data['wrapper'])
         os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
         if request.files:
@@ -87,6 +82,10 @@ async def create_payloadtype(request, user):
         return json({'status': 'error', 'error': 'failed to create new payload type: ' + str(e)})
     status = {'status': 'success'}
     ptype_json = payloadtype.to_json()
+    # make sure a file exists in the right location with the right name
+    if not os.path.exists("./app/payloads/{}/{}{}".format(payloadtype.ptype, payloadtype.ptype, payloadtype.file_extension)):
+        file = open("./app/payloads/{}/{}{}".format(payloadtype.ptype, payloadtype.ptype, payloadtype.file_extension), 'w')
+        file.close()
     return json({**status, **ptype_json})
 
 
@@ -108,18 +107,12 @@ async def create_payloadtype(request, user, ptype):
     operator = await db_objects.get(Operator, username=user['username'])
     if user['admin'] or payloadtype.operator == operator:
         if 'file_extension' in data:
-            payloadtype.file_extension = data['file_extension']
-        if 'compile_command' in data:
-            payloadtype.compile_command = data['compile_command']
+            if "." not in data['file_extension']:
+                payloadtype.file_extension = "." + data['file_extension']
+            else:
+                payloadtype.file_extension = data['file_extension']
         if 'wrapper' in data:
-            if data['wrapper'] and not payloadtype.wrapper:
-                # this means we're changing from it not being a wrapper to it being a wrapper
-                if 'wrapped_encoding_type' not in data or 'wrapped_payload_type' not in data:
-                    return json({"status": 'error', 'error': 'missing required fields for the requested change'})
             payloadtype.wrapper = data['wrapper']
-
-        if 'wrapped_encoding_type' in data:
-            payloadtype.wrapped_encoding_type = data['wrapped_encoding_type']
         if 'wrapped_payload_type' in data:
             try:
                 wrapped_payload_type = await db_objects.get(PayloadType, ptype=data['wrapped_payload_type'])

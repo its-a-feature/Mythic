@@ -4,17 +4,21 @@ A macOS, post-exploit, red teaming framework built with python3 and JavaScript. 
 ## Details
 Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bones-apfell-server-code-release/) on the initial release of the framework and what the bare bones content can do.
 
-Note: The back-end is for Python 3.5 and 3.6. It looks like Python 3.7 has some issues with the other libraries used in this project. I'm working on adjusting those versions so it works with 3.7 as well.
 ## Installation
 
 - Get the code from this github:
 ```bash
 git clone https://github.com/its-a-feature/Apfell
 ```
-- Install and setup the requirements (Note: The Sanic webserver says it only works on Linux). The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though.
+- Install and setup the requirements. The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though. This can be installed and run on both Linux and macOS. 
+- On macOS, this requires brew to be installed - if it isn't already installed, I will install it for you.
 ```bash
 # The setup.sh will install postgres and pip3 install the requirements
+# If you're on Linux:
 cd Apfell && chmod +x setup.sh && sudo ./setup.sh && cd ..
+# If you're on macOS:
+cd Apfell & chmod +x setup.sh && ./setup.sh && cd ..
+
 ```
 
 - Configure the installation in app/\_\_init\_\_.py. If you change any of the `db_*` variables here, you will need to reflect these changes in the `reset_db` script. I will eventually make one place to do all this, but right now the setup script creates things and this config file uses things.
@@ -28,24 +32,15 @@ listen_port = '443'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
 ssl_key_path = './app/ssl/apfell-ssl.key'
-use_ssl = True
-```
-- There is currently an issue with Sanic and websockets 6/7 (tracked issue, but no pull request yet)
-You need to edit Sanic with a slight update (I'm going to make a pull request for Sanic so we don't need to do this, but that'll take a little while). In the meantime, do `sudo find / -type f -name "app.py"` to find the appropriate Sanic file to edit.
-In here, find the line that says `protocol = request.transport._protocol` and edit it to be:
-```python
-if hasattr(request.transport, '_app_protocol'): 
-    protocol = request.transport._app_protocol
-else: 
-    protocol = request.transport._protocol
+use_ssl = False
 ```
 ## Usage
 - Start the server:
 ```bash
-python3 server.py 
-[2018-07-16 14:39:14 -0700] [28381] [INFO] Goin' Fast @ https://0.0.0.0:443
+sudo python3 server.py 
+[2018-07-16 14:39:14 -0700] [28381] [INFO] Goin' Fast @ https://0.0.0.0:80
 ```
-By default, the server will bind to 0.0.0.0 on port 443. This is an alias meaning that it will be listening on all IPv4 addresses on the machine. You don't actually browse to https://0.0.0.0:443 in your browser. Instead, you'll browse to either https://localhost:443 if you're on the same machine that's running the server, or you can browse to any of the IPv4 addresses on the machine that's running the server. You could also browse to the IP address you specified in `server_ip = '192.168.0.119'` in the installation section.  
+By default, the server will bind to 0.0.0.0 on port 80. This is an alias meaning that it will be listening on all IPv4 addresses on the machine. You don't actually browse to https://0.0.0.0:80 in your browser. Instead, you'll browse to either https://localhost:80 if you're on the same machine that's running the server, or you can browse to any of the IPv4 addresses on the machine that's running the server. You could also browse to the IP address you specified in `server_ip = '192.168.0.119'` in the installation section.  
 
 Apfell uses JSON Web Token (JWT) for authentication. When you use the browser (vs the API on the commandline), I store your access and refresh tokens in a cookie. This should be seamless as long as you leave the server running; however, the history of the refresh tokens is saved in memory. So, if you authenticate in the browser, then restart the server, you'll get an access denied error when your access token times out. Just clear your cookie and navigate back to the website.
 - Browse to the server with any modern web browser  

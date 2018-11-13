@@ -3,7 +3,7 @@ from sanic.response import json
 from sanic import response
 from sanic.exceptions import NotFound
 from jinja2 import Environment, PackageLoader
-from app.database_models.model import Operator, Operation, OperatorOperation, C2Profile, C2ProfileParameters, PayloadType, PayloadTypeC2Profile, Command, CommandParameters
+from app.database_models.model import Operator, Operation, OperatorOperation, C2Profile, C2ProfileParameters, PayloadType, PayloadTypeC2Profile, Command, CommandParameters, Transform
 from app.forms.loginform import LoginForm, RegistrationForm
 import datetime
 import app.crypto as crypto
@@ -211,7 +211,7 @@ async def handler_404(request, exception):
 async def reroute_to_login(request):
     # if a browser attempted to go somewhere without a cookie, reroute them to the login page
     if 'access_token' not in request.cookies and 'authorization' not in request.headers:
-        if "/login" not in request.path and "/register" not in request.path and "/auth" not in request.path:
+        if "/login" not in request.path and "/register" not in request.path and "/auth" not in request.path and "/static" not in request.path and "favicon" not in request.path:
             if apfell.config['API_BASE'] not in request.path:
                 return response.redirect("/login")
 
@@ -270,7 +270,17 @@ async def initial_setup():
     print("Registered C2 Profile Parameters")
     # create default payload types
     payload_type_apfell_jxa, created = await db_objects.get_or_create(PayloadType, ptype='apfell-jxa', operator=admin,
-                                                             file_extension="js", compile_command="", wrapper=False)
+                                                                      file_extension=".js", wrapper=False)
+    # create the default transforms for apfell-jxa payloads
+    jxa_load_transform = await db_objects.get_or_create(Transform, name="readCommands", t_type="load",
+                                                        order=1, payload_type=payload_type_apfell_jxa,
+                                                        operator=admin)
+    jxa_load_transform = await db_objects.get_or_create(Transform, name="combineAppend", t_type="load",
+                                                        order=2, payload_type=payload_type_apfell_jxa,
+                                                        operator=admin)
+    jxa_load_transform = await db_objects.get_or_create(Transform, name="writeFile", t_type="load",
+                                                        order=3, payload_type=payload_type_apfell_jxa,
+                                                        operator=admin)
     print("Created Apfell-jxa payload type")
     # add the apfell_admin to the default operation
     await db_objects.get_or_create(OperatorOperation, operator=admin, operation=operation)
@@ -310,8 +320,8 @@ async def initial_setup():
                     param['required'] = True
                 try:
                     await db_objects.get_or_create(CommandParameters, command=command, name=param['name'],
-                                               hint=param['hint'], isString=param['isString'],
-                                               isCredential=param['isCredential'], required=param['required'],
+                                                   hint=param['hint'], isString=param['isString'],
+                                                   isCredential=param['isCredential'], required=param['required'],
                                                    operator=admin)
                 except Exception as e:
                     print(e)
@@ -319,7 +329,8 @@ async def initial_setup():
     file.close()
 
 
-apfell.static('/apfell-dark.png', './app/static/apfell_cropped_dark.png', name='apfell-dark')
+apfell.static('/static/apfell-dark.png', './app/static/apfell_cropped_dark.png', name='apfell-dark')
+apfell.static('/favicon.ico', './app/static/favicon.png', name='favicon')
 apfell.static('/apfell-white.png', './app/static/apfell_cropped.png', name='apfell-white')
 apfell.static('/strict_time.png', './app/static/strict_time.png', name='strict_time')
 apfell.static('/grouped_output.png', './app/static/grouped_output.png', name='grouped_output')

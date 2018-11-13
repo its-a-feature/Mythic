@@ -26,9 +26,14 @@ async def get_one_file(request, id):
         print(e)
         return json({'status': 'error', 'error': 'file not found'})
     # now that we have the file metadata, get the file if it's done downloading
-    if file_meta.complete:
+    if file_meta.complete and not file_meta.deleted:
         encoded_data = open(file_meta.path, 'rb').read()
         encoded_data = base64.b64encode(encoded_data)
+        # if this is an auto-generated file from the load command, we should remove the file afterwards
+        if "/app/payloads/operations/" in file_meta.path and "load-" in file_meta.path:
+            os.remove(file_meta.path)
+            file_meta.deleted = True
+            await db_objects.update(file_meta)
         return raw(encoded_data)
     else:
         return json({'status': 'error', 'error': 'file not done downloading'})

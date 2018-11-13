@@ -1013,19 +1013,19 @@
           "GET": "API_BASE/payloadtypes/",
           "explanation": "Gets information about all of the payload types registered to apfell. These are not operation specific.",
           "cli": "curl http://localhostAPI_BASE/payloadtypes/",
-          "output": "[{\"compile_command\":\"\",\"wrapper\":false,\"wrapped_encoding_type\":\"\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":44,\"ptype\":\"apfell-jxa\",\"operator\":\"apfell_admin\",\"file_extension\":\"js\",\"wrapped_payload_type\":\"null\"}]"
+          "output": "[{\"wrapper\":false,\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":44,\"ptype\":\"apfell-jxa\",\"operator\":\"apfell_admin\",\"file_extension\":\"js\",\"wrapped_payload_type\":\"null\"}]"
         },
         {
           "GET": "API_BASE/payloadtypes/(ptype:STRING)",
           "explanation": "Get information about a single specific payload type.",
           "cli": "curl http://localhostAPI_BASE/payloadtypes/apfell-jxa",
-          "output": "{\"compile_command\":\"\",\"wrapper\":false,\"wrapped_encoding_type\":\"\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":44,\"ptype\":\"apfell-jxa\",\"operator\":\"apfell_admin\",\"file_extension\":\"js\",\"wrapped_payload_type\":\"null\"}"
+          "output": "{\"wrapper\":false,\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":44,\"ptype\":\"apfell-jxa\",\"operator\":\"apfell_admin\",\"file_extension\":\"js\",\"wrapped_payload_type\":\"null\"}"
         },
         {
           "POST": "API_BASE/payloadtypes/",
           "explanation": "Create and register a new payload type",
-          "cli": "curl -X POST -d '{\"ptype\": \"apfell-macho\", \"file_extension\": \"\", \"compile_command\": \"g++ apfell-macho.cpp\", \"wrapper\": \"False\"}' http://localhostAPI_BASE/payloadtypes/",
-          "output": "{\"status\": \"success\", \"compile_command\":\"g++ apfell-macho.cpp\",\"wrapper\":false,\"wrapped_encoding_type\":\"\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":45,\"ptype\":\"apfell-macho\",\"operator\":\"apfell_admin\",\"file_extension\":\"\",\"wrapped_payload_type\":\"null\"}",
+          "cli": "curl -X POST -d '{\"ptype\": \"apfell-macho\", \"file_extension\": \"\", \"wrapper\": \"False\"}' http://localhostAPI_BASE/payloadtypes/",
+          "output": "{\"status\": \"success\",\"wrapper\":false,\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":45,\"ptype\":\"apfell-macho\",\"operator\":\"apfell_admin\",\"file_extension\":\"\",\"wrapped_payload_type\":\"null\"}",
           "parameters": [
             {
               "name": "ptype",
@@ -1038,19 +1038,9 @@
               "requirements": "If the file extension is .txt, then just put txt here, the \".\" is implied. This is optional as not all payload types necessarily have or need a file extension"
             },
             {
-              "name": "compile_command",
-              "description": "The command to run after creating the payload instance that will compile the code into the final payload type",
-              "requirements": "This is optional as not all code needs to be compiled"
-            },
-            {
               "name": "wrapper",
               "description": "This indicates if the payload type is a wrapper for another payload type or if it is a full payload itself",
               "requirements": "This is a True/False boolean flag that defaults to \"False\" if not specified"
-            },
-            {
-              "name": "wrapped_encoding_type",
-              "description": "This is the encoding type to use on the wrapped payload. For now the only supported option is base64, but other options could come in the future",
-              "requirements": "This is a required field if the payload type is specified to be a wrapper"
             },
             {
               "name": "wrapped_payload_type",
@@ -1063,7 +1053,7 @@
           "PUT": "API_BASE/payloadtypes/(ptype:STRING)",
           "explanation": "Update the information about a specific payload type",
           "cli": "curl -X POST -d '{\"file_extension\": \"\", \"wrapper\":\"False\"}' http://localhostAPI_BASE/payloadtypes/apfell-jxa",
-          "output": "{\"status\": \"success\", \"compile_command\":\"\",\"wrapper\":false,\"wrapped_encoding_type\":\"\",\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":45,\"ptype\":\"apfell-macho\",\"operator\":\"apfell_admin\",\"file_extension\":\"\",\"wrapped_payload_type\":\"null\"}",
+          "output": "{\"status\": \"success\", \"wrapper\":false,\"creation_time\":\"10\/27\/2018 19:44:44\",\"id\":45,\"ptype\":\"apfell-macho\",\"operator\":\"apfell_admin\",\"file_extension\":\"\",\"wrapped_payload_type\":\"null\"}",
           "parameters": [
             {
               "name": "file_extension",
@@ -1071,19 +1061,9 @@
               "requirements": "This is an optional parameter, but you can ignore the \".\" in the extension as it's implied and put in for you"
             },
             {
-              "name": "compile_command",
-              "description": "Update the command to run after create the payload instance that will compile the code into the final payload",
-              "requirements": "This is an optional parameter"
-            },
-            {
               "name": "wrapper",
               "description": "Update whether or not this is a wrapper for another payload type",
               "requirements": "This is an optional parameter, but would be a True/False value"
-            },
-            {
-              "name": "wrapped_encoding_type",
-              "description": "Update the method used for encoding the wrapped payload",
-              "requirements": "This is an optional parameter, but is required if you're switching the payload from a not wrapped to a wrapped payload type"
             },
             {
               "name": "wrapped_payload_type",
@@ -1210,6 +1190,85 @@
           "explanation": "Get all of the keylog data registered to a specific callback",
           "cli": "curl http://localhostAPI_BASE/keylogs/callback/1",
           "output": "{\"status\":\"success\",\"callback\": 1, \"keylogs\":[{\"timestamp\":\"11\/08\/2018 00:31:21\",\"id\":3,\"task\":8,\"task_command\":\"keylog\",\"keystrokes\":\"hello world\",\"window\":\"Notepad\",\"operation\":\"default\",\"user\":\"its-a-feature\"}]}"
+        }
+      ]
+    },
+    {
+      "name": "Transform",
+      "api": [
+        {
+          "GET": "API_BASE/transforms/options",
+          "explanation": "Gets all of the current transformation options available as well as their in/out information",
+          "cli": "curl http://localhostAPI_BASE/transforms/options",
+          "output": "{\"base64Decode\":{\"return\":\"str\",\"prior_output\":\"bytearray\"},\"base64Encode\":{\"return\":\"bytearray\",\"prior_output\":\"bytearray\"},\"combineAppend\":{\"return\":\"bytearray\",\"prior_output\":\"List[bytes]\"},\"readCommands\":{\"return\":\"List[bytes]\",\"prior_output\":\"List[str]\"}}"
+        },
+        {
+          "GET": "API_BASE/transforms/bytype/(ptype:STRING)",
+          "explanation": "Get all of the current transforms registered to a certain payload type. This includes the ones registered for payload creation and command loading",
+          "cli": "curl http://localhostAPI_BASE/transforms/byptype/apfell-jxa",
+          "output": "{\"status\":\"success\",\"transforms\":[{\"parameter\":\"\",\"timestamp\":\"11\/10\/2018 18:54:07\",\"id\":1,\"name\":\"readCommands\",\"order\":1,\"payload_type\":\"apfell-jxa\",\"t_type\":\"load\",\"operator\":\"apfell_admin\"},{\"parameter\":\"\",\"timestamp\":\"11\/10\/2018 18:54:07\",\"id\":2,\"name\":\"combineAppend\",\"order\":2,\"payload_type\":\"apfell-jxa\",\"t_type\":\"load\",\"operator\":\"apfell_admin\"},{\"parameter\":\"\",\"timestamp\":\"11\/10\/2018 18:54:07\",\"id\":3,\"name\":\"finish\",\"order\":3,\"payload_type\":\"apfell-jxa\",\"t_type\":\"load\",\"operator\":\"apfell_admin\"}]}"
+        },
+        {
+          "POST": "API_BASE/transforms/bytype/(ptype:STRING)",
+          "explanation": "Register a new transform for the specified payload type",
+          "cli": "curl -X POST -d '{\"name\": \"readCommands\", \"order\": 1, \"t_type\": \"load\", \"parameter\": \"\"}' http://localhostAPI_BASE/transforms/byptype/apfell-jxa",
+          "output": "",
+          "parameters":[
+            {
+              "name": "name",
+              "description": "The name of the transform function to call",
+              "requirements": "This is a required parameter and must match the function name exactly"
+            },
+            {
+              "name": "order",
+              "description": "Which order in the sequence of transforms is this one? If order 1 and 2 already exist, and you select order 1 for this one, then the original two will move to order 2 and 3 respectively",
+              "requirements": "This is a required parameter"
+            },
+            {
+              "name": "t_type",
+              "description": "This is the type of transformation this new registration belongs to for the associated payload type",
+              "requirements": "This is a required parameter and right now can only be one of two things: \"load\" for loading new commands or \"create\" for transformations to do when creating a new payload"
+            },
+            {
+              "name": "parameter",
+              "description": "This is a field for a parameter to be passed into the transformation in addition to the output from the prior transformation",
+              "requirements": "This is not a required parameter - if you don't specify something, a blank string will be provided instead"
+            }
+          ]
+        },
+        {
+          "DELETE": "API_BASE/transforms/(id:INTEGER)",
+          "explanation": "Delete the associated transformation",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/transforms/1",
+          "output": "{\"status\": \"success\", \"parameter\":\"\",\"timestamp\":\"11\/10\/2018 18:54:07\",\"id\":1,\"name\":\"readCommands\",\"order\":1,\"payload_type\":\"apfell-jxa\",\"t_type\":\"load\",\"operator\":\"apfell_admin\"}"
+        },
+        {
+          "PUT": "API_BASE/transforms/(id:INTEGER)",
+          "explanation": "Update a specific transform",
+          "cli": "curl -X PUT -d '{\"parameter\": \"testing\"}' http://localhostAPI_BASE/transforms/1",
+          "output": "",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the transform function to call",
+              "requirements": "This is a optional parameter and must match the function name exactly"
+            },
+            {
+              "name": "order",
+              "description": "Which order in the sequence of transforms is this one? If order 1 and 2 already exist, and you select order 1 for this one, then the original two will move to order 2 and 3 respectively",
+              "requirements": "This is an optional parameter if you want to change the order of transformations"
+            },
+            {
+              "name": "t_type",
+              "description": "This is the type of transformation this new registration belongs to for the associated payload type",
+              "requirements": "This is an optional parameter and right now can only be one of two things: \"load\" for loading new commands or \"create\" for transformations to do when creating a new payload"
+            },
+            {
+              "name": "parameter",
+              "description": "This is a field for a parameter to be passed into the transformation in addition to the output from the prior transformation",
+              "requirements": "This is not a required parameter - if you don't specify something, a blank string will be provided instead"
+            }
+          ]
         }
       ]
     }

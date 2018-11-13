@@ -77,7 +77,7 @@ async def create_operation(request, user):
             operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator)
         except Exception as e:
             return json({'status': 'error', 'error': 'failed to create operation, is the name unique?'})
-        if 'members' not in data:
+        if 'members' not in data or data['members'] is None:
             data['members'] = [data['admin']]
         elif data['admin'] not in data['members']:
             data['members'].append(data['admin'])

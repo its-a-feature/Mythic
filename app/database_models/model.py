@@ -55,11 +55,8 @@ class PayloadType(p.Model):
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
     file_extension = p.CharField(null=True)
-    compile_command = p.CharField(max_length=4096, default="")
     # if this type requires another payload to be already created
     wrapper = p.BooleanField(default=False, null=False)
-    # how to encode the internal payload if needed
-    wrapped_encoding_type = p.CharField(default="", null=False)
     # which payload is this one wrapping
     wrapped_payload_type = p.ForeignKeyField(p.DeferredRelation('PayloadType'), null=True)
 
@@ -79,6 +76,37 @@ class PayloadType(p.Model):
             except:
                 r[k] = json.dumps(getattr(self, k))
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+class Transform(p.Model):
+    name = p.CharField()  # what function in the TransformOperation class will be executed
+    parameter = p.CharField(null=False, default="")  # optionally pass a parameter to a function
+    order = p.IntegerField()  # which order in the list of transforms is this
+    payload_type = p.ForeignKeyField(PayloadType, null=False)
+    t_type = p.CharField()  # is this for payload creation, module load?
+    operator = p.ForeignKeyField(Operator)  # who created this transform
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'payload_type':
+                    r[k] = getattr(self, k).ptype
+                elif k == 'operator':
+                    r[k] = getattr(self, k).username
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
     def __str__(self):
@@ -475,7 +503,7 @@ class Callback(p.Model):
 
 class Task(p.Model):
     command = p.ForeignKeyField(Command, null=False)
-    params = p.CharField(null=True, max_length=512000)  #this will have the instance specific params (ex: id)
+    params = p.CharField(null=True, max_length=512000)  # this will have the instance specific params (ex: id)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
     attack_id = p.IntegerField(null=True)  # task will be more granular than command, so attack_id should live here
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
@@ -542,6 +570,7 @@ class FileMeta(p.Model):
     path = p.CharField(null=False, max_length=5000)  # where the file is located on local disk
     operation = p.ForeignKeyField(Operation, null=False)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -664,7 +693,7 @@ class Keylog(p.Model):
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
-               'attackid', 'credential', 'keylog', 'CommandParameters']
+               'attackid', 'credential', 'keylog', 'CommandParameters', 'transform']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -700,7 +729,7 @@ def pg_register_bignewinserts():
 def pg_register_updates():
     updates = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
-               'attackid', 'credential', 'keylog', 'CommandParameters']
+               'attackid', 'credential', 'keylog', 'CommandParameters', 'transform']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -736,6 +765,7 @@ C2ProfileParametersInstance.create_table(True)
 ATTACKId.create_table(True)
 Credential.create_table(True)
 Keylog.create_table(True)
+Transform.create_table(True)
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()

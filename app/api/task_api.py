@@ -5,6 +5,8 @@ import datetime
 from sanic_jwt.decorators import protected, inject_user
 from app.api.utils import breakout_quoted_params
 import base64
+from app.api.transform_api import get_transforms_func
+from app.api.utils import TransformOperation
 
 
 # This gets all tasks in the database
@@ -141,18 +143,36 @@ async def add_task_to_callback_func(data, cid, user):
         elif cmd.cmd == "load":
             try:
                 # open the file that contains the code we're going to load in
-                new_func = open("./app/payloads/{}/{}".format(cb.registered_payload.payload_type.ptype, data['params']), 'rb')
-                # base64 encode it and configure the parameters correctly
-                encoded = base64.b64encode(new_func.read())
-                params = {"cmd": data['params'], "code": encoded.decode("utf-8")}
+                # see how many things we're trying to load and either perform the
+                transforms = TransformOperation()
+                load_transforms = await get_transforms_func(cb.registered_payload.payload_type.ptype, "load")
+                if load_transforms['status'] == "success":
+                    transform_output = []
+                    # always start with a list of paths for all of the things we want to load
+                    for p in data['params'].split(","):
+                        transform_output.append("./app/payloads/{}/{}".format(cb.registered_payload.payload_type.ptype, p.strip()))
+                    for t in load_transforms['transforms']:
+                        try:
+                            transform_output = await getattr(transforms, t['name'])(cb.registered_payload,
+                                                                                    transform_output, t['parameter'])
+                        except Exception as e:
+                            print(e)
+                            return {'status': 'error', 'error': 'failed to apply transform {}, with message: {}'.format(
+                                t['name'], str(e)
+                            )}
+                    # now create a corresponding file_meta
+                    file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
+                                                        path=transform_output, operation=cb.operation)
+                    params = {"cmds": data['params'], "file_id": file_meta.id}
+                    task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=params)
+                else:
+                    return {'status': 'error', 'error': 'failed to get transforms for this payload type'}
             except Exception as e:
                 print(e)
                 return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params']}
-            task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=params)
-
         else:
             task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
-        if cmd.cmd == "upload":
+        if cmd.cmd == "upload" or cmd.cmd == "load":
             # now we can associate the task with the filemeta object
             file_meta.task = task
             await db_objects.update(file_meta)

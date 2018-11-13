@@ -1,3 +1,11 @@
 exports.upload = function(task, command, params){
-    return C2.upload(task, params);
+    var split_params = params.split(" ");
+    var file_path = split_params.slice(1, ).join(" ");
+    var data = C2.upload(task, split_params[0]);
+    if(typeof data == "string"){
+        return data; //means we got an error
+    }
+    else{
+        return write_data_to_file(data, file_path);
+    }
 };

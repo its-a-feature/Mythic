@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, text, raw
-from app.database_models.model import Operator, Payload, Callback, C2Profile, C2ProfileParameters, C2ProfileParametersInstance, PayloadType, Operation, PayloadCommand, Command
+from app.database_models.model import Operator, Payload, Callback, C2Profile, C2ProfileParameters, C2ProfileParametersInstance, PayloadType, Operation, PayloadCommand, Command, Transform
 from app.api.task_api import add_task_to_callback_func
 import pathlib
 from sanic_jwt.decorators import protected, inject_user
@@ -9,6 +9,8 @@ import os
 import asyncio
 from urllib.parse import unquote_plus
 import base64
+from app.api.utils import TransformOperation
+from app.api.transform_api import get_transforms_func
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/", methods=['GET'])
@@ -125,7 +127,7 @@ async def register_new_payload_func(data, user):
         except Exception as e:
             print(e)
             return {'status': 'error', 'error': 'failed to find the wrapped payload specified in our current operation'}
-        payload, create = await db_objects.create_or_get(Payload, operator=operator, payload_type=payload_type,
+        payload, create = await db_objects.get_or_create(Payload, operator=operator, payload_type=payload_type,
                                                          tag=tag, pcallback=pcallback, location=location, c2_profile=c2_profile,
                                                          uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
     # Get all of the c2 profile parameters and create their instantiations
@@ -162,7 +164,7 @@ async def write_payload(uuid, user):
         return {'status': 'error', 'error': 'failed to get payload db object to write to disk'}
     try:
         if payload.payload_type.file_extension:
-            extension = "." + str(payload.payload_type.file_extension)
+            extension = payload.payload_type.file_extension
         else:
             extension = ""
         base = open('./app/payloads/{}/{}{}'.format(payload.payload_type.ptype,
@@ -182,7 +184,7 @@ async def write_payload(uuid, user):
         print(e)
         return {'status': 'error', 'error': 'failed to open all needed files. ' + str(e)}
     for line in base:
-        if "C2Profile" in line:
+        if "C2Profile" in line and not payload.payload_type.wrapper:
             # this means we need to write out the c2 profile and all parameters here
             await write_c2(custom, base_c2, payload)
         # this will eventually be write_ptype_params like above, but not yet
@@ -214,21 +216,25 @@ async def write_payload(uuid, user):
     if not payload.payload_type.wrapper:
         base_c2.close()
     custom.close()
-    # now that it's written to disk, we need to potentially do some compilation or extra command
-    if payload.payload_type.compile_command != "":
-        compile_command = payload.payload_type.compile_command
-        # do some pre-processing on the compile command before executing it
-        # {{output}} will be replaced with the same folder location as where we saved the stamped payload to
-        # {{input}} will be replaced with the path to the payload we just stamped together
-        compile_command = compile_command.replace("{{input}}", payload.location)
-        compile_command = compile_command.replace("{{output}}", os.path.dirname(payload.location))
-        cmd = compile_command.split(" ")
-        p = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                                                 cwd="./app/payloads/{}/".format(payload.payload_type.ptype))
-        stdout, stderr = await p.communicate()
-        stdout = str(stdout.decode())
-        stderr = str(stderr.decode())
-        return {'status': 'success', 'path': payload.location, 'stdout': stdout, 'stderr': stderr}
+    # now that it's written to disk, we need to potentially do some compilation or extra transforms
+    transform = TransformOperation()
+    transform_request = await get_transforms_func(payload.payload_type.ptype, "create")
+    if transform_request['status'] == "success":
+        transform_list = transform_request['transforms']
+        # do step 0, prior_output = path of our newly written file
+        transform_output = payload.location
+        for t in transform_list:
+            try:
+                transform_output = await getattr(transform, t['name'])(payload, transform_output, t['parameter'])
+            except Exception as e:
+                print(e)
+                return {'status': 'error', 'error': 'failed to apply transform {}, with message: {}'.format(
+                    t['name'], str(e)
+                )}
+        if transform_output != payload.location:
+            # this means we ended up with a final file in a location other than what we specified
+            print(transform_output)
+        return {'status': 'success', 'path': transform_output}
     return {'status': 'success', 'path': payload.location}
 
 

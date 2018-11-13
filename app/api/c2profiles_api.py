@@ -198,10 +198,11 @@ async def register_default_profile_operation(user_dict, operation_name):
         operation = await db_objects.get(Operation, name=operation_name)
         profile = await db_objects.create(C2Profile, name='default', description='Default RESTful HTTP(S)', operator=operator,
                                           operation=operation)
-        c2profile_parameters = [('callback_host', 'callback_host'), ('callback_port', 'callback_port'),
-                                ('callback_interval', 'callback_interval')]
-        for name,key in c2profile_parameters:
-            await db_objects.create(C2ProfileParameters, c2_profile=profile, name=name, key=key)
+        c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
+                                ('callback port', 'callback_port', '80'),
+                                ('callback interval (in seconds)', 'callback_interval', '10')]
+        for name, key, hint in c2profile_parameters:
+            await db_objects.get_or_create(C2ProfileParameters, c2_profile=profile, name=name, key=key, hint=hint)
         #TODO make this dynamic instead of manual, but it won't change often
         payload_types = ['apfell-jxa']
         for t in payload_types:

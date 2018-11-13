@@ -183,9 +183,6 @@ function submit_payload_callback(response){
             execution_string = execution_string + "be sure to host the file somewhere though like with the <b>Services->Host File</b> section!";
             $('#success').html(execution_string);
         }
-        else{
-            $('#success').html("<p>Success!</p>");
-        }
         alertTop("success", "Success!");
     }
     else{

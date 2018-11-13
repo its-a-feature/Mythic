@@ -4,8 +4,9 @@
 <div id="payloadCreation">
         <table>
             <tr>
-                <td><h2>C2 Profile Information</h2></td>
-                <td colspan="2"><h2>Payload Type Information</h2></td>
+                <td width="500"><h2>C2 Profile Information</h2></td>
+                <td width="500"><h2>Payload Type Information</h2></td>
+                <td><h2>Select Commands</h2></td>
             </tr>
             <tr>
                 <td valign="top">
@@ -36,7 +37,7 @@
                                    [[value.name]]
                                 </td>
                                 <td>
-                                    <input type="text" size="50" v-bind:id="[[value.key]]" v-bind:placeholder="[[value.hint]]">
+                                    <input type="text" size="40" v-bind:id="[[value.key]]" v-bind:placeholder="[[value.hint]]">
                                 </td>
                             </tr>
                         </table>
@@ -44,7 +45,7 @@
                 </td>
 
                 <td valign="top">
-                    <!-- This will hosue all of the payload specific data-->
+                    <!-- This will house all of the payload specific data-->
                     <div id="payloadParameterFormFields">
                         <table class="table table-striped table-hover table-condensed">
                             <tr>
@@ -84,9 +85,6 @@
                 <td></td>
             </tr>
         </table>
-
-    <p id="errors" style="color:red"></p><br>
-    <p id="success"></p>
 </div>
 
 {% endblock %}

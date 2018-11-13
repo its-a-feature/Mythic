@@ -2,9 +2,10 @@
 {% block body %}
 <!-- https://github.com/davidmerfield/randomColor provides an awesome color randomizer with lots of awesome options!-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.5.2/randomColor.min.js"></script>
-<div style="resize: vertical; overflow:scroll" class="panel panel-primary" id="callback_table">
+<div style="resize: vertical; overflow:auto; z-index: 1; position:relative" class="panel panel-primary" id="callback_table">
     <div class="panel-heading">Current callbacks</div>
-        <table class="table table-hover table-condensed" >
+        <div style="z-index: 1; position:relative">
+        <table class="table table-hover table-condensed" style="z-index: 3; position:relative">
             <tr>
                 <td></td>
                 <td><b>Host</b></td>
@@ -19,16 +20,16 @@
                 <td><b>Description</b></td>
             </tr>
         <!-- Repeat this for each callback -->
-            <tr v-for="callback in callbacks" :key="callback.id" v-bind:style="callback.selected ? 'background-color:' + callback.bg_color : 'background-color:' + shadeBlend(0.90, callback.bg_color)" >
+            <tr v-for="callback in callbacks" :key="callback.id" v-bind:style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" >
                 <td>
                     <!-- Split button -->
-                    <div class="btn-group dropdown">
+                    <div class="btn-group dropdown" style="z-index: 3">
                       <button type="button" class="btn btn-primary btn-sm" @click="interact_button(callback)">Interact</button>
                       <button type="button" class="btn btn-info dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="caret"></span>
                         <span class="sr-only">Toggle Dropdown</span>
                       </button>
-                      <ul class="dropdown-menu">
+                      <ul class="dropdown-menu" style="z-index:2; position: absolute; top: 10;">
                           <li><a @click="show_keylogs(callback)" href="#">Keystrokes</a></li>
                           <li><a @click="show_screencaptures(callback)" href="#">Screencaptures</a></li>
                           <li><a @click="spawn_menu(callback)" href="#">spawn menu</a></li>
@@ -53,18 +54,19 @@
             </tr>
         <!-- End of the repeating -->
         </table>
+    </div>
 </div>
 <div class="panel panel-info" id="bottom-data">
     <!-- Tabs at the bottom of the screen - just the names at the top though-->
     <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
         <li v-for="metadata in meta" v-if="metadata.tasks" role="button" key="metadata.id">
-            <a v-bind:id="'tasks' + metadata.id + 'tab'" v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]] <span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
+            <a v-bind:id="'tasks' + metadata.id + 'tab'" v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]] <span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
         </li>
         <li v-for="metadata in meta" v-if="metadata.screencaptures" role="button">
-            <a v-bind:href="'#screencaptures' + metadata.id" v-bind:aria-controls="'screencaptures' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
+            <a v-bind:href="'#screencaptures' + metadata.id" v-bind:aria-controls="'screencaptures' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
         </li>
         <li v-for="metadata in meta" v-if="metadata.keylogs" role="button">
-            <a v-bind:href="'#keylogs' + metadata.id" v-bind:aria-controls="'keylogs' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + metadata.bg_color : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Keylogs <span class="btn btn-sm btn-danger" @click="keylog_tab_close(metadata)">X</span></a>
+            <a v-bind:href="'#keylogs' + metadata.id" v-bind:aria-controls="'keylogs' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Keylogs <span class="btn btn-sm btn-danger" @click="keylog_tab_close(metadata)">X</span></a>
         </li>
     </ul>
     <!-- Now actually deal with the content in each tab-->
