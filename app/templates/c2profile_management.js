@@ -86,7 +86,8 @@ var payloads_table = new Vue({
 	    },
 	    parameters_button: function(p){
 	        // first clear the current profileEditParametersTable
-	        profile_parameters_table.parameters.length = 0;
+	        profile_parameters_table.parameters = [];
+
             // then see if there are any parameters already created for this profile
             values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters");
             values = JSON.parse(values);
