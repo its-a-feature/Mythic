@@ -264,13 +264,14 @@ async def initial_setup():
     # create default c2 profile parameters
     c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
                             ('callback port', 'callback_port', '80'),
-                            ('callback interval (in seconds)', 'callback_interval', '10')]
+                            ('callback interval (in seconds)', 'callback_interval', '10'),
+                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
     for name,key,hint in c2profile_parameters:
         await db_objects.get_or_create(C2ProfileParameters, c2_profile=c2_profile, name=name, key=key, hint=hint)
     print("Registered C2 Profile Parameters")
     # create more modular c2 profile
     pt_c2_profile, created = await db_objects.get_or_create(C2Profile, name='RESTful Patchthrough',
-                                                         description='Arbitrary endpoint patchthrough for default RESTful interfaces',
+                                                         description='Modify default RESTful interfaces for callback. Parameters must match up with server though (manual process)',
                                                          operator=admin, operation=operation)
     print("Created Patchthrough c2 profile")
     c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
@@ -280,7 +281,8 @@ async def initial_setup():
                             ('Get next task', 'GETNEXTTASK', '/admin.php?q=*'),
                             ('ID Field (some string to represent where the ID goes in the URI)', 'IDSTRING', '*'),
                             ('Post new callback info', 'NEWCALLBACK', '/login'),
-                            ('Post responses', 'POSTRESPONSE', '/upload.php?page=*')]
+                            ('Post responses', 'POSTRESPONSE', '/upload.php?page=*'),
+                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
     for name,key,hint in c2profile_parameters:
         await db_objects.get_or_create(C2ProfileParameters, c2_profile=pt_c2_profile, name=name, key=key, hint=hint)
     print("Created patchthrough c2 profile parameters")

