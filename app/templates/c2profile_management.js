@@ -59,7 +59,7 @@ var payloads_table = new Vue({
                 var file = document.getElementById('profileEditServerFile');
                 if(file.files.length > 0){
                     var filedata = file.files;
-                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files, {"payload_type": ""}, "POST");
+                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files, filedata, {"payload_type": ""}, "POST");
                     file.value = file.defaultValue;
                 }
                 // now iterate and upload files for all of the payload types as needed
@@ -68,7 +68,7 @@ var payloads_table = new Vue({
                     if(file.files.length > 0){
                         var filedata = file.files;
                         var json_data = {"payload_type":  edit_payload_files.edit_payload_file_list[i]}
-                        uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files,filedata, json_data, "POST");
+                        uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files, filedata, json_data, "POST");
                         //uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/, edit_payloadtype_callback, filedata);
                         file.value = file.defaultValue;
                     }
@@ -82,7 +82,7 @@ var payloads_table = new Vue({
 	        else{
 	            command = "start";
 	        }
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/" + command, update_profile, "GET", null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/" + command, update_profile_running, "GET", null);
 	    },
 	    parameters_button: function(p){
 	        // first clear the current profileEditParametersTable
@@ -153,11 +153,26 @@ function update_profile(response){
 	data = JSON.parse(response);
 	if(data['status'] == 'success'){
 		for( var i = 0; i < profiles.length; i++){
-		    if(profiles[i].id == data['id']){
-		        profiles[i].name = data['name'];
-		        profiles[i].description = data['description'];
-		        profiles[i].payload_types = data['payload_types'];
-		        profiles[i].running = data['running'];
+		    if(payloads_table.profiles[i].id == data['id']){
+		        payloads_table.profiles[i].name = data['name'];
+		        payloads_table.profiles[i].description = data['description'];
+		        payloads_table.profiles[i].payload_types = data['payload_types'];
+		        payloads_table.profiles[i].running = data['running'];
+		    }
+		}
+		alertTop("success", "Successfully updated");
+	}
+	else{
+		//there was an error, so we should tell the user
+		alertTop("danger", "Error: " + data['error']);
+	}
+}
+function update_profile_running(response){
+    data = JSON.parse(response);
+	if(data['status'] == 'success'){
+		for( var i = 0; i < profiles.length; i++){
+		    if(payloads_table.profiles[i].id == data['id']){
+		        payloads_table.profiles[i].running = data['running'];
 		    }
 		}
 	}
@@ -171,17 +186,20 @@ function update_profile_files(response){
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
+    else{
+        alertTop("success", "Successfully uploaded files");
+    }
 }
 function delete_profile(response){
 	data = JSON.parse(response);
 	if(data['status'] == 'success'){
         var i = 0;
 		for( i = 0; i < profiles.length; i++){
-		    if(profiles[i].name == data['name']){
+		    if(payloads_table.profiles[i].name == data['name']){
 		        break;
 		    }
 		}
-		profiles.splice(i, 1);
+		payloads_table.profiles.splice(i, 1);
 	}
 	else{
 		//there was an error, so we should tell the user

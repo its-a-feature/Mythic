@@ -336,8 +336,10 @@ async def start_c2profile(request, info, user):
     null = open('/dev/null', 'w')
     try:
         # run profiles with just /bin/bash, so they should be set up appropriately
+        path = os.path.abspath('./app/c2_profiles/{}/{}/{}_server'.format(operation.name, name, name))
+        os.chmod(path, mode=0o777)
         p = subprocess.Popen(
-            ['./{}_server'.format(name), '&'],
+            [path, '&'],
             cwd='./app/c2_profiles/{}/{}/'.format(operation.name, name),
             stdout=null,
             stderr=null,
@@ -354,7 +356,7 @@ async def start_c2profile(request, info, user):
                                  'status': 'running'})
         profile.running = True
         await db_objects.update(profile)
-        return json({'status': 'success'})
+        return json({'status': 'success', **profile.to_json()})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to start profile.'})
@@ -381,7 +383,7 @@ async def stop_c2profile(request, info, user):
             x['status'] = 'stopped'
     profile.running = False
     await db_objects.update(profile)
-    return json({'status': 'success'})
+    return json({'status': 'success', **profile.to_json()})
 
 
 # Delete a profile

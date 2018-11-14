@@ -268,6 +268,22 @@ async def initial_setup():
     for name,key,hint in c2profile_parameters:
         await db_objects.get_or_create(C2ProfileParameters, c2_profile=c2_profile, name=name, key=key, hint=hint)
     print("Registered C2 Profile Parameters")
+    # create more modular c2 profile
+    pt_c2_profile, created = await db_objects.get_or_create(C2Profile, name='RESTful Patchthrough',
+                                                         description='Arbitrary endpoint patchthrough for default RESTful interfaces',
+                                                         operator=admin, operation=operation)
+    print("Created Patchthrough c2 profile")
+    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
+                            ('callback port', 'callback_port', '80'),
+                            ('callback interval (in seconds)', 'callback_interval', '10'),
+                            ('Get a File (for load, download, and spawn)', 'GETFILE', '/download.php?file=*'),
+                            ('Get next task', 'GETNEXTTASK', '/admin.php?q=*'),
+                            ('ID Field (some string to represent where the ID goes in the URI)', 'IDSTRING', '*'),
+                            ('Post new callback info', 'NEWCALLBACK', '/login'),
+                            ('Post responses', 'POSTRESPONSE', '/upload.php?page=*')]
+    for name,key,hint in c2profile_parameters:
+        await db_objects.get_or_create(C2ProfileParameters, c2_profile=pt_c2_profile, name=name, key=key, hint=hint)
+    print("Created patchthrough c2 profile parameters")
     # create default payload types
     payload_type_apfell_jxa, created = await db_objects.get_or_create(PayloadType, ptype='apfell-jxa', operator=admin,
                                                                       file_extension=".js", wrapper=False)
@@ -287,6 +303,8 @@ async def initial_setup():
     print("Registered Admin with the default operation")
     # add payload_type c2_profile mapping
     await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type_apfell_jxa, c2_profile=c2_profile)
+    # add payload_type c2_profile mapping
+    await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type_apfell_jxa, c2_profile=pt_c2_profile)
     print("Registered apfell-jxa with the default c2 profile")
     # Register commands for created payload types
     file = open("./app/templates/default_commands.json", "r")

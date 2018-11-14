@@ -164,7 +164,11 @@ function submit_payload(){
     // now get the c2 profile values into a dictionary
     var c2_profile_parameters_dict = {};
     for(var i = 0; i < profile_parameters_table.c2_profile_parameters.length; i++){
-        c2_profile_parameters_dict[profile_parameters_table.c2_profile_parameters[i]['name']] = $('#' + profile_parameters_table.c2_profile_parameters[i]['key']).val();
+        var value = $('#' + profile_parameters_table.c2_profile_parameters[i]['key']).val();
+        if (value == ""){
+            value = profile_parameters_table.c2_profile_parameters[i]['hint'];
+        }
+        c2_profile_parameters_dict[profile_parameters_table.c2_profile_parameters[i]['name']] = value;
     }
     data['c2_profile_parameters'] = c2_profile_parameters_dict;
     //console.log(data);

@@ -39,9 +39,10 @@ async def get_one_file(request, id):
         return json({'status': 'error', 'error': 'file not done downloading'})
 
 
-#  when an implant gets the task to download a file, first reaches out here
 @apfell.route(apfell.config['API_BASE'] + "/files/", methods=['POST'])
-async def create_filemeta_in_database(request):
+@inject_user()
+@protected()
+async def create_filemeta_in_database(request, user):
     return await json(create_filemeta_in_database_func(request.json))
 
 
@@ -87,9 +88,10 @@ async def create_filemeta_in_database_func(data):
     return {**status, **filemeta.to_json()}
 
 
-# after calling the above path, the implant calls this to upload the content
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['POST'])
-async def download_file_to_disk(request, id):
+@inject_user()
+@protected()
+async def download_file_to_disk(request, id, user):
     return await json(download_file_to_disk_func({**request.json, "file_id": id}))
 
 
