@@ -1,17 +1,117 @@
 {% extends "base.html" %}
 {% block body %}
 <h1>
-    General Apfell Documentation
+    General Apfell Extension Documentation
 </h1>
-<p>
-    There are a few key points for apfell that will be explained in this section:
-    <ul>
-    <li>Operator Logging</li>
-    <li>Ease of access</li>
-    <li>Everything is saved</li>
-    <li>Swapping C2 mechanisms</li>
+<p>This page serves as a general outline of information if you want to modify, extend, or leverage some of the more dynamic features of Apfell</p><br>
+<h4><b>Special Commands Behind the Scenes</b></h4>
+<p>Some commands are treated a little differently than others so that it's easier to hook into some of the functionality of Apfell.
+If you want to write commands that leverage this, simply structure your messages the same way.</p>
+<ul>
+    <li><strong>Upload</strong><ul>
+        <li>User Typed Command Line: <strong>upload "/home/spooky/evildocument.pdf" "/user/its-a-feature/Desktop/totally not malware.pdf"</strong></li>
+        <li>This is uploading a file from the Apfell server to the victim machine at the specified location</li>
+        <li>Quotes around both file paths is required</li>
+        <li>The first file path means nothing to the agent running on the victim box though, so let's do some pre-processing to fix that
+            <ul>
+                <li>I register that file in the FileMeta table of the database and mark it as complete, so it now has a file_id associated with it</li>
+                <li>Our new command that the agent actually sees is something like: <strong>upload 15 /user/its-a-feature/Desktop/totally not malware.pdf</strong></li>
+            </ul>
+        </li>
+        <li>Now the agent can do a GET request against the /api/v1.0/files/15 to pull down the file</li>
+    </ul>
+    </li>
+    <li><strong>Download</strong><ul>
+        <li>User Typed Command Line: <strong>download "/user/its-a-feature/Desktop/totally not malware.pdf"</strong></li>
+        <li>This downloads the file from the victim machine to the Apfell server</li>
+        <li>All downloads automatically go to <strong>Apfell/app/files/operation_name/downloads/hostname/file_name</strong> when completed</li>
+        <li>The quotes around this file path aren't necessary</li>
+        <li>We do need to do some chunking and pre-configuring from the agent side to get ready to exfiltrate this file though</li>
+        <li>The agent needs to:<ul>
+            <li>Calculate the size of the file we're going to be exfiltrating and determine how many chunks it will take to send the whole file.</li>
+            <li>Send an initial response to the Apfell server of: <strong>{"response": "eyJ0b3RhbF9jaHVua3MiOiA0LCAidGFzayI6IDI1fQ=="}</strong>, which decoded is: <strong>{"total_chunks": 4, "task": 25}</strong></li>
+            <li>The Apfell server will take this information and start a FileMeta object for the task. It will then return status information, information about the request, and most importantly, a <strong>"file_id": #</strong> field that indicates the file id associated with this new FileMeta object</li>
+            <li>Now the agent will send the file data with responses of: <strong>{"response": "base64data=="}</strong> which will decode to: <strong>{"chunk_num": 1, "file_id": #_from_prior_response, "chunk_data": base64_blob==}</strong> for each chunk of data</li>
+            <li>When the Apfell server has recieved the last chunk, it'll automatically mark the file as <strong>complete</strong>, which will allow you to download it.</li>
+        </ul></li>
+        <li>The operator will be informed of the initial response back (with data about how many chunks the download will take, where the file will be saved, and the file_id)</li>
+        <li>The operator will be informed of each chunk it receives.</li>
+    </ul></li>
+    <li><strong>Screencapture</strong><ul>
+        <li>User Typed Command Line: <strong>screencapture</strong></li>
+        <li>This instructs the agent to take a screencapture and send it back</li>
+        <li>Apfell will automatically append the current UTC date and .png to the end of the command as the filename to save the output to<ul>
+            <li>The new final task will be: <strong>screencapture 2018-11-12-17:05:59.png</strong></li>
+        </ul></li>
+        <li>From the perspective of the agent, this follows the same structure as <strong>download</strong>.<ul>
+            <li>Calculate size of what we're sending (screencapture on a mac can be a few MB, especially as you start talking about high resolution monitors)</li>
+            <li>Calculate the number of chunks required to send this over whatever C2 mechanism we're using</li>
+            <li>Send the initial response with the total number of chunks and the task id</li>
+            <li>Get back a file_id</li>
+            <li>Make subsequent responses with the file_id and chunk_data</li>
+        </ul></li>
+        <li>All screencaptures are stored in <strong>Apfell/app/files/operation_name/downloads/host_name/screenshots/timestamp.png</strong></li>
+    </ul></li>
+    <li><strong>Keylog</strong><ul>
+        <li>User Typed Command Line: <strong>keylog</strong></li>
+        <li>This instructs the agent to start keylogging</li>
+        <li>The Agent should send back an initial response of <strong>{"response": "eyJzdGF0dXMiOiAic3RhcnRlZCJ9"}</strong> which decodes to: <strong>{"status": "started"}</strong>. The main key here is returning something in a "status" key so that it will be presented to the user</li>
+        <li>Outside of the "status" key, no information is presented to the main user console (We don't want to flood them with "got keystroke" messages)</li>
+        <li>When sending actual keystroke data (instead of just status messages), there are three main pieces of information that should be sent that allow Apfell to do more interesting tracking and grouping<ul>
+            <li>The responses should be: <strong>{"response": "eyJ1c2VyIjogIml0cy1hLWZlYXR1cmUiLCAid2luZG93X3RpdGxlIjogIk5vdGVwYWQgLSBVbnRpdGxlZCIsICJrZXlzdHJva2VzIjogIm15IHBhc3N3b3JkIGlzIHplcjBjMDBsIn0="}</strong> for example which decodes to <strong>{"user": "its-a-feature", "window_title": "Notepad - Untitled", "keystrokes": "my password is zer0c00l"}</strong></li>
+            <li>The only absolutely mandatory field in here is the "keystrokes" field, if the others aren't specified, then they're substituted with "unknown".</li>
+            <li>The agent is the best one to know which user is actually being keylogged (if it's possible to tell), so it should report that information back. It's not something the Apfell server can infer based on current data</li>
+            <li>The break out of the window title also allows Apfell to do special grouping by window titles and aggregate all of that information together instead of strictly broken out by time</li>
+        </ul></li>
+    </ul></li>
+    <li><strong>Load</strong><ul>
+        <li>User Typed Command Line: <strong>load shell, jscript, screencapture</strong></li>
+        <li>This instructs the agent to load the registered commands "shell", "jscript", and "screencapture"</li>
+        <li>The agent doesn't know what these commands are, so we need to do some processing first</li>
+        <li>Apfell will load the paths of each of these files into an array and pass this off to the first <strong>Transform</strong> listed for loading that's associated with the payload's type<ul>
+            <li>For more information on Transforms, see the "Transforms" section</li>
+        </ul></li>
+        <li>At the end of all the transforms, there should be a file path returned<ul>
+            <li>If you don't do any transforms, then Apfell will just use the file path associated, but then it can only do one command at a time</li>
+        </ul></li>
+        <li>Apfell will then register this file path as a FileMeta object and return a file_id (similar to when we upload a file) in the task</li>
+        <li>The new command that the agent will see is something like: <strong>load 15</strong></li>
+        <li>The agent can then pull down that file <strong>/api/v1.0/files/15</strong> and do what it needs to do to successfully load the new functionality</li>
+    </ul></li>
 </ul>
-</p>
+
+<h4><b>Transforms</b></h4>
+<p>Transforms are arbitrary python functions that are used for two main purposes: perform actions against a new payload after all the pieces have been stamped together or perform actions against a set of command modules prior to them being loaded by an agent.</p>
+<ul>
+    <li><strong>Location</strong><ul>
+        <li>All transforms are located in <strong>Apfell/app/api/utils.py</strong> in the <strong>TransformOperation</strong> class</li>
+    </ul></li>
+    <li><strong>Format</strong><ul>
+        <li>All transforms use Python3's TypeHints to provide more information back to the operator</li>
+        <li>Instead of a normal Python function defined as follows: async def compile(self, payload, prior_output, compile_command)<ul>
+            <li>We get a Python function that looks like: async def compile(self, payload<b>: Payload</b>, prior_output<b>: FilePath</b>, compile_command<b>: str</b>)<b> -> FilePath</b>:</li>
+        </ul></li>
+        <li>All transform functions have 3 parameters: The payload object, the output from the prior transform, and a transform specific parameter that's passed in as a string</li>
+        <li>By specifying the type of the prior_output and the return type, it's easy to see in the user interface when transforms chain together</li>
+    </ul></li>
+    <li><strong>New Types</strong><ul>
+        <li>Python has the ability to add new types that can be used in these type hints, which are treated like aliases</li>
+        <li><b>FilePath</b> is an example of this (you can see it a few lines above as an input and output type)</li>
+        <li>These are declared at the top like: <strong>FilePath = NewType('FilePath', str)</strong>. In this case, FilePath is really nothing more than a string, but it gives the operator more context about what the string should be and how it'll be used</li>
+        <li>In this case, you can access it just as if it was a str type</li>
+    </ul></li>
+    <li><strong>Adding Transforms</strong><ul>
+        <li>Adding a new transform is really easy. Just add a new function in the <b>TransformOperation</b> class in the <b>Apfell/app/api/utils.py</b> file. When you restart the server, your new code and type hints will be available everywhere.</li>
+    </ul></li>
+    <li><strong>Applying Transforms</strong><ul>
+        <li>Now that you have transforms available, applying them to payload types is really straight forward from the UI (or you can use th CLI options via RESTful interface calls manually)</li>
+        <li>In the <b>Manage Operations -> Payload Management</b> page, simply click <b>Edit</b> for the payload type you're interested in.<ul>
+            <li>If you want to edit the transforms that are applied after a payload is stamped together, click the button in the <b>Payload Creation Transforms</b> column</li>
+            <li>If you want to edit the transforms that are applied during the <b>load</b> process for new modules, click the button in the <b>Module Load Transforms</b> column</li>
+        </ul></li>
+    </ul></li>
+</ul>
+
 {% endblock %}
 {% block scripts %}
 
