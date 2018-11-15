@@ -112,6 +112,99 @@ If you want to write commands that leverage this, simply structure your messages
     </ul></li>
 </ul>
 
+<h4><b>Creating Custom C2 Profiles</b></h4>
+<p>It's allowed and recommended that users create their own c2 profiles for whatever they want. The user interface allows for many ways to register them, give them parameters, and upload the code to run your custom server as well as supply the c2 code that will be stamped into a payload that is registered with that c2 profile. Let's walk through some examples:</p>
+<ul>
+    <li>I want a C2 that {uses 3rd party service X | <b>has different endpoints</b> | encodes data in the X field | etc etc}<ul>
+        <li>Awesome! I do too! But, what all do you need to do to achieve this? Let's walk through an example for using different endpoints.<ol>
+            <li>Decide what you want your profile to be called. I chose <b>RESTful Patchthrough</b> since all I'll be doing is setting up different RESTful endpoints for the agent to hit and passing the data through. There's opportunity here to of course perform any other transforms on the data that you want (like encrypt/decrypt) but that's up to you.</li>
+            <li>Create a file called <b>Name_server</b>, so in my case, <b>RESTful Patchthrough_server</b>. This will be the code that's executed when you select to start your new c2 server from the UI. It's important to note that all I do is essentially dot slash your code as a background task (<b>./RESTful Patchthrough_server &</b>), so format your code appropriately. This means though that you can use binaries or even just shebang-ed scripts (adding <b>#! /path/to/thing/to/use/to/execute</b> at the top of your script). Note that this does not have a file type extension.</li>
+            <li>In this new file, you can do whatever you want for your secret sauce c2 profile, but in the end, you should be hitting the following 4 endpoints back on the Apfell server:<ol>
+                <li>http://localhost/api/v1.0/callbacks/<ul>
+                    <li>POST here to register your initial callback</li>
+                </ul></li>
+                <li>http://localhost/api/v1.0/tasks/callback/{}/nextTask<ul>
+                    <li>GET here to get your next task, or {"command": "none"} if there's no new task. The {} is a placeholder for your callback ID that you got from registering your callback</li>
+                </ul></li>
+                <li>http://localhost/api/v1.0/responses/{}<ul>
+                    <li>POST here with the output of the task you got from the above URL. The {} is a placeholder for the task ID you got from asking for your next task</li>
+                </ul></li>
+                <li>http://localhost/api/v1.0/files/{}<ul>
+                    <li>GET here to get a file required by your agent. This can include things like more payloads or files to upload to the victim. The {} is a placeholder for a file ID you received in your tasking.</li>
+                </ul></li>
+            </ol></li>
+            <li>Now you have the server code that'll handle your special interactions with the Apfell server and your agent. But, no agent speaks your new C2 yet. So, let's do that. For each payload type you want to support, you need to write the corresponding code that will be stamped into that payload. For our example, I'm supporting the Apfell-jxa payload, so I need to write some JavaScript for Automation (JXA) code. This should have the same file extension as the registered file extension for the payload type (.js in my case). So, I create the file <b>RESTful Patchthrough.js</b></li>
+            <li>In this new file, you can do whatever you want for your secret sauce c2 profile, but in order for it to be seamlessly used by the apfell-jxa payload, you need to implement a few functions. This is possible because all throughout the main payload code, I simply call the specific functions on the C2 class you create. I don't provide any implementations though, that's for you to do. This is more of an <i>Interface</i> that you extend. Here's what I mean: <ul>
+                <li><span style="white-space: pre-wrap">
+    class baseC2{
+        constructor(interval, baseurl){
+            this.interval = interval; //seconds between callbacks
+            this.baseurl = baseurl; //where to reach out to
+            this.commands = [];
+        }
+        getInterval(){
+            return this.interval;
+        }
+        checkin(){
+            //check in with c2 server
+        }
+        getTasking(){
+            //reach out to wherever to get tasking
+        }
+        getConfig(){
+            //gets the current configuration for tasking
+        }
+        postResponse(task, output){
+            //output a response to a task
+        }
+        setConfig(params){
+            //updates the current configuration for how to get tasking
+        }
+        download(task, params){
+            //gets a file from the apfell server in some way
+        }
+        upload(task, params){
+            //uploads a file in some way to the teamserver
+        }
+    }
+                </span></li>
+                <li>This is the base C2 class. When you create your own class, you do the following: <br>
+                <span style="white-space: pre-wrap">
+    class customC2 extends baseC2{
+	constructor(interval, baseurl){
+		super(interval, baseurl);
+		this.commands = [];
+		this.host_header = "YYY";
+	}
+	getConfig(){
+		//A RESTful base config consists of the following:
+		//  BaseURL (includes Port), CallbackInterval, KillDate (not implemented yet)
+		return JSON.stringify({'baseurl': this.baseurl, 'interval': this.interval, 'killdate': '', 'commands': this.commands.join(",")});
+	}
+                    ...
+                </span><br>
+                Where you will <b>extend</b> the baseC2 class and actually provide implementations for the above functions. Then, at the end of your class defition, you say:<br>
+                <b>C2 = new customC2(callback_interval, "callback_host:callback_port/");</b> and create the variable C2. This variable is what is used throughout the apfell-jxa code to reference into the associated class and call functions. You can have more functions than the ones in the baseC2, but the agent code will only call those base functions. Your declaration can be whatever you want - in my case we need to provide the url and port for the RESTful callbacks, so I made these C2 profile parameters (coming up next) that will get stamped out when the payload is created.</li>
+            </ul> </li>
+            <li>Now that you have server code and agent code, you need to decide if your agent code is variable. Are there things that users can configure and still operate with your c2 server? In the UI when you create your c2 profile, there's an optional button to add parameters to your profile.<ul>
+                <li>These parameters take three components: Name, Key, Hint. <b>Name</b> is what will be displayed to the user when they go to create their payload for the parameter. <b>Key</b> is what is located in your payload specific c2 profile code that will get swapped out with whatever the user inputs when creating a payload. <b>Hint</b> is provided to the user as an example of what to type in the field for the parameter</li>
+                <li>One of my parameters for the c2 profile is: <b>Callback Host</b>:<i>callback_host</i>:<u>http(s)://domain.com</u>. This illustrates to the operator that I'm expecting protocol + domain for the callback host.</li>
+                <li>If a user does not supply a value for one of your parameters, the hint you provide will be used instead.</li>
+            </ul></li>
+            <li>Go to <b>Manage Operations -> C2 Profiles Management</b>, click <b>Register C2 Profile</b><ul>
+                <li>Provide the name for this c2 profile - <b>RESTful Patchthrough</b> in our case</li>
+                <li>Provide a description for what this is doing</li>
+                <li>Select the payload types that you support (i.e. that you wrote code for in the prior sections). Each payload type you select will add another section for you to upload code</li>
+                <li>The <b>Server file(s)</b> section is where you'll upload the <b>RESTful Patchthrough_server</b> along with any other files that your server code might need to access</li>
+                <li>I selected the <b>apfell-jxa</b> payload as a supported payload, so in the additional file option, I upload <b>RESTful Patchthrough.js</b></li>
+            </ul></li>
+            <li>When you're ready to start your server, simply click the green <b>Start</b> button, and if it successfully starts, it'll change to a red <b>Stop</b> button. Your server is now up and running!</li>
+            <li>In your new C2 profile row in the table, there will be a button called <b>Edit</b> under the <b>Parameters</b> column. Click this and you can add any parameters your code needs. Remember, these are parameters to be stamped into your agent c2 code when the payload is created, these are not parameters for your _server code.</li>
+            <li>When you're ready to create a payload, simply to go <b>Create Payloads -> Create Base Payload</b> and select your new C2 profile from the dropdown on the left. It should auto populate with the parameters you created and be filled in with the hints you provided.</li>
+        </ol></li>
+    </ul></li>
+</ul>
+
 {% endblock %}
 {% block scripts %}
 
