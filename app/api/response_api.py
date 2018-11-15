@@ -50,7 +50,7 @@ async def update_task_for_callback(request, id):
     data = request.json
     if 'response' not in data:
         return json({'status': 'error', 'error': 'task response not in data'})
-    decoded = base64.b64decode(data['response']).decode("utf-8")
+    decoded = base64.b64decode(data['response'])#.decode("utf-8")
     try:
         task = await db_objects.get(Task, id=id)
         callback = await db_objects.get(Callback, id=task.callback.id)

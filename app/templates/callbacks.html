@@ -2,10 +2,10 @@
 {% block body %}
 <!-- https://github.com/davidmerfield/randomColor provides an awesome color randomizer with lots of awesome options!-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.5.2/randomColor.min.js"></script>
-<div style="resize: vertical; overflow:auto; z-index: 1; position:relative" class="panel panel-primary" id="callback_table">
+<div style="resize: vertical; overflow:auto;" class="panel panel-primary" id="callback_table">
     <div class="panel-heading">Current callbacks</div>
-        <div style="z-index: 1; position:relative">
-        <table class="table table-hover table-condensed" style="z-index: 3; position:relative">
+        <div>
+        <table class="table table-hover table-condensed">
             <tr>
                 <td></td>
                 <td><b>Host</b></td>
@@ -23,13 +23,13 @@
             <tr v-for="callback in callbacks" :key="callback.id" v-bind:style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" >
                 <td>
                     <!-- Split button -->
-                    <div class="btn-group dropdown" style="z-index: 3">
+                    <div class="btn-group dropdown">
                       <button type="button" class="btn btn-primary btn-sm" @click="interact_button(callback)">Interact</button>
                       <button type="button" class="btn btn-info dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="caret"></span>
                         <span class="sr-only">Toggle Dropdown</span>
                       </button>
-                      <ul class="dropdown-menu" style="z-index:2; position: absolute; top: 10;">
+                      <ul class="dropdown-menu">
                           <li><a @click="show_keylogs(callback)" href="#">Keystrokes</a></li>
                           <li><a @click="show_screencaptures(callback)" href="#">Screencaptures</a></li>
                           <li><a @click="spawn_menu(callback)" href="#">spawn menu</a></li>

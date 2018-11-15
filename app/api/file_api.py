@@ -115,7 +115,7 @@ async def download_file_to_disk_func(data):
         if file_meta.chunks_received == file_meta.total_chunks:
             file_meta.complete = True
             # if we ended up downloading a file from mac's screencapture utility, we need to fix it a bit
-            f = open(file_meta.path, 'r').read()
+            f = open(file_meta.path, 'rb').read()
             if f[0:8] == "'PNGf'($":
                 new_file = open(file_meta.path, 'wb')
                 new_file.write(unhexlify(f[8:-2]))
