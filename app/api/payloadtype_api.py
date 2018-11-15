@@ -44,7 +44,7 @@ async def create_payloadtype(request, user):
             return json({'status': 'error', 'error': '"ptype" is a required field and must be unique'})
         if "file_extension" not in data:
             data["file_extension"] = ""
-        elif "." not in data['file_extension']:
+        elif "." not in data['file_extension'] and data['file_extension'] != "":
             data['file_extension'] = "." + data['file_extension']
         if 'wrapper' not in data:
             data['wrapper'] = False
@@ -93,7 +93,7 @@ async def create_payloadtype(request, user):
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>", methods=['PUT'])
 @inject_user()
 @protected()
-async def create_payloadtype(request, user, ptype):
+async def update_payloadtype(request, user, ptype):
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -107,7 +107,7 @@ async def create_payloadtype(request, user, ptype):
     operator = await db_objects.get(Operator, username=user['username'])
     if user['admin'] or payloadtype.operator == operator:
         if 'file_extension' in data:
-            if "." not in data['file_extension']:
+            if "." not in data['file_extension'] and data['file_extension'] != "":
                 payloadtype.file_extension = "." + data['file_extension']
             else:
                 payloadtype.file_extension = data['file_extension']
