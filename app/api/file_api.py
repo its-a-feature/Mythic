@@ -62,7 +62,7 @@ async def create_filemeta_in_database_func(data):
     try:
         if task.command.cmd not in ["download", "upload", "screencapture"]:
             return {'status': 'error', 'error': "that task wouldn't result in a file being created"}
-        filename = os.path.split(task.params)[1]
+        filename = os.path.split(task.params)[1].strip()
         if task.command.cmd == "screencapture":
             # we want to save these in a specific folder
             save_path = os.path.abspath(
