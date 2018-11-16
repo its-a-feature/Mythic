@@ -18,6 +18,21 @@ async def get_all_files_meta(request, user):
     return json([f.to_json() for f in files if f.operation.name in user['operations']])
 
 
+@apfell.route(apfell.config['API_BASE'] + "/files/current_operation", methods=['GET'])
+@inject_user()
+@protected()
+async def get_current_operations_files_meta(request, user):
+    if user['current_operation'] != "":
+        try:
+            operation = await db_objects.get(Operation, name=user['current_operation'])
+            files = await db_objects.execute(FileMeta.select().where(FileMeta.operation == operation))
+        except Exception as e:
+            return json({'status': 'error', 'error': 'failed to get files'})
+        return json([f.to_json() for f in files if not "screenshots" in f.path ])
+    else:
+        return json({"status": 'error', 'error': 'must be part of an active operation'})
+
+
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['GET'])
 async def get_one_file(request, id):
     try:
@@ -37,6 +52,25 @@ async def get_one_file(request, id):
         return raw(encoded_data)
     else:
         return json({'status': 'error', 'error': 'file not done downloading'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/download/<id:int>", methods=['GET'])
+async def download_file(request, id):
+    try:
+        file_meta = await db_objects.get(FileMeta, id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'file not found'})
+    # now that we have the file metadata, get the file if it's done downloading
+    if file_meta.complete and not file_meta.deleted:
+        try:
+            return await file(file_meta.path)
+        except Exception as e:
+            return json({'status': 'error', 'error': 'File not found'})
+    elif not file_meta.complete:
+        return json({'status': 'error', 'error': 'file not done downloading'})
+    else:
+        return json({'status': 'error', 'error': 'file was deleted'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/", methods=['POST'])
@@ -115,8 +149,9 @@ async def download_file_to_disk_func(data):
         if file_meta.chunks_received == file_meta.total_chunks:
             file_meta.complete = True
             # if we ended up downloading a file from mac's screencapture utility, we need to fix it a bit
-            f = open(file_meta.path, 'rb').read()
-            if f[0:8] == "'PNGf'($":
+            f = open(file_meta.path, 'rb').read(8)
+            if f == "'PNGf'($":
+                f = open(file_meta.path, 'rb').read()
                 new_file = open(file_meta.path, 'wb')
                 new_file.write(unhexlify(f[8:-2]))
                 new_file.close()
@@ -124,7 +159,7 @@ async def download_file_to_disk_func(data):
     except Exception as e:
         print("Failed to save chunk to disk: " + str(e))
         return {'status': 'error', 'error': 'failed to store chunk'}
-    return {'status': 'success', 'chunk': file_meta.chunks_received}
+    return {'status': 'success'}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/screencaptures")

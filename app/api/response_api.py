@@ -86,10 +86,11 @@ async def update_task_for_callback(request, id):
                     # print("storing chunk: " + str(download_response['chunk_num']))
                     #print(download_response)
                     rsp = await download_file_to_disk_func(download_response)
-                    if rsp['status'] == "success":
-                        decoded = "Received chunk: " + str(rsp['chunk'])
-                    else:
+                    if rsp['status'] == "error":
                         decoded = rsp['error']
+                    else:
+                        # we successfully got a chunk and updated the FileMeta object, so just move along
+                        return json({'status': 'success'})
             except Exception as e:
                 print("error when trying to handle a download/screencapture command: " + str(e))
                 pass

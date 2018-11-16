@@ -772,10 +772,22 @@
           "output": "[{\"chunks_received\":4,\"complete\":true,\"timestamp\":\"10\/27\/2018 19:53:40\",\"id\":42,\"total_chunks\":4,\"task\":104,\"cmd\":\"screencapture\",\"path\":\"\/home\/its-a-feature\/Apfell\/app\/files\/default\/downloads\/codys-mbp\/201819:53:33\",\"operation\":\"default\"}]"
         },
         {
+          "GET": "API_BASE/files/current_operation",
+          "explanation": "Get information about all the files registered for your current operation (except for Screencaptures).",
+          "cli": "curl http://localhostAPI_BASE/files/current_operation",
+          "output": "[{\"chunks_received\":4,\"complete\":true,\"timestamp\":\"10\/27\/2018 19:53:40\",\"id\":42,\"total_chunks\":4,\"task\":104,\"cmd\":\"download\",\"path\":\"\/home\/its-a-feature\/Apfell\/app\/files\/default\/downloads\/codys-mbp\/201819:53:33\",\"operation\":\"default\"}]"
+        },
+        {
           "GET": "API_BASE/files/(id:INTEGER)",
           "explanation": "Get the contents of a specific file indicated by id. Currently, this isn't locked behind a login requirement because it needs to be accessed by callbacks for uploading a file to the remote computer. This might change in the future.",
           "cli": "curl http://localhostAPI_BASE/files/1",
           "output": "raw base64 encoded contents of the file"
+        },
+        {
+          "GET": "API_BASE/files/download/(id:INTEGER)",
+          "explanation": "Get the contents of a specific file indicated by id. Currently, this isn't locked behind a login requirement because it needs to be accessed by callbacks for uploading a file to the remote computer. This might change in the future.",
+          "cli": "curl http://localhostAPI_BASE/files/download/1",
+          "output": "raw contents of the file"
         },
         {
           "POST": "API_BASE/files",

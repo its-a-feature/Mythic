@@ -90,7 +90,6 @@ function startwebsocket_updatedscreenshots(){
     ws.onmessage = function(event){
         if (event.data != ""){
             screencapture = JSON.parse(event.data);
-            console.log("got an update: " + screencapture);
             screencapture['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/screencaptures/" + screencapture['id'];
             for(var i = 0; i < screencapture_div.callbacks[screencapture['callback_id']]['screencaptures'].length; i++){
                 if(screencapture['id'] == screencapture_div.callbacks[screencapture['callback_id']]['screencaptures'][i]['id']){

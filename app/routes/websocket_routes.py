@@ -659,3 +659,96 @@ async def ws_payloads(request, ws, user):
                             return
     finally:
         pool.close()
+
+
+# notifications for new files in the current operation
+@apfell.websocket('/ws/files/current_operation')
+@inject_user()
+@protected()
+async def ws_payloads(request, ws, user):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newfilemeta";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    operation = await db_objects.get(Operation, name=user['current_operation'])
+                    files = await db_objects.execute(FileMeta.select().where( (FileMeta.operation == operation) & (FileMeta.deleted == False)))
+                    for f in files:
+                        if "/screenshots/" not in f.path:
+                            if "/{}/downloads/".format(user['current_operation']) not in f.path:
+                                # this means it's an upload, so supply additional information as well
+                                await ws.send(js.dumps(
+                                    {**f.to_json(), 'host': f.task.callback.host, 'operator': f.task.operator.username,
+                                     "upload": f.task.params}))
+                            else:
+                                await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'operator': f.task.operator.username}))
+                    await ws.send("")
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            blob = js.loads(msg.payload)
+                            if "/screenshots" not in blob['path']:
+                                try:
+                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, delete=False)
+                                    host = f.task.callback.host
+                                    if "/{}/downloads/".format(user['current_operation']) not in f.path:
+                                        # this means it's an upload, so supply additional information as well
+                                        await ws.send(js.dumps(
+                                            {**f.to_json(), 'host': host, 'operator': f.task.operator.username,
+                                             "upload": f.task.params}))
+                                    else:
+                                        await ws.send(js.dumps({**f.to_json(), 'host': host, 'operator': f.task.operator.username}))
+                                except Exception as e:
+                                    pass  # we got a file that's just not part of our current operation, so move on
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# notifications for new files in the current operation
+@apfell.websocket('/ws/updated_files/current_operation')
+@inject_user()
+@protected()
+async def ws_payloads(request, ws, user):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "updatedfilemeta";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    operation = await db_objects.get(Operation, name=user['current_operation'])
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            blob = js.loads(msg.payload)
+                            if "/screenshots" not in blob['path']:
+                                try:
+                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, delete=False)
+                                    host = f.task.callback.host
+                                    if "/{}/downloads/".format(user['current_operation']) not in f.path:
+                                        # this means it's an upload, so supply additional information as well
+                                        await ws.send(js.dumps(
+                                            {**f.to_json(), 'host': host, 'operator': f.task.operator.username,
+                                             "upload": f.task.params}))
+                                    else:
+                                        await ws.send(js.dumps({**f.to_json(), 'host': host, 'operator': f.task.operator.username}))
+                                except Exception as e:
+                                    pass  # got an update for a file not in this operation
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(1)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
