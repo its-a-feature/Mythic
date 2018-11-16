@@ -9,6 +9,7 @@ import shutil
 import os
 import json as js
 import base64
+from app.routes.routes import create_default_c2_for_operation
 
 # this information is only valid for a single run of the server
 running_profiles = []  # will have dicts of process information
@@ -196,26 +197,18 @@ async def register_default_profile_operation(user_dict, operation_name):
     try:
         operator = await db_objects.get(Operator, username=user_dict['username'])
         operation = await db_objects.get(Operation, name=operation_name)
-        profile = await db_objects.create(C2Profile, name='default', description='Default RESTful HTTP(S)', operator=operator,
-                                          operation=operation)
-        c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
-                                ('callback port', 'callback_port', '80'),
-                                ('callback interval (in seconds)', 'callback_interval', '10')]
-        for name, key, hint in c2profile_parameters:
-            await db_objects.get_or_create(C2ProfileParameters, c2_profile=profile, name=name, key=key, hint=hint)
         #TODO make this dynamic instead of manual, but it won't change often
-        payload_types = ['apfell-jxa']
-        for t in payload_types:
-            payload_type = await db_objects.get(PayloadType, ptype=t.strip())
-            await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+        payload_type = await db_objects.get(PayloadType, ptype="apfell-jxa")
         # now that we registered everything, copy the default code to the new operation directory
         # we will recursively copy all of the default c2 profiles over in case there's more than one in the future
-        if os.path.exists("./app/c2_profiles/{}/default".format(operation_name)):
-            shutil.rmtree("./app/c2_profiles/{}/default".format(operation_name))
-        shutil.copytree("./app/c2_profiles/default/default", "./app/c2_profiles/{}/default".format(operation_name))
-        profile_json = profile.to_json()
+        profiles = await create_default_c2_for_operation(operation, operator, [payload_type])
+        for p in profiles:
+            if os.path.exists("./app/c2_profiles/{}/{}".format(operation_name, p.name)):
+                shutil.rmtree("./app/c2_profiles/{}/{}".format(operation_name, p.name))
+            shutil.copytree("./app/c2_profiles/default/{}".format(p.name),
+                            "./app/c2_profiles/{}/{}".format(operation_name, p.name))
         status = {'status': 'success'}
-        return{**status, **profile_json}
+        return{**status}
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': str(e)}
