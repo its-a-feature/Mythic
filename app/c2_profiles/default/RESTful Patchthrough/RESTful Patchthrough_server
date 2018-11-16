@@ -20,7 +20,7 @@ class MyHandler(BaseHTTPRequestHandler):
             r'/download.php\?file=(\d+)': {'url': 'http://localhost/api/v1.0/files/{}'}
         }
         for path in paths:
-            route = re.fullmatch(path, self.path)
+            route = re.match(path, self.path)
             if route is not None:
                 self.respond(paths[path], route.group(1))
                 found_path = True
@@ -43,7 +43,7 @@ class MyHandler(BaseHTTPRequestHandler):
                  r'/login': {'url': 'http://localhost/api/v1.0/callbacks/'}
                  }
         for path in paths:
-            route = re.fullmatch(path, self.path)
+            route = re.match(path, self.path)
             if route is not None:
                 found_path = True
                 if len(route.groups()) >= 1:

