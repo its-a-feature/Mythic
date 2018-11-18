@@ -625,7 +625,7 @@ class Credential(p.Model):
     type = p.CharField(null=False)  # what kind of credential is it? [hash, password, certificate, etc]
     # if you know the task, you know who, what, where, when, etc that caused this thing to exist
     # task can be null though which means it was manually entered
-    task = p.ForeignKeyField(Task)  # what task caused this credential to be here?
+    task = p.ForeignKeyField(Task, null=True)  # what task caused this credential to be here?
     user = p.CharField(null=False)  # whose credential is this
     domain = p.CharField()  # which domain does this credential apply?
     operation = p.ForeignKeyField(Operation)  # which operation does this credential belong to?
@@ -642,10 +642,13 @@ class Credential(p.Model):
         for k in self._data.keys():
             try:
                 if k == 'task':
-                    r[k] = getattr(self, k).id
-                    r['task_command'] = getattr(self, k).command.cmd
+                    if getattr(self, k) != "null":
+                        r[k] = getattr(self, k).id
+                        r['task_command'] = getattr(self, k).command.cmd
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'operator':
+                    r[k] = getattr(self, k).username
                 else:
                     r[k] = getattr(self, k)
             except:

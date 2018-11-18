@@ -120,6 +120,20 @@ async def files(request, user):
     return response.html(content)
 
 
+@apfell.route("/credentials", methods=['GET'])
+@inject_user()
+@protected()
+async def credentials(request, user):
+    template = env.get_template('credentials.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'])
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'])
+    return response.html(content)
+
+
 # add links to these routes at the bottom
 links['callbacks'] = apfell.url_for('callbacks')
 links['database_management'] = apfell.url_for('db_management')
@@ -130,4 +144,5 @@ links['operations_management'] = apfell.url_for('operations_management')
 links['screencaptures'] = apfell.url_for('screencaptures')
 links['keylogs'] = apfell.url_for('keylogs')
 links['files'] = apfell.url_for('files')
+links['credentials'] = apfell.url_for('credentials')
 

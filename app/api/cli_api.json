@@ -1283,6 +1283,56 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Credential",
+      "api": [
+        {
+          "GET": "API_BASE/credentials/current_operation",
+          "explanation": "Get all of the current credential objects for the current operation",
+          "cli": "curl http://localhostAPI_BASE/credentials/current_operation",
+          "output": "{\"status\": \"success\", \"credentials\": []}"
+        },
+        {
+          "POST": "API_BASE/credentials",
+          "explanation": "Register a new credential in the system for the current operation. This can be manually entered or automatically parsed out as part of future commands",
+          "cli": "curl -X POST -d '{}' http://localhostAPI_BASE/credentials",
+          "output": "{\"status\": \"success\", }",
+          "parameters": [
+            {
+              "name": "type",
+              "description": "The type of credential this is, can be: plaintext, hash, key, or certificate right now.",
+              "requirements": "This is a required parameter and should be one of a strict set of options: plaintext, hash, key, or certificate"
+            },
+            {
+              "name": "task",
+              "description": "This is the ID number of the task that caused us to get this credential",
+              "requirements": "This is an optional parameter since there's no task associated with putting something in manually"
+            },
+            {
+              "name": "user",
+              "description": "This is the user associated with the stolen credential",
+              "requirements": "This is a required parameter and can be a user or computer account"
+            },
+            {
+              "name": "domain",
+              "description": "This is the domain associated with the stolen credential",
+              "requirements": "This is a required parameter and is just a string of the domain associated with the credential"
+            },
+            {
+              "name": "credential",
+              "description": "This is the actual credential that was stolen",
+              "requirements": "This is a required field"
+            }
+          ]
+        },
+        {
+          "DELETE": "API_BASE/credentials/(id:INTEGER)",
+          "explanation": "This removes the identified credential from the database. You can only remove credentials from your current operation",
+          "cli": "curl -X DELETE http://localhostAPI_BASE/credentials/2",
+          "output": "{\"status\": \"success\", }"
+        }
+      ]
     }
   ]
 }

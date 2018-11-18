@@ -2,7 +2,7 @@ from app import apfell, db_objects
 import aiopg
 import json as js
 import asyncio
-from app.database_models.model import Operator, Callback, Task, Response, Payload, PayloadType, C2Profile, PayloadTypeC2Profile, Operation, OperatorOperation, Command, FileMeta
+from app.database_models.model import Operator, Callback, Task, Response, Payload, PayloadType, C2Profile, PayloadTypeC2Profile, Operation, Credential, Command, FileMeta
 from sanic_jwt.decorators import protected, inject_user
 
 
@@ -47,7 +47,7 @@ async def ws_tasks(request, ws):
 @apfell.websocket('/ws/tasks/current_operation')
 @inject_user()
 @protected()
-async def ws_tasks(request, ws, user):
+async def ws_tasks_current_operation(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -88,7 +88,7 @@ async def ws_tasks(request, ws, user):
 # notifications for task updates
 @apfell.websocket('/ws/responses')
 @protected()
-async def ws_task_updates(request, ws):
+async def ws_responses(request, ws):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -124,7 +124,7 @@ async def ws_task_updates(request, ws):
 @apfell.websocket('/ws/responses/current_operation')
 @inject_user()
 @protected()
-async def ws_task_updates(request, ws, user):
+async def ws_responses_current_operation(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -198,7 +198,7 @@ async def ws_callbacks(request, ws):
 @apfell.websocket('/ws/callbacks/current_operation')
 @inject_user()
 @protected()
-async def ws_callbacks(request, ws, user):
+async def ws_callbacks_current_operation(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -236,7 +236,7 @@ async def ws_callbacks(request, ws, user):
 # notifications for updated callbacks
 @apfell.websocket('/ws/updatedcallbacks')
 @protected()
-async def ws_callbacks(request, ws):
+async def ws_updated_callbacks(request, ws):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -266,7 +266,7 @@ async def ws_callbacks(request, ws):
 @apfell.websocket('/ws/updatedcallbacks/current_operation')
 @inject_user()
 @protected()
-async def ws_callbacks(request, ws, user):
+async def ws_callbacks_updated_current_operation(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -331,7 +331,7 @@ async def ws_payloads(request, ws):
 @apfell.websocket('/ws/payloads/current_operation')
 @inject_user()
 @protected()
-async def ws_payloads(request, ws, user):
+async def ws_payloads_current_operation(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -368,7 +368,7 @@ async def ws_payloads(request, ws, user):
 @apfell.websocket('/ws/c2profiles')
 @inject_user()
 @protected()
-async def ws_payloads(request, ws, user):
+async def ws_c2profiles(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -401,7 +401,7 @@ async def ws_payloads(request, ws, user):
 @apfell.websocket('/ws/c2profiles/current_operation')
 @inject_user()
 @protected()
-async def ws_payloads(request, ws, user):
+async def ws_c2profile_current_operation(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -468,7 +468,7 @@ async def ws_payloadtypec2profile(request, ws):
 # notifications for new operators
 @apfell.websocket('/ws/operators')
 @protected()
-async def ws_payloads(request, ws):
+async def ws_operators(request, ws):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -500,7 +500,7 @@ async def ws_payloads(request, ws):
 # notifications for updated operators
 @apfell.websocket('/ws/updatedoperators')
 @protected()
-async def ws_callbacks(request, ws):
+async def ws_updated_operators(request, ws):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -563,7 +563,7 @@ async def ws_payloadtypes(request, ws):
 # notifications for new commands
 @apfell.websocket('/ws/commands')
 @protected()
-async def ws_payloads(request, ws):
+async def ws_commands(request, ws):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -597,7 +597,7 @@ async def ws_payloads(request, ws):
 @apfell.websocket('/ws/screenshots')
 @inject_user()
 @protected()
-async def ws_payloads(request, ws, user):
+async def ws_screenshots(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -634,7 +634,7 @@ async def ws_payloads(request, ws, user):
 @apfell.websocket('/ws/updated_screenshots')
 @inject_user()
 @protected()
-async def ws_payloads(request, ws, user):
+async def ws_updated_screenshots(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -665,7 +665,7 @@ async def ws_payloads(request, ws, user):
 @apfell.websocket('/ws/files/current_operation')
 @inject_user()
 @protected()
-async def ws_payloads(request, ws, user):
+async def ws_files_current_operation(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -691,7 +691,7 @@ async def ws_payloads(request, ws, user):
                             blob = js.loads(msg.payload)
                             if "/screenshots" not in blob['path']:
                                 try:
-                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, delete=False)
+                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, deleted=False)
                                     host = f.task.callback.host
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                         # this means it's an upload, so supply additional information as well
@@ -717,7 +717,7 @@ async def ws_payloads(request, ws, user):
 @apfell.websocket('/ws/updated_files/current_operation')
 @inject_user()
 @protected()
-async def ws_payloads(request, ws, user):
+async def ws_updated_files(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -732,7 +732,7 @@ async def ws_payloads(request, ws, user):
                             blob = js.loads(msg.payload)
                             if "/screenshots" not in blob['path']:
                                 try:
-                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, delete=False)
+                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, deleted=False)
                                     host = f.task.callback.host
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                         # this means it's an upload, so supply additional information as well
@@ -745,6 +745,44 @@ async def ws_payloads(request, ws, user):
                                     pass  # got an update for a file not in this operation
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(1)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# ------------- CREDENTIAL ---------------------------
+# notifications for new credentials
+@apfell.websocket('/ws/credentials/current_operation')
+@inject_user()
+@protected()
+async def ws_credentials_current_operation(request, ws, user):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newcredential";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    operation = await db_objects.get(Operation, name=user['current_operation'])
+                    creds = await db_objects.execute(Credential.select().where(Credential.operation == operation))
+                    for c in creds:
+                        await ws.send(js.dumps({**c.to_json()}))
+                    await ws.send("")
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            blob = js.loads(msg.payload)
+                            try:
+                                c = await db_objects.get(Credential, id=blob['id'], operation=operation)
+                                await ws.send(js.dumps({**c.to_json()}))
+                            except Exception as e:
+                                pass  # we got a file that's just not part of our current operation, so move on
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
