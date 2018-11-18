@@ -47,12 +47,12 @@ function c2_profile_parameters_callback(response){
     var data = JSON.parse(response);
     if(data['status'] == 'success'){
         // populate the table values
-        profile_parameters_table.c2_profile_parameters.lenth = 0; //clear all the fields first
+        profile_parameters_table.c2_profile_parameters = []; //clear all the fields first
         for(var i = 0; i < data['c2profileparameters'].length; i++){
             profile_parameters_table.c2_profile_parameters.push(data['c2profileparameters'][i]);
         }
         // we also need to populate the dropdown for the payload_type side
-        profile_parameters_table.payload_parameters.length = 0;
+        profile_parameters_table.payload_parameters = [];
         var c2_profile_val = $('#c2_profile').val();
         var payload_type_options = '<option value="Select One...">Select One...</option>';
         for(var i = 0; i < all_c2_data[c2_profile_val]['ptype'].length; i++){
