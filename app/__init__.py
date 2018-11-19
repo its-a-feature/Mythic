@@ -34,6 +34,7 @@ apfell.config['DB_NAME'] = db_name
 apfell.config['DB_POOL_CONNECT_STRING'] = 'dbname=' + apfell.config['DB_NAME'] + ' user=' + apfell.config['DB_USER'] + ' password=' + apfell.config['DB_PASS']
 apfell.config['API_VERSION'] = "1.0"
 apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
+apfell.config['REQUEST_MAX_SIZE'] = 100000000
 
 links = {'server_ip': apfell.config['SERVER_IP_ADDRESS'],
          'server_port': apfell.config['SERVER_PORT'],
@@ -71,5 +72,6 @@ Initialize(apfell,
            path_to_verify='/verify',
            path_to_refresh='/refresh',
            refresh_token_enabled=True,
+           expiration_delta=14400, # initial tokens are valid for 4 hours
            store_refresh_token=app.routes.authentication.store_refresh_token,
            retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token)
