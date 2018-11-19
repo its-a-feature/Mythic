@@ -236,6 +236,26 @@
           "help_cmd": "screencapture [bar]",
           "needs_admin": "false",
           "parameters": []
+        },
+        {
+          "cmd": "plist",
+          "description": "Read plists and their associated attributes for attempts to privilege escalate",
+          "help_cmd": "read one file: plist {\"type\": \"read\", \"filename\": \"full_path\"}, read all plists: plist {\"type\": [\"readLaunchAgents\" | \"readLaunchDaemons\"]}",
+          "needs_admin": "false",
+          "parameters": [
+            {
+              "name": "type",
+              "isString": "true",
+              "hint": "readLaunchAgents | readLaunchDaemons | read",
+              "required": "true"
+            },
+            {
+              "name": "filename",
+              "isString": "true",
+              "hint": "full filename path if type is just read",
+              "required": "false"
+            }
+          ]
         }
       ]
     }
