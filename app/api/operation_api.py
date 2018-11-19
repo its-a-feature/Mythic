@@ -4,6 +4,7 @@ from app.database_models.model import Operator, Operation, OperatorOperation
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import protected, inject_user
 from app.api.c2profiles_api import register_default_profile_operation
+import os
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
@@ -86,6 +87,8 @@ async def create_operation(request, user):
             # we need to make the default c2_profile for this operation
             default_status = await register_default_profile_operation(user, data['name'])
             if default_status['status'] == "success":
+                if not os.path.exists("./app/payloads/operations/{}".format(data['name'])):
+                    os.makedirs("./app/payloads/operations/{}".format(data['name']), exist_ok=True)
                 return json({'status': 'success', **operation.to_json(), 'members': data['members']})
             else:
                 return json(default_status)
