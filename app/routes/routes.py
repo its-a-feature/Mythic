@@ -11,6 +11,7 @@ from sanic_jwt import BaseEndpoint, utils, exceptions
 from sanic_jwt.decorators import protected, inject_user
 import json as js
 from typing import List
+from ipaddress import ip_address
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -206,6 +207,16 @@ async def logout(request):
 @apfell.exception(NotFound)
 async def handler_404(request, exception):
     return json({'error': 'Not Found'}, status=404)
+
+
+@apfell.middleware('request')
+async def check_ips(request):
+    if request.path == "/login" or request.path == "/register":
+        ip = ip_address(request.ip)
+        for block in apfell.config['WHITELISTED_IPS']:
+            if ip in block:
+                return
+        return json({'error': 'Not Found'}, status=404)
 
 
 @apfell.middleware('request')
