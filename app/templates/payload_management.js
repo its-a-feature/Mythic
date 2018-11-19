@@ -134,7 +134,7 @@ var payloadtypes_table = new Vue({
 
                 data['needs_admin'] = $('#commandAddNeedsAdmin').is(":checked");
                 if(file.files.length > 0){
-                    var filedata = file.files[0];
+                    var filedata = file.files;
                     uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/", add_command_callback, filedata, data, "POST");
                     file.value = file.defaultValue;
                 }

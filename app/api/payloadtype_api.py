@@ -67,14 +67,14 @@ async def create_payloadtype(request, user):
                                                   wrapper=data['wrapper'])
         os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
         if request.files:
-            code = request.files['upload_file'][0].body.decode('UTF-8')
-            code_file = open("./app/payloads/{}/{}".format(payloadtype.ptype, request.files['upload_file'][0].name), "w")
+            code = request.files['upload_file'][0].body
+            code_file = open("./app/payloads/{}/{}".format(payloadtype.ptype, request.files['upload_file'][0].name), "wb")
             code_file.write(code)
             code_file.close()
             for i in range(1, int(request.form.get('file_length'))):
-                code = request.files['upload_file_' + str(i)][0].body.decode('UTF-8')
+                code = request.files['upload_file_' + str(i)][0].body
                 code_file = open("./app/payloads/{}/{}".format(payloadtype.ptype, request.files['upload_file_' + str(i)][0].name),
-                                 "w")
+                                 "wb")
                 code_file.write(code)
                 code_file.close()
     except Exception as e:

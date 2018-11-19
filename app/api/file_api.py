@@ -50,6 +50,8 @@ async def get_one_file(request, id):
             file_meta.deleted = True
             await db_objects.update(file_meta)
         return raw(encoded_data)
+    elif file_meta.deleted:
+        return json({'status': 'error', 'error': 'temporary file deleted'})
     else:
         return json({'status': 'error', 'error': 'file not done downloading'})
 

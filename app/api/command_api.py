@@ -75,12 +75,16 @@ async def get_command_code(request, user, id, resp_type):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get command'})
-    if resp_type == "file":
-        return file("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd))
-    else:
-        rsp_file = open("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd), 'rb').read()
-        encoded = base64.b64encode(rsp_file).decode("UTF-8")
-        return text(encoded)
+    try:
+        if resp_type == "file":
+            return file("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd))
+        else:
+            rsp_file = open("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd), 'rb').read()
+            encoded = base64.b64encode(rsp_file).decode("UTF-8")
+            return text(encoded)
+    except Exception as e:
+        print(e)
+        return text("")
 
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>", methods=['PUT'])
@@ -98,8 +102,8 @@ async def update_command(request, user, id):
         data = request.json
     resp = await update_command_func(data, user, command)
     if request.files and resp['status'] == "success":
-        cmd_code = request.files['upload_file'][0].body.decode('UTF-8')
-        cmd_file = open("./app/payloads/{}/{}".format(resp['payload_type'], resp['cmd']), "w")
+        cmd_code = request.files['upload_file'][0].body
+        cmd_file = open("./app/payloads/{}/{}".format(resp['payload_type'], resp['cmd']), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
@@ -137,8 +141,8 @@ async def create_command(request, user):
         data = request.json
     resp = await create_command_func(data, user)
     if request.files and resp['status'] == "success":
-        cmd_code = request.files['upload_file'][0].body.decode('UTF-8')
-        cmd_file = open("./app/payloads/{}/{}".format(resp['payload_type'], resp['cmd']), "w")
+        cmd_code = request.files['upload_file'][0].body
+        cmd_file = open("./app/payloads/{}/{}".format(resp['payload_type'], resp['cmd']), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
