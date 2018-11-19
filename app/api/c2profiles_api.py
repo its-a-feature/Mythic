@@ -352,7 +352,7 @@ async def start_c2profile(request, info, user):
         return json({'status': 'success', **profile.to_json()})
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'failed to start profile.'})
+        return json({'status': 'error', 'error': 'failed to start profile. ' + str(e)})
 
 
 # Start running a profile's server side code
