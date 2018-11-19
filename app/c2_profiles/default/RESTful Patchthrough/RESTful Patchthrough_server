@@ -1,7 +1,8 @@
-#! /usr/bin/python3
+#!/usr/bin/env python3
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib.request
 import re
+import ssl
 from pathlib import Path
 
 HOST_NAME = '0.0.0.0'
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     certfile = Path("cert.pem")
     # optionally server this up via SSL if the key.pem and cert.pem files exist in the same folder
     if keyfile.is_file() and certfile.is_file():
-        httpd.socket = ssl.wrap_socket (httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
+        httpd.socket = ssl.wrap_socket(httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
