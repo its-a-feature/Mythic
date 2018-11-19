@@ -1,0 +1,11 @@
+exports.ls = function(task, command, params){
+    ObjC.import('Foundation');
+    var fileManager = $.NSFileManager.defaultManager;
+    var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(params), $()));
+    if(attributes != undefined){
+        return JSON.stringify(attributes, null, 2);
+    }
+    return "Failed to get attributes of file";
+};
+
+

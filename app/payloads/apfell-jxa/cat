@@ -1,0 +1,4 @@
+exports.cat = function(task, command, params){
+    var contents = $.NSData.dataWithContentsOfFile($(params));
+    return contents;
+};

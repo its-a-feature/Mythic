@@ -256,6 +256,20 @@
               "required": "false"
             }
           ]
+        },
+        {
+          "cmd": "cat",
+          "description": "Read the contents of a file and display it to the user",
+          "help_cmd": "cat /path/to/file",
+          "needs_admin": "false",
+          "parameters": []
+        },
+        {
+          "cmd": "ls",
+          "description": "Get attributes about a file and display it to the user",
+          "help_cmd": "ls /path/to/file",
+          "needs_admin": "false",
+          "parameters": []
         }
       ]
     }
