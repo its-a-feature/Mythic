@@ -152,7 +152,7 @@ async def download_file_to_disk_func(data):
             file_meta.complete = True
             # if we ended up downloading a file from mac's screencapture utility, we need to fix it a bit
             f = open(file_meta.path, 'rb').read(8)
-            if f == "'PNGf'($":
+            if f == b"'PNGf'($":
                 f = open(file_meta.path, 'rb').read()
                 new_file = open(file_meta.path, 'wb')
                 new_file.write(unhexlify(f[8:-2]))
