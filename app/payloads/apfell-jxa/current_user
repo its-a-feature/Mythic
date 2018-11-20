@@ -2,7 +2,7 @@ exports.current_user = function(task, command, params){
     var method = "api";
     if(params.length > 0){
         data = JSON.parse(params);
-        if(data.hasOwnProperty('method'){
+        if(data.hasOwnProperty('method') && data['method'] != ""){
             method = data['method'];
         }
     }
