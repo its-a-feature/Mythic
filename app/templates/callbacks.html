@@ -70,11 +70,11 @@
         </li>
     </ul>
     <!-- Now actually deal with the content in each tab-->
-    <div class="tab-content" id="bottom-tabs-content" style="overflow:auto;resize:vertical">
+    <div class="tab-content" id="bottom-tabs-content" style="overflow:scroll;resize:vertical;height:600px">
         <!-- REPEAT for each task for the specific callback that's selected -->
         <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.tasks" v-bind:id="'tasks' + metadata.id" >
-            <div  v-bind:id="'tasks' + metadata.id + 'data'" >
-                <span v-for="task in metadata.data" :key="task.id" v-bind:id="'task' + task.id">
+            <div v-bind:id="'tasks' + metadata.id + 'data'" >
+                <div class="well well-sm" v-for="task in metadata.data" :key="task.id" v-bind:id="'task' + task.id">
                     <font color="green">([[task.operator]])</font>&nbsp;
                     <font color="red">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</font>
                     [[task.command]]&nbsp;[[task.params]]<br>
@@ -83,7 +83,7 @@
                         <font color="black">[[rsp.response]]</font><br>
                     </span>
                     <br>
-                </span>
+                </div>
             </div>
         </div>
         <!-- END REPEAT-->

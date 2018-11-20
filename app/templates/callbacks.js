@@ -366,7 +366,7 @@ function startwebsocket_updatedtasks(){
                     Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']], 'response', {});
                 }
                 //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
-                var updated_response = rsp['response'].replace(/\\n|\r[^\n]/g, '\n');
+                var updated_response = rsp['response'].replace(/\\n|\r/g, '\n');
                 // all_tasks->callback->task->response->id = timestamp, responsevalue
                 Vue.set(all_tasks[rsp['task']['callback']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': updated_response});
             }
