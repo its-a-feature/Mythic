@@ -1,7 +1,10 @@
 exports.current_user = function(task, command, params){
-    var method = "jxa";
+    var method = "api";
     if(params.length > 0){
-        method = params;
+        data = JSON.parse(params);
+        if(data.hasOwnProperty('method'){
+            method = data['method'];
+        }
     }
 	if(method == "jxa"){
 		var user = Application("System Events").currentUser;
@@ -10,6 +13,12 @@ exports.current_user = function(task, command, params){
 		"\\nhomeDirectory: " + user.homeDirectory() +
 		"\\npicturePath: " + user.picturePath();
 		return info;
+	}
+	else if(method == "api"){
+	    var output = "\\nUserName: " + $.NSUserName().js +
+	    "\\nFull UserName: " + $.NSFullUserName().js +
+	    "\\nHome Directory: " + $.NSHomeDirectory().js;
+	    return output;
 	}
 	else{
 	    return "method not supported";

@@ -100,23 +100,60 @@
         {
           "cmd": "list_apps",
           "description": "This uses JXA to list the currently running processes on the system and provides some information about them. To get a lot of information, use the [verbose] optional parameter.",
-          "help_cmd": "list_apps [verbose]",
+          "help_cmd": "list_apps with optional {\"method\": api, \"verbose\": false}",
           "needs_admin": "false",
-          "parameters": []
+          "parameters": [
+            {
+              "name": "method",
+              "isString": "true",
+              "hint": "default is api, can specify jxa",
+              "required": "false"
+            },
+            {
+              "name": "verbose",
+              "isString": "false",
+              "required": "false"
+            }
+          ]
         },
         {
           "cmd": "list_users",
-          "description": "This uses JXA to list the non-service user accounts on the system. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods. Right now this defaults to \"jxa\".",
-          "help_cmd": "list_users [method]",
+          "description": "This uses JXA to list the non-service user accounts on the system. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods. Right now this defaults to \"api\". You can specify a GID to look at the users of a certain group or you can specify \"groups\" to be true and enumerate users by groups",
+          "help_cmd": "list_users with optional: {\"method\": api, \"gid\": 0} or {\"groups\": true}",
           "needs_admin": "false",
-          "parameters": []
+          "parameters": [
+            {
+              "name": "method",
+              "isString": "true",
+              "hint": "default is api, can specify jxa",
+              "required": "false"
+            },
+            {
+              "name": "gid",
+              "isString": "true",
+              "hint": "GID for a group to enumerate",
+              "required": "false"
+            },
+            {
+              "name": "groups",
+              "isString": "false",
+              "required": "false"
+            }
+          ]
         },
         {
           "cmd": "current_user",
           "description": "This uses JXA to list information about the current user. In the future you can specify a [method] to do this via the ObjectiveC bridge or other methods. Right now this defaults to \"jxa\".",
-          "help_cmd": "current_user [method]",
+          "help_cmd": "current_user with optional {\"method\": \"api\"}",
           "needs_admin": "false",
-          "parameters": []
+          "parameters": [
+            {
+              "name": "method",
+              "isString": "true",
+              "required": "false",
+              "hint": "default is api, can specify jxa"
+            }
+          ]
         },
         {
           "cmd": "security_info",
@@ -270,6 +307,26 @@
           "help_cmd": "ls /path/to/file",
           "needs_admin": "false",
           "parameters": []
+        },
+        {
+          "cmd": "test_password",
+          "description": "Tests a password against a user to see if it's valid",
+          "help_cmd": "test_password with no args uses blank password and current user. or, test_password {\"username\": \"bob\", \"password\": \"bob\"}",
+          "needs_admin": "false",
+          "parameters": [
+            {
+              "name": "username",
+              "isString": "true",
+              "hint": "user's POSIX name",
+              "required": "false"
+            },
+            {
+              "name": "password",
+              "isString": "true",
+              "hint": "user's password",
+              "required": "false"
+            }
+          ]
         }
       ]
     }
