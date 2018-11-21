@@ -206,8 +206,8 @@
         },
         {
           "cmd": "spawn",
-          "description": "This pulls down the payload specified by {payload UUID} and uses the shell_api to execute it in a sub-process. I'll look into spawning it in such a way that it doesn't end up being a subprocess, but you can still interact with each of them at the same time.",
-          "help_cmd": "spawn shell_api oneliner apfell-jxa {payload UUID}",
+          "description": "This pulls down the payload specified by {url} and uses the shell_api to execute it in a background process. Right now this requires the \"shell_api\" command to also be loaded",
+          "help_cmd": "spawn shell_api oneliner apfell-jxa {url}",
           "needs_admin": "false",
           "parameters": []
         },
