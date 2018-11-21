@@ -1,5 +1,6 @@
 exports.plist = function(task, command, params){
 	config = JSON.parse(params);
+	ObjC.import('Foundation');
 	try{
 		if(config['type'] == "read"){
 			var output = [];
@@ -14,36 +15,39 @@ exports.plist = function(task, command, params){
 			var error = Ref();
 			var path = fileManager.homeDirectoryForCurrentUser.fileSystemRepresentation + "/Library/LaunchAgents/";
 			var files = fileManager.contentsOfDirectoryAtPathError($(path), error);
-			if(error[0].js == $().js){
-				// no errors, so now iterate over the files
-				files = ObjC.deepUnwrap(files);
-				output["localLaunchAgents"] = {};
-				for(i in files){
-					var prefs = $.NSMutableDictionary.alloc.initWithContentsOfFile(path + files[i]);
-					var contents = ObjC.deepUnwrap(prefs);
-					output["localLaunchAgents"][files[i]] = {};
-					output["localLaunchAgents"][files[i]]['contents'] = contents;
-					if(contents != undefined && contents.hasOwnProperty("ProgramArguments")){
-						//now try to get the attributes of the program this plist points to since it might have attribute issues for abuse
-						var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(contents['ProgramArguments'][0]), $()));
-						if(attributes != undefined){
-							var trimmed_attributes = {};
-							trimmed_attributes['NSFileOwnerAccountID'] = attributes['NSFileOwnerAccountID'];
-							trimmed_attributes['NSFileExtensionHidden'] = attributes['NSFileExtensionHidden'];
-							trimmed_attributes['NSFileGroupOwnerAccountID'] = attributes['NSFileGroupOwnerAccountID'];
-							trimmed_attributes['NSFileOwnerAccountName'] = attributes['NSFileOwnerAccountName'];
-							trimmed_attributes['NSFileCreationDate'] = attributes['NSFileCreationDate'];
-							trimmed_attributes['NSFilePosixPermissions'] = attributes['NSFilePosixPermissions'];
-							trimmed_attributes['NSFileGroupOwnerAccountName'] = attributes['NSFileGroupOwnerAccountName'];
-							trimmed_attributes['NSFileModificationDate'] = attributes['NSFileModificationDate'];
-							output["localLaunchAgents"][files[i]]['attributes'] = trimmed_attributes;
-						}
-					}
-				}
-			}
+			try{
+                // no errors, so now iterate over the files
+                files = ObjC.deepUnwrap(files);
+                console.log(files);
+                output["localLaunchAgents"] = {};
+                for(i in files){
+                    var prefs = $.NSMutableDictionary.alloc.initWithContentsOfFile(path + files[i]);
+                    var contents = ObjC.deepUnwrap(prefs);
+                    output["localLaunchAgents"][files[i]] = {};
+                    output["localLaunchAgents"][files[i]]['contents'] = contents;
+                    if(contents != undefined && contents.hasOwnProperty("ProgramArguments")){
+                        //now try to get the attributes of the program this plist points to since it might have attribute issues for abuse
+                        var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(contents['ProgramArguments'][0]), $()));
+                        if(attributes != undefined){
+                            var trimmed_attributes = {};
+                            trimmed_attributes['NSFileOwnerAccountID'] = attributes['NSFileOwnerAccountID'];
+                            trimmed_attributes['NSFileExtensionHidden'] = attributes['NSFileExtensionHidden'];
+                            trimmed_attributes['NSFileGroupOwnerAccountID'] = attributes['NSFileGroupOwnerAccountID'];
+                            trimmed_attributes['NSFileOwnerAccountName'] = attributes['NSFileOwnerAccountName'];
+                            trimmed_attributes['NSFileCreationDate'] = attributes['NSFileCreationDate'];
+                            trimmed_attributes['NSFilePosixPermissions'] = attributes['NSFilePosixPermissions'];
+                            trimmed_attributes['NSFileGroupOwnerAccountName'] = attributes['NSFileGroupOwnerAccountName'];
+                            trimmed_attributes['NSFileModificationDate'] = attributes['NSFileModificationDate'];
+                            output["localLaunchAgents"][files[i]]['attributes'] = trimmed_attributes;
+                        }
+                    }
+                }
+            }catch(error){
+                return "Error trying to read ~/Library/LaunchAgents: " +  error.toString();
+            }
 			var path = "/Library/LaunchAgents/";
 			var files = fileManager.contentsOfDirectoryAtPathError($(path), error);
-			if(error[0].js == $().js){
+			try{
 				// no errors, so now iterate over the files
 				files = ObjC.deepUnwrap(files);
 				output["systemLaunchAgents"] = {};
@@ -69,6 +73,9 @@ exports.plist = function(task, command, params){
 					}
 				}
 			}
+			catch(error){
+			    return "Error trying to read /Library/LaunchAgents: " + error.toString();
+			}
 		}
 		else if(config['type'] == "readLaunchDaemons"){
 			var fileManager = $.NSFileManager.defaultManager;
@@ -76,7 +83,7 @@ exports.plist = function(task, command, params){
 			var error = Ref();
 			output = {};
 			var files = fileManager.contentsOfDirectoryAtPathError($(path), error);
-			if(error[0].js == $().js){
+			try{
 				// no errors, so now iterate over the files
 				files = ObjC.deepUnwrap(files);
 				output["systemLaunchDaemons"] = {};
@@ -101,6 +108,9 @@ exports.plist = function(task, command, params){
 						}
 					}
 				}
+			}
+			catch(error){
+			    return "Error trying to read launch daemons: " + error.toString();
 			}
 		}
 		return JSON.stringify(output, null, 2);

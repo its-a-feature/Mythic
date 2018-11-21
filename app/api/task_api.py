@@ -105,6 +105,8 @@ async def add_task_to_callback_func(data, cid, user):
             # we need to get the file into the database before we can signal for the callback to pull it down
             # this will have {path to local file} {path to remote file} in the data['params'] section
             upload_params = await breakout_quoted_params(data['params'])
+            if len(upload_params) != 2:
+                return {'status': 'error', 'error': 'wrong number of parameters for upload', 'cmd': data['command'], 'params': data['params']}
             file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
                                                 path=upload_params[0], operation=cb.operation)
             data['params'] = str(file_meta.id) + " " + upload_params[1]
@@ -166,7 +168,7 @@ async def add_task_to_callback_func(data, cid, user):
                     params = {"cmds": data['params'], "file_id": file_meta.id}
                     task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=params)
                 else:
-                    return {'status': 'error', 'error': 'failed to get transforms for this payload type'}
+                    return {'status': 'error', 'error': 'failed to get transforms for this payload type', 'cmd': data['command'], 'params': data['params']}
             except Exception as e:
                 print(e)
                 return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params']}

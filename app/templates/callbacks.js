@@ -361,6 +361,9 @@ function startwebsocket_updatedtasks(){
             //console.log(rsp);
             if(rsp['task']['callback'] in all_tasks){
                 //if we have that callback id in our all_tasks list
+                if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]){
+                    Vue.set(all_tasks[ rsp['task']['callback'] ], rsp['task']['id'], {});
+                }
                 if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]['response']){
                     //but we haven't received any responses for the specified task_id
                     Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']], 'response', {});

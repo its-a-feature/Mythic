@@ -19,7 +19,7 @@ exports.terminals_read = function(task, command, params){
 			"\\nFrontmost: " + windows[i].frontmost();
 			var all_tabs = [];
 			// store the windows information in id_win in all_data
-			all_data[i + "_win"] = win_info;
+			all_data["window_" + i] = win_info;
 			for(var j = 0; j < windows[i].tabs.length; j++){
 				var tab_info = "Win/Tab: " + i + "/" + j +
 				"\\nBusy: " + windows[i].tabs[j].busy() +
@@ -44,5 +44,5 @@ exports.terminals_read = function(task, command, params){
 	}catch(error){
 		all_data['error'] = error.toString();
 	}
-	return JSON.stringify(all_data);
+	return JSON.stringify(all_data, null, 2);
 };

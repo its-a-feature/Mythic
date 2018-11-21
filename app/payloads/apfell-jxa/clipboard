@@ -1,6 +1,6 @@
 exports.clipboard = function(task, command, params){
     var response;
-    if(params){
+    if(params != undefined && params != ""){
         // Try setting the clipboard to whatever is in params
         try{
             currentApp.setTheClipboardTo(params);
@@ -14,7 +14,11 @@ exports.clipboard = function(task, command, params){
     else{
         //try just reading the clipboard data and returning it
         try{
-            return currentApp.theClipboard();
+            var output = currentApp.theClipboard();
+            if(output == "" || output == undefined){
+                output = "Nothing on the clipboard";
+            }
+            return output;
         }
         catch(error){
             return error.toString();
