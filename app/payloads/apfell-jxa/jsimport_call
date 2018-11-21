@@ -1,0 +1,12 @@
+exports.jsimport_call = function(task, command, params){
+    try{
+        var output = eval(jsimport + params);
+        if(output == "" || output == undefined){
+            return "No command output";
+        }
+        return output;
+    }
+    catch(error){
+        return error.toString();
+    }
+}

@@ -1,0 +1,10 @@
+exports.jsimport = function(task,command,params){
+    try{
+        var script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(params)),$.NSUTF8StringEncoding));
+        jsimport = script;
+        return "imported the script";
+    }
+    catch(error){
+        return error.toString();
+    }
+};

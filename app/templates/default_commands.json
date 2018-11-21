@@ -327,6 +327,20 @@
               "required": "false"
             }
           ]
+        },
+        {
+          "cmd": "jsimport",
+          "description": "import a JS file into memory from a remote address. Only one can be imported at a time.",
+          "help_cmd": "jsimport https://domain.com/file/to/import",
+          "needs_admin": "false",
+          "parameters": []
+        },
+        {
+          "cmd": "jsimport_call",
+          "description": "call a function from within the JS file that was imported with \"jsimport\". This function call is appended to the end of the jsimport code and called via eval.",
+          "help_cmd": "jsimport_call Get_DomainUser({help=true});",
+          "needs_admin": "false",
+          "parameters": []
         }
       ]
     }

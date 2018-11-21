@@ -148,6 +148,8 @@ base64_encode = function(data){
     commands_string = commands_string + `
 //-------------COMMAND DECLARATIONS AND IMPLEMENTATIONS -----------------------
 `;
+    var jsimports = "";
+
     //console.log("about to load commands");
     var commands_dict = default_load(commands_string);
     //console.log("loaded commands");
