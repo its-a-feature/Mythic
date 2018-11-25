@@ -135,6 +135,9 @@ var task_data = new Vue({
                             alertBottom("info", ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
                             //alert(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
                         }
+                        else{
+                            alertBottom("warning", "unknown command to help with");
+                        }
                     }
                     else if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == command){
                         if(params.length == 0 && ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length != 0){
@@ -169,8 +172,12 @@ var task_data = new Vue({
                         }
 
                     }
+                    else{
+                        alertBottom("warning", "unknown command");
+                    }
                 }
             }
+
         },
         select_tab: function(metadata){
             task_data.input_field_placeholder['data'] = metadata.display;
@@ -205,10 +212,35 @@ var task_data = new Vue({
         },
         keylog_tab_close: function(metadata){
             meta[metadata.id]['keylogs'] = false;
+        },
+        cmd_history_up: function(placeholder_data){
+            var cid = this.input_field_placeholder['cid'];
+            meta[cid]['history_index'] -= 1;
+            if( meta[cid]['history_index'] < 0){
+                meta[cid]['history_index'] = 0;
+            }
+            var index = meta[cid]['history_index'];
+            this.input_field = meta[cid]['history'][index];
+
+        },
+        cmd_history_down: function(placeholder_data){
+            var cid = this.input_field_placeholder['cid'];
+            meta[cid]['history_index'] += 1;
+            if( meta[cid]['history_index'] >= meta[cid]['history'].length){
+                meta[cid]['history_index'] = meta[cid]['history'].length -1;
+            }
+            var index = meta[cid]['history_index'];
+            this.input_field = meta[cid]['history'][index];
         }
 
     },
-    delimiters: ['[[', ']]']
+    delimiters: ['[[', ']]'],
+    updated: function(){
+        this.$nextTick(function(){
+            //this is called after the DOM is updated via VUE
+            $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+        });
+    }
 });
 var command_params = [];
 var params_table = new Vue({
@@ -283,7 +315,9 @@ function startwebsocket_callbacks(){
                                                'data':task_data.tasks,
                                                'display': '',
                                                'screencaptures': false,
-                                               'bg_color': color});
+                                               'bg_color': color,
+                                               'history': [],
+                                               'history_index': 0});
             // check to see if we have this payload type in our list, if not, request the commands for it
             if( !ptype_cmd_params.hasOwnProperty(cb['payload_type'])){
                 ptype_cmd_params[cb['payload_type']] = [];
@@ -339,6 +373,8 @@ function startwebsocket_newtasks(){
                 Vue.set(all_tasks, tsk['callback'], {}); //create an empty dictionary
             }
             Vue.set(all_tasks[tsk['callback']], tsk['id'], tsk);
+            task_data.meta[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['params']); // set up our cmd history
+            task_data.meta[tsk['callback']]['history_index'] = task_data.meta[tsk['callback']]['history'].length;
             // in case this is the first task and we're waiting for it to show up, reset this
             if(!meta[tsk['callback']]){
                 meta[tsk['callback']] = {};

@@ -231,7 +231,7 @@ async def reroute_to_login(request):
 @apfell.middleware('response')
 async def reroute_to_refresh(request, resp):
     # if you browse somewhere and get greeted with response.json.get('reasons')[0] and "Signature has expired"
-    if resp and resp.status == 403 and resp.content_type == "application/json":
+    if resp and (resp.status == 403 or resp.status == 401) and resp.content_type == "application/json":
         output = js.loads(resp.body)
         if 'reasons' in output and 'Signature has expired' in output['reasons'][0]:
             # unauthorized due to signature expiring, not invalid auth, redirect to /refresh

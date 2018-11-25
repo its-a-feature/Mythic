@@ -80,7 +80,7 @@
                     [[task.command]]&nbsp;[[task.params]]<br>
                     <span v-for="rsp in task.response" :key="rsp.id" v-bind:id="'response' + rsp.id" style="white-space: pre-wrap">
                         <font color="blue">([[rsp.timestamp]])</font>
-                        <font color="black">[[rsp.response]]</font><br>
+                        <font color="black">[[rsp.response]]</font>
                     </span>
                     <br>
                 </div>
@@ -113,7 +113,7 @@
         <div class="input-group mb-3">
             <input id="commandline" type="text" class="form-control" v-model="input_field"
                    v-bind:placeholder="input_field_placeholder.data" aria-describedby="basic-addon1"
-                   @keyup.enter="task_button(input_field_placeholder)">
+                   @keyup.enter="task_button(input_field_placeholder)" @keyup.up="cmd_history_up(input_field_placeholder)" @keyup.down="cmd_history_down(input_field_placeholder)">
             <span class="input-group-btn">
                 <button type="button" class="btn btn-danger" @click="task_button(input_field_placeholder)">Submit Task</button>
             </span>
