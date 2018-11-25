@@ -61,7 +61,7 @@ async def ws_tasks_current_operation(request, ws, user):
                         tasks = Task.select()
                         tasks_with_all_info = await db_objects.prefetch(tasks, callbacks, operators)
                         # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
-                        for task in tasks_with_all_info:
+                        for task in [x for x in tasks_with_all_info if x.callback.active == True]:
                             await ws.send(js.dumps(task.to_json()))
                         await ws.send("")
                         # now pull off any new tasks we got queued up while processing the old data
@@ -207,7 +207,7 @@ async def ws_callbacks_current_operation(request, ws, user):
                     if user['current_operation'] != "":
                         # before we start getting new things, update with all of the old data
                         operation = await db_objects.get(Operation, name=user['current_operation'])
-                        callbacks = Callback.select().where(Callback.operation == operation)
+                        callbacks = Callback.select().where( (Callback.operation == operation) & (Callback.active == True))
                         operators = Operator.select()
                         callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                         for cb in callbacks_with_operators:
