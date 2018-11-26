@@ -134,9 +134,7 @@ var task_data = new Vue({
                         if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == params){
                             alertBottom("info", ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
                             //alert(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
-                        }
-                        else{
-                            alertBottom("warning", "unknown command to help with");
+                            return;
                         }
                     }
                     else if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == command){
@@ -170,12 +168,11 @@ var task_data = new Vue({
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params":params});
                             this.input_field = "";
                         }
-
-                    }
-                    else{
-                        alertBottom("warning", "unknown command");
+                        return;
                     }
                 }
+                //If we got here, that means we're looking at an unknown command
+                alertBottom("warning", "Unknown command: " + command);
             }
 
         },

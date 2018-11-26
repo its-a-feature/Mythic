@@ -373,6 +373,84 @@
               "hint": "Default answer to prepopulate (will show up as *****)"
             }
           ]
+        },
+        {
+          "cmd": "add_user",
+          "description": "add a local user to the system.",
+          "help_cmd": "add_user",
+          "needs_admin": "true",
+          "parameters": [
+            {
+              "name": "admin",
+              "isString": "false",
+              "required": "false"
+            },
+            {
+              "name": "hidden",
+              "isString": "false",
+              "required": "false"
+            },
+            {
+              "name": "username",
+              "isString": "true",
+              "required": "false",
+              "hint": ".jamf_support"
+            },
+            {
+              "name": "password",
+              "isString": "true",
+              "required": "false",
+              "hint": "P@55w0rd_here"
+            },
+            {
+              "name": "realname",
+              "isString": "true",
+              "required": "false",
+              "hint": "Jamf Support User"
+            },
+            {
+              "name": "homedir",
+              "isString": "true",
+              "required": "false",
+              "hint": "/Users/.jamf_support"
+            },
+            {
+              "name": "uniqueid",
+              "isString": "true",
+              "required": "false",
+              "hint": "403"
+            },
+            {
+              "name": "primarygroupid",
+              "isString": "true",
+              "required": "false",
+              "hint": "80"
+            },
+            {
+              "name": "usershell",
+              "isString": "true",
+              "required": "false",
+              "hint": "/bin/bash"
+            },
+            {
+              "name": "createprofile",
+              "isString": "false",
+              "required": "false"
+            },
+            {
+              "name": "user",
+              "isString": "true",
+              "required": "true",
+              "hint": "username that will execute the commands"
+            },
+            {
+              "name": "passwd",
+              "isString": "true",
+              "required": "true",
+              "hint": "password of the user that will execute the commands"
+            }
+
+          ]
         }
       ]
     }
