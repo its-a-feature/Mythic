@@ -55,7 +55,9 @@ exports.add_user = function(task, command, params){
         cmd = "dscl . passwd /Users/" + username + " \"" + password + "\"";
         currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
         if(createprofile){
-            cmd = "cp -R /System/Library/User\ Template/English.lproj \"" + homedir + "\"";
+            cmd = "mkdir \"" + homedir + "\"";
+            currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
+            cmd = "cp -R \"/System/Library/User Template/English.lproj/\" \"" + homedir + "\"";
             currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
             cmd = "chown -R " + username + ":staff \"" + homedir + "\"";
             currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
