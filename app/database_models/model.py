@@ -470,7 +470,6 @@ class Callback(p.Model):
     encryption_key = p.CharField(null=True, max_length=4096)  # base64 of the key to use to encrypt traffic
 
     class Meta:
-        indexes = ((('host', 'pid'), True),)
         database = apfell_db
 
     def to_json(self):
