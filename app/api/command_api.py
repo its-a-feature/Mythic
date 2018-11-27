@@ -278,9 +278,16 @@ async def import_command_list(request, user):
             if len(cmd_error_list) == 0:
                 # now actually try to add the command
                 try:
-                    await db_objects.create(Command, payload_type=payload_type, operator=operator,
+                    cmdobj, created = await db_objects.get_or_create(Command, payload_type=payload_type, operator=operator,
                                             cmd=command['cmd'], description=command['description'],
                                             help_cmd=command['help_cmd'], needs_admin=command['needs_admin'])
+                    if "parameters" in command:
+                        for param in command['parameters']:
+                            try:
+                                param, created = await db_objects.get_or_create(CommandParameters, **param, command=cmdobj,
+                                                                         operator=operator)
+                            except Exception as e:
+                                print(e)
                 except Exception as e:
                     cmd_error_list.append(str(e))
             # give the status of that command addition
@@ -288,7 +295,7 @@ async def import_command_list(request, user):
                 payload_cmd_error_list.append(["success"])
             else:
                 payload_cmd_error_list.append(cmd_error_list)
-        # now roll all of these sucess or error lists up for the payload
+        # now roll all of these success or error lists up for the payload
         error_list.append({type['name']: payload_cmd_error_list})
     return json(error_list)
 
