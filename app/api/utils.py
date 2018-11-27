@@ -102,3 +102,11 @@ class TransformOperation:
     async def convertBytesToString(self, payload: Payload, prior_output: bytearray, parameter: None) -> str:
         return prior_output.decode("utf-8")
 
+    async def removeSlashes(self, payload: Payload, prior_output: str, parameter: None) -> str:
+        return re.sub(r'\\\\', r'\\', prior_output)
+
+    async def escapeSlashes(self, payload: Payload, prior_output: str, parameter: None) -> str:
+        return re.sub(r'\\', r'\\\\', prior_output)
+
+    async def strToByteArray(self, payload: Payload, prior_output: str, parameter: None) -> bytearray:
+        return bytearray(prior_output.encode('utf-8'))

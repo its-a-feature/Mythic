@@ -144,7 +144,8 @@ var task_data = new Vue({
                             //  Also make sure that there are actually parameters for them to fill out
                             params_table.command_params = [];
                             for(var j = 0; j < ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length; j++){
-                                var param = Object.assign({}, {"svalue": "", "bvalue": false}, ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
+                                var blank_vals = {"string_value": "", "credential_value":"", "number_value": -1, "choice_value": "", "choicemultiple_value": [], "boolean_value": false, "array_value": []}
+                                var param = Object.assign({}, blank_vals, ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
                                 params_table.command_params.push(param);
                             }
                             $( '#paramsModalHeader' ).text(command + "'s Parameters");
@@ -152,12 +153,13 @@ var task_data = new Vue({
                             $( '#paramsSubmit' ).unbind('click').click(function(){
                                 param_data = {};
                                 for(var k = 0; k < params_table.command_params.length; k++){
-                                    if(params_table.command_params[k]['isString']){
-                                        param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['svalue'];
-                                    }
-                                    else{
-                                        param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['bvalue'];
-                                    }
+                                    if(params_table.command_params[k]['type'] == "String"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['string_value']; }
+                                    else if(params_table.command_params[k]['type'] == "Credential"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['credential_value']; }
+                                    else if(params_table.command_params[k]['type'] == "Number"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['number_value']; }
+                                    else if(params_table.command_params[k]['type'] == "Choice"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['choice_value']; }
+                                    else if(params_table.command_params[k]['type'] == "ChoiceMultiple"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['choicemultiple_value']; }
+                                    else if(params_table.command_params[k]['type'] == "Boolean"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['boolean_value']; }
+                                    else if(params_table.command_params[k]['type'] == "Array"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['array_value']; }
                                 }
                                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
                             });
@@ -230,6 +232,7 @@ var task_data = new Vue({
             this.input_field = meta[cid]['history'][index];
         }
 
+
     },
     delimiters: ['[[', ']]'],
     updated: function(){
@@ -246,7 +249,9 @@ var params_table = new Vue({
         command_params
     },
     methods:{
-
+        command_params_add_array_element: function(param){
+            param.array_value.push('');
+        }
     },
     delimiters: ['[[',']]']
 });

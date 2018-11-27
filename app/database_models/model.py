@@ -154,10 +154,11 @@ class Command(p.Model):
 # these parameters are used to create an easily parsible JSON 'params' field for the agent to utilize
 class CommandParameters(p.Model):
     command = p.ForeignKeyField(Command)
-    name = p.CharField(null=False)  # what is the name of the parameter (what is displayed in the UI)
-    hint = p.CharField()  # give a hint as to what the operator should input here, only used if isBool is false
-    isString = p.BooleanField(null=False, default=True)  # is this a string parameter? if False, then we treat as Bool
-    isCredential = p.BooleanField(null=False, default=False)  # can opt to select a piece of a credential object
+    name = p.CharField(null=False)  # what is the name of the parameter (what is displayed in the UI and becomes dictionary key)
+    # String, Boolean, Number, Array, Choice, ChoiceMultiple, Credential, File
+    type = p.CharField(null=False, default="String")
+    hint = p.CharField(null=False, default="")  # give a hint as to what the operator should input here, only used if isBool is false
+    choices = p.CharField(null=False, default="")  # comma separated list of possible choices
     required = p.BooleanField(null=False, default=False)  # is this a required parameter
     operator = p.ForeignKeyField(Operator, null=False)
 

@@ -305,23 +305,21 @@ async def create_command_parameter(request, user, id):
     data = request.json
     if "name" not in data:
         return json({'status': 'error', 'error': '"name" is required'})
-    if 'isString' not in data:
-        return json({'status': 'error', 'error': '"isString" is a required parameter'})
+    if 'type' not in data:
+        return json({'status': 'error', 'error': '"type" is a required parameter'})
     if 'required' not in data:
         return json({'status': 'error', 'error': '"required" is a required parameter'})
-    if data['isString'] and 'hint' not in data:
-        return json({'status': 'error', 'error': "\"hint\" required if \"isString\" is True"})
-    if 'isCredential' in data and data['isCredential'] and not data['isString']:
-        return json({'status': 'error', 'error': '\"isCredential\" can only be true if the parameter is a string'})
+    if data['type'] == "String" and 'hint' not in data:
+        return json({'status': 'error', 'error': "\"hint\" required if type is \"String\""})
+    if data['type'] == "Choice" and 'choices' not in data:
+        return json({'status': 'error', 'error': "\"choices\" is required if type is \"Choice\""})
+    if data['type'] == "ChoiceMultiple" and 'choices' not in data:
+        return json({'status': 'error', 'error': "\"choices\" is required if type is \"ChoiceMultiple\""})
     if 'hint' not in data:
         data['hint'] = ""
-    if 'isCredential' not in data:
-        data['isCredential'] = False
     try:
-        param, created = await db_objects.get_or_create(CommandParameters, name=data['name'], isString=data['isString'],
-                                                        required=data['required'], hint=data['hint'],
-                                                        isCredential=data['isCredential'], command=command,
-                                                        operator=operator)
+        param, created = await db_objects.get_or_create(CommandParameters, **data, command=command, operator=operator)
+
         return json({'status': 'success', **param.to_json()})
     except Exception as e:
         print(e)
@@ -350,21 +348,14 @@ async def update_command_parameter(request, user, cid, pid):
             return json({"status": 'error', 'error': 'parameter name must be unique across a command'})
     if "required" in data:
         parameter.required = data['required']
-    if 'isString' in data and not data['isString']:
-        parameter.isString = data['isString']
-        parameter.hint = ""
-        parameter.isCredential = False
-    if 'isString' in data and data['isString'] and not parameter.isString:
-        # going from boolean to now a string
-        if 'hint' not in data:
-            return json({'status': 'error', 'error': 'hint is required for string parameters'})
-        if 'isCredential' not in data:
-            data['isCredential'] = False
-        parameter.isString = data['isString']
-        parameter.hint = data['hint']
-        parameter.isCredential = data['isCredential']
-    elif 'hint' in data:
-        parameter.hint = data['hint']
+    if data['type']:
+        parameter.type = data['type']
+        if data['type'] == "String":
+            parameter.hint = data['hint'] if 'hint' in data else ""
+        elif data['type'] == "Choice":
+            parameter.choices = data['choices'] if 'choices' in data else ""
+        elif data['type'] == "ChoiceMultiple":
+            parameter.choices = data['choices'] if 'choices' in data else ""
     parameter.operator = operator
     await db_objects.update(parameter)
     return json({'status': 'success', **parameter.to_json()})

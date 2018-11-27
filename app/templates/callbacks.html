@@ -162,14 +162,39 @@
                 <table id="paramsTable">
                     <tr v-for="param in command_params" :key="param.id">
                         <td>
-                            [[param.name]]<span v-if="param.required">*</span>&nbsp;
+                            [[param.name]]<span v-if="param.required">&nbsp;<b>*</b></span>&nbsp;
                         </td>
                         <td>
-                            <span v-if="param.isString">
-                                <input type="text" :placeholder="param.hint" v-model="param.svalue" size="60">
+                            <span v-if="param.type == 'String'">
+                                <input type="text" :placeholder="param.hint" v-model="param.string_value" size="60">
                             </span>
-                            <span v-else>
-                                &nbsp;<input type="checkbox" v-model="param.bvalue">
+                            <span v-else-if="param.type == 'Credential'">
+                                <input type="text" :placeholder="param.hint" v-model="param.credential_value" size="60">
+                            </span>
+                            <span v-else-if="param.type == 'Number'">
+                                <input type="number" v-model="param.number_value">
+                            </span>
+                            <span v-else-if="param.type == 'Choice'">
+                                <select v-model="param.choice_value">
+                                    <option v-for="opt in param.choices.split('\n')" :value="opt">[[opt]]</option>
+                                </select>
+                            </span>
+                            <span v-else-if="param.type == 'ChoiceMultiple'">
+                                <select multiple v-model="param.choicemultiple_value">
+                                    <option v-for="opt in param.choices.split('\n')" :value="opt">[[opt]]</option>
+                                </select>
+                            </span>
+                            <span v-else-if="param.type == 'Boolean'">
+                                &nbsp;<input type="checkbox" v-model="param.boolean_value">
+                            </span>
+                            <span v-else-if="param.type == 'Array'">
+                                <div v-for="(arg, index) in param.array_value" :key="index">
+                                    <input type="text" v-model="param.array_value[index]" size="20"><br>
+                                </div>
+                                <button class="btn btn-success btn-sm" @click="command_params_add_array_element(param);">Add Element</button>
+                            </span>
+                            <span v-else-if="param.type == 'File'">
+
                             </span>
                         </td>
                     </tr>

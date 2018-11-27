@@ -13,7 +13,7 @@ exports.load = function(task, command, params){
         return "Loaded " + parsed_params['cmds'];
     }
     catch(error){
-        console.log("errored in load function");
+        //console.log("errored in load function");
         return error.toString();
     }
 

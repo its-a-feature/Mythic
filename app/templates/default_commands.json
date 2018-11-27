@@ -32,32 +32,30 @@
           "parameters": [
             {
               "name": "command",
-              "isString": "true",
+              "type": "String",
               "hint": "Command to execute",
               "required": "true"
             },
             {
               "name": "use_creds",
-              "isString": "false",
+              "type": "Boolean",
               "required": "true"
             },
             {
               "name": "user",
-              "isString": "true",
+              "type": "Credential",
               "hint": "Username that you want to run as",
-              "isCredential": "true",
               "required": "false"
             },
             {
               "name": "credential",
-              "isString": "true",
+              "type": "Credential",
               "hint": "The user's password",
-              "isCredential": "true",
               "required": "false"
             },
             {
               "name": "prompt",
-              "isString": "true",
+              "type": "String",
               "hint": "What prompt to display to the user when asking for permission",
               "required": "false"
             }
@@ -71,14 +69,13 @@
           "parameters": [
             {
               "name": "path",
-              "isString": "true",
+              "type": "String",
               "required": "true",
               "hint": "Full path to binary to execute"
             },
             {
               "name": "args",
-              "isString": "true",
-              "hint": "List of arguments separated by spaces to pass to the binary in \"path\"",
+              "type": "Array",
               "required": "false"
             }
           ]
@@ -105,13 +102,13 @@
           "parameters": [
             {
               "name": "method",
-              "isString": "true",
-              "hint": "default is api, can specify jxa",
+              "type": "Choice",
+              "choices": "api\njxa",
               "required": "false"
             },
             {
               "name": "verbose",
-              "isString": "false",
+              "type": "Boolean",
               "required": "false"
             }
           ]
@@ -124,19 +121,18 @@
           "parameters": [
             {
               "name": "method",
-              "isString": "true",
-              "hint": "default is api, can specify jxa",
+              "type": "Choice",
+              "choices": "api\njxa",
               "required": "false"
             },
             {
               "name": "gid",
-              "isString": "true",
-              "hint": "GID for a group to enumerate",
+              "type": "Number",
               "required": "false"
             },
             {
               "name": "groups",
-              "isString": "false",
+              "type": "Boolean",
               "required": "false"
             }
           ]
@@ -149,9 +145,9 @@
           "parameters": [
             {
               "name": "method",
-              "isString": "true",
+              "type": "Choice",
               "required": "false",
-              "hint": "default is api, can specify jxa"
+              "choices": "api\njxa"
             }
           ]
         },
@@ -282,13 +278,13 @@
           "parameters": [
             {
               "name": "type",
-              "isString": "true",
-              "hint": "readLaunchAgents | readLaunchDaemons | read",
+              "type": "Choice",
+              "choices": "readLaunchAgents\nreadLaunchDaemons\nread",
               "required": "true"
             },
             {
               "name": "filename",
-              "isString": "true",
+              "type": "String",
               "hint": "full filename path if type is just read",
               "required": "false"
             }
@@ -316,14 +312,12 @@
           "parameters": [
             {
               "name": "username",
-              "isString": "true",
-              "hint": "user's POSIX name",
+              "type": "Credential",
               "required": "false"
             },
             {
               "name": "password",
-              "isString": "true",
-              "hint": "user's password",
+              "type": "Credential",
               "required": "false"
             }
           ]
@@ -350,25 +344,25 @@
           "parameters": [
             {
               "name": "title",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "Title of the dialog box"
             },
             {
               "name": "icon",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "full path to .icns file to use"
             },
             {
               "name": "text",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "Additional descriptive text to display"
             },
             {
               "name": "answer",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "Default answer to prepopulate (will show up as *****)"
             }
@@ -382,74 +376,112 @@
           "parameters": [
             {
               "name": "admin",
-              "isString": "false",
+              "type": "Boolean",
               "required": "false"
             },
             {
               "name": "hidden",
-              "isString": "false",
+              "type": "Boolean",
               "required": "false"
             },
             {
               "name": "username",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": ".jamf_support"
             },
             {
               "name": "password",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "P@55w0rd_here"
             },
             {
               "name": "realname",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "Jamf Support User"
             },
             {
               "name": "homedir",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "/Users/.jamf_support"
             },
             {
               "name": "uniqueid",
-              "isString": "true",
-              "required": "false",
-              "hint": "403"
+              "type": "Number",
+              "required": "false"
             },
             {
               "name": "primarygroupid",
-              "isString": "true",
-              "required": "false",
-              "hint": "80"
+              "type": "Number",
+              "required": "false"
             },
             {
               "name": "usershell",
-              "isString": "true",
+              "type": "String",
               "required": "false",
               "hint": "/bin/bash"
             },
             {
               "name": "createprofile",
-              "isString": "false",
+              "type": "Boolean",
               "required": "false"
             },
             {
               "name": "user",
-              "isString": "true",
+              "type": "String",
               "required": "true",
               "hint": "username that will execute the commands"
             },
             {
               "name": "passwd",
-              "isString": "true",
+              "type": "String",
               "required": "true",
               "hint": "password of the user that will execute the commands"
             }
 
+          ]
+        },
+        {
+          "cmd": "persist_launch",
+          "description": "Create a launch agent or daemon plist file and either automatically put it in ~/Library/LaunchAgents or if LocalAgent is false, save it to the specified location. Without credentials, it cannot automatically save to /Library/LaunchAgents or /Library/LaunchDaemons, so use something like shell_elevated to copy it there",
+          "help_cmd": "persist_launch",
+          "needs_admin": "false",
+          "parameters": [
+            {
+              "name": "args",
+              "type": "Array",
+              "required": "true"
+            },
+            {
+              "name": "KeepAlive",
+              "type": "Boolean",
+              "required": "false"
+            },
+            {
+              "name": "label",
+              "type": "String",
+              "required": "true",
+              "hint": "com.apple.softwareupdateagent"
+            },
+            {
+              "name": "LaunchPath",
+              "type": "String",
+              "required": "false",
+              "hint": "Path to save new plist to if LocalAgent is false"
+            },
+            {
+              "name": "LocalAgent",
+              "type": "Boolean",
+              "required": "false"
+            },
+            {
+              "name": "RunAtLoad",
+              "type": "Boolean",
+              "required": "false"
+            }
           ]
         }
       ]

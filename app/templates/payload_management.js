@@ -517,7 +517,7 @@ var command_parameters_table = new Vue({
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + i.command + "/parameters/" + i.id, edit_remove_parameter, "DELETE", null);
         },
         add_parameter_button: function(){
-            this.command_parameters.push({"name": "", "isString": false, "isCredential": false, "hint": "", "required": false});
+            this.command_parameters.push({"name": "", "choices": "", "type": "Select One...", "hint": "", "required": false});
         }
     },
     delimiters: ['[[',']]']
@@ -556,7 +556,7 @@ var add_command_parameters_table = new Vue({
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + i.command + "/parameters/" + i.id, edit_remove_parameter, "DELETE", null);
         },
         add_parameter_button: function(){
-            this.add_command_parameters.push({"name": "", "isString": false, "isCredential": false, "hint": "", "required": false});
+            this.add_command_parameters.push({"name": "", "choices": "", "type": "Select One...", "hint": "", "required": false});
         }
     },
     delimiters: ['[[',']]']
@@ -569,7 +569,7 @@ function add_command_callback(response){
     //Now handle sending updates for the command parameters at the bottom
     for(var j = 0; j < add_command_parameters_table.add_command_parameters.length; j++){
         var data = add_command_parameters_table.add_command_parameters[j];
-        if(data['name'] != ""){
+        if(data['name'] != "" && data['type'] != "Select One..."){
             //make sure they entered something for the name, and send a POST to create the parameter
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cdata['id'] + "/parameters", null, "POST", data);
         }

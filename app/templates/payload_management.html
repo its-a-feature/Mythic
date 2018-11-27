@@ -326,18 +326,27 @@
                           <td>
                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Required? <input type="checkbox" :value="i.required" v-model="i.required">
                           </td>
-                        <td>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String? <input type="checkbox" :value="i.isString" v-model="i.isString">
-                        </td>
                           <td>
-                              <div v-show="i.isString">
-                                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Credential? <input type="checkbox" :value="i.isCredential" v-model="i.isCredential">
-                              </div>
+                              &nbsp;&nbsp;Type: <select v-model="i.type">
+                                        <option value="Select One...">Select One...</option>
+                                        <option value="String">String</option>
+                                        <option value="Boolean">Boolean</option>
+                                        <option hidden value="File">File</option>
+                                        <option value="Array">Array</option>
+                                        <option value="Choice">Choose One</option>
+                                        <option value="ChoiceMultiple">Choose Many</option>
+                                        <option value="Credential">Credential</option>
+                                        <option value="Number">Number</option>
+                                    </select>
                           </td>
                         <td>
-                            <div v-show="i.isString">
-                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hint: <input type="text" size="31" :value="i.hint" v-model="i.hint" v-show="i.isString">
+                            <div v-show="i.type == 'String'">
+                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hint: <input type="text" size="31" :value="i.hint" v-model="i.hint">
                             </div>
+                            <div v-show="i.type == 'Choice' || i.type == 'ChoiceMultiple'">
+                                &nbsp;&nbsp;Option per line: <textarea size="31" :value="i.choices" v-model="i.choices"></textarea>
+                            </div>
+
                         </td>
                     </tr>
                       <tr>
@@ -403,16 +412,24 @@
                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Required? <input type="checkbox" :value="i.required" v-model="i.required">
                           </td>
                         <td>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String? <input type="checkbox" :value="i.isString" v-model="i.isString">
-                        </td>
-                          <td>
-                              <div v-show="i.isString">
-                                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Credential? <input type="checkbox" :value="i.isCredential" v-model="i.isCredential">
-                              </div>
+                              &nbsp;&nbsp;Type: <select v-model="i.type">
+                                        <option value="Select One...">Select One...</option>
+                                        <option value="String">String</option>
+                                        <option value="Boolean">Boolean</option>
+                                        <option hidden value="File">File</option>
+                                        <option value="Array">Array</option>
+                                        <option value="Choice">Choose One</option>
+                                        <option value="ChoiceMultiple">Choose Many</option>
+                                        <option value="Credential">Credential</option>
+                                        <option value="Number">Number</option>
+                                    </select>
                           </td>
                         <td>
-                            <div v-show="i.isString">
-                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hint: <input type="text" size="31" :value="i.hint" v-model="i.hint" v-show="i.isString">
+                            <div v-show="i.type == 'String'">
+                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hint: <input type="text" size="31" :value="i.hint" v-model="i.hint">
+                            </div>
+                            <div v-show="i.type == 'Choice' || i.type == 'ChoiceMultiple'">
+                                &nbsp;&nbsp;Option per line: <textarea size="31" :value="i.choices" v-model="i.choices"></textarea>
                             </div>
                         </td>
                     </tr>

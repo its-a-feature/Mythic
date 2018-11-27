@@ -322,8 +322,17 @@ async def initial_setup():
     jxa_load_transform = await db_objects.get_or_create(Transform, name="combineAppend", t_type="load",
                                                         order=2, payload_type=payload_type_apfell_jxa,
                                                         operator=admin)
-    jxa_load_transform = await db_objects.get_or_create(Transform, name="writeFile", t_type="load",
+    jxa_load_transform = await db_objects.get_or_create(Transform, name="convertBytesToString", t_type="load",
                                                         order=3, payload_type=payload_type_apfell_jxa,
+                                                        operator=admin)
+    jxa_load_transform = await db_objects.get_or_create(Transform, name="removeSlashes", t_type="load",
+                                                        order=4, payload_type=payload_type_apfell_jxa,
+                                                        operator=admin)
+    jxa_load_transform = await db_objects.get_or_create(Transform, name="strToByteArray", t_type="load",
+                                                        order=5, payload_type=payload_type_apfell_jxa,
+                                                        operator=admin)
+    jxa_load_transform = await db_objects.get_or_create(Transform, name="writeFile", t_type="load",
+                                                        order=6, payload_type=payload_type_apfell_jxa,
                                                         operator=admin)
     print("Created Apfell-jxa payload type")
     # add the apfell_admin to the default operation
@@ -343,27 +352,12 @@ async def initial_setup():
                                                      payload_type=payload_type_apfell_jxa,
                                                      operator=admin)
             for param in cmd['parameters']:
-                if param['isString'] == "false":
-                    param['isString'] = False
-                else:
-                    param['isString'] = True
-                if not param['isString']:
-                    param['hint'] = ""
-                if 'isCredential' not in param:
-                    param['isCredential'] = False
-                elif param['isCredential'] == "false":
-                    param['isCredential'] = False
-                else:
-                    param['isCredential'] = True
-                if param['required'] == "false":
-                    param['required'] = False
-                else:
-                    param['required'] = True
                 try:
-                    await db_objects.get_or_create(CommandParameters, command=command, name=param['name'],
-                                                   hint=param['hint'], isString=param['isString'],
-                                                   isCredential=param['isCredential'], required=param['required'],
-                                                   operator=admin)
+                    if param['required'] == "false":
+                        param['required'] = False
+                    else:
+                        param['required'] = True
+                    await db_objects.get_or_create(CommandParameters, command=command, **param, operator=admin)
                 except Exception as e:
                     print(e)
     print("Created all commands and command parameters")

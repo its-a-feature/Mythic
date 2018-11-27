@@ -68,7 +68,7 @@ class customC2 extends baseC2{
 	getConfig(){
 		//A RESTful base config consists of the following:
 		//  BaseURL (includes Port), CallbackInterval, KillDate (not implemented yet)
-		return JSON.stringify({'baseurl': this.baseurl, 'interval': this.interval, 'killdate': '', 'commands': this.commands.join(",")});
+		return JSON.stringify({'baseurl': this.baseurl, 'interval': this.interval, 'killdate': '', 'commands': this.commands.join(",")}, null, 2);
 	}
 	setConfig(params){
 		//A RESTful base config has 3 updatable components
