@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import C2Profile, Operator, PayloadTypeC2Profile, PayloadType, Operation, C2ProfileParameters, C2ProfileParametersInstance
+from app.database_models.model import C2Profile, Operator, PayloadTypeC2Profile, PayloadType, Operation, C2ProfileParameters, FileMeta
 from urllib.parse import unquote_plus
 import subprocess
 import asyncio
@@ -505,3 +505,48 @@ async def delete_c2profile_parameter(request, info, id, user):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/create_instance/", methods=['POST'])
+@inject_user()
+@protected()
+async def create_c2profile_instance_replace_values(request, user):
+    data = request.json
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=data['c2_profile'], operation=operation)
+        payload_type = await db_objects.get(PayloadType, ptype=data['ptype'])
+        operator = await db_objects.get(Operator, username=user['username'])
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get the c2 profile'})
+    try:
+        base_c2 = open('./app/c2_profiles/{}/{}/{}/{}{}'.format(operation.name, profile.name, payload_type.ptype,
+                                                                profile.name, payload_type.file_extension))
+    except Exception as e:
+        return json({'status': 'error', 'error': str(e)})
+    params = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
+    c2_code = base_c2.read()
+    base_c2.close()
+    for p in params:
+        c2_code = c2_code.replace(p.key, data[p.name])
+
+    # now that we've replaced the parameters in the file contents, we need to write it out somewhere and register it
+    path = "./app/files/{}/profile_instances/".format(operation.name)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    save_path = path + profile.name
+    count = 1
+    tmp_path = save_path +  str(payload_type.file_extension)
+    while os.path.exists(tmp_path):
+        tmp_path = save_path + str(count) + str(payload_type.file_extension)
+        count += 1
+    save_path = tmp_path
+
+    profile_code = open(save_path, "w")
+    profile_code.write(c2_code)
+    profile_code.close()
+
+    file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True, operation=operation,
+                                        operator=operator, path=save_path)
+    return json({'status': 'success', **file_meta.to_json()})

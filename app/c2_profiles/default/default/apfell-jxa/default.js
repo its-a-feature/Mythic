@@ -161,6 +161,9 @@ class customC2 extends baseC2{
 	    try{
 	        var url = "api/v1.0/files/" + params;
             var file_data = this.htmlGetData(this.baseurl + url);
+            if(file_data === undefined){
+                throw "Got nothing from the Apfell server";
+            }
             var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
             //var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
             return decoded_data;

@@ -7,6 +7,7 @@ from app.api.utils import breakout_quoted_params
 import base64
 from app.api.transform_api import get_transforms_func
 from app.api.utils import TransformOperation
+import json as js
 
 
 # This gets all tasks in the database
@@ -104,12 +105,21 @@ async def add_task_to_callback_func(data, cid, user):
         if cmd.cmd == "upload":
             # we need to get the file into the database before we can signal for the callback to pull it down
             # this will have {path to local file} {path to remote file} in the data['params'] section
-            upload_params = await breakout_quoted_params(data['params'])
-            if len(upload_params) != 2:
-                return {'status': 'error', 'error': 'wrong number of parameters for upload', 'cmd': data['command'], 'params': data['params']}
-            file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
-                                                path=upload_params[0], operation=cb.operation)
-            data['params'] = str(file_meta.id) + " " + upload_params[1]
+            try:
+                # see if we actually submitted "file_id /remote/path/here"
+                split_params = data['params'].split(" ")
+                id = int(split_params[0])
+                f = await db_objects.get(FileMeta, id=id)
+                # we don't want to lose our tracking on this file, so we'll create a new one
+                file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
+                                                    complete=f.complete, path=f.path, operation=f.operation, operator=op)
+            except Exception as e:
+                upload_params = await breakout_quoted_params(data['params'])
+                if len(upload_params) != 2:
+                    return {'status': 'error', 'error': 'wrong number of parameters for upload', 'cmd': data['command'], 'params': data['params']}
+                file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
+                                                    path=upload_params[0], operation=cb.operation, operator=op)
+                data['params'] = str(file_meta.id) + " " + upload_params[1]
 
         elif cmd.cmd == "download":
             if '"' in data['params']:
@@ -151,6 +161,13 @@ async def add_task_to_callback_func(data, cid, user):
                 if load_transforms['status'] == "success":
                     transform_output = []
                     # always start with a list of paths for all of the things we want to load
+                    # check if somebody submitted {'cmds':'shell,load, etc', 'file_id': 4} instead of list of commands
+                    try:
+                        replaced_params = data['params'].replace("'", '"')
+                        funcs = js.loads(replaced_params)['cmds']
+                    except Exception as e:
+                        funcs = data['params']
+                    data['params'] = funcs
                     for p in data['params'].split(","):
                         transform_output.append("./app/payloads/{}/{}".format(cb.registered_payload.payload_type.ptype, p.strip()))
                     for t in load_transforms['transforms']:
@@ -160,8 +177,7 @@ async def add_task_to_callback_func(data, cid, user):
                         except Exception as e:
                             print(e)
                             return {'status': 'error', 'error': 'failed to apply transform {}, with message: {}'.format(
-                                t['name'], str(e)
-                            )}
+                                t['name'], str(e)), 'cmd': data['command'], 'params': data['params']}
                     # now create a corresponding file_meta
                     file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
                                                         path=transform_output, operation=cb.operation)

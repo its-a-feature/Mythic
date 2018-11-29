@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block body %}
+
+<h2>C2 Profile Instantiation</h2>
+<p>Use this page to create instantiations of C2 profiles that will be saved in the Apfell database. These can then be used to load new c2 profiles in already running agents.</p><br>
+<div id="payloadCreation">
+        <table>
+            <tr>
+                <td valign="top">
+                    <!-- This will house all of the C2 profile specific data -->
+                    Profile:&nbsp;
+                    <select id="c2_profile">
+                        <!-- This selection will dynamically update the form fields-->
+                        <!-- If this is updated to something that the payload-type doesn't have a match for, the payload-type will be cleared -->
+                        <option value="Select One">Select One...</option>
+                    </select>
+                    Payload Type:&nbsp;
+                    <select id="payload_type">
+                        <!-- This selection will dynamically update the payload form fields and commands options-->
+                        <!-- The options here will be based on the c2_profile that's selected -->
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td valign="top">
+                    <div id="c2ParameterFormFields">
+                        <table class="table table-striped table-hover table-condensed">
+                            <tr>
+                                <td><b>Parameter Name</b></td>
+                                <td><b>Parameter Value</b></td>
+                            </tr>
+                            <tr v-for="(value, index) in c2_profile_parameters" :key="index">
+                                <td>
+                                   [[value.name]]
+                                </td>
+                                <td>
+                                    <input type="text" size="40" v-bind:id="[[value.key]]" v-bind:placeholder="[[value.hint]]">
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </table>
+</div>
+<button class="btn btn-success" onclick="create_instance()">Create Instance</button>
+
+{% endblock %}
+
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "instantiate_c2profile.js" %}
+{% endblock %}

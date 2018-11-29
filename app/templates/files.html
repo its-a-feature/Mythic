@@ -8,11 +8,11 @@
         <div class="panel-heading" >[[host]] Downloads</div>
             <div v-for="(file,i) in data" :key="file.timestamp">
                 <div v-if="file.complete">
-                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s download: [[file.short_path]]</button>
+                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s download ([[file.id]]): [[file.short_path]]</button>
                     <a :href='file.remote_path' width="100%" height="100%" style="display:none">[[file.short_path]]</a>
                 </div>
                 <div v-else>
-                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #ffd8d8;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s download: [[file.short_path]]. Parts [[file.chunks_received]] of [[file.total_chunks]] received so far.</button>
+                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #ffd8d8;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s download ([[file.id]]): [[file.short_path]]. Parts [[file.chunks_received]] of [[file.total_chunks]] received so far.</button>
                 </div>
             </div>
     </div>
@@ -20,11 +20,11 @@
         <div class="panel-heading" >[[host]] Uploads</div>
             <div v-for="(file,i) in data" :key="file.timestamp">
                 <div v-if="file.complete">
-                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s upload from <b>[[file.path]]</b> to <b>[[file.upload.split(" ").slice(1,).join(" ")]]</b></button>
+                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s upload from <b>[[file.path]]</b>([[file.id]]) to <b>[[file.upload.split(" ").slice(1,).join(" ")]]</b></button>
                     <a :href='file.remote_path' width="100%" height="100%" style="display:none">[[file.path]]</a>
                 </div>
                 <div v-else>
-                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #ffd8d8;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s upload from <b>[[file.path]]</b> to <b>[[file.upload.split(" ").slice(1,).join(" ")]]</b></button>
+                    <button v-bind:id="'file' + file.id" class="accordion" style="background-color: #ffd8d8;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_file(file)">[[file.operator]]'s upload from <b>[[file.path]]</b>([[file.id]]) to <b>[[file.upload.split(" ").slice(1,).join(" ")]]</b></button>
                 </div>
             </div>
     </div>

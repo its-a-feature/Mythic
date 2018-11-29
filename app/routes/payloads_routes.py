@@ -18,4 +18,16 @@ async def payloads_creation(request, user):
     return response.html(content)
 
 
+@apfell.route("/instantiate_c2profile/", methods=['GET'])
+@inject_user()
+@protected()
+async def instantiate_c2profile(request, user):
+    template = env.get_template('instantiate_c2profile.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+    return response.html(content)
+
 links['payloads_creation'] = apfell.url_for('payloads_creation')
+links['instantiate_c2profile'] = apfell.url_for('instantiate_c2profile')

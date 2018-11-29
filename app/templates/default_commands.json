@@ -483,6 +483,19 @@
               "required": "false"
             }
           ]
+        },
+        {
+          "cmd": "swap_c2",
+          "description": "Swap out the running c2 configuration in the apfell-jxa agent with another",
+          "help_cmd": "swap_c2 {\"profile\": file_number}, or just swap_c2",
+          "needs_admin": "false",
+          "parameters": [
+            {
+              "name": "profile",
+              "type": "Number",
+              "required": "true"
+            }
+          ]
         }
       ]
     }

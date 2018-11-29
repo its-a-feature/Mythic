@@ -10,17 +10,17 @@ web_servers = []  # will have dicts of {handle, port, directory}
 
 
 # ------------ HOST FILE ------------------------
-@apfell.route(apfell.config['API_BASE'] + "/attacks/host_file", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/attacks/host_directory", methods=['GET'])
 @inject_user()
 @protected()
 async def get_all_web_servers(request, user):
     return json(web_servers)
 
 
-@apfell.route(apfell.config['API_BASE'] + "/attacks/host_file", methods=['POST'])
+@apfell.route(apfell.config['API_BASE'] + "/attacks/host_directory", methods=['POST'])
 @inject_user()
 @protected()
-async def create_new_host_file(request, user):
+async def create_new_host_directory(request, user):
     # expects to get port, directory
     data = request.json
     if 'port' not in data:
@@ -31,7 +31,6 @@ async def create_new_host_file(request, user):
                      'error': '"directory" field is required'})
     null = open('/dev/null', 'w')
     try:
-        # if we try to open the same port twice, this will fail
         p = subprocess.Popen(
             [sys.executable, '-m', 'http.server', str(data['port'])],
             cwd=data['directory'],
@@ -41,13 +40,13 @@ async def create_new_host_file(request, user):
         await asyncio.sleep(1)
         # if we already had one of these port/directory combos in there, delete it so we can add the updated one
         for x in web_servers:
-            if x['port'] == data['port'] and x['directory'] == data['directory']:
+            if x['port'] == data['port']:
                 web_servers.remove(x)
         web_servers.append({'port': data['port'],
                             'directory': data['directory'],
                             'process': p,
                             'status': 'running',
-                            'encryption': False})
+                            'creator': user['username']})
         return json({'status': 'success'})
     except Exception as e:
         print(e)
@@ -55,10 +54,10 @@ async def create_new_host_file(request, user):
                      'error': 'failed to open port for web server'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/attacks/host_file/<port:int>", methods=['DELETE'])
+@apfell.route(apfell.config['API_BASE'] + "/attacks/host_directory/<port:int>", methods=['DELETE'])
 @inject_user()
 @protected()
-async def delete_host_file(request, port, user):
+async def delete_host_directory(request, port, user):
     for server in web_servers:
         if server['port'] == str(port):
             server['process'].terminate()

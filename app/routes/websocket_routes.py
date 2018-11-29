@@ -673,16 +673,21 @@ async def ws_files_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     operation = await db_objects.get(Operation, name=user['current_operation'])
-                    files = await db_objects.execute(FileMeta.select().where( (FileMeta.operation == operation) & (FileMeta.deleted == False)))
+                    files = await db_objects.execute(FileMeta.select().where(
+                        (FileMeta.operation == operation) & (FileMeta.deleted == False)))
                     for f in files:
                         if "/screenshots/" not in f.path:
                             if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                 # this means it's an upload, so supply additional information as well
-                                await ws.send(js.dumps(
-                                    {**f.to_json(), 'host': f.task.callback.host, 'operator': f.task.operator.username,
-                                     "upload": f.task.params}))
+                                # two kinds of uploads: via task or manual
+                                if f.task is not None:  # this is an upload via agent tasking
+                                    await ws.send(js.dumps(
+                                        {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
+                                else:  # this is a manual upload
+                                    await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
+                                                            "upload": "-1 Apfell as file number: " + str(f.id)}))
                             else:
-                                await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'operator': f.task.operator.username}))
+                                await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host}))
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
@@ -692,14 +697,18 @@ async def ws_files_current_operation(request, ws, user):
                             if "/screenshots" not in blob['path']:
                                 try:
                                     f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, deleted=False)
-                                    host = f.task.callback.host
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                         # this means it's an upload, so supply additional information as well
-                                        await ws.send(js.dumps(
-                                            {**f.to_json(), 'host': host, 'operator': f.task.operator.username,
-                                             "upload": f.task.params}))
+                                        # could be upload via task or manual
+                                        if f.task is not None:  # this is an upload via gent tasking
+                                            await ws.send(js.dumps(
+                                                {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
+                                        else: # this is a manual upload
+                                            await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
+                                                                    "upload": "-1 Apfell as file number: " + str(f.id)}))
                                     else:
-                                        await ws.send(js.dumps({**f.to_json(), 'host': host, 'operator': f.task.operator.username}))
+                                        await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host,
+                                                                'operator': f.task.operator.username}))
                                 except Exception as e:
                                     pass  # we got a file that's just not part of our current operation, so move on
                         except asyncio.QueueEmpty as e:
@@ -733,14 +742,16 @@ async def ws_updated_files(request, ws, user):
                             if "/screenshots" not in blob['path']:
                                 try:
                                     f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, deleted=False)
-                                    host = f.task.callback.host
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                         # this means it's an upload, so supply additional information as well
-                                        await ws.send(js.dumps(
-                                            {**f.to_json(), 'host': host, 'operator': f.task.operator.username,
-                                             "upload": f.task.params}))
+                                        if f.task is not None:  # this is an upload agent tasking
+                                            await ws.send(js.dumps(
+                                                {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
+                                        else:
+                                            await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
+                                                                    "upload": "-1 Apfell as file number: " + str(f.id)}))
                                     else:
-                                        await ws.send(js.dumps({**f.to_json(), 'host': host, 'operator': f.task.operator.username}))
+                                        await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'operator': f.task.operator.username}))
                                 except Exception as e:
                                     pass  # got an update for a file not in this operation
                         except asyncio.QueueEmpty as e:

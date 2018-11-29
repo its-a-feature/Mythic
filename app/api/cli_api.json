@@ -105,13 +105,13 @@
       "name": "Attack",
       "api": [
         {
-          "GET": "API_BASE/attacks/host_file",
+          "GET": "API_BASE/attacks/host_directory",
           "explanation": "Gets all of the additional servers ever created/stopped during a single run of Apfell",
           "cli": "curl http://localhostAPI_BASE/attacks/host_file",
           "output": "An array of JSON blobs representing the currently running file hosts: [{\"port\":\"8080\",\"directory\":\"\/home\/its-a-feature\/\",\"process\":{\"args\":[\"\/usr\/bin\/python3.6\",\"-m\",\"http.server\",\"8080\"],\"encoding\":null,\"errors\":null,\"pid\":24723,\"returncode\":null,\"stderr\":null,\"stdin\":null,\"stdout\":null,\"universal_newlines\":false},\"status\":\"running\",\"encryption\":false}]"
         },
         {
-          "POST": "API_BASE/attacks/host_file",
+          "POST": "API_BASE/attacks/host_directory",
           "explanation": "Create a new subprocess to host files that can be used via download cradles",
           "cli": "curl -X POST -d '{\"port\":8080, \"directory\":\"/tmp\"}' http://localhostAPI_BASE/attacks/host_file",
           "parameters":[
@@ -129,7 +129,7 @@
           "output": "A JSON blob indicating success or failure: {\"status\": \"success\"}"
         },
         {
-          "DELETE": "API_BASE/attacks/host_file/(port:INTEGER)",
+          "DELETE": "API_BASE/attacks/host_directory/(port:INTEGER)",
           "explanation": "Find and stop the subprocess identified by a port that is serving up a web server",
           "cli": "curl -X DELETE http://localhostAPI_BASE/attacks/host_file/8080",
           "output": "A JSON blob indicating success or failure: {\"status\": \"success\"}"
@@ -318,6 +318,29 @@
           "explanation": "Delete the c2 profile parameter from the current operation's c2 profile",
           "cli": "curl -X DELETE http://localhostAPI_BASE/c2profiles/twitter/parameters/2",
           "output": "A 'status' key and either the 'error' message or a JSON representation of the parameter that was deleted"
+        },
+        {
+          "POST": "API_BASE/c2profiles/create_instance",
+          "explanation": "Create an instance of a fully configured c2 profile and save it to ./app/files/operation_name/profile_instances/c2_profile_name.extension",
+          "cli": "curl -X POST -d '{\"c2_profile\":\"default\", \"ptype\":\"apfell-jxa\",\"callback host\":\"http://192.160.0.1\"...}' http://localhostAPI_BASE/c2profiles/create_instance",
+          "output": "{\"status\":\"success\", \"id\":4,\"complete\":True, \"operation\":\"default\", \"operator\":\"apfell_admin\",\"total_chunks\":1,\"chunks_received\":1, \"deleted\":False,\"path\":\"/path/on/disk\"}",
+          "parameters": [
+            {
+              "name": "c2_profile",
+              "description": "Name of the c2 profile",
+              "requirements": "This is a required field"
+            },
+            {
+              "name": "ptype",
+              "description": "The name of the corresponding payload type",
+              "requirements": "This is a required field"
+            },
+            {
+              "name": "*name*",
+              "description": "Each parameter of the c2 profile will also go here with their \"name\" as the key and value",
+              "requirements": "This is a required set of parameters"
+            }
+          ]
         }
       ]
     },
@@ -822,6 +845,34 @@
               "name": "chunk_data",
               "description": "The base64 encoded blob that we will decode and write to disk",
               "requirements": "This is a required field"
+            }
+          ]
+        },
+        {
+          "POST": "API_BASE/files/manual",
+          "explanation": "Register a file manually into the database either with a local file or uploading one from a remote machine to the ./app/files/operation/ directory",
+          "cli": "curl -X POST -d '{\"local_path\":True, \"path\":\"/home/its-a-feature/Desktop/file.txt\"}' http://localhostAPI_BASE/files/manual",
+          "output": "{\"status\":\"success\", \"id\": 4, \"path\":/home/its-a-feature/Desktop/file.txt\", \"complete\":True, \"total_chunks\":1, \"chunks_received\":1, \"deleted\":False, \"operator\":\"apfell_admin\", \"operation\":\"default\"}",
+          "parameters": [
+            {
+              "name": "local_path",
+              "description": "A boolean value indicating if this is a file local to Apfell yet or not",
+              "requirements": "This is a required field and should be True or False"
+            },
+            {
+              "name": "code",
+              "description": "Base64 encoded file that will be uploaded",
+              "requirements": "This is not a required parameter (since you can upload files via the web UI as well), but if this is provided, the \"filename\" parameter is required as well"
+            },
+            {
+              "name": "filename",
+              "description": "name of the file you're uploading",
+              "requirements": "This is not a required parameter (since you can upload files via the web UI as well), but this is required if \"code\" is provided"
+            },
+            {
+              "name": "path",
+              "description": "If the file is already local to the Apfell server, this is the path to that file",
+              "requirements": "This is a required parameter only if the \"local_path\" parameter is True"
             }
           ]
         }

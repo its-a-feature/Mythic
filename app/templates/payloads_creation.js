@@ -22,9 +22,7 @@ $( '#c2_profile' ).change(function(){
         //now potentially update the payload options section
     }
     else{
-        profile_parameters_table.c2_profile_parameters.length = 0;
         Vue.set(profile_parameters_table.c2_profile_parameters, []);
-        profile_parameters_table.payload_parameters.length = 0;
         Vue.set(profile_parameters_table.payload_parameters, []);
         $( '#payload_type' ).html('<option value="Select One">Select One...</option>');
         $( '#payload_commands' ).html("");

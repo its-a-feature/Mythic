@@ -571,6 +571,7 @@ class FileMeta(p.Model):
     operation = p.ForeignKeyField(Operation, null=False)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     deleted = p.BooleanField(null=False, default=False)
+    operator = p.ForeignKeyField(Operator, null=True)  # specify this in case it was a manual registration
 
     class Meta:
         database = apfell_db
@@ -584,6 +585,8 @@ class FileMeta(p.Model):
                     r['cmd'] = getattr(self, k).command.cmd
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'operator':
+                    r[k] = getattr(self, k).username
                 else:
                     r[k] = getattr(self, k)
             except:

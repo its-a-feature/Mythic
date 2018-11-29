@@ -121,6 +121,7 @@ async def register_new_payload_func(data, user):
         if create:
             for cmd in db_commands:
                 await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd])
+        #TODO if we didn't end up creating a new payload
     else:
         try:
             wrapped_payload = await db_objects.get(Payload, uuid=data['wrapped_payload'], operation=operation)
