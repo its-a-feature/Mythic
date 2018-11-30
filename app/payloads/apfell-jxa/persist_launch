@@ -45,7 +45,7 @@ exports.persist_launch = function(task, command, params){
         response = write_data_to_file(template, path);
     }
     else if(config.hasOwnProperty('LaunchPath') && config['LaunchPath'] != ""){
-        response = write_data_to_file(template, $(LaunchPath));
+        response = write_data_to_file(template, $(config['LaunchPath']));
     }
 
     return response;
