@@ -205,7 +205,32 @@
           "description": "This pulls down the payload specified by {url} and uses the shell_api to execute it in a background process. Right now this requires the \"shell_api\" command to also be loaded",
           "help_cmd": "spawn shell_api oneliner apfell-jxa {url}",
           "needs_admin": "false",
-          "parameters": []
+          "parameters": [
+            {
+              "name": "method",
+              "type": "Choice",
+              "required": "true",
+              "choices": "shell_api"
+            },
+            {
+              "name": "type",
+              "type": "Choice",
+              "required": "true",
+              "choices": "oneliner"
+            },
+            {
+              "name": "payload-type",
+              "type": "Choice",
+              "required": "true",
+              "choices": "apfell-jxa"
+            },
+            {
+              "name": "url",
+              "type": "String",
+              "required": "true",
+              "hint": "http://domain.com/payload.js"
+            }
+          ]
         },
         {
           "cmd": "download",
@@ -325,9 +350,21 @@
         {
           "cmd": "jsimport",
           "description": "import a JS file into memory from a remote address. Only one can be imported at a time.",
-          "help_cmd": "jsimport https://domain.com/file/to/import",
+          "help_cmd": "jsimport {\"url\": \"https://domain.com/file/to/import\"} or jsimport {\"file_id\": 5}",
           "needs_admin": "false",
-          "parameters": []
+          "parameters": [
+            {
+              "name": "url",
+              "type": "String",
+              "required": "false",
+              "hint": "URL to the file"
+            },
+            {
+              "name": "file_id",
+              "type": "Number",
+              "required": "false"
+            }
+          ]
         },
         {
           "cmd": "jsimport_call",

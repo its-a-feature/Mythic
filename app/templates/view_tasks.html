@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block body %}
+
+<h2>Operation {{current_operation}}'s Tasks</h2>
+
+<div id="tasks_div">
+    <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll" :class="callback.active ? 'panel panel-primary' : 'panel panel-warning'" id="'callback'+callback.id" :key="callback.id" v-show="Object.keys(callback.tasks).length > 0">
+        <div class="panel-heading" >Tasks for Callback: [[callback.user]]@[[callback.host]] with pid ([[callback.pid]]) <button v-if="!callback.active" class="btn btn-sm btn-success" @click="make_active(callback)">Make Callback Active</button></div>
+            <div :id="'tasks' + callback.id">
+                <div v-for="(t,i) in callback.tasks" :key="t.id">
+
+                    <button :id="'task' + t.id" class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_response(t, i)">[[t.operator]]: [[t.command]] [[t.params]]</button>
+                    <div :id="'response' + t.id" style="display:none">
+                        <span v-for="r in t.responses" :key="r.id" :id="'response' + r.id" style="white-space: pre-wrap">
+                            <font color="blue">([[r.timestamp]])</font>
+                            <font color="black">[[r.response]]</font>
+                        </span>
+                        <br>
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
+
+
+
+{% endblock %}
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "view_tasks.js" %}
+{% endblock %}

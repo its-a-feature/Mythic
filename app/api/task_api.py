@@ -1,10 +1,9 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response
+from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response, ATTACKId
 import datetime
 from sanic_jwt.decorators import protected, inject_user
 from app.api.utils import breakout_quoted_params
-import base64
 from app.api.transform_api import get_transforms_func
 from app.api.utils import TransformOperation
 import json as js
@@ -49,6 +48,39 @@ async def get_all_tasks_for_callback(request, cid, user):
                          'msg': str(e)})
     else:
         return json({'status': 'error', 'error': 'You must be part of the right operation to see this information'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/task_report_by_callback")
+@inject_user()
+@protected()
+async def get_all_tasks_by_callback_in_current_operation(request, user):
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Not part of an operation'})
+    output = []
+    callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+    for callback in callbacks:
+        c = callback.to_json()  # hold this callback, task, and response info to push to our output stack
+        c['tasks'] = []
+        tasks = await db_objects.execute(Task.select().where(Task.callback == callback))
+        for t in tasks:
+            t_data = t.to_json()
+            t_data['responses'] = []
+            t_data['attackids'] = []  # display the att&ck id numbers associated with this task if there are any
+            responses = await db_objects.execute(Response.select().where(Response.task == t))
+            for r in responses:
+                t_data['responses'].append(r.to_json())
+            attackids = await db_objects.execute(ATTACKId.select().where(
+                (ATTACKId.task == t) | (ATTACKId.cmd == t.command)
+            ))
+            for a in attackids:
+                t_data['attackids'].append()
+            # make it a set so we don't have duplicates from the command and some other method
+            t_data['attackids'] = set(t_data['attackids'])
+            c['tasks'].append(t_data)
+        output.append(c)
+    return json({'status': 'success', 'output': output})
 
 
 # We don't put @protected or @inject_user here since the callback needs to be able to call this function

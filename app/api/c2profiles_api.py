@@ -9,7 +9,7 @@ import shutil
 import os
 import json as js
 import base64
-from app.routes.routes import create_default_c2_for_operation
+from typing import List
 
 # this information is only valid for a single run of the server
 running_profiles = []  # will have dicts of process information
@@ -203,15 +203,61 @@ async def register_default_profile_operation(user_dict, operation_name):
         # we will recursively copy all of the default c2 profiles over in case there's more than one in the future
         profiles = await create_default_c2_for_operation(operation, operator, [payload_type])
         for p in profiles:
+            print("Creating profile files for: " + p.name)
             if os.path.exists("./app/c2_profiles/{}/{}".format(operation_name, p.name)):
                 shutil.rmtree("./app/c2_profiles/{}/{}".format(operation_name, p.name))
-            shutil.copytree("./app/c2_profiles/default/{}".format(p.name),
+            else:
+                try:
+                    os.makedirs("./app/c2_profiles/{}/".format(operation.name), exist_ok=True)
+                except:
+                    pass
+            shutil.copytree("./app/default_files/c2_profiles/{}".format(p.name),
                             "./app/c2_profiles/{}/{}".format(operation_name, p.name))
         status = {'status': 'success'}
         return{**status}
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': str(e)}
+
+
+async def create_default_c2_for_operation(operation: Operation, creator: Operator, payload_types: List[PayloadType]):
+    # create default restful c2 profile
+    c2_profile, created = await db_objects.get_or_create(C2Profile, name='default',
+                                                         description="Default RESTful C2 channel",
+                                                         operator=creator, operation=operation)
+    print("Created C2 Profile")
+    # create default c2 profile parameters
+    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
+                            ('callback port', 'callback_port', '80'),
+                            ('callback interval (in seconds)', 'callback_interval', '10'),
+                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
+    for name, key, hint in c2profile_parameters:
+        await db_objects.get_or_create(C2ProfileParameters, c2_profile=c2_profile, name=name, key=key, hint=hint)
+    print("Registered C2 Profile Parameters")
+    # create more modular c2 profile
+    pt_c2_profile, created = await db_objects.get_or_create(C2Profile, name='RESTful Patchthrough',
+                                                            description='Modify default RESTful interfaces for callback. Parameters must match up with server though (manual process)',
+                                                            operator=creator, operation=operation)
+    print("Created Patchthrough c2 profile")
+    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
+                            ('callback port', 'callback_port', '9000'),
+                            ('callback interval (in seconds)', 'callback_interval', '10'),
+                            ('Get a File (for load, download, and spawn)', 'GETFILE', '/download.php?file=*'),
+                            ('Get next task', 'GETNEXTTASK', '/admin.php?q=*'),
+                            ('ID Field (some string to represent where the ID goes in the URI)', 'IDSTRING', '*'),
+                            ('Post new callback info', 'NEWCALLBACK', '/login'),
+                            ('Post responses', 'POSTRESPONSE', '/upload.php?page=*'),
+                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
+    for name, key, hint in c2profile_parameters:
+        await db_objects.get_or_create(C2ProfileParameters, c2_profile=pt_c2_profile, name=name, key=key, hint=hint)
+    print("Created patchthrough c2 profile parameters")
+    for payload_type in payload_types:
+        await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type,
+                                       c2_profile=c2_profile)
+        await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type,
+                                       c2_profile=pt_c2_profile)
+    print("Registered apfell-jxa with the default c2 profile")
+    return [c2_profile, pt_c2_profile]
 
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/upload", methods=['POST'])

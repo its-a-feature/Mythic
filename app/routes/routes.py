@@ -10,8 +10,8 @@ import app.crypto as crypto
 from sanic_jwt import BaseEndpoint, utils, exceptions
 from sanic_jwt.decorators import protected, inject_user
 import json as js
-from typing import List
 from ipaddress import ip_address
+from app.api.c2profiles_api import register_default_profile_operation, create_default_c2_for_operation
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -257,46 +257,6 @@ async def setup_initial_info(app, loop):
     await initial_setup()
 
 
-async def create_default_c2_for_operation(operation: Operation, creator: Operator, payload_types: List[PayloadType]):
-    # create default restful c2 profile
-    c2_profile, created = await db_objects.get_or_create(C2Profile, name='default',
-                                                         description="Default RESTful C2 channel",
-                                                         operator=creator, operation=operation)
-    print("Created C2 Profile")
-    # create default c2 profile parameters
-    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
-                            ('callback port', 'callback_port', '80'),
-                            ('callback interval (in seconds)', 'callback_interval', '10'),
-                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
-    for name, key, hint in c2profile_parameters:
-        await db_objects.get_or_create(C2ProfileParameters, c2_profile=c2_profile, name=name, key=key, hint=hint)
-    print("Registered C2 Profile Parameters")
-    # create more modular c2 profile
-    pt_c2_profile, created = await db_objects.get_or_create(C2Profile, name='RESTful Patchthrough',
-                                                            description='Modify default RESTful interfaces for callback. Parameters must match up with server though (manual process)',
-                                                            operator=creator, operation=operation)
-    print("Created Patchthrough c2 profile")
-    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
-                            ('callback port', 'callback_port', '9000'),
-                            ('callback interval (in seconds)', 'callback_interval', '10'),
-                            ('Get a File (for load, download, and spawn)', 'GETFILE', '/download.php?file=*'),
-                            ('Get next task', 'GETNEXTTASK', '/admin.php?q=*'),
-                            ('ID Field (some string to represent where the ID goes in the URI)', 'IDSTRING', '*'),
-                            ('Post new callback info', 'NEWCALLBACK', '/login'),
-                            ('Post responses', 'POSTRESPONSE', '/upload.php?page=*'),
-                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
-    for name, key, hint in c2profile_parameters:
-        await db_objects.get_or_create(C2ProfileParameters, c2_profile=pt_c2_profile, name=name, key=key, hint=hint)
-    print("Created patchthrough c2 profile parameters")
-    for payload_type in payload_types:
-        await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type,
-                                       c2_profile=c2_profile)
-        await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type,
-                                       c2_profile=pt_c2_profile)
-    print("Registered apfell-jxa with the default c2 profile")
-    return c2_profile, pt_c2_profile
-
-
 async def initial_setup():
     # create apfell_admin
     operators = await db_objects.execute(Operator.select())
@@ -314,7 +274,8 @@ async def initial_setup():
     # create default payload types
     payload_type_apfell_jxa, created = await db_objects.get_or_create(PayloadType, ptype='apfell-jxa', operator=admin,
                                                                       file_extension=".js", wrapper=False)
-    c2_profile, pt_c2_profile = await create_default_c2_for_operation(operation, admin, [payload_type_apfell_jxa])
+    #c2_profile, pt_c2_profile = await create_default_c2_for_operation(operation, admin, [payload_type_apfell_jxa])
+    await register_default_profile_operation({"username": "apfell_admin"}, "default")
     # create the default transforms for apfell-jxa payloads
     jxa_load_transform = await db_objects.get_or_create(Transform, name="readCommands", t_type="load",
                                                         order=1, payload_type=payload_type_apfell_jxa,

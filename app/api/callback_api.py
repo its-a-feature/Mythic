@@ -107,9 +107,10 @@ async def update_callback(request, id, user):
         await db_objects.update(cal)
         success = {'status': 'success'}
         updated_cal = cal.to_json()
-        return json(**success, **updated_cal)
-    except:
-        return json({'status': 'error', 'error': 'failed to update callback'})
+        return json({**success, **updated_cal})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to update callback: ' + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['DELETE'])

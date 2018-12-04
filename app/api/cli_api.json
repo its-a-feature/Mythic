@@ -782,6 +782,12 @@
               "requirements": "The is the task ID number or the string \"all\" if you want to remove all currently not processed tasks for a specific callback. You must be either a global admin, operation admin, or the operator that issued the command to clear it."
             }
           ]
+        },
+        {
+          "GET": "API_BASE/task_report_by_callback",
+          "explanation": "Get all tasks and responses sorted by callback for the current operation. This is used for the view_tasks UI page",
+          "cli": "curl http://localhostAPI_BASE/task_report_by_callback",
+          "output": "{\"status\": \"success\", \"output\": [{callback info, \"tasks\": [{task info, \"responses\": [{response info}]}]}, {callback2, \"tasks\": [{task_info, \"responses\": [{response info}]}]}]}"
         }
       ]
     },

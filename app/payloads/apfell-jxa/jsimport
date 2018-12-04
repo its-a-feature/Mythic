@@ -1,6 +1,21 @@
 exports.jsimport = function(task,command,params){
     try{
-        var script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(params)),$.NSUTF8StringEncoding));
+        var config = JSON.parse(params);
+        if(config.hasOwnProperty("url") && config['url'] != ""){
+            var script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(config['url'])),$.NSUTF8StringEncoding));
+        }
+        else if(config.hasOwnProperty("file_id") && config['file_id'] > 0){
+            var script_data = C2.upload(task, config['file_id']);
+            if(typeof script_data == "string"){
+                return "Failed to get contents of that file";
+            }
+            var script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding(script_data, $.NSUTF8StringEncoding));
+            console.log(typeof script);
+            console.log(script);
+        }
+        else{
+            return "needs either a valid url or a file_id > 0 to pull down";
+        }
         jsimport = script;
         return "imported the script";
     }
