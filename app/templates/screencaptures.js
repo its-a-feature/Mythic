@@ -66,7 +66,7 @@ function startwebsocket_newscreenshots(){
         if (event.data != ""){
             screencapture = JSON.parse(event.data);
             screencapture['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/screencaptures/" + screencapture['id'];
-            screencapture_div.callbacks[screencapture['callback_id']]['screencaptures'].push(screencapture);
+            Vue.set(screencapture_div.callbacks[screencapture['callback_id']]['screencaptures'], screencapture_div.callbacks[screencapture['callback_id']]['screencaptures'].length, screencapture);
         }
         else{
             if(finished_newcallbacks == false){

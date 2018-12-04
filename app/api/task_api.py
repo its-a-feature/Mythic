@@ -59,21 +59,21 @@ async def get_all_tasks_by_callback_in_current_operation(request, user):
     except Exception as e:
         return json({'status': 'error', 'error': 'Not part of an operation'})
     output = []
-    callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+    callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation).order_by(Callback.id))
     for callback in callbacks:
         c = callback.to_json()  # hold this callback, task, and response info to push to our output stack
         c['tasks'] = []
-        tasks = await db_objects.execute(Task.select().where(Task.callback == callback))
+        tasks = await db_objects.execute(Task.select().where(Task.callback == callback).order_by(Task.id))
         for t in tasks:
             t_data = t.to_json()
             t_data['responses'] = []
             t_data['attackids'] = []  # display the att&ck id numbers associated with this task if there are any
-            responses = await db_objects.execute(Response.select().where(Response.task == t))
+            responses = await db_objects.execute(Response.select().where(Response.task == t).order_by(Response.id))
             for r in responses:
                 t_data['responses'].append(r.to_json())
             attackids = await db_objects.execute(ATTACKId.select().where(
                 (ATTACKId.task == t) | (ATTACKId.cmd == t.command)
-            ))
+            ).order_by(ATTACKId.id))
             for a in attackids:
                 t_data['attackids'].append()
             # make it a set so we don't have duplicates from the command and some other method

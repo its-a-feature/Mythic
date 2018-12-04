@@ -4,7 +4,7 @@
 <h2>Operation {{current_operation}}'s Screencaptures</h2>
 
 <div id="screencapture_div">
-    <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll" class="panel panel-primary" id="'callback'+callback.id" :key="callback.id" v-show="Object.keys(callback.screencaptures).length > 0">
+    <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll" class="panel panel-primary" :id="'callback'+callback.id" :key="callback.id" v-show="Object.keys(callback.screencaptures).length > 0">
         <div class="panel-heading" >[[callback.display]] Screencaptures</div>
             <div :id="'screencaptures' + callback.id">
                 <div v-for="(image,i) in callback.screencaptures" :key="image.id">

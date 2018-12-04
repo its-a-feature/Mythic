@@ -605,7 +605,7 @@ async def ws_screenshots(request, ws, user):
                     await cur.execute('LISTEN "newfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     operation = await db_objects.get(Operation, name=user['current_operation'])
-                    files = await db_objects.execute(FileMeta.select().where(FileMeta.operation == operation))
+                    files = await db_objects.execute(FileMeta.select().where(FileMeta.operation == operation).order_by(FileMeta.id))
                     for f in files:
                         if "{}/downloads/".format(user['current_operation']) in f.path and "/screenshots/" in f.path:
                             await ws.send(js.dumps({**f.to_json(), 'callback_id': f.task.callback.id, 'operator': f.task.operator.username}))
