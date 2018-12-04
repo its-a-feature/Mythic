@@ -10,8 +10,6 @@ exports.jsimport = function(task,command,params){
                 return "Failed to get contents of that file";
             }
             var script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding(script_data, $.NSUTF8StringEncoding));
-            console.log(typeof script);
-            console.log(script);
         }
         else{
             return "needs either a valid url or a file_id > 0 to pull down";
