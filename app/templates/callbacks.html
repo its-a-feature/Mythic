@@ -20,7 +20,7 @@
                 <td><b>Description</b></td>
             </tr>
         <!-- Repeat this for each callback -->
-            <tr v-for="callback in callbacks" :key="callback.id" v-bind:style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" >
+            <tr v-for="callback in callbacks" :key="callback.id" :style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" >
                 <td>
                     <!-- Split button -->
                     <div class="btn-group dropdown">
@@ -60,27 +60,28 @@
     <!-- Tabs at the bottom of the screen - just the names at the top though-->
     <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
         <li v-for="metadata in meta" v-if="metadata.tasks" role="button" key="metadata.id">
-            <a v-bind:id="'tasks' + metadata.id + 'tab'" v-bind:href="'#tasks' + metadata.id" v-bind:aria-controls="'tasks' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]] <span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
+            <a :id="'tasks' + metadata.id + 'tab'" :href="'#tasks' + metadata.id" :aria-controls="'tasks' + metadata.id" :style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">[[metadata.display]] <span class="btn btn-sm btn-danger" @click="console_tab_close(metadata)">X</span></a>
         </li>
         <li v-for="metadata in meta" v-if="metadata.screencaptures" role="button">
-            <a v-bind:href="'#screencaptures' + metadata.id" v-bind:aria-controls="'screencaptures' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
+            <a :href="'#screencaptures' + metadata.id" :aria-controls="'screencaptures' + metadata.id" :style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn-danger" @click="screencaptures_tab_close(metadata)">X</span></a>
         </li>
         <li v-for="metadata in meta" v-if="metadata.keylogs" role="button">
-            <a v-bind:href="'#keylogs' + metadata.id" v-bind:aria-controls="'keylogs' + metadata.id" v-bind:style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Keylogs <span class="btn btn-sm btn-danger" @click="keylog_tab_close(metadata)">X</span></a>
+            <a :href="'#keylogs' + metadata.id" :aria-controls="'keylogs' + metadata.id" :style="metadata.selected ? 'background-color:' + shadeBlend(.5, metadata.bg_color) : 'background-color:' + shadeBlend(0.88, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Keylogs <span class="btn btn-sm btn-danger" @click="keylog_tab_close(metadata)">X</span></a>
         </li>
     </ul>
     <!-- Now actually deal with the content in each tab-->
     <div class="tab-content" id="bottom-tabs-content" style="overflow:scroll;resize:vertical;height:600px">
         <!-- REPEAT for each task for the specific callback that's selected -->
-        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.tasks" v-bind:id="'tasks' + metadata.id" >
-            <div v-bind:id="'tasks' + metadata.id + 'data'" >
-                <div class="well well-sm" v-for="task in metadata.data" :key="task.id" v-bind:id="'task' + task.id">
+        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.tasks" :id="'tasks' + metadata.id" >
+            <div :id="'tasks' + metadata.id + 'data'" >
+                <div class="well well-sm" v-for="task in metadata.data" :key="task.id" :id="'task' + task.id">
                     <font color="green">([[task.operator]])</font>&nbsp;
                     <font color="red">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</font>
                     [[task.command]]&nbsp;[[task.params]]<br>
-                    <span v-for="rsp in task.response" :key="rsp.id" v-bind:id="'response' + rsp.id" style="white-space: pre-wrap">
+                    <span v-for="rsp in task.response" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap">
                         <font color="blue">([[rsp.timestamp]])</font>
                         <font color="black">[[rsp.response]]</font>
+                        <br>
                     </span>
                     <br>
                 </div>
@@ -88,18 +89,18 @@
         </div>
         <!-- END REPEAT-->
         <!-- REPEAT FOR SCREENCAPTURE INFORMATION -->
-        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.screencaptures" v-bind:id="'screencaptures' + metadata.id">
-            <div  v-bind:id="'screencaptures' + metadata.id + 'view'">
-                <div v-for="image,i in metadata.images">
-                    <button v-bind:id='image.remote_path' class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_image(image)">[[image.path.split("/").slice(-1).toString()]]</button>
+        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.screencaptures" :id="'screencaptures' + metadata.id">
+            <div  :id="'screencaptures' + metadata.id + 'view'">
+                <div v-for="image,i in metadata.images" :key="image.id">
+                    <button :id='image.remote_path' class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_image(image)">[[image.operator]]'s screencapture at [[image.path.split("/").slice(-1).toString()]]</button>
                       <img :src='image.remote_path' width="100%" height="100%" style="display:none">
                 </div>
             </div>
         </div>
         <!-- END REPEAT-->
         <!-- REPEAT FOR KEYLOG INFORMATION -->
-        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.keylogs" v-bind:id="'keylogs' + metadata.id">
-            <div  v-bind:id="'keylogs' + metadata.id + 'view'">
+        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.keylogs" :id="'keylogs' + metadata.id">
+            <div  :id="'keylogs' + metadata.id + 'view'">
                 <div v-for="log,i in metadata.keylog_data">
                     Keystrokes from <font color="red">[[log.user]]</font> in window <font color="green">[[log.window]]</font><br>
                     <font color="blue">([[log.timestamp]])</font>
@@ -112,7 +113,7 @@
     <div class="panel-footer" >
         <div class="input-group mb-3">
             <input id="commandline" type="text" class="form-control" v-model="input_field"
-                   v-bind:placeholder="input_field_placeholder.data" aria-describedby="basic-addon1"
+                   :placeholder="input_field_placeholder.data" aria-describedby="basic-addon1"
                    @keyup.enter="task_button(input_field_placeholder)" @keyup.up="cmd_history_up(input_field_placeholder)" @keyup.down="cmd_history_down(input_field_placeholder)">
             <span class="input-group-btn">
                 <button type="button" class="btn btn-danger" @click="task_button(input_field_placeholder)">Submit Task</button>

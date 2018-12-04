@@ -1,0 +1,15 @@
+exports.rm = function(task, command, params){
+    ObjC.import('Foundation');
+    try{
+        var fileManager = $.NSFileManager.defaultManager;
+        if(params[0] == '"'){
+            params = params.substring(1, params.length-1);
+        }
+        var error = Ref();
+        fileManager.removeItemAtPathError($(params), error);
+        return "Removed file";
+    }catch(error){
+        return error.toString();
+    }
+
+};

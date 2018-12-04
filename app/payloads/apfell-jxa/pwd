@@ -1,0 +1,9 @@
+exports.pwd = function(task, command, params){
+    try{
+        var fileManager = $.NSFileManager.defaultManager;
+        var cwd = fileManager.currentDirectoryPath;
+        return cwd.js;
+    }catch(error){
+        return error.toString();
+    }
+};

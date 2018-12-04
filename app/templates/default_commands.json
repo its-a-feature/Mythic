@@ -533,6 +533,27 @@
               "required": "true"
             }
           ]
+        },
+        {
+          "cmd": "pwd",
+          "description": "Prints the current working directory for the agent",
+          "help_cmd": "pwd",
+          "needs_admin": "false",
+          "parameters": []
+        },
+        {
+          "cmd": "cd",
+          "description": "Change the current working directory to another directory",
+          "help_cmd": "cd {path}",
+          "needs_admin": "false",
+          "parameters": []
+        },
+        {
+          "cmd": "rm",
+          "description": "Remove a file",
+          "help_cmd": "rm {file path}",
+          "needs_admin": "false",
+          "parameters": []
         }
       ]
     }

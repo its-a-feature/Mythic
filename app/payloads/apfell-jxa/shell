@@ -3,6 +3,9 @@ exports.shell = function(task, command, params){
 	var response = ""; 
 	try{
 		response = currentApp.doShellScript(params);
+		if(response == undefined || response == ""){
+		    response = "No Command Output";
+		}
 	}
 	catch(error){
 		response = error.toString();

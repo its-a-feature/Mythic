@@ -1,11 +1,19 @@
 exports.ls = function(task, command, params){
     ObjC.import('Foundation');
     var fileManager = $.NSFileManager.defaultManager;
-    var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(params), $()));
+    var error = Ref();
+    var path = params;
+    if(params == "" || params == undefined){
+        path = fileManager.currentDirectoryPath.js;
+    }
+    if(path[0] == '"'){
+        path = path.substring(1, path.length-1);
+    }
+    var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path), error));
     if(attributes != undefined){
         if(attributes.hasOwnProperty('NSFileType') && attributes['NSFileType'] == "NSFileTypeDirectory"){
             var error = Ref();
-            var files = fileManager.contentsOfDirectoryAtPathError($(params), error);
+            var files = fileManager.contentsOfDirectoryAtPathError($(path), error);
             if(error[0].js == $().js){
                 attributes['files'] = ObjC.deepUnwrap(files);
             }

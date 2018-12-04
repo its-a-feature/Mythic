@@ -1,0 +1,13 @@
+exports.cd = function(task, command, params){
+    try{
+        var fileManager = $.NSFileManager.defaultManager;
+        var success = fileManager.changeCurrentDirectoryPath(params);
+        if(success){
+            return "New cwd: " + fileManager.currentDirectoryPath.js;
+        }else{
+            return "Failed to change directory";
+        }
+    }catch(error){
+        return error.toString();
+    }
+};
