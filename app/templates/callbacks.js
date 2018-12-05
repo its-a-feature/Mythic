@@ -441,9 +441,12 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
             if(callbacks[rsp.id]){
                 callbacks[rsp.id]['last_checkin'] = rsp['last_checkin'];
                 callbacks[rsp.id]['active'] = rsp['active'];
-                task_data.meta[rsp.id]['tasks'] = false;
-                task_data.meta[rsp.id]['screencaptures'] = false;
-                task_data.meta[rsp.id]['keylogs'] = false;
+                if(rsp['active'] == false){
+                    task_data.meta[rsp.id]['tasks'] = false;
+                    task_data.meta[rsp.id]['screencaptures'] = false;
+                    task_data.meta[rsp.id]['keylogs'] = false;
+                }
+
             }
         }
     }
