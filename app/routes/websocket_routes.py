@@ -207,7 +207,7 @@ async def ws_callbacks_current_operation(request, ws, user):
                     if user['current_operation'] != "":
                         # before we start getting new things, update with all of the old data
                         operation = await db_objects.get(Operation, name=user['current_operation'])
-                        callbacks = Callback.select().where( (Callback.operation == operation) & (Callback.active == True))
+                        callbacks = Callback.select().where(Callback.operation == operation)
                         operators = Operator.select()
                         callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                         for cb in callbacks_with_operators:
@@ -219,9 +219,8 @@ async def ws_callbacks_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = (js.loads(msg.payload))['id']
-                                cb = await db_objects.get(Callback, id=id)
-                                if cb.operation.name == user['current_operation']:
-                                    await ws.send(js.dumps(cb.to_json()))
+                                cb = await db_objects.get(Callback, id=id, operation=operation)
+                                await ws.send(js.dumps(cb.to_json()))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(2)
                                 await ws.send("") # this is our test to see if the client is still there
@@ -235,8 +234,9 @@ async def ws_callbacks_current_operation(request, ws, user):
 
 # notifications for updated callbacks
 @apfell.websocket('/ws/updatedcallbacks')
+@inject_user()
 @protected()
-async def ws_updated_callbacks(request, ws):
+async def ws_updated_callbacks(request, ws, user):
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -274,15 +274,15 @@ async def ws_callbacks_updated_current_operation(request, ws, user):
                     await cur.execute('LISTEN "updatedcallback";')
                     if user['current_operation'] != "":
                         # just want updates, not anything else
+                        operation = await db_objects.get(Operation, name=user['current_operation'])
                         while True:
                             # msg = await conn.notifies.get()
                             try:
                                 msg = conn.notifies.get_nowait()
                                 # print("got an update for a callback")
                                 id = (js.loads(msg.payload))['id']
-                                cb = await db_objects.get(Callback, id=id)
-                                if cb.operation.name == user['current_operation']:
-                                    await ws.send(js.dumps(cb.to_json()))
+                                cb = await db_objects.get(Callback, id=id, operation=operation)
+                                await ws.send(js.dumps(cb.to_json()))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(2)
                                 await ws.send("") # this is our test to see if the client is still there

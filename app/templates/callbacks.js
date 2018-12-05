@@ -13,22 +13,33 @@ var callback_table = new Vue({
     },
     methods: {
         interact_button: function(callback){
-            //url = "http://localhost/api/v1.0/tasks/callback/" + callback['id'];
-            //httpGetAsync(url, display_callback_tasks);
-            if ( callback.id in all_tasks ){
-                //task_data.tasks = all_tasks[callback.id];
-                meta[callback.id].data = all_tasks[callback.id];
-            }
-            else{
-                //Vue.set(task_data, tasks, [])
-                //Vue.set(all_tasks, callback.id, []);
-                meta[callback.id].data = all_tasks[callback.id];
-                //task_data.tasks = [];
-            }
+            //get the data from teh background process (all_tasks) into the bottom tab that's being loaded (task_data.meta)
+            Vue.set(task_data.meta[callback.id], 'data', all_tasks[callback.id] );
+            Object.keys(task_data.meta).forEach(function(key){
+                Vue.set(task_data.meta[key], 'selected', false);
+            });
+            Object.keys(this.callbacks).forEach(function(key){
+                Vue.set(this.callbacks[key], 'selected', false);
+            });
+            Vue.set(task_data.meta[callback.id], 'selected', true);
+            Vue.set(callback_table.callbacks[callback['id']], 'selected', true);
+
             task_data.input_field_placeholder['data'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
             task_data.input_field_placeholder['cid'] = callback.id;
-            meta[callback.id]['tasks'] = true;
-            meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
+            Vue.set(task_data.meta[callback.id], 'tasks', true);
+            task_data.meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
+            $('#tasks' + callback.id.toString() + 'tab').click();
+        },
+        edit_description: function(callback){
+            $( '#editDescriptionText' ).val(callback.description);
+            $( '#editDescriptionModal' ).modal('show');
+            $( '#editDescriptionSubmit' ).unbind('click').click(function(){
+                var newDescription = $( '#editDescriptionText' ).val();
+                if(newDescription != callback.description){
+                    //only bother sending the update request if the description is actually different
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],edit_description_callback,"PUT", {"description": newDescription});
+                }
+            });
         },
         spawn_menu: function(callback){
             //display a modal menu for the user to get some information about spawning a new callback
@@ -81,6 +92,7 @@ var callback_table = new Vue({
         hide_tasks: function(callback){
             meta[callback.id]['tasks'] = false;
             meta[callback.id]['screencaptures'] = false;
+            meta[callback.id]['keylogs'] = false;
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
@@ -89,10 +101,10 @@ var callback_table = new Vue({
         },
         remove_callback: function(callback){
             //remove callback from our current view until we potentially get a checkin from it
-            meta[callback.id]['tasks'] = false;
-            meta[callback.id]['screencaptures'] = false;
-            this.$delete(meta, callback.id);
-            this.$delete(callbacks, callback.id);
+            //meta[callback.id]['tasks'] = false;
+            //meta[callback.id]['screencaptures'] = false;
+            //this.$delete(meta, callback.id);
+            //this.$delete(callbacks, callback.id);
             //update the callback to be active=false
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
         },
@@ -109,6 +121,14 @@ var callback_table = new Vue({
     },
     delimiters: ['[[',']]']
 });
+function edit_description_callback(response){
+    var data = JSON.parse(response);
+    if(data['status'] != 'success'){
+        alertTop("danger", data['error']);
+    }
+    // if we were successful, the update callback websocket will get the data and update the UI
+
+}
 var task_data = new Vue({
     el: '#bottom-data',
     data: {
@@ -199,7 +219,7 @@ var task_data = new Vue({
             }
         },
         console_tab_close: function(metadata){
-            var tabContentId = document.getElementById('tasks' + metadata.id + "tab");
+            //var tabContentId = document.getElementById('tasks' + metadata.id + "tab");
             //$(this).parent().parent().hide(); //remove li of tab
             //$('#myTab a:last').tab('show'); // Select first tab
             //$(tabContentId).hide(); //remove respective tab content
@@ -231,8 +251,6 @@ var task_data = new Vue({
             var index = meta[cid]['history_index'];
             this.input_field = meta[cid]['history'][index];
         }
-
-
     },
     delimiters: ['[[', ']]'],
     updated: function(){
@@ -293,9 +311,9 @@ function startwebsocket_callbacks(){
 
             cb = JSON.parse(event.data);
             //console.log(cb);
-            if(cb['active'] == false){
-                return; //don't process this if the callback is no longer active
-            }
+            //if(cb['active'] == false){
+            //    return; //don't process this if the callback is no longer active
+            //}
             if (cb.hasOwnProperty('operator')){
                 if (cb['operator'] == "null"){
                     delete cb.operator;
@@ -319,7 +337,8 @@ function startwebsocket_callbacks(){
                                                'screencaptures': false,
                                                'bg_color': color,
                                                'history': [],
-                                               'history_index': 0});
+                                               'history_index': 0,
+                                               'keylogs': false});
             // check to see if we have this payload type in our list, if not, request the commands for it
             if( !ptype_cmd_params.hasOwnProperty(cb['payload_type'])){
                 ptype_cmd_params[cb['payload_type']] = [];
@@ -419,11 +438,13 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
     ws.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);
-            if(callbacks[rsp['id']]){
-                callbacks[rsp['id']]['last_checkin'] = rsp['last_checkin'];
+            if(callbacks[rsp.id]){
+                callbacks[rsp.id]['last_checkin'] = rsp['last_checkin'];
+                callbacks[rsp.id]['active'] = rsp['active'];
+                task_data.meta[rsp.id]['tasks'] = false;
+                task_data.meta[rsp.id]['screencaptures'] = false;
+                task_data.meta[rsp.id]['keylogs'] = false;
             }
-	    // we ned to handle the case where something was not active, so we didn't populate it in the global tables, but it called back in and got updated
-	    //TODO
         }
     }
 };
@@ -437,10 +458,10 @@ function updateClocks(){
     }
 }
 function timeConversion(millisec){
-    var seconds = Math.trunc(((millisec / 1000).toFixed(1)) % 60);
-    var minutes = Math.trunc(((millisec / (1000 * 60)).toFixed(1)) % 60);
-    var hours = Math.trunc(((millisec / (1000 * 60 * 60)).toFixed(1)) % 24);
-    var days = Math.trunc(((millisec / (1000 * 60 * 60 * 24)).toFixed(1)) % 365);
+    var seconds = Math.trunc(((millisec / 1000)) % 60);
+    var minutes = Math.trunc(((millisec / (1000 * 60))) % 60);
+    var hours = Math.trunc(((millisec / (1000 * 60 * 60))) % 24);
+    var days = Math.trunc(((millisec / (1000 * 60 * 60 * 24))) % 365);
     return days + ":" + hours + ":" + minutes + ":" + seconds;
 }
 function generate_background_color(){

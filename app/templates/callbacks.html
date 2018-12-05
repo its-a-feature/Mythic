@@ -20,7 +20,7 @@
                 <td><b>Description</b></td>
             </tr>
         <!-- Repeat this for each callback -->
-            <tr v-for="callback in callbacks" :key="callback.id" :style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" >
+            <tr v-for="callback in callbacks" :key="callback.id" :style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" v-if="callback.active">
                 <td>
                     <!-- Split button -->
                     <div class="btn-group dropdown">
@@ -33,6 +33,7 @@
                           <li><a @click="show_keylogs(callback)" href="#">Keystrokes</a></li>
                           <li><a @click="show_screencaptures(callback)" href="#">Screencaptures</a></li>
                           <li hidden><a @click="spawn_menu(callback)" href="#">spawn menu</a></li>
+                          <li><a @click="edit_description(callback)" href="#">Edit Description</a></li>
                           <li role="separator" class="divider"></li>
                           <li><a @click="hide_tasks(callback)" href="#">Hide Tabs</a></li>
                           <li role="separator" class="divider"></li>
@@ -209,6 +210,25 @@
     </div>
 </div>
 <!-- END MODAL FOR PROMPTING FOR COMMAND PARAMETERS -->
+<!-- THIS IS OUR MODEL FOR EDITING DESCRIPTION -->
+<div class="modal fade bs-example-modal-md" id="editDescriptionModal" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Edit Description</h3>
+            </div>
+              <div class="modal-body">
+                  <input class="text" size="60" id="editDescriptionText">
+              </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="editDescriptionSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODEL FOR EDITING DESCRIPTION -->
 {% endblock %}
 
 {% block scripts %}
