@@ -15,5 +15,5 @@ exports.chrome_tabs = function(task, command, params){
 	}catch(error){
 		return error.toString();
 	}
-	return JSON.stringify(tabs);
+	return JSON.stringify(tabs, null, 2);
 };

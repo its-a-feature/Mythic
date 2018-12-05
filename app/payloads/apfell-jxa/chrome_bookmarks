@@ -18,5 +18,5 @@ exports.chrome_bookmarks = function(task, command, params){
 	}catch(error){
 		return error.toString();
 	}
-	return JSON.stringify(all_data);
+	return JSON.stringify(all_data, null, 2);
 };
