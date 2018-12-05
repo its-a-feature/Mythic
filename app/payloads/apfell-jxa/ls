@@ -10,14 +10,42 @@ exports.ls = function(task, command, params){
         path = path.substring(1, path.length-1);
     }
     var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path), error));
+    var nsposix = attributes['NSFilePosixPermissions'];
+    // we need to fix this mess to actually be real permission bits that make sense
+    var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+    attributes['NSFilePosixPermissions'] = posix;
     if(attributes != undefined){
         if(attributes.hasOwnProperty('NSFileType') && attributes['NSFileType'] == "NSFileTypeDirectory"){
             var error = Ref();
             var files = fileManager.contentsOfDirectoryAtPathError($(path), error);
             if(error[0].js == $().js){
-                attributes['files'] = ObjC.deepUnwrap(files);
+                var files_data = [];
+                var sub_files = ObjC.deepUnwrap(files);
+                if(path[path.length-1] != "/"){
+                    path = path + "/";
+                }
+                for(var i = 0; i < sub_files.length; i++){
+                    var attr = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path + sub_files[i]), error));
+                    var file_add = sub_files[i];
+                    if(attr['NSFileType'] ==  "NSFileTypeDirectory"){
+                        file_add = file_add + "/";
+                    }
+                    var nsposix = attr['NSFilePosixPermissions'];
+                    // we need to fix this mess to actually be real permission bits that make sense
+                    var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+                    file_add = file_add + " - " + posix + " - " + attr['NSFileOwnerAccountName'] + "(" + attr['NSFileOwnerAccountID'] +
+                        "):" + attr['NSFileGroupOwnerAccountName'] + "(" + attr['NSFileGroupOwnerAccountID'] + ")";
+                    if(attr['NSFileExtensionHidden']){
+                        file_add = file_add + " File Extension Hidden";
+                    }
+                    files_data.push(file_add);
+                }
+                attributes['files'] = files_data;
             }
         }
+        delete attributes['NSFileSystemFileNumber'];
+        delete attributes['NSFileSystemNumber'];
+        delete attributes['NSFileType'];
         return JSON.stringify(attributes, null, 2);
     }
     return "Failed to get attributes of file";
