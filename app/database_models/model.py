@@ -487,7 +487,7 @@ class Callback(p.Model):
                     r['c2_profile'] = getattr(self, k, ).c2_profile.name
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
-                elif k == 'encryption_key' or k == 'decryption_key':
+                elif k == 'encryption_key' or k == 'decryption_key' or k == 'encryption_type':
                     pass  # we don't need to include these things all over the place, explicitly ask for them for more control
                 else:
                     r[k] = getattr(self, k)

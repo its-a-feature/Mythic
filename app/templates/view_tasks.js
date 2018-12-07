@@ -8,11 +8,17 @@ var tasks_div = new Vue({
     },
     methods: {
         toggle_response: function(task, index){
-            var img = document.getElementById("task" + task.id).nextElementSibling;
-            if (img.style.display === "") {
-                img.style.display = "none";
-            } else {
-                img.style.display = "";
+            if(task.hasOwnProperty('responses')){
+                this.$delete(task,'responses');
+            }
+            else{
+                var responses = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/responses/by_task/" + task['id']));
+                if(responses.hasOwnProperty("status")){
+                    alertTop("danger", responses['error']);
+                }
+                else{
+                    Vue.set(task, 'responses', responses);
+                }
             }
         },
         make_active: function(callback){
@@ -21,18 +27,6 @@ var tasks_div = new Vue({
     },
     delimiters: ['[[', ']]']
 });
-httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/task_report_by_callback/" , initialize_data_callback, "GET", null);
-function initialize_data_callback(response){
-    var data = JSON.parse(response);
-    if(data['status'] == "success"){
-        for(var i = 0; i < data['output'].length; i++){
-            Vue.set(tasks_div.callbacks, i, data['output'][i]);
-        }
-    }
-    else{
-        alertTop("danger", data['error']);
-    }
-};
 function make_active_callback(response){
     var data = JSON.parse(response);
     if(data['status'] == 'success'){
@@ -47,3 +41,29 @@ function make_active_callback(response){
         alertTop("danger", data['error']);
     }
 };
+function startwebsocket_callbacks(){
+    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
+    ws.onmessage = function(event){
+        if (event.data != ""){
+            var data = JSON.parse(event.data);
+            data['tasks'] = [];
+            tasks_div.callbacks.push(data); // just add the new callback info to the list
+            // now request that callback's tasks and we can update it
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['id'] , get_callback_tasks_callback, "GET", null);
+        }
+    };
+}; startwebsocket_callbacks();
+function get_callback_tasks_callback(response){
+    if(response != "" && response != undefined){
+        var data = JSON.parse(response);
+        if(data.length > 0){
+            for(var i = 0; i < tasks_div.callbacks.length; i++){
+                if(tasks_div.callbacks[i]['id'] == data[0]['callback']){
+                    Vue.set(tasks_div.callbacks[i], 'tasks', data);
+                    return;
+                }
+            }
+        }
+    }
+
+}

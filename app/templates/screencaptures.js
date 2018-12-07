@@ -12,8 +12,10 @@ var screencapture_div = new Vue({
                 var img = document.getElementById("image" + image.id).nextElementSibling;
                 if (img.style.display === "") {
                     img.style.display = "none";
+                    img.src = '#';
                 } else {
                     img.style.display = "";
+                    img.src = image['remote_path'];
                 }
             }
             else {

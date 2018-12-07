@@ -10,10 +10,6 @@ exports.ls = function(task, command, params){
         path = path.substring(1, path.length-1);
     }
     var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path), error));
-    var nsposix = attributes['NSFilePosixPermissions'];
-    // we need to fix this mess to actually be real permission bits that make sense
-    var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
-    attributes['NSFilePosixPermissions'] = posix;
     if(attributes != undefined){
         if(attributes.hasOwnProperty('NSFileType') && attributes['NSFileType'] == "NSFileTypeDirectory"){
             var error = Ref();
@@ -46,6 +42,10 @@ exports.ls = function(task, command, params){
         delete attributes['NSFileSystemFileNumber'];
         delete attributes['NSFileSystemNumber'];
         delete attributes['NSFileType'];
+        var nsposix = attributes['NSFilePosixPermissions'];
+        // we need to fix this mess to actually be real permission bits that make sense
+        var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+        attributes['NSFilePosixPermissions'] = posix;
         return JSON.stringify(attributes, null, 2);
     }
     return "Failed to get attributes of file";

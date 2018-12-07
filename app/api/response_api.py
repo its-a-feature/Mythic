@@ -28,6 +28,19 @@ async def get_all_responses(request, user):
     return json(responses)
 
 
+@apfell.route(apfell.config['API_BASE'] + "/responses/by_task/<id:int>", methods=['GET'])
+@inject_user()
+@protected()
+async def get_all_responses_for_task(request, user, id):
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        task = await db_objects.get(Task, id=id)
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to get operation or task'})
+    responses = await db_objects.execute(Response.select().where(Response.task == task).order_by(Response.id))
+    return json([r.to_json() for r in responses])
+
+
 # Get a single response
 @apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['GET'])
 @inject_user()

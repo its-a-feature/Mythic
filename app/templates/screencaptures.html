@@ -10,7 +10,7 @@
                 <div v-for="(image,i) in callback.screencaptures" :key="image.id">
                     <div v-if="image.complete">
                         <button :id="'image' + image.id" class="accordion" style="background-color: #eee;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_image(image)">[[image.operator]]'s screencapture: [[image.path.split("/").slice(-1).toString()]]</button>
-                        <img :src='image.remote_path' width="100%" height="100%" style="display:none">
+                        <img src='#' width="100%" height="100%" style="display:none">
                     </div>
                     <div v-else>
                         <button :id="'image' + image.id" class="accordion" style="background-color: #ffd8d8;color: #444;cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;border: 2px solid #ADD8E6" @click="toggle_image(image)">[[image.operator]]'s screencapture: [[image.path.split("/").slice(-1).toString()]]. Parts [[image.chunks_received]] of [[image.total_chunks]] received so far.</button>

@@ -6,20 +6,6 @@ var files_div = new Vue({
         hosts
     },
     methods: {
-        toggle_file: function(file){
-            if (file['complete']){
-                var link = document.getElementById("file" + file.id).nextElementSibling;
-                if (link.style.display === "") {
-                    link.style.display = "none";
-                } else {
-                    link.style.display = "";
-                }
-            }
-            else {
-                    alertTop("warning", "File not complete. - we have " + file.chunks_received + " out of " + file.total_chunks + " total chunks.");
-                }
-
-        }
     },
     delimiters: ['[[',']]']
 });

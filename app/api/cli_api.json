@@ -456,6 +456,12 @@
           "explanation": "Get the encryption information associated with the specified callback in the user's current operation",
           "cli": "curl http://localhostAPI_BASE/callbacks/1/keys",
           "output": "{\"status\": \"success\", \"encryption_type\": \"xor\", \"decryption_key\": \"mysecretkey\",\"encryption_key\": \"mysecretkey\"}"
+        },
+        {
+          "GET": "API_BASE/callbacks/(id:INTEGER)/all_tasking",
+          "explanation": "Get all tasking and responses for a given callback",
+          "cli": "curl http://localhostAPI_BASE/callbacks/3/all_tasking",
+          "output": "{\"status\":\"success\", callback_info_here, \"tasks\":[{task_info, \"responses\":[{response_info},{response_info2}]},{task_info2, \"responses\":[{response_info}]}]}"
         }
       ]
     },

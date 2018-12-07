@@ -48,6 +48,7 @@ async def ws_tasks(request, ws):
 @inject_user()
 @protected()
 async def ws_tasks_current_operation(request, ws, user):
+    viewing_callbacks = set()  # this is a list of callback IDs that the operator is viewing, so only update those
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -55,30 +56,30 @@ async def ws_tasks_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newtask";')
                     if user['current_operation'] != "":
                         operation = await db_objects.get(Operation, name=user['current_operation'])
-                        # before we start getting new things, update with all of the old data
-                        callbacks = Callback.select().where(Callback.operation == operation)
-                        operators = Operator.select()
-                        tasks = Task.select()
-                        tasks_with_all_info = await db_objects.prefetch(tasks, callbacks, operators)
-                        # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
-                        for task in [x for x in tasks_with_all_info if x.callback.active == True]:
-                            await ws.send(js.dumps(task.to_json()))
-                        await ws.send("")
-                        # now pull off any new tasks we got queued up while processing the old data
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = (js.loads(msg.payload))['id']
                                 tsk = await db_objects.get(Task, id=id)
-                                if tsk.callback.operation == operation:
+                                if tsk.callback.operation == operation and tsk.callback.id in viewing_callbacks:
                                     await ws.send(js.dumps(tsk.to_json()))
                             except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(2)
+                                await asyncio.sleep(0.5)
                                 await ws.send("")  # this is our test to see if the client is still there
-                                continue
                             except Exception as e:
                                 print(e)
                                 return
+                            try:
+                                msg = await ws.recv()
+                                if msg != "":
+                                    if msg[0] == "a":
+                                        viewing_callbacks.add(int(msg[1:]))
+                                    elif msg[0] == "r":
+                                        viewing_callbacks.remove(int(msg[1:]))
+                            except Exception as e:
+                                print(e)
+
+
     finally:
         # print("closed /ws/tasks")
         pool.close()
@@ -125,6 +126,7 @@ async def ws_responses(request, ws):
 @inject_user()
 @protected()
 async def ws_responses_current_operation(request, ws, user):
+    viewing_callbacks = set()  # this is a list of callback IDs that the operator is viewing, so only update those
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -132,29 +134,29 @@ async def ws_responses_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newresponse";')
                     if user['current_operation'] != "":
                         operation = await db_objects.get(Operation, name=user['current_operation'])
-                        responses = Response.select()
-                        tasks = Task.select()
-                        callbacks = Callback.select().where(Callback.operation == operation)
-                        responses_with_tasks = await db_objects.prefetch(responses, tasks, callbacks)
-                        for resp in responses_with_tasks:
-                            await ws.send(js.dumps(resp.to_json()))
-                        await ws.send("")
-                        # now pull off any new responses we got queued up while processing old responses
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = (msg.payload)
                                 rsp = await db_objects.get(Response, id=id)
-                                if rsp.task.callback.operation.name == user['current_operation']:
+                                if rsp.task.callback.operation == operation and rsp.task.callback.id in viewing_callbacks:
                                     await ws.send(js.dumps(rsp.to_json()))
                                 # print(msg.payload)
                             except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(2)
+                                await asyncio.sleep(0.5)
                                 await ws.send("") # this is our test to see if the client is still there
-                                continue
                             except Exception as e:
                                 print(e)
                                 return
+                            try:
+                                msg = await ws.recv()
+                                if msg != "":
+                                    if msg[0] == "a":
+                                        viewing_callbacks.add(int(msg[1:]))
+                                    elif msg[0] == "r":
+                                        viewing_callbacks.remove(int(msg[1:]))
+                            except Exception as e:
+                                print(e)
     finally:
         # print("closed /ws/task_updates")
         pool.close()
@@ -185,7 +187,7 @@ async def ws_callbacks(request, ws):
                             cb = await db_objects.get(Callback, id=id)
                             await ws.send(js.dumps(cb.to_json()))
                         except asyncio.QueueEmpty as e:
-                            await asyncio.sleep(2)
+                            await asyncio.sleep(1)
                             await ws.send("") # this is our test to see if the client is still there
                             continue
                         except Exception as e:

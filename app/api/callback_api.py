@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Payload, Operation
+from app.database_models.model import Callback, Operator, Payload, Operation, Task, Response
 from sanic import response
 from datetime import datetime
 from sanic_jwt.decorators import protected, inject_user
@@ -23,19 +23,19 @@ async def get_all_callbacks(request, user):
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['POST'])
 async def create_callback(request):
     data = request.json
-    if not 'user' in data:
+    if 'user' not in data:
         return json({'status': 'error',
                      'error': 'User required'})
-    if not 'host' in data:
+    if 'host' not in data:
         return json({'status': 'error',
                      'error': 'Host required'})
-    if not 'pid' in data:
+    if 'pid' not in data:
         return json({'status': 'error',
                      'error': 'PID required'})
-    if not 'ip' in data:
+    if 'ip' not in data:
         return json({'status': 'error',
                      'error': 'IP required'})
-    if not 'uuid' in data:
+    if 'uuid' not in data:
         return json({'status': 'error',
                      'error': 'uuid required'})
     # Get the corresponding Payload object based on the uuid
@@ -127,30 +127,29 @@ async def remove_callback(request, id, user):
             return json({**success, **deleted_cal})
         else:
             return json({'status': 'error', 'error': 'must be an admin or part of that operation to mark it as no longer active'})
-    except:
-        return json({'status': 'error', 'error': "failed to delete callback"})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': "failed to delete callback: " + str(e)})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/callbacks/update_active", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>/all_tasking", methods=['GET'])
 @inject_user()
 @protected()
-async def update_active_callbacks(request, user):
-    # Add this as a 'Task' in Sanic's loop so it repeatedly get calls to update this behind the scenes
-    #   It can also be done manually at any time via this GET request to update all callback statuses
+async def callbacks_get_all_tasking(request, user, id):
+    # Get all of the tasks and responses so far for the specified agent
     try:
-        all_callbacks = await db_objects.execute(Callback.select().where(Callback.active == True))
-        # if a callback is more than 3x late for a checkin, it's considered inactive
-        #   if/when it does finally callback, its status will be updated to active again
-        #   There's no need to look at callbacks already set to 'inactive'
-        # TODO finish this part by adding a task to periodically do this to the event loop
-        for c in all_callbacks:
-            if (c.callback_interval * 3 + c.last_checkin) > datetime.now():
-                c.active = False
-                try:
-                    await db_objects.update(c)
-                except Exception as e:
-                    print("Failed to update callback to inactive")
-                    print(e)
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        callback = await db_objects.get(Callback, id=id, operation=operation)
+        cb_json = callback.to_json()
+        cb_json['tasks'] = []
+        tasks = await db_objects.execute(Task.select().where(Task.callback == callback).order_by(Task.id))
+        for t in tasks:
+            responses = await db_objects.execute(Response.select().where(Response.task == t).order_by(Response.id))
+            rs = []
+            for r in responses:
+                rs.append(r.to_json())
+            cb_json['tasks'].append({**t.to_json(), "responses": rs})
+        return json({'status': 'success', **cb_json})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': str(e)})

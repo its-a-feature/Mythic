@@ -6,6 +6,8 @@ var username = "{{name}}"; //gets the logged in name from the base.html
 var finished_callbacks = false;
 var finished_tasks = false;
 var ptype_cmd_params = {}; //where we keep track of payload type -> command -> command_parameter mappings for what has called in
+var ws_newtasks;
+var ws_updatedtasks;
 var callback_table = new Vue({
     el: '#callback_table',
     data: {
@@ -29,6 +31,9 @@ var callback_table = new Vue({
             Vue.set(task_data.meta[callback.id], 'tasks', true);
             task_data.meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
             $('#tasks' + callback.id.toString() + 'tab').click();
+            ws_newtasks.send("a" + callback.id);
+            ws_updatedtasks.send("a" + callback.id);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'] + "/all_tasking",get_all_tasking_callback,"GET",null);
         },
         edit_description: function(callback){
             $( '#editDescriptionText' ).val(callback.description);
@@ -93,6 +98,7 @@ var callback_table = new Vue({
             meta[callback.id]['tasks'] = false;
             meta[callback.id]['screencaptures'] = false;
             meta[callback.id]['keylogs'] = false;
+            stop_getting_callback_updates(callback.id);
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
@@ -107,6 +113,7 @@ var callback_table = new Vue({
             //this.$delete(callbacks, callback.id);
             //update the callback to be active=false
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
+            stop_getting_callback_updates(callback.id);
         },
         show_screencaptures: function(callback){
             Vue.set(meta[callback.id], 'screencaptures', true);
@@ -121,6 +128,26 @@ var callback_table = new Vue({
     },
     delimiters: ['[[',']]']
 });
+function get_all_tasking_callback(response){
+    var data = JSON.parse(response);
+    if(data['status'] == 'success'){
+        //this has [callback_info, "tasks": [ {task_info, "responses": [ {response_info} ] } ] ]
+        for(var i = 0; i < data['tasks'].length; i++){
+            add_new_task(data['tasks'][i]);
+            for(var j = 0; j < data['tasks'][i]['responses'].length; j++){
+                add_new_response(data['tasks'][i]['responses'][j]);
+            }
+        }
+    }
+}
+function stop_getting_callback_updates(id){
+    //make sure we stop getting updates from the websockets
+    ws_newtasks.send("r" + id);
+    ws_updatedtasks.send("r" + id);
+    // clear out the data from memory
+    Vue.set(task_data.meta[id], 'data', []);
+    Vue.set(all_tasks, id, {});
+}
 function edit_description_callback(response){
     var data = JSON.parse(response);
     if(data['status'] != 'success'){
@@ -225,6 +252,7 @@ var task_data = new Vue({
             //$(tabContentId).hide(); //remove respective tab content
             //$(document.getElementById('tasks' + metadata.id + 'data')).hide();
             meta[metadata.id]['tasks'] = false;
+            stop_getting_callback_updates(metadata.id);
         },
         screencaptures_tab_close: function(metadata){
             meta[metadata.id]['screencaptures'] = false;
@@ -310,10 +338,6 @@ function startwebsocket_callbacks(){
         if (event.data != ""){
 
             cb = JSON.parse(event.data);
-            //console.log(cb);
-            //if(cb['active'] == false){
-            //    return; //don't process this if the callback is no longer active
-            //}
             if (cb.hasOwnProperty('operator')){
                 if (cb['operator'] == "null"){
                     delete cb.operator;
@@ -328,7 +352,6 @@ function startwebsocket_callbacks(){
             cb['real_time'] = "0:0:0:0";
             cb['bg_color'] = color;
             cb['selected'] = false;
-            //callbacks.push(cb);
             Vue.set(callbacks, cb['id'], cb);
             Vue.set(task_data.meta, cb['id'], {'id': cb['id'],
                                                'tasks': false,
@@ -377,30 +400,11 @@ function register_new_command_info(response){
     }
 }
 function startwebsocket_newtasks(){
-    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/tasks/current_operation');
-    ws.onmessage = function(event){
+    ws_newtasks = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/tasks/current_operation');
+    ws_newtasks.onmessage = function(event){
         if (event.data != ""){
             tsk = JSON.parse(event.data);
-            //console.log("new task");
-            //console.log(tsk);
-            if (callbacks[tsk['callback']]){
-                if (callbacks[tsk['callback']]['active'] == false){
-                    return;
-                }
-            }
-            if ( !(tsk['callback'] in all_tasks) ){
-                // if there is NOT this specific callback.id in the tasks dictionary
-                // then create it as an empty dictionary
-                Vue.set(all_tasks, tsk['callback'], {}); //create an empty dictionary
-            }
-            Vue.set(all_tasks[tsk['callback']], tsk['id'], tsk);
-            task_data.meta[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['params']); // set up our cmd history
-            task_data.meta[tsk['callback']]['history_index'] = task_data.meta[tsk['callback']]['history'].length;
-            // in case this is the first task and we're waiting for it to show up, reset this
-            if(!meta[tsk['callback']]){
-                meta[tsk['callback']] = {};
-            }
-            meta[tsk['callback']].data = all_tasks[tsk['callback']];
+            add_new_task(tsk);
         }
         else{
             if(finished_tasks == false){
@@ -408,31 +412,56 @@ function startwebsocket_newtasks(){
                 finished_tasks = true;
             }
         }
+        ws_newtasks.send("");
     };
 };
+function add_new_task(tsk){
+    if (callbacks[tsk['callback']]){
+        if (callbacks[tsk['callback']]['active'] == false){
+            return;
+        }
+    }
+    if ( !(tsk['callback'] in all_tasks) ){
+        // if there is NOT this specific callback.id in the tasks dictionary
+        // then create it as an empty dictionary
+        Vue.set(all_tasks, tsk['callback'], {}); //create an empty dictionary
+    }
+    Vue.set(all_tasks[tsk['callback']], tsk['id'], tsk);
+    task_data.meta[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['params']); // set up our cmd history
+    task_data.meta[tsk['callback']]['history_index'] = task_data.meta[tsk['callback']]['history'].length;
+    // in case this is the first task and we're waiting for it to show up, reset this
+    if(!meta[tsk['callback']]){
+        meta[tsk['callback']] = {};
+    }
+    meta[tsk['callback']].data = all_tasks[tsk['callback']];
+}
 function startwebsocket_updatedtasks(){
-    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/responses/current_operation');
-    ws.onmessage = function(event){
+    ws_updatedtasks = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/responses/current_operation');
+    ws_updatedtasks.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);
             //console.log(rsp);
-            if(rsp['task']['callback'] in all_tasks){
-                //if we have that callback id in our all_tasks list
-                if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]){
-                    Vue.set(all_tasks[ rsp['task']['callback'] ], rsp['task']['id'], {});
-                }
-                if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]['response']){
-                    //but we haven't received any responses for the specified task_id
-                    Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']], 'response', {});
-                }
-                //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
-                var updated_response = rsp['response'].replace(/\\n|\r/g, '\n');
-                // all_tasks->callback->task->response->id = timestamp, responsevalue
-                Vue.set(all_tasks[rsp['task']['callback']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': updated_response});
-            }
+            add_new_response(rsp);
         }
+        ws_updatedtasks.send("");
     };
 };
+function add_new_response(rsp){
+    if(rsp['task']['callback'] in all_tasks){
+        //if we have that callback id in our all_tasks list
+        if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]){
+            Vue.set(all_tasks[ rsp['task']['callback'] ], rsp['task']['id'], {});
+        }
+        if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]['response']){
+            //but we haven't received any responses for the specified task_id
+            Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']], 'response', {});
+        }
+        //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
+        var updated_response = rsp['response'].replace(/\\n|\r/g, '\n');
+        // all_tasks->callback->task->response->id = timestamp, responsevalue
+        Vue.set(all_tasks[rsp['task']['callback']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': updated_response});
+    }
+}
 function startwebsocket_updatedcallbacks(){
 var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updatedcallbacks/current_operation');
     ws.onmessage = function(event){
