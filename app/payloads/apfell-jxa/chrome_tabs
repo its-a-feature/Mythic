@@ -2,16 +2,20 @@ exports.chrome_tabs = function(task, command, params){
 	var tabs = [];
 	try{
 		var ch = Application("Google Chrome");
-		for (var i = 0; i < ch.windows.length; i++){
-			var win = ch.windows[i];
-			for (var j = 0; j < win.tabs.length; j++){
-				var tab = win.tabs[j];
-				var info = "Title: " + tab.title() +
-				"\\nURL: " + tab.url() +
-				"\\nWin/Tab: " + i + "/" + j;
-				tabs.push(info);
-			}
-		}
+		if(ch.running()){
+            for (var i = 0; i < ch.windows.length; i++){
+                var win = ch.windows[i];
+                for (var j = 0; j < win.tabs.length; j++){
+                    var tab = win.tabs[j];
+                    var info = "Title: " + tab.title() +
+                    "\\nURL: " + tab.url() +
+                    "\\nWin/Tab: " + i + "/" + j;
+                    tabs.push(info);
+                }
+            }
+        }else{
+            return "Chrome is not running";
+        }
 	}catch(error){
 		return error.toString();
 	}

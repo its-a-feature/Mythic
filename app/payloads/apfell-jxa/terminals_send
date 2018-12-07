@@ -3,12 +3,16 @@ exports.terminals_send = function(task, command, params){
 	var output = "";
 	try{
 		var term = Application("Terminal");
-		var window = parseInt(split_params[0]);
-		var tab = parseInt(split_params[1]);
-		var cmd = split_params.slice(2, ).join(" ");
-		//console.log("command: " + cmd + ", window: " + window + ", tab: " + tab);
-		term.doScript(cmd, {in:term.windows[window].tabs[tab]});
-		output = term.windows[window].tabs[tab].contents();
+		if(term.running()){
+            var window = parseInt(split_params[0]);
+            var tab = parseInt(split_params[1]);
+            var cmd = split_params.slice(2, ).join(" ");
+            //console.log("command: " + cmd + ", window: " + window + ", tab: " + tab);
+            term.doScript(cmd, {in:term.windows[window].tabs[tab]});
+            output = term.windows[window].tabs[tab].contents();
+        }else{
+            return "Terminal is not running";
+        }
 	}
 	catch(error){
 		output = error.toString();

@@ -1,0 +1,26 @@
+exports.iTerm = function(task, command, params){
+    try{
+        var term = Application("iTerm");
+        var output = {};
+        if(term.running()){
+            for(var i = 0; i < term.windows.length; i++){
+                var window = {};
+                for(var j = 0; j < term.windows[i].tabs.length; j++){
+                    var tab_info = {};
+                    tab_info['tty'] = term.windows[i].tabs[j].currentSession.tty();
+                    tab_info['name'] = term.windows[i].tabs[j].currentSession.name();
+                    tab_info['contents'] = term.windows[i].tabs[j].currentSession.contents();
+                    tab_info['profileName'] = term.windows[i].tabs[j].currentSession.profileName();
+                    window["Tab: " + j] = tab_info;
+                }
+                output["Window: " + i] = window;
+            }
+            return JSON.stringify(output, null, 2);
+        }
+        else{
+            return "iTerm isn't running";
+        }
+    }catch(error){
+        return error.toString();
+    }
+};
