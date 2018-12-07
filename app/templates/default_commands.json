@@ -554,6 +554,13 @@
           "help_cmd": "rm {file path}",
           "needs_admin": "false",
           "parameters": []
+        },
+        {
+          "cmd": "iTerm",
+          "description": "Read the contents of all open iTerm tabs if iTerms is open, otherwise just inform the operator that it's not currently running",
+          "help_cmd": "iTerm",
+          "needs_admin": "false",
+          "parameters": []
         }
       ]
     }
