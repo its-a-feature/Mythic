@@ -297,6 +297,9 @@ var params_table = new Vue({
     methods:{
         command_params_add_array_element: function(param){
             param.array_value.push('');
+        },
+        command_params_remove_array_element: function(param, index){
+            param.array_value.splice(index, 1);
         }
     },
     delimiters: ['[[',']]']

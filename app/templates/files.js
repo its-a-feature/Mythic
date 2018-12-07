@@ -20,8 +20,6 @@ function startwebsocket_files(){
                 if(!files_div.hosts['downloads'].hasOwnProperty(f.host)){
                     Vue.set(files_div.hosts['downloads'], f.host,  []);
                 }
-                var split_path = f.path.split("/");
-                f['short_path'] = split_path[split_path.length -1];
                 files_div.hosts['downloads'][f.host].push(f);
             }
             else{
@@ -59,8 +57,6 @@ function startwebsocket_updatedfiles(){
 
                 for(var i = 0; i < files_div.hosts['downloads'][file.host].length; i++){
                     if(file['id'] == files_div.hosts['downloads'][file.host][i]['id']){
-                        var split_path = file.path.split("/");
-                        file['short_path'] = split_path[split_path.length -1];
                         Vue.set(files_div.hosts['downloads'][file.host], i, file);
                         return;
                     }

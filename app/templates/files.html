@@ -5,18 +5,18 @@
 
 <div id="files_div">
     <div v-for="(data, host, i) in hosts.downloads" style="resize: vertical; overflow:scroll" class="panel panel-success" v-if="host.length > 0">
-        <div class="panel-heading" >[[host]] Downloads</div>
+        <div class="panel-heading" ><b>[[host]] Downloads</b></div>
             <div v-for="(file,i) in data" :key="file.id">
                 <div v-if="file.complete" style="background-color: #eee;border: 2px solid #ADD8E6; width: 100%">
-                    <a :href='file.remote_path' style="color:black;"><font size="4">[[file.operator]]'s download ([[file.id]]): <b>[[file.short_path]]</b></font></a>
+                    <a :href='file.remote_path' style="color:black;"><font size="4">[[file.operator]]'s download ([[file.id]]): <b>[[file.params]]</b></font></a>
                 </div>
                 <div v-else style="background-color: #ffd8d8;color: #444;border: 2px solid #ADD8E6">
-                    <a href="#" style="color:black;"><font size="4">[[file.operator]]'s download ([[file.id]]): [[file.short_path]]. Parts [[file.chunks_received]] of [[file.total_chunks]] received so far.</font></a>
+                    <a href="#" style="color:black;"><font size="4">[[file.operator]]'s download ([[file.id]]): [[file.params]]. Parts [[file.chunks_received]] of [[file.total_chunks]] received so far.</font></a>
                 </div>
             </div>
     </div>
     <div v-for="(data, host, i) in hosts.uploads" style="resize: vertical; overflow:scroll" class="panel panel-warning" v-if="host.length > 0">
-        <div class="panel-heading" >[[host]] Uploads</div>
+        <div class="panel-heading" ><b>[[host]] Uploads</b></div>
             <div v-for="(file,i) in data" :key="file.id" style="background-color:#eee;border: 2px solid #ADD8E6;width:100%">
                 <a :href='file.remote_path' style="color:black;"><font size="4">[[file.operator]]'s upload from <b>[[file.path]]</b>([[file.id]]) to <b>[[file.upload.split(" ").slice(1,).join(" ")]]</b></font></a>
             </div>

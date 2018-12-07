@@ -76,7 +76,7 @@
         <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.tasks" :id="'tasks' + metadata.id" >
             <div :id="'tasks' + metadata.id + 'data'" >
                 <div class="well well-sm" v-for="task in metadata.data" :key="task.id" :id="'task' + task.id">
-                    <font color="green">([[task.operator]])</font>&nbsp;
+                    <font color="green">([[task.operator]]'s task: [[task.id]])</font>&nbsp;
                     <font color="red">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</font>
                     [[task.command]]&nbsp;[[task.params]]<br>
                     <span v-for="rsp in task.response" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap">
@@ -191,6 +191,7 @@
                             </span>
                             <span v-else-if="param.type == 'Array'">
                                 <div v-for="(arg, index) in param.array_value" :key="index">
+                                    <button class="btn btn-danger btn-sm" @click="command_params_remove_array_element(param, index)">X</button>
                                     <input type="text" v-model="param.array_value[index]" size="20"><br>
                                 </div>
                                 <button class="btn btn-success btn-sm" @click="command_params_add_array_element(param);">Add Element</button>

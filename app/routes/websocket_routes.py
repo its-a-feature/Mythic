@@ -689,7 +689,7 @@ async def ws_files_current_operation(request, ws, user):
                                     await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
                                                             "upload": "-1 Apfell as file number: " + str(f.id)}))
                             else:
-                                await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host}))
+                                await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'params': f.task.params}))
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
@@ -710,7 +710,7 @@ async def ws_files_current_operation(request, ws, user):
                                                                     "upload": "-1 Apfell as file number: " + str(f.id)}))
                                     else:
                                         await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host,
-                                                                'operator': f.task.operator.username}))
+                                                                'params': f.task.params}))
                                 except Exception as e:
                                     pass  # we got a file that's just not part of our current operation, so move on
                         except asyncio.QueueEmpty as e:
@@ -753,7 +753,7 @@ async def ws_updated_files(request, ws, user):
                                             await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
                                                                     "upload": "-1 Apfell as file number: " + str(f.id)}))
                                     else:
-                                        await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'operator': f.task.operator.username}))
+                                        await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'params': f.task.params}))
                                 except Exception as e:
                                     pass  # got an update for a file not in this operation
                         except asyncio.QueueEmpty as e:

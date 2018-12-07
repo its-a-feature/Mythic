@@ -40,7 +40,7 @@ async def get_all_tasks_for_callback(request, cid, user):
                      'error': 'Callback does not exist'})
     if operation.name in user['operations']:
         try:
-            cb_task_data = await db_objects.execute(Task.select().where(Task.callback == callback))
+            cb_task_data = await db_objects.execute(Task.select().where(Task.callback == callback).order_by(Task.id))
             return json([c.to_json() for c in cb_task_data])
         except Exception as e:
             return json({'status': 'error',
@@ -233,7 +233,7 @@ async def add_task_to_callback_func(data, cid, user):
         return {**status, **task_json}
     except Exception as e:
         print("failed to get something in add_task_to_callback_func " + str(e))
-        return {'status': 'error', 'error': 'Failed to create task',  'msg': str(e), 'cmd': data['command'], 'params': data['params']}
+        return {'status': 'error', 'error': 'Failed to create task: ' + str(e), 'cmd': data['command'], 'params': data['params']}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/notcompleted", methods=['GET'])
@@ -273,14 +273,17 @@ async def clear_tasks_for_callback_func(data, cid, user):
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get callback or operation'}
-    if "task" not in data:
-        return {'status': 'error', 'error': 'must specify the task to clear'}
     tasks_removed = []
     if "all" == data['task']:
         tasks = await db_objects.execute(Task.select().join(Callback).where(
             (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
-    else:
+    elif len(data['task']) > 0:
         tasks = await db_objects.execute(Task.select().where(Task.id == data['task']))
+    else:
+        # if you don't actually specify a task, remove the the last task that was entered
+        tasks = await db_objects.execute(Task.select().where(
+            (Task.status == "submitted") & (Task.callback == callback)
+        ).order_by(-Task.timestamp).limit(1))
     for t in tasks:
         if user['username'] == t.operator.username or user['admin'] or operation.name in user['admin_operations']:
             try:

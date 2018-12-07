@@ -9,7 +9,7 @@
             <div v-if="callback.hasOwnProperty('tasks')">
                 <div v-for="(t,i) in callback.tasks" :key="t.id">
 
-                    <button class="accordion" :id="'task' + t.id" style="background-color: #eee;color: #444;width: 100%;border: 2px solid #ADD8E6;text-align: left;" @click="toggle_response(t, i)">[[t.operator]]: [[t.command]] [[t.params]]</button>
+                    <button class="accordion" :id="'task' + t.id" style="background-color: #eee;color: #444;width: 100%;border: 2px solid #ADD8E6;text-align: left;" @click="toggle_response(t, i)">[[t.operator]]'s task [[t.id]]: [[t.command]] [[t.params]]</button>
                     <div v-if="t.hasOwnProperty('responses')">
                         Command: [[t.command]] [[t.params]]<br>
                         <span v-if="t.hasOwnProperty('responses')" v-for="r in t.responses" :key="r.id" style="white-space: pre-wrap">
