@@ -1,6 +1,9 @@
 exports.iTerm = function(task, command, params){
     try{
         var term = Application("iTerm");
+        if(!term.running()){
+            term = Application("iTerm2");  // it might be iTerm2 instead of iTerm in some instances, try both
+        }
         var output = {};
         if(term.running()){
             for(var i = 0; i < term.windows.length; i++){
