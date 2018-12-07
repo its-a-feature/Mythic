@@ -7,6 +7,10 @@ exports.plist = function(task, command, params){
 			var filename = $.NSString.alloc.initWithUTF8String(config['filename']);
 			var prefs = $.NSMutableDictionary.alloc.initWithContentsOfFile(filename);
 			var contents = ObjC.deepUnwrap(prefs);
+			var nsposix = contents['NSFilePosixPermissions'];
+            // we need to fix this mess to actually be real permission bits that make sense
+            var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+            contents['NSFilePosixPermissions'] = posix;
 			output.push(contents);
 		}
 		else if(config['type'] == "readLaunchAgents"){
@@ -18,11 +22,15 @@ exports.plist = function(task, command, params){
 			try{
                 // no errors, so now iterate over the files
                 files = ObjC.deepUnwrap(files);
-                console.log(files);
+                //console.log(files);
                 output["localLaunchAgents"] = {};
                 for(i in files){
                     var prefs = $.NSMutableDictionary.alloc.initWithContentsOfFile(path + files[i]);
                     var contents = ObjC.deepUnwrap(prefs);
+                    var nsposix = contents['NSFilePosixPermissions'];
+                    // we need to fix this mess to actually be real permission bits that make sense
+                    var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+                    contents['NSFilePosixPermissions'] = posix;
                     output["localLaunchAgents"][files[i]] = {};
                     output["localLaunchAgents"][files[i]]['contents'] = contents;
                     if(contents != undefined && contents.hasOwnProperty("ProgramArguments")){
@@ -35,7 +43,10 @@ exports.plist = function(task, command, params){
                             trimmed_attributes['NSFileGroupOwnerAccountID'] = attributes['NSFileGroupOwnerAccountID'];
                             trimmed_attributes['NSFileOwnerAccountName'] = attributes['NSFileOwnerAccountName'];
                             trimmed_attributes['NSFileCreationDate'] = attributes['NSFileCreationDate'];
-                            trimmed_attributes['NSFilePosixPermissions'] = attributes['NSFilePosixPermissions'];
+                            var nsposix = attributes['NSFilePosixPermissions'];
+                            // we need to fix this mess to actually be real permission bits that make sense
+                            var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+                            trimmed_attributes['NSFilePosixPermissions'] = posix;
                             trimmed_attributes['NSFileGroupOwnerAccountName'] = attributes['NSFileGroupOwnerAccountName'];
                             trimmed_attributes['NSFileModificationDate'] = attributes['NSFileModificationDate'];
                             output["localLaunchAgents"][files[i]]['attributes'] = trimmed_attributes;
@@ -54,6 +65,10 @@ exports.plist = function(task, command, params){
 				for(i in files){
 					var prefs = $.NSMutableDictionary.alloc.initWithContentsOfFile($(path + files[i]));
 					var contents = ObjC.deepUnwrap(prefs);
+					var nsposix = contents['NSFilePosixPermissions'];
+                    // we need to fix this mess to actually be real permission bits that make sense
+                    var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+                    contents['NSFilePosixPermissions'] = posix;
 					output['systemLaunchAgents'][files[i]] = {};
 					output["systemLaunchAgents"][files[i]]['contents'] = contents;
 					if(contents != undefined && contents.hasOwnProperty("ProgramArguments")){
@@ -65,7 +80,10 @@ exports.plist = function(task, command, params){
 							trimmed_attributes['NSFileGroupOwnerAccountID'] = attributes['NSFileGroupOwnerAccountID'];
 							trimmed_attributes['NSFileOwnerAccountName'] = attributes['NSFileOwnerAccountName'];
 							trimmed_attributes['NSFileCreationDate'] = attributes['NSFileCreationDate'];
-							trimmed_attributes['NSFilePosixPermissions'] = attributes['NSFilePosixPermissions'];
+							var nsposix = attributes['NSFilePosixPermissions'];
+                            // we need to fix this mess to actually be real permission bits that make sense
+                            var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+							trimmed_attributes['NSFilePosixPermissions'] = posix;
 							trimmed_attributes['NSFileGroupOwnerAccountName'] = attributes['NSFileGroupOwnerAccountName'];
 							trimmed_attributes['NSFileModificationDate'] = attributes['NSFileModificationDate'];
 							output["systemLaunchAgents"][files[i]]['attributes'] = trimmed_attributes;
@@ -90,6 +108,10 @@ exports.plist = function(task, command, params){
 				for(i in files){
 					var prefs = $.NSMutableDictionary.alloc.initWithContentsOfFile($(path + files[i]));
 					var contents = ObjC.deepUnwrap(prefs);
+					var nsposix = contents['NSFilePosixPermissions'];
+                    // we need to fix this mess to actually be real permission bits that make sense
+                    var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+                    contents['NSFilePosixPermissions'] = posix;
 					output['systemLaunchDaemons'][files[i]] = {};
 					output["systemLaunchDaemons"][files[i]]['contents'] = contents;
 					if(contents != undefined && contents.hasOwnProperty('ProgramArguments')){
@@ -101,7 +123,10 @@ exports.plist = function(task, command, params){
 							trimmed_attributes['NSFileGroupOwnerAccountID'] = attributes['NSFileGroupOwnerAccountID'];
 							trimmed_attributes['NSFileOwnerAccountName'] = attributes['NSFileOwnerAccountName'];
 							trimmed_attributes['NSFileCreationDate'] = attributes['NSFileCreationDate'];
-							trimmed_attributes['NSFilePosixPermissions'] = attributes['NSFilePosixPermissions'];
+							var nsposix = attributes['NSFilePosixPermissions'];
+                            // we need to fix this mess to actually be real permission bits that make sense
+                            var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
+							trimmed_attributes['NSFilePosixPermissions'] = posix;
 							trimmed_attributes['NSFileGroupOwnerAccountName'] = attributes['NSFileGroupOwnerAccountName'];
 							trimmed_attributes['NSFileModificationDate'] = attributes['NSFileModificationDate'];
 							output["systemLaunchDaemons"][files[i]]['attributes'] = trimmed_attributes;

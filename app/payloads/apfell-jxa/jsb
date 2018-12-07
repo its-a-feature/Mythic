@@ -4,7 +4,14 @@ exports.jsb = function(task, command, params){
         if(typeof content == "string"){
             return content;
         }
-        else{
+        else if(typeof content == "boolean"){
+            if(content == true){
+                return "True";
+            }
+            else{
+                return "False";
+            }
+        }else{
             return ObjC.deepUnwrap(content);
         }
     }

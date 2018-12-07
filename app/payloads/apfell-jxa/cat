@@ -4,6 +4,12 @@ exports.cat = function(task, command, params){
         if(contents == undefined || contents == ""){
             return "No output from command";
         }
+        if(contents == true){
+            return "True";
+        }
+        if(contents == false){
+            return "False";
+        }
         return contents;
     }
     catch(error){

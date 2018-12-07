@@ -5,6 +5,9 @@ exports.ls = function(task, command, params){
     var path = params;
     if(params == "" || params == undefined){
         path = fileManager.currentDirectoryPath.js;
+        if(path == undefined || path == ""){
+            return "Failed to get the current working directory";
+        }
     }
     if(path[0] == '"'){
         path = path.substring(1, path.length-1);

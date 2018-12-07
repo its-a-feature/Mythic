@@ -7,8 +7,14 @@ exports.jscript = function(task, command, params){
 	catch(error){
 		response = error.toString();
 	}
-	if(response == undefined){
+	if(response == undefined || response = ""){
 	    response = "No Command Output";
+	}
+	if(response == true){
+	    return "True";
+	}
+	if(response == false){
+	    return "False";
 	}
 	return response;
 };
