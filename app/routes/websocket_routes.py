@@ -687,7 +687,7 @@ async def ws_files_current_operation(request, ws, user):
                                         {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
                                 else:  # this is a manual upload
                                     await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
-                                                            "upload": "-1 Apfell as file number: " + str(f.id)}))
+                                                            "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}"}))
                             else:
                                 await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'params': f.task.params}))
                     await ws.send("")
@@ -707,7 +707,7 @@ async def ws_files_current_operation(request, ws, user):
                                                 {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
                                         else: # this is a manual upload
                                             await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
-                                                                    "upload": "-1 Apfell as file number: " + str(f.id)}))
+                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}"}))
                                     else:
                                         await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host,
                                                                 'params': f.task.params}))
@@ -751,7 +751,7 @@ async def ws_updated_files(request, ws, user):
                                                 {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
                                         else:
                                             await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
-                                                                    "upload": "-1 Apfell as file number: " + str(f.id)}))
+                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}"}))
                                     else:
                                         await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'params': f.task.params}))
                                 except Exception as e:

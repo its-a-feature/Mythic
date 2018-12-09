@@ -13,9 +13,9 @@ import base64
 @protected()
 async def get_all_commands(request, user):
     all_commands = []
-    commands = await db_objects.execute(Command.select())
+    commands = await db_objects.execute(Command.select().order_by(Command.id))
     for cmd in commands:
-        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == cmd))
+        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == cmd).order_by(CommandParameters.id))
         all_commands.append({**cmd.to_json(), "params": [p.to_json() for p in params]})
     return json(all_commands)
 

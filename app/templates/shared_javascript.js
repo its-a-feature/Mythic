@@ -68,6 +68,27 @@ function uploadFileAndJSON(url, callback, file, data, method){
     xhr.send(fd);
 
 }
+function uploadCommandFilesAndJSON(url, callback, file_dict, data){
+    var xhr = new XMLHttpRequest();
+    var fd = new FormData();
+    xhr.open("POST", url, true);
+    xhr.withCredentials = true;
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            // Every thing ok, file uploaded
+            if (callback){ //post might not have a callback
+                callback(xhr.responseText);
+            }
+        }
+    };
+    // add in our normal JSON data
+    fd.append("json", JSON.stringify(data));
+    // now add in all of our files by their param names
+    for(var key in file_dict){
+        fd.append("file" + key, file_dict[key])
+    }
+    xhr.send(fd);
+}
 function base64Encode(data){
 
 }

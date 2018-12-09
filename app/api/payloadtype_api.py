@@ -206,7 +206,7 @@ async def get_commands_for_payloadtype(request, user, ptype):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get payload type'})
-    commands = await db_objects.execute(Command.select().where(Command.payload_type == payloadtype))
+    commands = await db_objects.execute(Command.select().where(Command.payload_type == payloadtype).order_by(Command.cmd))
     all_commands = []
     for cmd in commands:
         params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == cmd))

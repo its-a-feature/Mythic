@@ -26,6 +26,7 @@ function startwebsocket_files(){
                 if(!files_div.hosts['uploads'].hasOwnProperty(f.host)){
                     Vue.set(files_div.hosts['uploads'], f.host,  []);
                 }
+                f.upload = JSON.parse(f.upload);
                 files_div.hosts['uploads'][f.host].push(f);
             }
         }

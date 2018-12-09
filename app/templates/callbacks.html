@@ -171,7 +171,14 @@
                                 <input type="text" :placeholder="param.hint" v-model="param.string_value" size="60">
                             </span>
                             <span v-else-if="param.type == 'Credential'">
-                                <input type="text" :placeholder="param.hint" v-model="param.credential_value" size="60">
+                                <select v-model="param.credential_id" @change="select_main_credential(param)">
+                                    <option value="0">Select One...</option>
+                                    <option v-for="cred in credentials" :value="cred.id">[[cred.user]]@[[cred.domain]] - [[cred.type]]</option>
+                                </select><br>
+                                <select v-model="param.credential_value">
+                                    <option value="" selected>Select One...</option>
+                                    <option v-for="(key, field) in param.credential" :value="key">[[field]]: [[key]]</option>
+                                </select>
                             </span>
                             <span v-else-if="param.type == 'Number'">
                                 <input type="number" v-model="param.number_value">
@@ -197,7 +204,7 @@
                                 <button class="btn btn-success btn-sm" @click="command_params_add_array_element(param);">Add Element</button>
                             </span>
                             <span v-else-if="param.type == 'File'">
-
+                                <input type="file" :id="'fileparam' + param.name">
                             </span>
                         </td>
                     </tr>

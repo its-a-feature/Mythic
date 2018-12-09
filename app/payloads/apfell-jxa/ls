@@ -29,6 +29,7 @@ exports.ls = function(task, command, params){
                     if(attr['NSFileType'] ==  "NSFileTypeDirectory"){
                         file_add = file_add + "/";
                     }
+                    file_add = file_add + " (" + attr['NSFileSize'] + " Bytes)";
                     var nsposix = attr['NSFilePosixPermissions'];
                     // we need to fix this mess to actually be real permission bits that make sense
                     var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
@@ -37,6 +38,7 @@ exports.ls = function(task, command, params){
                     if(attr['NSFileExtensionHidden']){
                         file_add = file_add + " File Extension Hidden";
                     }
+                    //files_data[file_add] = attr['NSFileExtendedAttributes'];
                     files_data.push(file_add);
                 }
                 attributes['files'] = files_data;
@@ -48,8 +50,18 @@ exports.ls = function(task, command, params){
         var nsposix = attributes['NSFilePosixPermissions'];
         // we need to fix this mess to actually be real permission bits that make sense
         var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
-        attributes['NSFilePosixPermissions'] = posix;
-        return JSON.stringify(attributes, null, 2);
+        delete attributes['NSFilePosixPermissions'];
+        attributes['Short_Info'] = path + " (" + attributes['NSFileSize'] + " Bytes) - " + posix + " - " + attributes['NSFileOwnerAccountName'] + "(" + attributes['NSFileOwnerAccountID'] +
+                        "):" + attributes['NSFileGroupOwnerAccountName'] + "(" + attributes['NSFileGroupOwnerAccountID'] + ")";
+        if(attributes['NSFileExtensionHidden']){
+            attributes['Short_Info'] = attributes['Short_Info'] + " File Extension Hidden";
+        }
+        delete attributes['NSFileSize'];
+        delete attributes['NSFileOwnerAccountName'];
+        delete attributes['NSFileOwnerAccountID'];
+        delete attributes['NSFileGroupOwnerAccountName'];
+        delete attributes['NSFileGroupOwnerAccountID'];
+        return JSON.stringify(attributes, null, 6);
     }
     return "Failed to get attributes of file";
 };

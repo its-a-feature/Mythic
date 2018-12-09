@@ -166,21 +166,21 @@ async def register_new_c2profile(request, user):
             profile_json = profile.to_json()
             # Now that the profile is created and registered, write the server code files to the appropriate directory
             if request.files:
-                code = request.files['upload_file'][0].body.decode('UTF-8')
-                code_file = open("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, request.files['upload_file'][0].name),"w")
+                code = request.files['upload_file'][0].body
+                code_file = open("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, request.files['upload_file'][0].name),"wb")
                 code_file.write(code)
                 code_file.close()
                 for i in range(1, int(request.form.get('file_length'))):
-                    code = request.files['upload_file_' + str(i)][0].body.decode('UTF-8')
+                    code = request.files['upload_file_' + str(i)][0].body
                     code_file = open(
                         "./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name,
-                                                      request.files['upload_file_' + str(i)][0].name),"w")
+                                                      request.files['upload_file_' + str(i)][0].name),"wb")
                     code_file.write(code)
                     code_file.close()
             elif 'code' in data and 'file_name' in data:
                 # if the user is doing this through the API instead of UI, they can specify a file this way
                 code = base64.b64decode(data['code'])
-                code_file = open("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, data['file_name']), 'w')
+                code_file = open("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, data['file_name']), 'wb')
                 code_file.write(code)
                 code_file.close()
             status = {'status': 'success'}

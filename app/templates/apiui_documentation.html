@@ -9,16 +9,21 @@
 If you want to write commands that leverage this, simply structure your messages the same way.</p>
 <ul>
     <li><strong>Upload</strong><ul>
-        <li>User Typed Command Line: <strong>upload "/home/spooky/evildocument.pdf" "/user/its-a-feature/Desktop/totally not malware.pdf"</strong></li>
-        <li>This is uploading a file from the Apfell server to the victim machine at the specified location</li>
-        <li>Quotes around both file paths is required</li>
-        <li>The first file path means nothing to the agent running on the victim box though, so let's do some pre-processing to fix that
+        <li>User Typed Command Line: <strong>upload {"remote_path": "/users/itsafeature/Desktop/tes.png", "file_id": 65}</strong></li>
+        <ul>
+            <li>Alternatively, the user could type <b>upload</b> and at the prompt, supply a file_id for an already registered file, or select a local file to upload</li>
+            <li>If you want to upload a file that's already on the Apfell server but not registered in the database, go to the <b>Services -> Host Files</b> page, select <b>Host New Files</b>, select <b>local file</b>, and provide the absolute path</li>
+        </ul>
+        <li>This is uploading a file from the Apfell server (registered id 65) to the victim machine at the specified location</li>
+        <li>When we're uploading files to the victim, we have to always do some sort of preprocessing to make sure we give the agent stuff it understand, like local files (to the agent) and file_id numbers it can use to reach back
             <ul>
-                <li>I register that file in the FileMeta table of the database and mark it as complete, so it now has a file_id associated with it</li>
-                <li>Our new command that the agent actually sees is something like: <strong>upload 15 /user/its-a-feature/Desktop/totally not malware.pdf</strong></li>
+                <li>I register the uploaded file in the FileMeta table of the database and mark it as complete, so it now has a file_id associated with it</li>
+                <li>Our new command that the agent actually sees is something like: <strong>upload {"remote_path": "/users/itsafeature/Desktop/tes.png", "file_id": 65}</strong></li>
             </ul>
         </li>
-        <li>Now the agent can do a GET request against the /api/v1.0/files/15 to pull down the file</li>
+        <li>Now the agent can do a GET request against the /api/v1.0/files/15 to pull down the file as a base64 encoded blob</li>
+        <li>As an operator, you can get the file at /api/v1.0/files/download/15 and pull it down normally</li>
+        <li>Uploaded files live in ./app/files/{operation name}/</li>
     </ul>
     </li>
     <li><strong>Download</strong><ul>

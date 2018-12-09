@@ -191,24 +191,40 @@ var task_data = new Vue({
                             //  Also make sure that there are actually parameters for them to fill out
                             params_table.command_params = [];
                             for(var j = 0; j < ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length; j++){
-                                var blank_vals = {"string_value": "", "credential_value":"", "number_value": -1, "choice_value": "", "choicemultiple_value": [], "boolean_value": false, "array_value": []}
+                                var blank_vals = {"string_value": "", "credential_value":"", "credential_id": 0, "number_value": -1, "choice_value": "", "choicemultiple_value": [], "boolean_value": false, "array_value": []}
                                 var param = Object.assign({}, blank_vals, ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
                                 params_table.command_params.push(param);
                             }
                             $( '#paramsModalHeader' ).text(command + "'s Parameters");
+                            var credentials = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/credentials/current_operation"));
+                            if(credentials['status'] == 'success'){
+                                params_table.credentials = credentials['credentials'];
+                            }
+                            else{
+                                alertTop("danger", credentials['error']);
+                                console.log(credentials);
+                                return;
+                            }
                             $( '#paramsModal' ).modal('show');
                             $( '#paramsSubmit' ).unbind('click').click(function(){
                                 param_data = {};
+                                file_data = {};  //mapping of param_name to uploaded file data
                                 for(var k = 0; k < params_table.command_params.length; k++){
                                     if(params_table.command_params[k]['type'] == "String"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['string_value']; }
                                     else if(params_table.command_params[k]['type'] == "Credential"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['credential_value']; }
-                                    else if(params_table.command_params[k]['type'] == "Number"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['number_value']; }
+                                    else if(params_table.command_params[k]['type'] == "Number"){  param_data[params_table.command_params[k]['name']] = parseInt(params_table.command_params[k]['number_value']); }
                                     else if(params_table.command_params[k]['type'] == "Choice"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['choice_value']; }
                                     else if(params_table.command_params[k]['type'] == "ChoiceMultiple"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['choicemultiple_value']; }
                                     else if(params_table.command_params[k]['type'] == "Boolean"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['boolean_value']; }
                                     else if(params_table.command_params[k]['type'] == "Array"){  param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['array_value']; }
+                                    else if(params_table.command_params[k]['type'] == "File"){
+                                        var param_name = params_table.command_params[k]['name'];
+                                        file_data[param_name] = document.getElementById('fileparam' + param_name).files[0];
+                                        param_data[param_name] = "FILEUPLOAD";
+                                    }
                                 }
-                                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
+                                uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func,file_data, {"command":command,"params": JSON.stringify(param_data)});
+                                //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
                             });
                             this.input_field = "";
                         }
@@ -292,7 +308,8 @@ var command_params = [];
 var params_table = new Vue({
     el: '#paramsTable',
     data: {
-        command_params
+        command_params,
+        credentials: []
     },
     methods:{
         command_params_add_array_element: function(param){
@@ -300,6 +317,17 @@ var params_table = new Vue({
         },
         command_params_remove_array_element: function(param, index){
             param.array_value.splice(index, 1);
+        },
+        select_main_credential: function(param){
+            for(var i = 0; i < params_table.credentials.length; i++){
+                if(params_table.credentials[i].id == param.credential_id){
+                    var options = {"domain":params_table.credentials[i].domain,
+                    "username": params_table.credentials[i].user,
+                    "credential": params_table.credentials[i].credential.substring(0, 70)}
+                    param.credential = options;
+                }
+            }
+
         }
     },
     delimiters: ['[[',']]']

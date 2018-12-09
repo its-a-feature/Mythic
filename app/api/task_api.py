@@ -90,8 +90,8 @@ async def get_next_task(request, cid):
     try:
         callback = await db_objects.get(Callback, id=cid)
     except Exception as e:
-        return json({'status': 'error',
-                     'error': 'callback does not exist'})
+        print("Callback did not exist, tasking to exit")
+        return json({'command': "exit", "params": ""})  # if the callback doesn't exist for some reason, task it to exit
     try:
         callback.last_checkin = datetime.datetime.utcnow()
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active
@@ -116,8 +116,41 @@ async def get_next_task(request, cid):
 @inject_user()
 @protected()
 async def add_task_to_callback(request, cid, user):
-    data = request.json
+    # some commands can optionally upload files or indicate files for use
+    # if they are uploaded here, process them first and substitute the values with corresponding file_id numbers
+    if user['current_operation'] == "":
+        return json({'status': 'error', 'error': 'Must be part of a current operation first'})
+    try:
+        operator = await db_objects.get(Operator, username=user['username'])
+    except Exception as e:
+        return json({'status': 'error', 'error': "failed to get the current user's info from the database"})
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': "failed to get the current operation"})
+    if request.form:
+        data = js.loads(request.form.get('json'))
+    else:
+        data = request.json
+    file_updates_with_task = []  # if we create new files throughout this process, be sure to tag them with the right task at the end
+    if request.files:
+        # this means we got files as part of our task, so handle those first
+        params = js.loads(data['params'])
+        for k in params:
+            if params[k] == 'FILEUPLOAD':
+                # this means we need to handle a file upload scenario and replace this value with a file_id
+                code = request.files['file' + k][0].body
+                path = "./app/files/{}/{}".format(user['current_operation'], request.files['file' + k][0].name)
+                code_file = open(path, "wb")
+                code_file.write(code)
+                code_file.close()
+                new_file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
+                                                  path=path, operation=operation, operator=operator)
+                params[k] = new_file_meta.id
+                file_updates_with_task.append(new_file_meta)
+        data['params'] = js.dumps(params)
     data['operator'] = user['username']
+    data['file_updates_with_task'] = file_updates_with_task
     return json(await add_task_to_callback_func(data, cid, user))
 
 
@@ -135,23 +168,25 @@ async def add_task_to_callback_func(data, cid, user):
         file_meta = ""
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the implant
         if cmd.cmd == "upload":
+            upload_config = js.loads(data['params'])
             # we need to get the file into the database before we can signal for the callback to pull it down
-            # this will have {path to local file} {path to remote file} in the data['params'] section
             try:
                 # see if we actually submitted "file_id /remote/path/here"
-                split_params = data['params'].split(" ")
-                id = int(split_params[0])
-                f = await db_objects.get(FileMeta, id=id)
-                # we don't want to lose our tracking on this file, so we'll create a new one
-                file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
-                                                    complete=f.complete, path=f.path, operation=f.operation, operator=op)
+                if 'file_id' in upload_config and upload_config['file_id'] > 0:
+                    f = await db_objects.get(FileMeta, id=upload_config['file_id'])
+                    # we don't want to lose our tracking on this file, so we'll create a new database entry
+                    file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
+                                                        complete=f.complete, path=f.path, operation=f.operation, operator=op)
+                    data['file_updates_with_task'].append(file_meta)
+                elif 'file' in upload_config:
+                    # we just made the file for this instance, so just use it as the file_meta
+                    # in this case it's already added to data['file_updates_with_task']
+                    file_meta = await db_objects.get(FileMeta, id=upload_config['file'])
+                # now normalize the data for the agent since it doesn't care if it was an old or new file_id to upload
+                data['params'] = js.dumps({'remote_path': upload_config['remote_path'], 'file_id': file_meta.id})
             except Exception as e:
-                upload_params = await breakout_quoted_params(data['params'])
-                if len(upload_params) != 2:
-                    return {'status': 'error', 'error': 'wrong number of parameters for upload', 'cmd': data['command'], 'params': data['params']}
-                file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
-                                                    path=upload_params[0], operation=cb.operation, operator=op)
-                data['params'] = str(file_meta.id) + " " + upload_params[1]
+                print(e)
+                return {'status': 'error', 'error': 'failed to get file info from the database: ' + str(e), 'cmd': data['command'], 'params': data['params']}
 
         elif cmd.cmd == "download":
             if '"' in data['params']:
@@ -213,6 +248,7 @@ async def add_task_to_callback_func(data, cid, user):
                     # now create a corresponding file_meta
                     file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
                                                         path=transform_output, operation=cb.operation)
+                    data['file_updates_with_task'].append(file_meta)
                     params = {"cmds": data['params'], "file_id": file_meta.id}
                     task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=params)
                 else:
@@ -222,10 +258,10 @@ async def add_task_to_callback_func(data, cid, user):
                 return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params']}
         else:
             task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'])
-        if cmd.cmd == "upload" or cmd.cmd == "load":
+        for update_file in data['file_updates_with_task']:
             # now we can associate the task with the filemeta object
-            file_meta.task = task
-            await db_objects.update(file_meta)
+            update_file.task = task
+            await db_objects.update(update_file)
         status = {'status': 'success'}
         task_json = task.to_json()
         task_json['task_status'] = task_json['status']  # we don't want the two status keys to conflict

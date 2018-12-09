@@ -48,7 +48,6 @@ function startwebsocket_credentials(){
     ws.onmessage = function(event){
         if (event.data != ""){
             c = JSON.parse(event.data);
-            console.log(c);
             if(!creds_div.credentials.hasOwnProperty(c.domain)){
                 Vue.set(creds_div.credentials, c.domain, []);
             }

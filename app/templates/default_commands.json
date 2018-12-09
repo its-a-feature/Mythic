@@ -242,9 +242,26 @@
         {
           "cmd": "upload",
           "description": "Take a file from the database and store it on disk through the callback.",
-          "help_cmd": "upload \"{path to local file}\" \"{path to remote location}\" (you MUST suround the paths with quotes).",
+          "help_cmd": "upload {\"remote_path\": \"/users/itsafeature/Desktop/tes.png\", \"file_id\": 65}",
           "needs_admin": "false",
-          "parameters": []
+          "parameters": [
+            {
+              "name": "file_id",
+              "type": "Number",
+              "required": "false"
+            },
+            {
+              "name": "file",
+              "type": "File",
+              "required": "false"
+            },
+            {
+              "name": "remote_path",
+              "type": "String",
+              "required": "true",
+              "hint": "/remote/path/on/victim.txt"
+            }
+          ]
         },
         {
           "cmd": "sleep",
