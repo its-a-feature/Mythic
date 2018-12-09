@@ -330,3 +330,19 @@ async def clear_tasks_for_callback_func(data, cid, user):
                 print(e)
                 return {'status': 'error', 'error': 'failed to delete task: ' + t.command.cmd}
     return {'status': 'success', 'tasks_removed': tasks_removed}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/tasks/<tid:int>", methods=['GET'])
+@inject_user()
+@protected()
+async def get_one_task_and_responses(request, tid, user):
+    try:
+        task = await db_objects.get(Task, id=tid)
+        if task.callback.operation.name in user['operations']:
+            responses = await db_objects.execute(Response.select().where(Response.task == task))
+            return json({'status': "success", "callback": task.callback.to_json(), "task": task.to_json(), "responses": [r.to_json() for r in responses]})
+        else:
+            return json({'status': 'error', 'error': 'you don\'t have access to that task'})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that task'})

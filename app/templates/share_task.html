@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block body %}
+
+<h4>Sharing Task {{tid}}</h4>
+
+<div style="resize: vertical; overflow:auto;" class="panel panel-primary" id="task_info">
+    <div class="panel-heading">[[callback.user]]@[[callback.host]]([[callback.pid]])#</div>
+    <font color="green">([[task.operator]]'s task: <b>[[task.id]]</b>)</font>&nbsp;
+    <font color="red">[[callback.user]]@[[callback.host]]([[callback.pid]])#&nbsp;</font>
+    [[task.command]]&nbsp;[[task.params]]<br>
+    <span v-for="rsp in responses" :key="rsp.id" style="white-space: pre-wrap">
+        <font color="blue">([[rsp.timestamp]])</font>
+        <font color="black">[[rsp.response]]</font>
+        <br>
+    </span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% include "shared_javascript.js" %}
+{% include "share_task.js" %}
+{% endblock %}

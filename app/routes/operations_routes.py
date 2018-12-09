@@ -148,6 +148,21 @@ async def view_tasks(request, user):
     return response.html(content)
 
 
+@apfell.route("/tasks/<tid:int>", methods=['GET'])
+@inject_user()
+@protected()
+async def view_shared_task(request, user, tid):
+    template = env.get_template('share_task.html')
+
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'], tid=tid)
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'], tid=tid)
+    return response.html(content)
+
+
 # add links to these routes at the bottom
 links['callbacks'] = apfell.url_for('callbacks')
 links['database_management'] = apfell.url_for('db_management')

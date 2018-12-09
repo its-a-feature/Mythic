@@ -464,6 +464,7 @@ function add_new_task(tsk){
         // then create it as an empty dictionary
         Vue.set(all_tasks, tsk['callback'], {}); //create an empty dictionary
     }
+    tsk.href = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + tsk.id;
     Vue.set(all_tasks[tsk['callback']], tsk['id'], tsk);
     task_data.meta[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['params']); // set up our cmd history
     task_data.meta[tsk['callback']]['history_index'] = task_data.meta[tsk['callback']]['history'].length;
