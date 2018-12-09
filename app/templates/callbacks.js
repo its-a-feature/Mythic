@@ -252,6 +252,12 @@ var task_data = new Vue({
             });
             Vue.set(metadata, 'selected', true);
             Vue.set(callback_table.callbacks[metadata['id']], 'selected', true);
+            if(metadata.data){
+                alertTop("success", "Loading data");
+            }
+            else{
+                alertTop("info", "Agent has no tasking yet");
+            }
         },
         toggle_image: function(image){
             var panel = document.getElementById(image.remote_path).nextElementSibling;
@@ -301,6 +307,7 @@ var task_data = new Vue({
         this.$nextTick(function(){
             //this is called after the DOM is updated via VUE
             $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+            clearAlertTop();
         });
     }
 });
