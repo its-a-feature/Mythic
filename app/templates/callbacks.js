@@ -132,12 +132,22 @@ function get_all_tasking_callback(response){
     var data = JSON.parse(response);
     if(data['status'] == 'success'){
         //this has [callback_info, "tasks": [ {task_info, "responses": [ {response_info} ] } ] ]
+        if(data['tasks'].length > 0){
+            alertTop("success", "Loading data");
+        }
+        else{
+            alertTop("info", "Agent has no tasking yet");
+        }
         for(var i = 0; i < data['tasks'].length; i++){
             add_new_task(data['tasks'][i]);
             for(var j = 0; j < data['tasks'][i]['responses'].length; j++){
                 add_new_response(data['tasks'][i]['responses'][j]);
             }
         }
+        setTimeout(() => { // setTimeout to put this into event queue
+            // executed after render
+            clearAlertTop();
+        }, 0);
     }
 }
 function stop_getting_callback_updates(id){
@@ -252,12 +262,6 @@ var task_data = new Vue({
             });
             Vue.set(metadata, 'selected', true);
             Vue.set(callback_table.callbacks[metadata['id']], 'selected', true);
-            if(metadata.data){
-                alertTop("success", "Loading data");
-            }
-            else{
-                alertTop("info", "Agent has no tasking yet");
-            }
         },
         toggle_image: function(image){
             var panel = document.getElementById(image.remote_path).nextElementSibling;
@@ -307,7 +311,6 @@ var task_data = new Vue({
         this.$nextTick(function(){
             //this is called after the DOM is updated via VUE
             $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
-            clearAlertTop();
         });
     }
 });
