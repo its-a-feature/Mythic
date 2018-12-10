@@ -30,6 +30,11 @@ var callback_table = new Vue({
             task_data.input_field_placeholder['cid'] = callback.id;
             Vue.set(task_data.meta[callback.id], 'tasks', true);
             task_data.meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
+            setTimeout(() => { // setTimeout to put this into event queue
+                // executed after render
+                // show loading data until we load all of our data in, then it will be automatically cleared
+                alertTop("success", "Loading data");
+            }, 0);
             $('#tasks' + callback.id.toString() + 'tab').click();
             ws_newtasks.send("a" + callback.id);
             ws_updatedtasks.send("a" + callback.id);
@@ -132,12 +137,6 @@ function get_all_tasking_callback(response){
     var data = JSON.parse(response);
     if(data['status'] == 'success'){
         //this has [callback_info, "tasks": [ {task_info, "responses": [ {response_info} ] } ] ]
-        if(data['tasks'].length > 0){
-            alertTop("success", "Loading data");
-        }
-        else{
-            alertTop("info", "Agent has no tasking yet");
-        }
         for(var i = 0; i < data['tasks'].length; i++){
             add_new_task(data['tasks'][i]);
             for(var j = 0; j < data['tasks'][i]['responses'].length; j++){
