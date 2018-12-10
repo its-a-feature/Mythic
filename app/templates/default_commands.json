@@ -539,6 +539,44 @@
           ]
         },
         {
+          "cmd": "persist_emond",
+          "description": "Create persistence with an emond plist file in /etc/emond.d/rules/ and a .DS_Store file to trigger it",
+          "help_cmd": "persist_emond",
+          "needs_admin": "true",
+          "parameters": [
+            {
+              "name": "rule_name",
+              "type": "String",
+              "required": "true",
+              "hint": "Rule name for inside of the plist"
+            },
+            {
+              "name": "payload_type",
+              "type": "Choice",
+              "choices": "oneliner-jxa\ncustom_bash-c",
+              "required": "true"
+            },
+            {
+              "name": "url",
+              "type": "String",
+              "required": "false",
+              "hint": "url of payload for oneliner-jxa"
+            },
+            {
+              "name": "command",
+              "type": "String",
+              "required": "false",
+              "hint": "Command if type is custom_bash-rc"
+            },
+            {
+              "name": "file_name",
+              "type": "String",
+              "required": "true",
+              "hint": "Name of plist in /etc/emond.d/rules/"
+            }
+          ]
+        },
+        {
           "cmd": "swap_c2",
           "description": "Swap out the running c2 configuration in the apfell-jxa agent with another",
           "help_cmd": "swap_c2 {\"profile\": file_number}, or just swap_c2",
