@@ -210,7 +210,7 @@ class customC2 extends baseC2{
                     data = handle.readDataOfLength(chunkSize);
                 }
                 var output = "Finished downloading file with id: " + registerFile['file_id'];
-                output += "\nBrowse to /api/v1.0/files/" + registerFile['file_id'];
+                output += "\nBrowse to /api/v1.0/files/download/" + registerFile['file_id'];
             }
             else{
                var output = "Failed to register file to download";
