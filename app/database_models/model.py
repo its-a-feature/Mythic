@@ -538,7 +538,7 @@ class Task(p.Model):
 
 
 class Response(p.Model):
-    response = p.CharField(null=True, max_length=512000)
+    response = p.TextField(null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     task = p.ForeignKeyField(Task, null=False)
 
