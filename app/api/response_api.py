@@ -56,6 +56,22 @@ async def get_one_response(request, user, id):
         return json({'status': 'error', 'error': 'Cannot get that response'})
 
 
+# Get a single response
+@apfell.route(apfell.config['API_BASE'] + "/responses/search", methods=['POST'])
+@inject_user()
+@protected()
+async def search_responses(request, user):
+    try:
+        data = request.json
+        if 'search' not in data:
+            return json({'status': 'error', 'error': 'failed to find search term in request'})
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Cannot get that response'})
+    responses = await db_objects.execute(Response.select().where(Response.response.contains(data['search'])).join(Task).join(Callback).where(Callback.operation == operation).order_by(Response.id))
+    return json({'status': 'success', 'output': [r.to_json() for r in responses]})
+
+
 # implant calling back to update with base64 encoded response from executing a task
 # We don't add @protected or @injected_user here because the callback needs to be able to post here for responses
 @apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['POST'])

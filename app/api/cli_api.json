@@ -1230,6 +1230,19 @@
               "requirements": "This is a required field. Typically this is just a string for the output of the command, but some commands have some other specific information that needs to be passed back as well. This MUST be base64 encoded."
             }
           ]
+        },
+        {
+          "POST": "API_BASE/responses/search",
+          "explanation": "Search response output across an operation for a search term or phrase",
+          "cli": "curl -X POST -d '{\"search\":\"password\"}' http://localhostAPI_BASE/responses/search",
+          "output": "{\"status\": \"success\", \"output\": [array of response objects]}",
+          "parameters": [
+            {
+              "name": "search",
+              "description": "The word or phrase you want to search in the responses. This is case insensitive and has wildcards on either side automatically",
+              "requirements": "This is a required parameter"
+            }
+          ]
         }
       ]
     },

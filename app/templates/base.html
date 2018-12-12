@@ -18,7 +18,7 @@
 
 </head>
 <body>
-    <nav class="navbar navbar-light navbar-inverse">
+    <nav class="navbar navbar-light navbar-inverse justify-content-between">
         <div class="container-fluid">
             <div class="navbar-header" align="top">
 
@@ -51,6 +51,7 @@
                             <li><a href="{{ links.keylogs }}">Keylogs</a></li>
                             <li><a href="{{ links.files }}">Upload/Download Files</a></li>
                             <li><a href="{{ links.credentials}}">Credentials</a></li>
+                            <li><a href="{{ links.search }}">Search</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -112,9 +113,9 @@
                     </li>
                     <li>
                         {% if links.current_operation != "" %}
-                            <font style="color:green" size="6">{{links.current_operation}}</font>
+                            <font style="color:green" size="6">{{links.current_operation}}&nbsp;&nbsp;</font>
                         {% else %}
-                            <font style="color:red" size="5">Select an operation!</font>
+                            <font style="color:red" size="5">Select an operation!&nbsp;&nbsp;</font>
                         {% endif %}
 
                     </li>
@@ -132,7 +133,9 @@
     <div id="bottom-alert"></div>
     </div>
     <script type="text/javascript">
+    {% include "shared_javascript.js" %}
     {% block scripts %}{% endblock %}
+
     </script>
 </body>
 </html>

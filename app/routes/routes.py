@@ -181,6 +181,23 @@ async def settings(request, user):
         return json({'status': 'error', 'error': 'Failed to find operator'})
 
 
+@apfell.route("/search", methods=['GET'])
+@inject_user()
+@protected()
+async def search(request, user):
+    template = env.get_template('search.html')
+    try:
+        operator = Operator.get(Operator.username == user['username'])
+        if use_ssl:
+            content = template.render(links=links, name=user['username'], http="https", ws="wss")
+        else:
+            content = template.render(links=links, name=user['username'], http="http", ws="ws")
+        return response.html(content)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'Failed to find operator'})
+
+
 @apfell.route("/settings", methods=['PUT'])
 @inject_user()
 @protected()
@@ -345,3 +362,4 @@ links['login'] = links['WEB_BASE'] + "/login"
 links['logout'] = apfell.url_for('logout')
 links['register'] = links['WEB_BASE'] + "/register"
 links['settings'] = apfell.url_for('settings')
+links['search'] = apfell.url_for('search')
