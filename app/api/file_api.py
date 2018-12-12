@@ -67,7 +67,7 @@ async def download_file(request, id):
     # now that we have the file metadata, get the file if it's done downloading
     if file_meta.complete and not file_meta.deleted:
         try:
-            return await file(file_meta.path)
+            return await file(file_meta.path, filename=file_meta.path.split("/")[-1])
         except Exception as e:
             return json({'status': 'error', 'error': 'File not found'})
     elif not file_meta.complete:
