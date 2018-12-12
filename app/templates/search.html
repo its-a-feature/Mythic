@@ -4,14 +4,27 @@
 <div>
     <input type="text" id="searchTextField" size="60" placeholder="Search... wildcards both sides automaically" height="7">
     <button class="btn btn-md btn-primary" onclick="search_task_output()">Search Task Output</button>
+    <input type="text" id="searchTasksTextField" size="60" placeholder="Search... wildcards both sides automaically" height="7">
+    <button class="btn btn-md btn-primary" onclick="search_task_params()">Search Task Parameters</button>
 </div>
 <div id="searchResults">
     Search returned: [[responses.length]] Results
     <div v-for="r in responses" style="resize: vertical; overflow:scroll" class="panel panel-info" :key="r.id">
-        <div class="panel-heading" >Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task: [[r.task.command]] [[r.task.params]]</div>
+        <div class="panel-heading" >Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task <a :href="r.share_task"><b>[[r.task.id]]</b></a>: [[r.task.command]] [[r.task.params]]</div>
         <span style="white-space: pre-wrap">
             <font color="blue">([[toLocalTime(r.timestamp)]])</font>
             <font color="black">[[r.response]]</font>
+        <br>
+    </span>
+    </div>
+</div>
+<div id="searchTasksResults">
+    Search returned: [[tasks.length]] Results
+    <div v-for="t in tasks" style="resize: vertical; overflow:scroll" class="panel panel-info" :key="t.id">
+        <div class="panel-heading" >Task <a :href="[[t.share_task]]"><b>[[t.id]]</b></a> on callback [[t.callback]] - [[t.operator]]'s task: [[t.command]] [[t.params]]</div>
+        <span v-for="r in t.responses" style="white-space: pre-wrap">
+            <font color="blue">([[toLocalTime(r.timestamp)]])</font>
+            <font color="black">[[r.response.replace(/\\n|\r/g, '\n')]]</font>
         <br>
     </span>
     </div>

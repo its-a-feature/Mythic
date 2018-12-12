@@ -28,6 +28,26 @@ async def get_all_tasks(request, user):
         return json({'status': 'error', 'error': 'must be admin to see all tasks or part of a current operation'})
 
 
+# Get a single response
+@apfell.route(apfell.config['API_BASE'] + "/tasks/search", methods=['POST'])
+@inject_user()
+@protected()
+async def search_tasks(request, user):
+    try:
+        data = request.json
+        if 'search' not in data:
+            return json({'status': 'error', 'error': 'failed to find search term in request'})
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Cannot get that response'})
+    tasks = await db_objects.execute(Task.select().where(Task.params.contains(data['search'])).join(Callback).where(Callback.operation == operation).order_by(Task.id))
+    output = []
+    for t in tasks:
+        responses = await db_objects.execute(Response.select().where(Response.task == t))
+        output.append({**t.to_json(), "responses": [r.to_json() for r in responses]})
+    return json({'status': 'success', 'output': output})
+
+
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['GET'])
 @inject_user()
 @protected()
