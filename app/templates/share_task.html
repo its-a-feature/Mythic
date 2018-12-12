@@ -9,7 +9,7 @@
     <font color="red">[[callback.user]]@[[callback.host]]([[callback.pid]])#&nbsp;</font>
     [[task.command]]&nbsp;[[task.params]]<br>
     <span v-for="rsp in responses" :key="rsp.id" style="white-space: pre-wrap">
-        <font color="blue">([[rsp.timestamp]])</font>
+        <font color="blue">([[toLocalTime(rsp.timestamp)]])</font>
         <font color="black">[[rsp.response]]</font>
         <br>
     </span>

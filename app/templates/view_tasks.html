@@ -13,7 +13,7 @@
                     <div v-if="t.hasOwnProperty('responses')">
                         Command: [[t.command]] [[t.params]]<br>
                         <span v-if="t.hasOwnProperty('responses')" v-for="r in t.responses" :key="r.id" style="white-space: pre-wrap">
-                            <font color="blue">([[r.timestamp]])</font>
+                            <font color="blue">([[toLocalTime(r.timestamp)]])</font>
                             <font color="black">[[r.response]]</font>
                         </span>
                         <br>

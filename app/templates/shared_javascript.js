@@ -133,3 +133,8 @@ function clearAlertTop(){
 function clearAlertBottom(){
     $( '#bottom-alert' ).html("");
 }
+function toLocalTime(date){
+    var init_date = new Date(date + " UTC");
+    return init_date.toDateString() + " " + init_date.toTimeString().substring(0,8);
+
+}

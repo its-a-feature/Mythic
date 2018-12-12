@@ -46,7 +46,7 @@
                 <td>[[ callback.ip   ]]</td>
                 <td>[[ callback.user ]]</td>
                 <td>[[ callback.pid  ]]</td>
-                <td>[[ callback.init_callback ]]</td>
+                <td>[[ toLocalTime(callback.init_callback) ]]</td>
                 <td>[[ callback.real_time  ]]</td>
                 <td>[[ callback.payload_type ]]</td>
                 <td>[[ callback.c2_profile ]] </td>
@@ -81,7 +81,7 @@
                     <font color="red">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</font>
                     [[task.command]]&nbsp;[[task.params]]<br>
                     <span v-for="rsp in task.response" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap">
-                        <font color="blue">([[rsp.timestamp]])</font>
+                        <font color="blue">([[toLocalTime(rsp.timestamp)]])</font>
                         <font color="black">[[rsp.response]]</font>
                         <br>
                     </span>
@@ -105,7 +105,7 @@
             <div  :id="'keylogs' + metadata.id + 'view'">
                 <div v-for="log,i in metadata.keylog_data">
                     Keystrokes from <font color="red">[[log.user]]</font> in window <font color="green">[[log.window]]</font><br>
-                    <font color="blue">([[log.timestamp]])</font>
+                    <font color="blue">([[toLocalTime(log.timestamp)]])</font>
                     <font color="black">[[log.keystrokes]]</font>
                 </div>
             </div>
