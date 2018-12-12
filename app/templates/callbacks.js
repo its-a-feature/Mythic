@@ -35,7 +35,10 @@ var callback_table = new Vue({
                 // show loading data until we load all of our data in, then it will be automatically cleared
                 alertTop("success", "Loading data");
             }, 0);
-            $('#tasks' + callback.id.toString() + 'tab').click();
+            setTimeout(() => { // setTimeout to put this into event queue
+                // executed after render
+                $('#tasks' + callback.id.toString() + 'tab').click();
+            }, 0);
             ws_newtasks.send("a" + callback.id);
             ws_updatedtasks.send("a" + callback.id);
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'] + "/all_tasking",get_all_tasking_callback,"GET",null);
@@ -188,10 +191,35 @@ var task_data = new Vue({
                 for(var i = 0; i < ptype_cmd_params[callbacks[data['cid']]['payload_type']].length; i++){
                     if(command == "help"){
                         if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == params){
-                            alertBottom("info", ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
-                            //alert(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
+                            alertMiddle("info", ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
                             return;
                         }
+                    }
+                    else if(command == "set"){
+                        if(task.length >= 3){
+                            var set_value = task.slice(2, ).join(' ');
+                            if(task[1] == "parent"){
+                                set_value = parseInt(set_value);
+                            }
+                            var set_data = {};
+                            set_data[task[1]] = set_value;
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + this.input_field_placeholder['cid'],
+                            function(response){
+                                var rdata = JSON.parse(response);
+                                if(rdata['status'] == 'success'){
+                                    alertMiddle("success", "Successfully modified current callback's metadata");
+                                    task_data.input_field = "";
+                                }
+                                else{
+                                    alertMiddle("danger", "Failed to set current callback's metadata: " + rdata['error']);
+                                }
+                            }, "PUT", set_data);
+                        }
+                        else{
+                            alertMiddle("danger", "Wrong number of params for set. Should be set {field} {value}");
+                            return;
+                        }
+                        return;
                     }
                     else if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == command){
                         if(params.length == 0 && ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length != 0){
@@ -210,8 +238,7 @@ var task_data = new Vue({
                                 params_table.credentials = credentials['credentials'];
                             }
                             else{
-                                alertTop("danger", credentials['error']);
-                                console.log(credentials);
+                                alertMiddle("danger", credentials['error']);
                                 return;
                             }
                             $( '#paramsModal' ).modal('show');
@@ -246,7 +273,7 @@ var task_data = new Vue({
                     }
                 }
                 //If we got here, that means we're looking at an unknown command
-                alertBottom("warning", "Unknown command: " + command);
+                alertMiddle("warning", "Unknown command: " + command);
             }
 
         },
@@ -511,6 +538,7 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
             if(callbacks[rsp.id]){
                 callbacks[rsp.id]['last_checkin'] = rsp['last_checkin'];
                 callbacks[rsp.id]['active'] = rsp['active'];
+                callbacks[rsp.id]['description'] = rsp['description'];
                 if(rsp['active'] == false){
                     task_data.meta[rsp.id]['tasks'] = false;
                     task_data.meta[rsp.id]['screencaptures'] = false;
@@ -551,6 +579,12 @@ function shadeBlend(p,c0,c1) {
         var f=w(c0.slice(1),16),t=w((c1?c1:p<0?"#000000":"#FFFFFF").slice(1),16),R1=f>>16,G1=f>>8&0x00FF,B1=f&0x0000FF;
         return "#"+(0x1000000+(u(((t>>16)-R1)*n)+R1)*0x10000+(u(((t>>8&0x00FF)-G1)*n)+G1)*0x100+(u(((t&0x0000FF)-B1)*n)+B1)).toString(16).slice(1)
     }
+}
+function alertMiddle(type, string){
+    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +
+    string +
+    "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
+    $( '#middle-alert' ).html(html);
 }
 
 startwebsocket_callbacks();

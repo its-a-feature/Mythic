@@ -83,6 +83,38 @@ function send_pload_tree_data(){
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/analytics/payload_tree", update_payload_tree, "GET", null);
     }
 }
+var adjustCallbackRelationshipModal_Vue = new Vue({
+    el: '#adjustCallbackRelationshipModal',
+    data: {
+        callbacks: [],
+        parent: -1,
+        child: -1
+    },
+    delimiters: ['[[',']]']
+});
+function adjust_callback_relationship_button(){
+    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/", list_possible_callbacks_callback, "GET", null);
+    $( '#adjustCallbackRelationshipModal' ).modal('show');
+    $( '#adjustCallbackRelationshipSubmit' ).unbind('click').click(function(){
+        console.log(adjustCallbackRelationshipModal_Vue.parent);
+        console.log(adjustCallbackRelationshipModal_Vue.child);
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + adjustCallbackRelationshipModal_Vue.child, relationship_adjust_callback, "PUT", {'parent': adjustCallbackRelationshipModal_Vue.parent});
+    });
+}
+function list_possible_callbacks_callback(response){
+    var data = JSON.parse(response);
+    adjustCallbackRelationshipModal_Vue.callbacks = data;
+    adjustCallbackRelationshipModal_Vue.child = adjustCallbackRelationshipModal_Vue.callbacks[0].id;
+}
+function relationship_adjust_callback(response){
+    var data = JSON.parse(response);
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
+    else{
+        alertTop("success", "Successfully edited callback relationship");
+    }
+}
 startwebsocket_callbacks();
 send_pload_tree_data();
 

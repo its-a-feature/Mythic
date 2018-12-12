@@ -12,6 +12,36 @@
 <div id="payloadtree" style="white-space: pre-wrap">[[pload_tree]]</div>
 <button type="button" class="btn btn-info btn-md" onclick="show_removed_payload_button()">Toggle Removed</button>
 <button type="button" class="btn btn-info btn-md" onclick="show_removed_payload_strike_button()">Toggle Strikethrough</button>
+<button type="button" class="btn btn-warning btn-md" onclick="adjust_callback_relationship_button()">Adjust Callback Relationship</button>
+
+<!-- THIS IS OUR MODAL FOR ADJUSTING RELATIONSHIP -->
+<div class="modal fade bs-example-modal-md" id="adjustCallbackRelationshipModal" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Adjust Callback Relationship</h3>
+            </div>
+              <div class="modal-body">
+                  <h4>Select Parent Callback:</h4>
+                  <select id="adjustCallbackRelationshipParentCallback" v-model="parent">
+                      <option value="-1">No Parent</option>
+                      <option v-for="c in callbacks" :value="c.id" :key="c.id">[[c.user]]@[[c.host]]([[c.pid]]) - [[c.description]]</option>
+                  </select>
+                  <h4>Select Child Callback:</h4>
+                  <select id="adjustCallbackRelationshipChildCallback" v-model="child">
+                      <option v-for="c in callbacks" :value="c.id" :key="c.id">[[c.user]]@[[c.host]]([[c.pid]]) - [[c.description]]</option>
+                  </select>
+              </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="adjustCallbackRelationshipSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR ADJUSTING RELATIONSHIP -->
+
 <br>
 <h4 hidden>List of Compromised Hosts:</h4>
 <h4 hidden>Total Commands issued, Sorted by User:</h4>

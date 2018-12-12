@@ -90,7 +90,8 @@ async def get_one_callback(request, id, user):
 async def update_callback(request, id, user):
     data = request.json
     try:
-        cal = await db_objects.get(Callback, id=id)
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        cal = await db_objects.get(Callback, id=id, operation=operation)
         if 'description' in data:
             cal.description = data['description']
         if 'active' in data:
@@ -104,6 +105,18 @@ async def update_callback(request, id, user):
             cal.encryption_key = data['encryption_key']
         if 'decryption_key' in data:
             cal.decryption_key = data['decryption_key']
+        if 'parent' in data:
+            try:
+                if data['parent'] == -1:
+                    # this means to remove the current parent
+                    cal.pcallback = None
+                else:
+                    parent = await db_objects.get(Callback, id=data['parent'], operation=operation)
+                    if parent.id == cal.id:
+                        return json({'status': 'error', 'error': 'cannot set parent = child'})
+                    cal.pcallback = parent
+            except Exception as e:
+                return json({'status': 'error', 'error': "failed to set parent callback: " + str(e)})
         await db_objects.update(cal)
         success = {'status': 'success'}
         updated_cal = cal.to_json()

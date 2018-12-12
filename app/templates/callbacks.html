@@ -24,7 +24,7 @@
                 <td>
                     <!-- Split button -->
                     <div class="btn-group dropdown">
-                      <button type="button" class="btn btn-primary btn-sm" @click="interact_button(callback)">Interact</button>
+                      <button type="button" class="btn btn-primary btn-sm" @click="interact_button(callback)">Interact [[callback.id]]</button>
                       <button type="button" class="btn btn-info dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="caret"></span>
                         <span class="sr-only">Toggle Dropdown</span>
@@ -57,6 +57,7 @@
         </table>
     </div>
 </div>
+<div id="middle-alert"></div>
 <div class="panel panel-info" id="bottom-data">
     <!-- Tabs at the bottom of the screen - just the names at the top though-->
     <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
