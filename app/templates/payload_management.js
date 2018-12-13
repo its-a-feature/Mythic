@@ -20,7 +20,11 @@ var payloads_table = new Vue({
             });
         },
         show_uuid_button: function(p){
-            alert(p.uuid);
+            alertTop("info", p.uuid);
+        },
+        show_parameters_button: function(p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/" + p.uuid, get_config_callback, "GET", null);
+            $( '#payloadConfigModal' ).modal('show');
         }
     },
     delimiters: ['[[',']]']
@@ -38,9 +42,26 @@ function delete_callback(response){
 	}
 	else{
 		//there was an error, so we should tell the user
-		alert("Error: " + data['error']);
+		alertTop("danger", "Error: " + data['error']);
 	}
-}
+};
+var payload_config_vue = new Vue({
+    el: '#payloadConfigModal',
+    data: {
+        config: {}
+    },
+    delimiters: ['[[',']]']
+});
+function get_config_callback(response){
+    var data = JSON.parse(response);
+    if(data['status'] == "success"){
+        Vue.set(payload_config_vue.config, "commands", data['commands']);
+        Vue.set(payload_config_vue.config, "c2_profile_parameters_instance", data['c2_profile_parameters_instance']);
+    }
+    else{
+        alertTop("danger", data['error']);
+    }
+};
 function startwebsocket_payloads(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
 	ws.onmessage = function(event){
@@ -52,9 +73,11 @@ function startwebsocket_payloads(){
 	}
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
+		alertTop("danger", "Socket closed, please refresh");
 	}
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
+		alertTop("danger", "Socket errored, please refresh");
 	}
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
@@ -651,9 +674,11 @@ function startwebsocket_payloadtypes(){
 	}
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
+		alertTop("danger", "Socket closed, please reload");
 	}
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
+		alertTop("danger", "Socket errored, please reload");
 	}
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
@@ -700,9 +725,11 @@ function startwebsocket_commands(){
 	}
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
+		alertTop("danger", "Socket closed, please reload");
 	}
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
+		alertTop("danger", "Socket errored, please reload");
 	}
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
