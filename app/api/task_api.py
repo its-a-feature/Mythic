@@ -341,7 +341,7 @@ async def clear_tasks_for_callback_func(data, cid, user):
             (Task.status == "submitted") & (Task.callback == callback)
         ).order_by(-Task.timestamp).limit(1))
     for t in tasks:
-        if user['username'] == t.operator.username or user['admin'] or operation.name in user['admin_operations']:
+        if operation.name in user['operations']:
             try:
                 t_removed = t.to_json()
                 # don't actually delete it, just mark it as completed with a response of "CLEARED TASK"

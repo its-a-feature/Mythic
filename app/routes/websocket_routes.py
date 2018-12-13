@@ -209,7 +209,7 @@ async def ws_callbacks_current_operation(request, ws, user):
                     if user['current_operation'] != "":
                         # before we start getting new things, update with all of the old data
                         operation = await db_objects.get(Operation, name=user['current_operation'])
-                        callbacks = Callback.select().where(Callback.operation == operation)
+                        callbacks = Callback.select().where(Callback.operation == operation).order_by(Callback.id)
                         operators = Operator.select()
                         callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                         for cb in callbacks_with_operators:
@@ -307,7 +307,7 @@ async def ws_payloads(request, ws):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newpayload";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    payloads = await db_objects.execute(Payload.select())
+                    payloads = await db_objects.execute(Payload.select().order_by(Payload.id))
                     for p in payloads:
                         await ws.send(js.dumps(p.to_json()))
                     await ws.send("")
@@ -342,7 +342,7 @@ async def ws_payloads_current_operation(request, ws, user):
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user['current_operation'] != "":
                         operation = await db_objects.get(Operation, name=user['current_operation'])
-                        payloads = await db_objects.execute(Payload.select().where(Payload.operation == operation))
+                        payloads = await db_objects.execute(Payload.select().where(Payload.operation == operation).order_by(Payload.id))
                         for p in payloads:
                             await ws.send(js.dumps(p.to_json()))
                         await ws.send("")
@@ -377,7 +377,7 @@ async def ws_c2profiles(request, ws, user):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newc2profile";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    profiles = await db_objects.execute(C2Profile.select())
+                    profiles = await db_objects.execute(C2Profile.select().order_by(C2Profile.id))
                     for p in profiles:
                         await ws.send(js.dumps(p.to_json()))
                     await ws.send("")
@@ -412,7 +412,7 @@ async def ws_c2profile_current_operation(request, ws, user):
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user['current_operation'] != "":
                         operation = await db_objects.get(Operation, name=user['current_operation'])
-                        profiles = await db_objects.execute(C2Profile.select().where(C2Profile.operation == operation))
+                        profiles = await db_objects.execute(C2Profile.select().where(C2Profile.operation == operation).order_by(C2Profile.id))
                         for p in profiles:
                             await ws.send(js.dumps(p.to_json()))
                         await ws.send("")
@@ -539,7 +539,7 @@ async def ws_payloadtypes(request, ws):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newpayloadtype";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    payloadtypes = await db_objects.execute(PayloadType.select())
+                    payloadtypes = await db_objects.execute(PayloadType.select().order_by(PayloadType.id))
                     for p in payloadtypes:
                         await ws.send(js.dumps(p.to_json()))
                     await ws.send("")
@@ -676,7 +676,7 @@ async def ws_files_current_operation(request, ws, user):
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     operation = await db_objects.get(Operation, name=user['current_operation'])
                     files = await db_objects.execute(FileMeta.select().where(
-                        (FileMeta.operation == operation) & (FileMeta.deleted == False)))
+                        (FileMeta.operation == operation) & (FileMeta.deleted == False)).order_by(FileMeta.id))
                     for f in files:
                         if "/screenshots/" not in f.path:
                             if "/{}/downloads/".format(user['current_operation']) not in f.path:
