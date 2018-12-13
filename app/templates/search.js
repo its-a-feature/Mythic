@@ -10,6 +10,11 @@ function search_task_output(){
     if(search != ""){
         search_results.responses = [];
         search_task_params.tasks = [];
+        setTimeout(() => { // setTimeout to put this into event queue
+                // executed after render
+                // show loading data until we load all of our data in, then it will be automatically cleared
+                alertTop("success", "Loading data");
+            }, 0);
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/responses/search", get_search_callback, "POST", {"search": search});
     }
     else{
@@ -25,6 +30,10 @@ function get_search_callback(response){
             data['output'][i]['response'] = data['output'][i]['response'].replace(/\\n|\r/g, '\n');
         }
         search_results.responses = data['output'];
+        setTimeout(() => { // setTimeout to put this into event queue
+            // executed after render
+            clearAlertTop();
+        }, 0);
     }
     else{
         alertTop("danger", data['error']);
@@ -42,6 +51,11 @@ function search_task_params(){
     if(search != ""){
         search_results.responses = [];
         search_task_params.tasks = [];
+        setTimeout(() => { // setTimeout to put this into event queue
+                // executed after render
+                // show loading data until we load all of our data in, then it will be automatically cleared
+                alertTop("success", "Loading data");
+            }, 0);
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/search", get_search_tasks_callback, "POST", {"search": search});
     }
     else{
@@ -55,6 +69,10 @@ function get_search_tasks_callback(response){
             data['output'][i]['share_task'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['output'][i]['id'];
         }
         search_task_results.tasks = data['output'];
+        setTimeout(() => { // setTimeout to put this into event queue
+            // executed after render
+            clearAlertTop();
+        }, 0);
     }
     else{
         alertTop("danger", data['error']);
