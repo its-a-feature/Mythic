@@ -443,10 +443,10 @@ function startwebsocket_callbacks(){
         }
     };
     ws.onclose = function(){
-        //console.log("socket closed");
+        alertMiddle("danger", "Socked closed. Please reload the page");
     }
     ws.onerror = function(){
-        //console.log("websocket error");
+        alertMiddle("danger", "Socket errored. Please reload the page");
     }
     ws.onopen = function(event){
         //console.debug("opened");
@@ -481,6 +481,12 @@ function startwebsocket_newtasks(){
         }
         ws_newtasks.send("");
     };
+    ws_newtasks.onclose = function(){
+        alertMiddle("danger", "Socked closed. Please reload the page");
+    }
+    ws_newtasks.onerror = function(){
+        alertMiddle("danger", "Socket errored. Please reload the page");
+    }
 };
 function add_new_task(tsk){
     if (callbacks[tsk['callback']]){
@@ -513,6 +519,12 @@ function startwebsocket_updatedtasks(){
         }
         ws_updatedtasks.send("");
     };
+    ws_updatedtasks.onclose = function(){
+        alertMiddle("danger", "Socked closed. Please reload the page");
+    }
+    ws_updatedtasks.onerror = function(){
+        alertMiddle("danger", "Socket errored. Please reload the page");
+    }
 };
 function add_new_response(rsp){
     if(rsp['task']['callback'] in all_tasks){
@@ -547,6 +559,12 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
 
             }
         }
+    };
+    ws.onclose = function(){
+        alertMiddle("danger", "Socked closed. Please reload the page");
+    }
+    ws.onerror = function(){
+        alertMiddle("danger", "Socket errored. Please reload the page");
     }
 };
 function updateClocks(){
