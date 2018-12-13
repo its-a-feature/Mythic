@@ -28,6 +28,7 @@ var screencapture_div = new Vue({
 });
 function startwebsocket_callbacks(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
+    alertTop("success", "Loading...");
     ws.onmessage = function(event){
         if (event.data != ""){
             cb = JSON.parse(event.data);
@@ -54,9 +55,11 @@ function startwebsocket_callbacks(){
     };
     ws.onclose = function(){
         //console.log("socket closed");
+        alertTop("danger", "Socket closed, please refresh");
     }
     ws.onerror = function(){
         //console.log("websocket error");
+        alertTop("danger", "Socket errored, please refresh");
     }
     ws.onopen = function(event){
         //console.debug("opened");
@@ -74,14 +77,20 @@ function startwebsocket_newscreenshots(){
             if(finished_newcallbacks == false){
                 startwebsocket_updatedscreenshots();
                 finished_newcallbacks = true;
+                setTimeout(() => { // setTimeout to put this into event queue
+                    // executed after render
+                    clearAlertTop();
+                }, 0);
             }
         }
     };
     ws.onclose = function(){
         //console.log("socket closed");
+        alertTop("danger", "Socket closed, please refresh");
     }
     ws.onerror = function(){
         //console.log("websocket error");
+        alertTop("danger", "Socket errored, please refresh");
     }
     ws.onopen = function(event){
         //console.debug("opened");
@@ -103,9 +112,11 @@ function startwebsocket_updatedscreenshots(){
     };
     ws.onclose = function(){
         //console.log("socket closed");
+        alertTop("danger", "Socket closed, please refresh");
     }
     ws.onerror = function(){
         //console.log("websocket error");
+        alertTop("danger", "Socket errored, please refresh");
     }
     ws.onopen = function(event){
         //console.debug("opened");

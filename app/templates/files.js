@@ -11,6 +11,7 @@ var files_div = new Vue({
 });
 function startwebsocket_files(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/files/current_operation');
+    alertTop("success", "Loading...");
     ws.onmessage = function(event){
         if (event.data != ""){
             f = JSON.parse(event.data);
@@ -33,15 +34,21 @@ function startwebsocket_files(){
         else{
             if(ready_for_updates == false){
                 ready_for_updates = true;
+                setTimeout(() => { // setTimeout to put this into event queue
+                    // executed after render
+                    clearAlertTop();
+                }, 0);
                 startwebsocket_updatedfiles();
             }
         }
     };
     ws.onclose = function(){
         //console.log("socket closed");
+        alertTop("danger", "Socket closed. Please refresh");
     }
     ws.onerror = function(){
         //console.log("websocket error");
+        alertTop("danger", "Socket errored, please refresh");
     }
     ws.onopen = function(event){
         //console.debug("opened");
@@ -76,9 +83,11 @@ function startwebsocket_updatedfiles(){
     };
     ws.onclose = function(){
         //console.log("socket closed");
+        alertTop("danger", "Socket closed, please refresh");
     }
     ws.onerror = function(){
         //console.log("websocket error");
+        alertTop("danger", "Socket errored, please refresh");
     }
     ws.onopen = function(event){
         //console.debug("opened");
