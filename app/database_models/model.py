@@ -170,7 +170,7 @@ class CommandParameters(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                if k == 'command':
+                if k == 'command' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).id
                     r['cmd'] = getattr(self, k).cmd
                 elif k == 'operator':
@@ -434,7 +434,7 @@ class C2ProfileParametersInstance(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                if k == 'c2_profile_parameters':
+                if k == 'c2_profile_parameters' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r['c2_profile'] = getattr(self, k).c2_profile.name
                     r['c2_profile_name'] = getattr(self, k).name
                     r['c2_profile_key'] = getattr(self, k).key
@@ -481,7 +481,7 @@ class Callback(p.Model):
                     r[k] = getattr(self, k).id
                 elif k == 'operator':
                     r[k] = getattr(self, k).username
-                elif k == 'registered_payload':
+                elif k == 'registered_payload' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).uuid
                     r['payload_type'] = getattr(self, k).payload_type.ptype
                     r['c2_profile'] = getattr(self, k, ).c2_profile.name
@@ -580,7 +580,7 @@ class FileMeta(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                if k == 'task':
+                if k == 'task' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).id
                     r['cmd'] = getattr(self, k).command.cmd
                 elif k == 'operation':
@@ -645,7 +645,7 @@ class Credential(p.Model):
         for k in self._data.keys():
             try:
                 if k == 'task':
-                    if getattr(self, k) != "null":
+                    if getattr(self, k) != "null" and getattr(self, k) is not None:
                         r[k] = getattr(self, k).id
                         r['task_command'] = getattr(self, k).command.cmd
                 elif k == 'operation':
@@ -679,7 +679,7 @@ class Keylog(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                if k == 'task':
+                if k == 'task' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).id
                     r['task_command'] = getattr(self, k).command.cmd
                 elif k == 'operation':
