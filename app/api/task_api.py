@@ -344,7 +344,12 @@ async def clear_tasks_for_callback_func(data, cid, user):
         if user['username'] == t.operator.username or user['admin'] or operation.name in user['admin_operations']:
             try:
                 t_removed = t.to_json()
-                await db_objects.delete(t)
+                # don't actually delete it, just mark it as completed with a response of "CLEARED TASK"
+                t.status = "processed"
+                await db_objects.update(t)
+                # now create the response so it's easy to track what happened with it
+                response = "CLEARED TASK by " + user['username']
+                await db_objects.create(Response, task=t, response=response)
                 tasks_removed.append(t_removed)
             except Exception as e:
                 print(e)
