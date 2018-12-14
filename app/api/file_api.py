@@ -141,7 +141,6 @@ async def create_filemeta_in_database_func(data):
         print(e)
         return {'status': 'error', 'error': "failed to create file"}
     status = {'status': 'success'}
-    print("created file meta")
     return {**status, **filemeta.to_json()}
 
 
@@ -238,7 +237,7 @@ async def download_file_to_disk_func(data):
         await db_objects.update(file_meta)
     except Exception as e:
         print("Failed to save chunk to disk: " + str(e))
-        return {'status': 'error', 'error': 'failed to store chunk'}
+        return {'status': 'error', 'error': 'failed to store chunk: ' + str(e)}
     return {'status': 'success'}
 
 

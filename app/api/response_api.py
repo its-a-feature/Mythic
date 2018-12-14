@@ -102,7 +102,7 @@ async def update_task_for_callback(request, id):
                     if rsp['status'] == "success":
                         # update the response to indicate we've created the file meta data
                         rsp.pop('status', None)  # remove the status key from the dictionary
-                        decoded = "Recieved meta data: " + js.dumps(rsp)
+                        decoded = "Recieved meta data: \n" + js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
                         resp = await db_objects.create(Response, task=task, response=decoded)
                         task.status = "processed"
                         await db_objects.update(task)
