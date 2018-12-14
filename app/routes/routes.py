@@ -11,7 +11,8 @@ from sanic_jwt import BaseEndpoint, utils, exceptions
 from sanic_jwt.decorators import protected, inject_user
 import json as js
 from ipaddress import ip_address
-from app.api.c2profiles_api import register_default_profile_operation, create_default_c2_for_operation
+from app.api.c2profiles_api import register_default_profile_operation
+from app.routes.authentication import invalidate_refresh_token
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -96,7 +97,7 @@ class Register(BaseEndpoint):
             # we need to create a new user
             try:
                 user = await db_objects.create(Operator, username=username, password=password)
-                user.last_login = datetime.datetime.now()
+                user.last_login = datetime.datetime.utcnow()
                 await db_objects.update(user)  # update the last login time to be now
                 default_operation = await db_objects.get(Operation, name="default")
                 # now add the new user to the default operation
@@ -117,9 +118,9 @@ class Register(BaseEndpoint):
                 resp.cookies[self.config.cookie_refresh_token_name()] = refresh_token
                 resp.cookies[self.config.cookie_refresh_token_name()]['httponly'] = True
                 return resp
-            except:
+            except Exception as e:
                 # failed to insert into database
-                errors['validate_errors'] = "failed to create user"
+                errors['validate_errors'] = "failed to create user: " + str(e)
         errors['token_errors'] = '<br>'.join(form.csrf_token.errors)
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
@@ -131,7 +132,7 @@ class Register(BaseEndpoint):
 class UIRefresh(BaseEndpoint):
     async def get(self, request, *args, **kwargs):
         # go here if we're in the browser and our JWT expires so we can update it and continue on
-        payload = self.instance.auth.extract_payload(request, verify=False)
+        payload = self.instance.auth.extract_payload(request, verify=True)
         try:
             user = await utils.call(
                 self.instance.auth.retrieve_user, request, payload=payload
@@ -213,11 +214,14 @@ async def settings(request, user):
 
 
 @apfell.route("/logout")
+@inject_user()
 @protected()
-async def logout(request):
+async def logout(request, user):
     resp = response.redirect("/login")
     del resp.cookies['access_token']
     del resp.cookies['refresh_token']
+    # now actually invalidate tokens
+    await invalidate_refresh_token(user['id'])
     return resp
 
 

@@ -15,7 +15,7 @@ listen_port = '80'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
 ssl_key_path = './app/ssl/apfell-ssl.key'
-whitelisted_ip_blocks = ['192.168.0.0/16']  # only allow connections from these IPs to the /login and /register pages
+whitelisted_ip_blocks = ['0.0.0.0/0']  # only allow connections from these IPs to the /login and /register pages
 use_ssl = False
 # --------------------------------------------
 # --------------------------------------------
@@ -75,6 +75,6 @@ Initialize(apfell,
            path_to_verify='/verify',
            path_to_refresh='/refresh',
            refresh_token_enabled=True,
-           expiration_delta=14400, # initial tokens are valid for 4 hours
+           expiration_delta=14400, # initial token expiration time
            store_refresh_token=app.routes.authentication.store_refresh_token,
            retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token)

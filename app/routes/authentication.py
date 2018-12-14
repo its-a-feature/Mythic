@@ -40,6 +40,8 @@ async def retrieve_user(request, payload, *args, **kwargs):
     if payload:
         user_id = payload.get('user_id', None)
     try:
+        if user_id is None or user_id not in refresh_tokens:
+            raise exceptions.AuthenticationFailed("Invalid auth token or your refresh token is gone. Login again")
         user = await db_objects.get(Operator, id=user_id)
         user_json = user.to_json()
         operationmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operator == user))
@@ -57,8 +59,9 @@ async def retrieve_user(request, payload, *args, **kwargs):
             links['current_operation'] = ""
             user_json['current_operation'] = ""
         return {**user_json, "user_id": user.id, "operations": operations, "admin_operations": admin_ops}
+    except exceptions.AuthenticationFailed as e:
+        raise e
     except Exception as e:
-        print("failed to get user in retrieve_user")
         print(e)
         raise exceptions.AuthenticationFailed("Delete your cookies")
 
@@ -95,3 +98,8 @@ async def retrieve_refresh_token(request, user_id, *args, **kwargs):
     # print("requested refresh token for: " + str(user_id))
     if user_id in refresh_tokens:
         return refresh_tokens[user_id]
+    return None
+
+
+async def invalidate_refresh_token(user_id):
+    del refresh_tokens[user_id]
