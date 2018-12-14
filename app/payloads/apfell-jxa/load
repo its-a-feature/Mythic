@@ -10,6 +10,8 @@ exports.load = function(task, command, params){
         }
         new_dict = default_load(base64_decode(code));
         commands_dict = Object.assign({}, commands_dict, new_dict);
+        // update the config with our new information
+        C2.setConfig({"commands": Object.keys(commands_dict)});
         return "Loaded " + parsed_params['cmds'];
     }
     catch(error){
