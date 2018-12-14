@@ -134,6 +134,9 @@ async def create_filemeta_in_database_func(data):
             os.makedirs(os.path.split(save_path)[0])
         filemeta = await db_objects.create(FileMeta, total_chunks=data['total_chunks'], task=task, operation=operation,
                                            path=save_path, operator=task.operator)
+        if data['total_chunks'] == 0:
+            filemeta.complete = True
+            await db_objects.update(filemeta)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': "failed to create file"}
