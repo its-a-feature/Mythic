@@ -128,10 +128,12 @@ var payloadtypes_table = new Vue({
                     $('#payloadtypeEditWrappedPayloadTypeRow').attr("hidden", true);
                 }
             });
+            $('#payloadtypeEditCommandTemplate').val(p.command_template);
             $('#payloadtypeEditModal').modal('show');
             $( '#payloadtypeEditSubmit' ).unbind('click').click(function(){
                 var data = {"file_extension": $( '#payloadtypeEditFileExtension').val()};
                 data["wrapper"]= $('#payloadtypeEditWrapper').is(":checked");
+                data['command_template'] = $('#payloadtypeEditCommandTemplate').val();
                 if($('#payloadtypeEditWrapper').is(":checked")){
                     data["wrapped_payload_type"]= $('#payloadtypeEditWrappedPayloadType').val();
                 }
@@ -147,6 +149,7 @@ var payloadtypes_table = new Vue({
             });
         },
         add_commands_button: function(p){
+            $('#commandAddCode').val(p.command_template);
             $( '#commandAddModal' ).modal('show');
             $( '#commandAddSubmit' ).unbind('click').click(function(){
                 //base64 encode the code before submitting it or base64 encode the file
@@ -172,11 +175,18 @@ var payloadtypes_table = new Vue({
                 $('#commandAddNeedsAdmin').prop('checked', false);
                 $('#commandAddCode').val("");
                 $('#commandAddCmd').val("");
+                add_command_parameters_table.add_command_parameters = [];
 
             });
             $( '#commandAddCancel' ).unbind('click').click(function(){
                 var file = document.getElementById('commandAddFile');
                 file.value = file.defaultValue;
+                $('#commandAddDescription').val("");
+                $('#commandAddHelpCmd').val("");
+                $('#commandAddNeedsAdmin').prop('checked', false);
+                $('#commandAddCode').val("");
+                $('#commandAddCmd').val("");
+                add_command_parameters_table.add_command_parameters = [];
             });
             $( '#commandAddCheckCmd' ).unbind('click').click(function(){
                 // make a request out to see if the command exists already or if the file exists (and command was deleted)?
@@ -204,7 +214,7 @@ var payloadtypes_table = new Vue({
                     //$('#commandAddCode').attr('disabled', true);
                 }
                 else{
-                    $('#commandAddCode').val("");
+                    $('#commandAddCode').val(p.command_template);
                     $('#commandAddCode').attr('disabled', false);
                 }
                 if(data_json.hasOwnProperty("params")){
@@ -745,6 +755,7 @@ function create_payloadtype_callback(response){
 function create_payloadtype_button(){
     $( '#payloadtypeCreatePtype' ).val('');
     $( '#payloadtypeCreateFileExtension' ).val('');
+    $('#payloadtypeCreateCommandTemplate').val('');
     if( $('#payloadtypeCreateWrapper').is(":checked")){
         $( '#payloadtypeCreateWrapper' ).click();
     }
@@ -761,6 +772,7 @@ function create_payloadtype_button(){
         var data = {"ptype": $( '#payloadtypeCreatePtype' ).val(),
         "file_extension": $( '#payloadtypeCreateFileExtension').val()};
         data["wrapper"]= $('#payloadtypeCreateWrapper').is(":checked");
+        data['command_template'] = $('#payloadtypeCreateCommandTemplate').val();
         if($('#payloadtypeCreateWrapper').is(":checked")){
             data["wrapped_payload_type"]= $('#payloadtypeCreateWrappedPayloadType').val();
         }

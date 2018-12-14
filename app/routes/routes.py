@@ -289,8 +289,18 @@ async def initial_setup():
     operation, created = await db_objects.get_or_create(Operation, name='default', admin=admin, complete=False)
     print("Created Operation")
     # create default payload types
+    apfell_jxa_command_template = """exports.command_name = function(task, command, params){
+        //do stuff here, with access to the following commands:
+        does_file_exist(strPath);
+        convert_to_nsdata(strData);
+        write_data_to_file(data, filePath);
+        base64_decode(data);
+        base64_encode(data);
+    };
+    """
     payload_type_apfell_jxa, created = await db_objects.get_or_create(PayloadType, ptype='apfell-jxa', operator=admin,
-                                                                      file_extension=".js", wrapper=False)
+                                                                      file_extension=".js", wrapper=False,
+                                                                      command_template=apfell_jxa_command_template)
     #c2_profile, pt_c2_profile = await create_default_c2_for_operation(operation, admin, [payload_type_apfell_jxa])
     await register_default_profile_operation({"username": "apfell_admin"}, "default")
     # create the default transforms for apfell-jxa payloads

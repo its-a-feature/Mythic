@@ -48,6 +48,8 @@ async def create_payloadtype(request, user):
             data['file_extension'] = "." + data['file_extension']
         if 'wrapper' not in data:
             data['wrapper'] = False
+        if "command_template" not in data:
+            data['command_template'] = ""
         operator = await db_objects.get(Operator, username=user['username'])
         if data['wrapper']:
             if "wrapped_payload_type" not in data:
@@ -64,7 +66,7 @@ async def create_payloadtype(request, user):
         else:
             payloadtype = await db_objects.create(PayloadType, ptype=data['ptype'], operator=operator,
                                                   file_extension=data['file_extension'],
-                                                  wrapper=data['wrapper'])
+                                                  wrapper=data['wrapper'], command_template=data['command_template'])
         os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
         if request.files:
             code = request.files['upload_file'][0].body
@@ -120,6 +122,8 @@ async def update_payloadtype(request, user, ptype):
                 print(e)
                 return json({'status': 'error', 'error': "failed to find that wrapped payload type"})
             payloadtype.wrapped_payload_type = wrapped_payload_type
+        if 'command_template' in data:
+            payloadtype.command_template = data['command_template']
         await db_objects.update(payloadtype)
         if request.files:
             code = request.files['upload_file'][0].body.decode('UTF-8')

@@ -157,8 +157,8 @@
 </div>
 
 <!-- THIS IS OUR MODAL FOR CREATING PAYLOADTYPE -->
-<div class="modal fade bs-example-modal-md" id="payloadtypeCreateModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade bs-example-modal-lg" id="payloadtypeCreateModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
@@ -190,6 +190,10 @@
                           <td>Select code files to upload:</td>
                           <td><input multiple type="file" id="payloadtypeCreateUploadFiles"></td>
                       </tr>
+                      <tr>
+                          <td>Specify a template for adding commands:</td>
+                          <td><textarea id="payloadtypeCreateCommandTemplate" rows="20" cols="80"></textarea></td>
+                      </tr>
             </table>
               </div>
               <div class="modal-footer">
@@ -201,12 +205,12 @@
 </div>
 <!-- END MODAL FOR CREATING PAYLOADTYPE -->
 <!-- THIS IS OUR MODAL FOR EDITING PAYLOADTYPE -->
-<div class="modal fade bs-example-modal-md" id="payloadtypeEditModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade bs-example-modal-lg" id="payloadtypeEditModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
-                <h3>Register a new PayloadType</h3>
+                <h3>Edit the payload type</h3>
             </div>
               <div class="modal-body">
                   <table cellpadding="10" style="width:100%">
@@ -233,6 +237,10 @@
                       <tr>
                           <td>Select code files to upload:</td>
                           <td><input multiple type="file" id="payloadtypeEditUploadFiles"></td>
+                      </tr>
+                      <tr>
+                          <td>Specify a template for adding commands:</td>
+                          <td><textarea id="payloadtypeEditCommandTemplate" rows="20" cols="80"></textarea></td>
                       </tr>
             </table>
               </div>

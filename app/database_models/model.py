@@ -59,6 +59,8 @@ class PayloadType(p.Model):
     wrapper = p.BooleanField(default=False, null=False)
     # which payload is this one wrapping
     wrapped_payload_type = p.ForeignKeyField(p.DeferredRelation('PayloadType'), null=True)
+    # allow the ability to specify a template for people tha want to extend the payload type with more commands
+    command_template = p.TextField(null=False, default="")
 
     class Meta:
         database = apfell_db
@@ -127,6 +129,7 @@ class Command(p.Model):
     payload_type = p.ForeignKeyField(PayloadType, null=False)
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    version = p.IntegerField(null=False, default=1)
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)
