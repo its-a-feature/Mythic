@@ -494,6 +494,7 @@ function post_task_callback_func(response){
     }
 }
 function startwebsocket_callbacks(){
+    alertTop("info", "Loading callbacks...");
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
     ws.onmessage = function(event){
         if (event.data != ""){
@@ -531,6 +532,11 @@ function startwebsocket_callbacks(){
         }
         else{
             if(finished_callbacks == false){
+                setTimeout(() => { // setTimeout to put this into event queue
+                    // executed after render
+                    // show loading data until we load all of our data in, then it will be automatically cleared
+                    clearAlertTop();
+                }, 0);
                 startwebsocket_newtasks();
                 finished_callbacks = true;
             }
