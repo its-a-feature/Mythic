@@ -150,6 +150,8 @@ var payloadtypes_table = new Vue({
         },
         add_commands_button: function(p){
             $('#commandAddCode').val(p.command_template);
+            $('#commandAddVersion').val(1);
+            $('#commandAddVersion').prop('disabled', true);
             $( '#commandAddModal' ).modal('show');
             $( '#commandAddSubmit' ).unbind('click').click(function(){
                 //base64 encode the code before submitting it or base64 encode the file
@@ -175,6 +177,7 @@ var payloadtypes_table = new Vue({
                 $('#commandAddNeedsAdmin').prop('checked', false);
                 $('#commandAddCode').val("");
                 $('#commandAddCmd').val("");
+                $('#commandAddVersion').val(1);
                 add_command_parameters_table.add_command_parameters = [];
 
             });
@@ -199,6 +202,7 @@ var payloadtypes_table = new Vue({
                     $('#commandAddHelpCmd').prop('disabled', true);
                     $('#commandAddNeedsAdmin').prop('checked', data['needs_admin']);
                     $('#commandAddNeedsAdmin').prop('disabled', true);
+                    $('#commandAddVersion').val(data['version']);
                 }
                 else{
                     //be sure to make everything editable and clear it all
@@ -208,6 +212,7 @@ var payloadtypes_table = new Vue({
                     $('#commandAddHelpCmd').prop('disabled', false);
                     $('#commandAddNeedsAdmin').prop('checked', false);
                     $('#commandAddNeedsAdmin').prop('disabled', false);
+                    $('#commandAddVersion').val(1);
                 }
                 if(data_json.hasOwnProperty("code")){
                     $('#commandAddCode').val(atob(data_json['code']));
@@ -233,6 +238,7 @@ var payloadtypes_table = new Vue({
             };
             $( '#commandEditCmd' ).html(types);
             set_edit_command_params( $('#commandEditCmd').val(), p );
+            $('#commandEditVersion').prop('disabled', true);
             $( '#commandEditModal' ).modal('show');
             $( '#commandEditCmd' ).unbind('change').change(function(){
                 // Populate the various parts of the modal on select changes
@@ -253,24 +259,27 @@ var payloadtypes_table = new Vue({
                             var file = document.getElementById('commandEditFile');
                             if(file.files.length > 0){
                                 var filedata = file.files[0];
-                                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, null, filedata, data, "PUT");
+                                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, command_edit_callback, filedata, data, "PUT");
                                 file.value = file.defaultValue;
                             }
                             else{
-                                code = btoa( $( '#commandEditCode' ).val() );
-                                data['code'] = code;
-                                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, null, "PUT", data);
+                                // only add the 'code' field if we actually changed something in the code
+                                if( $( '#commandEditCode' ).val() !=  $( '#commandEditOldCode' ).val()){
+                                    code = btoa( $( '#commandEditCode' ).val() );
+                                    data['code'] = code;
+                                }
+                                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, command_edit_callback, "PUT", data);
                             }
                             //Now handle sending updates for the command parameters at the bottom
                             for(var j = 0; j < command_parameters_table.command_parameters.length; j++){
                                 data = command_parameters_table.command_parameters[j];
                                 if(data.hasOwnProperty('id')){
                                     //this means it's a parameter we had before, so send an update
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters/" + data['id'], null, "PUT", data);
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters/" + data['id'], command_edit_callback, "PUT", data);
                                 }
                                 else if(data['name'] != ""){
                                     //make sure they entered something for the name, and send a POST to create the parameter
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters", null, "POST", data);
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters", command_edit_callback, "POST", data);
                                 }
                             }
                           }
@@ -362,6 +371,33 @@ var payloadtypes_table = new Vue({
     },
     delimiters: ['[[', ']]']
 });
+function command_edit_callback(response){
+    try{
+        data = JSON.parse(response);
+    }
+    catch(error){
+        alertTop("danger", "Failed to edit command, please refresh");
+    }
+    if(data['status'] == "success"){
+        // now update our in-mem copy of the command
+        if(data.hasOwnProperty('version')) { var version = data['version']; var cmd_id = data['id'];}
+        else if(data.hasOwnProperty('new_cmd_version')) { var version = data['new_cmd_version']; var cmd_id = data['command'];}
+
+        if(version){
+            payloadtypes_table.payloadtypes.forEach(function(ptype){
+                ptype['commands_set'].forEach(function(cmd){
+                    if(cmd_id == cmd.id){
+                        cmd.version = version;
+                        return;
+                    }
+                });
+            });
+        }
+    }
+    else{
+        alertTop("danger", data['error']);
+    }
+}
 function update_load_transform_options_callback(response){
     data = JSON.parse(response);
     if(data['status'] != "success"){
@@ -523,6 +559,7 @@ function set_edit_command_params(command, curr_payload){
                 //found the right command to use to populate
                 $( '#commandEditDescription' ).val(cmd.description);
                 $( '#commandEditHelpCmd' ).val(cmd.help_cmd);
+                $( '#commandEditVersion').val(cmd.version);
                 $( '#commandEditNeedsAdmin' ).prop('checked', cmd.needs_admin);
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cmd.id + "/code/string", set_edit_code_callback, "GET", null);
                 // Get the associated command parameters for this command
@@ -535,6 +572,7 @@ function set_edit_command_params(command, curr_payload){
 function set_edit_code_callback(response){
     try{
         $( '#commandEditCode' ).val(atob(response));
+        $( '#commandEditOldCode').val(atob(response));
     }catch(error){
         $( '#commandEditCode' ).val("");
     }
@@ -571,6 +609,7 @@ function edit_remove_parameter(response){
         for(var i = 0; i < command_parameters_table.command_parameters.length; i++){
             if(command_parameters_table.command_parameters[i]['id'] == data['id']){
                 command_parameters_table.command_parameters.splice(i,1);
+                $('#commandEditVersion').val(data['new_cmd_version']);
             }
         }
     }

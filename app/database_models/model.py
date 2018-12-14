@@ -124,12 +124,12 @@ class Command(p.Model):
     # generates get-help info on the command
     help_cmd = p.CharField(max_length=1024, null=False, default="")
     description = p.CharField(max_length=1024, null=False)
-    cmd = p.CharField(null=False)  # shell, for example, doesn't have to be unique name
-    # this command applies to what payload types (just apfell-jxa, maybe apfell-app or empire)
+    cmd = p.CharField(null=False)  # shell, for example, doesn't have to be a globally unique name
+    # this command applies to what payload types
     payload_type = p.ForeignKeyField(PayloadType, null=False)
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
-    version = p.IntegerField(null=False, default=1)
+    version = p.IntegerField(null=False, default=1)  # what version, so we can know if loaded commands are out of date
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)
@@ -366,8 +366,11 @@ class Payload(p.Model):
 #   commands can be loaded/unloaded at run time, so we need to track creation_time
 class PayloadCommand(p.Model):
     payload = p.ForeignKeyField(Payload, null=False)
+    # this is how we can tell what commands are in a payload by default and if they might be out of date
     command = p.ForeignKeyField(Command, null=False)
     creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    # version of a command when the payload is created might differ from later in time, so save it off
+    version = p.IntegerField(null=False)
 
     class Meta:
         indexes = ((('payload', 'command'), True),)
@@ -498,6 +501,40 @@ class Callback(p.Model):
                 r[k] = json.dumps(getattr(self, k))
         r['init_callback'] = r['init_callback'].strftime('%m/%d/%Y %H:%M:%S')
         r['last_checkin'] = r['last_checkin'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+class LoadedCommands(p.Model):
+    # this keeps track of which commands and versions are currently loaded in which callbacks
+    command = p.ForeignKeyField(Command, null=False)
+    callback = p.ForeignKeyField(Callback, null=False)
+    operator = p.ForeignKeyField(Operator, null=False)  # so we know who loaded which commands
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # when it was loaded
+    version = p.IntegerField(null=False)  # which version of the command is loaded, so we know if it's out of date
+
+    class Meta:
+        indexes = ((('command', 'callback'), True),)  # can't have the same command loaded multiple times in a callback
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'command':
+                    r[k] = getattr(self, k).cmd
+                    r['version'] = getattr(self, k).version
+                elif k == 'callback':
+                    r[k] = getattr(self, k).id
+                elif k == 'operator':
+                    r[k] = getattr(self, k).username
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
     def __str__(self):
@@ -702,7 +739,7 @@ class Keylog(p.Model):
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
-               'attackid', 'credential', 'keylog', 'CommandParameters', 'transform']
+               'attackid', 'credential', 'keylog', 'CommandParameters', 'transform', 'loadedcommands']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -738,7 +775,7 @@ def pg_register_bignewinserts():
 def pg_register_updates():
     updates = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
-               'attackid', 'credential', 'keylog', 'CommandParameters', 'transform']
+               'attackid', 'credential', 'keylog', 'CommandParameters', 'transform', 'loadedcommands']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -775,6 +812,7 @@ ATTACKId.create_table(True)
 Credential.create_table(True)
 Keylog.create_table(True)
 Transform.create_table(True)
+LoadedCommands.create_table(True)
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()

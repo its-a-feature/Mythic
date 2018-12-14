@@ -145,7 +145,6 @@ async def update_task_for_callback(request, id):
             except Exception as e:
                 print("error when handling a keylog response: " + str(e))
                 pass
-
         resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
         await db_objects.update(task)

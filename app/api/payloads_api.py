@@ -120,7 +120,7 @@ async def register_new_payload_func(data, user):
                                                          uuid=uuid, operation=operation)
         if create:
             for cmd in db_commands:
-                await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd])
+                await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd], version=db_commands[cmd].version)
         #TODO if we didn't end up creating a new payload
     else:
         try:
@@ -369,7 +369,7 @@ async def get_one_payload_info(request, uuid, user):
         return json({'status': 'error', 'error': 'failed to find payload'})
     if payload.operation.name in user['operations']:
         payloadcommands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
-        commands = [c.command.cmd for c in payloadcommands]
+        commands = [{"cmd": c.command.cmd, "version": c.command.version} for c in payloadcommands]
         # now we need to get the c2 profile parameters as well
         c2_profile_params = await db_objects.execute(C2ProfileParametersInstance.select().where(C2ProfileParametersInstance.payload == payload))
         params = [p.to_json() for p in c2_profile_params]

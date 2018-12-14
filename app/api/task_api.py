@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response, ATTACKId
+from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response, ATTACKId, LoadedCommands
 import datetime
 from sanic_jwt.decorators import protected, inject_user
 from app.api.utils import breakout_quoted_params
@@ -256,6 +256,19 @@ async def add_task_to_callback_func(data, cid, user):
                         funcs = data['params']
                     data['params'] = funcs
                     for p in data['params'].split(","):
+                        # register this command as one that we're going to have loaded into the callback
+                        try:
+                            command = await db_objects.get(Command, payload_type=cb.registered_payload.payload_type,
+                                                           cmd=p)
+                            try:
+                                loaded_command = await db_objects.get(LoadedCommands, callback=cb, command=command)
+                                loaded_command.version = command.version
+                                await db_objects.update(loaded_command)
+                            except Exception as e:
+                                # we couldn't find it, so we need to create it since this is a new command, not an update
+                                loaded_command = await db_objects.crate(LoadedCommands, callback=cb, command=command, version=command.version)
+                        except Exception as e:
+                            print(e)
                         transform_output.append("./app/payloads/{}/{}".format(cb.registered_payload.payload_type.ptype, p.strip()))
                     for t in load_transforms['transforms']:
                         try:

@@ -290,6 +290,10 @@ async def initial_setup():
     print("Created Operation")
     # create default payload types
     apfell_jxa_command_template = """exports.command_name = function(task, command, params){
+        //task is a dictionary of Task information
+        //command is the single word command that caused this function to be called
+        //params is a string of everything passed in except for the command
+        //   if you pass in a json blob on the command line, then to get json back here call JSON.parse(params);
         //do stuff here, with access to the following commands:
         does_file_exist(strPath);
         convert_to_nsdata(strData);

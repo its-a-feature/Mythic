@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Payload, Operation, Task, Response
+from app.database_models.model import Callback, Operator, Payload, Operation, Task, Response, LoadedCommands, PayloadCommand
 from sanic import response
 from datetime import datetime
 from sanic_jwt.decorators import protected, inject_user
@@ -62,6 +62,10 @@ async def create_callback(request):
         if 'encryption_key' in data:
             cal.encryption_key = data['encryption_key']
         await db_objects.update(cal)
+        payload_commands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
+        # now create a loaded command for each one since they are loaded by default
+        for p in payload_commands:
+            await db_objects.create(LoadedCommands, command=p.command, version=p.version, callback=cal, operator=payload.operator)
     except Exception as e:
         print(e)
         return json({'status': 'error',
@@ -82,6 +86,22 @@ async def get_one_callback(request, id, user):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get callback'}, 404)
+
+
+@apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>/loaded_commands", methods=['GET'])
+@inject_user()
+@protected()
+async def get_loaded_commands_for_callback(request, id, user):
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        callback = await db_objects.get(Callback, id=id, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'Failed to get the current operation or that callback'})
+    loaded_commands = await db_objects.execute(LoadedCommands.select().where(LoadedCommands.callback == callback))
+    return json({'status': 'success', 'loaded_commands': [{'command': lc.command.cmd,
+                                                           'version': lc.version,
+                                                           'apfell_version': lc.command.version} for lc in loaded_commands]})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['PUT'])

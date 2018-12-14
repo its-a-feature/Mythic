@@ -124,12 +124,6 @@ var callback_table = new Vue({
             null, "POST", {"command":"exit","params":""});
         },
         remove_callback: function(callback){
-            //remove callback from our current view until we potentially get a checkin from it
-            //meta[callback.id]['tasks'] = false;
-            //meta[callback.id]['screencaptures'] = false;
-            //this.$delete(meta, callback.id);
-            //this.$delete(callbacks, callback.id);
-            //update the callback to be active=false
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
             stop_getting_callback_updates(callback.id);
         },
@@ -142,6 +136,10 @@ var callback_table = new Vue({
             Vue.set(meta[callback.id], 'keylogs', true);
             meta[callback.id]['display'] = callback.user + "@" + callback.host + "(" + callback.pid + ")";
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/keylogs/callback/" + callback['id'],view_callback_keylogs,"GET");
+        },
+        view_loaded_commands: function(callback){
+            //display all of the loaded commands and their versions for the selected callback
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'] + "/loaded_commands",view_loaded_commands_callback,"GET");
         }
     },
     delimiters: ['[[',']]']
@@ -150,7 +148,7 @@ function get_all_tasking_callback(response){
     try{
         data = JSON.parse(response);
     }catch(error){
-        alertMiddle("danger", "session expired, refresh please");
+        alertTop("danger", "session expired, refresh please");
     }
     if(data['status'] == 'success'){
         //this has [callback_info, "tasks": [ {task_info, "responses": [ {response_info} ] } ] ]
@@ -164,6 +162,31 @@ function get_all_tasking_callback(response){
             // executed after render
             clearAlertTop();
         }, 0);
+    }
+    else{
+        alertTop("danger", data['error']);
+    }
+}
+var loadedCommandModal = new Vue({
+    el: '#loadedCommandModal',
+    data: {
+        loaded_commands: []
+    },
+    delimiters: ['[[',']]']
+});
+function view_loaded_commands_callback(response){
+    try{
+        data = JSON.parse(response);
+    }
+    catch(error){
+        alertTop("danger", "session expired, refresh please");
+    }
+    if(data['status'] == 'success'){
+        loadedCommandModal.loaded_commands = data['loaded_commands'];
+        $( '#loadedCommandModal' ).modal('show');
+    }
+    else{
+        alertTop("danger", data['error']);
     }
 }
 function stop_getting_callback_updates(id){

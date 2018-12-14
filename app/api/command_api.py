@@ -91,8 +91,10 @@ async def get_command_code(request, user, id, resp_type):
 @inject_user()
 @protected()
 async def update_command(request, user, id):
+    updated_command = False
     try:
         command = await db_objects.get(Command, id=id)
+        operator = await db_objects.get(Operator, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get command'})
@@ -100,34 +102,36 @@ async def update_command(request, user, id):
         data = js.loads(request.form.get('json'))
     else:
         data = request.json
-    resp = await update_command_func(data, user, command)
-    if request.files and resp['status'] == "success":
+    if "description" in data and data['description'] != command.description:
+        command.description = data['description']
+        updated_command = True
+    if "needs_admin" in data and data['needs_admin'] != command.needs_admin:
+        command.needs_admin = data['needs_admin']
+        updated_command = True
+    if "help_cmd" in data and data['help_cmd'] != command.help_cmd:
+        command.help_cmd = data['help_cmd']
+        updated_command = True
+    if request.files:
+        updated_command = True
         cmd_code = request.files['upload_file'][0].body
-        cmd_file = open("./app/payloads/{}/{}".format(resp['payload_type'], resp['cmd']), "wb")
+        cmd_file = open("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
-    return json(resp)
-
-
-async def update_command_func(data, user, command):
-    if "description" in data:
-        command.description = data['description']
-    if "needs_admin" in data:
-        command.needs_admin = data['needs_admin']
-    if "help_cmd" in data:
-        command.help_cmd = data['help_cmd']
-    if "code" in data:
+    elif "code" in data:
+        updated_command = True
         cmd_file = open("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd), "wb")
         cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
-    try:
-        await db_objects.update(command)
-        return {'status': 'success', **command.to_json()}
-    except Exception as e:
-        print(e)
-        return {'status': 'error', 'error': 'failed to update command'}
+    command.operator = operator
+    if updated_command:
+        async with db_objects.atomic():
+            command = await db_objects.get(Command, id=command.id)
+            command.version = command.version + 1
+            await db_objects.update(command)
+            print("updated command")
+    return json({'status': 'success', **command.to_json()})
 
 
 # anybody can create a command for now, maybe just admins in the future?
@@ -326,8 +330,12 @@ async def create_command_parameter(request, user, id):
         data['hint'] = ""
     try:
         param, created = await db_objects.get_or_create(CommandParameters, **data, command=command, operator=operator)
-
-        return json({'status': 'success', **param.to_json()})
+        async with db_objects.atomic():
+            command = await db_objects.get(Command, id=id)
+            command.version = command.version + 1
+            await db_objects.update(command)
+            print("created command param")
+        return json({'status': 'success', **param.to_json(), 'new_cmd_version': command.version})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to create parameter' + str(e)})
@@ -337,6 +345,7 @@ async def create_command_parameter(request, user, id):
 @inject_user()
 @protected()
 async def update_command_parameter(request, user, cid, pid):
+    updated_a_field = False
     try:
         operator = await db_objects.get(Operator, username=user['username'])
         command = await db_objects.get(Command, id=cid)
@@ -345,27 +354,41 @@ async def update_command_parameter(request, user, cid, pid):
         print(e)
         return json({"status": 'error', 'error': 'failed to find command or parameter'})
     data = request.json
-    if "name" in data:
+    if "name" in data and data['name'] != parameter.name:
         try:
             parameter.name = data['name']
             parameter.operator = operator
             await db_objects.update(parameter)
+            updated_a_field = True
         except Exception as e:
             print(e)
             return json({"status": 'error', 'error': 'parameter name must be unique across a command'})
-    if "required" in data:
+    if "required" in data and data['required'] != parameter.required:
         parameter.required = data['required']
+        updated_a_field = True
     if data['type']:
-        parameter.type = data['type']
-        if data['type'] == "String":
+        if data['type'] != parameter.type:
+            parameter.type = data['type']
+            updated_a_field = True
+        if data['type'] == "String" and data['hint'] != parameter.hint:
             parameter.hint = data['hint'] if 'hint' in data else ""
-        elif data['type'] == "Choice":
+            updated_a_field = True
+        elif data['type'] == "Choice" and data['choices'] != parameter.choices:
             parameter.choices = data['choices'] if 'choices' in data else ""
-        elif data['type'] == "ChoiceMultiple":
+            updated_a_field = True
+        elif data['type'] == "ChoiceMultiple" and data['choices'] != parameter.choices:
             parameter.choices = data['choices'] if 'choices' in data else ""
+            updated_a_field = True
     parameter.operator = operator
-    await db_objects.update(parameter)
-    return json({'status': 'success', **parameter.to_json()})
+    # update the command since we just updated a parameter to it
+    if updated_a_field:
+        print("updated: " + parameter.name)
+        async with db_objects.atomic():
+            command = await db_objects.get(Command, id=cid)
+            command.version = command.version + 1
+            await db_objects.update(command)
+        await db_objects.update(parameter)
+    return json({'status': 'success', **parameter.to_json(), 'new_cmd_version': command.version})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/parameters/<pid:int>", methods=['DELETE'])
@@ -380,7 +403,13 @@ async def remove_command_parameter(request, user, cid, pid):
         return json({'status': 'error', 'error': 'failed to find command or parameter'})
     p_json = parameter.to_json()
     await db_objects.delete(parameter)
-    return json({'status': 'success', **p_json})
+    # update the command since we just updated a parameter to it
+    async with db_objects.atomic():
+        command = await db_objects.get(Command, id=cid)
+        command.version = command.version + 1
+        print("deleted param")
+        await db_objects.update(command)
+    return json({'status': 'success', **p_json, 'new_cmd_version': command.version})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/parameters/", methods=['GET'])
