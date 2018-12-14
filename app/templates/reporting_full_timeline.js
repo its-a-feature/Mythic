@@ -14,10 +14,12 @@ function generate_report(){
     else if(strict_task){
         data['strict'] = "task";
     }
+    alertTop("info", "Loading...");
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/reporting/full_timeline", create_timeline, "POST", data);
 }
 
 function create_timeline(response){
+    clearAlertTop();
     try{
         data = JSON.parse(response);
     }catch(error){
