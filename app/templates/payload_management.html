@@ -79,17 +79,21 @@
             <div class="modal-body">
               <table class="table table-striped table-hover table-condensed well-sm">
                     <tr v-if="config.commands != undefined" align="center">
-                        <td colspan="2"><b>Loaded Commands</b></td>
+                        <td><b>Loaded Commands</b></td>
+                        <td><b>Loaded Version</b></td>
+                        <td><b>Apfell Version</b></td>
                     </tr>
-                  <tr aria-colspan="2" v-if="config.commands != undefined">
-                        <td>[[config.commands.join(", ")]]</td>
+                  <tr v-for="c in config.commands" v-if="config.commands != undefined" :style="c.version != c.apfell_version ? 'background-color:#f68d8d' : 'background-color:#d5fdd5'">
+                      <td>[[c.cmd]]</td>
+                      <td>[[c.version]]</td>
+                      <td>[[c.apfell_version]]</td>
                   </tr>
                   <tr><td><b>C2 Profile Param Name</b></td>
-                      <td><b>C2 Profile Param Value</b></td>
+                      <td colspan="2"><b>C2 Profile Param Value</b></td>
                   </tr>
                   <tr v-for="p in config.c2_profile_parameters_instance">
                       <td>[[p.c2_profile_name]]</td>
-                      <td>[[p.value]]</td>
+                      <td colspan="2">[[p.value]]</td>
                   </tr>
               </table>
             </div>

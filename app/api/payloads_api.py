@@ -369,7 +369,7 @@ async def get_one_payload_info(request, uuid, user):
         return json({'status': 'error', 'error': 'failed to find payload'})
     if payload.operation.name in user['operations']:
         payloadcommands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
-        commands = [{"cmd": c.command.cmd, "version": c.command.version} for c in payloadcommands]
+        commands = [{"cmd": c.command.cmd, "version": c.version, "apfell_version": c.command.version} for c in payloadcommands]
         # now we need to get the c2 profile parameters as well
         c2_profile_params = await db_objects.execute(C2ProfileParametersInstance.select().where(C2ProfileParametersInstance.payload == payload))
         params = [p.to_json() for p in c2_profile_params]
