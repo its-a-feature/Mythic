@@ -22,6 +22,7 @@ DROP TABLE attackid CASCADE;
 DROP TABLE credential CASCADE;
 DROP TABLE keylog CASCADE;
 DROP TABLE transform CASCADE;
+DROP TABLE loadedcommands CASCADE;
 EOF
     pg_ctl -D /usr/local/var/postgres restart
 
@@ -54,6 +55,7 @@ DROP TABLE attackid CASCADE;
 DROP TABLE credential CASCADE;
 DROP TABLE keylog CASCADE;
 DROP TABLE transform CASCADE;
+DROP TABLE loadedcommands CASCADE;
 EOF
 
 service postgresql restart

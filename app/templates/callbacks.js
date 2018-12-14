@@ -237,9 +237,6 @@ var task_data = new Vue({
                     if(command == "help"){
                         if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == params){
                             alertMiddle("info", "Usage: " + ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
-                            $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                  $("#middle-alert").slideUp(500);
-                            });
                             return;
                         }
                         if(params.length == 0){

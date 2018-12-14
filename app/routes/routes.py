@@ -259,18 +259,12 @@ async def reroute_to_refresh(request, resp):
             if request.cookies['refresh_token'] and request.cookies['access_token']:
                 # auto generate a new
                 return response.redirect("/uirefresh")
-
-
-@apfell.middleware('response')
-async def failed_refresh(request, resp):
-    # you were redirected to /uirefresh, but your refresh failed (maybe the server restarted?)
-    if 'uirefresh' in request.path:
-        if resp and resp.status == 401 and resp.content_type == "application/json":
-            if request.cookies['refresh_token'] and request.cookies['access_token']:
-                newresp = response.redirect("/login")
-                del newresp.cookies['access_token']
-                del newresp.cookies['refresh_token']
-                return newresp
+        if 'exception' in output and output['exception'] == "AuthenticationFailed":
+            # authentication failed for one reason or another, redirect them to login
+            resp = response.redirect("/login")
+            del resp.cookies['access_token']
+            del resp.cookies['refresh_token']
+            return resp
 
 
 @apfell.listener('before_server_start')
