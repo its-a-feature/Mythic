@@ -114,9 +114,12 @@
     </div>
     <div class="panel-footer" >
         <div class="input-group mb-3">
+
             <input id="commandline" type="text" class="form-control" v-model="input_field"
                    :placeholder="input_field_placeholder.data" aria-describedby="basic-addon1"
-                   @keyup.enter="task_button(input_field_placeholder)" @keyup.up="cmd_history_up(input_field_placeholder)" @keyup.down="cmd_history_down(input_field_placeholder)">
+                   @keyup.enter="task_button(input_field_placeholder)" @keyup.up="cmd_history_up(input_field_placeholder)" @keyup.down="cmd_history_down(input_field_placeholder)"
+                   style="position:relative;display:inline-block"
+            >
             <span class="input-group-btn">
                 <button type="button" class="btn btn-danger" @click="task_button(input_field_placeholder)">Submit Task</button>
             </span>

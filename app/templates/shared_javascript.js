@@ -136,5 +136,4 @@ function clearAlertBottom(){
 function toLocalTime(date){
     var init_date = new Date(date + " UTC");
     return init_date.toDateString() + " " + init_date.toTimeString().substring(0,8);
-
 }

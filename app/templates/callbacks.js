@@ -33,7 +33,7 @@ var callback_table = new Vue({
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 // show loading data until we load all of our data in, then it will be automatically cleared
-                alertTop("success", "Loading data");
+                alertTop("success", "Loading data...");
             }, 0);
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
@@ -41,6 +41,16 @@ var callback_table = new Vue({
             }, 0);
             ws_newtasks.send("a" + callback.id);
             ws_updatedtasks.send("a" + callback.id);
+            //set the autocomplete for the input field
+            var autocomplete_commands = [];
+            autocomplete_commands.push("help ");
+            autocomplete_commands.push("set ");
+            autocomplete_commands.push("clear ");
+            autocomplete_commands.push("tasks ");
+            for(var i = 0; i < ptype_cmd_params[callbacks[callback.id]['payload_type']].length; i++){
+                autocomplete_commands.push(ptype_cmd_params[callbacks[callback.id]['payload_type']][i].cmd + " " );
+            }
+            autocomplete(document.getElementById("commandline"), autocomplete_commands );
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'] + "/all_tasking",get_all_tasking_callback,"GET",null);
         },
         edit_description: function(callback){
@@ -137,7 +147,11 @@ var callback_table = new Vue({
     delimiters: ['[[',']]']
 });
 function get_all_tasking_callback(response){
-    var data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertMiddle("danger", "session expired, refresh please");
+    }
     if(data['status'] == 'success'){
         //this has [callback_info, "tasks": [ {task_info, "responses": [ {response_info} ] } ] ]
         for(var i = 0; i < data['tasks'].length; i++){
@@ -161,7 +175,11 @@ function stop_getting_callback_updates(id){
     Vue.set(all_tasks, id, {});
 }
 function edit_description_callback(response){
-    var data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertMiddle("danger", "session expired, refresh please");
+    }
     if(data['status'] != 'success'){
         alertTop("danger", data['error']);
     }
@@ -180,9 +198,13 @@ var task_data = new Vue({
     methods:{
         task_button: function(data){
             //submit the input_field data as a task, need to know the current callback id though
-            //httpGetAsync(theUrl, callback, method, data)
+            //first check if there are any active auto-complete tabs. If there are, we won't submit.
+            var autocomplete_list = document.getElementById('commandlineautocomplete-list');
+            if( autocomplete_list != undefined && autocomplete_list.hasChildNodes()){
+                return;
+            }
             task = this.input_field.trim().split(" ");
-            command = task[0];
+            command = task[0].trim();
             params = "";
             if (task.length > 1){
                 params = task.slice(1, ).join(' '); //join index 1 to the end back into a string of params
@@ -191,9 +213,20 @@ var task_data = new Vue({
                 for(var i = 0; i < ptype_cmd_params[callbacks[data['cid']]['payload_type']].length; i++){
                     if(command == "help"){
                         if(ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == params){
-                            alertMiddle("info", ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
+                            alertMiddle("info", "Usage: " + ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd']);
+                            $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                  $("#middle-alert").slideUp(500);
+                            });
                             return;
                         }
+                        if(params.length == 0){
+                            alertMiddle("info", "Usage: help {command_name}");
+                            $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                  $("#middle-alert").slideUp(500);
+                            });
+                            return;
+                        }
+
                     }
                     else if(command == "set"){
                         if(task.length >= 3){
@@ -208,15 +241,24 @@ var task_data = new Vue({
                                 var rdata = JSON.parse(response);
                                 if(rdata['status'] == 'success'){
                                     alertMiddle("success", "Successfully modified current callback's metadata");
+                                    $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                          $("#middle-alert").slideUp(500);
+                                    });
                                     task_data.input_field = "";
                                 }
                                 else{
                                     alertMiddle("danger", "Failed to set current callback's metadata: " + rdata['error']);
+                                    $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                          $("#middle-alert").slideUp(500);
+                                    });
                                 }
                             }, "PUT", set_data);
                         }
                         else{
                             alertMiddle("danger", "Wrong number of params for set. Should be set {field} {value}");
+                            $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                  $("#middle-alert").slideUp(500);
+                            });
                             return;
                         }
                         return;
@@ -239,6 +281,9 @@ var task_data = new Vue({
                             }
                             else{
                                 alertMiddle("danger", credentials['error']);
+                                $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                      $("#middle-alert").slideUp(500);
+                                });
                                 return;
                             }
                             $( '#paramsModal' ).modal('show');
@@ -274,6 +319,9 @@ var task_data = new Vue({
                 }
                 //If we got here, that means we're looking at an unknown command
                 alertMiddle("warning", "Unknown command: " + command);
+                $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                      $("#middle-alert").slideUp(500);
+                });
             }
 
         },
@@ -288,6 +336,16 @@ var task_data = new Vue({
             });
             Vue.set(metadata, 'selected', true);
             Vue.set(callback_table.callbacks[metadata['id']], 'selected', true);
+            //set the autocomplete for the input field
+            var autocomplete_commands = [];
+            autocomplete_commands.push("help ");
+            autocomplete_commands.push("set ");
+            autocomplete_commands.push("clear ");
+            autocomplete_commands.push("tasks ");
+            for(var i = 0; i < ptype_cmd_params[callbacks[metadata.id]['payload_type']].length; i++){
+                autocomplete_commands.push(ptype_cmd_params[callbacks[metadata.id]['payload_type']][i].cmd + " " );
+            }
+            autocomplete(document.getElementById("commandline"), autocomplete_commands );
         },
         toggle_image: function(image){
             var panel = document.getElementById(image.remote_path).nextElementSibling;
@@ -317,6 +375,7 @@ var task_data = new Vue({
             meta[cid]['history_index'] -= 1;
             if( meta[cid]['history_index'] < 0){
                 meta[cid]['history_index'] = 0;
+
             }
             var index = meta[cid]['history_index'];
             this.input_field = meta[cid]['history'][index];
@@ -369,7 +428,11 @@ var params_table = new Vue({
     delimiters: ['[[',']]']
 });
 function view_callback_screenshots(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertMiddle("danger", "session expired, refresh please");
+    }
     if(data['status'] == "success"){
         meta[data['callback']]['images'] = [];
         for(var i = 0; i < data['files'].length; i++){
@@ -383,7 +446,11 @@ function view_callback_screenshots(response){
     }
 }
 function view_callback_keylogs(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertMiddle("danger", "session expired, refresh please");
+    }
     if(data['status'] == "success"){
         //meta[data['callback']]['keylog_data'] = [];
         Vue.set(meta[data['callback']], 'keylog_data', data['keylogs']);
@@ -393,7 +460,11 @@ function view_callback_keylogs(response){
     }
 }
 function post_task_callback_func(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertMiddle("danger", "session expired, refresh please");
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
         task_data.input_field = data['cmd'] + " " + data['params'];
@@ -455,7 +526,11 @@ function startwebsocket_callbacks(){
 //we will get back a series of commands and their parameters for a specific payload type, keep track of this in ptype_cmd_params so we can
 //  respond to help requests and build dynamic forms for getting command data
 function register_new_command_info(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertMiddle("danger", "session expired, refresh please");
+    }
     if(data['status'] == "success"){
         delete data['status'];
         if(data['commands'].length > 0){
@@ -609,3 +684,97 @@ startwebsocket_callbacks();
 setInterval(updateClocks, 50);
 
 startwebsocket_updatedcallbacks();
+
+//autocomplete function taken from w3schools: https://www.w3schools.com/howto/howto_js_autocomplete.asp
+function autocomplete(inp, arr) {
+  /*the autocomplete function takes two arguments,
+  the text field element and an array of possible autocompleted values:*/
+  var currentFocus;
+  /*execute a function when someone writes in the text field:*/
+  inp.addEventListener("input", function(e) {
+      var a, b, i, val = task_data.input_field;
+      /*close any already open lists of autocompleted values*/
+      closeAllLists();
+      if (!val) { return false;}
+      currentFocus = -1;
+      /*create a DIV element that will contain the items (values):*/
+      a = document.createElement("DIV");
+      a.setAttribute("id", this.id + "autocomplete-list");
+      a.setAttribute("class", "autocomplete-items");
+      /*append the DIV element as a child of the autocomplete container:*/
+      this.parentNode.appendChild(a);
+      /*for each item in the array...*/
+      for (i = 0; i < arr.length; i++) {
+        /*check if the item starts with the same letters as the text field value:*/
+        if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+          /*create a DIV element for each matching element:*/
+          b = document.createElement("DIV");
+          /*make the matching letters bold:*/
+          b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+          b.innerHTML += arr[i].substr(val.length);
+          /*insert a input field that will hold the current array item's value:*/
+          b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+          /*execute a function when someone clicks on the item value (DIV element):*/
+          b.addEventListener("click", function(e) {
+              /*insert the value for the autocomplete text field:*/
+              task_data.input_field = this.getElementsByTagName("input")[0].value;
+              /*close the list of autocompleted values,
+              (or any other open lists of autocompleted values:*/
+              closeAllLists();
+          });
+          a.appendChild(b);
+        }
+      }
+  });
+  /*execute a function presses a key on the keyboard:*/
+  inp.addEventListener("keyup", function(e) {
+      var x = document.getElementById(this.id + "autocomplete-list");
+      if (x) x = x.getElementsByTagName("div");
+      if (e.keyCode == 39) {
+        /*If the arrow DOWN key is pressed,
+        increase the currentFocus variable:*/
+        currentFocus++;
+        /*and and make the current item more visible:*/
+        addActive(x);
+      } else if (e.keyCode == 37) { //up
+        /*If the arrow UP key is pressed,
+        decrease the currentFocus variable:*/
+        currentFocus--;
+        /*and and make the current item more visible:*/
+        addActive(x);
+      } else if (e.keyCode == 13) {
+        closeAllLists("");
+      }
+  });
+  function addActive(x) {
+    /*a function to classify an item as "active":*/
+    if (!x) return false;
+    /*start by removing the "active" class on all items:*/
+    removeActive(x);
+    if (currentFocus >= x.length) currentFocus = 0;
+    if (currentFocus < 0) currentFocus = (x.length - 1);
+    /*add class "autocomplete-active":*/
+    x[currentFocus].classList.add("autocomplete-active");
+    task_data.input_field = x[currentFocus].getElementsByTagName("input")[0].value;
+  }
+  function removeActive(x) {
+    /*a function to remove the "active" class from all autocomplete items:*/
+    for (var i = 0; i < x.length; i++) {
+      x[i].classList.remove("autocomplete-active");
+    }
+  }
+  function closeAllLists(elmnt) {
+    /*close all autocomplete lists in the document,
+    except the one passed as an argument:*/
+    var x = document.getElementsByClassName("autocomplete-items");
+    for (var i = 0; i < x.length; i++) {
+      if (elmnt != x[i] && elmnt != inp) {
+        x[i].parentNode.removeChild(x[i]);
+      }
+    }
+  }
+  /*execute a function when someone clicks in the document:*/
+  document.addEventListener("click", function (e) {
+      closeAllLists(e.target);
+  });
+};
