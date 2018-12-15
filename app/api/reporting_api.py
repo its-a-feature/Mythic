@@ -45,9 +45,6 @@ async def reporting_full_timeline_api(request, user):
                 pdf.output("./app/files/{}/full_timeline.pdf".format(user['current_operation']), dest='F')
             else:
                 return json({'status': 'error', 'error': status['error']})
-            #return await file("./app/files/{}/full_timeline.pdf".format(user['current_operation']))
-            #final_pdf = pdf.output(dest='S').encode('latin-1')
-            #contents = open("./app/files/{}/full_timeline.pdf".format(user['current_operation']), 'rb').read()
             return json({'status': 'success'})
         except Exception as e:
             print(e)
@@ -124,12 +121,20 @@ async def get_all_data(operation, pdf, config):
                             r_json = all_data[key]['response'][r]['response'].to_json()
                             pdf.set_fill_color(204, 229, 255)
                             pdf.cell(w=36, h=height, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=0)
+                            try:
+                                r_json['response'] = r_json['response'].encode('latin-1', 'replace').decode('latin-1', 'replace')
+                            except:
+                                r_json['response'] = '[[cannot handle non latin-1 character here]]'
                             pdf.multi_cell(w=0, h=height, txt=r_json['response'], border=0, align="L", fill=True)
             elif "response" in all_data[key]:
                 # this means we're doing true time, not grouping all responses with their tasks
                 r_json = all_data[key]['response'].to_json()
                 pdf.set_fill_color(204, 229, 255)
                 pdf.cell(w=38, h=height, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=0)
+                try:
+                    r_json['response'] = r_json['response'].encode('latin-1', 'replace').decode('latin-1', 'replace')
+                except:
+                    r_json['response'] = '[[cannot handle non latin-1 character here]]'
                 pdf.multi_cell(w=0, h=height, txt=r_json['response'], border=0, align="L", fill=True)
         return pdf, {'status': 'success'}
     except Exception as e:
