@@ -241,7 +241,7 @@ async def download_file_to_disk_func(data):
     return {'status': 'success'}
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures")
+@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures", methods=['GET'])
 @inject_user()
 @protected()
 async def list_all_screencaptures_per_operation(request, user):
@@ -256,7 +256,7 @@ async def list_all_screencaptures_per_operation(request, user):
         return json({"status": 'error', 'error': 'must be part of a current operation to see an operation\'s screencaptures'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/bycallback/<id:int>")
+@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/bycallback/<id:int>", methods=['GET'])
 @inject_user()
 @protected()
 async def list_all_screencaptures_per_callback(request, user, id):
@@ -277,7 +277,7 @@ async def list_all_screencaptures_per_callback(request, user, id):
         return json({'status': 'error', 'error': 'must be part of that callback\'s operation to see its screenshots'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/<id:int>")
+@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/<id:int>", methods=['GET'])
 @inject_user()
 @protected()
 async def get_screencapture(request, user, id):
@@ -286,7 +286,7 @@ async def get_screencapture(request, user, id):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find callback'})
-    if file_meta.task.callback.operation.name in user['operations']:
+    if file_meta.operation.name in user['operations']:
         return await file(file_meta.path, filename=file_meta.path.split("/")[-1])
     else:
         return json({"status": 'error', 'error': 'must be part of that callback\'s operation to see its screenshot'})

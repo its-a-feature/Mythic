@@ -2,98 +2,75 @@
 
 {% block body %}
 <h2>Database and File Management</h2>
+Only the admin of the operation can clear out the database.
+As an artifact of how tracking and information is stored in the database, removing a payload or callback has a lot of repercussions elsewhere.
 <div style="resize: vertical; overflow:visible" class="panel panel-primary" id="database_table">
     <div class="panel-heading">Database Information</div>
         <table class="table table-striped table-hover table-condensed" >
             <tr>
                 <td></td>
-                <td><b>Management Item</b></td>
+                <td><b>Clear Management Item for the Current Operation</b></td>
             </tr>
             <tr>
-                <td>
-                    <button type="button" class="btn btn-danger btn-md" onclick="clear_operators()">Clear</button>
-                </td>
-                <td>
-                    <h4>Operators</h4>
-                </td>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_payloads()">Clear</button></td>
+                <td><h4>Payloads, Callbacks, Tasks, Responses, Files, Screencaptures, Keylogs</h4></td>
             </tr>
             <tr>
-                <td>
-                    <button type="button" class="btn btn-danger btn-md" onclick="clear_tables()">Clear</button>
-                </td>
-                <td>
-                    <h4>Everything else</h4>
-                </td>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_callbacks()">Clear</button></td>
+                <td><h4>Callbacks, Tasks, Responses, Files, Screencaptures, Keylogs</h4></td>
             </tr>
             <tr>
-                <td>
-                    <button type="button" class="btn btn-danger btn-md" onclick="clear_operation_files()">Clear</button>
-                </td>
-                <td>
-                    <h4>Operation's Auto-generated Files</h4>
-                </td>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_screencaptures()">Clear</button></td>
+                <td><h4>Screencaptures</h4></td>
+            </tr>
+            <tr>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_downloads()">Clear</button></td>
+                <td><h4>Downloads, Screencaptures</h4></td>
+            </tr>
+            <tr>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_uploads()">Clear</button></td>
+                <td><h4>Uploads</h4></td>
+            </tr>
+            <tr>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_keylogs()">Clear</button></td>
+                <td><h4>Keylogs</h4></td>
+            </tr>
+            <tr>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_credentials()">Clear</button></td>
+                <td><h4>Credentials</h4></td>
+            </tr>
+            <tr>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_tasks()">Clear</button></td>
+                <td><h4>Tasks, Responses</h4></td>
+            </tr>
+            <tr>
+                <td><button type="button" class="btn btn-danger btn-md" onclick="clear_responses()">Clear</button></td>
+                <td><h4>Responses</h4></td>
             </tr>
         </table>
 </div>
-<!-- THIS IS OUR MODAL FOR OPERATOR CLEARING -->
-<div class="modal fade bs-example-modal-sm" id="clearOperatorModal" role="dialog">
+<!-- THIS IS OUR MODAL FOR CLEARING -->
+<div class="modal fade bs-example-modal-sm" id="clearModal" role="dialog">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
                 <h3>Are you sure?</h3>
             </div>
-              <div class="modal-body" id="clearOperatorBody">
-                  This will remove all operators from the database, you will need to re-create your account!
+              <div class="modal-body">
+                <p>[[description]]</p>
               </div>
               <div class="modal-footer">
                 <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-danger" data-dismiss="modal" id="clearOperatorSubmit">Yes</button>
+                <button class="btn btn-danger" data-dismiss="modal" id="clearSubmit">Yes</button>
               </div>
         </div>
     </div>
 </div>
-<!-- END MODAL FOR OPERATOR CLEARING -->
-<!-- THIS IS OUR MODAL FOR TABLES CLEARING -->
-<div class="modal fade bs-example-modal-sm" id="clearTablesModal" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
-                <h3>Are you sure?</h3>
-            </div>
-              <div class="modal-body" id="clearTablesBody">
-                  This will remove all data from the database except for the operators. This cannot be undone!
-              </div>
-              <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-danger" data-dismiss="modal" id="clearTablesSubmit">Yes</button>
-              </div>
-        </div>
-    </div>
-</div>
-<!-- END MODAL FOR TABLES CLEARING -->
-<!-- THIS IS OUR MODAL FOR TABLES CLEARING -->
-<div class="modal fade bs-example-modal-sm" id="clearOperationalFilesModal" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
-                <h3>Are you sure?</h3>
-            </div>
-              <div class="modal-body" id="clearOperationalFilesBody">
-                  This will remove all files in the "payloads/operations" folder! This cannot be undone!
-              </div>
-              <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-danger" data-dismiss="modal" id="clearOperationalFilesSubmit">Yes</button>
-              </div>
-        </div>
-    </div>
-</div>
-<!-- END MODAL FOR TABLES CLEARING -->
+<!-- END MODAL FOR CLEARING -->
+
 {% endblock %}
 
 {% block scripts %}
-{% include "shared_javascript.js" %}
+{% include "database_management.js" %}
 {% endblock %}

@@ -610,7 +610,11 @@ async def ws_screenshots(request, ws, user):
                     files = await db_objects.execute(FileMeta.select().where(FileMeta.operation == operation).order_by(FileMeta.id))
                     for f in files:
                         if "{}/downloads/".format(user['current_operation']) in f.path and "/screenshots/" in f.path:
-                            await ws.send(js.dumps({**f.to_json(), 'callback_id': f.task.callback.id, 'operator': f.task.operator.username}))
+                            if f.task:
+                                await ws.send(js.dumps({**f.to_json(), 'callback_id': f.task.callback.id, 'operator': f.task.operator.username}))
+                            else:
+                                await ws.send(js.dumps({**f.to_json(), 'callback_id': 0,
+                                                        'operator': "null"}))
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
@@ -619,8 +623,12 @@ async def ws_screenshots(request, ws, user):
                             blob = js.loads(msg.payload)
                             if "{}/downloads/".format(user['current_operation']) in blob['path'] and "/screenshots" in blob['path']:
                                 f = await db_objects.get(FileMeta, id=blob['id'])
-                                callback_id = f.task.callback.id
-                                await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
+                                if f.task:
+                                    callback_id = f.task.callback.id
+                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
+                                else:
+                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': 0,
+                                                            'operator': "null"}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there
@@ -650,8 +658,12 @@ async def ws_updated_screenshots(request, ws, user):
                             blob = js.loads(msg.payload)
                             if "{}/downloads/".format(user['current_operation']) in blob['path'] and "/screenshots" in blob['path']:
                                 f = await db_objects.get(FileMeta, id=blob['id'])
-                                callback_id = f.task.callback.id
-                                await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
+                                if f.task:
+                                    callback_id = f.task.callback.id
+                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
+                                else:
+                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': 0,
+                                                            'operator': "null"}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there

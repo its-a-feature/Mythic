@@ -29,6 +29,8 @@ var screencapture_div = new Vue({
 function startwebsocket_callbacks(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
     alertTop("success", "Loading...");
+    // in the case where we have deleted tasks for files, we need some place to store them
+    Vue.set(callbacks, 0, {'screencaptures': [], "display": "TASK DELETED"})
     ws.onmessage = function(event){
         if (event.data != ""){
             cb = JSON.parse(event.data);
