@@ -1,15 +1,15 @@
 from app import apfell, db_objects
-from sanic.response import json
+from sanic.response import json, file
 from app.database_models.model import C2Profile, Operator, PayloadTypeC2Profile, PayloadType, Operation, C2ProfileParameters, FileMeta
 from urllib.parse import unquote_plus
 import subprocess
-import asyncio
 from sanic_jwt.decorators import protected, inject_user
 import shutil
 import os
 import json as js
 import base64
 from typing import List
+import asyncio
 
 # this information is only valid for a single run of the server
 running_profiles = []  # will have dicts of process information
@@ -287,20 +287,20 @@ async def upload_c2_profile_payload_type_code(request, info, user):
         if "code" in data and "file_name" in data:
             # get a base64 blob of the code and the filename to save it as in the right directory
             code = base64.b64decode(data['code'])
-            code_file = open("./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name, data['payload_type'], data['file_name']), 'w')
+            code_file = open("./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name, data['payload_type'], data['file_name']), 'wb')
             code_file.write(code)
             code_file.close()
         elif request.files:
-            code = request.files['upload_file'][0].body.decode('UTF-8')
+            code = request.files['upload_file'][0].body
             code_file = open(
-                "./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name, data['payload_type'],request.files['upload_file'][0].name),"w")
+                "./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name, data['payload_type'], request.files['upload_file'][0].name), "wb")
             code_file.write(code)
             code_file.close()
             for i in range(1, int(request.form.get('file_length'))):
-                code = request.files['upload_file_' + str(i)][0].body.decode('UTF-8')
+                code = request.files['upload_file_' + str(i)][0].body
                 code_file = open(
                     "./app/c2_profiles/{}/{}/{}/{}".format(operation.name, profile.name,data['payload_type'],
-                                                        request.files['upload_file_' + str(i)][0].name), "w")
+                                                        request.files['upload_file_' + str(i)][0].name), "wb")
                 code_file.write(code)
                 code_file.close()
         return json({'status': 'success'})
@@ -372,30 +372,31 @@ async def start_c2profile(request, info, user):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
-    null = open('/dev/null', 'w')
     try:
         # run profiles with just /bin/bash, so they should be set up appropriately
         path = os.path.abspath('./app/c2_profiles/{}/{}/{}_server'.format(operation.name, name, name))
         os.chmod(path, mode=0o777)
-        p = subprocess.Popen(
-            [path, '&'],
-            cwd='./app/c2_profiles/{}/{}/'.format(operation.name, name),
-            stdout=null,
-            stderr=null,
-            stdin=null
-        )
-        await asyncio.sleep(1)  # let the process start
+        p = await asyncio.create_subprocess_exec(path, '&', stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, cwd='./app/c2_profiles/{}/{}'.format(operation.name, name))
+        output = ""
+        try:
+            for i in range(10):
+                line = await asyncio.wait_for(p.stdout.readline(), 1)
+                if line:
+                    output += line.decode('utf-8')
+        except asyncio.TimeoutError:
+            pass
         # if it was already in our dictionary of information, just remove it so we can add in the new data
         for x in running_profiles:
-            if x['name'] == name:
+            if x['id'] == profile.id:
                 running_profiles.remove(x)
                 break
-        running_profiles.append({'name': name,
+        running_profiles.append({'id': profile.id,
+                                 'name': name,
                                  'process': p,
                                  'status': 'running'})
         profile.running = True
         await db_objects.update(profile)
-        return json({'status': 'success', **profile.to_json()})
+        return json({'status': 'success', **profile.to_json(), 'output': output})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to start profile. ' + str(e)})
@@ -417,12 +418,109 @@ async def stop_c2profile(request, info, user):
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     #  if we had running profiles and they weren't stopped before shutdown, this should still be fine
     for x in running_profiles:
-        if x['name'] == name:
-            x['process'].terminate()
+        if x['id'] == profile.id:
+            try:
+                x['process'].terminate()
+            except Exception as e:
+                pass  # it was probably already dead anyway for some reason
             x['status'] = 'stopped'
     profile.running = False
     await db_objects.update(profile)
     return json({'status': 'success', **profile.to_json()})
+
+
+# Return the current intput and output of the c2 profile for the user
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/status", methods=['GET'])
+@inject_user()
+@protected()
+async def status_c2profile(request, info, user):
+    name = unquote_plus(info)
+    if name == "default":
+        return json({'status': 'error', 'error': 'check main server logs for that info'})
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    #  if we had running profiles and they weren't stopped before shutdown, this should still be fine
+    for x in running_profiles:
+        if x['id'] == profile.id:
+            output = ""
+            try:
+                for i in range(10):
+                    line = await asyncio.wait_for(x['process'].stdout.readline(), 1)
+                    if line:
+                        output += line.decode('utf-8')
+            except Exception as e:
+                return json({'status': 'success', 'output': output})
+    return json({'status': 'error', 'error': "profile not running"})
+
+
+# Get c2 profile files listing for the user
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files", methods=['GET'])
+@inject_user()
+@protected()
+async def get_file_list_for_c2profiles(request, info, user):
+    name = unquote_plus(info)
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    try:
+        path = "./app/c2_profiles/{}/{}/".format(operation.name, profile.name)
+        files = []
+        for (dirpath, dirnames, filenames) in os.walk(path):
+            files.append({"folder": dirpath, "dirnames": dirnames, "filenames": filenames})
+        return json({'status': 'success', 'files': files})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/delete", methods=['POST'])
+@inject_user()
+@protected()
+async def remove_file_for_c2profiles(request, info, user):
+    name = unquote_plus(info)
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    try:
+        data = request.json
+        path = os.path.abspath("./app/c2_profiles/{}/{}/".format(operation.name, profile.name))
+        attempted_path = os.path.abspath(data['folder'] + "/" +data['file'])
+        if path in attempted_path:
+            os.remove(attempted_path)
+        return json({'status': 'success', 'folder': data['folder'], 'file': data['file']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/download", methods=['GET'])
+@inject_user()
+@protected()
+async def download_file_for_c2profiles(request, info, user):
+    name = unquote_plus(info)
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    try:
+        data = dict(folder=request.raw_args['folder'], file=request.raw_args['file'])
+        path = os.path.abspath("./app/c2_profiles/{}/{}/".format(operation.name, profile.name))
+        attempted_path = os.path.abspath(data['folder'] + "/" + data['file'])
+        if path in attempted_path:
+            return await file(attempted_path, filename=data['file'])
+        return json({'status': 'success', 'folder': data['folder'], 'file': data['file']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
 
 
 # Delete a profile

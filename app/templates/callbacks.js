@@ -700,6 +700,7 @@ function shadeBlend(p,c0,c1) {
     }
 }
 function alertMiddle(type, string){
+    document.getElementById("middle-alert").style = "";
     var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +
     string +
     "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";

@@ -58,9 +58,9 @@ async def analytics(request, user):
 async def c2profile_management(request, user):
     template = env.get_template('c2profile_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", current_operation=user['current_operation'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", current_operation=user['current_operation'])
     return response.html(content)
 
 

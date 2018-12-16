@@ -75,6 +75,16 @@ var payloads_table = new Vue({
                 }
 		    });
 	    },
+	    check_status_button: function(p){
+	        alertTop("info", "Get a few lines of stdout/stderr ...");
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/status", check_status_callback, "GET", null);
+	    },
+	    edit_files_button: function(p){
+	        //alertTop("info", "Loading files...");
+	        profile_files_modal.profile_name = p.name;
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/files", edit_files_callback, "GET", null);
+            $('#profileFilesModal').modal('show');
+	    },
 	    running_button: function(p){
 	        if (p.running){
 	            command = "stop";
@@ -82,6 +92,7 @@ var payloads_table = new Vue({
 	        else{
 	            command = "start";
 	        }
+	        alertTop("info", "Changing status and checking a few lines of stdout/stderr ...");
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/" + command, update_profile_running, "GET", null);
 	    },
 	    parameters_button: function(p){
@@ -98,6 +109,7 @@ var payloads_table = new Vue({
             }
             else{
                 alertTop("danger", "failed to get parameters");
+                return;
             }
 
             // for each one we get back, create a new row
@@ -123,6 +135,74 @@ var payloads_table = new Vue({
     },
     delimiters: ['[[',']]']
 });
+function check_status_callback(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
+    else{
+        alertTop("info", "<b>Output</b>: " + data['output'] );
+    }
+}
+var folders = [];
+var profile_files_modal = new Vue({
+    el: '#profileFilesModal',
+    data: {
+        profile_name: "",
+        folders: []
+    },
+    methods: {
+        delete_file_button: function(folder, file){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/delete", delete_file_button_callback, "POST", {"folder": folder, "file": file});
+        },
+        download_file_button: function(folder, file){
+            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
+        }
+    },
+    delimiters: ['[[',']]']
+});
+function delete_file_button_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
+    else{
+        // successfully deleted the file, so we need to remove it from that
+        for(var i = 0; i < profile_files_modal.folders.length; i++){
+            if(profile_files_modal.folders[i].folder == data['folder']){
+                for(var j = 0; j < profile_files_modal.folders[i].filenames.length; j++){
+                    if(data['file'] == profile_files_modal.folders[i].filenames[j]){
+                        profile_files_modal.folders[i].filenames.splice(j, 1);
+                    }
+                }
+            }
+        }
+    }
+}
+function edit_files_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
+    else{
+        profile_files_modal.folders = data['files'];
+    }
+}
 var edit_payload_file_list = [];
 var edit_payload_files = new Vue({
     el: '#profileUpdateBody',
@@ -173,12 +253,18 @@ function update_profile_running(response){
 		for( var i = 0; i < profiles.length; i++){
 		    if(payloads_table.profiles[i].id == data['id']){
 		        payloads_table.profiles[i].running = data['running'];
+		        if(data['output'] != "" && data['output'] != undefined){
+		            alertTop("warning", "<b>C2 Output</b>: " + data['output']);
+		            console.log(data['output']);
+		            return;
+		        }
 		    }
 		}
+		alertTop("success", "Successfully stopped c2 profile");
 	}
 	else{
 		//there was an error, so we should tell the user
-		alertTop("danger", "Error: " + data['error']);
+		alertTop("danger", data['error']);
 	}
 }
 function update_profile_files(response){

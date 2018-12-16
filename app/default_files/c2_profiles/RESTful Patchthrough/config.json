@@ -1,0 +1,23 @@
+{
+  "instances": [
+    {
+      "GET": {
+        "getNextTask": "/admin.php\\?q=(\\d+)",
+        "getFile": "/download.php\\?file=(\\d+)"
+      },
+      "POST": {
+        "postResponse": "/upload.php\\?page=(\\d+)",
+        "postNewCallback": "/login"
+      },
+      "port": 9000,
+      "host": "0.0.0.0",
+      "key_path": "",
+      "cert_path": ""
+    }
+  ],
+  "apfellBase": "http://localhost/api/v1.0/",
+  "apfellNextTask": "tasks/callback/{}/nextTask",
+  "apfellGetFile": "files/{}",
+  "apfellPostResponse": "responses/{}",
+  "apfellNewCallback": "callbacks/"
+}

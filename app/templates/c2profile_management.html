@@ -10,7 +10,9 @@
         <table class="table table-striped table-hover table-condensed" >
             <tr>
                 <td><b>Delete</b></td>
-		        <td><b>Update</b></td>
+		        <td><b>Edit</b></td>
+                <td><b>Stdout/Stderr</b></td>
+                <td><b>Files</b></td>
                 <td><b>Running</b></td>
                 <td><b>Creator</b></td>
                 <td><b>Name</b></td>
@@ -27,7 +29,13 @@
                     </div>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-info btn-sm" @click="update_button(p)">Update</button>
+                    <button type="button" class="btn btn-info btn-sm" @click="update_button(p)">Edit</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-info btn-sm" @click="check_status_button(p)">Status</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-warning btn-sm" @click="edit_files_button(p)">Edit Files</button>
                 </td>
                 <td>
                     <div v-if="p.name == 'default'">Yes</div>
@@ -67,6 +75,39 @@
     </div>
 </div>
 <!-- END MODAL FOR DELETING PROFILE -->
+<!-- THIS IS OUR MODAL FOR EDITING PROFILE FILES -->
+<div class="modal fade bs-example-modal-lg" id="profileFilesModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>All files and folders associated with [[profile_name]]</h3>
+            </div>
+            <div class="modal-body">
+                <template v-if="folders.length > 0" v-for="folder in folders">
+                    <table class="table table-striped table-hover table-condensed well-sm">
+                        <tr>
+                            <td align="left" width="50"><b>Delete</b></td>
+                            <td align="left" width="50"><b>Download</b></td>
+                            <td align="left"><b>Files in [[folder.folder.replace("./app/c2_profiles/{{current_operation}}/","")]]</b></td>
+                        </tr>
+                        <template v-for="file in folder.filenames">
+                            <tr>
+                                <td><button class="btn btn-danger btn-sm" @click="delete_file_button(folder.folder, file)">X</button></td>
+                                <td><button class="btn btn-success btn-sm" @click="download_file_button(folder.folder, file)">Download</button></td>
+                                <td>[[file]]</td>
+                            </tr>
+                        </template>
+                    </table>
+                </template>
+            </div>
+              <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true">OK</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR EDITING PROFILE FILES-->
 <!-- THIS IS OUR MODAL FOR UPDATING A PROFILE -->
 <div class="modal fade bs-example-modal-md" id="profileUpdateModal" role="dialog">
     <div class="modal-dialog modal-md" role="document">
