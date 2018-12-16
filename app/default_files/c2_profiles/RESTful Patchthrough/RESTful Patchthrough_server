@@ -73,8 +73,8 @@ def MakeHandlerClassWithConfig(get_paths, post_paths):
                 content = response.read()
             self.wfile.write(content)
 
-        #def log_message(self, format, *args):
-        #    return  # I don't want to fill up memory with these messages
+        def log_message(self, format, *args):
+            return  # I don't want to fill up memory with these messages
     return CustomHandler
 
 class MyServer():
