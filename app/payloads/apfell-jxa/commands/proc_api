@@ -1,0 +1,35 @@
+exports.proc_api = function(task, command, params){
+	//launch a program and args via ObjC bridge without doShellScript and return response
+	var response = "";
+	var pieces = JSON.parse(params);
+	var path = pieces['path'];
+	//console.log(path);
+	var args = pieces['args'];
+	try{
+		var pipe = $.NSPipe.pipe;
+		var file = pipe.fileHandleForReading;  // NSFileHandle
+		var task = $.NSTask.alloc.init;
+		task.launchPath = path; //'/bin/ps'
+		task.arguments = args; //['ax']
+		task.standardOutput = pipe;  // if not specified, literally writes to file handles 1 and 2
+		task.standardError = pipe;
+		//console.log("about to launch");
+		task.launch; // Run the command 'ps ax'
+		//console.log("launched");
+		if(args[args.length - 1] != "&"){
+		    //if we aren't tasking this to run in the background, then try to read the output from the program
+		    //  this will hang our main program though for now
+            var data = file.readDataToEndOfFile;  // NSData, potential to hang here?
+            file.closeFile;
+            response = data;
+        }
+        else{
+            response = "launched program";
+        }
+	}
+	catch(error){
+		response = error.toString();
+	}
+	return response;
+};
+COMMAND_ENDS_HERE

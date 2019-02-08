@@ -111,7 +111,7 @@ function pythonToJSJson(string){
 
 function alertTop(type, string){
     document.getElementById("top-alert").style = "";
-    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +
+    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\" style=\"white-space: pre-wrap\">" +
     string +
     "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
     if($('#top-alert').html() === undefined){
@@ -124,10 +124,10 @@ function alertTop(type, string){
 }
 function alertBottom(type, string){
     document.getElementById("bottom-alert").style = "";
-    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\">" +
+    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\" style=\"white-space: pre-wrap\">" +
     string +
     "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
-    $( '#bottom-alert' ).html(html);
+    $( '#bottom-alert' ).append(html);
 }
 function clearAlertTop(){
     $( '#top-alert' ).html("");

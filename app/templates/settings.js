@@ -48,10 +48,98 @@ var operators_table = new Vue({
                     data['active'] = false;
                 }
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, update_operatorview_callback, "PUT", data);
+        },
+        change_config_button: function(o){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, get_config_button_callback, "GET", null);
+            $('#operatorConfigModal').modal('show');
+            $('#operatorConfigSubmit').unbind('click').click(function(){
+                var config = {};
+                for(var i = 0; i < operator_config.config.length; i++){
+                    config[operator_config.config[i]["key"]] = operator_config.config[i]["value"];
+                }
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, get_set_config_button_callback, "PUT", {"ui_config": JSON.stringify(config)});
+            });
         }
     }
 });
+function get_config_button_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session is expired, please refresh");
+        return;
+    }
+    if(data['status'] == "success"){
+        //operator_config.config = JSON.parse(data['ui_config']);
+        config_data = JSON.parse(data['ui_config']);
+        operator_config.config = [];
+        for(key in config_data){
+            operator_config.config.push({"key": key, "value": config_data[key]});
+        }
+    }else{
+        alertTop("danger", data['error']);
+    }
 
+}
+function get_set_config_button_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session is expired, please refresh");
+        return;
+    }
+    if(data['status'] == "success"){
+        //operator_config.config = JSON.parse(data['ui_config']);
+        location.reload(true);
+    }else{
+        alertTop("danger", data['error']);
+    }
+
+}
+var operator_config = new Vue({
+    el: '#operatorConfigModal',
+    data: {
+        config: []
+    },
+    methods: {
+        add_key_config: function(){
+            this.config.push({"key": "", "value": ""});
+        },
+        remove_key_config: function(key){
+            for(var i = 0; i < this.config.length; i++){
+                if(key == this.config[i]["key"]){
+                    this.config.splice(i, 1);
+                }
+            }
+        },
+        get_default_config: function(){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/config/default", get_static_config_button_callback, "GET", null);
+        },
+        get_dark_config: function(){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/config/dark", get_static_config_button_callback, "GET", null);
+        }
+    },
+    delimiters: ['[[',']]']
+});
+function get_static_config_button_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        delete data['status'];
+        operator_config.config = [];
+        config_data = JSON.parse(data['config']);
+        for(key in config_data){
+            operator_config.config.push({"key": key, "value": config_data[key]});
+        }
+    }
+    else{
+        alertTop("danger", data['error']);
+    }
+}
 function startwebsocket_operators(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/operators');
 	ws.onmessage = function(event){
@@ -97,6 +185,9 @@ function username_button(op){
     });
 }
 function password_button(op){
+    $( '#operatorNewPassword1').val("");
+    $( '#operatorNewPassword2').val("");
+    $( '#operatorOldPassword').val("");
     $( '#operatorPasswordModal' ).modal('show');
     $( '#operatorPasswordSubmit' ).unbind('click').click(function(){
         data = {};
@@ -107,9 +198,22 @@ function password_button(op){
             alert("New passwords don't match!");
         }
         else{
+            data['old_password'] = $('#operatorOldPassword').val();
             data['password'] = $( '#operatorNewPassword1' ).val();
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + op.username, update_operator_callback, "PUT", data);
         }
+    });
+}
+function config_button(o){
+    operator_config.config = [];
+    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, get_config_button_callback, "GET", null);
+    $('#operatorConfigModal').modal('show');
+    $('#operatorConfigSubmit').unbind('click').click(function(){
+        var config = {};
+        for(var i = 0; i < operator_config.config.length; i++){
+            config[operator_config.config[i]["key"]] = operator_config.config[i]["value"];
+        }
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, get_set_config_button_callback, "PUT", {"ui_config": JSON.stringify(config)});
     });
 }
 function delete_button(op){
@@ -119,7 +223,12 @@ function delete_button(op){
     });
 }
 function delete_operator_callback(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
 	if(data['status'] == 'success'){
         var i = 0;
 		for( i = 0; i < operators.length; i++){
@@ -139,7 +248,12 @@ function delete_operator_callback(response){
 	}
 }
 function update_operator_callback(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         alertTop("success", "Password successfully changed");
     }
@@ -148,7 +262,12 @@ function update_operator_callback(response){
     }
 }
 function update_operatorview_callback(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         alertTop("success", "success");
     }
@@ -161,7 +280,12 @@ function disable_registration_button(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/settings", disable_registration_callback, "PUT", data);
 }
 function disable_registration_callback(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         alertTop("warning", "New operator registration is disabled until server restart.");
     }

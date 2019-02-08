@@ -43,7 +43,7 @@ def MakeHandlerClassWithConfig(get_paths, post_paths):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             # pass through here
-            with urllib.request.urlopen(data['url'].format(str(tid))) as response:
+            with urllib.request.urlopen(data['url'].format(str(tid)), context=ssl._create_unverified_context()) as response:
                 content = response.read()
             self.wfile.write(content)
 
@@ -69,7 +69,7 @@ def MakeHandlerClassWithConfig(get_paths, post_paths):
             content_length = int(self.headers.get('Content-Length'), 0)
             post_body = self.rfile.read(content_length)
             url = data['url'].format(str(tid)) if tid else data['url']
-            with urllib.request.urlopen(url, data=post_body) as response:
+            with urllib.request.urlopen(url, data=post_body, context=ssl._create_unverified_context()) as response:
                 content = response.read()
             self.wfile.write(content)
 

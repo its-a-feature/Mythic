@@ -1,0 +1,34 @@
+exports.clipboard = function(task, command, params){
+    var response;
+    ObjC.import('AppKit');
+    if(params != undefined && params != ""){
+        // Try setting the clipboard to whatever is in params
+        try{
+            $.NSPasteboard.generalPasteboard.clearContents;
+            $.NSPasteboard.generalPasteboard.setStringForType($(params), $.NSPasteboardTypeString);
+            //currentApp.setTheClipboardTo(params);
+            response = 'success';
+        }
+        catch(error){
+            response = error.toString();
+        }
+        return response;
+    }
+    else{
+        //try just reading the clipboard data and returning it
+        try{
+
+            var pb = $.NSPasteboard.generalPasteboard;
+            var output = pb.stringForType($.NSPasteboardTypeString).js;
+            //var output = currentApp.theClipboard();
+            if(output == "" || output == undefined){
+                output = "Nothing on the clipboard";
+            }
+            return output;
+        }
+        catch(error){
+            return error.toString();
+        }
+    }
+};
+COMMAND_ENDS_HERE

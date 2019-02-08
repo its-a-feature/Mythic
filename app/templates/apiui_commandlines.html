@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block body %}
+
 <h2>
     Interacting with Apfell API via CLI
 </h2>
@@ -10,35 +11,35 @@ All of these APIs are subject to change in future versions.
 <div class="panel panel-primary" id="OperatorInfo">
     <div class="panel-heading">{{ group.name}} API Information</div>
     <div class="well well-sm pre-scrollable">
-        <table class="table table-striped table-hover table-condensed">
+        <table class="table table-condensed">
             {% for option in group.api %}
             <tr><td><dl>
                 <dt>
                 {% if option.GET %}
-                    GET {{option.GET}}
-                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
-                    <dd><b>CLI example:</b> {{option.cli}} </dd>
-                    <dd><b>Output Sample:</b> {{option.output}}</dd>
+                    <span class="display">GET {{option.GET}}</span>
+                <dd><span class="operator"><b>Explanation:</b></span> {{ option.explanation}}</dd>
+                <dd><span class="operator"><b>CLI example:</b></span> {{option.cli}} </dd>
+                <dd><span class="operator"><b>Output Sample:</b></span> {{option.output}}</dd>
                 {% elif option.DELETE %}
-                    DELETE {{option.DELETE}}
-                    <dd><b>Explanation:</b> {{ option.explanation}}</dd>
-                    <dd><b>CLI example:</b> {{option.cli}} </dd>
-                    <dd><b>Output Sample:</b> {{option.output}}</dd>
+                    <span class="display">DELETE {{option.DELETE}}</span>
+                <dd><span class="operator"><b>Explanation:</b></span> {{ option.explanation}}</dd>
+                <dd><span class="operator"><b>CLI example:</b></span> {{option.cli}} </dd>
+                <dd><span class="operator"><b>Output Sample:</b></span> {{option.output}}</dd>
                 {% else %}
                     {% if option.POST %}
-                        POST {{option.POST}}
+                        <span class="display">POST {{option.POST}}</span>
                     {% else %}
-                        PUT {{option.PUT}}
+                        <span class="display">PUT {{option.PUT}}</span>
                     {% endif %}
-                    <dd><b>Explanation:</b> {{option.explanation}}</dd>
-                    <dd><b>CLI example:</b> {{option.cli}}</dd>
-                    <dd><b>Output Sample:</b> {{option.output}}</dd>
-                    <dd>Parameters:<ul>
+                <dd><span class="operator"><b>Explanation:</b></span> {{option.explanation}}</dd>
+                <dd><span class="operator"><b>CLI example:</b></span> {{option.cli}}</dd>
+                <dd><span class="operator"><b>Output Sample:</b></span> {{option.output}}</dd>
+                    <dd><span class="display">Parameters:</span><ul>
                         {% for param in option.parameters %}
-                            <li><b>Name:</b> {{param.name}}</li>
+                        <li><span class="operator"><b>Name:</b></span> {{param.name}}</li>
                             <ul>
-                                <li><b>Description:</b> {{param.description}}</li>
-                                <li><b>Requirements:</b> {{param.requirements}}</li>
+                                <li><span class="operator"><b>Description:</b></span> {{param.description}}</li>
+                                <li><span class="operator"><b>Requirements:</b></span> {{param.requirements}}</li>
                             </ul>
                         {% endfor %}
                     </ul></dd>
@@ -54,4 +55,224 @@ All of these APIs are subject to change in future versions.
 {% endblock %}
 {% block scripts %}
 
+{% endblock %}
+
+{% block body_config %}
+body{
+    background-color:{{ config['background-color'] }};
+    color:{{ config['text-color'] }}
+}
+.panel-body{
+    background:{{ config['background-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-primary{
+    background:{{ config['background-color'] }}
+}
+.panel-primary > .panel-heading{
+    background-image: none;
+    background-color:{{ config['primary-pane'] }};
+    color: {{config['primary-pane-text-color']}}
+}
+.panel-success{
+    background:{{ config['background-color'] }}
+}
+.panel-success > .panel-heading{
+    background-image: none;
+    background-color:{{ config['success-pane'] }};
+    color:{{ config['success-pane-text-color'] }}
+}
+.panel-warning{
+    background:{{ config['background-color'] }}
+}
+.panel-warning > .panel-heading{
+    background-image: none;
+    background-color:{{ config['warning-pane'] }};
+    color: {{config['warning-pane-text-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-info > .panel-heading{
+    background-image: none;
+    background-color:{{ config['info-pane'] }};
+    color:{{config['info-pane-text-color'] }}
+}
+.panel-footer{
+    background:{{ config['background-color'] }}
+}
+.btn{
+    background-color: {{ config['general-button'] }};
+    color: {{ config['general-button-text-color'] }};
+    border: {{ config['general-button'] }}
+}
+.btn-primary{
+    background-color: {{ config['primary-button'] }};
+    color: {{ config['primary-button-text-color'] }};
+    border: {{ config['primary-button'] }}
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
+    background-color: {{ config['primary-button-hover'] }};
+    color: {{ config['primary-button-hover-text-color'] }};
+    border: {{ config['primary-button-hover'] }}
+}
+.btn-success{
+    background-color: {{config['success-button'] }};
+    color: {{ config['success-button-text-color'] }};
+    border: {{config['success-button']}}
+}
+.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
+    background-color: {{config['success-button-hover'] }};
+    color: {{ config['success-button-hover-text-color'] }};
+    border: {{config['success-button-hover']}}
+}
+.btn-danger{
+    background-color: {{config['danger-button'] }};
+    color: {{ config['danger-button-text-color'] }};
+    border: {{config['danger-button']}}
+}
+.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
+    background-color: {{config['danger-button-hover'] }};
+    color: {{ config['danger-button-hover-text-color'] }};
+    border: {{config['danger-button-hover']}}
+}
+.btn-info{
+    background-color: {{config['info-button'] }};
+    color: {{ config['info-button-text-color'] }};
+    border: {{ config['info-button'] }}
+}
+.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
+    background-color: {{config['info-button-hover'] }};
+    color: {{ config['info-button-hover-text-color'] }};
+    border: {{ config['info-button-hover'] }};
+}
+.btn-warning{
+    background-color: {{config['warning-button'] }};
+    color: {{ config['warning-button-text-color'] }};
+    border: {{config['warning-button']}}
+}
+.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
+    background-color: {{config['warning-button-hover'] }};
+    color: {{ config['warning-button-hover-text-color'] }};
+    border: {{config['warning-button-hover']}}
+}
+.table{
+    background-color: {{ config['well-bg'] }}
+}
+.form-control{
+    background-color:{{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.tab-content{
+    background:{{ config['background-color'] }}
+}
+.well{
+    background:{{ config['well-bg'] }}
+}
+span{
+    color: {{ config['text-color'] }};
+}
+span.timestamp{
+    color: {{ config['timestamp'] }};
+}
+span.response{
+    color: {{ config['text-color'] }}
+}
+span.operator{
+    color: {{ config['operator'] }}
+}
+span.display{
+    color: {{ config['display'] }}
+}
+table{
+    background-color: {{config['background-color']}};
+}
+th{
+    background-color: {{config['table-headers']}};
+    color: {{config['text-color']}}
+}
+.autocomplete-items {
+  position: absolute;
+  border-bottom: none;
+  border-top: none;
+  z-index: 99;
+  /*position the autocomplete items to be the same width as the container:*/
+  bottom: 100%;
+  left: 0;
+  right: 0;
+}
+
+.autocomplete-items div {
+  padding: 10px;
+  cursor: pointer;
+  background-color: {{config['background-color']}};
+  border-bottom: 1px solid {{config['text-color']}};
+}
+
+/*when hovering an item:*/
+.autocomplete-items div:hover {
+  background-color: {{config['hover']}};
+}
+.autocomplete-active {
+  /*when navigating through the items using the arrow keys:*/
+  background-color: {{config['highlight']}} !important;
+  color: {{config['highlight-text']}};
+}
+.dropdown-menu {
+    background-color: {{ config['background-color'] }};
+}
+
+.nav-tabs > li> a:link{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:visited{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:hover{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:active{
+    color: {{ config['text-color'] }};
+}
+.dropdown-menu > li > a{
+    background-color: {{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.dropdown-menu > li > a:hover{
+    background-color: {{ config['highlight'] }};
+    color: {{ config['highlight-color'] }}
+}
+.modal-header {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-body {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-content {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+select {
+    background-color: {{config['background-color']}};
+}
+input {
+    background-color: {{config['background-color']}};
+}
+span.operation {
+    color: {{ config['operation-color'] }}
+}
+.dropdown > .btn-primary {
+    background-color: {{ config['interact-button-color']}};
+    color: {{ config['interact-button-text']}}
+}
+.dropdown > .btn-info {
+    background-color: {{ config['interact-button-dropdown'] }}
+}
+.navbar-nav > .dropdown > .dropdown-toggle > .caret{
+    color: {{ config['top-caret'] }};
+}
 {% endblock %}

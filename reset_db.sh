@@ -18,11 +18,17 @@ DROP TABLE filemeta CASCADE;
 DROP TABLE payloadcommand CASCADE;
 DROP TABLE c2profileparameters CASCADE;
 DROP TABLE c2profileparametersinstance CASCADE;
-DROP TABLE attackid CASCADE;
+DROP TABLE attack CASCADE;
 DROP TABLE credential CASCADE;
 DROP TABLE keylog CASCADE;
 DROP TABLE transform CASCADE;
 DROP TABLE loadedcommands CASCADE;
+DROP TABLE commandtransform CASCADE;
+DROP TABLE attackcommand CASCADE;
+DROP TABLE attacktask CASCADE;
+DROP TABLE artifact CASCADE;
+DROP TABLE artifacttemplate CASCADE;
+DROP TABLE taskartifact CASCADE;
 EOF
     pg_ctl -D /usr/local/var/postgres restart
 
@@ -51,20 +57,19 @@ DROP TABLE filemeta CASCADE;
 DROP TABLE payloadcommand CASCADE;
 DROP TABLE c2profileparameters CASCADE;
 DROP TABLE c2profileparametersinstance CASCADE;
-DROP TABLE attackid CASCADE;
+DROP TABLE attack CASCADE;
 DROP TABLE credential CASCADE;
 DROP TABLE keylog CASCADE;
 DROP TABLE transform CASCADE;
 DROP TABLE loadedcommands CASCADE;
+DROP TABLE commandtransform CASCADE;
+DROP TABLE attackcommand CASCADE;
+DROP TABLE attacktask CASCADE;
+DROP TABLE artifact CASCADE;
+DROP TABLE artifacttemplate CASCADE;
+DROP TABLE taskartifact CASCADE;
 EOF
 
 service postgresql restart
 
 fi
-
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-printf "\n\n${RED}==========================================\n"
-printf "===============WARNING====================\n"
-printf "DELETE YOUR COOKIES OR YOUR WILL HAVE A BAD TIME\n"
-printf "==========================================\n${NC}"

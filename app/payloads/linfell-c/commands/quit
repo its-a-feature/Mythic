@@ -1,0 +1,7 @@
+int quit(cJSON* json){
+   exit(0);
+    }
+        COMMAND_ENDS_HERE
+        int quit(cJSON*);
+        // can also include other headers if you need them
+        

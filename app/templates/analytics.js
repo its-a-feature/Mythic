@@ -20,7 +20,7 @@ var pload_tree = new Vue({
     delimiters: ['[[', ']]']
 });
 function startwebsocket_callbacks(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks');
+	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
 	ws.onmessage = function(event){
 		if(event.data != "" && process_new_callbacks){
 			cdata = JSON.parse(event.data);

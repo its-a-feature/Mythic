@@ -7,18 +7,19 @@
 
 <div style="resize: vertical; overflow:visible" class="panel panel-primary" id="c2profiles_table">
     <div class="panel-heading">Current C2 Profile Information</div>
-        <table class="table table-striped table-hover table-condensed" >
+        <table class="table table-condensed" >
             <tr>
-                <td><b>Delete</b></td>
-		        <td><b>Edit</b></td>
-                <td><b>Stdout/Stderr</b></td>
-                <td><b>Files</b></td>
-                <td><b>Running</b></td>
-                <td><b>Creator</b></td>
-                <td><b>Name</b></td>
-                <td><b>Description</b></td>
-                <td><b>Parameters</b></td>
-                <td><b>Payload Types</b></td>
+                <th><b>Delete</b></th>
+		        <th><b>Edit</b></th>
+                <th><b>Stdout/Stderr</b></th>
+                <th><b>Files</b></th>
+                <th><b>Export</b></th>
+                <th><b>Running</b></th>
+                <th><b>Creator</b></th>
+                <th><b>Name</b></th>
+                <th><b>Description</b></th>
+                <th><b>Parameters</b></th>
+                <th><b>Payload Types</b></th>
             </tr>
         <!-- Repeat this for each web service -->
             <tr v-for="p in profiles" :key="p.name">
@@ -29,13 +30,16 @@
                     </div>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-info btn-sm" @click="update_button(p)">Edit</button>
+                    <button type="button" class="btn btn-warning btn-sm" @click="update_button(p)">Edit</button>
                 </td>
                 <td>
                     <button type="button" class="btn btn-info btn-sm" @click="check_status_button(p)">Status</button>
                 </td>
                 <td>
                     <button type="button" class="btn btn-warning btn-sm" @click="edit_files_button(p)">Edit Files</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-info btn-sm" @click="export_profile_button(p)">Export</button>
                 </td>
                 <td>
                     <div v-if="p.name == 'default'">Yes</div>
@@ -65,10 +69,10 @@
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
                 <h3 id="modalLabel">Are you sure? This could have implications elsewhere.</h3>
-                Remove the specified C2 Profile from the database.
+                Remove the specified C2 Profile from the database and files from disk.
             </div>
               <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
                 <button class="btn btn-danger" data-dismiss="modal" id="profileDeleteSubmit">Submit</button>
               </div>
         </div>
@@ -85,11 +89,11 @@
             </div>
             <div class="modal-body">
                 <template v-if="folders.length > 0" v-for="folder in folders">
-                    <table class="table table-striped table-hover table-condensed well-sm">
+                    <table class="table table-condensed well-sm">
                         <tr>
-                            <td align="left" width="50"><b>Delete</b></td>
-                            <td align="left" width="50"><b>Download</b></td>
-                            <td align="left"><b>Files in [[folder.folder.replace("./app/c2_profiles/{{current_operation}}/","")]]</b></td>
+                            <th align="left" width="50"><b>Delete</b></th>
+                            <th align="left" width="50"><b>Download</b></th>
+                            <th align="left"><b>Files in [[folder.folder.replace("./app/c2_profiles/{{current_operation}}/","")]]</b></th>
                         </tr>
                         <template v-for="file in folder.filenames">
                             <tr>
@@ -102,7 +106,7 @@
                 </template>
             </div>
               <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">OK</button>
+                <button class="btn btn-success" data-dismiss="modal" aria-hidden="true">OK</button>
               </div>
         </div>
     </div>
@@ -147,7 +151,7 @@
             </table>
         </div>
 	    <div class="modal-footer">
-		<button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+		<button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
 		<button class="btn btn-primary" data-dismiss="modal" id="profileUpdateSubmit">Submit</button>
 	    </div>
 	</div>
@@ -194,7 +198,7 @@
             </table>
         </div>
 	    <div class="modal-footer">
-		<button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+		<button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
 		<button class="btn btn-primary" data-dismiss="modal" id="profileCreateSubmit">Submit</button>
 	    </div>
 	</div>
@@ -215,10 +219,10 @@
             <div id="profileEditParametersTable">
                 <table cellpadding="10" style="width:100%">
                     <tr>
-                        <td></td>
-                        <td><b>Name</b></td>
-                        <td><b>Key</b></td>
-                        <td><b>User Hint</b></td>
+                        <th></th>
+                        <th><b>Name</b></th>
+                        <th><b>Key</b></th>
+                        <th><b>User Hint</b></th>
                     </tr>
                     <tr v-for="(i,p) in parameters" :key="p">
                         <td>
@@ -239,16 +243,253 @@
             </div>
         </div>
 	    <div class="modal-footer">
-		<button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+		<button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
 		<button class="btn btn-primary" data-dismiss="modal" id="profileEditParametersSubmit">Submit</button>
 	    </div>
 	</div>
     </div>
 </div>
 <!-- END MODAL FOR EDITING A PROFILE'S PARAMETERS -->
+<!-- THIS IS OUR MODAL FOR IMPORTING C2 PROFILE -->
+<div class="modal fade bs-example-modal-md" id="importModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Import a JSON file containing the C2 Profile and associated information</h3>
+            </div>
+              <div class="modal-body" id="importBody">
+                  <input type="file" id="importFile">
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-primary" data-dismiss="modal" id="importSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR IMPORTING C2 PROFILE -->
 <button type="button" class="btn btn-success btn-md" onclick="register_button()">Register C2 Profile</button>
+<button type="button" class="btn btn-info btn-md" onclick="import_button()">Import C2 Profile(s)</button>
 {% endblock %}
 
 {% block scripts %}
 {% include "c2profile_management.js" %}
+{% endblock %}
+
+{% block body_config %}
+body{
+    background-color:{{ config['background-color'] }};
+    color:{{ config['text-color'] }}
+}
+.panel-body{
+    background:{{ config['background-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-primary{
+    background:{{ config['background-color'] }}
+}
+.panel-primary > .panel-heading{
+    background-image: none;
+    background-color:{{ config['primary-pane'] }};
+    color: {{config['primary-pane-text-color']}}
+}
+.panel-success{
+    background:{{ config['background-color'] }}
+}
+.panel-success > .panel-heading{
+    background-image: none;
+    background-color:{{ config['success-pane'] }};
+    color:{{ config['success-pane-text-color'] }}
+}
+.panel-warning{
+    background:{{ config['background-color'] }}
+}
+.panel-warning > .panel-heading{
+    background-image: none;
+    background-color:{{ config['warning-pane'] }};
+    color: {{config['warning-pane-text-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-info > .panel-heading{
+    background-image: none;
+    background-color:{{ config['info-pane'] }};
+    color:{{config['info-pane-text-color'] }}
+}
+.panel-footer{
+    background:{{ config['background-color'] }}
+}
+.btn{
+    background-color: {{ config['general-button'] }};
+    color: {{ config['general-button-text-color'] }};
+    border: {{ config['general-button'] }}
+}
+.btn-primary{
+    background-color: {{ config['primary-button'] }};
+    color: {{ config['primary-button-text-color'] }};
+    border: {{ config['primary-button'] }}
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
+    background-color: {{ config['primary-button-hover'] }};
+    color: {{ config['primary-button-hover-text-color'] }};
+    border: {{ config['primary-button-hover'] }}
+}
+.btn-success{
+    background-color: {{config['success-button'] }};
+    color: {{ config['success-button-text-color'] }};
+    border: {{config['success-button']}}
+}
+.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
+    background-color: {{config['success-button-hover'] }};
+    color: {{ config['success-button-hover-text-color'] }};
+    border: {{config['success-button-hover']}}
+}
+.btn-danger{
+    background-color: {{config['danger-button'] }};
+    color: {{ config['danger-button-text-color'] }};
+    border: {{config['danger-button']}}
+}
+.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
+    background-color: {{config['danger-button-hover'] }};
+    color: {{ config['danger-button-hover-text-color'] }};
+    border: {{config['danger-button-hover']}}
+}
+.btn-info{
+    background-color: {{config['info-button'] }};
+    color: {{ config['info-button-text-color'] }};
+    border: {{ config['info-button'] }}
+}
+.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
+    background-color: {{config['info-button-hover'] }};
+    color: {{ config['info-button-hover-text-color'] }};
+    border: {{ config['info-button-hover'] }};
+}
+.btn-warning{
+    background-color: {{config['warning-button'] }};
+    color: {{ config['warning-button-text-color'] }};
+    border: {{config['warning-button']}}
+}
+.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
+    background-color: {{config['warning-button-hover'] }};
+    color: {{ config['warning-button-hover-text-color'] }};
+    border: {{config['warning-button-hover']}}
+}
+.form-control{
+    background-color:{{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.tab-content{
+    background:{{ config['background-color'] }}
+}
+.well{
+    background:{{ config['well-bg'] }}
+}
+span{
+    color: {{ config['text-color'] }};
+}
+span.timestamp{
+    color: {{ config['timestamp'] }};
+}
+span.response{
+    color: {{ config['text-color'] }}
+}
+span.operator{
+    color: {{ config['operator'] }}
+}
+span.display{
+    color: {{ config['display'] }}
+}
+table{
+    background-color: {{config['background-color']}};
+}
+th{
+    background-color: {{config['table-headers']}};
+    color: {{config['text-color']}}
+}
+.autocomplete-items {
+  position: absolute;
+  border-bottom: none;
+  border-top: none;
+  z-index: 99;
+  /*position the autocomplete items to be the same width as the container:*/
+  bottom: 100%;
+  left: 0;
+  right: 0;
+}
+
+.autocomplete-items div {
+  padding: 10px;
+  cursor: pointer;
+  background-color: {{config['background-color']}};
+  border-bottom: 1px solid {{config['text-color']}};
+}
+
+/*when hovering an item:*/
+.autocomplete-items div:hover {
+  background-color: {{config['hover']}};
+}
+.autocomplete-active {
+  /*when navigating through the items using the arrow keys:*/
+  background-color: {{config['highlight']}} !important;
+  color: {{config['highlight-text']}};
+}
+.dropdown-menu {
+    background-color: {{ config['background-color'] }};
+}
+
+.nav-tabs > li> a:link{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:visited{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:hover{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:active{
+    color: {{ config['text-color'] }};
+}
+.dropdown-menu > li > a{
+    background-color: {{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.dropdown-menu > li > a:hover{
+    background-color: {{ config['highlight'] }};
+    color: {{ config['highlight-color'] }}
+}
+.modal-header {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-body {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-content {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+select {
+    background-color: {{config['background-color']}};
+}
+input {
+    background-color: {{config['background-color']}};
+}
+span.operation {
+    color: {{ config['operation-color'] }}
+}
+.dropdown > .btn-primary {
+    background-color: {{ config['interact-button-color']}};
+    color: {{ config['interact-button-text']}}
+}
+.dropdown > .btn-info {
+    background-color: {{ config['interact-button-dropdown'] }}
+}
+.navbar-nav > .dropdown > .dropdown-toggle > .caret{
+    color: {{ config['top-caret'] }};
+}
 {% endblock %}

@@ -113,7 +113,11 @@ async def update_callback(request, id, user):
         operation = await db_objects.get(Operation, name=user['current_operation'])
         cal = await db_objects.get(Callback, id=id, operation=operation)
         if 'description' in data:
-            cal.description = data['description']
+            if data['description'] == 'reset':
+                # set the description back to what it was from the payload
+                cal.description = cal.registered_payload.tag
+            else:
+                cal.description = data['description']
         if 'active' in data:
             if data['active'] == 'true':
                 cal.active = True

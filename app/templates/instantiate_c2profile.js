@@ -27,7 +27,12 @@ $( '#c2_profile' ).change(function(){
 });
 function c2_profile_callback(response){
     // populate the c2_profile select options
-    var data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     var c2_profile_options = '<option value="Select One...">Select One...</option>';
     for(var i = 0; i < data.length; i ++){
         c2_profile_options = c2_profile_options + '<option value="' + data[i].name + '">' + data[i].name + '</option>';
@@ -38,7 +43,12 @@ function c2_profile_callback(response){
 };
 function c2_profile_parameters_callback(response){
     //this is called when the c2_profile dropdown changes and we get results back from the GET request
-    var data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         // populate the table values
         profile_parameters_table.c2_profile_parameters = []; //clear all the fields first
@@ -83,7 +93,12 @@ function create_instance(){
     }
 };
 function create_instance_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }

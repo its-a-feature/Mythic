@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, file, text
-from app.database_models.model import Operator, PayloadType, Command, CommandParameters
+from app.database_models.model import Operator, PayloadType, Command, CommandParameters, CommandTransform, ATTACKCommand, ATTACK, ArtifactTemplate, Artifact
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
 import json as js
@@ -34,13 +34,14 @@ async def check_command(request, user, ptype, cmd):
     try:
         command = await db_objects.get(Command, cmd=cmd, payload_type=payload_type)
         params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
-        status = {**status, **command.to_json(), "params": [p.to_json() for p in params]}
+        attacks = await db_objects.execute(ATTACKCommand.select().where(ATTACKCommand.command == command))
+        status = {**status, **command.to_json(), "params": [p.to_json() for p in params], "attack": [a.to_json() for a in attacks]}
     except Exception as e:
         # the command doesn't exist yet, which is good
         pass
     # now check to see if the file exists
     try:
-        file = open("./app/payloads/{}/{}".format(payload_type.ptype, cmd), 'rb')
+        file = open("./app/payloads/{}/commands/{}".format(payload_type.ptype, cmd), 'rb')
         encoded = base64.b64encode(file.read()).decode("UTF-8")
         status = {**status, 'code': encoded}
     except Exception as e:
@@ -58,6 +59,9 @@ async def remove_command(request, user, id):
         params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
         for p in params:
             await db_objects.delete(p, recursive=True)
+        transforms = await db_objects.execute(CommandTransform.select().where(CommandTransform.command == command))
+        for t in transforms:
+            await db_objects.delete(t, recursive=True)
         await db_objects.delete(command, recursive=True)
         return json({'status': 'success', **command.to_json()})
     except Exception as e:
@@ -77,9 +81,9 @@ async def get_command_code(request, user, id, resp_type):
         return json({'status': 'error', 'error': 'failed to get command'})
     try:
         if resp_type == "file":
-            return file("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd))
+            return file("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
         else:
-            rsp_file = open("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd), 'rb').read()
+            rsp_file = open("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd), 'rb').read()
             encoded = base64.b64encode(rsp_file).decode("UTF-8")
             return text(encoded)
     except Exception as e:
@@ -114,23 +118,23 @@ async def update_command(request, user, id):
     if request.files:
         updated_command = True
         cmd_code = request.files['upload_file'][0].body
-        cmd_file = open("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd), "wb")
+        cmd_file = open("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
     elif "code" in data:
         updated_command = True
-        cmd_file = open("./app/payloads/{}/{}".format(command.payload_type.ptype, command.cmd), "wb")
+        cmd_file = open("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd), "wb")
         cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
     command.operator = operator
+    await db_objects.update(command)
     if updated_command:
         async with db_objects.atomic():
             command = await db_objects.get(Command, id=command.id)
             command.version = command.version + 1
             await db_objects.update(command)
-            print("updated command")
     return json({'status': 'success', **command.to_json()})
 
 
@@ -146,7 +150,7 @@ async def create_command(request, user):
     resp = await create_command_func(data, user)
     if request.files and resp['status'] == "success":
         cmd_code = request.files['upload_file'][0].body
-        cmd_file = open("./app/payloads/{}/{}".format(resp['payload_type'], resp['cmd']), "wb")
+        cmd_file = open("./app/payloads/{}/commands/{}".format(resp['payload_type'], resp['cmd']), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
@@ -183,7 +187,7 @@ async def create_command_func(data, user):
         command = await db_objects.create(Command, needs_admin=data['needs_admin'], help_cmd=data['help_cmd'],
                                           description=data['description'], cmd=data['cmd'],
                                           payload_type=payload_type, operator=operator)
-        cmd_file = open("./app/payloads/{}/{}".format(payload_type.ptype, command.cmd), "wb")
+        cmd_file = open("./app/payloads/{}/commands/{}".format(payload_type.ptype, command.cmd), "wb")
         cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
@@ -195,114 +199,7 @@ async def create_command_func(data, user):
         return {'status': 'error', 'error': 'failed to create command: ' + str(e)}
 
 
-# get a JSON dump of all the commands for a payload type that can be used to import later if needed
-@apfell.route(apfell.config['API_BASE'] + "/commands/<ptype:string>/export", methods=['GET'])
-@inject_user()
-@protected()
-async def export_command_list(request, user, ptype):
-    payload_type = unquote_plus(ptype)
-    try:
-        payload_ptype = await db_objects.get(PayloadType, ptype=payload_type)
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'unable to find that payload type'})
-    cmdlist = []
-    try:
-        commands = await db_objects.execute(Command.select().where(Command.payload_type == payload_ptype))
-        for c in commands:
-            cmd_json = c.to_json()
-            del cmd_json['id']
-            del cmd_json['creation_time']
-            del cmd_json['operator']
-            del cmd_json['payload_type']
-            params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == c))
-            params_list = []
-            for p in params:
-                p_json = p.to_json()
-                del p_json['id']
-                del p_json['command']
-                del p_json['cmd']
-                del p_json['operator']
-                params_list.append(p_json)
-            cmd_json['parameters'] = params_list
-            cmdlist.append(cmd_json)
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to get commands for that payload type'})
-    return json({"payload_types": [{"name": payload_type, "commands": cmdlist}]})
-
-
-# import a JSON dump of commands for a payloadtype instead of doing one at a time
-@apfell.route(apfell.config['API_BASE'] + "/commands/import", methods=['POST'])
-@inject_user()
-@protected()
-async def import_command_list(request, user):
-    # The format for this will be the same as the default_commands.json file or what you get from the export function
-    # This allows you to import commands across a set of different payload types at once
-    if(request.files):
-        try:
-            #print("uploading:{}".format(request.files['upload_file'][0].name))
-            data = js.loads(request.files['upload_file'][0].body.decode('UTF-8'))
-        except Exception as e:
-            print(e)
-            return json({'status': 'error', 'error': 'failed to parse file'})
-        #print(data)
-    else:
-        try:
-            data = request.json
-        except Exception as e:
-            print(e)
-            return json({'status': 'error', 'error': 'failed to parse JSON'})
-    try:
-        operator = await db_objects.get(Operator, username=user['username'])
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to get operator information'})
-    if "payload_types" not in data:
-        return json({'status': 'error', 'error': 'must start with "payload_types"'})
-    error_list = []
-    for type in data['payload_types']:
-        try:
-            payload_type = await db_objects.get(PayloadType, ptype=type['name'])
-        except Exception as e:
-            error_list.append({type['name']: 'failed to find this payloadtype'})
-            continue  # get the next type in the list and hope for better results
-        # we found the payload type, now try to add the commands
-        payload_cmd_error_list = []
-        for command in type['commands']:
-            cmd_error_list = []
-            if "cmd" not in command:
-                cmd_error_list.append("Missing required parameter: cmd")
-            if "description" not in command:
-                cmd_error_list.append("Missing required parameter: description")
-            if "help_cmd" not in command:
-                cmd_error_list.append("Missing required parameter: help")
-            if "needs_admin" not in command:
-                cmd_error_list.append("Missing required parameter: needs_admin")
-            if len(cmd_error_list) == 0:
-                # now actually try to add the command
-                try:
-                    cmdobj, created = await db_objects.get_or_create(Command, payload_type=payload_type, operator=operator,
-                                            cmd=command['cmd'], description=command['description'],
-                                            help_cmd=command['help_cmd'], needs_admin=command['needs_admin'])
-                    if "parameters" in command:
-                        for param in command['parameters']:
-                            try:
-                                param, created = await db_objects.get_or_create(CommandParameters, **param, command=cmdobj,
-                                                                         operator=operator)
-                            except Exception as e:
-                                print(e)
-                except Exception as e:
-                    cmd_error_list.append(str(e))
-            # give the status of that command addition
-            if len(cmd_error_list) == 0:
-                payload_cmd_error_list.append(["success"])
-            else:
-                payload_cmd_error_list.append(cmd_error_list)
-        # now roll all of these success or error lists up for the payload
-        error_list.append({type['name']: payload_cmd_error_list})
-    return json(error_list)
-
+# ################## COMMAND PARAMETER ROUTES #######################
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/parameters", methods=['POST'])
 @inject_user()
@@ -334,7 +231,6 @@ async def create_command_parameter(request, user, id):
             command = await db_objects.get(Command, id=id)
             command.version = command.version + 1
             await db_objects.update(command)
-            print("created command param")
         return json({'status': 'success', **param.to_json(), 'new_cmd_version': command.version})
     except Exception as e:
         print(e)
@@ -382,7 +278,6 @@ async def update_command_parameter(request, user, cid, pid):
     parameter.operator = operator
     # update the command since we just updated a parameter to it
     if updated_a_field:
-        print("updated: " + parameter.name)
         async with db_objects.atomic():
             command = await db_objects.get(Command, id=cid)
             command.version = command.version + 1
@@ -407,7 +302,6 @@ async def remove_command_parameter(request, user, cid, pid):
     async with db_objects.atomic():
         command = await db_objects.get(Command, id=cid)
         command.version = command.version + 1
-        print("deleted param")
         await db_objects.update(command)
     return json({'status': 'success', **p_json, 'new_cmd_version': command.version})
 
@@ -423,3 +317,165 @@ async def get_all_parameters_for_command(request, user, id):
         return json({'status': 'error', 'error': 'failed to find that command'})
     params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
     return json([p.to_json() for p in params])
+
+
+# ################# COMMAND ATT&CK ROUTES ############################
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/", methods=['GET'])
+@inject_user()
+@protected()
+async def get_all_attack_mappings_for_command(request, user, id):
+    try:
+        command = await db_objects.get(Command, id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command'})
+    attacks = await db_objects.execute(ATTACKCommand.select().where(ATTACKCommand.command == command))
+    return json({'status': 'success', 'attack': [a.to_json() for a in attacks]})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/<t_num:string>", methods=['DELETE'])
+@inject_user()
+@protected()
+async def remove_attack_mapping_for_command(request, user, id, t_num):
+    try:
+        command = await db_objects.get(Command, id=id)
+        attack = await db_objects.get(ATTACK, t_num=t_num)
+        attackcommand = await db_objects.get(ATTACKCommand, command=command, attack=attack)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command'})
+    await db_objects.delete(attackcommand)
+    return json({'status': 'success', 't_num': attack.t_num, 'command_id': command.id})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/<t_num:string>", methods=['POST'])
+@inject_user()
+@protected()
+async def create_attack_mappings_for_command(request, user, id, t_num):
+    try:
+        command = await db_objects.get(Command, id=id)
+        attack = await db_objects.get(ATTACK, t_num=t_num)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command'})
+    attackcommand, created = await db_objects.get_or_create(ATTACKCommand, attack=attack, command=command)
+    return json({'status': 'success', **attackcommand.to_json()})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/<t_num:string>", methods=['PUT'])
+@inject_user()
+@protected()
+async def adjust_attack_mappings_for_command(request, user, id, t_num):
+    data = request.json
+    try:
+        command = await db_objects.get(Command, id=id)
+        newattack = await db_objects.get(ATTACK, t_num=t_num)
+        attackcommand = await db_objects.get(ATTACKCommand, id=data['id'], command=command)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command'})
+    attackcommand.attack = newattack
+    await db_objects.update(attackcommand)
+    return json({'status': 'success', **attackcommand.to_json()})
+
+
+# ############# COMMAND ARTIFACT TEMPLATE ROUTES #######################
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates", methods=['POST'])
+@inject_user()
+@protected()
+async def create_artifact_template_for_command(request, user, cid):
+    data = request.json
+    if "artifact" not in data:
+        return json({'status': 'error', 'error': '"artifact" is a required element'})
+    try:
+        command = await db_objects.get(Command, id=cid)
+        artifact = await db_objects.get(Artifact, id=data['artifact'])
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command or artifact'})
+
+    if "command_parameter" in data and data['command_parameter'] != -1:
+        try:
+            command_parameter = await db_objects.get(CommandParameters, id=data['command_parameter'])
+        except:
+            return json({'status': 'error', 'error': 'failed to find command parameter'})
+    else:
+        command_parameter = None
+    if "artifact_string" not in data:
+        return json({'status': 'error', 'error': '"artifact_string" is a required parameter'})
+    if "replace_string" not in data:
+        data['replace_string'] = ""
+    try:
+        artifact_template = await db_objects.create(ArtifactTemplate, command=command, artifact=artifact,
+                                                    artifact_string=data['artifact_string'],
+                                                    replace_string=data['replace_string'])
+        if command_parameter:
+            artifact_template.command_parameter = command_parameter
+            await db_objects.update(artifact_template)
+    except:
+        return json({'status': 'error', 'error': 'Failed to create artifact template for command'})
+    return json({'status': 'success', **artifact_template.to_json()})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates/<aid:int>", methods=['PUT'])
+@inject_user()
+@protected()
+async def update_artifact_template_for_command(request, user, cid, aid):
+    try:
+        command = await db_objects.get(Command, id=cid)
+        artifact = await db_objects.get(ArtifactTemplate, id=aid, command=command)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command or artifact'})
+    data = request.json
+    if "command_parameter" in data and data['command_parameter'] != 'null':
+        try:
+            command_parameter = await db_objects.get(CommandParameters, id=data['command_parameter'])
+            artifact.command_parameter = command_parameter
+        except:
+            return json({'status': 'error', 'error': 'failed to find command parameter'})
+    if "artifact_string" in data:
+        artifact.artifact_string = data['artifact_string']
+    if "replace_string" in data:
+        artifact.replace_string = data['replace_string']
+    try:
+        await db_objects.update(artifact)
+    except:
+        return json({'status': 'error', 'error': 'Failed to update artifact template for command'})
+    return json({'status': 'success', **artifact.to_json()})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates", methods=['GET'])
+@inject_user()
+@protected()
+async def get_artifact_templates_for_command(request, user, cid):
+    try:
+        command = await db_objects.get(Command, id=cid)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command'})
+    try:
+        artifacts = await db_objects.execute(ArtifactTemplate.select().where(ArtifactTemplate.command == command))
+    except:
+        return json({'status': 'error', 'error': 'Failed to get artifact templates for command'})
+    return json({'status': 'success', 'artifacts': [a.to_json() for a in artifacts]})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates/<aid:int>", methods=['DELETE'])
+@inject_user()
+@protected()
+async def update_artifact_template_for_command(request, user, cid, aid):
+    try:
+        command = await db_objects.get(Command, id=cid)
+        artifact = await db_objects.get(ArtifactTemplate, id=aid, command=command)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find that command or artifact'})
+    try:
+        artifact_json = artifact.to_json()
+        await db_objects.delete(artifact, recursive=True)
+        return json({'status': 'success', **artifact_json})
+    except:
+        return json({'status': 'error', 'error': 'failed to delete artifact template'})

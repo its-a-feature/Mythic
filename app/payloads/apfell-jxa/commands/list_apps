@@ -1,0 +1,82 @@
+exports.list_apps = function(task, command, params){
+    var method = "api";
+    var verbose = false;
+    data = JSON.parse(params);
+    if(data.hasOwnProperty('method') && data['method'] != ""){
+        method = data['method'];
+    }
+    if(data.hasOwnProperty('verbose') && data['verbose'] != ""){
+        verbose = data['verbose'];
+    }
+    if(method == "jxa"){
+        var procs = Application("System Events").processes;
+        var names = [];
+        for (var i = 0; i < procs.length; i++){
+            var info = "Name: " + procs[i].name() +
+            "\\npid: " + procs[i].id() +
+            "\\ndisplayedName: " + procs[i].displayedName() +
+            "\\nshortName: " + procs[i].shortName() +
+            "\\nfile: " + procs[i].file().typeIdentifier();
+            if(params){
+                info += "HighLevelEvents: " + procs[i].acceptsHighLevelEvents() +
+                "\\nRemoteEvents: " + procs[i].acceptsRemoteEvents() +
+                "\\nArchitecture: " + procs[i].architecture() +
+                "\\nBackgroundOnly: " + procs[i].backgroundOnly() +
+                "\\nBundleIdentifer: " + procs[i].bundleIdentifier() +
+                "\\nclassic: " + procs[i].classic() +
+                "\\ncreatorType: " + procs[i].creatorType() +
+                "\\nfileType: " + procs[i].fileType() +
+                "\\nfrontmost: " + procs[i].frontmost() +
+                "\\nScriptable: " + procs[i].hasScriptingTerminology() +
+                "\\npartitionSpaceUsed: " + procs[i].partitionSpaceUsed() +
+                "\\ntotalPartitionSize: " + procs[i].totalPartitionSize() +
+                "\\nunixId: " + procs[i].unixId() +
+                "\\nvisible: " + procs[i].visible();
+            };
+            names.push(info);
+        }
+        return JSON.stringify(names, null, 2);
+    }
+    else if(method == "api"){
+        ObjC.import('AppKit');
+        var names = {};
+        var output = "";
+        var procs = $.NSWorkspace.sharedWorkspace.runningApplications.js;
+        for(var i = 0; i < procs.length; i++){
+            var info = {};
+            if(verbose){
+                info['frontMost'] = procs[i].active;
+                info['hidden'] = procs[i].hidden;
+                info['bundle'] = procs[i].bundleIdentifier.js;
+                info['bundleURL'] = procs[i].bundleURL.path.js;
+                info['bundleExecutable'] = procs[i].executableURL.path.js;
+                info['pid'] = procs[i].processIdentifier;
+                info['localizedName'] = procs[i].localizedName.js;
+                if(procs[i].executableArchitecture == "16777223"){
+                    info['architecture'] = "x86_64";
+                }
+                else if(procs[i].executableArchitecture == "7"){
+                    info['architecture'] = "x86";
+                }
+                else if(procs[i].executableArchitecture == "18"){
+                    info['architecture'] = "x86_PPC";
+                }
+                else if(procs[i].executableArchitecture == "16777234"){
+                    info['architecture'] = "x86_64_PPC";
+                }
+                names[info['pid']] = info;
+            }
+            else{
+                output += "\\n" + procs[i].processIdentifier + "\t" + procs[i].localizedName.js;
+            }
+        }
+        if(verbose){
+            return JSON.stringify(names, null, 2);
+        }
+        else{
+            return output;
+        }
+
+    }
+};
+COMMAND_ENDS_HERE

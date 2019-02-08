@@ -24,13 +24,23 @@ var creds_div = new Vue({
     delimiters: ['[[',']]']
 });
 function new_credential_callback(response){
-    var data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] != "success"){
         alertTop("danger", "Error creating a new credential: " + data['error']);
     }
 }
 function remove_credential_callback(response){
-    var data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == "success"){
         for(var i = 0; i < creds_div.credentials[data['domain']].length; i++){
             if(data['id'] == creds_div.credentials[data['domain']][i]['id']){
@@ -56,9 +66,11 @@ function startwebsocket_credentials(){
     };
     ws.onclose = function(){
         //console.log("socket closed");
+        alertTop("danger", "Session expired, please refresh");
     }
     ws.onerror = function(){
         //console.log("websocket error");
+        alertTop("danger", "Session expired, please refresh");
     }
     ws.onopen = function(event){
         //console.debug("opened");

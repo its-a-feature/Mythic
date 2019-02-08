@@ -10,7 +10,7 @@ from ipaddress import ip_network
 db_name = 'apfell_db'
 db_user = 'apfell_user'
 db_pass = 'super_secret_apfell_user_password'
-server_ip = 'localhost'  # this will be used by the browser to callback here
+server_ip = '192.168.205.151'  # this will be used by the browser to callback here
 listen_port = '80'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
@@ -33,7 +33,7 @@ apfell.config['SERVER_PORT'] = listen_port
 apfell.config['DB_USER'] = db_user
 apfell.config['DB_PASS'] = db_pass
 apfell.config['DB_NAME'] = db_name
-apfell.config['DB_POOL_CONNECT_STRING'] = 'dbname=' + apfell.config['DB_NAME'] + ' user=' + apfell.config['DB_USER'] + ' password=' + apfell.config['DB_PASS']
+apfell.config['DB_POOL_CONNECT_STRING'] = "dbname='{}' user='{}' password='{}'".format(apfell.config['DB_NAME'], apfell.config['DB_USER'], apfell.config['DB_PASS'])
 apfell.config['API_VERSION'] = "1.0"
 apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
 apfell.config['REQUEST_MAX_SIZE'] = 100000000

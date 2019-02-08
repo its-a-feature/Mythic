@@ -54,24 +54,20 @@ var payloads_table = new Vue({
                         "description": $( '#profileUpdateDescription' ).val(),
                         "payload_types": $( '#profileUpdatePayloads' ).val()
                         };
-                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, update_profile, "PUT", data);
+                 if(data['payload_types'] == undefined){
+                    data['payload_types'] = [];
+                 }
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, update_profile, "PUT", data);
                  //we will upload files with this as well for the server code
                 var file = document.getElementById('profileEditServerFile');
                 if(file.files.length > 0){
                     var filedata = file.files;
-                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files, filedata, {"payload_type": ""}, "POST");
+                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_ptype_files, filedata, {"payload_type": ""}, "POST");
                     file.value = file.defaultValue;
                 }
-                // now iterate and upload files for all of the payload types as needed
-                for(var i = 0; i < edit_payload_files.edit_payload_file_list.length; i++){
-                    var file = document.getElementById('edit_payload_file_list' + edit_payload_files.edit_payload_file_list[i]);
-                    if(file.files.length > 0){
-                        var filedata = file.files;
-                        var json_data = {"payload_type":  edit_payload_files.edit_payload_file_list[i]}
-                        uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_files, filedata, json_data, "POST");
-                        //uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/, edit_payloadtype_callback, filedata);
-                        file.value = file.defaultValue;
-                    }
+                else{
+                    console.log("calling update_profile_files\n");
+                    update_profile_files('{"status": "success", "name": "' + p.name + '"}');
                 }
 		    });
 	    },
@@ -84,6 +80,9 @@ var payloads_table = new Vue({
 	        profile_files_modal.profile_name = p.name;
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/files", edit_files_callback, "GET", null);
             $('#profileFilesModal').modal('show');
+	    },
+	    export_profile_button: function(p){
+            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/export/" + p.name, '_blank').focus();
 	    },
 	    running_button: function(p){
 	        if (p.running){
@@ -183,6 +182,7 @@ function delete_file_button_callback(response){
                 for(var j = 0; j < profile_files_modal.folders[i].filenames.length; j++){
                     if(data['file'] == profile_files_modal.folders[i].filenames[j]){
                         profile_files_modal.folders[i].filenames.splice(j, 1);
+                        return;
                     }
                 }
             }
@@ -212,25 +212,45 @@ var edit_payload_files = new Vue({
     delimiters: ['[[', ']]']
 });
 function add_parameter_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
 };
 function edit_parameter_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
 };
 function delete_parameter_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == "error"){
         alertTop("danger", data['error']);
     }
 };
 function update_profile(response){
-	data = JSON.parse(response);
+	try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
 	if(data['status'] == 'success'){
 		for( var i = 0; i < profiles.length; i++){
 		    if(payloads_table.profiles[i].id == data['id']){
@@ -240,7 +260,20 @@ function update_profile(response){
 		        payloads_table.profiles[i].running = data['running'];
 		    }
 		}
-		alertTop("success", "Successfully updated");
+		if(edit_payload_files.edit_payload_file_list == undefined){
+            alertTop("success", "Successfully updated");
+		    return;
+        }
+        for(var i = 0; i < edit_payload_files.edit_payload_file_list.length; i++){
+            var file = document.getElementById('edit_payload_file_list' + edit_payload_files.edit_payload_file_list[i]);
+            if(file.files.length > 0){
+                var filedata = file.files;
+                var json_data = {"payload_type":  edit_payload_files.edit_payload_file_list[i]}
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + data['name'] + "/upload", update_profile_ptype_files, filedata, json_data, "POST");
+                file.value = file.defaultValue;
+            }
+        }
+
 	}
 	else{
 		//there was an error, so we should tell the user
@@ -248,19 +281,26 @@ function update_profile(response){
 	}
 }
 function update_profile_running(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
 	if(data['status'] == 'success'){
 		for( var i = 0; i < profiles.length; i++){
 		    if(payloads_table.profiles[i].id == data['id']){
 		        payloads_table.profiles[i].running = data['running'];
 		        if(data['output'] != "" && data['output'] != undefined){
 		            alertTop("warning", "<b>C2 Output</b>: " + data['output']);
-		            console.log(data['output']);
-		            return;
+		            //console.log(data['output']);
 		        }
+		        else{
+		            alertTop("success", "Success");
+		        }
+		        return;
 		    }
 		}
-		alertTop("success", "Successfully stopped c2 profile");
 	}
 	else{
 		//there was an error, so we should tell the user
@@ -268,16 +308,43 @@ function update_profile_running(response){
 	}
 }
 function update_profile_files(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
     else{
-        alertTop("success", "Successfully uploaded files");
+        alertTop("success", "Success");
+        console.log("about to loop through looking for files to submit\n");
+        // now iterate and upload files for all of the payload types as needed
+
+    }
+}
+function update_profile_ptype_files(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
+    else{
+        alertTop("success", "Successfully uploaded payload type files");
     }
 }
 function delete_profile(response){
-	data = JSON.parse(response);
+	try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
 	if(data['status'] == 'success'){
         var i = 0;
 		for( i = 0; i < profiles.length; i++){
@@ -309,9 +376,11 @@ function startwebsocket_c2profiles(){
 	}
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
+		alertTop("danger", "Session expired, please refresh");
 	}
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
+		alertTop("danger", "Session expired, please refresh");
 	}
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
@@ -334,16 +403,23 @@ function startwebsocket_payloadtypec2profile(){
 	}
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
+		alertTop("danger", "Session expired, please refresh");
 	}
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
+		alertTop("danger", "Session expired, please refresh");
 	}
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
 }
 function register_button(){
-    var possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
+    try{
+        var possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     //console.log(possiblePayloadTypes);
     var types = "";
     for(var i = 0; i < possiblePayloadTypes.length; i++){
@@ -369,7 +445,12 @@ function register_button(){
 
 }
 function create_profile(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
         return;
@@ -387,7 +468,12 @@ function create_profile(response){
     }
 }
 function upload_profile_file(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] != "success"){
         alertTop("danger", data['error']);
     }
@@ -401,3 +487,26 @@ var payload_files = new Vue({
     delimiters: ['[[', ']]']
 });
 startwebsocket_c2profiles();
+
+function import_button(){
+    $( '#importModal' ).modal('show');
+    $( '#importSubmit' ).unbind('click').click(function(){
+        var file = document.getElementById('importFile');
+        var filedata = file.files[0];
+        uploadFile("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/import", import_button_callback, filedata);
+        file.value = file.defaultValue;
+    });
+}
+function import_button_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        alertTop("success", JSON.stringify(data));
+    }else{
+        alertTop("danger", data['error']);
+    }
+}

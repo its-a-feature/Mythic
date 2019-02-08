@@ -1,3 +1,0 @@
-//similar to tasks, this can kill a certain thread or subprocess, but not implemented in JXA yet
-exports.clear = function(task, command, params){
-};

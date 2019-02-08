@@ -1,3 +1,20 @@
+var searches_Vue = new Vue({
+    el: '#searches',
+    data:{
+        option: "output"
+    },
+    methods:{
+        search_button: function(){
+            if(this.option == "output"){
+                search_task_output();
+            }
+            else{
+                search_task_params();
+            }
+        }
+    },
+    delimiters: ['[[', ']]']
+})
 var search_results = new Vue({
     el: '#searchResults',
     data:{
@@ -9,7 +26,7 @@ function search_task_output(){
     var search = $( '#searchTextField' ).val();
     if(search != ""){
         search_results.responses = [];
-        search_task_params.tasks = [];
+        search_task_results.tasks = [];
         setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 // show loading data until we load all of our data in, then it will be automatically cleared
@@ -23,10 +40,15 @@ function search_task_output(){
 
 }
 function get_search_callback(response){
-    var data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         for(var i = 0; i < data['output'].length; i++){
-            data['output'][i]['share_task'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['output'][i]['id'];
+            data['output'][i]['share_task'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['output'][i]['task']['id'];
             data['output'][i]['response'] = data['output'][i]['response'].replace(/\\n|\r/g, '\n');
         }
         search_results.responses = data['output'];
@@ -47,10 +69,10 @@ var search_task_results = new Vue({
     delimiters: ['[[', ']]']
 });
 function search_task_params(){
-    var search = $( '#searchTasksTextField' ).val();
+    var search = $( '#searchTextField' ).val();
     if(search != ""){
         search_results.responses = [];
-        search_task_params.tasks = [];
+        search_task_results.tasks = [];
         setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 // show loading data until we load all of our data in, then it will be automatically cleared
@@ -63,7 +85,12 @@ function search_task_params(){
     }
 }
 function get_search_tasks_callback(response){
-    var data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         for(var i = 0; i < data['output'].length; i++){
             data['output'][i]['share_task'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['output'][i]['id'];

@@ -15,9 +15,11 @@ async def apiui_commandline(request, user):
     api_data = js.loads(data)
     template = env.get_template('apiui_commandlines.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss", cld=api_data)
+        content = template.render(links=links, name=user['username'], http="https", ws="wss",
+                                  cld=api_data, config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws", cld=api_data)
+        content = template.render(links=links, name=user['username'], http="http", ws="ws",
+                                  cld=api_data, config=user['ui_config'])
     return response.html(content)
 
 
@@ -27,26 +29,24 @@ async def apiui_commandline(request, user):
 async def apiui_documentation(request, user):
     template = env.get_template('apiui_documentation.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", config=user['ui_config'])
     return response.html(content)
 
 
-@apfell.route("/apiui/apfell_jxa")
+@apfell.route("/apiui/command_help")
 @inject_user()
 @protected()
-async def apiui_apfell_jxa(request, user):
-    data = open("./app/templates/default_commands.json", 'r').read()
-    json_data = js.loads(data)
-    template = env.get_template('apiui_apfell-jxa.html')
+async def apiui_command_help(request, user):
+    template = env.get_template('apiui_command_help.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss", cmd=json_data)
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws", cmd=json_data)
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", config=user['ui_config'])
     return response.html(content)
 
 # add links to the routes in this file at the bottom
 links['apiui_commandlines'] = apfell.url_for('apiui_commandline')
 links['apiui_documentation'] = apfell.url_for('apiui_documentation')
-links['apiui_apfell_jxa'] = apfell.url_for('apiui_apfell_jxa')
+links['apiui_command_help'] = apfell.url_for('apiui_command_help')

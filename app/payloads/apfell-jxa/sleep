@@ -1,8 +1,0 @@
-exports.sleep = function(task, command, params){
-    timer.invalidate;
-    C2.interval = parseInt(params);
-    timer = $.NSTimer.scheduledTimerWithTimeIntervalRepeatsBlock(C2.interval, true, sleepWakeUp);
-    $.NSRunLoop.currentRunLoop.addTimerForMode(timer, "timer");
-    return "Sleep updated";
-};
-

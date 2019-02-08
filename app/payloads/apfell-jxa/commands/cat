@@ -1,0 +1,19 @@
+exports.cat = function(task, command, params){
+    try{
+        var contents = $.NSData.dataWithContentsOfFile($(params));
+        if(contents == undefined || contents == ""){
+            return "No output from command";
+        }
+        if(contents == true){
+            return "True";
+        }
+        if(contents == false){
+            return "False";
+        }
+        return contents;
+    }
+    catch(error){
+        return error.toString();
+    }
+};
+COMMAND_ENDS_HERE

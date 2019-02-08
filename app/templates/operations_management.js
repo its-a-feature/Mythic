@@ -16,7 +16,13 @@ var operations_table = new Vue({
             });
         },
         modify_button: function(o){
-            var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
+            try{
+                var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
+            }catch(error){
+                alertTop("danger", "Session expired, please refresh");
+                return;
+            }
+
             var members = "";
             for(var i = 0; i < potential_operators.length; i++){
                 members = members + '<option value="' + potential_operators[i]['username'] + '">' + potential_operators[i]['username'] + '</option>';
@@ -71,7 +77,13 @@ var operations_table = new Vue({
     delimiters: ['[[',']]']
 });
 function modify_operation(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+
     if(data['status'] == "success"){
         for (var i = 0; i < operations.length; i++){
             if(data['old_name']){
@@ -90,7 +102,12 @@ function modify_operation(response){
     }
 };
 function delete_operation(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
@@ -103,7 +120,12 @@ function delete_operation(response){
     }
 };
 function create_operation(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
@@ -112,7 +134,12 @@ function create_operation(response){
     }
 };
 function complete_operation(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
@@ -128,14 +155,24 @@ function get_operations(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/", get_operations_callback, "GET", null);
 };
 function get_operations_callback(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     for(var i = 0; i < data.length; i++){
         Vue.set(operations_table.operations, i, data[i]);
     }
 };
 function new_operation_button(){
     $( '#operationNewName' ).val("");
-    var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
+    try{
+        var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     var members = "";
     for(var i = 0; i < potential_operators.length; i++){
         members = members + '<option value="' + potential_operators[i]['username'] + '">' + potential_operators[i]['username'] + '</option>';
@@ -156,9 +193,15 @@ function new_operation_button(){
 
 };
 function current_operation_callback(response){
-    data = JSON.parse(response);
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         operations_table.current_operation = data['current_operation'];
+        location.reload(true);
     }
     else{
         alertTop("danger", data['error']);

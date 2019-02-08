@@ -1,5 +1,5 @@
 from app import apfell, db_objects
-from app.database_models.model import FileMeta, Task, Operation, Callback, Operator
+from app.database_models.model import FileMeta, Task, Operation, Callback, Operator, Payload
 from sanic.response import json, raw, file
 import base64
 from sanic_jwt.decorators import protected, inject_user
@@ -113,8 +113,8 @@ async def create_filemeta_in_database_func(data):
         print(e)
         return {'status': 'error', 'error': "failed to find task"}
     try:
-        if task.command.cmd not in ["download", "upload", "screencapture"]:
-            return {'status': 'error', 'error': "that task wouldn't result in a file being created"}
+        #if task.command.cmd not in ["download", "upload", "screencapture"]:
+        #    return {'status': 'error', 'error': "that task wouldn't result in a file being created"}
         filename = os.path.split(task.params)[1].strip()
         if task.command.cmd == "screencapture":
             # we want to save these in a specific folder
@@ -122,12 +122,18 @@ async def create_filemeta_in_database_func(data):
                 './app/files/{}/downloads/{}/{}/{}'.format(operation.name, task.callback.host, "screenshots", filename))
         else:
             save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, task.callback.host, filename))
-        extension = save_path.split(".")[-1]
-        save_path = ".".join(save_path.split(".")[:-1])
+        extension = filename.split(".")[-1] if "." in filename else ""
+        save_path = save_path[:((len(extension)+1)*-1)] if extension != "" else save_path
         count = 1
-        tmp_path = save_path + "." + str(extension)
+        if "." in filename:
+            tmp_path = save_path + "." + str(extension)
+        else:
+            tmp_path = save_path
         while os.path.exists(tmp_path):
-            tmp_path = save_path + str(count) + "." + str(extension)
+            if "." in filename:
+                tmp_path = save_path + str(count) + "." + str(extension)
+            else:
+                tmp_path = save_path + str(count)
             count += 1
         save_path = tmp_path
         if not os.path.exists(os.path.split(save_path)[0]):
@@ -193,6 +199,14 @@ async def create_filemeta_in_database_manual_func(data, user):
     if 'path' not in data:
         return {'status': 'error', 'error': 'file path must be submitted'}
     try:
+        print(str(data))
+        if "/" not in data['path']:
+            # we were given the name of a payload the use, so we need to make the full path
+            try:
+                payload = await db_objects.get(Payload, uuid=data['path'], operation=operation)
+                data['path'] = payload.location
+            except Exception as e:
+                return {'status': 'error', 'error': 'failed to find that payload in your operation'}
         filemeta = await db_objects.create(FileMeta, total_chunks=1, operation=operation, path=data['path'],
                                            complete=True, chunks_received=1, operator=operator)
     except Exception as e:

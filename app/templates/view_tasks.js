@@ -23,6 +23,24 @@ var tasks_div = new Vue({
         },
         make_active: function(callback){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],make_active_callback,"PUT", {"active":"true"});
+        },
+        toggle_show_params: function(id){
+            var img = document.getElementById("toggle_task" + id).nextElementSibling;
+            if (img.style.display === "") {
+                img.style.display = "none";
+            } else {
+                img.style.display = "";
+            }
+        },
+        add_comment: function(task){
+            $( '#addCommentTextArea' ).val(task.comment);
+            $( '#addCommentModal' ).modal('show');
+            $( '#addCommentSubmit' ).unbind('click').click(function(){
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, update_callback_comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});
+            });
+        },
+        remove_comment: function(id){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, update_callback_comment_callback, "DELETE", null);
         }
     },
     delimiters: ['[[', ']]']
@@ -59,6 +77,9 @@ function get_callback_tasks_callback(response){
         if(data.length > 0){
             for(var i = 0; i < tasks_div.callbacks.length; i++){
                 if(tasks_div.callbacks[i]['id'] == data[0]['callback']){
+                    data.forEach(function(x){
+                        x['href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + x.id;
+                    });
                     Vue.set(tasks_div.callbacks[i], 'tasks', data);
                     return;
                 }
@@ -66,4 +87,28 @@ function get_callback_tasks_callback(response){
         }
     }
 
+}
+function update_callback_comment_callback(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        data = data['task'];
+        for(var i = 0; i < tasks_div.callbacks.length; i++){
+            if(data['callback'] == tasks_div.callbacks[i]['id']){
+                for(var j = 0; j < tasks_div.callbacks[i]['tasks'].length; j++){
+                    if(data['id'] == tasks_div.callbacks[i]['tasks'][j]['id']){
+                        tasks_div.callbacks[i]['tasks'][j]['comment'] = data['comment'];
+                        tasks_div.callbacks[i]['tasks'][j]['comment_operator'] = data['comment_operator'];
+                        return;
+                    }
+                }
+            }
+        }
+    }else{
+        alertTop("danger", data['error']);
+    }
 }

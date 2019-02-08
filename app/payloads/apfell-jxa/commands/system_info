@@ -1,0 +1,19 @@
+exports.system_info = function(task, command, params){
+    var method = "jxa";
+    try{
+        if(params.length > 0){
+            data = JSON.parse(params);
+            if(data.hasOwnProperty('method') && data['method'] != ""){
+                method = data['method'];
+            }
+        }
+        if(method == "jxa"){
+            return JSON.stringify(currentApp.systemInfo(), null, 2);
+        }else{
+            return "Method unknown";
+        }
+    }catch(error){
+        return "Unknown method";
+    }
+};
+COMMAND_ENDS_HERE

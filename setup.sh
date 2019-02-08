@@ -1,4 +1,15 @@
 #!/bin/bash
+
+# get the user configured db password from the app/__init__.py file
+file="app/__init__.py"
+regex="db_pass = '([a-z0-9A-Z_ ]*)'"
+content=$(cat "$file")
+if [[ " $content " =~ $regex ]]
+then
+	db_pass="${BASH_REMATCH[1]}"
+else
+	db_pass="super_secret_apfell_user_password"
+fi
 # Mac specific config setup
 if [[ "$(uname)" == "Darwin" ]]; then
     if ! which brew > /dev/null; then
@@ -9,7 +20,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
     initdb /usr/local/var/postgres
     createdb apfell_db
     psql -S apfell_db<<EOF
-create user apfell_user password 'super_secret_apfell_user_password'
+create user apfell_user password '$db_pass'
 EOF
     psql -S apfell_db<<EOF
 GRANT ALL PRIVILEGES ON DATABASE apfell_db TO apfell_user
@@ -37,7 +48,7 @@ else
     #create a new db and user for us to use
     sudo -u postgres createdb apfell_db
     sudo -u postgres psql -S apfell_db<<EOF
-create user apfell_user password 'super_secret_apfell_user_password'
+create user apfell_user password '$db_pass'
 EOF
     sudo -u postgres psql -S apfell_db<<EOF
 GRANT ALL PRIVILEGES ON DATABASE apfell_db TO apfell_user
@@ -67,10 +78,12 @@ fi
 mkdir ./app/ssl > /dev/null 2>&1
 openssl req -new -x509 -keyout ./app/ssl/apfell-ssl.key -out ./app/ssl/apfell-cert.pem -days 365 -nodes -subj "/C=US" >/dev/null 2>&1
 
-#install the pip3 requirements
+# install the pip3 requirements
 # python3.7 breaks stuff from python3.6 of course, so check the version and write out and use the appropriate requirements.txt
 if [[ "$(python3 --version)" == *"3.6"* ]]; then
     pip3 install -r requirements.txt
+elif [[ "$(python3 --version)" == *"3.5"* ]]; then
+    echo "[-] Python version needs to be 3.6+. Please install the correct version and restart"
 else
     # we need to rewrite requirements.txt with the right values
     echo "sanic==0.7.0" > requirements.txt

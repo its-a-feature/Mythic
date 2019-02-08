@@ -12,7 +12,3 @@ async def hash_SHA256(data):
     digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
     digest.update(str.encode(data))
     return digest.finalize().hex()
-
-
-async def create_uuid(data):
-    return await hash_SHA256(data)

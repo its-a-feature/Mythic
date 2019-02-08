@@ -18,18 +18,17 @@
                     Future Updates
                 </h3>
                 <ul>
-                    <li>More payload formats</li>
-                    <li>Obfuscation</li>
-                    <li>More C2 profile examples</li>
-                    <li><del>Custom command creation</del></li>
-                    <li><del>Custom payload type creation</del></li>
+                    <li>More Agents</li>
+                    <li>More C2 profiles</li>
                     <li>More Analytics</li>
                     <li>Scripting Engine</li>
-                    <li><del>plist Creation</del></li>
+                    <li>More Services</li>
+                    <li>More Reporting Templates</li>
+                    <li>More Artifact Tracking</li>
+                    <li>Operator Situational Awareness Dashboard</li>
+                    <li>Operator Assist/timeout</li>
+                    <li>Built-in Keylogging capability in apfell-jxa payload</li>
                 </ul>
-            </td>
-            <td>
-                <img src="/apfell-white.png" width="350px" height="400px">
             </td>
         </tr>
     </table>
@@ -39,4 +38,190 @@
 {% endblock %}
 
 {% block scripts %}
+{% endblock %}
+
+{% block body_config %}
+body{
+    background-color:{{ config['background-color'] }};
+    color:{{ config['text-color'] }}
+}
+.panel-body{
+    background:{{ config['background-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-primary{
+    background:{{ config['background-color'] }}
+}
+.panel-primary > .panel-heading{
+    background-image: none;
+    background-color:{{ config['primary-pane'] }};
+    color: {{config['primary-pane-text-color']}}
+}
+.panel-success{
+    background:{{ config['background-color'] }}
+}
+.panel-success > .panel-heading{
+    background-image: none;
+    background-color:{{ config['success-pane'] }};
+    color:{{ config['success-pane-text-color'] }}
+}
+.panel-warning{
+    background:{{ config['background-color'] }}
+}
+.panel-warning > .panel-heading{
+    background-image: none;
+    background-color:{{ config['warning-pane'] }};
+    color: {{config['warning-pane-text-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-info > .panel-heading{
+    background-image: none;
+    background-color:{{ config['info-pane'] }};
+    color:{{config['info-pane-text-color'] }}
+}
+.panel-footer{
+    background:{{ config['background-color'] }}
+}
+.btn{
+    background-color: {{ config['general-button'] }};
+    color: {{ config['text-color'] }}
+}
+.btn-primary{
+    background-color: {{ config['primary-pane'] }};
+    color: {{ config['primary-pane-text-color'] }};
+}
+.btn-success{
+    background-color: {{config['success-pane'] }};
+    color: {{ config['success-pane-text-color'] }}
+}
+.btn-danger{
+    background-color: {{config['danger-pane'] }};
+    color: {{ config['danger-pane-text-color'] }}
+}
+.btn-info{
+    background-color: {{config['info-pane'] }};
+    color: {{ config['info-pane-text-color'] }}
+}
+.btn-warning{
+    background-color: {{config['warning-pane'] }};
+    color: {{ config['warning-pane-text-color'] }}
+}
+.form-control{
+    background-color:{{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.tab-content{
+    background:{{ config['background-color'] }}
+}
+.well{
+    background:{{ config['well-bg'] }}
+}
+span{
+    color: {{ config['text-color'] }};
+}
+span.timestamp{
+    color: {{ config['timestamp'] }};
+}
+span.response{
+    color: {{ config['text-color'] }}
+}
+span.operator{
+    color: {{ config['operator'] }}
+}
+span.display{
+    color: {{ config['display'] }}
+}
+table{
+    background-color: {{config['background-color']}};
+}
+th{
+    background-color: {{config['table-headers']}};
+    color: {{config['text-color']}}
+}
+.autocomplete-items {
+  position: absolute;
+  border-bottom: none;
+  border-top: none;
+  z-index: 99;
+  /*position the autocomplete items to be the same width as the container:*/
+  bottom: 100%;
+  left: 0;
+  right: 0;
+}
+
+.autocomplete-items div {
+  padding: 10px;
+  cursor: pointer;
+  background-color: {{config['background-color']}};
+  border-bottom: 1px solid {{config['text-color']}};
+}
+
+/*when hovering an item:*/
+.autocomplete-items div:hover {
+  background-color: {{config['hover']}};
+}
+.autocomplete-active {
+  /*when navigating through the items using the arrow keys:*/
+  background-color: {{config['highlight']}} !important;
+  color: {{config['highlight-text']}};
+}
+.dropdown-menu {
+    background-color: {{ config['background-color'] }};
+}
+
+.nav-tabs > li> a:link{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:visited{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:hover{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:active{
+    color: {{ config['text-color'] }};
+}
+.dropdown-menu > li > a{
+    background-color: {{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.dropdown-menu > li > a:hover{
+    background-color: {{ config['highlight'] }};
+    color: {{ config['highlight-color'] }}
+}
+.modal-header {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-body {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-content {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+select {
+    background-color: {{config['background-color']}};
+}
+input {
+    background-color: {{config['background-color']}};
+}
+span.operation {
+    color: {{ config['operation-color'] }}
+}
+.dropdown > .btn-primary {
+    background-color: {{ config['interact-button-color']}};
+    color: {{ config['interact-button-text']}}
+}
+.dropdown > .btn-info {
+    background-color: {{ config['interact-button-dropdown'] }}
+}
+.navbar-nav > .dropdown > .dropdown-toggle > .caret{
+    color: {{ config['top-caret'] }};
+}
 {% endblock %}

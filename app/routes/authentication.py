@@ -2,6 +2,7 @@ from sanic_jwt import exceptions
 from app import db_objects, links
 from app.database_models.model import Operator, Operation, OperatorOperation
 import datetime
+import json
 
 refresh_tokens = {}  # having this not persist past reboot of the server and forcing re-auth is perfectly fine
 
@@ -58,6 +59,7 @@ async def retrieve_user(request, payload, *args, **kwargs):
         else:
             links['current_operation'] = ""
             user_json['current_operation'] = ""
+        user_json['ui_config'] = json.loads(user_json['ui_config'])
         return {**user_json, "user_id": user.id, "operations": operations, "admin_operations": admin_ops}
     except exceptions.AuthenticationFailed as e:
         raise e

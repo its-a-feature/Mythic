@@ -85,12 +85,14 @@ async def create_operation(request, user):
         status = await add_user_to_operation_func(operation, data['members'])
         if status['status'] == 'success':
             # we need to make the default c2_profile for this operation
-            default_status = await register_default_profile_operation(user, data['name'])
+            operator = await db_objects.get(Operator, username=user['username'])
+            default_status = await register_default_profile_operation(operator, operation)
             if default_status['status'] == "success":
                 if not os.path.exists("./app/payloads/operations/{}".format(data['name'])):
                     os.makedirs("./app/payloads/operations/{}".format(data['name']), exist_ok=True)
                 return json({'status': 'success', **operation.to_json(), 'members': data['members']})
             else:
+                await db_objects.delete(operation, recursive=True)
                 return json(default_status)
         else:
             return json({'status': 'error', 'error': status['error']})

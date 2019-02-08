@@ -10,9 +10,9 @@ from sanic_jwt.decorators import protected, inject_user
 async def callbacks(request, user):
     template = env.get_template('callbacks.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", config=user['ui_config'])
     return response.html(content)
 
 
@@ -22,9 +22,9 @@ async def callbacks(request, user):
 async def db_management(request, user):
     template = env.get_template('database_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", config=user['ui_config'])
     return response.html(content)
 
 
@@ -34,9 +34,9 @@ async def db_management(request, user):
 async def payload_management(request, user):
     template = env.get_template('payload_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", config=user['ui_config'])
     return response.html(content)
 
 
@@ -46,9 +46,9 @@ async def payload_management(request, user):
 async def analytics(request, user):
     template = env.get_template('analytics.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss")
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws")
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", config=user['ui_config'])
     return response.html(content)
 
 
@@ -58,9 +58,11 @@ async def analytics(request, user):
 async def c2profile_management(request, user):
     template = env.get_template('c2profile_management.html')
     if use_ssl:
-        content = template.render(links=links, name=user['username'], http="https", ws="wss", current_operation=user['current_operation'])
+        content = template.render(links=links, name=user['username'], http="https", ws="wss",
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     else:
-        content = template.render(links=links, name=user['username'], http="http", ws="ws", current_operation=user['current_operation'])
+        content = template.render(links=links, name=user['username'], http="http", ws="ws",
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -71,10 +73,10 @@ async def operations_management(request, user):
     template = env.get_template('operations_management.html')
     if use_ssl:
         content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     else:
         content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -85,10 +87,10 @@ async def screencaptures(request, user):
     template = env.get_template('screencaptures.html')
     if use_ssl:
         content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     else:
         content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -99,10 +101,10 @@ async def keylogs(request, user):
     template = env.get_template('keylogs.html')
     if use_ssl:
         content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     else:
         content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -113,10 +115,10 @@ async def files(request, user):
     template = env.get_template('files.html')
     if use_ssl:
         content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     else:
         content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -127,10 +129,10 @@ async def credentials(request, user):
     template = env.get_template('credentials.html')
     if use_ssl:
         content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     else:
         content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -141,10 +143,10 @@ async def view_tasks(request, user):
     template = env.get_template('view_tasks.html')
     if use_ssl:
         content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     else:
         content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
-                                  current_operation=user['current_operation'])
+                                  current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -153,15 +155,69 @@ async def view_tasks(request, user):
 @protected()
 async def view_shared_task(request, user, tid):
     template = env.get_template('share_task.html')
-
     if use_ssl:
         content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
-                                  current_operation=user['current_operation'], tid=tid)
+                                  current_operation=user['current_operation'], tid=tid, config=user['ui_config'])
     else:
         content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
-                                  current_operation=user['current_operation'], tid=tid)
+                                  current_operation=user['current_operation'], tid=tid, config=user['ui_config'])
     return response.html(content)
 
+
+@apfell.route("/transform_management", methods=['GET'])
+@inject_user()
+@protected()
+async def transform_management(request, user):
+    template = env.get_template('transform_management.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    return response.html(content)
+
+
+@apfell.route("/artifacts_management", methods=['GET'])
+@inject_user()
+@protected()
+async def artifacts_management(request, user):
+    template = env.get_template('artifacts_management.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    return response.html(content)
+
+
+@apfell.route("/reporting_artifacts", methods=['GET'])
+@inject_user()
+@protected()
+async def reporting_artifacts(request, user):
+    template = env.get_template('reporting_artifacts.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    return response.html(content)
+
+
+@apfell.route("/comments", methods=['GET'])
+@inject_user()
+@protected()
+async def comments(request, user):
+    template = env.get_template('comments.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'], config=user['ui_config'])
+    return response.html(content)
 
 # add links to these routes at the bottom
 links['callbacks'] = apfell.url_for('callbacks')
@@ -175,4 +231,8 @@ links['keylogs'] = apfell.url_for('keylogs')
 links['files'] = apfell.url_for('files')
 links['credentials'] = apfell.url_for('credentials')
 links['view_tasks'] = apfell.url_for('view_tasks')
+links['transform_management'] = apfell.url_for('transform_management')
+links['artifacts_management'] = apfell.url_for('artifacts_management')
+links['reporting_artifacts'] = apfell.url_for('reporting_artifacts')
+links['comments'] = apfell.url_for('comments')
 

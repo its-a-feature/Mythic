@@ -3,7 +3,7 @@ from sanic.response import json
 from sanic import response
 from sanic.exceptions import NotFound
 from jinja2 import Environment, PackageLoader
-from app.database_models.model import Operator, Operation, OperatorOperation, C2Profile, C2ProfileParameters, PayloadType, PayloadTypeC2Profile, Command, CommandParameters, Transform
+from app.database_models.model import Operator, Operation, OperatorOperation, C2Profile, PayloadType, Command, CommandParameters, Transform, ATTACK, Artifact
 from app.forms.loginform import LoginForm, RegistrationForm
 import datetime
 import app.crypto as crypto
@@ -13,6 +13,7 @@ import json as js
 from ipaddress import ip_address
 from app.api.c2profiles_api import register_default_profile_operation
 from app.routes.authentication import invalidate_refresh_token
+from app.api.payloadtype_api import import_payload_type_func
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -22,7 +23,7 @@ env = Environment(loader=PackageLoader('app', 'templates'))
 @protected()
 async def index(request, user):
     template = env.get_template('main_page.html')
-    content = template.render(name=user['username'], links=links, current_operation=user['current_operation'])
+    content = template.render(name=user['username'], links=links, current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -121,7 +122,8 @@ class Register(BaseEndpoint):
             except Exception as e:
                 # failed to insert into database
                 errors['validate_errors'] = "failed to create user: " + str(e)
-        errors['token_errors'] = '<br>'.join(form.csrf_token.errors)
+        if form.csrf_token:
+            errors['token_errors'] = '<br>'.join(form.csrf_token.errors)
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('register.html')
@@ -172,10 +174,14 @@ async def settings(request, user):
     template = env.get_template('settings.html')
     try:
         operator = Operator.get(Operator.username == user['username'])
+        op_json = operator.to_json()
+        del op_json['ui_config']
         if use_ssl:
-            content = template.render(links=links, name=user['username'], http="https", ws="wss", op=operator.to_json())
+            content = template.render(links=links, name=user['username'], http="https", ws="wss",
+                                      op=op_json, config=user['ui_config'])
         else:
-            content = template.render(links=links, name=user['username'], http="http", ws="ws", op=operator.to_json())
+            content = template.render(links=links, name=user['username'], http="http", ws="ws",
+                                      op=op_json, config=user['ui_config'])
         return response.html(content)
     except Exception as e:
         print(e)
@@ -190,9 +196,11 @@ async def search(request, user):
     try:
         operator = Operator.get(Operator.username == user['username'])
         if use_ssl:
-            content = template.render(links=links, name=user['username'], http="https", ws="wss")
+            content = template.render(links=links, name=user['username'], http="https", ws="wss",
+                                      config=user['ui_config'])
         else:
-            content = template.render(links=links, name=user['username'], http="http", ws="ws")
+            content = template.render(links=links, name=user['username'], http="http", ws="ws",
+                                      config=user['ui_config'])
         return response.html(content)
     except Exception as e:
         print(e)
@@ -286,72 +294,36 @@ async def initial_setup():
     # create default operation
     operation, created = await db_objects.get_or_create(Operation, name='default', admin=admin, complete=False)
     print("Created Operation")
-    # create default payload types
-    apfell_jxa_command_template = """exports.command_name = function(task, command, params){
-        //task is a dictionary of Task information
-        //command is the single word command that caused this function to be called
-        //params is a string of everything passed in except for the command
-        //   if you pass in a json blob on the command line, then to get json back here call JSON.parse(params);
-        //do stuff here, with access to the following commands:
-        does_file_exist(strPath);
-        convert_to_nsdata(strData);
-        write_data_to_file(data, filePath);
-        base64_decode(data);
-        base64_encode(data);
-    };
-    """
-    payload_type_apfell_jxa, created = await db_objects.get_or_create(PayloadType, ptype='apfell-jxa', operator=admin,
-                                                                      file_extension=".js", wrapper=False,
-                                                                      command_template=apfell_jxa_command_template)
-    #c2_profile, pt_c2_profile = await create_default_c2_for_operation(operation, admin, [payload_type_apfell_jxa])
-    await register_default_profile_operation({"username": "apfell_admin"}, "default")
-    # create the default transforms for apfell-jxa payloads
-    jxa_load_transform = await db_objects.get_or_create(Transform, name="readCommands", t_type="load",
-                                                        order=1, payload_type=payload_type_apfell_jxa,
-                                                        operator=admin)
-    jxa_load_transform = await db_objects.get_or_create(Transform, name="combineAppend", t_type="load",
-                                                        order=2, payload_type=payload_type_apfell_jxa,
-                                                        operator=admin)
-    jxa_load_transform = await db_objects.get_or_create(Transform, name="convertBytesToString", t_type="load",
-                                                        order=3, payload_type=payload_type_apfell_jxa,
-                                                        operator=admin)
-    jxa_load_transform = await db_objects.get_or_create(Transform, name="removeSlashes", t_type="load",
-                                                        order=4, payload_type=payload_type_apfell_jxa,
-                                                        operator=admin)
-    jxa_load_transform = await db_objects.get_or_create(Transform, name="strToByteArray", t_type="load",
-                                                        order=5, payload_type=payload_type_apfell_jxa,
-                                                        operator=admin)
-    jxa_load_transform = await db_objects.get_or_create(Transform, name="writeFile", t_type="load",
-                                                        order=6, payload_type=payload_type_apfell_jxa,
-                                                        operator=admin)
-    print("Created Apfell-jxa payload type")
-    # add the apfell_admin to the default operation
     await db_objects.get_or_create(OperatorOperation, operator=admin, operation=operation)
     print("Registered Admin with the default operation")
-    # Register commands for created payload types
-    file = open("./app/templates/default_commands.json", "r")
-    command_file = js.load(file)
-    for cmd_group in command_file['payload_types']:
-        for cmd in cmd_group['commands']:
-            if cmd['needs_admin'] == "false":
-                cmd['needs_admin'] = False
-            else:
-                cmd['needs_admin'] = True
-            command, created = await db_objects.get_or_create(Command, cmd=cmd['cmd'], needs_admin=cmd['needs_admin'],
-                                                     description=cmd['description'], help_cmd=cmd['help_cmd'],
-                                                     payload_type=payload_type_apfell_jxa,
-                                                     operator=admin)
-            for param in cmd['parameters']:
-                try:
-                    if param['required'] == "false":
-                        param['required'] = False
-                    else:
-                        param['required'] = True
-                    await db_objects.get_or_create(CommandParameters, command=command, **param, operator=admin)
-                except Exception as e:
-                    print(e)
-    print("Created all commands and command parameters")
+    print("Started parsing ATT&CK data...")
+    file = open('./app/templates/attack.json', 'r')
+    attack = js.load(file)  # this is a lot of data and might take a hot second to load
+    for obj in attack['techniques']:
+        await db_objects.create(ATTACK, **obj)
     file.close()
+    print("Created all ATT&CK entries")
+    file = open("./app/templates/artifacts.json", "r")
+    artifacts_file = js.load(file)
+    for artifact in artifacts_file['artifacts']:
+        await db_objects.get_or_create(Artifact, name=artifact['name'], description=artifact['description'])
+    file.close()
+    print("Created all base artifacts")
+    file = open('./app/templates/apfell-jxa.json', 'r')
+    apfell_jxa = js.load(file)  # this is a lot of data and might take a hot second to load
+    print("parsed apfell-jxa payload file")
+    for ptype in apfell_jxa['payload_types']:
+        await import_payload_type_func(ptype, admin, operation)
+    file.close()
+    print("created Apfell-jxa payload")
+    file = open('./app/templates/linfell_c.json', 'r')
+    linfell_c = js.load(file)  # this is a lot of data and might take a hot second to load
+    for ptype in linfell_c['payload_types']:
+        await import_payload_type_func(ptype, admin, operation)
+    file.close()
+    print("created Linfell-c payload")
+    await register_default_profile_operation(admin, operation)
+    print("Successfully finished initial setup")
 
 
 async def mark_profiles_as_not_running():
@@ -363,10 +335,12 @@ async def mark_profiles_as_not_running():
 
 apfell.static('/static/apfell-dark.png', './app/static/apfell_cropped_dark.png', name='apfell-dark')
 apfell.static('/favicon.ico', './app/static/favicon.png', name='favicon')
-apfell.static('/apfell-white.png', './app/static/apfell_cropped.png', name='apfell-white')
+apfell.static('/static/apfell-white.png', './app/static/apfell_cropped.png', name='apfell-white')
 apfell.static('/strict_time.png', './app/static/strict_time.png', name='strict_time')
 apfell.static('/grouped_output.png', './app/static/grouped_output.png', name='grouped_output')
 apfell.static('/no_cmd_output.png', './app/static/no_cmd_output.png', name='no_cmd_output')
+apfell.static('/gear_med.png', './app/static/Gear-icon_med.png', name='gear_md')
+apfell.static('/add_comment.png', './app/static/add_comment.png', name='add_comment')
 
 # add links to the routes in this file at the bottom
 links['index'] = apfell.url_for('index')

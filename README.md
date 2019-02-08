@@ -10,23 +10,16 @@ Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bone
 ```bash
 git clone https://github.com/its-a-feature/Apfell
 ```
-- Important note: This is made to work with *python 3.5*, so you might have issues if you use a different python3 version. I've managed to adjust the install script and the required versions of python dependencies if you're using python 3.7 (which is what is default installed now when you brew install in macOS), but I don't have any cases for using python versions earlier than 3.5.
+- Important note: This is made to work with *python 3.6*, so you must have python3.6+. I've managed to adjust the install script and the required versions of python dependencies if you're using python 3.7 (which is what is default installed now when you brew install in macOS), but I don't have any cases for using python versions earlier than 3.6.
+- This works best on Ubuntu or macOS, but can work on other distros (you just might have compile python3.6 yourself depending on the distro)
 - Install and setup the requirements. The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though. This can be installed and run on both Linux and macOS. 
 - On macOS, this requires brew to be installed - if it isn't already installed, I will install it for you.
-```bash
-# The setup.sh will install postgres and pip3 install the requirements
-# If you're on Linux:
-cd Apfell && chmod +x setup.sh && sudo ./setup.sh && cd ..
-# If you're on macOS (note the lack of sudo!):
-cd Apfell & chmod +x setup.sh && ./setup.sh && cd ..
-
-```
 - Configure the installation in app/\_\_init\_\_.py. 
 ```bash
 # -------- CONFIGURE SETTINGS HERE -----------
 db_name = 'apfell_db'
 db_user = 'apfell_user'
-db_pass = 'super_secret_apfell_user_password'
+db_pass = 'super_secret_apfell_user_password'  # used by the server to communicate with the local postgres database
 # server_ip is what your browser will use to find its way back to this server
 # change this to be the IP or domain name of how your operators will reach this server
 server_ip = 'localhost'  
@@ -42,6 +35,16 @@ whitelisted_ip_blocks = ['0.0.0.0/0']  # only allow connections from these IPs t
 # by default this is off, but you can turn it on and the server will use the above ssl_cert_path and ssl_key_path
 use_ssl = False
 ```
+- Once you're ready to finally install, simply run the setup script and you should be good to go!
+```bash
+# The setup.sh will install postgres and pip3 install the requirements
+# If you're on Linux:
+cd Apfell && chmod +x setup.sh && sudo ./setup.sh && cd ..
+# If you're on macOS (note the lack of sudo!):
+cd Apfell & chmod +x setup.sh && ./setup.sh && cd ..
+
+```
+
 ## Usage
 - Start the server:
 ```bash

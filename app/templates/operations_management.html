@@ -6,15 +6,15 @@
 </h1>
 <div style="resize: vertical; overflow:scroll" class="panel panel-primary" id="operations_table" >
     <div class="panel-heading">Operations Information</div>
-        <table class="table table-striped table-hover table-condensed well-sm" >
+        <table class="table table-condensed well-sm" >
             <tr>
-                <td><b>Delete</b></td>
-                <td><b>Modify</b></td>
-                <td><b>Completed</b></td>
-                <td><b>Name</b></td>
-                <td><b>Admin</b></td>
-                <td><b>Members</b></td>
-                <td><b>Current Operation</b></td>
+                <th><b>Delete</b></th>
+                <th><b>Modify</b></th>
+                <th><b>Completed</b></th>
+                <th><b>Name</b></th>
+                <th><b>Admin</b></th>
+                <th><b>Members</b></th>
+                <th><b>Current Operation</b></th>
             </tr>
         <!-- Repeat this for each operation -->
             <tr v-for="o in operations" :key="o.name">
@@ -55,7 +55,7 @@
                 Remove the specified operation from the database. If you want to still access the data for reporting later on, you should just complete the operation instead.
             </div>
               <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
                 <button class="btn btn-primary" data-dismiss="modal" id="operationDeleteSubmit">Submit</button>
               </div>
         </div>
@@ -72,7 +72,7 @@
                 This completes the operation. You can no longer change anything about the operation and all callbacks will be tasked to exit when they check in.
             </div>
               <div class="modal-footer">
-                <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
                 <button class="btn btn-primary" data-dismiss="modal" id="operationCompleteSubmit">Submit</button>
               </div>
         </div>
@@ -80,8 +80,8 @@
 </div>
 <!-- END MODAL FOR COMPLETING OPERATION -->
 <!-- THIS IS OUR MODAL FOR MODIFYING OPERATION -->
-<div class="modal fade bs-example-modal-lg" id="operationModifyModal" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade bs-example-modal-sm" id="operationModifyModal" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
@@ -92,7 +92,7 @@
                 <table cellpadding="10" style="width:100%">
                     <tr>
                         <td style="width:150px">Name</td>
-                        <td><input type="text" id="operationModifyName" size="50"></td>
+                        <td><input disabled type="text" id="operationModifyName" size="25"></td>
                     </tr>
                     <tr>
                         <td>Admin</td>
@@ -105,7 +105,7 @@
                 </table>
             </div>
             <div class="modal-footer">
-              <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
               <button class="btn btn-primary" data-dismiss="modal" id="operationModifySubmit">Submit</button>
             </div>
         </div>
@@ -138,7 +138,7 @@
                 </table>
             </div>
             <div class="modal-footer">
-              <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
               <button class="btn btn-primary" data-dismiss="modal" id="operationNewSubmit">Submit</button>
             </div>
         </div>
@@ -151,4 +151,221 @@
 
 {% block scripts %}
 {% include "operations_management.js" %}
+{% endblock %}
+
+{% block body_config %}
+body{
+    background-color:{{ config['background-color'] }};
+    color:{{ config['text-color'] }}
+}
+.panel-body{
+    background:{{ config['background-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-primary{
+    background:{{ config['background-color'] }}
+}
+.panel-primary > .panel-heading{
+    background-image: none;
+    background-color:{{ config['primary-pane'] }};
+    color: {{config['primary-pane-text-color']}}
+}
+.panel-success{
+    background:{{ config['background-color'] }}
+}
+.panel-success > .panel-heading{
+    background-image: none;
+    background-color:{{ config['success-pane'] }};
+    color:{{ config['success-pane-text-color'] }}
+}
+.panel-warning{
+    background:{{ config['background-color'] }}
+}
+.panel-warning > .panel-heading{
+    background-image: none;
+    background-color:{{ config['warning-pane'] }};
+    color: {{config['warning-pane-text-color'] }}
+}
+.panel-info{
+    background:{{ config['background-color'] }}
+}
+.panel-info > .panel-heading{
+    background-image: none;
+    background-color:{{ config['info-pane'] }};
+    color:{{config['info-pane-text-color'] }}
+}
+.panel-footer{
+    background:{{ config['background-color'] }}
+}
+.btn{
+    background-color: {{ config['general-button'] }};
+    color: {{ config['general-button-text-color'] }};
+    border: {{ config['general-button'] }}
+}
+.btn-primary{
+    background-color: {{ config['primary-button'] }};
+    color: {{ config['primary-button-text-color'] }};
+    border: {{ config['primary-button'] }}
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
+    background-color: {{ config['primary-button-hover'] }};
+    color: {{ config['primary-button-hover-text-color'] }};
+    border: {{ config['primary-button-hover'] }}
+}
+.btn-success{
+    background-color: {{config['success-button'] }};
+    color: {{ config['success-button-text-color'] }};
+    border: {{config['success-button']}}
+}
+.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
+    background-color: {{config['success-button-hover'] }};
+    color: {{ config['success-button-hover-text-color'] }};
+    border: {{config['success-button-hover']}}
+}
+.btn-danger{
+    background-color: {{config['danger-button'] }};
+    color: {{ config['danger-button-text-color'] }};
+    border: {{config['danger-button']}}
+}
+.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
+    background-color: {{config['danger-button-hover'] }};
+    color: {{ config['danger-button-hover-text-color'] }};
+    border: {{config['danger-button-hover']}}
+}
+.btn-info{
+    background-color: {{config['info-button'] }};
+    color: {{ config['info-button-text-color'] }};
+    border: {{ config['info-button'] }}
+}
+.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
+    background-color: {{config['info-button-hover'] }};
+    color: {{ config['info-button-hover-text-color'] }};
+    border: {{ config['info-button-hover'] }};
+}
+.btn-warning{
+    background-color: {{config['warning-button'] }};
+    color: {{ config['warning-button-text-color'] }};
+    border: {{config['warning-button']}}
+}
+.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
+    background-color: {{config['warning-button-hover'] }};
+    color: {{ config['warning-button-hover-text-color'] }};
+    border: {{config['warning-button-hover']}}
+}
+.form-control{
+    background-color:{{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.tab-content{
+    background:{{ config['background-color'] }}
+}
+.well{
+    background:{{ config['well-bg'] }}
+}
+span{
+    color: {{ config['text-color'] }};
+}
+span.timestamp{
+    color: {{ config['timestamp'] }};
+}
+span.response{
+    color: {{ config['text-color'] }}
+}
+span.operator{
+    color: {{ config['operator'] }}
+}
+span.display{
+    color: {{ config['display'] }}
+}
+table{
+    background-color: {{config['background-color']}};
+}
+th{
+    background-color: {{config['table-headers']}};
+    color: {{config['text-color']}}
+}
+.autocomplete-items {
+  position: absolute;
+  border-bottom: none;
+  border-top: none;
+  z-index: 99;
+  /*position the autocomplete items to be the same width as the container:*/
+  bottom: 100%;
+  left: 0;
+  right: 0;
+}
+
+.autocomplete-items div {
+  padding: 10px;
+  cursor: pointer;
+  background-color: {{config['background-color']}};
+  border-bottom: 1px solid {{config['text-color']}};
+}
+
+/*when hovering an item:*/
+.autocomplete-items div:hover {
+  background-color: {{config['hover']}};
+}
+.autocomplete-active {
+  /*when navigating through the items using the arrow keys:*/
+  background-color: {{config['highlight']}} !important;
+  color: {{config['highlight-text']}};
+}
+.dropdown-menu {
+    background-color: {{ config['background-color'] }};
+}
+
+.nav-tabs > li> a:link{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:visited{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:hover{
+    color: {{ config['text-color'] }};
+}
+.nav-tabs > li> a:active{
+    color: {{ config['text-color'] }};
+}
+.dropdown-menu > li > a{
+    background-color: {{ config['background-color'] }};
+    color: {{ config['text-color'] }}
+}
+.dropdown-menu > li > a:hover{
+    background-color: {{ config['highlight'] }};
+    color: {{ config['highlight-color'] }}
+}
+.modal-header {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-body {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+.modal-content {
+    background-color: {{config['background-color']}};
+    color: {{config['text-color']}};
+}
+select {
+    background-color: {{config['background-color']}};
+}
+input {
+    background-color: {{config['background-color']}};
+}
+span.operation {
+    color: {{ config['operation-color'] }}
+}
+.dropdown > .btn-primary {
+    background-color: {{ config['interact-button-color']}};
+    color: {{ config['interact-button-text']}}
+}
+.dropdown > .btn-info {
+    background-color: {{ config['interact-button-dropdown'] }}
+}
+.navbar-nav > .dropdown > .dropdown-toggle > .caret{
+    color: {{ config['top-caret'] }};
+}
 {% endblock %}

@@ -28,7 +28,12 @@ function get_keylogging(data){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/keylogs/current_operation", keylog_callback, "POST", data);
 }
 function keylog_callback(response){
-    data = JSON.parse(response);
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
     if(data['status'] == "success"){
         keylog.data['grouping'] = data['grouping'];
         keylog.data['sub_grouping'] = data['sub_grouping'];

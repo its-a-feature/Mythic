@@ -18,36 +18,9 @@
 
 </head>
 <style>
-    .autocomplete-items {
-      position: absolute;
-      border: 1px solid #d4d4d4;
-      border-bottom: none;
-      border-top: none;
-      z-index: 99;
-      /*position the autocomplete items to be the same width as the container:*/
-      bottom: 100%;
-      left: 0;
-      right: 0;
-    }
-
-    .autocomplete-items div {
-      padding: 10px;
-      cursor: pointer;
-      background-color: #fff;
-      border-bottom: 1px solid #d4d4d4;
-    }
-
-    /*when hovering an item:*/
-    .autocomplete-items div:hover {
-      background-color: #e9e9e9;
-    }
-    .autocomplete-active {
-      /*when navigating through the items using the arrow keys:*/
-      background-color: DodgerBlue !important;
-      color: #ffffff;
-    }
+    {% block body_config %} {% endblock %}
 </style>
-<body><!-- style="background-color:#36383a"> -->
+<body>
     <nav class="navbar navbar-light navbar-inverse justify-content-between">
         <div class="container-fluid">
             <div class="navbar-header" align="top">
@@ -68,6 +41,8 @@
                             <li><a href="{{ links.analytics }}">Analytics Dashboard</a></li>
                             <li><a href="{{ links.c2profile_management }}">C2 Profiles Management</a></li>
                             <li><a href="{{ links.operations_management }}">Operations Management</a></li>
+                            <li><a href="{{ links.transform_management}}">Transform Management</a></li>
+                            <li><a href="{{ links.artifacts_management}}">Base Artifacts Management</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -82,6 +57,7 @@
                             <li><a href="{{ links.files }}">Upload/Download Files</a></li>
                             <li><a href="{{ links.credentials}}">Credentials</a></li>
                             <li><a href="{{ links.search }}">Search</a></li>
+                            <li><a href="{{ links.comments }}">Comments</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -100,7 +76,7 @@
                             Services <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{{ links.attacks_host_file }}">Host Files</a></li>
+                            <li><a href="{{ links.services_host_file }}">Host Files</a></li>
                             <li class="disabled"><a href="#">Macro Generation</a></li>
                             <li class="disabled"><a href="#">Bash Obfuscation</a></li>
                             <li class="disabled"><a href="#">JavaScript Obfuscation</a></li>
@@ -114,7 +90,7 @@
                             <li><a href="{{ links.apiui_commandlines }}">CommandLines</a></li>
                             <li><a href="{{ links.apiui_documentation }}">Documentation</a></li>
                             <li role="separator" class="divider"></li>
-                            <li><a href="{{ links.apiui_apfell_jxa }}">apfell-jxa help</a></li>
+                            <li><a href="{{ links.apiui_command_help }}">Payload Type Command Help</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
@@ -122,8 +98,9 @@
                             Reporting <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li class="disabled"><a href="#">ATT&CK Mappings</a></li>
+                            <li><a href="{{links.attack_mapping}}">ATT&CK Mappings</a></li>
                             <li><a href="{{links.full_timeline}}">Full Timeline</a></li>
+                            <li><a href="{{links.reporting_artifacts}}">Reporting Artifacts</a></li>
                             <li role="separator" class="divider"></li>
                             <li><h5 class="dropdown-header">Component Reports</h5></li>
                             <li class="disabled"><a href="#">Operators</a></li>
@@ -143,7 +120,7 @@
                     </li>
                     <li>
                         {% if links.current_operation != "" %}
-                            <font style="color:green" size="6">{{links.current_operation}}&nbsp;&nbsp;</font>
+                        <font size="6"><span class="operation">{{links.current_operation}}&nbsp;&nbsp;</span></font>
                         {% else %}
                             <font style="color:red" size="5">Select an operation!&nbsp;&nbsp;</font>
                         {% endif %}
@@ -160,7 +137,7 @@
     <div id="main" class="container-fluid">
 
     {% block body %}{% endblock %}
-    <div id="bottom-alert"></div>
+    <div id="bottom-alert" style="white-space: pre-wrap"></div>
     </div>
     <script type="text/javascript">
     {% include "shared_javascript.js" %}

@@ -1,11 +1,11 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Operator, Operation, OperatorOperation
+from app.database_models.model import Operator, Operation
 from sanic import response
 from app import crypto
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import inject_user
-from sanic_jwt import protected, scoped
+from sanic_jwt import protected
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['GET'])
@@ -21,7 +21,7 @@ async def get_all_operators(request, user):
 @protected()
 async def create_operator(request, user):
     data = request.json
-    if not 'username' in data:
+    if 'username' not in data:
         return json({'status': 'error',
                      'error': '"username" field is required'})
     if not isinstance(data['username'], str) or not len(data['username']):
@@ -50,10 +50,26 @@ async def get_one_operator(request, name, user):
     name = unquote_plus(name)
     try:
         op = await db_objects.get(Operator, username=name)
-        return json(op.to_json())
+        return json({'status': 'success', **op.to_json()})
     except:
         print("Failed to get operator")
         return json({'status': 'error', 'error': 'failed to get operator'}, status=404)
+
+
+@apfell.route(apfell.config['API_BASE'] + "/operators/config/<name:string>", methods=['GET'])
+@inject_user()
+@protected()
+async def get_one_config_item(request, name, user):
+    name = unquote_plus(name)
+    try:
+        if name == "default":
+            return json({'status': 'success', 'config': Operator.default_config})
+        elif name == "dark":
+            return json({'status': 'success', 'config': Operator.default_dark_config})
+        else:
+            return json({'status': 'error', 'error': 'config not found'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'error getting configs'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=["PUT"])
@@ -79,6 +95,13 @@ async def update_operator(request, name, user):
             if data['current_operation'] in user['operations']:
                 current_op = await db_objects.get(Operation, name=data['current_operation'])
                 op.current_operation = current_op
+        if 'ui_config' in data:
+            if data['ui_config'] == "default":
+                op.ui_config = op.default_config
+            elif data['ui_config'] == "dark":
+                op.ui_config = op.default_specter_config
+            else:
+                op.ui_config = data['ui_config']
         await db_objects.update(op)
         success = {'status': 'success'}
         updated_operator = op.to_json()
@@ -95,6 +118,8 @@ async def remove_operator(request, name, user):
     if name != user['username'] and not user['admin']:
         return json({'status': 'error', 'error': 'cannot delete anybody but yourself unless you\'re admin'})
     try:
+        if name == "apfell_admin":
+            return json({'status': 'error', 'error': 'cannot delete apfell_admin'})
         op = await db_objects.get(Operator, username=name)
     except Exception as e:
         print(e)

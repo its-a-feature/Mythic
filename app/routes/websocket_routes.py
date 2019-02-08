@@ -2,7 +2,7 @@ from app import apfell, db_objects
 import aiopg
 import json as js
 import asyncio
-from app.database_models.model import Operator, Callback, Task, Response, Payload, PayloadType, C2Profile, PayloadTypeC2Profile, Operation, Credential, Command, FileMeta
+from app.database_models.model import Operator, Callback, Task, Response, Payload, PayloadType, C2Profile, PayloadTypeC2Profile, Operation, Credential, Command, FileMeta, CommandParameters, CommandTransform
 from sanic_jwt.decorators import protected, inject_user
 
 
@@ -29,7 +29,7 @@ async def ws_tasks(request, ws):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             tsk = await db_objects.get(Task, id=id)
                             await ws.send(js.dumps(tsk.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -54,12 +54,13 @@ async def ws_tasks_current_operation(request, ws, user):
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newtask";')
+                    await cur.execute('LISTEN "updatedtask";')
                     if user['current_operation'] != "":
                         operation = await db_objects.get(Operation, name=user['current_operation'])
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
-                                id = (js.loads(msg.payload))['id']
+                                id = (msg.payload)
                                 tsk = await db_objects.get(Task, id=id)
                                 if tsk.callback.operation == operation and tsk.callback.id in viewing_callbacks:
                                     await ws.send(js.dumps(tsk.to_json()))
@@ -163,40 +164,6 @@ async def ws_responses_current_operation(request, ws, user):
 
 
 # --------------------- CALLBACKS ------------------
-@apfell.websocket('/ws/callbacks')
-@protected()
-async def ws_callbacks(request, ws):
-    try:
-        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "newcallback";')
-                    # before we start getting new things, update with all of the old data
-                    callbacks = Callback.select()
-                    operators = Operator.select()
-                    callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
-                    for cb in callbacks_with_operators:
-                        await ws.send(js.dumps(cb.to_json()))
-                    await ws.send("")
-                    # now pull off any new callbacks we got queued up while processing the old data
-                    while True:
-                        # msg = await conn.notifies.get()
-                        try:
-                            msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
-                            cb = await db_objects.get(Callback, id=id)
-                            await ws.send(js.dumps(cb.to_json()))
-                        except asyncio.QueueEmpty as e:
-                            await asyncio.sleep(1)
-                            await ws.send("") # this is our test to see if the client is still there
-                            continue
-                        except Exception as e:
-                            print(e)
-                            return
-    finally:
-        pool.close()
-
-
 @apfell.websocket('/ws/callbacks/current_operation')
 @inject_user()
 @protected()
@@ -220,11 +187,11 @@ async def ws_callbacks_current_operation(request, ws, user):
                             # msg = await conn.notifies.get()
                             try:
                                 msg = conn.notifies.get_nowait()
-                                id = (js.loads(msg.payload))['id']
+                                id = (msg.payload)
                                 cb = await db_objects.get(Callback, id=id, operation=operation)
                                 await ws.send(js.dumps(cb.to_json()))
                             except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(2)
+                                await asyncio.sleep(0.5)
                                 await ws.send("") # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
@@ -250,7 +217,7 @@ async def ws_updated_callbacks(request, ws, user):
                         try:
                             msg = conn.notifies.get_nowait()
                             # print("got an update for a callback")
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             cb = await db_objects.get(Callback, id=id)
                             await ws.send(js.dumps(cb.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -282,11 +249,11 @@ async def ws_callbacks_updated_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 # print("got an update for a callback")
-                                id = (js.loads(msg.payload))['id']
+                                id = (msg.payload)
                                 cb = await db_objects.get(Callback, id=id, operation=operation)
                                 await ws.send(js.dumps(cb.to_json()))
                             except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(2)
+                                await asyncio.sleep(0.5)
                                 await ws.send("") # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
@@ -315,7 +282,7 @@ async def ws_payloads(request, ws):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             p = await db_objects.get(Payload, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -350,12 +317,12 @@ async def ws_payloads_current_operation(request, ws, user):
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
-                                id = (js.loads(msg.payload))['id']
+                                id = (msg.payload)
                                 p = await db_objects.get(Payload, id=id)
                                 if p.operation == operation:
                                     await ws.send(js.dumps(p.to_json()))
                             except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(2)
+                                await asyncio.sleep(1)
                                 await ws.send("")  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
@@ -385,7 +352,7 @@ async def ws_c2profiles(request, ws, user):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             p = await db_objects.get(C2Profile, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -420,12 +387,12 @@ async def ws_c2profile_current_operation(request, ws, user):
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
-                                id = (js.loads(msg.payload))['id']
+                                id = (msg.payload)
                                 p = await db_objects.get(C2Profile, id=id)
                                 if p.operation == operation:
                                     await ws.send(js.dumps(p.to_json()))
                             except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(2)
+                                await asyncio.sleep(1)
                                 await ws.send("")  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
@@ -452,7 +419,7 @@ async def ws_payloadtypec2profile(request, ws):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             p = await db_objects.get(PayloadTypeC2Profile, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -485,7 +452,7 @@ async def ws_operators(request, ws):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             p = await db_objects.get(Operator, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -514,7 +481,7 @@ async def ws_updated_operators(request, ws):
                         try:
                             msg = conn.notifies.get_nowait()
                             # print("got an update for a callback")
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             cb = await db_objects.get(Operator, id=id)
                             await ws.send(js.dumps(cb.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -547,7 +514,7 @@ async def ws_payloadtypes(request, ws):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             p = await db_objects.get(PayloadType, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -580,11 +547,60 @@ async def ws_commands(request, ws):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            id = (js.loads(msg.payload))['id']
+                            id = (msg.payload)
                             p = await db_objects.get(Command, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            return
+    finally:
+        pool.close()
+
+
+# notifications for new commands
+@apfell.websocket('/ws/all_command_info')
+@protected()
+async def ws_commands(request, ws):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newcommandparameters";')
+                    await cur.execute('LISTEN "updatedcommandparameters";')
+                    await cur.execute('LISTEN "deletedcommandparameters";')
+                    await cur.execute('LISTEN "newcommandtransform";')
+                    await cur.execute('LISTEN "updatedcommandtransform";')
+                    await cur.execute('LISTEN "deletedcommandtransform";')
+                    await cur.execute('LISTEN "newcommand";')
+                    await cur.execute('LISTEN "updatedcommand";')
+                    await cur.execute('LISTEN "deletedcommand";')
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = msg.payload
+                            msg_dict = {}
+                            if "parameters" in msg.channel and "deleted" not in msg.channel:
+                                p = await db_objects.get(CommandParameters, id=id)
+                            elif "transform" in msg.channel and "deleted" not in msg.channel:
+                                p = await db_objects.get(CommandTransform, id=id)
+                            elif "deleted" not in msg.channel:
+                                p = await db_objects.get(Command, id=id)
+                            if msg.channel == "deletedcommand":
+                                # this is a special case
+                                await ws.send(js.dumps({**js.loads(id), "notify": msg.channel}))
+                                continue
+                            elif "deleted" in msg.channel:
+                                print(msg)
+                                p = await db_objects.get(Command, id=js.loads(id)['command_id'])
+                                msg_dict = {**js.loads(id)}
+                            await ws.send(js.dumps({**p.to_json(), **msg_dict, "notify": msg.channel}))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(1)
                             await ws.send("")  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
@@ -620,9 +636,9 @@ async def ws_screenshots(request, ws, user):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            blob = js.loads(msg.payload)
-                            if "{}/downloads/".format(user['current_operation']) in blob['path'] and "/screenshots" in blob['path']:
-                                f = await db_objects.get(FileMeta, id=blob['id'])
+                            id = (msg.payload)
+                            f = await db_objects.get(FileMeta, id=id)
+                            if "{}/downloads/".format(user['current_operation']) in f.path and "/screenshots" in f.path:
                                 if f.task:
                                     callback_id = f.task.callback.id
                                     await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
@@ -655,9 +671,9 @@ async def ws_updated_screenshots(request, ws, user):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            blob = js.loads(msg.payload)
-                            if "{}/downloads/".format(user['current_operation']) in blob['path'] and "/screenshots" in blob['path']:
-                                f = await db_objects.get(FileMeta, id=blob['id'])
+                            id = (msg.payload)
+                            f = await db_objects.get(FileMeta, id=id)
+                            if "{}/downloads/".format(user['current_operation']) in f.path and "/screenshots" in f.path:
                                 if f.task:
                                     callback_id = f.task.callback.id
                                     await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': f.task.operator.username}))
@@ -699,7 +715,7 @@ async def ws_files_current_operation(request, ws, user):
                                         {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
                                 else:  # this is a manual upload
                                     await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
-                                                            "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}"}))
+                                                            "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
                             else:
                                 await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'params': f.task.params}))
                     await ws.send("")
@@ -707,10 +723,10 @@ async def ws_files_current_operation(request, ws, user):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            blob = js.loads(msg.payload)
-                            if "/screenshots" not in blob['path']:
+                            id = (msg.payload)
+                            f = await db_objects.get(FileMeta, id=id, operation=operation, deleted=False)
+                            if "/screenshots" not in f.path:
                                 try:
-                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, deleted=False)
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                         # this means it's an upload, so supply additional information as well
                                         # could be upload via task or manual
@@ -719,19 +735,19 @@ async def ws_files_current_operation(request, ws, user):
                                                 {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
                                         else: # this is a manual upload
                                             await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
-                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}"}))
+                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
                                     else:
                                         await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host,
                                                                 'params': f.task.params}))
                                 except Exception as e:
                                     pass  # we got a file that's just not part of our current operation, so move on
                         except asyncio.QueueEmpty as e:
-                            await asyncio.sleep(2)
+                            await asyncio.sleep(1)
                             await ws.send("")  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -752,10 +768,10 @@ async def ws_updated_files(request, ws, user):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            blob = js.loads(msg.payload)
-                            if "/screenshots" not in blob['path']:
+                            id = (msg.payload)
+                            f = await db_objects.get(FileMeta, id=id, operation=operation, deleted=False)
+                            if "/screenshots" not in f.path:
                                 try:
-                                    f = await db_objects.get(FileMeta, id=blob['id'], operation=operation, deleted=False)
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                         # this means it's an upload, so supply additional information as well
                                         if f.task is not None:  # this is an upload agent tasking
@@ -763,7 +779,7 @@ async def ws_updated_files(request, ws, user):
                                                 {**f.to_json(), 'host': f.task.callback.host, "upload": f.task.params}))
                                         else:
                                             await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
-                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}"}))
+                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
                                     else:
                                         await ws.send(js.dumps({**f.to_json(), 'host': f.task.callback.host, 'params': f.task.params}))
                                 except Exception as e:
@@ -774,7 +790,7 @@ async def ws_updated_files(request, ws, user):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -800,9 +816,9 @@ async def ws_credentials_current_operation(request, ws, user):
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
-                            blob = js.loads(msg.payload)
+                            id = (msg.payload)
                             try:
-                                c = await db_objects.get(Credential, id=blob['id'], operation=operation)
+                                c = await db_objects.get(Credential, id=id, operation=operation)
                                 await ws.send(js.dumps({**c.to_json()}))
                             except Exception as e:
                                 pass  # we got a file that's just not part of our current operation, so move on
@@ -812,6 +828,6 @@ async def ws_credentials_current_operation(request, ws, user):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()

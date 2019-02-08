@@ -1,3 +1,0 @@
-//Might have this actually implemented in the future for a multi-threaded implant where it can have long running tasks
-//  and still be able to process new commands, but right now with JXA this is handled at the server
-exports.tasks = function(task, command, params){};

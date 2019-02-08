@@ -1,0 +1,13 @@
+exports.pwd = function(task, command, params){
+    try{
+        var fileManager = $.NSFileManager.defaultManager;
+        var cwd = fileManager.currentDirectoryPath;
+        if(cwd == undefined || cwd == ""){
+            return "CWD is empty or undefined";
+        }
+        return cwd.js;
+    }catch(error){
+        return error.toString();
+    }
+};
+COMMAND_ENDS_HERE
