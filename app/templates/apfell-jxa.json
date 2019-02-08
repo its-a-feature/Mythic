@@ -477,7 +477,7 @@
     "cmd":"screencapture",
     "parameters":[],
     "attack":[
-      {"t_num":"T1133","attack_name":"Screen Capture"}
+      {"t_num":"T1113","attack_name":"Screen Capture"}
     ],
     "artifacts": []
     },
