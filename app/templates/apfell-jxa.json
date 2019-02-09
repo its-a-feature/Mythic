@@ -517,7 +517,8 @@
     "cmd":"cat",
     "parameters":[],
     "attack":[
-      {"t_num":"T1106","attack_name":"Execution through API"}
+      {"t_num":"T1106","attack_name":"Execution through API"},
+      {"t_num": "T1081", "attack_name": "Credentials in Files"}
     ],
     "artifacts": []
     },
@@ -587,17 +588,17 @@
     "artifacts": []
     },
     {
-    "needs_admin":false,
-    "help_cmd":"jsimport_call Get_DomainUser({help=true});",
-    "version":1,
-    "description":"call a function from within the JS file that was imported with \"jsimport\". This function call is appended to the end of the jsimport code and called via eval.",
-    "cmd":"jsimport_call",
-    "parameters":[],
-    "attack":[
-      {"t_num":"T1155","attack_name":"AppleScript"},
-      {"t_num":"T1064","attack_name":"Scripting"}
-    ],
-    "artifacts": []
+      "needs_admin":false,
+      "help_cmd":"jsimport_call Get_DomainUser({help=true});",
+      "version":1,
+      "description":"call a function from within the JS file that was imported with \"jsimport\". This function call is appended to the end of the jsimport code and called via eval.",
+      "cmd":"jsimport_call",
+      "parameters":[],
+      "attack":[
+        {"t_num":"T1155","attack_name":"AppleScript"},
+        {"t_num":"T1064","attack_name":"Scripting"}
+      ],
+      "artifacts": []
     },
     {
     "needs_admin":false,
@@ -747,54 +748,60 @@
       "needs_admin":false,
       "help_cmd":"persist_launch",
       "version":1,
-      "description":"Create a launch agent or daemon plist file and either automatically put it in ~\/Library\/LaunchAgents or if LocalAgent is false, save it to the specified location. Without credentials, it cannot automatically save to \/Library\/LaunchAgents or \/Library\/LaunchDaemons, so use something like shell_elevated to copy it there",
+      "description":"Create a launch agent or daemon plist file and either automatically put it in ~\/Library\/LaunchAgents or if LocalAgent is false, save it to the specified location. If you want an elevated launch agent or launch daemon( \/Library\/LaunchAgents or \/Library\/LaunchDaemons), you either need to be in an elevated context already and specify the path or use something like shell_elevated to copy it there.\nIf the first arg is 'apfell-jxa' then I'll automatically construct a plist appropriate oneliner to use where arg1 should be the URL to reach out to for the payload.",
       "cmd":"persist_launch",
       "parameters":[
       {
-      "type":"Array",
-      "hint":"",
-      "choices":"",
-      "required":true,
-      "name":"args"
+        "type":"Array",
+        "hint":"",
+        "choices":"",
+        "required":true,
+        "name":"args"
       },
       {
-      "type":"Boolean",
-      "hint":"",
-      "choices":"",
-      "required":false,
-      "name":"KeepAlive"
+        "type":"Boolean",
+        "hint":"",
+        "choices":"",
+        "required":false,
+        "name":"KeepAlive"
       },
       {
-      "type":"String",
-      "hint":"com.apple.softwareupdateagent",
-      "choices":"",
-      "required":true,
-      "name":"label"
+        "type":"String",
+        "hint":"com.apple.softwareupdateagent",
+        "choices":"",
+        "required":true,
+        "name":"label"
       },
       {
-      "type":"String",
-      "hint":"Path to save new plist to if LocalAgent is false",
-      "choices":"",
-      "required":false,
-      "name":"LaunchPath"
+        "type":"String",
+        "hint":"Path to save new plist to if LocalAgent is false",
+        "choices":"",
+        "required":false,
+        "name":"LaunchPath"
       },
       {
-      "type":"Boolean",
-      "hint":"",
-      "choices":"",
-      "required":false,
-      "name":"LocalAgent"
+        "type":"Boolean",
+        "hint":"",
+        "choices":"",
+        "required":false,
+        "name":"LocalAgent"
       },
       {
-      "type":"Boolean",
-      "hint":"",
-      "choices":"",
-      "required":false,
-      "name":"RunAtLoad"
+        "type":"Boolean",
+        "hint":"",
+        "choices":"",
+        "required":false,
+        "name":"RunAtLoad"
       }
       ],
-      "attack":[],
-      "artifacts": []
+      "attack":[
+        {"t_num": "T1159", "attack_name": "Launch Agent"},
+        {"t_num": "T1160", "attack_name": "Launch Daemon"}
+      ],
+      "artifacts": [
+        {"command_parameter":"LaunchPath","artifact":"File Create","artifact_string":"*","replace_string":"*"},
+        {"command_parameter":"LocalAgent","artifact":"File Create","artifact_string":"Created a ~/Library/LaunchAgent file: *","replace_string":"*"}
+      ]
     },
     {
       "needs_admin":true,
@@ -803,60 +810,68 @@
       "description":"Create persistence with an emond plist file in \/etc\/emond.d\/rules\/ and a .DS_Store file to trigger it","cmd":"persist_emond",
       "parameters":[
       {
-      "type":"String",
-      "hint":"Rule name for inside of the plist",
-      "choices":"",
-      "required":true,
-      "name":"rule_name"
+        "type":"String",
+        "hint":"Rule name for inside of the plist",
+        "choices":"",
+        "required":true,
+        "name":"rule_name"
       },
       {
-      "type":"Choice",
-      "hint":"",
-      "choices":"oneliner-jxa\ncustom_bash-c",
-      "required":true,
-      "name":"payload_type"
+        "type":"Choice",
+        "hint":"",
+        "choices":"oneliner-jxa\ncustom_bash-c",
+        "required":true,
+        "name":"payload_type"
       },
       {
-      "type":"String",
-      "hint":"url of payload for oneliner-jxa",
-      "choices":"",
-      "required":false,
-      "name":"url"
+        "type":"String",
+        "hint":"url of payload for oneliner-jxa",
+        "choices":"",
+        "required":false,
+        "name":"url"
       },
       {
-      "type":"String",
-      "hint":"Command if type is custom_bash-rc",
-      "choices":"",
-      "required":false,
-      "name":"command"
+        "type":"String",
+        "hint":"Command if type is custom_bash-c",
+        "choices":"",
+        "required":false,
+        "name":"command"
       },
       {
-      "type":"String",
-      "hint":"Name of plist in \/etc\/emond.d\/rules\/",
-      "choices":"",
-      "required":true,
-      "name":"file_name"
+        "type":"String",
+        "hint":"Name of plist in \/etc\/emond.d\/rules\/",
+        "choices":"",
+        "required":true,
+        "name":"file_name"
       }
       ],
-      "attack":[],
-      "artifacts": []
+      "attack":[
+        {"t_num": "T1150", "attack_name": "Plist Modification"}
+      ],
+      "artifacts": [
+        {"command_parameter":"file_name","artifact":"File Create","artifact_string":"/etc/emond.d/rules/*","replace_string":"*"},
+        {"command_parameter":null,"artifact":"File Create","artifact_string":"Most likely wrote /private/var/db/emondClients/.DS_Store","replace_string":"*"}
+      ]
     },
     {
       "needs_admin":false,
       "help_cmd":"swap_c2 {\"profile\": file_number}, or just swap_c2",
       "version":1,
-      "description":"Swap out the running c2 configuration in the apfell-jxa agent with another",
+      "description":"Swap out the running c2 configuration in the apfell-jxa agent with another that was generated with Create Components -> Instantiate C2 Profile",
       "cmd":"swap_c2",
       "parameters":[
       {
-      "type":"Number",
-      "hint":"",
-      "choices":"",
-      "required":true,
-      "name":"profile"
+        "type":"Number",
+        "hint":"",
+        "choices":"",
+        "required":true,
+        "name":"profile"
       }
       ],
-      "attack":[],
+      "attack":[
+        {"t_num": "T1026", "attack_name": "Multiband Communication"},
+        {"t_num": "T1008", "attack_name": "Fallback Channels"}
+      ],
       "artifacts": []
     },
     {
@@ -866,27 +881,34 @@
       "description":"Prints the current working directory for the agent",
       "cmd":"pwd",
       "parameters":[],
-      "attack":[],
+      "attack":[
+        {"t_num": "T1083", "attack_name": "File and Directory Discovery"}
+      ],
       "artifacts": []
     },
     {
       "needs_admin":false,
       "help_cmd":"cd {path}",
       "version":1,
-      "description":"Change the current working directory to another directory",
+      "description":"Change the current working directory to another directory. No quotes are necessary and relative paths are fine",
       "cmd":"cd",
       "parameters":[],
-      "attack":[],
+      "attack":[
+        {"t_num": "T1083", "attack_name": "File and Directory Discovery"}
+      ],
       "artifacts": []
     },
     {
       "needs_admin":false,
       "help_cmd":"rm {file path}",
       "version":1,
-      "description":"Remove a file",
+      "description":"Remove a file, no quotes are necessary and relative paths are fine",
       "cmd":"rm",
       "parameters":[],
-      "attack":[],
+      "attack":[
+        {"t_num": "T1106", "attack_name": "Execution through API"},
+        {"t_num": "T1107", "attack_name": "File Deletion"}
+      ],
       "artifacts": []
     },
     {
@@ -896,7 +918,10 @@
       "description":"Read the contents of all open iTerm tabs if iTerms is open, otherwise just inform the operator that it's not currently running",
       "cmd":"iTerm",
       "parameters":[],
-      "attack":[],
+      "attack":[
+        {"t_num": "T1056", "attack_name": "Input Capture"},
+        {"t_num": "T1139", "attack_name": "Bash History"}
+      ],
       "artifacts": []
     },
     {
@@ -928,8 +953,13 @@
         "name":"remote_path"
         }
       ],
-      "attack":[],
-      "artifacts": []
+      "attack":[
+        {"t_num": "T1105", "attack_name": "Remote File Copy"},
+        {"t_num": "T1132", "attack_name": "Data Encoding"}
+      ],
+      "artifacts": [
+         {"command_parameter":"remote_path","artifact":"File Create","artifact_string":"*","replace_string":"*"}
+      ]
     }
     ]
     }

@@ -73,7 +73,7 @@ exports.persist_emond = function(task, command, params){
     "</plist>";
         // read the plist file and check the QueueDirectories field
         var prefs = ObjC.deepUnwrap($.NSMutableDictionary.alloc.initWithContentsOfFile($("/System/Library/LaunchDaemons/com.apple.emond.plist")));
-        console.log(JSON.stringify(prefs));
+        //console.log(JSON.stringify(prefs));
         var queueDirectories = prefs['QueueDirectories'];
         if(queueDirectories != undefined && queueDirectories.length > 0){
             var queueDirectoryPath = queueDirectories[0];
