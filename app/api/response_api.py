@@ -79,7 +79,10 @@ async def update_task_for_callback(request, id):
     data = request.json
     if 'response' not in data:
         return json({'status': 'error', 'error': 'task response not in data'})
-    decoded = base64.b64decode(data['response'])
+    try:
+        decoded = base64.b64decode(data['response'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to decode response'})
     try:
         task = await db_objects.get(Task, id=id)
         callback = await db_objects.get(Callback, id=task.callback.id)
@@ -89,71 +92,54 @@ async def update_task_for_callback(request, id):
         await db_objects.update(callback)  # update the last checkin time
     except Exception as e:
         return json({'status': 'error',
-                     'error': 'Task does not exist'})
+                     'error': 'Task does not exist or callback does not exist'})
     try:
-        # the process is a little bit different if we're going to save things to disk, like a file or a screenshot instead of saving it into the database
-        if task.command.cmd == "download" or task.command.cmd == "screencapture":
-            try:
-                download_response = js.loads(decoded)
-                # print(download_response)
-                if 'total_chunks' in download_response:
-                    # print("creating file")
-                    rsp = await create_filemeta_in_database_func(download_response)
-                    if rsp['status'] == "success":
-                        # update the response to indicate we've created the file meta data
-                        rsp.pop('status', None)  # remove the status key from the dictionary
-                        decoded = "Recieved meta data: \n" + js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
-                        resp = await db_objects.create(Response, task=task, response=decoded)
-                        task.status = "processed"
-                        await db_objects.update(task)
-                        status = {'status': 'success'}
-                        resp_json = resp.to_json()
-                        return json({**status, **resp_json, 'file_id': rsp['id']}, status=201)
-                    else:
-                        decoded = rsp['error']
-                elif 'chunk_data' in download_response:
-                    # print("storing chunk: " + str(download_response['chunk_num']))
-                    #print(download_response)
-                    rsp = await download_file_to_disk_func(download_response)
-                    if rsp['status'] == "error":
-                        decoded = rsp['error']
-                    else:
-                        # we successfully got a chunk and updated the FileMeta object, so just move along
-                        return json({'status': 'success'})
-            except Exception as e:
-                print("error when trying to handle a download/screencapture command: " + str(e))
-                pass
-        elif task.command.cmd == "keylog":
-            try:
-                keylog_response = js.loads(decoded)  # keylogging has a special dictionary of data it passes back
-                if "status" in keylog_response:
-                    # this is just a message saying that the background task has started or stopped
-                    # we don't want to flood the operator view with useless "got keystroke" messages if we can avoid it
-                    decoded = keylog_response['status']
+        json_response = js.loads(decoded)
+        # check to see if we're dealing with a file trying to be sent back to the apfell server
+        try:
+            parsed_response = json_response
+            if 'total_chunks' in parsed_response:
+                # we're about to create a record in the db for a file that's about to be send our way
+                rsp = await create_filemeta_in_database_func(parsed_response)
+                if rsp['status'] == "success":
+                    # update the response to indicate we've created the file meta data
+                    rsp.pop('status', None)  # remove the status key from the dictionary
+                    decoded = "Recieved meta data: \n" + js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
+                    resp = await db_objects.create(Response, task=task, response=decoded)
+                    task.status = "processed"
+                    await db_objects.update(task)
+                    return json({'status': 'success', 'file_id': rsp['id']})
                 else:
-                    if "window_title" not in keylog_response or keylog_response['window_title'] is None:
-                        keylog_response['window_title'] = "UNKNOWN"
-                    if "keystrokes" not in keylog_response or keylog_response['keystrokes'] is None:
-                        return json({'status': 'error', 'error': 'keylogging response has no keystrokes'})
-                    if "user" not in keylog_response or keylog_response['user'] is None:
-                        keylog_response['user'] = "UNKONWN"
-                    await db_objects.create(Keylog, task=task, window=keylog_response['window_title'],
-                                            keystrokes=keylog_response['keystrokes'], operation=callback.operation,
-                                            user=keylog_response['user'])
+                    decoded = rsp['error']
+            elif 'chunk_data' in parsed_response:
+                rsp = await download_file_to_disk_func(parsed_response)
+                if rsp['status'] == "error":
+                    decoded = rsp['error']
+                else:
+                    # we successfully got a chunk and updated the FileMeta object, so just move along
                     return json({'status': 'success'})
-
-            except Exception as e:
-                print("error when handling a keylog response: " + str(e))
-                pass
-        resp = await db_objects.create(Response, task=task, response=decoded)
-        task.status = "processed"
-        await db_objects.update(task)
-        status = {'status': 'success'}
-        resp_json = resp.to_json()
-        return json({'status': 'success'})
-        # return json({**status, **resp_json}, status=201)
+            elif "status" in parsed_response:
+                # this is just a message saying that the background task has started or stopped
+                # we don't want to flood the operator view with useless "got keystroke" messages if we can avoid it
+                decoded = parsed_response['status']
+            elif task.ommand.cmd == 'keylog':
+                if "window_title" not in parsed_response or parsed_response['window_title'] is None:
+                    parsed_response['window_title'] = "UNKNOWN"
+                if "keystrokes" not in parsed_response or parsed_response['keystrokes'] is None:
+                    return json({'status': 'error', 'error': 'keylogging response has no keystrokes'})
+                if "user" not in parsed_response or parsed_response['user'] is None:
+                    parsed_response['user'] = "UNKONWN"
+                await db_objects.create(Keylog, task=task, window=parsed_response['window_title'],
+                                        keystrokes=parsed_response['keystrokes'], operation=callback.operation,
+                                        user=parsed_response['user'])
+                return json({'status': 'success'})
+        except Exception as e:
+            decoded = "Failed to process a JSON-based response with error: " + str(e)
     except Exception as e:
-        print(e)
-        return json({'status': 'error',
-                     'error': 'Failed to update task',
-                     'msg': str(e)})
+        #response is not json, so just process it as normal
+        pass
+
+    resp = await db_objects.create(Response, task=task, response=decoded)
+    task.status = "processed"
+    await db_objects.update(task)
+    return json({'status': 'success'})

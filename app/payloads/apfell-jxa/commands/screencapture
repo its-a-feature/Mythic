@@ -2,15 +2,10 @@ exports.screencapture = function(task, command, params){
     try{
         ObjC.import('Cocoa');
         ObjC.import('AppKit');
-        var displayCount = Ref();
-        $.CGGetActiveDisplayList(0, null, displayCount);
-        var allocated = displayCount[0];
-        //console.log(allocated);
-        var activeDisplays = Ref();
-        $.CGGetActiveDisplayList(displayCount[0], activeDisplays, displayCount);
-        //console.log(activeDisplays[0]);
-        var cgimage = $.CGDisplayCreateImage(activeDisplays[0]);
-        //console.log(cgimage);
+        var cgimage = $.CGDisplayCreateImage($.CGMainDisplayID());
+        if(cgimage.js == undefined){
+          return "Failed to get image from display";
+        }
         var bitmapimagerep = $.NSBitmapImageRep.alloc.initWithCGImage(cgimage);
         var capture = bitmapimagerep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, Ref());
         var offset = 0;
