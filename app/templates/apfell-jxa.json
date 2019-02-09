@@ -799,7 +799,7 @@
         {"t_num": "T1160", "attack_name": "Launch Daemon"}
       ],
       "artifacts": [
-        {"command_parameter":"LaunchPath","artifact":"File Create","artifact_string":"*","replace_string":"*"},
+        {"command_parameter":"LaunchPath","artifact":"File Create","artifact_string":"Potentially created \"*\" if we didn't create a launch agent file.", "replace_string":"*"},
         {"command_parameter":"LocalAgent","artifact":"File Create","artifact_string":"Created a ~/Library/LaunchAgent file: *","replace_string":"*"}
       ]
     },

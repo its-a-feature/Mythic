@@ -72,7 +72,7 @@ async def get_all_mitre_attack_ids_by_task(request, user):
                 if m.task.command.payload_type.ptype not in entry_json['mappings']:
                     entry_json['mappings'][m.task.command.payload_type.ptype] = []
                 entry_json['mappings'][m.task.command.payload_type.ptype].append(m.to_json())
-            matrix[entry.tactic].append(entry_json)
+            matrix[t].append(entry_json)
     return json({'status': 'success', 'attack': matrix})
 
 

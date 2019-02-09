@@ -431,7 +431,7 @@ async def add_command_attack_to_task(task, command):
             if artifact.command_parameter is not None and artifact.command_parameter != 'null':
                 # we need to swap out temp_string's replace_string with task's param's command_parameter.name value
                 parameter_dict = js.loads(task.params)
-                temp_string = temp_string.replace(artifact.replace_string, parameter_dict[artifact.command_parameter.name])
+                temp_string = temp_string.replace(artifact.replace_string, str(parameter_dict[artifact.command_parameter.name]))
             else:
                 # we need to swap out temp_string's replace_string with task's params value
                 if artifact.replace_string != "":
