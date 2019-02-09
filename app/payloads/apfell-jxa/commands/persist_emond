@@ -80,7 +80,12 @@ exports.persist_emond = function(task, command, params){
             write_data_to_file(" ", queueDirectoryPath + "/.DS_Store");
             // now that we have a file in our queueDirectory, we need to write out our plist
             write_data_to_file(plist_contents, "/etc/emond.d/rules/" + file_name);
-            return "Created " + queueDirectoryPath + "/.DS_Store and /etc/emond.d/rules/" + file_name + " with contents: \\n" + plist_contents;
+
+            var user_output = "Created " + queueDirectoryPath + "/.DS_Store and /etc/emond.d/rules/" + file_name + " with contents: \\n" + plist_contents;
+
+            // announce our created artifacts and user output
+            var artifacts = JSON.stringify({'user_output': user_output, 'artifacts': [{'base_artifact': 'File Create', 'artifact': queueDirectoryPath + "/.DS_Store"}, {'base_artifact': 'File Create', 'artifact': '/etc/emond.d/rules/' + file_name}]});
+            return artifacts;
         }
         else{
             return "QueueDirectories array is either not there or 0 in length";

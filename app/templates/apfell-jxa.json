@@ -849,8 +849,6 @@
         {"t_num": "T1150", "attack_name": "Plist Modification"}
       ],
       "artifacts": [
-        {"command_parameter":"file_name","artifact":"File Create","artifact_string":"/etc/emond.d/rules/*","replace_string":"*"},
-        {"command_parameter":null,"artifact":"File Create","artifact_string":"Most likely wrote /private/var/db/emondClients/.DS_Store","replace_string":"*"}
       ]
     },
     {

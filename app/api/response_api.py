@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Task, Response, Operation, Callback, Keylog
+from app.database_models.model import Task, Response, Operation, Callback, Keylog, TaskArtifact, Artifact, ArtifactTemplate
 import base64
 from sanic_jwt.decorators import protected, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
@@ -80,7 +80,7 @@ async def update_task_for_callback(request, id):
     if 'response' not in data:
         return json({'status': 'error', 'error': 'task response not in data'})
     try:
-        decoded = base64.b64decode(data['response'])
+        decoded = base64.b64decode(data['response']).decode('utf-8')
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to decode response'})
     try:
@@ -93,53 +93,84 @@ async def update_task_for_callback(request, id):
     except Exception as e:
         return json({'status': 'error',
                      'error': 'Task does not exist or callback does not exist'})
+    resp = None  # declare the variable now so we can tell if we already created a response later
+    json_return_info = {'status': 'success'}
+    final_output = decoded
     try:
+        # print(decoded)
         json_response = js.loads(decoded)
-        # check to see if we're dealing with a file trying to be sent back to the apfell server
+        final_output = ""  # we're resetting it since we're going to be doing some processing on the response
         try:
             parsed_response = json_response
+            if 'user_output' in parsed_response:
+                final_output += parsed_response['user_output']
             if 'total_chunks' in parsed_response:
                 # we're about to create a record in the db for a file that's about to be send our way
                 rsp = await create_filemeta_in_database_func(parsed_response)
                 if rsp['status'] == "success":
                     # update the response to indicate we've created the file meta data
                     rsp.pop('status', None)  # remove the status key from the dictionary
-                    decoded = "Recieved meta data: \n" + js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
-                    resp = await db_objects.create(Response, task=task, response=decoded)
+                    final_output += "Recieved meta data: \n" + js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
+                    resp = await db_objects.create(Response, task=task, response=final_output)
                     task.status = "processed"
                     await db_objects.update(task)
-                    return json({'status': 'success', 'file_id': rsp['id']})
+                    json_return_info = {**json_return_info, 'file_id': rsp['id']}
                 else:
-                    decoded = rsp['error']
-            elif 'chunk_data' in parsed_response:
+                    final_output = rsp['error']
+                    json_return_info = {**json_return_info, 'status': 'error'}
+            if 'chunk_data' in parsed_response:
+                if 'file_id' not in parsed_response and 'file_id' in json_return_info:
+                    # allow agents to post the initial chunk data with initial metadata
+                    parsed_response['file_id'] = json_return_info['file_id']
                 rsp = await download_file_to_disk_func(parsed_response)
                 if rsp['status'] == "error":
-                    decoded = rsp['error']
+                    final_output += rsp['error']
                 else:
                     # we successfully got a chunk and updated the FileMeta object, so just move along
-                    return json({'status': 'success'})
-            elif "status" in parsed_response:
+                    json_return_info = {**json_return_info, 'status': 'success'}
+            if "status" in parsed_response:
                 # this is just a message saying that the background task has started or stopped
                 # we don't want to flood the operator view with useless "got keystroke" messages if we can avoid it
-                decoded = parsed_response['status']
-            elif task.ommand.cmd == 'keylog':
+                final_output += parsed_response['status']
+                json_return_info = {**json_return_info, 'status': 'success'}
+            if task.command.cmd == 'keylog':
                 if "window_title" not in parsed_response or parsed_response['window_title'] is None:
                     parsed_response['window_title'] = "UNKNOWN"
                 if "keystrokes" not in parsed_response or parsed_response['keystrokes'] is None:
                     return json({'status': 'error', 'error': 'keylogging response has no keystrokes'})
                 if "user" not in parsed_response or parsed_response['user'] is None:
                     parsed_response['user'] = "UNKONWN"
-                await db_objects.create(Keylog, task=task, window=parsed_response['window_title'],
-                                        keystrokes=parsed_response['keystrokes'], operation=callback.operation,
-                                        user=parsed_response['user'])
-                return json({'status': 'success'})
+                resp = await db_objects.create(Keylog, task=task, window=parsed_response['window_title'],
+                                               keystrokes=parsed_response['keystrokes'], operation=callback.operation,
+                                               user=parsed_response['user'])
+                json_return_info = {**json_return_info, 'status': 'success'}
+            if 'artifacts' in parsed_response:
+                # now handle the case where the agent is reporting back artifact information
+                for artifact in parsed_response['artifacts']:
+                    try:
+                        # each command can have 1 generic ArtifactTemplate auto added per Artifact type
+                        base_artifact, created = await db_objects.get_or_create(Artifact, name=artifact['base_artifact'])
+                        base_artifact_template, created = await db_objects.get_or_create(ArtifactTemplate,
+                                                                                         command=task.command,
+                                                                                         artifact=base_artifact,
+                                                                                         artifact_string="*",
+                                                                                         replace_string="*")
+
+                        # you can report back multiple artifacts at once, no reason to make separate C2 requests
+                        await db_objects.create(TaskArtifact, task=task, artifact_template=base_artifact_template,
+                                                artifact_instance=str(artifact['artifact']))
+                    except Exception as e:
+                        final_output += "\nFailed to work with artifact: " + str(artifact) + " due to: " + str(e)
+                        json_return_info = {**json_return_info, 'status': 'error', 'error': final_output}
         except Exception as e:
-            decoded = "Failed to process a JSON-based response with error: " + str(e)
+            final_output = "Failed to process a JSON-based response with error: " + str(e)
+            json_return_info = {**json_return_info, 'status': 'error', 'error': str(e)}
     except Exception as e:
         #response is not json, so just process it as normal
         pass
-
-    resp = await db_objects.create(Response, task=task, response=decoded)
-    task.status = "processed"
-    await db_objects.update(task)
-    return json({'status': 'success'})
+    if resp is None and final_output is not "":
+        resp = await db_objects.create(Response, task=task, response=final_output)
+        task.status = "processed"
+        await db_objects.update(task)
+    print(json_return_info)
+    return json(json_return_info)

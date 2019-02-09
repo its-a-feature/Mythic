@@ -978,9 +978,6 @@ class ArtifactTemplate(p.Model):
     artifact_string = p.TextField(null=False, default="")  # ex: Command Line: sh -c *
     # if replace_string is left empty, '', then artifact_string will be used unmodified
     replace_string = p.CharField(null=False, default="")
-    # this is a way for the agent to return extra information that is determined at run-time
-    # this is just a dictionary but can include things like PIDs, timestamps, etc
-    additional_info = p.TextField(null=False, default="{}")
 
     class Meta:
         database = apfell_db
@@ -1023,8 +1020,11 @@ class TaskArtifact(p.Model):
         for k in self._data.keys():
             try:
                 if k == "artifact_template":
-                    r[k] = getattr(self, k).command.cmd
-                    r["artifact_name"] = getattr(self, k).artifact.name
+                    if getattr(self, k) is not None and getattr(self, k) != "null":
+                        r[k] = getattr(self, k).command.cmd
+                        r["artifact_name"] = getattr(self, k).artifact.name
+                    else:
+                        r[k] = "null"
                 elif k == 'task':
                     r["task_id"] = getattr(self, k).id
                     r["task"] = getattr(self, k).params
