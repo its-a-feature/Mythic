@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 
-<h2>Operation {{current_operation}}'s Keylogs</h2>
+<h2>Operation <font color="{{config['operation-color']}}">{{current_operation}}</font>'s Keylogs</h2>
 
 <div class="btn-group">
     <button class="btn btn-info btn-sm" onclick="host_window()">Group by Host/Window</button>
