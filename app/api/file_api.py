@@ -86,10 +86,15 @@ async def create_filemeta_in_database(request, user, id):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file does not exist or not part of your current operation'})
-    os.remove(filemeta.path)
+    try:
+        os.remove(filemeta.path)
+        status = {'status': 'success'}
+    except Exception as e:
+        status = {'status': 'error', 'error': 'failed to remove file from disk'}
+        pass
     filemeta.deleted = True
     await db_objects.update(filemeta)
-    return json({'status': 'success', **filemeta.to_json()})
+    return json({**status, **filemeta.to_json()})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/", methods=['POST'])
@@ -113,8 +118,6 @@ async def create_filemeta_in_database_func(data):
         print(e)
         return {'status': 'error', 'error': "failed to find task"}
     try:
-        #if task.command.cmd not in ["download", "upload", "screencapture"]:
-        #    return {'status': 'error', 'error': "that task wouldn't result in a file being created"}
         filename = os.path.split(task.params)[1].strip()
         if task.command.cmd == "screencapture":
             # we want to save these in a specific folder

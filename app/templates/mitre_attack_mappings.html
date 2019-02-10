@@ -31,7 +31,7 @@
             </tr>
             <template v-for="t in tasks">
                 <tr>
-                    <td style="text-align:left;width:7em"><a :href="t.href" target="_blank">[[t.id]]</a></td>
+                    <td style="text-align:left;width:7em">&nbsp;&nbsp;<b><a :href="t.href" target="_blank">[[t.id]]</a></b></td>
                     <td style="text-align:left">
                         <template v-if="t.params != t.original_params">
                             Original: [[t.command]] [[t.original_params]]<br>
@@ -170,8 +170,8 @@ MITRE does not claim ATT&CK enumerates all possibilities for the types of action
 ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" BASIS AND THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS OR IS SPONSORED BY (IF ANY), THE MITRE CORPORATION, ITS BOARD OF TRUSTEES, OFFICERS, AGENTS, AND EMPLOYEES, DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION THEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
     </font></p></div>
 <!-- THIS IS OUR MODEL FOR CLICKED ATT&CK BUTTON -->
-<div class="modal fade bs-example-modal-md" id="showATTACKDataModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade bs-example-modal-lg" id="showATTACKDataModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">×</button>
@@ -196,7 +196,7 @@ ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" B
                                 <td style="text-align:left;width:5em">
                                     <button @click="remove_mapping(cmd.task, cmd.attack)" class="btn btn-danger">X</button>
                                 </td>
-                                <td style="text-align:left">Task: [[cmd.task]], [[cmd.task_command]] [[cmd.task_params]]</td>
+                                <td style="text-align:left">Task: <b><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + cmd.task" target="_blank">[[cmd.task]]</a></b>, [[cmd.task_command]] [[cmd.task_params]]</td>
                             </template>
 
                         </tr>

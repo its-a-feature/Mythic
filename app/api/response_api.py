@@ -172,5 +172,4 @@ async def update_task_for_callback(request, id):
         resp = await db_objects.create(Response, task=task, response=final_output)
         task.status = "processed"
         await db_objects.update(task)
-    print(json_return_info)
     return json(json_return_info)

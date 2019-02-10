@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, file
-from app.database_models.model import Operator, Payload, C2Profile, C2ProfileParameters, C2ProfileParametersInstance, PayloadType, Operation, PayloadCommand, Command
+from app.database_models.model import Operator, Payload, C2Profile, C2ProfileParameters, C2ProfileParametersInstance, PayloadType, Operation, PayloadCommand, Command, FileMeta
 import pathlib
 from sanic_jwt.decorators import protected, inject_user
 import os
@@ -53,6 +53,10 @@ async def remove_payload(request, puuid, user, from_disk):
                 os.remove(payload.location)
             except Exception as e:
                 print(e)
+        # if we started hosting this payload as a file in our database, we need to remove that as well
+        file_metas = await db_objects.execute(FileMeta.select().where(FileMeta.path == payload.location))
+        for fm in file_metas:
+            await db_objects.delete(fm)
         success = {'status': 'success'}
         return json({**success, **payload.to_json()})
     except Exception as e:
@@ -103,13 +107,22 @@ async def register_new_payload_func(data, user):
     else:
         data['wrapper'] = False
     uuid = await generate_uuid()
-    file_extension = payload_type.file_extension
-    if "." not in file_extension and file_extension != "":
-        file_extension = "." + file_extension
     if 'location' in data:
-        # they supplied a file name, so make sure we just get the last part and put it in the right directory
-        location = "./app/payloads/operations/{}/{}".format(user['current_operation'], data['location'])
+        full_filename = os.path.basename(data['location'])
+        filename = ".".join(full_filename.split(".")[:-1]) if "." in full_filename else full_filename
+        extension = full_filename.split(".")[-1] if "." in full_filename else ""
+        save_path = "./app/payloads/operations/{}/{}".format(user['current_operation'], filename)
+        tmp_path = save_path + "." + str(extension) if "." in full_filename else save_path
+        count = 1
+        while os.path.exists(tmp_path):
+            # a file with that name already exists, so we need to start adding numbers until we get a unique location
+            tmp_path = save_path + str(count) + "." + str(extension) if "." in full_filename else save_path + str(count)
+            count += 1
+        location = tmp_path
     else:
+        file_extension = payload_type.file_extension
+        if "." not in file_extension and file_extension != "":
+            file_extension = "." + file_extension
         location = "./app/payloads/operations/{}/{}{}".format(user['current_operation'], uuid, file_extension)
     # Register payload
     if not payload_type.wrapper:
