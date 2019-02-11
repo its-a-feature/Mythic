@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response, LoadedCommands, ATTACKCommand, ATTACKTask, TaskArtifact, ArtifactTemplate, OperatorOperation
+from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response, LoadedCommands, ATTACKCommand, ATTACKTask, TaskArtifact, ArtifactTemplate, OperatorOperation, Payload
 import datetime
 from sanic_jwt.decorators import protected, inject_user
 from app.api.transform_api import get_transforms_func, get_commandtransforms_func
@@ -240,9 +240,7 @@ async def add_task_to_callback_func(data, cid, user):
             if '"' in data['params']:
                 data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
         elif cmd.cmd == "screencapture":
-            # we need to specify here the name of the file that we'll be creating
-            # since it'll already be saved in a directory structure that indicates the computer name, we'll indicate time
-            data['params'] = data['params'] + " " + datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S') + ".png"
+            data['params'] = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S') + ".png"
         elif cmd.cmd == "load":
             try:
                 status = await perform_load_transforms(data, cb, operation, op)
@@ -252,51 +250,61 @@ async def add_task_to_callback_func(data, cid, user):
                 file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
                                                     path=status['path'], operation=cb.operation)
                 data['file_updates_with_task'].append(file_meta)
-                params = js.dumps({"cmds": data['params'], "file_id": file_meta.id})
-                task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=params, original_params=params)
-                await add_command_attack_to_task(task, cmd)
+                data['params'] = js.dumps({"cmds": data['params'], "file_id": file_meta.id})
 
             except Exception as e:
                 print(e)
                 return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params']}
-        else:
-            # now actually run through all of the command transforms
-            original_params = data['params']
-            step_output = {}  # keep track of output at each stage
-            step_output["0 - initial params"] = data['params']
-            cmd_transforms = await get_commandtransforms_func(cmd.id, operation.name)
-            if cmd_transforms['status'] == 'success':
-                # reload our transforms right before use if we are actually going to do some
-                if len(cmd_transforms['transforms']) > 0:
+        # now actually run through all of the command transforms
+        original_params = data['params']
+        step_output = {}  # keep track of output at each stage
+        step_output["0 - initial params"] = data['params']
+        cmd_transforms = await get_commandtransforms_func(cmd.id, operation.name)
+        if cmd_transforms['status'] == 'success':
+            # reload our transforms right before use if we are actually going to do some
+            if len(cmd_transforms['transforms']) > 0:
+                try:
+                    import app.api.transforms.utils
+                    importlib.reload(sys.modules['app.api.transforms.utils'])
+                except Exception as e:
+                    print(e)
+                from app.api.transforms.utils import CommandTransformOperation
+                commandTransforms = CommandTransformOperation()
+            for t in cmd_transforms['transforms']:
+                if data['transform_status'][str(t['order'])]:  # if this is set to active, do it
                     try:
-                        import app.api.transforms.utils
-                        importlib.reload(sys.modules['app.api.transforms.utils'])
+                        data['params'] = await getattr(commandTransforms, t['name'])(data['params'], t['parameter'])
+                        step_output[str(t['order']) + " - " + t['name']] = data['params']
                     except Exception as e:
                         print(e)
-                    from app.api.transforms.utils import CommandTransformOperation
-                    commandTransforms = CommandTransformOperation()
-                for t in cmd_transforms['transforms']:
-                    if data['transform_status'][str(t['order'])]:  # if this is set to active, do it
-                        try:
-                            data['params'] = await getattr(commandTransforms, t['name'])(data['params'], t['parameter'])
-                            step_output[str(t['order']) + " - " + t['name']] = data['params']
-                        except Exception as e:
-                            print(e)
-                            return {'status': 'error', 'error': 'failed to apply transform {}, with message: {}'.format(
-                                t['name'], str(e)), 'cmd': data['command'], 'params': original_params}
-            else:
-                return cmd_transforms  # this is the error from trying to get the command transforms
-            if "test_command" in data and data['test_command']:
-                # we just wanted to test out how things would end up looking, but don't actually create a Task for this
-                # remove all of the fileMeta objects we created in prep for this since it's not a real issuing
-                for update_file in data['file_updates_with_task']:
-                    # now we can associate the task with the filemeta object
-                    await db_objects.delete(update_file)
+                        return {'status': 'error', 'error': 'failed to apply transform {}, with message: {}'.format(
+                            t['name'], str(e)), 'cmd': data['command'], 'params': original_params}
+        else:
+            return {'status': 'error', 'error': 'failed to get command transforms with message: {}'.format(
+                            str(cmd_transforms['error'])), 'cmd': data['command'], 'params': original_params}
+        if "test_command" in data and data['test_command']:
+            # we just wanted to test out how things would end up looking, but don't actually create a Task for this
+            # remove all of the fileMeta objects we created in prep for this since it's not a real issuing
+            for update_file in data['file_updates_with_task']:
+                await db_objects.delete(update_file)
+                # we only want to delete the file from disk if there are no other db objects pointing to it
+                # so we need to check other FileMeta.paths and Payload.locations
+                file_count = await db_objects.count(FileMeta.select().where( (FileMeta.path == update_file.path) & (FileMeta.deleted == False)))
+                file_count += await db_objects.count(Payload.select().where( (Payload.location == update_file.path) & (Payload.deleted == False)))
                 try:
-                    await db_objects.delete(file_meta)
+                    if file_count == 0:
+                        os.remove(update_file.path)
                 except Exception as e:
                     pass
-                return {'status': 'success', 'cmd': data['command'], 'params': original_params, 'test_output': step_output}
+            try:
+                await db_objects.delete(file_meta)
+                file_count = await db_objects.count(FileMeta.select().where( (FileMeta.path == file_meta.path) & (FileMeta.deleted == False)))
+                file_count += await db_objects.count(Payload.select().where( (Payload.location == file_meta.path) & (Payload.deleted == False)))
+                if file_count == 0:
+                    os.remove(file_meta.path)
+            except Exception as e:
+                pass
+            return {'status': 'success', 'cmd': data['command'], 'params': original_params, 'test_output': step_output}
         if original_params is None:
             original_params = data['params']
         if task is None:

@@ -369,7 +369,8 @@ async def create_payload(request, user):
         payload = await db_objects.get(Payload, uuid=rsp['uuid'])
         create_rsp = await write_payload(payload.uuid, user)
         if create_rsp['status'] == "success":
-                return json({'status': 'success', 'execute_help': payload.payload_type.execute_help})
+                return json({'status': 'success', 'execute_help': payload.payload_type.execute_help,
+                             'filename': payload.location.split("/")[-1]})
         else:
             await db_objects.delete(payload, recursive=True)
             return json({'status': 'error', 'error': create_rsp['error']})

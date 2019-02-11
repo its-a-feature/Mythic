@@ -86,14 +86,21 @@ async def create_filemeta_in_database(request, user, id):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file does not exist or not part of your current operation'})
-    try:
-        os.remove(filemeta.path)
-        status = {'status': 'success'}
-    except Exception as e:
-        status = {'status': 'error', 'error': 'failed to remove file from disk'}
-        pass
+    status = {'status': 'success'}
     filemeta.deleted = True
-    await db_objects.update(filemeta)
+    try:
+        await db_objects.update(filemeta)
+    except Exception as e:
+        status = {'status': 'error', 'error': str(e)}
+    try:
+        # only remove the file if there's nothing else pointing to it
+        # this could be a payload and the user is just asking to remove the hosted aspect
+        file_count = await db_objects.count(FileMeta.select().where( (FileMeta.path == filemeta.path) & (FileMeta.deleted == False)))
+        file_count += await db_objects.count(Payload.select().where( (Payload.location == filemeta.path) & (Payload.deleted == False)))
+        if file_count == 0:
+            os.remove(filemeta.path)
+    except Exception as e:
+        pass
     return json({**status, **filemeta.to_json()})
 
 
@@ -202,7 +209,6 @@ async def create_filemeta_in_database_manual_func(data, user):
     if 'path' not in data:
         return {'status': 'error', 'error': 'file path must be submitted'}
     try:
-        print(str(data))
         if "/" not in data['path']:
             # we were given the name of a payload the use, so we need to make the full path
             try:

@@ -345,16 +345,17 @@ var task_data = new Vue({
                                 }
 
                                 uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func,file_data,
-                                    {"command":command,"params": JSON.stringify(param_data), "test_command": this.test_command, "transform_status": transform_status});
+                                    {"command":command,"params": JSON.stringify(param_data), "test_command": task_data.test_command, "transform_status": transform_status});
                                 //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
+                                task_data.input_field = "";
                             });
-                            this.input_field = "";
+
                         }
                         else{
                             //somebody knows what they're doing or a command just doesn't have parameters, send it off
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST",
-                                {"command":command,"params":params, "test_command": this.test_command, "transform_status": transform_status});
-                            this.input_field = "";
+                                {"command":command,"params":params, "test_command": task_data.test_command, "transform_status": transform_status});
+                            task_data.input_field = "";
                         }
                         return;
                     }

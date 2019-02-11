@@ -164,8 +164,8 @@
                 <th>Active?</th>
             </tr>
             <tr v-for="(t, i) in ptype_cmd_params[get_payload_type][get_cmd_index]['transforms']" :key="t.order">
-                <td style="padding: 10px">[[t.order]]</td>
-                <td style="padding: 10px">[[t.name]]</td>
+                <td>[[t.order]]</td>
+                <td>[[t.name]]&nbsp;</td>
                 <td><label class="switch"><input type="checkbox" :checked="t.active" v-model="t.active"><span class="slider round"></span></label></td>
             </tr>
             <tr>
