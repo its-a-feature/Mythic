@@ -42,7 +42,7 @@ async def search_tasks(request, user):
         operation = await db_objects.get(Operation, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
-    tasks = await db_objects.execute(Task.select().where(Task.params.contains(data['search'])).join(Callback).where(Callback.operation == operation).order_by(Task.id))
+    tasks = await db_objects.execute(Task.select().where((Task.params.contains(data['search'])) | (Task.original_params.contains(data['search']))).join(Callback).where(Callback.operation == operation).order_by(Task.id))
     output = []
     for t in tasks:
         responses = await db_objects.execute(Response.select().where(Response.task == t))

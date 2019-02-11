@@ -22,7 +22,7 @@ function initialize_artifacts(response){
     }
     if(data['status'] == "success"){
         for(var i = 0; i < data['tasks'].length; i++){
-            data['tasks'][i]['task_href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['tasks'][i]['id'];
+            data['tasks'][i]['task_href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['tasks'][i]['task_id'];
         }
         artifacts_table.artifacts = data['tasks'];
     }else{
