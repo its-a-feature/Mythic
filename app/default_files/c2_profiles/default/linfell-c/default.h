@@ -28,7 +28,7 @@ extern unsigned int CALLBACK_JITTER;
 #define API_GET_FILE "\"callback_host:callback_port/api/v1.0/files/%d\""
 #define HTTP_POST "POST %s HTTP/1.1\r\n"
 #define HTTP_GET "GET %s HTTP/1.1\r\n"
-#define HOST_HEADER "YYY"
+#define HOST_HEADER "domain_front"
 #define JSON_HEADERS_POST "Host: %s\r\nContent-Length: %d\r\nContent-Type: application/json\r\n\r\n"
 #define JSON_HEADERS_GET "Host: %s\r\nAccept: application/json\r\n\r\n"
 #define JSON_DATA "%s\r\n\r\n"

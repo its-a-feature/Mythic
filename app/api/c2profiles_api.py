@@ -228,7 +228,7 @@ async def create_default_c2_for_operation(operation: Operation, creator: Operato
     c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
                             ('callback port', 'callback_port', '80'),
                             ('callback interval (in seconds)', 'callback_interval', '10'),
-                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
+                            ('Host header (for domain fronting)', 'domain_front', '')]
     for name, key, hint in c2profile_parameters:
         await db_objects.get_or_create(C2ProfileParameters, c2_profile=c2_profile, name=name, key=key, hint=hint)
     print("Registered C2 Profile Parameters")
@@ -245,7 +245,7 @@ async def create_default_c2_for_operation(operation: Operation, creator: Operato
                             ('ID Field (some string to represent where the ID goes in the URI)', 'IDSTRING', '*'),
                             ('Post new callback info', 'NEWCALLBACK', '/login'),
                             ('Post responses', 'POSTRESPONSE', '/upload.php?page=*'),
-                            ('Host header (for domain fronting)', 'YYY', 'YYY')]
+                            ('Host header (for domain fronting)', 'domain_front', '')]
     for name, key, hint in c2profile_parameters:
         await db_objects.get_or_create(C2ProfileParameters, c2_profile=pt_c2_profile, name=name, key=key, hint=hint)
     print("Created patchthrough c2 profile parameters")
