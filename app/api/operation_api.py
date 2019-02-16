@@ -5,6 +5,7 @@ from urllib.parse import unquote_plus
 from sanic_jwt.decorators import protected, inject_user
 from app.api.c2profiles_api import register_default_profile_operation
 import os
+import shutil
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
@@ -175,6 +176,21 @@ async def delete_operation(request, user, op):
             # Need to go through and delete all the things that relate to this operation, then delete the operation
             # callbacks, payloads, profiles, mappings (operatoroperation, payloadtypec2profile), tasks, responses
             await db_objects.delete(operation, recursive=True)
+            try:
+                # delete the operation's c2 profiles
+                shutil.rmtree("./app/c2_profiles/{}/".format(operation.name))
+            except Exception as e:
+                pass
+            try:
+                # delete the operation's files (downloads, uploads, and screenshots)
+                shutil.rmtree("./app/files/{}".format(operation.name))
+            except Exception as e:
+                pass
+            try:
+                # delete the operation's created payload files
+                shutil.rmtree("./app/payloads/operations/{}".format(operation.name))
+            except Exception as e:
+                pass
             return json({'status': 'success', **operation.to_json()})
         except Exception as e:
             print(e)

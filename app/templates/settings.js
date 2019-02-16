@@ -20,7 +20,7 @@ var operators_table = new Vue({
         },
         change_admin_button: function(o){
             if(o.username == 'apfell_admin'){
-                alert("Cannot make apfell_admin not an admin");
+                alertTop("danger", "Cannot revoke admin status of apfell_admin");
             }
             else{
                 data = {};
@@ -180,7 +180,7 @@ function username_button(op){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + op.username, update_operatorview_callback, "PUT", data);
          }
          else{
-            alert("Cannot change name to empty or change the name of apfell_admin");
+            alertTop("danger", "Cannot change name to empty or change the name of apfell_admin");
          }
     });
 }
@@ -195,7 +195,7 @@ function password_button(op){
             data['old_password'] = "Empty";
         }
         if($( '#operatorNewPassword1' ).val() != $( '#operatorNewPassword2' ).val()){
-            alert("New passwords don't match!");
+            alertTop("danger", "New passwords don't match!");
         }
         else{
             data['old_password'] = $('#operatorOldPassword').val();

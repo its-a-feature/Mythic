@@ -192,73 +192,6 @@ async def register_new_c2profile(request, user):
         return json({'status': 'error', 'error': 'Profile name already taken'})
 
 
-# this is called when a new operation is created so we can staff it with the default c2 profiles as needed
-async def register_default_profile_operation(operator, operation):
-    try:
-        payload_type = await db_objects.get(PayloadType, ptype="apfell-jxa")
-        linfell_type = await db_objects.get(PayloadType, ptype="linfell-c")
-        # now that we registered everything, copy the default code to the new operation directory
-        # we will recursively copy all of the default c2 profiles over in case there's more than one in the future
-        profiles = await create_default_c2_for_operation(operation, operator, [payload_type, linfell_type])
-        for p in profiles:
-            print("Creating profile files for: " + p.name)
-            if os.path.exists("./app/c2_profiles/{}/{}".format(operation.name, p.name)):
-                shutil.rmtree("./app/c2_profiles/{}/{}".format(operation.name, p.name))
-            else:
-                try:
-                    os.makedirs("./app/c2_profiles/{}/".format(operation.name), exist_ok=True)
-                except:
-                    pass
-            shutil.copytree("./app/default_files/c2_profiles/{}".format(p.name),
-                            "./app/c2_profiles/{}/{}".format(operation.name, p.name))
-        status = {'status': 'success'}
-        return{**status}
-    except Exception as e:
-        print(e)
-        return {'status': 'error', 'error': str(e)}
-
-
-async def create_default_c2_for_operation(operation: Operation, creator: Operator, payload_types: List[PayloadType]):
-    # create default restful c2 profile
-    c2_profile, created = await db_objects.get_or_create(C2Profile, name='default',
-                                                         description="Default RESTful C2 channel",
-                                                         operator=creator, operation=operation)
-    print("Created C2 Profile")
-    # create default c2 profile parameters
-    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
-                            ('callback port', 'callback_port', '80'),
-                            ('callback interval (in seconds)', 'callback_interval', '10'),
-                            ('Host header (for domain fronting)', 'domain_front', '')]
-    for name, key, hint in c2profile_parameters:
-        await db_objects.get_or_create(C2ProfileParameters, c2_profile=c2_profile, name=name, key=key, hint=hint)
-    print("Registered C2 Profile Parameters")
-    # create more modular c2 profile
-    pt_c2_profile, created = await db_objects.get_or_create(C2Profile, name='RESTful Patchthrough',
-                                                            description='Modify default RESTful interfaces for callback. Parameters must match up with server though (manual process)',
-                                                            operator=creator, operation=operation)
-    print("Created Patchthrough c2 profile")
-    c2profile_parameters = [('callback host', 'callback_host', 'http(s)://domain.com'),
-                            ('callback port', 'callback_port', '9000'),
-                            ('callback interval (in seconds)', 'callback_interval', '10'),
-                            ('Get a File (for load, download, and spawn)', 'GETFILE', '/download.php?file=*'),
-                            ('Get next task', 'GETNEXTTASK', '/admin.php?q=*'),
-                            ('ID Field (some string to represent where the ID goes in the URI)', 'IDSTRING', '*'),
-                            ('Post new callback info', 'NEWCALLBACK', '/login'),
-                            ('Post responses', 'POSTRESPONSE', '/upload.php?page=*'),
-                            ('Host header (for domain fronting)', 'domain_front', '')]
-    for name, key, hint in c2profile_parameters:
-        await db_objects.get_or_create(C2ProfileParameters, c2_profile=pt_c2_profile, name=name, key=key, hint=hint)
-    print("Created patchthrough c2 profile parameters")
-    for payload_type in payload_types:
-        await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type,
-                                       c2_profile=c2_profile)
-        if payload_type.ptype != "linfell-c":
-            await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type,
-                                           c2_profile=pt_c2_profile)
-    print("Registered apfell-jxa & linfell-c with the default c2 profile")
-    return [c2_profile, pt_c2_profile]
-
-
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/upload", methods=['POST'])
 @inject_user()
 @protected()
@@ -421,11 +354,18 @@ async def stop_c2profile(request, info, user):
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
     try:
         operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+        return json({'status': 'error', 'error': 'failed to find operation'})
     #  if we had running profiles and they weren't stopped before shutdown, this should still be fine
+    return json(await stop_c2profile_func(name, operation))
+
+
+async def stop_c2profile_func(profile_name, operation):
+    try:
+        profile = await db_objects.get(C2Profile, name=profile_name, operation=operation)
+    except Exception as e:
+        return {'status': 'error', 'error': 'failed to find c2 profile in database'}
     for x in running_profiles:
         if x['id'] == profile.id:
             try:
@@ -433,9 +373,10 @@ async def stop_c2profile(request, info, user):
             except Exception as e:
                 pass  # it was probably already dead anyway for some reason
             x['status'] = 'stopped'
-    profile.running = False
-    await db_objects.update(profile)
-    return json({'status': 'success', **profile.to_json()})
+            profile.running = False
+            await db_objects.update(profile)
+            return {'status': 'success', **profile.to_json()}
+    return {'status': 'error', 'error': 'failed to find profile'}
 
 
 # Return the current intput and output of the c2 profile for the user
@@ -762,18 +703,32 @@ async def import_c2_profile(request, user):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get operator information'})
+    return json(await import_c2_profile_func(data, operation, operator))
+
+
+async def import_c2_profile_func(data, operation, operator):
     try:
-        profile, created = await db_objects.get_or_create(C2Profile, name=data['name'], operation=operation, operator=operator)
+        profile = await db_objects.get(C2Profile, name=data['name'], operation=operation)
+        profile.operator = operator
         profile.description = data['description']
         await db_objects.update(profile)
+    except Exception as e:
+        # this means the profile doesn't exit yet, so we need to create it
+        profile = await db_objects.create(C2Profile, name=data['name'], operation=operation, operator=operator,
+                                          description=data['description'])
+    # now make sure the appropriate directories exist
+    try:
         os.makedirs("./app/c2_profiles/{}/{}".format(operation.name, profile.name), exist_ok=True)
     except Exception as e:
-        return json({'status': 'error', 'error': 'failed to get or create profile: ' + str(e)})
-    try:
-        for param in data['params']:
-            await db_objects.get_or_create(C2ProfileParameters, name=param['name'], key=param['key'], hint=param['hint'], c2_profile=profile)
-    except Exception as e:
-        return json({'status': 'error', 'error': 'failed to create parameters: ' + str(e)})
+        return {'status': 'error', 'error': 'failed to get or create profile: ' + str(e)}
+    for param in data['params']:
+        try:
+            c2_profile_param = await db_objects.get(C2ProfileParameters, name=param['name'], c2_profile=profile)
+            c2_profile_param.key = param['key']
+            c2_profile_param.hint = param['hint']
+            await db_objects.update(c2_profile_param)
+        except Exception as e:
+            await db_objects.create(C2ProfileParameters, c2_profile=profile, name=param['name'], key=param['key'], hint=param['hint'])
     try:
         for c2_file in data['files']:
             c2_profile_file = open("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, c2_file['name']), 'wb')
@@ -781,5 +736,50 @@ async def import_c2_profile(request, user):
             c2_profile_file.write(c2_profile_data)
             c2_profile_file.close()
     except Exception as e:
-        return json({'status': 'error', 'error': 'failed to write files: ' + str(e)})
-    return json({'status': 'success'})
+        return {'status': 'error', 'error': 'failed to write files: ' + str(e)}
+    for ptype in data['payload_types']:
+        try:
+            payload_type = await db_objects.get(PayloadType, ptype=ptype)
+            await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+        except Exception as e:
+            # payload type doesn't exist, so skip it and move on
+            continue
+    return {'status': 'success'}
+
+
+# this is called when a new operation is created so we can staff it with the default c2 profiles as needed
+async def register_default_profile_operation(operator, operation):
+    try:
+        file = open('./app/templates/default_c2_db_info.json', 'r')
+        c2_data = js.load(file)  # this is a lot of data and might take a hot second to load
+        for p in c2_data['profiles']:
+            # be sure the profile is stopped if it was running before we reset it
+            if p['name'] != "default":
+                await stop_c2profile_func(p['name'], operation)
+            print("Creating profile files for: " + p['name'])
+            if os.path.exists("./app/c2_profiles/{}/{}".format(operation.name, p['name'])):
+                shutil.rmtree("./app/c2_profiles/{}/{}".format(operation.name, p['name']))
+            else:
+                try:
+                    os.makedirs("./app/c2_profiles/{}/".format(operation.name), exist_ok=True)
+                except:
+                    print("failed to make c2 directory")
+            shutil.copytree("./app/default_files/c2_profiles/{}".format(p['name']),
+                            "./app/c2_profiles/{}/{}".format(operation.name, p['name']))
+            await import_c2_profile_func(p, operation, operator)
+        return {'status': 'success'}
+    except Exception as e:
+        print(e)
+        return {'status': 'error', 'error': str(e)}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/reset", methods=['GET'])
+@inject_user()
+@protected()
+async def import_c2_profile(request, user):
+    try:
+        operation = await db_objects.get(Operation, name=user['current_operation'])
+        operator = await db_objects.get(Operator, username=user['username'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'no current operation'})
+    return json(await register_default_profile_operation(operator, operation))

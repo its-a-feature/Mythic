@@ -455,6 +455,7 @@ function create_profile(response){
         alertTop("danger", data['error']);
         return;
     }
+    alertTop("success", "Successfully created profile");
     // we didn't get an error when we tried to create the initial c2 profile, now try to upload all of the code files for the selected types
     for(var i = 0; i < payload_files.payload_file_list.length; i++){
         var file = document.getElementById('payload_file_list' + payload_files.payload_file_list[i]);
@@ -476,6 +477,9 @@ function upload_profile_file(response){
     }
     if(data['status'] != "success"){
         alertTop("danger", data['error']);
+    }
+    else{
+        alertTop("success", "Successfully uploaded files");
     }
 }
 var payload_file_list = [];
@@ -506,6 +510,23 @@ function import_button_callback(response){
     }
     if(data['status'] == 'success'){
         alertTop("success", JSON.stringify(data));
+    }else{
+        alertTop("danger", data['error']);
+    }
+}
+function reset_default_profiles_button(){
+     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/reset", reset_default_profiles_button_callback, "GET", null);
+}
+function reset_default_profiles_button_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        location.reload(true);
+        alertTop("success", "Successfully reset default c2 profiles");
     }else{
         alertTop("danger", data['error']);
     }

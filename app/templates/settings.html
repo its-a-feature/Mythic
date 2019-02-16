@@ -47,13 +47,13 @@
         <!-- Repeat this for each operator -->
             <tr v-for="o in operators" :key="o.creation_time">
                 <td>
-                    <button type="button" class="btn btn-danger btn-sm" @click="delete_operator_button(o)" >Delete</button>
+                    <button type="button" class="btn btn-danger btn-sm" v-if="o.username != 'apfell_admin'" @click="delete_operator_button(o)" >Delete</button>
                 </td>
                 <td>
                     <button type="button" class="btn btn-warning btn-sm" @click="set_password_button(o)">Change Password</button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-warning btn-sm" @click="change_username_button(o)">Change Username</button>
+                    <button type="button" class="btn btn-warning btn-sm" v-if="o.username != 'apfell_admin'" @click="change_username_button(o)">Change Username</button>
                 </td>
                 <td>
                     <button type="button" class="btn btn-warning btn-sm" @click="change_config_button(o)">Change Config</button>

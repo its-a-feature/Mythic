@@ -1,0 +1,87 @@
+{
+  "profiles": [
+    {
+    "name":"default",
+    "description":"Default RESTful C2 channel",
+    "params":[
+      {
+        "name":"callback host",
+        "key":"callback_host",
+        "hint":"http(s):\/\/domain.com"
+      },
+      {
+        "name":"callback port",
+        "key":"callback_port",
+        "hint":"80"
+      },
+      {
+        "name":"callback interval (in seconds)",
+        "key":"callback_interval",
+        "hint":"10"
+      },
+      {
+        "name":"Host header (for domain fronting)",
+        "key":"domain_front",
+        "hint":""
+      }
+    ],
+    "files":[
+
+    ],
+    "payload_types": ["apfell-jxa", "linfell-c"]
+  },
+    {
+    "name":"RESTful Patchthrough",
+    "description":"Modify default RESTful interfaces for callback. Parameters must match up with server though (manual process)",
+    "params":[
+      {
+        "name":"callback host",
+        "key":"callback_host",
+        "hint":"http(s):\/\/domain.com"
+      },
+      {
+        "name":"callback port",
+        "key":"callback_port",
+        "hint":"9000"
+      },
+      {
+        "name":"callback interval (in seconds)",
+        "key":"callback_interval",
+        "hint":"10"
+      },
+      {
+        "name":"Get a File (for load, download, and spawn)",
+        "key":"GETFILE",
+        "hint":"\/download.php?file=*"
+      },
+      {
+        "name":"Get next task",
+        "key":"GETNEXTTASK",
+        "hint":"\/admin.php?q=*"
+      },
+      {
+        "name":"ID Field (some string to represent where the ID goes in the URI)",
+        "key":"IDSTRING",
+        "hint":"*"
+      },
+      {
+        "name":"Post new callback info",
+        "key":"NEWCALLBACK",
+        "hint":"\/login"
+      },
+      {
+        "name":"Post responses",
+        "key":"POSTRESPONSE",
+        "hint":"\/upload.php?page=*"
+      },
+      {
+        "name":"Host header (for domain fronting)",
+        "key":"domain_front",
+        "hint":""
+      }
+    ],
+    "files":[],
+    "payload_types": ["apfell-jxa"]
+  }
+  ]
+}

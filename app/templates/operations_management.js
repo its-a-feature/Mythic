@@ -114,7 +114,11 @@ function delete_operation(response){
     else{
         for(i = 0; i < operations.length; i++){
             if(data['name'] == operations[i]['name']){
-                operations_table.operations.splice(i, i);
+                operations_table.operations.splice(i, 1);
+                if(data['name'] == current_operation){
+                    location.reload(true);
+                }
+
             }
         }
     }

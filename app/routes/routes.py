@@ -100,9 +100,6 @@ class Register(BaseEndpoint):
                 user = await db_objects.create(Operator, username=username, password=password)
                 user.last_login = datetime.datetime.utcnow()
                 await db_objects.update(user)  # update the last login time to be now
-                default_operation = await db_objects.get(Operation, name="default")
-                # now add the new user to the default operation
-                await db_objects.create(OperatorOperation, operator=user, operation=default_operation)
                 # generate JWT token to be stored in a cookie
                 access_token, output = await self.responses.get_access_token_output(
                     request,
@@ -121,9 +118,7 @@ class Register(BaseEndpoint):
                 return resp
             except Exception as e:
                 # failed to insert into database
-                errors['validate_errors'] = "failed to create user: " + str(e)
-        if form.csrf_token:
-            errors['token_errors'] = '<br>'.join(form.csrf_token.errors)
+                errors['validate_errors'] = "Username already exists"
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('register.html')
