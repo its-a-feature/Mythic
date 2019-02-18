@@ -336,6 +336,10 @@ apfell.static('/grouped_output.png', './app/static/grouped_output.png', name='gr
 apfell.static('/no_cmd_output.png', './app/static/no_cmd_output.png', name='no_cmd_output')
 apfell.static('/gear_med.png', './app/static/Gear-icon_med.png', name='gear_md')
 apfell.static('/add_comment.png', './app/static/add_comment.png', name='add_comment')
+apfell.static('/static/bootstrap.3.3.7.min.css', './app/static/bootstrap.3.3.7.min.css', name='bootstrap-css')
+apfell.static('/static/ajax.jquery.1.9.1.js', './app/static/ajax.jquery.1.9.1.js', name='ajax')
+apfell.static('/static/bootstrap.3.3.7.min.js', './app/static/bootstrap.3.3.7.min.js', name='bootstrap-js')
+apfell.static('/static/vue.2.5.13.dist.vue.min.js', './app/static/vue.2.5.13.dist.vue.min.js', name='vue-js')
 
 # add links to the routes in this file at the bottom
 links['index'] = apfell.url_for('index')
