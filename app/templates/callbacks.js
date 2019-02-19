@@ -10,7 +10,9 @@ var ws_updatedtasks;
 var callback_table = new Vue({
     el: '#callback_table',
     data: {
-        callbacks
+        callbacks,
+        sort: "id",
+        direction: 1
     },
     methods: {
         interact_button: function(callback){
@@ -142,6 +144,23 @@ var callback_table = new Vue({
         view_loaded_commands: function(callback){
             //display all of the loaded commands and their versions for the selected callback
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'] + "/loaded_commands",view_loaded_commands_callback,"GET");
+        },
+        sort_table: function(column){
+            //if column == current sort, reverse direction
+            if(column === this.sort) {
+              this.direction = this.direction * -1;
+            }
+            this.sort = column;
+        }
+    },
+    computed:{
+        sorted_callbacks:function() {
+          return Object.values(this.callbacks).sort((a,b) => {
+              let modifier = this.direction;
+              if(a[this.sort] < b[this.sort]){ return -1 * modifier; }
+              else if(a[this.sort] > b[this.sort]){ return 1 * modifier; }
+              else {return 0;}
+            });
         }
     },
     delimiters: ['[[',']]']

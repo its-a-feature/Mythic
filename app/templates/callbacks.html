@@ -7,23 +7,23 @@
     <div class="panel-heading">Current callbacks</div>
         <table class="table table-condensed">
             <tr>
-                <th></th>
-                <th><b>Host</b></th>
-                <th><b>IP</b></th>
-                <th><b>User</b></th>
-                <th><b>PID</b></th>
-                <th><b>Initial Checkin</b></th>
-                <th><b>Last Checkin</b></th>
-                <th><b>Payload Type</b></th>
-                <th><b>C2 Profile</b></th>
-                <th><b>Spawning Operator</b></th>
-                <th><b>Description</b></th>
+                <th @click="sort_table('id')">Callback <span v-if="sort == 'id' && direction == 1" class="caret"></span><span v-else-if="sort == 'id'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('host')">Host <span v-if="sort == 'host' && direction == 1" class="caret"></span><span v-else-if="sort == 'host'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('ip')">IP <span v-if="sort == 'ip' && direction == 1" class="caret"></span><span v-else-if="sort == 'ip'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('user')">User <span v-if="sort == 'user' && direction == 1" class="caret"></span><span v-else-if="sort == 'user'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('pid')">PID <span v-if="sort == 'pid' && direction == 1" class="caret"></span><span v-else-if="sort == 'pid'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('init_callback')">Initial Checkin <span v-if="sort == 'init_callback' && direction == 1" class="caret"></span><span v-else-if="sort == 'init_callback'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('real_time')">Last Checkin <span v-if="sort == 'real_time' && direction == 1" class="caret"></span><span v-else-if="sort == 'real_time'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('payload_type')">Payload Type <span v-if="sort == 'payload_type' && direction == 1" class="caret"></span><span v-else-if="sort == 'payload_type'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('c2_profile')">C2 Profile <span v-if="sort == 'c2_profile' && direction == 1" class="caret"></span><span v-else-if="sort == 'c2_profile'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('operator')">Spawning Operator <span v-if="sort == 'operator' && direction == 1" class="caret"></span><span v-else-if="sort == 'operator'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th @click="sort_table('description')">Description <span v-if="sort == 'description' && direction == 1" class="caret"></span><span v-else-if="sort == 'description'" class="caret" style="transform:rotate(180deg)"></span></th>
             </tr>
         <!-- Repeat this for each callback -->
             {% if config['new-callback-color'] == 'light' %}
-            <tr v-for="callback in callbacks" :key="callback.id" :style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" v-if="callback.active">
+            <tr v-for="callback in sorted_callbacks" :style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" v-if="callback.active">
             {% else %}
-            <tr v-for="callback in callbacks" :key="callback.id" :style="callback.selected ? 'background-color:' + shadeBlend(-0.5, callback.bg_color) : 'background-color:' + shadeBlend(-0.3, '{{config['background-color']}}')" v-if="callback.active">
+            <tr v-for="callback in sorted_callbacks" :style="callback.selected ? 'background-color:' + shadeBlend(-0.5, callback.bg_color) : 'background-color:' + shadeBlend(-0.3, '{{config['background-color']}}')" v-if="callback.active">
             {% endif %}
                 <td>
                     <!-- Split button -->

@@ -52,7 +52,7 @@ void close_connection(int sockfd)
 
 int send_message(int sockfd, char* message, SSL* ssl)
 {
-    printf("in send message\n");
+    //printf("in send message\n");
 	int total, sent, bytes;
 	total = strlen(message);
 	sent = 0;
@@ -60,7 +60,7 @@ int send_message(int sockfd, char* message, SSL* ssl)
 	    if(ssl != NULL){
             bytes = SSL_write(ssl,message+sent,total-sent);
 	    }else{
-	        printf("sending bytes\n");
+	        //printf("sending bytes\n");
 	        bytes = write(sockfd,message+sent,total-sent);
 	    }
 

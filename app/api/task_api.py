@@ -116,7 +116,7 @@ async def get_next_task(request, cid):
                 (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
         else:
             #  if the operation is done, kill anything that still tries to get tasking
-            return json({"command": "exit", "params": ""})
+            return json({"command": "none"})
     except Exception as e:
         print(e)
         return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
