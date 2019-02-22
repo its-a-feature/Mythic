@@ -343,7 +343,7 @@ async def write_payload(uuid, user):
                 if transform_output == os.path.abspath(working_path) + "/":
                     transform_output += payload.payload_type.ptype + extension
                 shutil.copy(transform_output, payload.location)
-                shutil.rmtree(working_path)
+            shutil.rmtree(working_path)
             return {'status': 'success', 'path': payload.location}
         except Exception as e:
             return {'status': 'error', 'error': str(e)}

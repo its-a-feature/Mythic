@@ -6,6 +6,7 @@ from app.database_models.model import Payload
 from typing import List, Dict, NewType
 import asyncio
 import json as js
+import shutil
 
 FilePath = NewType('FilePath', str)
 FileName = NewType('FileName', str)
@@ -216,3 +217,12 @@ class TransformOperation:
 
     async def strToByteArray(self, payload: Payload, prior_output: str, parameter: None) -> bytearray:
         return bytearray(prior_output.encode('utf-8'))
+
+    async def outputAsZipFolder(self, payload: Payload, prior_output: str, parameter: None) -> FilePath:
+        try:
+            shutil.make_archive(payload.location, 'zip', self.working_dir)
+            if ".zip" in payload.location:
+                os.rename(payload.location + ".zip", payload.location)
+            return payload.location
+        except Exception as e:
+            raise Exception(str(e))
