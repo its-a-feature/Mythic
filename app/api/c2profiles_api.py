@@ -523,8 +523,13 @@ async def get_c2profile_parameters(request, info, user):
         return json({'status': 'error', 'error': 'failed to find the c2 profile'})
     try:
         parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
-        parameters_json = [p.to_json() for p in parameters]
-        return json({'status': 'success', 'c2profileparameters': parameters_json})
+        param_list = []
+        for p in parameters:
+            p_json = p.to_json()
+            if p_json['key'] == 'AESPSK':
+                p_json['hint'] = operation.AESPSK
+            param_list.append(p_json)
+        return json({'status': 'success', 'c2profileparameters': param_list})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get c2 profile parameters'})

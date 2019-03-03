@@ -37,6 +37,13 @@ async def get_transforms_options(request, user):
 
 
 async def get_transforms_options_func():
+    # reload the transform data so we can provide updated information
+    try:
+        import app.api.transforms.utils
+        importlib.reload(sys.modules['app.api.transforms.utils'])
+    except Exception as e:
+        print(e)
+    from app.api.transforms.utils import TransformOperation
     t = TransformOperation()
     method_list = {func: await get_type_hints(getattr(t, func).__annotations__) for func in dir(t) if
                    callable(getattr(t, func)) and not func.startswith("__")}

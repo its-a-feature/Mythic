@@ -6,6 +6,7 @@ from sanic_jwt.decorators import protected, inject_user
 from app.api.c2profiles_api import register_default_profile_operation
 import os
 import shutil
+from app.crypto import create_key_AES256
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
@@ -76,7 +77,9 @@ async def create_operation(request, user):
         except Exception as e:
             return json({'status': 'error', 'error': 'admin operator does not exist'})
         try:
-            operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator)
+            AESPSK =await create_key_AES256()
+            operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator,
+                                                AESPSK=AESPSK)
         except Exception as e:
             return json({'status': 'error', 'error': 'failed to create operation, is the name unique?'})
         if 'members' not in data or data['members'] is None:

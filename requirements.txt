@@ -5,7 +5,7 @@ peewee==2.10.2
 jinja2
 uvloop==0.9.1
 sanic-wtf
-cryptography
+pycryptodome
 wtforms
 anytree
 websockets==5.0.1

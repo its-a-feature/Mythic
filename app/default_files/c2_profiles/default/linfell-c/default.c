@@ -429,7 +429,7 @@ int c2_upload(unsigned int file_id, unsigned char** file_buffer, unsigned int * 
 	}
 	//format our URL for getting the file
     URL_real = (char* )calloc(strlen(API_GET_FILE) + 100, 1); //add 100 for a LOT of callback id numbers
-    sprintf(URL_real, API_GET_FILE, file_id);
+    sprintf(URL_real, API_GET_FILE, file_id, global_info->callback_id);
     //now get SSL set up if needed
     int use_ssl = 0;
     SSL *ssl = NULL;

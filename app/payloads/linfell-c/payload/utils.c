@@ -253,3 +253,36 @@ void* get_so_handle(unsigned char* in_mem_buffer, size_t length) {
 	}
 	return handle;
 }
+
+/* add a new thread to our jobs list*/
+void add_thread_to_global_info(unsigned int task_id, pthread_t* task, char* command){
+    m_job * new_job = (m_job *)malloc(sizeof(m_job));
+    new_job->task = task_id;
+    new_job->job = task;
+    new_job->next = NULL;
+    new_job->command_string = command;
+    // now iterate through our current list to find the end so we can add this one
+    pthread_mutex_lock(&global_lock);
+    if(global_info->jobs == NULL){
+        // this means we don't have anything here, so just add to the beginning
+        global_info->jobs = new_job;
+    }else{
+        // we have some number of jobs running, so traverse the linked-list to the end and add this in
+        m_job * curr_job = global_info->jobs;
+        while(curr_job->next != NULL){
+            curr_job = curr_job->next;
+        }
+        curr_job->next = new_job;
+    }
+    pthread_mutex_unlock(&global_lock);
+}
+
+/* remove a thread from our jobs list*/
+void remove_thread_from_global_info(unsigned int task_id){
+
+}
+
+/* Get all currently running jobs*/
+void get_current_jobs(){
+
+}

@@ -14,6 +14,7 @@ from ipaddress import ip_address
 from app.api.c2profiles_api import register_default_profile_operation
 from app.routes.authentication import invalidate_refresh_token
 from app.api.payloadtype_api import import_payload_type_func
+from app.crypto import create_key_AES256
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -287,7 +288,9 @@ async def initial_setup():
                                    admin=True, active=True)
     print("Created Admin")
     # create default operation
-    operation, created = await db_objects.get_or_create(Operation, name='default', admin=admin, complete=False)
+    AES_PSK = await create_key_AES256()
+    operation, created = await db_objects.get_or_create(Operation, name='default', admin=admin, complete=False,
+                                                        AESPSK=AES_PSK)
     print("Created Operation")
     await db_objects.get_or_create(OperatorOperation, operator=admin, operation=operation)
     print("Registered Admin with the default operation")
@@ -337,9 +340,7 @@ apfell.static('/no_cmd_output.png', './app/static/no_cmd_output.png', name='no_c
 apfell.static('/gear_med.png', './app/static/Gear-icon_med.png', name='gear_md')
 apfell.static('/add_comment.png', './app/static/add_comment.png', name='add_comment')
 apfell.static('/static/bootstrap.3.3.7.min.css', './app/static/bootstrap.3.3.7.min.css', name='bootstrap-css')
-apfell.static('/static/ajax.jquery.1.9.1.js', './app/static/ajax.jquery.1.9.1.js', name='ajax')
-apfell.static('/static/bootstrap.3.3.7.min.js', './app/static/bootstrap.3.3.7.min.js', name='bootstrap-js')
-apfell.static('/static/vue.2.5.13.dist.vue.min.js', './app/static/vue.2.5.13.dist.vue.min.js', name='vue-js')
+apfell.static('/static/static_js.js', './app/static/static_js.js', name='static_js')
 
 # add links to the routes in this file at the bottom
 links['index'] = apfell.url_for('index')

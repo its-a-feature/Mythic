@@ -23,6 +23,16 @@
         "name":"Host header (for domain fronting)",
         "key":"domain_front",
         "hint":""
+      },
+      {
+        "name": "Encrypted Key Exchange (T/F)",
+        "key": "encrypted_exchange_check",
+        "hint": "T"
+      },
+      {
+        "name": "Base64 32bit AES Key",
+        "key": "AESPSK",
+        "hint": ""
       }
     ],
     "files":[
@@ -50,9 +60,9 @@
         "hint":"10"
       },
       {
-        "name":"Get a File (for load, download, and spawn)",
+        "name":"Get a File (for load/download) - Needs two instances of IDSTRING",
         "key":"GETFILE",
-        "hint":"\/download.php?file=*"
+        "hint":"\/download.php?file=*&ID=*"
       },
       {
         "name":"Get next task",
@@ -60,14 +70,24 @@
         "hint":"\/admin.php?q=*"
       },
       {
-        "name":"ID Field (some string to represent where the ID goes in the URI)",
+        "name":"ID Field (some string to represent where variables go in the URI)",
         "key":"IDSTRING",
         "hint":"*"
       },
       {
-        "name":"Post new callback info",
+        "name":"cleartext new callback",
         "key":"NEWCALLBACK",
         "hint":"\/login"
+      },
+      {
+        "name": "AES pre-shared key new callback",
+        "key": "AES_PSK_NEW_CALLBACK",
+        "hint": "\/register.php?SessionID=*"
+      },
+      {
+        "name": "Encrypted Key Exchange new callback",
+        "key": "EKE_NEW_CALLBACK",
+        "hint": "\/signup.php?SessionID=*"
       },
       {
         "name":"Post responses",
@@ -78,10 +98,20 @@
         "name":"Host header (for domain fronting)",
         "key":"domain_front",
         "hint":""
+      },
+      {
+        "name": "Encrypted Key Exchange (T/F)",
+        "key": "encrypted_exchange_check",
+        "hint": "T"
+      },
+      {
+        "name": "Base64 32bit AES Key",
+        "key": "AESPSK",
+        "hint": ""
       }
     ],
     "files":[],
     "payload_types": ["apfell-jxa"]
-  }
+    }
   ]
 }

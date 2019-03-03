@@ -18,4 +18,4 @@ operations/
 ssl/
 # downloaded files
 files/
-c2_profiles/
+app/c2_profiles/

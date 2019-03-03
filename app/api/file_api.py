@@ -6,6 +6,7 @@ from sanic_jwt.decorators import protected, inject_user
 import os
 from binascii import unhexlify
 import json as js
+import app.crypto as crypt
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -34,10 +35,11 @@ async def get_current_operations_files_meta(request, user):
         return json({"status": 'error', 'error': 'must be part of an active operation'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['GET'])
-async def get_one_file(request, id):
+@apfell.route(apfell.config['API_BASE'] + "/files/<id:int>/callbacks/<cid:int>", methods=['GET'])
+async def get_one_file(request, id, cid):
     try:
         file_meta = await db_objects.get(FileMeta, id=id)
+        callback = await db_objects.get(Callback, id=cid)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file not found'})
@@ -50,6 +52,12 @@ async def get_one_file(request, id):
             os.remove(file_meta.path)
             file_meta.deleted = True
             await db_objects.update(file_meta)
+        if callback.encryption_type != "" and callback.encryption_type is not None:
+            # encrypt the message before returning it
+            if callback.encryption_type == "AES256":
+                raw_encrypted = await crypt.encrypt_AES256(data=encoded_data,
+                                                           key=base64.b64decode(callback.encryption_key))
+                return raw(base64.b64encode(raw_encrypted), status=200)
         return raw(encoded_data)
     elif file_meta.deleted:
         return json({'status': 'error', 'error': 'temporary file deleted'})
@@ -58,7 +66,9 @@ async def get_one_file(request, id):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/download/<id:int>", methods=['GET'])
-async def download_file(request, id):
+@inject_user()
+@protected()
+async def download_file(request, id, user):
     try:
         file_meta = await db_objects.get(FileMeta, id=id)
     except Exception as e:

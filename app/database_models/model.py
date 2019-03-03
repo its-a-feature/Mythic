@@ -303,6 +303,8 @@ class Operation(p.Model):
     name = p.TextField(null=False, unique=True)
     admin = p.ForeignKeyField(Operator, null=False)  # who is an admin of this operation
     complete = p.BooleanField(null=False, default=False)
+    # auto create an AES PSK key when the operation is created for things like PFS with EKE
+    AESPSK = p.TextField(null=False, unique=True)
 
     class Meta:
         database = apfell_db
@@ -1039,13 +1041,34 @@ class TaskArtifact(p.Model):
         return str(self.to_json())
 
 
+class StagingInfo(p.Model):
+    # this is a way to identify the corresponding session key between HTTP messages since it's stateless
+    session_id = p.TextField(null=False, unique=True)
+    # this is the creation session key that's base64 encoded
+    session_key = p.TextField(null=False)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'response', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate',
-               'taskartifact']
+               'taskartifact', 'staginginfo']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -1065,7 +1088,8 @@ def pg_register_updates():
     updates = ['callback', 'task', 'response', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
-               'commandtransform', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate', 'taskartifact']
+               'commandtransform', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate', 'taskartifact',
+               'staginginfo']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -1126,6 +1150,7 @@ CommandTransform.create_table(True)
 Artifact.create_table(True)
 ArtifactTemplate.create_table(True)
 TaskArtifact.create_table(True)
+StagingInfo.create_table(True)
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()

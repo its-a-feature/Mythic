@@ -1,8 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
 from app.database_models.model import Callback, Operator, Payload, Operation, Task, Response, LoadedCommands, PayloadCommand
-from sanic import response
-from datetime import datetime
 from sanic_jwt.decorators import protected, inject_user
 
 
@@ -22,35 +20,27 @@ async def get_all_callbacks(request, user):
 #   and we don't know when the callback will actually happen, so we don't want the JWT to be timed out
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['POST'])
 async def create_callback(request):
-    data = request.json
+    return json(await create_callback_func(request.json))
+
+
+async def create_callback_func(data):
     if 'user' not in data:
-        return json({'status': 'error',
-                     'error': 'User required'})
+        return {'status': 'error', 'error': 'User required'}
     if 'host' not in data:
-        return json({'status': 'error',
-                     'error': 'Host required'})
+        return {'status': 'error', 'error': 'Host required'}
     if 'pid' not in data:
-        return json({'status': 'error',
-                     'error': 'PID required'})
+        return {'status': 'error', 'error': 'PID required'}
     if 'ip' not in data:
-        return json({'status': 'error',
-                     'error': 'IP required'})
+        return {'status': 'error', 'error': 'IP required'}
     if 'uuid' not in data:
-        return json({'status': 'error',
-                     'error': 'uuid required'})
+        return {'status': 'error', 'error': 'uuid required'}
     # Get the corresponding Payload object based on the uuid
     try:
         payload = await db_objects.get(Payload, uuid=data['uuid'])
-        # now that we have a uuid and payload, we should check if there's a matching parent callback
-        if payload.pcallback:
-            pcallback = await db_objects.get(Callback, id=payload.pcallback)
-        else:
-            pcallback = None
+        pcallback = None
     except Exception as e:
         print(e)
-        return json({'status': 'error',
-                     'error': 'Failed to find payload',
-                     'msg': str(e)})
+        return {}
     try:
         cal = await db_objects.create(Callback, user=data['user'], host=data['host'], pid=data['pid'],
                                       ip=data['ip'], description=payload.tag, operator=payload.operator,
@@ -68,12 +58,10 @@ async def create_callback(request):
             await db_objects.create(LoadedCommands, command=p.command, version=p.version, callback=cal, operator=payload.operator)
     except Exception as e:
         print(e)
-        return json({'status': 'error',
-                     'error': 'Failed to create callback',
-                     'msg': str(e)})
+        return {'status': 'error', 'error': 'Failed to create callback', 'msg': str(e)}
     cal_json = cal.to_json()
     status = {'status': 'success'}
-    return response.json({**status, **cal_json}, status=201)
+    return {**status, **cal_json}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['GET'])

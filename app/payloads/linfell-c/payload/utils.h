@@ -29,6 +29,13 @@ typedef struct m_function
 	int (*func)(cJSON*); //function to call
 
 }m_function __attribute__ ((visibility ("protected")));
+typedef struct m_job
+{
+    unsigned int task; // task number
+    pthread_t *job; //pointer to the running job
+    char* command_string; //command + params of the job
+    struct m_job * next; //singly linked list of jobs
+}m_job __attribute__ ((visibility ("protected")));
 
 typedef struct C2_functions
 {
@@ -49,6 +56,7 @@ typedef struct global_JSON_info
     unsigned int num_functions;
 	m_function *functions; //list of functions in that module
     C2_functions C2;
+    m_job * jobs;
 } global_JSON_info __attribute__ ((visibility ("protected")));
 /* globals */
 pthread_mutex_t global_lock __attribute__ ((visibility ("protected"))); //mutex so we can safely update the global_JSON_info structure

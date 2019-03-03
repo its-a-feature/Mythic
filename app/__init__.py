@@ -34,11 +34,11 @@ apfell.config['DB_USER'] = db_user
 apfell.config['DB_PASS'] = db_pass
 apfell.config['DB_NAME'] = db_name
 apfell.config['DB_POOL_CONNECT_STRING'] = "dbname='{}' user='{}' password='{}'".format(apfell.config['DB_NAME'], apfell.config['DB_USER'], apfell.config['DB_PASS'])
-apfell.config['API_VERSION'] = "1.0"
+apfell.config['API_VERSION'] = "1.1"
 apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
-apfell.config['REQUEST_MAX_SIZE'] = 100000000
-apfell.config['REQUEST_TIMEOUT'] = 6000
-apfell.config['RESPONSE_TIMEOUT'] = 6000
+apfell.config['REQUEST_MAX_SIZE'] = 1000000
+apfell.config['REQUEST_TIMEOUT'] = 600
+apfell.config['RESPONSE_TIMEOUT'] = 600
 apfell.config['WHITELISTED_IPS'] = [ip_network(ip) for ip in whitelisted_ip_blocks]
 
 links = {'server_ip': apfell.config['SERVER_IP_ADDRESS'],

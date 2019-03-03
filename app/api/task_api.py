@@ -1,5 +1,5 @@
 from app import apfell, db_objects
-from sanic.response import json
+from sanic.response import json, raw
 from app.database_models.model import Callback, Operator, Task, Command, FileMeta, Operation, Response, LoadedCommands, ATTACKCommand, ATTACKTask, TaskArtifact, ArtifactTemplate, OperatorOperation, Payload
 import datetime
 from sanic_jwt.decorators import protected, inject_user
@@ -9,6 +9,8 @@ import importlib, sys
 from app.api.transforms.utils import TransformOperation, CommandTransformOperation
 import shutil, os, glob
 from app.api.payloads_api import generate_uuid, write_c2
+import app.crypto as crypt
+import base64
 
 
 # This gets all tasks in the database
@@ -104,8 +106,8 @@ async def get_next_task(request, cid):
     try:
         callback = await db_objects.get(Callback, id=cid)
     except Exception as e:
-        print("Callback did not exist, tasking to exit")
-        return json({'command': "exit", "params": ""})  # if the callback doesn't exist for some reason, task it to exit
+        print("Callback did not exist, returning blank message")
+        return json({}, status=404)
     try:
         callback.last_checkin = datetime.datetime.utcnow()
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active
@@ -113,16 +115,24 @@ async def get_next_task(request, cid):
         operation = await db_objects.get(Operation, name=callback.operation.name)
         if not operation.complete:
             tasks = await db_objects.get(Task.select().join(Callback).where(
-                (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp))
+                (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp).limit(1))
         else:
-            #  if the operation is done, kill anything that still tries to get tasking
-            return json({"command": "none"})
+            # operation is complete, just return blank
+            return json({}, status=404)
     except Exception as e:
         print(e)
         return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
     tasks.status = "processing"
     await db_objects.update(tasks)
-    return json({"command": tasks.command.cmd, "params": tasks.params, "id": tasks.id})
+    if callback.encryption_type != "" and callback.encryption_type is not None:
+        # encrypt the message before returning it
+        string_message = js.dumps({"command": tasks.command.cmd, "params": tasks.params, "id": tasks.id})
+        if callback.encryption_type == "AES256":
+            raw_encrypted = await crypt.encrypt_AES256(data=string_message.encode(),
+                                                       key=base64.b64decode(callback.encryption_key))
+            return raw(base64.b64encode(raw_encrypted), status=200)
+    else:
+        return json({"command": tasks.command.cmd, "params": tasks.params, "id": tasks.id})
 
 
 # create a new task to a specific callback
@@ -155,6 +165,7 @@ async def add_task_to_callback(request, cid, user):
                 # this means we need to handle a file upload scenario and replace this value with a file_id
                 code = request.files['file' + k][0].body
                 path = "./app/files/{}/{}".format(user['current_operation'], request.files['file' + k][0].name)
+                os.makedirs("./app/files/{}".format(user['current_operation']), exist_ok=True)
                 code_file = open(path, "wb")
                 code_file.write(code)
                 code_file.close()
