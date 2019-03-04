@@ -365,7 +365,7 @@ Let’s look at what I mean by this. For the apfell-jxa shell command, I’ll cr
 Notice that all of the command transforms allow you to supply a parameter if you want. Now that we have one, what does this look like while we’re operating? When typing a command, if there are either no transforms set on the command or if none of them are active, you’ll see the cogs on the far right as green:
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_green_gears.png)  
 
-The moment you type a command that has active transforms set on it, it’ll turn orange. If you click on it, you’ll get a more detailed popup:
+The moment you type a command that has active transforms set on it, it’ll turn orange. If you click on it, you’ll get a more detailed popup:  
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_toggle_transforms.png)  
 
 You can manually toggle each one as on/off and they’ll stay that way until you refresh the page and they get reset back to the global values for that operation. Additionally, if you want your version of on/off to become the global version, simply click `persist`. If you want to test what’ll actually happen to you command, you can switch the `Test command?` to on and then submit your task. This won’t actually submit this as a task to the agent, but will show you what would have happened in each stage along the way. In our toy example I get the following:
