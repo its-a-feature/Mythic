@@ -360,22 +360,22 @@ In the end, that gets translated to the following for the agent to actually proc
 While the existence of a command (and the command parameters) is across all operations, a command’s transforms are unique to the operation. As briefly discussed in the transforms section, command transforms are applied to a command right before it gets saved in the database as a task for an agent. These transforms are performed in the specific order with one exception – if they’re not set to active. In addition to specifying a series of transforms, you’re able to toggle them to be active or not. This active status can be across the entire operation, and it can be toggled per task that you issue. Additionally, you can toggle the `test command` flag which won’t actually save the task in the database, but instead will return back what the output was from each transform. This is helpful for debugging or testing that your command will look how you want before you finally send it down.
 
 Let’s look at what I mean by this. For the apfell-jxa shell command, I’ll create and add in a simple command obfuscator (i.e. base64 encode the command, pipe it to a decoder, and then pipe to shell). For the operation wide specifics, you set them in the payload management page when editing a command:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_command_transform.png)  
+![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_set_command_transform.png)  
 
 Notice that all of the command transforms allow you to supply a parameter if you want. Now that we have one, what does this look like while we’re operating? When typing a command, if there are either no transforms set on the command or if none of them are active, you’ll see the cogs on the far right as green:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_command_green_gears.png)  
+![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_green_gears.png)  
 
 The moment you type a command that has active transforms set on it, it’ll turn orange. If you click on it, you’ll get a more detailed popup:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_command_toggle_transforms.png)  
+![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_toggle_transforms.png)  
 
 You can manually toggle each one as on/off and they’ll stay that way until you refresh the page and they get reset back to the global values for that operation. Additionally, if you want your version of on/off to become the global version, simply click `persist`. If you want to test what’ll actually happen to you command, you can switch the `Test command?` to on and then submit your task. This won’t actually submit this as a task to the agent, but will show you what would have happened in each stage along the way. In our toy example I get the following:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_command_test_command.png)  
+![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_test_command.png)  
 
 Now, assuming you decide you want to go ahead and use those transforms, Apfell keeps track of what you actually submitted before the transforms and at the end. This allows operators to do things like command line obfuscation without having to worry about what the original command was. For example:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_command_issue_task.png)  
+![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_issue_task.png)  
 
 Since the final command can be unwieldy depending on what you’re doing (some obfuscation techniques really blow up in size), I hide the data with a button. If you want to actually see what was sent to the agent, you can click the button though:
-![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_command_show_transformed_task.png)  
+![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_show_transformed_task.png)  
 
 ### Command Versions
 Apfell keeps track of the version of every command. The version of the command increases by one for every change to the command (and that version is reflected across all operations). This means if the name, description, help, code, or the needs admin flag changes, then the version will increase by one. How is this useful? Well, this information is saved off and leveraged in a few different places.
