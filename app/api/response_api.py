@@ -135,9 +135,9 @@ async def update_task_for_callback(request, id):
                 if 'file_id' not in parsed_response and 'file_id' in json_return_info:
                     # allow agents to post the initial chunk data with initial metadata
                     parsed_response['file_id'] = json_return_info['file_id']
-                rsp = await download_file_to_disk_func(parsed_response)
-                if rsp['status'] == "error":
-                    final_output += rsp['error']
+                resp = await download_file_to_disk_func(parsed_response)
+                if resp['status'] == "error":
+                    final_output += resp['error']
                 else:
                     # we successfully got a chunk and updated the FileMeta object, so just move along
                     json_return_info = {**json_return_info, 'status': 'success'}
@@ -183,7 +183,7 @@ async def update_task_for_callback(request, id):
         #response is not json, so just process it as normal
         pass
     if resp is None:
-        # we need to check for the case where the decoded repsonse is JSON, but doesn't conform to any of our keywords
+        # we need to check for the case where the decoded response is JSON, but doesn't conform to any of our keywords
         if final_output != "":
             # if we got here, then we did some sort of meta processing
             resp = await db_objects.create(Response, task=task, response=final_output)
