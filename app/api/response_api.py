@@ -89,7 +89,7 @@ async def update_task_for_callback(request, id):
         return json({'status': 'error',
                      'error': 'Task does not exist or callback does not exist'})
     try:
-        if callback.encryption_type != "null" and callback.encryption_type is not None:
+        if callback.encryption_type != "" and callback.encryption_type is not None:
             if callback.encryption_type == "AES256":
                 # now handle the decryption
                 decrypted_message = await crypt.decrypt_AES256(data=base64.b64decode(request.body),
@@ -182,8 +182,14 @@ async def update_task_for_callback(request, id):
     except Exception as e:
         #response is not json, so just process it as normal
         pass
-    if resp is None and final_output is not "":
-        resp = await db_objects.create(Response, task=task, response=final_output)
+    if resp is None:
+        # we need to check for the case where the decoded repsonse is JSON, but doesn't conform to any of our keywords
+        if final_output != "":
+            # if we got here, then we did some sort of meta processing
+            resp = await db_objects.create(Response, task=task, response=final_output)
+        else:
+            # if we got here, we got JSON back, but without any keywords
+            resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
         await db_objects.update(task)
     # handle the final reply back if it needs to be encrypted or not
@@ -194,5 +200,5 @@ async def update_task_for_callback(request, id):
             raw_encrypted = await crypt.encrypt_AES256(data=string_message.encode(),
                                                        key=base64.b64decode(callback.encryption_key))
             return raw(base64.b64encode(raw_encrypted), status=200)
-    else:
-        return json(json_return_info)
+
+    return json(json_return_info)
