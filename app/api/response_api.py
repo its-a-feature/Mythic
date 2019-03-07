@@ -77,6 +77,7 @@ async def search_responses(request, user):
 # We don't add @protected or @injected_user here because the callback needs to be able to post here for responses
 @apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['POST'])
 async def update_task_for_callback(request, id):
+    data = None
     try:
         task = await db_objects.get(Task, id=id)
         callback = await db_objects.get(Callback, id=task.callback.id)
@@ -93,7 +94,7 @@ async def update_task_for_callback(request, id):
             decrypted_message = await crypt.decrypt_AES256(data=base64.b64decode(request.body),
                                                            key=base64.b64decode(callback.decryption_key))
             data = js.loads(decrypted_message.decode('utf-8'))
-    else:
+    if data is None:
         data = request.json
     if 'response' not in data:
         return json({'status': 'error', 'error': 'task response not in data'})
