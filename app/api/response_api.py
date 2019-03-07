@@ -88,14 +88,18 @@ async def update_task_for_callback(request, id):
     except Exception as e:
         return json({'status': 'error',
                      'error': 'Task does not exist or callback does not exist'})
-    if callback.encryption_type != "null" and callback.encryption_type is not None:
-        if callback.encryption_type == "AES256":
-            # now handle the decryption
-            decrypted_message = await crypt.decrypt_AES256(data=base64.b64decode(request.body),
-                                                           key=base64.b64decode(callback.decryption_key))
-            data = js.loads(decrypted_message.decode('utf-8'))
-    if data is None:
-        data = request.json
+    try:
+        if callback.encryption_type != "null" and callback.encryption_type is not None:
+            if callback.encryption_type == "AES256":
+                # now handle the decryption
+                decrypted_message = await crypt.decrypt_AES256(data=base64.b64decode(request.body),
+                                                               key=base64.b64decode(callback.decryption_key))
+                data = js.loads(decrypted_message.decode('utf-8'))
+        if data is None:
+            data = request.json
+    except Exception as e:
+        print("Failed to get data properly: " + str(e))
+        return json({'status': 'error', 'error': 'failed to get data'})
     if 'response' not in data:
         return json({'status': 'error', 'error': 'task response not in data'})
     try:
