@@ -1,6 +1,7 @@
 from app import apfell, dbloop, apfell_db, db_objects, use_ssl, listen_port, listen_ip, ssl_cert_path, ssl_key_path
 import asyncio
 import ssl
+import logging
 
 
 if __name__ == "__main__":
@@ -24,7 +25,7 @@ if __name__ == "__main__":
             fut.get_loop().stop()
     task.add_done_callback(callback)
 
-    db_objects.database.allow_sync = True
+    db_objects.database.allow_sync = True #logging.WARNING
     try:
         loop.run_until_complete(apfell_db.connect_async(loop=dbloop))
         loop.run_forever()

@@ -1062,6 +1062,192 @@ class StagingInfo(p.Model):
     def __str__(self):
         return str(self.to_json())
 
+
+# -------------- TABLE SPECIFIC ASYNC JOIN QUERIES -----------
+async def operator_query():
+    return Operator.select(Operator, Operation)\
+        .join(Operation, p.JOIN.LEFT_OUTER).switch(Operator)
+
+
+async def payloadtype_query():
+    return PayloadType.select(PayloadType, Operator)\
+        .join(Operator).switch(PayloadType)
+
+
+async def transform_query():
+    return Transform.select(Transform, PayloadType, Operator)\
+        .join(PayloadType).switch(Transform)\
+        .join(Operator).switch(Transform)
+
+
+async def command_query():
+    return Command.select(Command, PayloadType, Operator)\
+        .join(PayloadType).switch(Command)\
+        .join(Operator).switch(Command)
+
+
+async def commandparameters_query():
+    return CommandParameters.select(CommandParameters, Command, Operator, PayloadType)\
+        .join(Command).join(PayloadType).switch(CommandParameters)\
+        .join(Operator).switch(CommandParameters)
+
+
+async def operation_query():
+    return Operation.select(Operation, Operator)\
+        .join(Operator).switch(Operation)
+
+
+async def operatoroperation_query():
+    current_op = Operation.alias()
+    return OperatorOperation.select(OperatorOperation, Operator, Operation, current_op)\
+        .join(Operator).join(current_op, p.JOIN.LEFT_OUTER).switch(OperatorOperation)\
+        .join(Operation).switch(OperatorOperation)
+
+
+async def c2profile_query():
+    return C2Profile.select(C2Profile, Operator, Operation)\
+        .join(Operator).switch(C2Profile)\
+        .join(Operation).switch(C2Profile)
+
+
+async def payloadtypec2profile_query():
+    return PayloadTypeC2Profile.select(PayloadTypeC2Profile, PayloadType, C2Profile, Operation)\
+        .join(PayloadType).switch(PayloadTypeC2Profile)\
+        .join(C2Profile).join(Operation).switch(PayloadTypeC2Profile)
+
+
+async def payload_query():
+    wrap_alias = Payload.alias()
+    return Payload.select(Payload, Operator, PayloadType, C2Profile, Operation, wrap_alias)\
+        .join(Operator).switch(Payload)\
+        .join(PayloadType).switch(Payload)\
+        .join(C2Profile).switch(Payload)\
+        .join(Operation).switch(Payload)\
+        .join(wrap_alias, p.JOIN.LEFT_OUTER, on=(
+            (Payload.wrapped_payload == wrap_alias.id) &
+            (Payload.wrapped_payload.is_null(False))
+            )).switch(Payload)
+
+
+async def payloadcommand_query():
+    return PayloadCommand.select(PayloadCommand, Payload, Command)\
+        .join(Payload).switch(PayloadCommand)\
+        .join(Command).switch(PayloadCommand)
+
+
+async def c2profileparameters_query():
+    return C2ProfileParameters.select(C2ProfileParameters, C2Profile)\
+        .join(C2Profile).switch(C2ProfileParameters)
+
+
+async def c2profileparametersinstance_query():
+    return C2ProfileParametersInstance.select(C2ProfileParametersInstance, C2ProfileParameters, C2Profile, Payload)\
+        .join(C2ProfileParameters).join(C2Profile).switch(C2ProfileParametersInstance)\
+        .join(Payload).switch(C2ProfileParametersInstance)
+
+
+async def callback_query():
+    calias = Callback.alias()
+    return Callback.select(Callback, Operator, Payload, Operation, PayloadType, C2Profile, calias)\
+        .join(Operator).switch(Callback)\
+        .join(Payload).join(PayloadType).switch(Payload).join(C2Profile).switch(Payload).switch(Callback)\
+        .join(Operation).switch(Callback)\
+        .join(calias, p.JOIN.LEFT_OUTER, on=(Callback.pcallback).alias('pcallback')).switch(Callback)
+
+
+async def loadedcommands_query():
+    return LoadedCommands.select(LoadedCommands, Command, Callback, Operator)\
+        .join(Command).switch(LoadedCommands)\
+        .join(Callback).switch(LoadedCommands)\
+        .join(Operator).switch(LoadedCommands)
+
+
+async def task_query():
+    comment_operator = Operator.alias()
+    return Task.select(Task, Callback, Operator, comment_operator, Operation)\
+        .join(Callback)\
+            .join(Operation).switch(Callback).switch(Task)\
+        .join(Operator).switch(Task)\
+        .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Task)
+
+
+async def response_query():
+    comment_operator = Operator.alias()
+    return Response.select(Response, Task, Callback, Operator, Command, comment_operator)\
+        .join(Task)\
+            .join(Callback).switch(Task)\
+            .join(Operator).switch(Task)\
+            .join(Command, p.JOIN.LEFT_OUTER).switch(Task)\
+            .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Response)
+
+
+async def filemeta_query():
+    return FileMeta.select(FileMeta, Operation, Operator)\
+        .join(Operation).switch(FileMeta)\
+        .join(Operator).switch(FileMeta)
+
+
+async def attack_query():
+    return ATTACK.select()
+
+
+async def attackcommand_query():
+    return ATTACKCommand.select(ATTACKCommand, ATTACK, Command, PayloadType)\
+        .join(ATTACK).switch(ATTACKCommand)\
+        .join(Command).join(PayloadType).switch(ATTACKCommand)
+
+
+async def attacktask_query():
+    return ATTACKTask.select(ATTACKTask, ATTACK, Task, Command, PayloadType)\
+        .join(ATTACK).switch(ATTACKTask)\
+        .join(Task).join(Command).join(PayloadType).switch(ATTACKTask)
+
+
+async def credential_query():
+    return Credential.select(Credential, Operation, Operator)\
+        .join(Operation).switch(Credential)\
+        .join(Operator).switch(Credential)
+
+
+async def keylog_query():
+    comment_operator = Operator.alias()
+    return Keylog.select(Keylog, Task, Operation, Command, Operator, Callback, comment_operator)\
+        .join(Task)\
+            .join(Callback).switch(Task)\
+            .join(Operator).switch(Task)\
+            .join(Command, on=( (Task.command.is_null()) | (Task.command.is_null(False)))).switch(Task)\
+            .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Keylog)\
+        .join(Operation).switch(Keylog)
+
+
+async def commandtransform_query():
+    return CommandTransform.select(CommandTransform, Command, Operator, Operation, PayloadType)\
+        .join(Command).join(PayloadType).switch(CommandTransform)\
+        .join(Operator).switch(CommandTransform)\
+        .join(Operation).switch(CommandTransform)
+
+
+async def artifact_query():
+    return Artifact.select()
+
+
+async def artifacttemplate_query():
+    return ArtifactTemplate.select(ArtifactTemplate, Command, CommandParameters, Artifact, PayloadType)\
+        .join(Command).join(PayloadType).switch(ArtifactTemplate)\
+        .join(CommandParameters).switch(ArtifactTemplate)\
+        .join(Artifact).switch(ArtifactTemplate)
+
+
+async def taskartifact_query():
+    return TaskArtifact.select(TaskArtifact, Task, ArtifactTemplate, Command, Artifact)\
+        .join(Task).switch(TaskArtifact)\
+        .join(ArtifactTemplate).join(Command).switch(ArtifactTemplate).join(Artifact).switch(TaskArtifact)
+
+
+async def staginginfo_query():
+    return StagingInfo.select()
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',

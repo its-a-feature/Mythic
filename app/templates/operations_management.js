@@ -98,7 +98,7 @@ function modify_operation(response){
         }
     }
     else{
-        alert(data['error']);
+        alertTop("danger", data['error']);
     }
 };
 function delete_operation(response){

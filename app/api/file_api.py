@@ -1,5 +1,5 @@
 from app import apfell, db_objects
-from app.database_models.model import FileMeta, Task, Operation, Callback, Operator, Payload
+from app.database_models.model import FileMeta, Callback, Payload, Task, Command
 from sanic.response import json, raw, file
 import base64
 from sanic_jwt.decorators import protected, inject_user
@@ -7,6 +7,8 @@ import os
 from binascii import unhexlify
 import json as js
 import app.crypto as crypt
+import sys
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -14,7 +16,8 @@ import app.crypto as crypt
 @protected()
 async def get_all_files_meta(request, user):
     try:
-        files = await db_objects.execute(FileMeta.select())
+        query = await db_model.filemeta_query()
+        files = await db_objects.prefetch(query, Task.select(), Command.select(), Callback.select())
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to get files'})
     return json([f.to_json() for f in files if f.operation.name in user['operations']])
@@ -26,8 +29,10 @@ async def get_all_files_meta(request, user):
 async def get_current_operations_files_meta(request, user):
     if user['current_operation'] != "":
         try:
-            operation = await db_objects.get(Operation, name=user['current_operation'])
-            files = await db_objects.execute(FileMeta.select().where(FileMeta.operation == operation))
+            query = await db_model.operation_query()
+            operation = await db_objects.get(query, name=user['current_operation'])
+            query = await db_model.filemeta_query()
+            files = await db_objects.prefetch(query.where(FileMeta.operation == operation), Task.select(), Command.select(), Callback.select())
         except Exception as e:
             return json({'status': 'error', 'error': 'failed to get files'})
         return json([f.to_json() for f in files if not "screenshots" in f.path ])
@@ -38,8 +43,10 @@ async def get_current_operations_files_meta(request, user):
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>/callbacks/<cid:int>", methods=['GET'])
 async def get_one_file(request, id, cid):
     try:
-        file_meta = await db_objects.get(FileMeta, id=id)
-        callback = await db_objects.get(Callback, id=cid)
+        query = await db_model.filemeta_query()
+        file_meta = await db_objects.get(query, id=id)
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, id=cid)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file not found'})
@@ -70,7 +77,8 @@ async def get_one_file(request, id, cid):
 @protected()
 async def download_file(request, id, user):
     try:
-        file_meta = await db_objects.get(FileMeta, id=id)
+        query = await db_model.filemeta_query()
+        file_meta = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file not found'})
@@ -91,8 +99,10 @@ async def download_file(request, id, user):
 @protected()
 async def create_filemeta_in_database(request, user, id):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        filemeta = await db_objects.get(FileMeta, id=id, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.filemeta_query()
+        filemeta = await db_objects.get(query, id=id, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file does not exist or not part of your current operation'})
@@ -105,8 +115,10 @@ async def create_filemeta_in_database(request, user, id):
     try:
         # only remove the file if there's nothing else pointing to it
         # this could be a payload and the user is just asking to remove the hosted aspect
-        file_count = await db_objects.count(FileMeta.select().where( (FileMeta.path == filemeta.path) & (FileMeta.deleted == False)))
-        file_count += await db_objects.count(Payload.select().where( (Payload.location == filemeta.path) & (Payload.deleted == False)))
+        query = await db_model.filemeta_query()
+        file_count = await db_objects.count(query.where( (FileMeta.path == filemeta.path) & (FileMeta.deleted == False)))
+        query = await db_model.payload_query()
+        file_count += await db_objects.count(query.where( (Payload.location == filemeta.path) & (Payload.deleted == False)))
         if file_count == 0:
             os.remove(filemeta.path)
     except Exception as e:
@@ -129,19 +141,23 @@ async def create_filemeta_in_database_func(data):
     if 'task' not in data:
         return {'status': 'error', 'error': 'corresponding task id required'}
     try:
-        task = await db_objects.get(Task, id=data['task'])
-        operation = task.callback.operation
+        query = await db_model.task_query()
+        task = await db_objects.prefetch(query.where(Task.id == data['task']), Command.select())
+        task = list(task)[0]
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query.where(Callback.id == task.callback))
+        operation = callback.operation
     except Exception as e:
-        print(e)
+        print(sys.exc_info()[-1].tb_lineno + " " + e)
         return {'status': 'error', 'error': "failed to find task"}
     try:
         filename = os.path.split(task.params)[1].strip()
         if task.command.cmd == "screencapture":
             # we want to save these in a specific folder
             save_path = os.path.abspath(
-                './app/files/{}/downloads/{}/{}/{}'.format(operation.name, task.callback.host, "screenshots", filename))
+                './app/files/{}/downloads/{}/{}/{}'.format(operation.name, callback.host, "screenshots", filename))
         else:
-            save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, task.callback.host, filename))
+            save_path = os.path.abspath('./app/files/{}/downloads/{}/{}'.format(operation.name, callback.host, filename))
         extension = filename.split(".")[-1] if "." in filename else ""
         save_path = save_path[:((len(extension)+1)*-1)] if extension != "" else save_path
         count = 1
@@ -164,7 +180,7 @@ async def create_filemeta_in_database_func(data):
             filemeta.complete = True
             await db_objects.update(filemeta)
     except Exception as e:
-        print(e)
+        print(sys.exc_info()[-1].tb_lineno + " " + e)
         return {'status': 'error', 'error': "failed to create file"}
     status = {'status': 'success'}
     return {**status, **filemeta.to_json()}
@@ -181,7 +197,8 @@ async def create_filemeta_in_database_manual(request, user):
     if 'local_file' not in data:
         return json({'status': 'error', 'error': '"local_file" is a required parameter'})
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': "not registered in a current operation"})
     if data['local_file']:
@@ -212,8 +229,10 @@ async def create_filemeta_in_database_manual(request, user):
 
 async def create_filemeta_in_database_manual_func(data, user):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         return {'status': 'error', 'error': "not registered in a current operation"}
     if 'path' not in data:
@@ -222,7 +241,8 @@ async def create_filemeta_in_database_manual_func(data, user):
         if "/" not in data['path']:
             # we were given the name of a payload the use, so we need to make the full path
             try:
-                payload = await db_objects.get(Payload, uuid=data['path'], operation=operation)
+                query = await db_model.payload_query()
+                payload = await db_objects.get(query, uuid=data['path'], operation=operation)
                 data['path'] = payload.location
             except Exception as e:
                 return {'status': 'error', 'error': 'failed to find that payload in your operation'}
@@ -248,7 +268,8 @@ async def download_file_to_disk_func(data):
     if 'chunk_data' not in data:
         return {'status': 'error', 'error': 'missing chunk data'}
     try:
-        file_meta = await db_objects.get(FileMeta, id=data['file_id'])
+        query = await db_model.filemeta_query()
+        file_meta = await db_objects.get(query, id=data['file_id'])
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get File info'}
@@ -279,8 +300,10 @@ async def download_file_to_disk_func(data):
 @protected()
 async def list_all_screencaptures_per_operation(request, user):
     if user['current_operation'] != "":
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        screencaptures = await db_objects.execute(FileMeta.select().where(FileMeta.path.regexp(".*{}/downloads/.*/screenshots/".format(operation.name))))
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.filemeta_query()
+        screencaptures = await db_objects.prefetch(query.where(FileMeta.path.regexp(".*{}/downloads/.*/screenshots/".format(operation.name))), Task.select(), Command.select(), Callback.select())
         screencapture_paths = []
         for s in screencaptures:
             screencapture_paths.append(s.to_json())
@@ -294,14 +317,16 @@ async def list_all_screencaptures_per_operation(request, user):
 @protected()
 async def list_all_screencaptures_per_callback(request, user, id):
     try:
-        callback = await db_objects.get(Callback, id=id)
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find callback'})
     screencapture_paths = []
     if callback.operation.name in user['operations']:
-        screencaptures = await db_objects.execute(
-            FileMeta.select().where(FileMeta.path.regexp(".*{}/downloads/.*/screenshots/".format(callback.operation.name))))
+        query = await db_model.filemeta_query()
+        screencaptures = await db_objects.prefetch(
+            query.where(FileMeta.path.regexp(".*{}/downloads/.*/screenshots/".format(callback.operation.name))), Task.select(), Command.select(), Callback.select())
         for s in screencaptures:
             if s.task.callback == callback:
                 screencapture_paths.append(s.to_json())
@@ -315,7 +340,8 @@ async def list_all_screencaptures_per_callback(request, user, id):
 @protected()
 async def get_screencapture(request, user, id):
     try:
-        file_meta = await db_objects.get(FileMeta, id=id)
+        query = await db_model.filemeta_query()
+        file_meta = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find callback'})

@@ -1,12 +1,13 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Operator, Operation, OperatorOperation
+from app.database_models.model import Operation, OperatorOperation
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import protected, inject_user
 from app.api.c2profiles_api import register_default_profile_operation
 import os
 import shutil
 from app.crypto import create_key_AES256
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
@@ -16,19 +17,22 @@ async def get_all_operations(request, user):
     # we already get this information populated as part of our user authentication
     output = []
     if user['admin']:
-        db_ops = await db_objects.execute(Operation.select())
+        query = await db_model.operation_query()
+        db_ops = await db_objects.execute(query)
         operations = [o.name for o in db_ops]
     else:
         operations = user['operations']
     for op in operations:
         data = {}
         # for each operation you're a member of, get all members and the admin name
-        operation = await db_objects.get(Operation, name=op)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=op)
         data['admin'] = operation.admin.username
         data['members'] = [data['admin']]
-        operationmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operation == operation))
+        query = await db_model.operatoroperation_query()
+        operationmap = await db_objects.execute(query.where(OperatorOperation.operation == operation))
         for map in operationmap:
-            o = await db_objects.get(Operator, id=map.operator)
+            o = map.operator
             if o.username not in data['members']:
                 data['members'].append(o.username)
         data['name'] = op
@@ -48,10 +52,12 @@ async def get_one_operation(request, user, op):
     if op in user['operations']:
         # get all users associated with that operation and the admin
         operators = []
-        operation = await db_objects.get(Operation, name=op)
-        operatorsmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operation == operation))
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=op)
+        query = await db_model.operatoroperation_query()
+        operatorsmap = await db_objects.execute(query.where(OperatorOperation.operation == operation))
         for operator in operatorsmap:
-            o = await db_objects.get(Operator, id=operator.operator)
+            o = operator.operator
             operators.append(o.username)
         status = {'status': 'success'}
         return json({**operation.to_json(), "operators": operators, **status})
@@ -73,7 +79,8 @@ async def create_operation(request, user):
         if 'admin' not in data:
             return json({'status': 'error', 'error': '"admin" operator name is a required parameter'})
         try:
-            admin_operator = await db_objects.get(Operator, username=data['admin'])
+            query = await db_model.operator_query()
+            admin_operator = await db_objects.get(query, username=data['admin'])
         except Exception as e:
             return json({'status': 'error', 'error': 'admin operator does not exist'})
         try:
@@ -89,7 +96,8 @@ async def create_operation(request, user):
         status = await add_user_to_operation_func(operation, data['members'])
         if status['status'] == 'success':
             # we need to make the default c2_profile for this operation
-            operator = await db_objects.get(Operator, username=user['username'])
+            query = await db_model.operator_query()
+            operator = await db_objects.get(query, username=user['username'])
             default_status = await register_default_profile_operation(operator, operation)
             if default_status['status'] == "success":
                 if not os.path.exists("./app/payloads/operations/{}".format(data['name'])):
@@ -108,7 +116,8 @@ async def add_user_to_operation_func(operation, users):
     # this take an operation object and a list of users (string) and adds them to the operation
     for operator in users:
         try:
-            op = await db_objects.get(Operator, username=operator)
+            query = await db_model.operator_query()
+            op = await db_objects.get(query, username=operator)
         except Exception as e:
             return {'status': 'error', 'error': 'failed to find user'}
         try:
@@ -128,11 +137,13 @@ async def update_operation(request, user, op):
     op = unquote_plus(op)
     if op in user['admin_operations'] or user['admin']:
         data = request.json
-        operation = await db_objects.get(Operation, name=op)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=op)
         if not operation.complete:
             if 'admin' in data:
                 try:
-                    new_admin = await db_objects.get(Operator, username=data['admin'])
+                    query = await db_model.operator_query()
+                    new_admin = await db_objects.get(query, username=data['admin'])
                     operation.admin = new_admin
                     await db_objects.update(operation)
                 except Exception as e:
@@ -140,22 +151,31 @@ async def update_operation(request, user, op):
             if 'add_users' in data:
                 for new_member in data['add_users']:
                     try:
-                        operator = await db_objects.get(Operator, username=new_member)
+                        query = await db_model.operator_query()
+                        operator = await db_objects.get(query, username=new_member)
                         map = await db_objects.create(OperatorOperation, operator=operator, operation=operation)
                     except Exception as e:
-                        return json({'status': 'error', 'error': 'failed to add user to the operation'})
+                        return json({'status': 'error', 'error': 'failed to add user {} to the operation'.format(new_member)})
             if 'remove_users' in data:
                 for old_member in data['remove_users']:
                     try:
-                        operator = await db_objects.get(Operator, username=old_member)
-                        operatoroperation = await db_objects.get(OperatorOperation, operator=operator, operation=operation)
+                        query = await db_model.operator_query()
+                        operator = await db_objects.get(query, username=old_member)
+                        query = await db_model.operatoroperation_query()
+                        operatoroperation = await db_objects.get(query, operator=operator, operation=operation)
+                        # if this operation is set as that user's current_operation, nullify it
+                        if operator.current_operation == operation:
+                            operator.current_operation = None
+                            await db_objects.update(operator)
                         await db_objects.delete(operatoroperation)
                     except Exception as e:
-                        return json({'status': 'error', 'error': 'failed to remove user from operation. Were they a member?'})
+                        print("got exception: " + str(e))
+                        return json({'status': 'error', 'error': 'failed to remove: ' + old_member + "\nAdded: " + str(data['add_users'])})
             all_users = []
-            current_members = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operation == operation))
+            query = await db_model.operatoroperation_query()
+            current_members = await db_objects.execute(query.where(OperatorOperation.operation == operation))
             for mem in current_members:
-                member = await db_objects.get(Operator, id=mem.operator)
+                member = mem.operator
                 all_users.append(member.username)
             if 'complete' in data:
                 operation.complete = data['complete']
@@ -175,7 +195,8 @@ async def delete_operation(request, user, op):
     op = unquote_plus(op)
     if op in user['admin_operations'] or user['admin']:
         try:
-            operation = await db_objects.get(Operation, name=op)
+            query = await db_model.operation_query()
+            operation = await db_objects.get(query, name=op)
             # Need to go through and delete all the things that relate to this operation, then delete the operation
             # callbacks, payloads, profiles, mappings (operatoroperation, payloadtypec2profile), tasks, responses
             await db_objects.delete(operation, recursive=True)

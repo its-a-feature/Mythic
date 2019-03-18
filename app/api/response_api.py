@@ -1,12 +1,14 @@
 from app import apfell, db_objects
 from sanic.response import json, raw
-from app.database_models.model import Task, Response, Operation, Callback, Keylog, TaskArtifact, Artifact, ArtifactTemplate
+from app.database_models.model import Task, Response, Callback, Keylog, TaskArtifact, Artifact, ArtifactTemplate, Command
 import base64
 from sanic_jwt.decorators import protected, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
 import json as js
 import datetime
 import app.crypto as crypt
+import app.database_models.model as db_model
+import sys
 
 
 # This gets all responses in the database
@@ -16,16 +18,20 @@ import app.crypto as crypt
 async def get_all_responses(request, user):
     try:
         responses = []
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.callback_query()
+        callbacks = await db_objects.execute(query.where(Callback.operation == operation))
         for c in callbacks:
-            tasks = await db_objects.execute(Task.select().where(Task.callback == c))
+            query = await db_model.task_query()
+            tasks = await db_objects.prefetch(query.where(Task.callback == c), Command.select())
             for t in tasks:
-                task_responses = await db_objects.execute(Response.select().where(Response.task == t))
+                query = await db_model.response_query()
+                task_responses = await db_objects.execute(query.where(Response.task == t))
                 responses += [r.to_json() for r in task_responses]
     except Exception as e:
         return json({'status': 'error',
-                     'error': 'Cannot get responses'})
+                     'error': 'Cannot get responses: ' + str(e)})
     return json(responses)
 
 
@@ -34,11 +40,14 @@ async def get_all_responses(request, user):
 @protected()
 async def get_all_responses_for_task(request, user, id):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        task = await db_objects.get(Task, id=id)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.task_query()
+        task = await db_objects.get(query, id=id)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to get operation or task'})
-    responses = await db_objects.execute(Response.select().where(Response.task == task).order_by(Response.id))
+    query = await db_model.response_query()
+    responses = await db_objects.execute(query.where(Response.task == task).order_by(Response.id))
     return json([r.to_json() for r in responses])
 
 
@@ -48,8 +57,11 @@ async def get_all_responses_for_task(request, user, id):
 @protected()
 async def get_one_response(request, user, id):
     try:
-        resp = await db_objects.get(Response, id=id)
-        if resp.task.callback.operation.name == user['current_operation']:
+        query = await db_model.response_query()
+        resp = await db_objects.get(query, id=id)
+        query = await db_model.callback_query()
+        cb = await db_objects.get(query.where(Callback.id == resp.task.callback))
+        if cb.operation.name == user['current_operation']:
             return json(resp.to_json())
         else:
             return json({'status': 'error', 'error': 'that task isn\'t in your current operation'})
@@ -66,10 +78,12 @@ async def search_responses(request, user):
         data = request.json
         if 'search' not in data:
             return json({'status': 'error', 'error': 'failed to find search term in request'})
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
-    responses = await db_objects.execute(Response.select().where(Response.response.contains(data['search'])).join(Task).join(Callback).where(Callback.operation == operation).order_by(Response.id))
+    query = await db_model.response_query()
+    responses = await db_objects.execute(query.where(Response.response.contains(data['search'])).switch(Task).where(Callback.operation == operation).order_by(Response.id))
     return json({'status': 'success', 'output': [r.to_json() for r in responses]})
 
 
@@ -79,8 +93,11 @@ async def search_responses(request, user):
 async def update_task_for_callback(request, id):
     data = None
     try:
-        task = await db_objects.get(Task, id=id)
-        callback = await db_objects.get(Callback, id=task.callback.id)
+        query = await db_model.task_query()
+        task = await db_objects.prefetch(query.where(Task.id == id), Command.select())
+        task = list(task)[0]
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, id=task.callback.id)
         # update the callback's last checkin time since it just posted a response
         callback.last_checkin = datetime.datetime.utcnow()
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active
@@ -163,12 +180,24 @@ async def update_task_for_callback(request, id):
                 for artifact in parsed_response['artifacts']:
                     try:
                         # each command can have 1 generic ArtifactTemplate auto added per Artifact type
-                        base_artifact, created = await db_objects.get_or_create(Artifact, name=artifact['base_artifact'])
-                        base_artifact_template, created = await db_objects.get_or_create(ArtifactTemplate,
-                                                                                         command=task.command,
-                                                                                         artifact=base_artifact,
-                                                                                         artifact_string="*",
-                                                                                         replace_string="*")
+                        try:
+                            query = await db_model.artifact_query()
+                            base_artifact = await db_objects.get(query, name=artifact['base_artifact'])
+                        except Exception as e:
+                            base_artifact = await db_objects.create(Artifact, name=artifact['base_artifact'])
+                        try:
+                            query = await db_model.artifacttemplate_query()
+                            base_artifact_template = await db_objects.get(query,
+                                                                          command=task.command,
+                                                                          artifact=base_artifact,
+                                                                          artifact_string="*",
+                                                                          replace_string="*")
+                        except Exception as e:
+                            base_artifact_template = await db_objects.create(ArtifactTemplate,
+                                                                             command=task.command,
+                                                                             artifact=base_artifact,
+                                                                             artifact_string="*",
+                                                                             replace_string="*")
 
                         # you can report back multiple artifacts at once, no reason to make separate C2 requests
                         await db_objects.create(TaskArtifact, task=task, artifact_template=base_artifact_template,
@@ -177,6 +206,7 @@ async def update_task_for_callback(request, id):
                         final_output += "\nFailed to work with artifact: " + str(artifact) + " due to: " + str(e)
                         json_return_info = {**json_return_info, 'status': 'error', 'error': final_output}
         except Exception as e:
+            print(sys.exc_info()[-1].tb_lineno)
             final_output = "Failed to process a JSON-based response with error: " + str(e)
             json_return_info = {**json_return_info, 'status': 'error', 'error': str(e)}
     except Exception as e:

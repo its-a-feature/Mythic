@@ -1,8 +1,9 @@
 from app import apfell, db_objects
-from app.database_models.model import Callback, Payload, Operation
+from app.database_models.model import Callback
 from sanic.response import text
 from anytree import Node, find_by_attr, RenderTree, DoubleStyle
 from sanic_jwt.decorators import protected, inject_user
+import app.database_models.model as db_model
 
 
 # ------- ANALYTIC-BASED API FUNCTION -----------------
@@ -12,8 +13,10 @@ from sanic_jwt.decorators import protected, inject_user
 async def analytics_callback_tree_api(request, user):
     # look at the current callbacks and return their data in a more manageable tree format
     # http://anytree.readthedocs.io/en/latest/
-    operation = await db_objects.get(Operation, name=user['current_operation'])
-    dbcallbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+    query = await db_model.operation_query()
+    operation = await db_objects.get(query, name=user['current_operation'])
+    query = await db_model.callback_query()
+    dbcallbacks = await db_objects.execute(query.where(Callback.operation == operation))
     callbacks = []
     # Default values here
     display_config = {}
@@ -84,7 +87,8 @@ async def analytics_payload_tree_api_function(payload, config):
 @protected()
 async def analytics_payload_tree_api(request, user):
     # each payload is the root of a tree, all of the corresponding callbacks that use it are under that tree
-    dbpayloads = await db_objects.execute(Payload.select())
+    query = await db_model.payload_query()
+    dbpayloads = await db_objects.execute(query)
     display_config = {}
     display_config['inactive'] = False  # by default, include only active callbacks
     display_config['strikethrough'] = False
@@ -99,11 +103,12 @@ async def analytics_payload_tree_api(request, user):
         display = await analytics_payload_tree_api_function(p, display_config)
         ptree = Node(str(p.id), display=display)
         # now get all callbacks that have this payload tied to it
+        query = await db_model.callback_query()
         if display_config['inactive']:
             # we want to display the inactive ones as well
-            using_callbacks = await db_objects.execute(Callback.select().where(Callback.registered_payload==p))
+            using_callbacks = await db_objects.execute(query.where(Callback.registered_payload==p))
         else:
-            using_callbacks = await db_objects.execute(Callback.select().where( (Callback.registered_payload==p) &
+            using_callbacks = await db_objects.execute(query.where( (Callback.registered_payload==p) &
                                                                                 (Callback.active == True)))
         tree.append(ptree)
         for c in using_callbacks:

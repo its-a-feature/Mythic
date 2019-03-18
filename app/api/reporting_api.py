@@ -3,6 +3,7 @@ from app.database_models.model import *
 from sanic.response import json, file
 from sanic_jwt.decorators import protected, inject_user
 from fpdf import FPDF, HTMLMixin
+import sys
 
 
 # ------- REPORTING-BASED API FUNCTION -----------------
@@ -15,7 +16,8 @@ async def reporting_full_timeline_api(request, user):
     #  strict refers to if we need to adhere to strict ordering of commands issued, response timings, or nothing
     if user['current_operation'] != "":
         try:
-            operation = await db_objects.get(Operation, name=user['current_operation'])
+            query = await operation_query()
+            operation = await db_objects.get(query, name=user['current_operation'])
             pdf = PDF()
             pdf.set_author(user['username'])
             pdf.set_title("Operation {}'s Full Timeline Report.pdf".format(user['current_operation']))
@@ -47,7 +49,7 @@ async def reporting_full_timeline_api(request, user):
                 return json({'status': 'error', 'error': status['error']})
             return json({'status': 'success'})
         except Exception as e:
-            print(e)
+            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             error = "Error in creating report: " + str(e)
             return json({'status': 'error', 'error': error})
 
@@ -60,15 +62,18 @@ async def get_all_data(operation, pdf, config):
     # need to get all callbacks, tasks, responses in a dict with the key being the timestamp
     try:
         all_data = {}
-        callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+        query = await callback_query()
+        callbacks = await db_objects.execute(query.where(Callback.operation == operation))
         height = pdf.font_size + 1
         for c in callbacks:
             all_data[c.init_callback] = {"callback": c}
-            tasks = await db_objects.execute(Task.select().where(Task.callback == c))
+            query = await task_query()
+            tasks = await db_objects.prefetch(query.where(Task.callback == c), Command.select())
             for t in tasks:
                 all_data[t.timestamp] = {"task": t}
                 if 'cmd_output' in config and config['cmd_output']:
-                    responses = await db_objects.execute(Response.select().where(Response.task == t))
+                    query = await response_query()
+                    responses = await db_objects.execute(query.where(Response.task == t))
                     if 'strict' in config and config['strict'] == "time":
                         # this will get output as it happened, not grouped with the corresponding command
                         for r in responses:
@@ -101,12 +106,16 @@ async def get_all_data(operation, pdf, config):
                 pdf.set_fill_color(244, 244, 244)
                 task = all_data[key]['task']
                 task_json = task.to_json()
-                callback = all_data[key]['task'].callback.to_json()
+                query = await callback_query()
+                callback = (await db_objects.get(query, id=all_data[key]['task'].callback)).to_json()
                 pdf.cell(w=36, h=height, txt=task_json['timestamp'], border=0, align="L", fill=highlight, ln=0)
                 pdf.cell(w=35, h=height, txt=callback['host'], border=0, align="C", fill=highlight, ln=0)
                 pdf.cell(w=30, h=height, txt=callback['user'], border=0, align="C", fill=highlight, ln=0)
                 pdf.cell(w=20, h=height, txt=str(callback['pid']), border=0, align="C", fill=highlight, ln=0)
-                command = task.command.cmd + " " + task_json['params']
+                if task.command:
+                    command = task.command.cmd + " " + task_json['params']
+                else:
+                    command = task_json['params']
                 if len(command) > 45:
                     pdf.cell(w=0, h=height, txt=command[0:45], border=0, align="L", fill=highlight, ln=1)
                     # it's too long to fit on one line, start a new line for it and do a multi-cell
@@ -138,7 +147,7 @@ async def get_all_data(operation, pdf, config):
                 pdf.multi_cell(w=0, h=height, txt=r_json['response'], border=0, align="L", fill=True)
         return pdf, {'status': 'success'}
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return pdf, {'status': 'error', 'error': str(e)}
 
 
@@ -182,4 +191,5 @@ async def get_full_timeline_api(request, user):
     try:
         return await file("./app/files/{}/full_timeline.pdf".format(user['current_operation']), filename="full_timeline.pdf")
     except Exception as e:
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({'status': 'error', 'error': str(e)})

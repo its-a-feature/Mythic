@@ -1,10 +1,11 @@
 from app import apfell, db_objects
 from sanic.response import raw, json
-from app.database_models.model import Payload, C2ProfileParametersInstance, C2ProfileParameters, StagingInfo
+from app.database_models.model import StagingInfo
 import base64
 import app.crypto as crypt
 import json as js
 from app.api.callback_api import create_callback_func
+import app.database_models.model as db_model
 
 
 # this is an unprotected API so that agents and c2 profiles can hit this when staging
@@ -13,11 +14,14 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
     # get payload associated with UUID
     try:
         # if this works then we're creating a new session key
-        payload = await db_objects.get(Payload, uuid=uuid)
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=uuid)
         # get the EKEPSK parameter from C2ProfileParametersInstance to get actual value to use
         try:
-            c2_param = await db_objects.get(C2ProfileParameters, c2_profile=payload.c2_profile, key="AESPSK")
-            c2_param_instance = await db_objects.get(C2ProfileParametersInstance, c2_profile_parameters=c2_param)
+            query = await db_model.c2profileparameters_query()
+            c2_param = await db_objects.get(query, c2_profile=payload.c2_profile, key="AESPSK")
+            query = await db_model.c2profileparametersinstance_query()
+            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param)
             AESPSK_String = c2_param_instance.value
         except Exception as e:
             print(str(e))
@@ -67,7 +71,8 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
         pass
     try:
         # if we get here, then we're looking at an agent trying to post a new callback after getting a session key
-        staging_info = await db_objects.get(StagingInfo, session_id=uuid)
+        query = await db_model.staginginfo_query()
+        staging_info = await db_objects.get(query, session_id=uuid)
         # use session_key to decrypt request.body
         encrypted_request = base64.b64decode(request.body)
         decrypted_message = await crypt.decrypt_AES256(data=encrypted_request,
@@ -97,11 +102,14 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
 async def AESPSK_Create_Callback(request, uuid):
     # get payload associated with UUID
     try:
-        payload = await db_objects.get(Payload, uuid=uuid)
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=uuid)
         # get the AES_PSK parameter from C2ProfileParametersInstance to get actual value to use
         try:
-            c2_param = await db_objects.get(C2ProfileParameters, c2_profile=payload.c2_profile, key="AESPSK")
-            c2_param_instance = await db_objects.get(C2ProfileParametersInstance, c2_profile_parameters=c2_param)
+            query = await db_model.c2profileparameters_query()
+            c2_param = await db_objects.get(query, c2_profile=payload.c2_profile, key="AESPSK")
+            query = await db_model.c2profileparametersinstance_query()
+            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param)
             AESPSK_String = c2_param_instance.value
             # print("AESb64key: " + AESPSK_String )
         except Exception as e:

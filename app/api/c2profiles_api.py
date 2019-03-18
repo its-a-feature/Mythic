@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, file
-from app.database_models.model import C2Profile, Operator, PayloadTypeC2Profile, PayloadType, Operation, C2ProfileParameters, FileMeta
+from app.database_models.model import C2Profile, PayloadTypeC2Profile, PayloadType, C2ProfileParameters, FileMeta
 from urllib.parse import unquote_plus
 import glob
 from sanic_jwt.decorators import protected, inject_user
@@ -10,6 +10,7 @@ import json as js
 import base64
 from typing import List
 import asyncio
+import app.database_models.model as db_model
 
 # this information is only valid for a single run of the server
 running_profiles = []  # will have dicts of process information
@@ -21,8 +22,10 @@ running_profiles = []  # will have dicts of process information
 @protected()
 async def get_all_c2profiles(request, user):
     #  this syntax is atrocious for getting a pretty version of the results from a many-to-many join table)
-    all_profiles = await db_objects.execute(C2Profile.select())
-    profiles = await db_objects.execute(PayloadTypeC2Profile.select(PayloadTypeC2Profile, C2Profile, PayloadType).join(C2Profile).switch(PayloadTypeC2Profile).join(PayloadType))
+    query = await db_model.c2profile_query()
+    all_profiles = await db_objects.execute(query)
+    query = await db_model.payloadtypec2profile_query()
+    profiles = await db_objects.execute(query)
     results = []
     inter = {}
     for p in all_profiles:
@@ -47,11 +50,12 @@ async def get_all_c2profiles(request, user):
 async def get_all_c2profiles_for_current_operation(request, user):
     if user['current_operation'] != "":
         try:
-            operation = await db_objects.get(Operation, name=user['current_operation'])
-            all_profiles = await db_objects.execute(C2Profile.select().where(C2Profile.operation == operation))
-            profiles = await db_objects.execute(
-                PayloadTypeC2Profile.select(PayloadTypeC2Profile, C2Profile, PayloadType).join(C2Profile).switch(
-                    PayloadTypeC2Profile).join(PayloadType))
+            query = await db_model.operation_query()
+            operation = await db_objects.get(query, name=user['current_operation'])
+            query = await db_model.c2profile_query()
+            all_profiles = await db_objects.execute(query.where(C2Profile.operation == operation))
+            query = await db_model.payloadtypec2profile_query()
+            profiles = await db_objects.execute(query)
             results = []
             inter = {}
             for p in all_profiles:
@@ -102,8 +106,10 @@ async def get_c2profiles_by_type_in_current_operation(request, info, user):
 # this function will be useful by other files, so make it easier to use
 async def get_c2profiles_by_type_function(ptype, user_dict, use_current):
     try:
-        payload_type = await db_objects.get(PayloadType, ptype=ptype)
-        profiles = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.payload_type == payload_type))
+        query = await db_model.payloadtype_query()
+        payload_type = await db_objects.get(query, ptype=ptype)
+        query = await db_model.payloadtypec2profile_query()
+        profiles = await db_objects.execute(query.where(PayloadTypeC2Profile.payload_type == payload_type))
     except Exception as e:
         print(e)
         raise Exception
@@ -134,16 +140,19 @@ async def register_new_c2profile(request, user):
     # we need to 1. make sure these are all valid payload types, and 2. create payloadtypec2profile entries as well
     for t in data['payload_types']:
         # this should be an array we can iterate over
-        if await db_objects.count(PayloadType.select().where(PayloadType.ptype == t.strip())) != 1:
+        query = await db_model.payloadtype_query()
+        if await db_objects.count(query.where(PayloadType.ptype == t.strip())) != 1:
             return json({'status': 'error', 'error': t + ' is not a valid PayloadType.'})
     try:
-        op = await db_objects.get(Operator, username=data['operator'])
+        query = await db_model.operator_query()
+        op = await db_objects.get(query, username=data['operator'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'operator could not be found'})
     try:
         if user['current_operation'] != "":
-            operation = await db_objects.get(Operation, name=user['current_operation'])
+            query = await db_model.operation_query()
+            operation = await db_objects.get(query, name=user['current_operation'])
             profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op,
                                               operation=operation)
             # make the right directory structure
@@ -151,7 +160,8 @@ async def register_new_c2profile(request, user):
             # now create the payloadtypec2profile entries
             for t in data['payload_types']:
                 try:
-                    payload_type = await db_objects.get(PayloadType, ptype=t.strip())
+                    query = await db_model.payloadtype_query()
+                    payload_type = await db_objects.get(query, ptype=t.strip())
                 except Exception as e:
                     print(e)
                     return json({'status': 'error', 'error': 'failed to find payload type: ' + t})
@@ -203,9 +213,12 @@ async def upload_c2_profile_payload_type_code(request, info, user):
     else:
         data = request.json
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=c2profile, operation=operation)
-        registered_ptypes = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.c2_profile == profile))
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=c2profile, operation=operation)
+        query = await db_model.payloadtypec2profile_query()
+        registered_ptypes = await db_objects.execute(query.where(PayloadTypeC2Profile.c2_profile == profile))
         ptypes = [p.payload_type.ptype for p in registered_ptypes]  # just get an array of all the names
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find profile or operation'})
@@ -252,8 +265,10 @@ async def update_c2profile(request, info, user):
     data = request.json
     payload_types = []
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -263,10 +278,12 @@ async def update_c2profile(request, info, user):
         if 'payload_types' in data:
             # We need to update the mapping in PayloadTypeC2Profile accordingly
             # We need to see which ones were there before, and either add or delete accordingly
-            mapping = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.c2_profile == profile))
+            query = await db_model.payloadtypec2profile_query()
+            mapping = await db_objects.execute(query.where(PayloadTypeC2Profile.c2_profile == profile))
             # For each payload type, make sure it's real, and that it's in the mapping
             for m in mapping:
-                map = await db_objects.get(PayloadType, id=m.payload_type)
+                query = await db_model.payloadtype_query()
+                map = await db_objects.get(query, id=m.payload_type)
                 if map.ptype in data['payload_types']:
                     # something we say this c2 profile supports is already listed, so remove it from our list to process
                     del data['payload_types'][data['payload_types'].index(map.ptype)]  # remove it from the array
@@ -278,10 +295,12 @@ async def update_c2profile(request, info, user):
                     await db_objects.delete(m)
             # if there's anyting left in data['payload_types'], it means we need to add it to the database
             for m in data['payload_types']:
-                if await db_objects.count(PayloadType.select().where(PayloadType.ptype == m.strip())) != 1:
+                query = await db_model.payloadtype_query()
+                if await db_objects.count(query.where(PayloadType.ptype == m.strip())) != 1:
                     return json({'status': 'error',
                                  'error': m + ' is not a valid PayloadType. Perhaps you need to register it first?'})
-                payload = await db_objects.get(PayloadType, ptype=m.strip())
+                query = await db_model.payloadtype_query()
+                payload = await db_objects.get(query, ptype=m.strip())
                 if not os.path.exists("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, payload.ptype)):
                     os.mkdir("./app/c2_profiles/{}/{}/{}".format(operation.name, profile.name, payload.ptype))
                 await db_objects.create(PayloadTypeC2Profile, c2_profile=profile, payload_type=payload)
@@ -303,8 +322,10 @@ async def start_c2profile(request, info, user):
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
         if profile.operation.name not in user['operations']:
             return json({'status': 'error', 'error': 'must be part of the operation to start/stop the profile'})
     except Exception as e:
@@ -353,7 +374,8 @@ async def stop_c2profile(request, info, user):
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find operation'})
@@ -363,7 +385,8 @@ async def stop_c2profile(request, info, user):
 
 async def stop_c2profile_func(profile_name, operation):
     try:
-        profile = await db_objects.get(C2Profile, name=profile_name, operation=operation)
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=profile_name, operation=operation)
     except Exception as e:
         return {'status': 'error', 'error': 'failed to find c2 profile in database'}
     for x in running_profiles:
@@ -388,8 +411,10 @@ async def status_c2profile(request, info, user):
     if name == "default":
         return json({'status': 'error', 'error': 'check main server logs for that info'})
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -417,8 +442,10 @@ async def status_c2profile(request, info, user):
 async def get_file_list_for_c2profiles(request, info, user):
     name = unquote_plus(info)
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -438,8 +465,10 @@ async def get_file_list_for_c2profiles(request, info, user):
 async def remove_file_for_c2profiles(request, info, user):
     name = unquote_plus(info)
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -461,8 +490,10 @@ async def remove_file_for_c2profiles(request, info, user):
 async def download_file_for_c2profiles(request, info, user):
     name = unquote_plus(info)
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
@@ -484,10 +515,14 @@ async def download_file_for_c2profiles(request, info, user):
 async def delete_c2profile(request, info, user):
     try:
         info = unquote_plus(info)
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=info, operation=operation)
-        parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
-        ptypec2profile = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.c2_profile == profile))
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=info, operation=operation)
+        query = await db_model.c2profileparameters_query()
+        parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
+        query = await db_model.payloadtypec2profile_query()
+        ptypec2profile = await db_objects.execute(query.where(PayloadTypeC2Profile.c2_profile == profile))
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 profile'})
@@ -516,13 +551,16 @@ async def delete_c2profile(request, info, user):
 async def get_c2profile_parameters(request, info, user):
     name = unquote_plus(info)
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find the c2 profile'})
     try:
-        parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
+        query = await db_model.c2profileparameters_query()
+        parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
         param_list = []
         for p in parameters:
             p_json = p.to_json()
@@ -542,13 +580,16 @@ async def edit_c2profile_parameters(request, info, user, id):
     data = request.json
     name = unquote_plus(info)
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find the c2 profile'})
     try:
-        c2_profile_parameter = await db_objects.get(C2ProfileParameters, id=id)
+        query = await db_model.c2profileparameters_query()
+        c2_profile_parameter = await db_objects.get(query, id=id)
         if 'name' in data:
             c2_profile_parameter.name = data['name']
         if 'key' in data:
@@ -569,8 +610,10 @@ async def create_c2profile_parameters(request, info, user):
     data = request.json
     name = unquote_plus(info)
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find the c2 profile'})
@@ -594,13 +637,16 @@ async def create_c2profile_parameters(request, info, user):
 async def delete_c2profile_parameter(request, info, id, user):
     name = unquote_plus(info)
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=name, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get the c2 profile'})
     try:
-        parameter = await db_objects.get(C2ProfileParameters, id=id)
+        query = await db_model.c2profileparameters_query()
+        parameter = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find the c2 profile parameter'})
@@ -619,10 +665,14 @@ async def delete_c2profile_parameter(request, info, id, user):
 async def create_c2profile_instance_replace_values(request, user):
     data = request.json
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=data['c2_profile'], operation=operation)
-        payload_type = await db_objects.get(PayloadType, ptype=data['ptype'])
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=data['c2_profile'], operation=operation)
+        query = await db_model.payloadtype_query()
+        payload_type = await db_objects.get(query, ptype=data['ptype'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get the c2 profile'})
@@ -631,7 +681,8 @@ async def create_c2profile_instance_replace_values(request, user):
                                                                 profile.name, payload_type.file_extension))
     except Exception as e:
         return json({'status': 'error', 'error': str(e)})
-    params = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
+    query = await db_model.c2profileparameters_query()
+    params = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
     c2_code = base_c2.read()
     base_c2.close()
     for p in params:
@@ -664,12 +715,15 @@ async def create_c2profile_instance_replace_values(request, user):
 async def export_c2_profile(request, user, info):
     try:
         info = unquote_plus(info)
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        profile = await db_objects.get(C2Profile, name=info, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=info, operation=operation)
     except Exception as e:
         return json({'status': 'error', 'error': 'Failed to find profile'})
     c2_profile = {"name": profile.name, "description": profile.description}
-    params = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == profile))
+    query = await db_model.c2profileparameters_query()
+    params = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
     params_list = []
     for p in params:
         params_list.append({"name": p.name, "key": p.key, "hint": p.hint})
@@ -703,8 +757,10 @@ async def import_c2_profile(request, user):
             print(e)
             return json({'status': 'error', 'error': 'failed to parse JSON'})
     try:
-        operator = await db_objects.get(Operator, username=user['username'])
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get operator information'})
@@ -713,7 +769,8 @@ async def import_c2_profile(request, user):
 
 async def import_c2_profile_func(data, operation, operator):
     try:
-        profile = await db_objects.get(C2Profile, name=data['name'], operation=operation)
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=data['name'], operation=operation)
         profile.operator = operator
         profile.description = data['description']
         await db_objects.update(profile)
@@ -728,7 +785,8 @@ async def import_c2_profile_func(data, operation, operator):
         return {'status': 'error', 'error': 'failed to get or create profile: ' + str(e)}
     for param in data['params']:
         try:
-            c2_profile_param = await db_objects.get(C2ProfileParameters, name=param['name'], c2_profile=profile)
+            query = await db_model.c2profileparameters_query()
+            c2_profile_param = await db_objects.get(query, name=param['name'], c2_profile=profile)
             c2_profile_param.key = param['key']
             c2_profile_param.hint = param['hint']
             await db_objects.update(c2_profile_param)
@@ -744,7 +802,8 @@ async def import_c2_profile_func(data, operation, operator):
         return {'status': 'error', 'error': 'failed to write files: ' + str(e)}
     for ptype in data['payload_types']:
         try:
-            payload_type = await db_objects.get(PayloadType, ptype=ptype)
+            query = await db_model.payloadtype_query()
+            payload_type = await db_objects.get(query, ptype=ptype)
             await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
         except Exception as e:
             # payload type doesn't exist, so skip it and move on
@@ -783,8 +842,10 @@ async def register_default_profile_operation(operator, operation):
 @protected()
 async def import_c2_profile(request, user):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         return json({'status': 'error', 'error': 'no current operation'})
     return json(await register_default_profile_operation(operator, operation))

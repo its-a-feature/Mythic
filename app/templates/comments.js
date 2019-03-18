@@ -30,6 +30,9 @@ function comments_by_callback_callback(response){
     }
     else{
         comments_by_callback.callbacks = data['callbacks'];
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }
 }
 function update_callback_comment_callback(response){
@@ -49,6 +52,9 @@ function update_callback_comment_callback(response){
             for(var j = 0; j < comments_by_callback.callbacks[i].tasks.length; j++){
                 if(comments_by_callback.callbacks[i].tasks[j].id == data['id']){
                     Vue.set(comments_by_callback.callbacks[i].tasks, j, Object.assign({}, comments_by_callback.callbacks[i].tasks[j], data));
+                    $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+                          $("#top-alert").slideUp(500);
+                    });
                     return;
                 }
             }
@@ -94,6 +100,9 @@ function update_operator_comment_callback(response){
                 for(var k = 0; k < comments_by_operator.operators[i].callbacks[j].tasks.length; k++){
                     if(comments_by_operator.operators[i].callbacks[j].tasks[k].id == data['id']){
                         Vue.set(comments_by_operator.operators[i].callbacks[j].tasks, k, Object.assign({}, comments_by_operator.operators[i].callbacks[j].tasks[k], data));
+                        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+                              $("#top-alert").slideUp(500);
+                        });
                         return;
                     }
                 }
@@ -115,6 +124,9 @@ function comments_by_operator_callback(response){
     }
     else{
         comments_by_operator.operators = data['operators'];
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }
 }
 
@@ -123,10 +135,12 @@ httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_ba
 function view_by_operator(){
     comments_by_callback.callbacks = [];
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/by_operator", comments_by_operator_callback, "GET", null);
+    alertTop("info", "Sorting by operator...");
 }
 function view_by_callback(){
     comments_by_operator.operators = [];
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/by_callback", comments_by_callback_callback, "GET", null);
+    alertTop("info", "Sorting by callback...");
 }
 
 function search_comments(){
@@ -135,5 +149,6 @@ function search_comments(){
         comments_by_callback.callbacks = [];
         comments_by_operator.operators = [];
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/search", comments_by_callback_callback, "POST", {"search": search});
+        alertTop("info", "Searching...");
     }
 }

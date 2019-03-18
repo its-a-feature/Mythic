@@ -1,6 +1,7 @@
 from sanic_jwt import exceptions
 from app import db_objects, links
-from app.database_models.model import Operator, Operation, OperatorOperation
+from app.database_models.model import Operation, OperatorOperation
+from app.database_models.model import operator_query, operation_query, operatoroperation_query
 import datetime
 import json
 
@@ -14,7 +15,10 @@ async def authenticate(request):
     if not username or not password:
         raise exceptions.AuthenticationFailed("Must supply both username and password")
     try:
-        user = await db_objects.get(Operator, username=username)
+        query = await operator_query()
+        user = await db_objects.get(query, username=username)
+        print("in authenticate, the user: " + str(user))
+        #user = await db_objects.get(Operator, username=username)
     except Exception as e:
         print("invalid username")
         raise exceptions.AuthenticationFailed("Incorrect username or password")
@@ -43,14 +47,17 @@ async def retrieve_user(request, payload, *args, **kwargs):
     try:
         if user_id is None or user_id not in refresh_tokens:
             raise exceptions.AuthenticationFailed("Invalid auth token or your refresh token is gone. Login again")
-        user = await db_objects.get(Operator, id=user_id)
+        query = await operator_query()
+        user = await db_objects.get(query, id=user_id)
         user_json = user.to_json()
-        operationmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operator == user))
+        query = await operatoroperation_query()
+        operationmap = await db_objects.execute(query.where(OperatorOperation.operator == user))
         operations = []
         for operation in operationmap:
-            op = await db_objects.get(Operation, id=operation.operation)
+            op = operation.operation
             operations.append(op.name)
-        admin_operations = await db_objects.execute(Operation.select().where(Operation.admin == user))
+        query = await operation_query()
+        admin_operations = await db_objects.execute(query.where(Operation.admin == user))
         admin_ops = []
         for op in admin_operations:
             admin_ops.append(op.name)
@@ -72,19 +79,20 @@ async def add_scopes_to_payload(user, *args, **kwargs):
     # return an array of scopes
     scopes = []
     try:
-        user = await db_objects.get(Operator, id=user['user_id'])
+        query = await operator_query()
+        user = await db_objects.get(query, id=user['user_id'])
     except Exception as e:
         print(e)
         return []
     try:
-        operationsmap = await db_objects.execute(OperatorOperation.select().where(OperatorOperation.operator == user))
+        query = await operatoroperation_query()
+        operationsmap = await db_objects.execute(query.where(OperatorOperation.operator == user))
         if user.admin:
             scopes.append('admin')
         for map in operationsmap:
             # map is an OperatorOperation object that points to an operator and operation
             # need to get that corresponding operation's name to add to our scope list
-            operation = await db_objects.get(Operation, id=map.operation)
-            scopes.append(operation.name)
+            scopes.append(map.operation.name)
         return scopes
     except Exception as e:
         print(e)

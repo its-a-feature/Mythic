@@ -1,18 +1,20 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Operator, Operation
+from app.database_models.model import Operator
 from sanic import response
 from app import crypto
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import inject_user
 from sanic_jwt import protected
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['GET'])
 @inject_user()
 @protected()
 async def get_all_operators(request, user):
-    ops = await db_objects.execute(Operator.select())
+    query = await db_model.operator_query()
+    ops = await db_objects.execute(query)
     return json([p.to_json() for p in ops])
 
 
@@ -49,7 +51,8 @@ async def create_operator(request, user):
 async def get_one_operator(request, name, user):
     name = unquote_plus(name)
     try:
-        op = await db_objects.get(Operator, username=name)
+        query = await db_model.operator_query()
+        op = await db_objects.get(query, username=name)
         return json({'status': 'success', **op.to_json()})
     except:
         print("Failed to get operator")
@@ -81,7 +84,8 @@ async def update_operator(request, name, user):
         # you can't change the name of somebody else unless you're admin
         return json({'status': 'error', 'error': 'not authorized to change that user\'s information'})
     try:
-        op = await db_objects.get(Operator, username=name)
+        query = await db_model.operator_query()
+        op = await db_objects.get(query, username=name)
         data = request.json
         if 'username' in data and data['username'] is not "apfell_admin":  # TODO right now hard-coded to not change this username
             op.username = data['username']
@@ -93,7 +97,8 @@ async def update_operator(request, name, user):
             op.active = data['active']
         if 'current_operation' in data:
             if data['current_operation'] in user['operations']:
-                current_op = await db_objects.get(Operation, name=data['current_operation'])
+                query = await db_model.operation_query()
+                current_op = await db_objects.get(query, name=data['current_operation'])
                 op.current_operation = current_op
         if 'ui_config' in data:
             if data['ui_config'] == "default":
@@ -120,7 +125,8 @@ async def remove_operator(request, name, user):
     try:
         if name == "apfell_admin":
             return json({'status': 'error', 'error': 'cannot delete apfell_admin'})
-        op = await db_objects.get(Operator, username=name)
+        query = await db_model.operator_query()
+        op = await db_objects.get(query, username=name)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find operator'})

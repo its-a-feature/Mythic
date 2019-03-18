@@ -1,14 +1,16 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Artifact, ArtifactTemplate, TaskArtifact, Operation, Task, Callback
+from app.database_models.model import Artifact, Task, Callback
 from sanic_jwt.decorators import protected, inject_user
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/artifacts", methods=['GET'])
 @inject_user()
 @protected()
 async def get_all_artifacts(request, user):
-    artifacts = await db_objects.execute(Artifact.select())
+    query = await db_model.artifact_query()
+    artifacts = await db_objects.execute(query)
     return json({'status': 'success', 'artifacts': [a.to_json() for a in artifacts]})
 
 
@@ -34,7 +36,8 @@ async def create_artifact(request, user):
 async def update_artifact(request, user, id):
     data = request.json
     try:
-        artifact = await db_objects.get(Artifact, id=id)
+        query = await db_model.artifact_query()
+        artifact = await db_objects.get(query, id=id)
     except Exception as e:
         return json({'status': 'error', 'error': 'Could not find artifact'})
     if "name" in data:
@@ -53,7 +56,8 @@ async def update_artifact(request, user, id):
 @protected()
 async def update_artifact(request, user, id):
     try:
-        artifact = await db_objects.get(Artifact, id=id)
+        query = await db_model.artifact_query()
+        artifact = await db_objects.get(query, id=id)
     except Exception as e:
         return json({'status': 'error', 'error': 'Could not find artifact'})
     try:
@@ -70,11 +74,14 @@ async def update_artifact(request, user, id):
 async def get_all_artifact_tasks(request, user):
     # get all of the artifact tasks for the current operation
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except:
         return json({'status': 'error', 'error': "failed to get current operation"})
-    callbacks = Callback.select().where(Callback.operation == operation)
-    artifact_tasks = await db_objects.execute(TaskArtifact.select().join(Task).where(Task.callback.in_(callbacks)))
+    query = await db_model.callback_query()
+    callbacks = query.where(Callback.operation == operation).select(Callback.id)
+    task_query = await db_model.taskartifact_query()
+    artifact_tasks = await db_objects.execute(task_query.where(Task.callback.in_(callbacks)))
 
     return json({'status': 'success', 'tasks': [a.to_json() for a in artifact_tasks]})
 
@@ -84,7 +91,8 @@ async def get_all_artifact_tasks(request, user):
 @protected()
 async def remove_artifact_tasks(request, user, aid):
     try:
-        artifact_task = await db_objects.get(TaskArtifact, id=aid)
+        query = await db_model.taskartifact_query()
+        artifact_task = await db_objects.get(query, id=aid)
     except:
         return json({'status': 'error', 'error': 'failed to find that artifact task'})
     try:

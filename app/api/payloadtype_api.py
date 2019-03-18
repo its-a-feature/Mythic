@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, file
-from app.database_models.model import Operator, PayloadType, Command, CommandParameters, CommandTransform, ATTACKCommand, Operation, PayloadTypeC2Profile, C2Profile, Transform, ATTACK, ArtifactTemplate, Artifact
+from app.database_models.model import PayloadType, Command, CommandParameters, CommandTransform, ATTACKCommand, PayloadTypeC2Profile, C2Profile, Transform, ArtifactTemplate
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
 import os
@@ -8,6 +8,7 @@ from shutil import rmtree
 import json as js
 import glob
 import base64, datetime
+import app.database_models.model as db_model
 
 
 # payloadtypes aren't inherent to an operation
@@ -15,7 +16,8 @@ import base64, datetime
 @inject_user()
 @protected()
 async def get_all_payloadtypes(request, user):
-    payloads = await db_objects.execute(PayloadType.select())
+    query = await db_model.payloadtype_query()
+    payloads = await db_objects.execute(query)
     return json([p.to_json() for p in payloads])
 
 
@@ -25,7 +27,8 @@ async def get_all_payloadtypes(request, user):
 async def get_all_payloadtypes(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find payload type'})
     return json({'status': 'success', **payloadtype.to_json()})
@@ -56,12 +59,14 @@ async def create_payloadtype(request, user):
             return json({'status': 'error', 'error': 'must specify "supported_os" list'})
         if 'execute_help' not in data:
             data['execute_help'] = ""
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
         if data['wrapper']:
             if "wrapped_payload_type" not in data:
                 return json({'status': 'error', 'error': '"wrapped_payload_type" is required for a wraper type payload'})
             try:
-                wrapped_payload_type = await db_objects.get(PayloadType, ptype=data['wrapped_payload_type'])
+                query = await db_model.payloadtype_query()
+                wrapped_payload_type = await db_objects.get(query, ptype=data['wrapped_payload_type'])
             except Exception as e:
                 print(e)
                 return json({'status': 'error', 'error': "failed to find that wrapped payload type"})
@@ -114,11 +119,13 @@ async def update_payloadtype(request, user, ptype):
         data = request.json
     try:
         payload_type = unquote_plus(ptype)
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': "failed to find that payload type"})
-    operator = await db_objects.get(Operator, username=user['username'])
+    query = await db_model.operator_query()
+    operator = await db_objects.get(query, username=user['username'])
     if user['admin'] or payloadtype.operator == operator:
         if 'file_extension' in data:
             if "." not in data['file_extension'] and data['file_extension'] != "":
@@ -129,7 +136,8 @@ async def update_payloadtype(request, user, ptype):
             payloadtype.wrapper = data['wrapper']
         if 'wrapped_payload_type' in data:
             try:
-                wrapped_payload_type = await db_objects.get(PayloadType, ptype=data['wrapped_payload_type'])
+                query = await db_model.payloadtype_query()
+                wrapped_payload_type = await db_objects.get(query, ptype=data['wrapped_payload_type'])
             except Exception as e:
                 print(e)
                 return json({'status': 'error', 'error': "failed to find that wrapped payload type"})
@@ -163,7 +171,8 @@ async def update_payloadtype(request, user, ptype):
 async def upload_payload_code(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload'})
@@ -192,10 +201,12 @@ async def upload_payload_code(request, user, ptype):
 async def delete_one_payloadtype(request, user, ptype, fromDisk):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find payload type'})
-    operator = await db_objects.get(Operator, username=user['username'])
+    query = await db_model.operator_query()
+    operator = await db_objects.get(query, username=user['username'])
     if payloadtype.operator == operator or user['admin']:
         # only delete a payload type if you created it or if you're an admin
         try:
@@ -219,15 +230,19 @@ async def delete_one_payloadtype(request, user, ptype, fromDisk):
 async def get_commands_for_payloadtype(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get payload type'})
-    commands = await db_objects.execute(Command.select().where(Command.payload_type == payloadtype).order_by(Command.cmd))
+    query = await db_model.command_query()
+    commands = await db_objects.execute(query.where(Command.payload_type == payloadtype).order_by(Command.cmd))
     all_commands = []
     for cmd in commands:
-        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == cmd))
-        transforms = await db_objects.execute(CommandTransform.select().where(CommandTransform.command == cmd))
+        query = await db_model.commandparameters_query()
+        params = await db_objects.execute(query.where(CommandParameters.command == cmd))
+        query = await db_model.commandtransform_query()
+        transforms = await db_objects.execute(query.where(CommandTransform.command == cmd))
         all_commands.append({**cmd.to_json(), "params": [p.to_json() for p in params], "transforms": [t.to_json() for t in transforms]})
     status = {'status': 'success'}
     return json({**status, 'commands': all_commands})
@@ -239,7 +254,8 @@ async def get_commands_for_payloadtype(request, user, ptype):
 async def list_uploaded_files_for_payloadtype(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get payload type'})
@@ -259,7 +275,8 @@ async def list_uploaded_files_for_payloadtype(request, user, ptype):
 async def remove_uploaded_files_for_payloadtype(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get payload type'})
@@ -281,7 +298,8 @@ async def remove_uploaded_files_for_payloadtype(request, user, ptype):
 async def download_file_for_payloadtype(request, ptype, user):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload type'})
@@ -302,8 +320,10 @@ async def download_file_for_payloadtype(request, ptype, user):
 async def export_command_list(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
-        payload_ptype = await db_objects.get(PayloadType, ptype=payload_type)
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.payloadtype_query()
+        payload_ptype = await db_objects.get(query, ptype=payload_type)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'unable to find that payload type'})
@@ -318,14 +338,16 @@ async def export_command_list(request, user, ptype):
             payload_file = open(file, 'rb')
             file_dict = {file.split("/")[-1]: base64.b64encode(payload_file.read()).decode('utf-8')}
             payloadtype_json['files'].append(file_dict)
-        commands = await db_objects.execute(Command.select().where(Command.payload_type == payload_ptype))
+        query = await db_model.command_query()
+        commands = await db_objects.execute(query.where(Command.payload_type == payload_ptype))
         for c in commands:
             cmd_json = c.to_json()
             del cmd_json['id']
             del cmd_json['creation_time']
             del cmd_json['operator']
             del cmd_json['payload_type']
-            params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == c))
+            query = await db_model.commandparameters_query()
+            params = await db_objects.execute(query.where(CommandParameters.command == c))
             params_list = []
             for p in params:
                 p_json = p.to_json()
@@ -336,7 +358,8 @@ async def export_command_list(request, user, ptype):
                 del p_json['payload_type']
                 params_list.append(p_json)
             cmd_json['parameters'] = params_list
-            attacks = await db_objects.execute(ATTACKCommand.select().where(ATTACKCommand.command == c))
+            query = await db_model.attackcommand_query()
+            attacks = await db_objects.execute(query.where(ATTACKCommand.command == c))
             attack_list = []
             for a in attacks:
                 a_json = a.to_json()
@@ -345,7 +368,8 @@ async def export_command_list(request, user, ptype):
                 del a_json['id']
                 attack_list.append(a_json)
             cmd_json['attack'] = attack_list
-            artifacts = await db_objects.execute(ArtifactTemplate.select().where(ArtifactTemplate.command == c))
+            query = await db_model.artifacttemplate_query()
+            artifacts = await db_objects.execute(query.where(ArtifactTemplate.command == c))
             artifact_list = []
             for a in artifacts:
                 a_json = {"command_parameter": a.command_parameter, "artifact": a.artifact.name,
@@ -356,7 +380,8 @@ async def export_command_list(request, user, ptype):
             cmd_json['file'] = base64.b64encode(cmd_file.read()).decode('utf-8')
             cmdlist.append(cmd_json)
         # get all the c2 profiles we can that match up with this payload type for the current operation
-        profiles = await db_objects.execute(PayloadTypeC2Profile.select().where(PayloadTypeC2Profile.payload_type == payload_ptype).join(C2Profile).where(C2Profile.operation == operation))
+        query = await db_model.payloadtypec2profile_query()
+        profiles = await db_objects.execute(query.where(PayloadTypeC2Profile.payload_type == payload_ptype).join(C2Profile).where(C2Profile.operation == operation))
         profiles_dict = {}
         for p in profiles:
             files = []
@@ -367,7 +392,8 @@ async def export_command_list(request, user, ptype):
             profiles_dict[p.c2_profile.name] = files
         payloadtype_json['c2_profiles'] = profiles_dict
         # get all of the module load transformations
-        load_transforms = await db_objects.execute(Transform.select().where(
+        query = await db_model.transform_query()
+        load_transforms = await db_objects.execute(query.where(
             (Transform.t_type == "load") & (Transform.payload_type == payload_ptype) ))
         load_transforms_list = []
         for lt in load_transforms:
@@ -380,7 +406,8 @@ async def export_command_list(request, user, ptype):
             load_transforms_list.append(lt_json)
         payloadtype_json['load_transforms'] = load_transforms_list
         # get all of the payload creation transformations
-        create_transforms = await db_objects.execute(Transform.select().where(
+        query = await db_model.transform_query()
+        create_transforms = await db_objects.execute(query.where(
             (Transform.t_type == "create") & (Transform.payload_type == payload_ptype)))
         create_transforms_list = []
         for ct in create_transforms:
@@ -417,8 +444,10 @@ async def import_payloadtype_and_commands(request, user):
             print(e)
             return json({'status': 'error', 'error': 'failed to parse JSON'})
     try:
-        operator = await db_objects.get(Operator, username=user['username'])
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get operator information'})
@@ -439,11 +468,13 @@ async def import_payloadtype_and_commands(request, user):
 async def import_payload_type_func(ptype, operator, operation):
     if ptype['wrapper']:
         try:
-            wrapped_payloadtype = await db_objects.get(PayloadType, ptype=ptype['wrapped_payload_type'])
+            query = await db_model.payloadtype_query()
+            wrapped_payloadtype = await db_objects.get(query, ptype=ptype['wrapped_payload_type'])
         except Exception as e:
             return {ptype['ptype']: 'failed to find wrapped payload type'}
         try:
-            payload_type, created = await db_objects.get(PayloadType, ptype=ptype['ptype'],
+            query = await db_model.payloadtype_query()
+            payload_type= await db_objects.get(query, ptype=ptype['ptype'],
                                                                    wrapped_payload_type=wrapped_payloadtype)
         except Exception as e:
             # this means we need to create it
@@ -454,7 +485,8 @@ async def import_payload_type_func(ptype, operator, operation):
 
     else:
         try:
-            payload_type = await db_objects.get(PayloadType, ptype=ptype['ptype'])
+            query = await db_model.payloadtype_query()
+            payload_type = await db_objects.get(query, ptype=ptype['ptype'])
         except Exception as e:
             payload_type = await db_objects.create(PayloadType, ptype=ptype['ptype'],
                                                                operator=operator, wrapper=False,
@@ -480,7 +512,8 @@ async def import_payload_type_func(ptype, operator, operation):
     # now to process the transforms
     for lt in ptype['load_transforms']:
         try:
-            cmd_lt = await db_objects.get(Transform, payload_type=payload_type, t_type="load",
+            query = await db_model.transform_query()
+            cmd_lt = await db_objects.get(query, payload_type=payload_type, t_type="load",
                                           order=lt['order'])
             cmd_lt.name = lt['name']
             cmd_lt.parameter = lt['parameter']
@@ -491,7 +524,8 @@ async def import_payload_type_func(ptype, operator, operation):
                                     **lt)
     for ct in ptype['create_transforms']:
         try:
-            cmd_ct = await db_objects.get(Transform, payload_type=payload_type, t_type="create",
+            query = await db_model.transform_query()
+            cmd_ct = await db_objects.get(query, payload_type=payload_type, t_type="create",
                                           order=ct['order'])
             cmd_ct.name = ct['name']
             cmd_ct.parameter = ct['parameter']
@@ -503,7 +537,8 @@ async def import_payload_type_func(ptype, operator, operation):
     # now that we have the payload type, start processing the commands and their parts
     for cmd in ptype['commands']:
         try:
-            command = await db_objects.get(Command, cmd=cmd['cmd'], payload_type=payload_type)
+            query = await db_model.command_query()
+            command = await db_objects.get(query, cmd=cmd['cmd'], payload_type=payload_type)
             command.description = cmd['description']
             command.needs_admin = cmd['needs_admin']
             command.version = cmd['version']
@@ -518,7 +553,8 @@ async def import_payload_type_func(ptype, operator, operation):
         # now to process the parameters
         for param in cmd['parameters']:
             try:
-                cmd_param = await db_objects.get(CommandParameters, command=command, name=param['name'])
+                query = await db_model.commandparameters_query()
+                cmd_param = await db_objects.get(query, command=command, name=param['name'])
                 cmd_param.type = param['type']
                 cmd_param.hint = param['hint']
                 cmd_param.choices = param['choices']
@@ -530,18 +566,22 @@ async def import_payload_type_func(ptype, operator, operation):
 
         # now to process the att&cks
         for attack in cmd['attack']:
-            attck = await db_objects.get(ATTACK, t_num=attack['t_num'])
-            await db_objects.get_or_create(ATTACKCommand, command=command, attack=attck)
+            query = await db_model.attack_query()
+            attck = await db_objects.get(query, t_num=attack['t_num'])
+            query = await db_model.attackcommand_query()
+            await db_objects.get_or_create(query, command=command, attack=attck)
 
         # now to process the artifacts
         for at in cmd['artifacts']:
             try:
-                artifact = await db_objects.get(Artifact, name=at['artifact'])
+                query = await db_model.artifact_query()
+                artifact = await db_objects.get(query, name=at['artifact'])
                 artifact_template = await db_objects.create(ArtifactTemplate, command=command, artifact=artifact,
                                                             artifact_string=at['artifact_string'],
                                                             replace_string=at['replace_string'])
                 if at['command_parameter'] is not None and at['command_parameter'] != "null":
-                    command_parameter = await db_objects.get(CommandParameters, command=command, name=at['command_parameter'])
+                    query = await db_model.commandparameters_query()
+                    command_parameter = await db_objects.get(query, command=command, name=at['command_parameter'])
                     artifact_template.command_parameter = command_parameter
                     await db_objects.update(artifact_template)
             except:
@@ -557,13 +597,15 @@ async def import_payload_type_func(ptype, operator, operation):
         for c2_profile_name in ptype['c2_profiles']:  # {"default": [{"default.h": "base64"}, {"default.c": "base64"} ]}, {"RESTful Patchtrhough": []}
             # make sure this c2 profile exists for this operation first
             try:
-                c2_profile = await db_objects.get(C2Profile, name=c2_profile_name, operation=operation)
+                query = await db_model.c2profile_query()
+                c2_profile = await db_objects.get(query, name=c2_profile_name, operation=operation)
             except Exception as e:
                 continue  # just try to get the next c2_profile
             # now deal with the files
             for c2_file in ptype['c2_profiles'][c2_profile_name]:  # list of files
                 # associate the new payload type with this C2 profile and create directory as needed
-                await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=c2_profile)
+                query = await db_model.payloadtypec2profile_query()
+                await db_objects.get_or_create(query, payload_type=payload_type, c2_profile=c2_profile)
                 os.makedirs("./app/c2_profiles/{}/{}/{}".format(operation.name, c2_profile_name, ptype['ptype']), exist_ok=True)
                 for c2_file_name in c2_file:
                     ptype_file = open("./app/c2_profiles/{}/{}/{}/{}".format(operation.name, c2_profile_name, ptype['ptype'], c2_file_name), 'wb')

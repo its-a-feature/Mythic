@@ -2,8 +2,9 @@ from app import apfell, db_objects
 import shutil
 from sanic.response import json
 from sanic_jwt.decorators import protected, inject_user
-from app.database_models.model import Operator, Operation, Payload, Callback, FileMeta, Keylog, Credential, Task, Response
+from app.database_models.model import Payload, Callback, FileMeta, Keylog, Credential
 import os
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/database/clear", methods=['POST'])
@@ -11,8 +12,10 @@ import os
 @protected()
 async def database_clears(request, user):
     try:
-        operator = await db_objects.get(Operator, username=user['username'])
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
         if operation.name not in user['admin_operations']:
             return json({'status': 'error', 'error': "you must be the admin of the operation to clear the database"})
     except Exception as e:
@@ -22,7 +25,8 @@ async def database_clears(request, user):
         return json({'status': 'error', 'error': '"object" is a required parameter'})
     deleted_obj_info = {'dbnumber': 0}
     if data['object'] == "payloads":
-        payloads = await db_objects.execute(Payload.select().where(Payload.operation == operation))
+        query = await db_model.payload_query()
+        payloads = await db_objects.execute(query.where(Payload.operation == operation))
         for p in payloads:
             try:
                 os.remove(p.location)  # delete it from disk first
@@ -32,12 +36,14 @@ async def database_clears(request, user):
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
 
     elif data['object'] == "callbacks":
-        callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+        query = await db_model.callback_query()
+        callbacks = await db_objects.execute(query.where(Callback.operation == operation))
         for c in callbacks:
             await db_objects.delete(c, recursive=True)
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
     elif data['object'] == "screencaptures":
-        screencaptures = await db_objects.execute(FileMeta.select().where( (FileMeta.operation == operation) & (FileMeta.path.contains("/screenshots/")) ))
+        query = await db_model.filemeta_query()
+        screencaptures = await db_objects.execute(query.where( (FileMeta.operation == operation) & (FileMeta.path.contains("/screenshots/")) ))
         for s in screencaptures:
             try:
                 os.remove(s.path)
@@ -46,7 +52,8 @@ async def database_clears(request, user):
             await db_objects.delete(s, recursive=True)
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
     elif data['object'] == "downloads":
-        downloads = await db_objects.execute(FileMeta.select().where( (FileMeta.operation == operation) & (FileMeta.path.contains("/downloads/")) ))
+        query = await db_model.filemeta_query()
+        downloads = await db_objects.execute(query.where( (FileMeta.operation == operation) & (FileMeta.path.contains("/downloads/")) ))
         for d in downloads:
             try:
                 os.remove(d.path)
@@ -56,7 +63,8 @@ async def database_clears(request, user):
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
         shutil.rmtree("./app/files/{}/downloads".format(operation.name))  # remove the downloads folder from disk
     elif data['object'] == "uploads":
-        uploads = await db_objects.execute(FileMeta.select().where( (FileMeta.operation == operation) & (FileMeta.path.contains("/{}/".format(operation.name))) & ~(FileMeta.path.contains("/downloads")) ))
+        query = await db_model.filemeta_query()
+        uploads = await db_objects.execute(query.where( (FileMeta.operation == operation) & (FileMeta.path.contains("/{}/".format(operation.name))) & ~(FileMeta.path.contains("/downloads")) ))
         for u in uploads:
             try:
                 os.remove(u.path)
@@ -65,25 +73,26 @@ async def database_clears(request, user):
             await db_objects.delete(u, recursive=True)
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
     elif data['object'] == "keylogs":
-        keylogs = await db_objects.execute(Keylog.select().where(Keylog.operation == operation))
+        query = await db_model.keylog_query()
+        keylogs = await db_objects.execute(query.where(Keylog.operation == operation))
         for k in keylogs:
             await db_objects.delete(k, recursive=True)
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
     elif data['object'] == "credentials":
-        credentials = await db_objects.execute(Credential.select().where(Credential.operation == operation))
+        query = await db_model.credential_query()
+        credentials = await db_objects.execute(query.where(Credential.operation == operation))
         for c in credentials:
             await db_objects.delete(c, recursive=True)
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
     elif data['object'] == "tasks":
-        callbacks = Callback.select().where(Callback.operation == operation)
-        tasks = await db_objects.prefetch(Task.select(), callbacks)
+        query = await db_model.task_query()
+        tasks = await db_objects.execute(query.where(Callback.operation == operation))
         for t in tasks:
             await db_objects.delete(t, recursive=True)
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1
     elif data['object'] == "responses":
-        callbacks = Callback.select().where(Callback.operation == operation)
-        tasks = Task.select()
-        responses = await db_objects.prefetch(Response.select(), tasks, callbacks)
+        query = await db_model.response_query()
+        responses = await db_objects.execute(query.where(Callback.operation == operation))
         for r in responses:
             await db_objects.delete(r, recursive=True)
             deleted_obj_info['dbnumber'] = deleted_obj_info['dbnumber'] + 1

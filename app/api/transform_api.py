@@ -1,12 +1,13 @@
 from app import apfell, db_objects
 from sanic.response import json, file
-from app.database_models.model import PayloadType, Transform, Operator, Command, Operation, CommandTransform
+from app.database_models.model import Transform, CommandTransform
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
 from app.api.transforms.utils import TransformOperation, CommandTransformOperation
 import datetime
 import importlib, sys
 import base64
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bytype/<ptype:string>", methods=['GET'])
@@ -15,12 +16,14 @@ import base64
 async def get_transforms_by_type(request, ptype, user):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload type'})
     try:
-        transforms = await db_objects.execute(Transform.select().where(Transform.payload_type == payloadtype).order_by(
+        query = await db_model.transform_query()
+        transforms = await db_objects.execute(query.where(Transform.payload_type == payloadtype).order_by(
             Transform.t_type, Transform.order
         ))
     except Exception as e:
@@ -81,8 +84,10 @@ async def get_type_hints(func):
 async def register_transform_for_ptype(request, user, ptype):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload type'})
@@ -114,7 +119,8 @@ async def register_transform_for_ptype(request, user, ptype):
 @protected()
 async def delete_transform(request, user, id):
     try:
-        transform = await db_objects.get(Transform, id=id)
+        query = await db_model.transform_query()
+        transform = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that transform'})
@@ -192,8 +198,10 @@ async def upload_c2_profile_payload_type_code(request, user):
 async def update_transform_for_ptype(request, user, id):
     data = request.json
     try:
-        transform = await db_objects.get(Transform, id=id)
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.transform_query()
+        transform = await db_objects.get(query, id=id)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find transform'})
@@ -216,12 +224,14 @@ async def update_transform_for_ptype(request, user, id):
 
 async def get_transforms_func(ptype, t_type):
     try:
-        payload_type = await db_objects.get(PayloadType, ptype=ptype)
+        query = await db_model.payloadtype_query()
+        payload_type = await db_objects.get(query, ptype=ptype)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get payload type specified'}
     try:
-        transforms = await db_objects.execute(Transform.select().where(
+        query = await db_model.transform_query()
+        transforms = await db_objects.execute(query.where(
             (Transform.t_type == t_type) & (Transform.payload_type == payload_type)).order_by(Transform.order))
     except Exception as e:
         print(e)
@@ -236,12 +246,15 @@ async def get_transforms_func(ptype, t_type):
 @protected()
 async def get_transforms_by_command(request, id, user):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        command = await db_objects.get(Command, id=id)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
     except:
         return json({'status': 'error', 'error': "failed to find that command or current operation"})
     try:
-        transforms = await db_objects.execute(CommandTransform.select().where(
+        query = await db_model.commandtransform_query()
+        transforms = await db_objects.execute(query.where(
             (CommandTransform.command == command) & (CommandTransform.operation == operation)
         ).order_by(
             CommandTransform.order
@@ -260,6 +273,12 @@ async def get_commandtransforms_options(request, user):
 
 
 async def get_commandtransforms_options_func():
+    try:
+        import app.api.transforms.utils
+        importlib.reload(sys.modules['app.api.transforms.utils'])
+    except Exception as e:
+        print(e)
+    from app.api.transforms.utils import CommandTransformOperation
     t = CommandTransformOperation()
     method_list = {func: await get_command_type_hints(getattr(t, func).__annotations__) for func in dir(t) if
                    callable(getattr(t, func)) and not func.startswith("__")}
@@ -293,9 +312,12 @@ async def get_command_type_hints(func):
 @protected()
 async def register_transform_for_command(request, user, id):
     try:
-        command = await db_objects.get(Command, id=id)
-        operator = await db_objects.get(Operator, username=user['username'])
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find command, operation, or current operator'})
@@ -327,8 +349,10 @@ async def register_transform_for_command(request, user, id):
 @protected()
 async def delete_commandtransform(request, user, id):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        transform = await db_objects.get(CommandTransform, id=id, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.commandtransform_query()
+        transform = await db_objects.get(query, id=id, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that transform'})
@@ -343,9 +367,12 @@ async def delete_commandtransform(request, user, id):
 async def update_transform_for_command(request, user, id):
     data = request.json
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        transform = await db_objects.get(CommandTransform, id=id, operation=operation)
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.commandtransform_query()
+        transform = await db_objects.get(query, id=id, operation=operation)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find transform'})
@@ -368,13 +395,16 @@ async def update_transform_for_command(request, user, id):
 
 async def get_commandtransforms_func(command_id, operation_name):
     try:
-        command = await db_objects.get(Command, id=command_id)
-        operation = await db_objects.get(Operation, name=operation_name)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=command_id)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=operation_name)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get payload type specified'}
     try:
-        transforms = await db_objects.execute(CommandTransform.select().where(
+        query = await db_model.commandtransform_query()
+        transforms = await db_objects.execute(query.where(
             (CommandTransform.command == command) & (CommandTransform.operation == operation)).order_by(CommandTransform.order))
     except Exception as e:
         print(e)

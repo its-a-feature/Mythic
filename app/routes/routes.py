@@ -15,6 +15,7 @@ from app.api.c2profiles_api import register_default_profile_operation
 from app.routes.authentication import invalidate_refresh_token
 from app.api.payloadtype_api import import_payload_type_func
 from app.crypto import create_key_AES256
+import app.database_models.model as db_model
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -45,7 +46,8 @@ class Login(BaseEndpoint):
             username = form.username.data
             password = form.password.data
             try:
-                user = await db_objects.get(Operator, username=username)
+                query = await db_model.operator_query()
+                user = await db_objects.get(query, username=username)
                 if await user.check_password(password):
                     if not user.active:
                         errors['validate_errors'] = "account is deactivated, cannot log in"
@@ -169,7 +171,8 @@ class UIRefresh(BaseEndpoint):
 async def settings(request, user):
     template = env.get_template('settings.html')
     try:
-        operator = Operator.get(Operator.username == user['username'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
         op_json = operator.to_json()
         del op_json['ui_config']
         if use_ssl:
@@ -190,7 +193,6 @@ async def settings(request, user):
 async def search(request, user):
     template = env.get_template('search.html')
     try:
-        operator = Operator.get(Operator.username == user['username'])
         if use_ssl:
             content = template.render(links=links, name=user['username'], http="https", ws="wss",
                                       config=user['ui_config'])

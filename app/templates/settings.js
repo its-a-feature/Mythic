@@ -256,6 +256,9 @@ function update_operator_callback(response){
     }
     if(data['status'] == 'success'){
         alertTop("success", "Password successfully changed");
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }
     else{
         alertTop("danger", "Error: " + data['error']);
@@ -270,6 +273,9 @@ function update_operatorview_callback(response){
     }
     if(data['status'] == 'success'){
         alertTop("success", "success");
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }
     else{
         alertTop("danger", "Error: " + data['error']);
@@ -288,6 +294,9 @@ function disable_registration_callback(response){
     }
     if(data['status'] == 'success'){
         alertTop("warning", "New operator registration is disabled until server restart.");
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }
     else{
         alertTop("danger", data['error']);

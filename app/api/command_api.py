@@ -1,10 +1,11 @@
 from app import apfell, db_objects
 from sanic.response import json, file, text
-from app.database_models.model import Operator, PayloadType, Command, CommandParameters, CommandTransform, ATTACKCommand, ATTACK, ArtifactTemplate, Artifact
+from app.database_models.model import Command, CommandParameters, CommandTransform, ATTACKCommand, ArtifactTemplate
 from sanic_jwt.decorators import protected, inject_user
 from urllib.parse import unquote_plus
 import json as js
 import base64
+import app.database_models.model as db_model
 
 
 # commands aren't inherent to an operation, they're unique to a payloadtype
@@ -13,9 +14,11 @@ import base64
 @protected()
 async def get_all_commands(request, user):
     all_commands = []
-    commands = await db_objects.execute(Command.select().order_by(Command.id))
+    query = await db_model.command_query()
+    commands = await db_objects.execute(query.order_by(Command.id))
     for cmd in commands:
-        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == cmd).order_by(CommandParameters.id))
+        query = await db_model.commandparameters_query()
+        params = await db_objects.execute(query.where(CommandParameters.command == cmd).order_by(CommandParameters.id))
         all_commands.append({**cmd.to_json(), "params": [p.to_json() for p in params]})
     return json(all_commands)
 
@@ -27,14 +30,18 @@ async def get_all_commands(request, user):
 async def check_command(request, user, ptype, cmd):
     status = {'status': 'success'}
     try:
-        payload_type = await db_objects.get(PayloadType, ptype=ptype)
+        query = await db_model.payloadtype_query()
+        payload_type = await db_objects.get(query, ptype=ptype)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get payload type'})
     try:
-        command = await db_objects.get(Command, cmd=cmd, payload_type=payload_type)
-        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
-        attacks = await db_objects.execute(ATTACKCommand.select().where(ATTACKCommand.command == command))
+        query = await db_model.command_query()
+        command = await db_objects.get(query, cmd=cmd, payload_type=payload_type)
+        query = await db_model.commandparameters_query()
+        params = await db_objects.execute(query.where(CommandParameters.command == command))
+        query = await db_model.attackcommand_query()
+        attacks = await db_objects.execute(query.where(ATTACKCommand.command == command))
         status = {**status, **command.to_json(), "params": [p.to_json() for p in params], "attack": [a.to_json() for a in attacks]}
     except Exception as e:
         # the command doesn't exist yet, which is good
@@ -55,11 +62,14 @@ async def check_command(request, user, ptype, cmd):
 @protected()
 async def remove_command(request, user, id):
     try:
-        command = await db_objects.get(Command, id=id)
-        params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
+        query = await db_model.commandparameters_query()
+        params = await db_objects.execute(query.where(CommandParameters.command == command))
         for p in params:
             await db_objects.delete(p, recursive=True)
-        transforms = await db_objects.execute(CommandTransform.select().where(CommandTransform.command == command))
+        query = await db_model.commandtransform_query()
+        transforms = await db_objects.execute(query.where(CommandTransform.command == command))
         for t in transforms:
             await db_objects.delete(t, recursive=True)
         await db_objects.delete(command, recursive=True)
@@ -75,7 +85,8 @@ async def remove_command(request, user, id):
 async def get_command_code(request, user, id, resp_type):
     resp_type = unquote_plus(resp_type)
     try:
-        command = await db_objects.get(Command, id=id)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get command'})
@@ -97,8 +108,10 @@ async def get_command_code(request, user, id, resp_type):
 async def update_command(request, user, id):
     updated_command = False
     try:
-        command = await db_objects.get(Command, id=id)
-        operator = await db_objects.get(Operator, username=user['username'])
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get command'})
@@ -132,7 +145,8 @@ async def update_command(request, user, id):
     await db_objects.update(command)
     if updated_command:
         async with db_objects.atomic():
-            command = await db_objects.get(Command, id=command.id)
+            query = await db_model.command_query()
+            command = await db_objects.get(query, id=command.id)
             command.version = command.version + 1
             await db_objects.update(command)
     return json({'status': 'success', **command.to_json()})
@@ -182,8 +196,10 @@ async def create_command_func(data, user):
         return {'status': 'error', 'error': '"code" is a required field'}
     # now we know all the fields exist
     try:
-        operator = await db_objects.get(Operator, username=user['username'])
-        payload_type = await db_objects.get(PayloadType, ptype=data['payload_type'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.payloadtype_query()
+        payload_type = await db_objects.get(query, ptype=data['payload_type'])
         command = await db_objects.create(Command, needs_admin=data['needs_admin'], help_cmd=data['help_cmd'],
                                           description=data['description'], cmd=data['cmd'],
                                           payload_type=payload_type, operator=operator)
@@ -206,8 +222,10 @@ async def create_command_func(data, user):
 @protected()
 async def create_command_parameter(request, user, id):
     try:
-        operator = await db_objects.get(Operator, username=user['username'])
-        command = await db_objects.get(Command, id=id)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find command'})
     data = request.json
@@ -226,9 +244,14 @@ async def create_command_parameter(request, user, id):
     if 'hint' not in data:
         data['hint'] = ""
     try:
-        param, created = await db_objects.get_or_create(CommandParameters, **data, command=command, operator=operator)
+        query = await db_model.commandparameters_query()
+        try:
+            param = await db_objects.get(query, **data, command=command, operator=operator)
+        except Exception as e:
+            param = await db_objects.create(CommandParameters, **data, command=command, operator=operator)
         async with db_objects.atomic():
-            command = await db_objects.get(Command, id=id)
+            query = await db_model.command_query()
+            command = await db_objects.get(query, id=id)
             command.version = command.version + 1
             await db_objects.update(command)
         return json({'status': 'success', **param.to_json(), 'new_cmd_version': command.version})
@@ -243,9 +266,12 @@ async def create_command_parameter(request, user, id):
 async def update_command_parameter(request, user, cid, pid):
     updated_a_field = False
     try:
-        operator = await db_objects.get(Operator, username=user['username'])
-        command = await db_objects.get(Command, id=cid)
-        parameter = await db_objects.get(CommandParameters, id=pid, command=command)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+        query = await db_model.commandparameters_query()
+        parameter = await db_objects.get(query, id=pid, command=command)
     except Exception as e:
         print(e)
         return json({"status": 'error', 'error': 'failed to find command or parameter'})
@@ -279,7 +305,8 @@ async def update_command_parameter(request, user, cid, pid):
     # update the command since we just updated a parameter to it
     if updated_a_field:
         async with db_objects.atomic():
-            command = await db_objects.get(Command, id=cid)
+            query = await db_model.command_query()
+            command = await db_objects.get(query, id=cid)
             command.version = command.version + 1
             await db_objects.update(command)
         await db_objects.update(parameter)
@@ -291,8 +318,10 @@ async def update_command_parameter(request, user, cid, pid):
 @protected()
 async def remove_command_parameter(request, user, cid, pid):
     try:
-        command = await db_objects.get(Command, id=cid)
-        parameter = await db_objects.get(CommandParameters, id=pid, command=command)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+        query = await db_model.commandparameters_query()
+        parameter = await db_objects.get(query, id=pid, command=command)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find command or parameter'})
@@ -300,7 +329,8 @@ async def remove_command_parameter(request, user, cid, pid):
     await db_objects.delete(parameter)
     # update the command since we just updated a parameter to it
     async with db_objects.atomic():
-        command = await db_objects.get(Command, id=cid)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
         command.version = command.version + 1
         await db_objects.update(command)
     return json({'status': 'success', **p_json, 'new_cmd_version': command.version})
@@ -311,11 +341,13 @@ async def remove_command_parameter(request, user, cid, pid):
 @protected()
 async def get_all_parameters_for_command(request, user, id):
     try:
-        command = await db_objects.get(Command, id=id)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command'})
-    params = await db_objects.execute(CommandParameters.select().where(CommandParameters.command == command))
+    query = await db_model.commandparameters_query()
+    params = await db_objects.execute(query.where(CommandParameters.command == command))
     return json([p.to_json() for p in params])
 
 
@@ -326,11 +358,13 @@ async def get_all_parameters_for_command(request, user, id):
 @protected()
 async def get_all_attack_mappings_for_command(request, user, id):
     try:
-        command = await db_objects.get(Command, id=id)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command'})
-    attacks = await db_objects.execute(ATTACKCommand.select().where(ATTACKCommand.command == command))
+    query = await db_model.attackcommand_query()
+    attacks = await db_objects.execute(query.where(ATTACKCommand.command == command))
     return json({'status': 'success', 'attack': [a.to_json() for a in attacks]})
 
 
@@ -339,9 +373,12 @@ async def get_all_attack_mappings_for_command(request, user, id):
 @protected()
 async def remove_attack_mapping_for_command(request, user, id, t_num):
     try:
-        command = await db_objects.get(Command, id=id)
-        attack = await db_objects.get(ATTACK, t_num=t_num)
-        attackcommand = await db_objects.get(ATTACKCommand, command=command, attack=attack)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
+        query = await db_model.attack_query()
+        attack = await db_objects.get(query, t_num=t_num)
+        query = await db_model.attackcommand_query()
+        attackcommand = await db_objects.get(query, command=command, attack=attack)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command'})
@@ -354,12 +391,15 @@ async def remove_attack_mapping_for_command(request, user, id, t_num):
 @protected()
 async def create_attack_mappings_for_command(request, user, id, t_num):
     try:
-        command = await db_objects.get(Command, id=id)
-        attack = await db_objects.get(ATTACK, t_num=t_num)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
+        query = await db_model.attack_query()
+        attack = await db_objects.get(query, t_num=t_num)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command'})
-    attackcommand, created = await db_objects.get_or_create(ATTACKCommand, attack=attack, command=command)
+    query = await db_model.attackcommand_query()
+    attackcommand, created = await db_objects.get_or_create(query, attack=attack, command=command)
     return json({'status': 'success', **attackcommand.to_json()})
 
 
@@ -369,9 +409,12 @@ async def create_attack_mappings_for_command(request, user, id, t_num):
 async def adjust_attack_mappings_for_command(request, user, id, t_num):
     data = request.json
     try:
-        command = await db_objects.get(Command, id=id)
-        newattack = await db_objects.get(ATTACK, t_num=t_num)
-        attackcommand = await db_objects.get(ATTACKCommand, id=data['id'], command=command)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=id)
+        query = await db_model.attack_query()
+        newattack = await db_objects.get(query, t_num=t_num)
+        query = await db_model.attackcommand_query()
+        attackcommand = await db_objects.get(query, id=data['id'], command=command)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command'})
@@ -390,15 +433,18 @@ async def create_artifact_template_for_command(request, user, cid):
     if "artifact" not in data:
         return json({'status': 'error', 'error': '"artifact" is a required element'})
     try:
-        command = await db_objects.get(Command, id=cid)
-        artifact = await db_objects.get(Artifact, id=data['artifact'])
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+        query = await db_model.artifact_query()
+        artifact = await db_objects.get(query, id=data['artifact'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command or artifact'})
 
     if "command_parameter" in data and data['command_parameter'] != -1:
         try:
-            command_parameter = await db_objects.get(CommandParameters, id=data['command_parameter'])
+            query = await db_model.commandparameters_query()
+            command_parameter = await db_objects.get(query, id=data['command_parameter'])
         except:
             return json({'status': 'error', 'error': 'failed to find command parameter'})
     else:
@@ -424,15 +470,18 @@ async def create_artifact_template_for_command(request, user, cid):
 @protected()
 async def update_artifact_template_for_command(request, user, cid, aid):
     try:
-        command = await db_objects.get(Command, id=cid)
-        artifact = await db_objects.get(ArtifactTemplate, id=aid, command=command)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+        query = await db_model.artifacttemplate_query()
+        artifact = await db_objects.get(query, id=aid, command=command)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command or artifact'})
     data = request.json
     if "command_parameter" in data and data['command_parameter'] != 'null':
         try:
-            command_parameter = await db_objects.get(CommandParameters, id=data['command_parameter'])
+            query = await db_model.commandparameters_query()
+            command_parameter = await db_objects.get(query, id=data['command_parameter'])
             artifact.command_parameter = command_parameter
         except:
             return json({'status': 'error', 'error': 'failed to find command parameter'})
@@ -452,12 +501,14 @@ async def update_artifact_template_for_command(request, user, cid, aid):
 @protected()
 async def get_artifact_templates_for_command(request, user, cid):
     try:
-        command = await db_objects.get(Command, id=cid)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command'})
     try:
-        artifacts = await db_objects.execute(ArtifactTemplate.select().where(ArtifactTemplate.command == command))
+        query = await db_model.artifacttemplate_query()
+        artifacts = await db_objects.execute(query.where(ArtifactTemplate.command == command))
     except:
         return json({'status': 'error', 'error': 'Failed to get artifact templates for command'})
     return json({'status': 'success', 'artifacts': [a.to_json() for a in artifacts]})
@@ -468,8 +519,10 @@ async def get_artifact_templates_for_command(request, user, cid):
 @protected()
 async def update_artifact_template_for_command(request, user, cid, aid):
     try:
-        command = await db_objects.get(Command, id=cid)
-        artifact = await db_objects.get(ArtifactTemplate, id=aid, command=command)
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+        query = await db_model.artifacttemplate_query()
+        artifact = await db_objects.get(query, id=aid, command=command)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command or artifact'})

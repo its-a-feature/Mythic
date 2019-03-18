@@ -1,14 +1,16 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import ATTACK, Task, ATTACKCommand, ATTACKTask, Operation, Callback
+from app.database_models.model import Task, ATTACKCommand, ATTACKTask, Callback, Command
 from sanic_jwt.decorators import protected, inject_user
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/", methods=['GET'])
 @inject_user()
 @protected()
 async def get_all_mitre_attack_ids(request, user):
-    attack_entries = await db_objects.execute(ATTACK.select())
+    query = await db_model.attack_query()
+    attack_entries = await db_objects.execute(query)
     matrix = {}
     for entry in attack_entries:
         tactics = entry.tactic.split(" ")
@@ -24,7 +26,8 @@ async def get_all_mitre_attack_ids(request, user):
 @protected()
 async def get_all_mitre_attack_ids(request, user):
     try:
-        attack_entries = await db_objects.execute(ATTACK.select())
+        query = await db_model.attack_query()
+        attack_entries = await db_objects.execute(query)
         return json({'status': 'success', 'attack': [a.to_json() for a in attack_entries]})
     except Exception as e:
         return json({'status': 'error', 'error': str(e)})
@@ -34,7 +37,8 @@ async def get_all_mitre_attack_ids(request, user):
 @inject_user()
 @protected()
 async def get_all_mitre_attack_ids_by_command(request, user):
-    attack_entries = await db_objects.execute(ATTACK.select())
+    query = await db_model.attack_query()
+    attack_entries = await db_objects.execute(query)
     matrix = {}
     for entry in attack_entries:
         tactics = entry.tactic.split(" ")
@@ -44,8 +48,10 @@ async def get_all_mitre_attack_ids_by_command(request, user):
             entry_json = entry.to_json()
             entry_json['mappings'] = {}  # this is where we'll store payload_type and command mappings
             entry_json['tactic'] = t
-            mappings = await db_objects.execute(ATTACKCommand.select().where(ATTACKCommand.attack == entry))
+            query = await db_model.attackcommand_query()
+            mappings = await db_objects.execute(query.where(ATTACKCommand.attack == entry))
             for m in mappings:
+
                 if m.command.payload_type.ptype not in entry_json['mappings']:
                     entry_json['mappings'][m.command.payload_type.ptype] = []
                 entry_json['mappings'][m.command.payload_type.ptype].append(m.to_json())
@@ -57,7 +63,8 @@ async def get_all_mitre_attack_ids_by_command(request, user):
 @inject_user()
 @protected()
 async def get_all_mitre_attack_ids_by_task(request, user):
-    attack_entries = await db_objects.execute(ATTACK.select())
+    query = await db_model.attack_query()
+    attack_entries = await db_objects.execute(query)
     matrix = {}
     for entry in attack_entries:
         tactics = entry.tactic.split(" ")
@@ -67,7 +74,8 @@ async def get_all_mitre_attack_ids_by_task(request, user):
             entry_json = entry.to_json()
             entry_json['mappings'] = {}  # this is where we'll store payload_type and command mappings
             entry_json['tactic'] = t
-            mappings = await db_objects.execute(ATTACKTask.select().where(ATTACKTask.attack == entry))
+            query = await db_model.attacktask_query()
+            mappings = await db_objects.execute(query.where(ATTACKTask.attack == entry))
             for m in mappings:
                 if m.task.command.payload_type.ptype not in entry_json['mappings']:
                     entry_json['mappings'][m.task.command.payload_type.ptype] = []
@@ -82,7 +90,8 @@ async def get_all_mitre_attack_ids_by_task(request, user):
 async def regex_against_tasks(request, user):
     data = request.json
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': "Failed to find current operation"})
     if 'regex' not in data:
@@ -92,16 +101,23 @@ async def regex_against_tasks(request, user):
     if 'attack' not in data:
         return json({'status': 'error', 'error': 'an attack T# is required'})
     try:
-        attack = await db_objects.get(ATTACK, t_num=data['attack'])
+        query = await db_model.attack_query()
+        attack = await db_objects.get(query, t_num=data['attack'])
     except Exception as e:
         return json({'status': 'error', 'error': 'Failed to find that T#. Make sure you specify "attack": "T1124" for example'})
-    matching_tasks = await db_objects.execute(Task.select().join(Callback).where(Callback.operation == operation).switch().where(
-        (Task.params.regexp(data['regex'])) | (Task.original_params.regexp(data['regex']))).order_by(Task.id))
+    query = await db_model.task_query()
+    matching_tasks = await db_objects.prefetch(query.switch(Callback).where(Callback.operation == operation).switch(Task).where(
+        (Task.params.regexp(data['regex'])) | (Task.original_params.regexp(data['regex']))).order_by(Task.id), Command.select())
     if data['apply']:
         # actually apply the specified att&ck id to the matched tasks
         for t in matching_tasks:
             # don't create duplicates
-            attacktask, create = await db_objects.get_or_create(ATTACKTask, attack=attack, task=t)
+            try:
+                query = await db_model.attacktask_query()
+                attacktask = await db_objects.get(query, attack=attack, task=t)
+            except Exception as e:
+                # we didn't find the specific attack-task mapping, so create a new one
+                attacktask = await db_objects.create(ATTACKTask, attack=attack, task=t)
         return json({'status': 'success'})
     else:
         # simply return which tasks would have matched
@@ -109,7 +125,8 @@ async def regex_against_tasks(request, user):
         tasks = []
         for t in matching_tasks:
             sub_attacks = []
-            matching_attacks = await db_objects.execute(ATTACKTask.select().where(ATTACKTask.task == t))
+            query = await db_model.attacktask_query()
+            matching_attacks = await db_objects.execute(query.where(ATTACKTask.task == t))
             for ma in matching_attacks:
                 sub_attacks.append({'t_num': ma.attack.t_num, 'name': ma.attack.name})
             tasks.append({**t.to_json(), "attack": sub_attacks})
@@ -121,9 +138,12 @@ async def regex_against_tasks(request, user):
 @protected()
 async def remove_task_attack_mapping(request, user, tid, tnum):
     try:
-        task = await db_objects.get(Task, id=tid)
-        attack = await db_objects.get(ATTACK, t_num=tnum)
-        mapping = await db_objects.get(ATTACKTask, task=task, attack=attack)
+        query = await db_model.task_query()
+        task = await db_objects.get(query, id=tid)
+        query = await db_model.attack_query()
+        attack = await db_objects.get(query, t_num=tnum)
+        query = await db_model.attacktask_query()
+        mapping = await db_objects.get(query, task=task, attack=attack)
         await db_objects.delete(mapping)
         return json({'status': 'success', "task_id": tid, "attack": tnum})
     except Exception as e:

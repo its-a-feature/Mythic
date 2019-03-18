@@ -1,7 +1,8 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Callback, Operator, Payload, Operation, Task, Response, LoadedCommands, PayloadCommand
+from app.database_models.model import Callback, Task, Response, LoadedCommands, PayloadCommand, Command
 from sanic_jwt.decorators import protected, inject_user
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['GET'])
@@ -9,8 +10,10 @@ from sanic_jwt.decorators import protected, inject_user
 @protected()
 async def get_all_callbacks(request, user):
     if user['current_operation'] != "":
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        callbacks = await db_objects.execute(Callback.select().where(Callback.operation == operation))
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.callback_query()
+        callbacks = await db_objects.execute(query.where(Callback.operation == operation))
         return json([c.to_json() for c in callbacks])
     else:
         return json([])
@@ -36,7 +39,8 @@ async def create_callback_func(data):
         return {'status': 'error', 'error': 'uuid required'}
     # Get the corresponding Payload object based on the uuid
     try:
-        payload = await db_objects.get(Payload, uuid=data['uuid'])
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=data['uuid'])
         pcallback = None
     except Exception as e:
         print(e)
@@ -52,7 +56,8 @@ async def create_callback_func(data):
         if 'encryption_key' in data:
             cal.encryption_key = data['encryption_key']
         await db_objects.update(cal)
-        payload_commands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
+        query = await db_model.payloadcommand_query()
+        payload_commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
         # now create a loaded command for each one since they are loaded by default
         for p in payload_commands:
             await db_objects.create(LoadedCommands, command=p.command, version=p.version, callback=cal, operator=payload.operator)
@@ -69,7 +74,8 @@ async def create_callback_func(data):
 @protected()
 async def get_one_callback(request, id, user):
     try:
-        cal = await db_objects.get(Callback, id=id)
+        query = await db_model.callback_query()
+        cal = await db_objects.get(query, id=id)
         return json(cal.to_json())
     except Exception as e:
         print(e)
@@ -81,12 +87,15 @@ async def get_one_callback(request, id, user):
 @protected()
 async def get_loaded_commands_for_callback(request, id, user):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        callback = await db_objects.get(Callback, id=id, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, id=id, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'Failed to get the current operation or that callback'})
-    loaded_commands = await db_objects.execute(LoadedCommands.select().where(LoadedCommands.callback == callback))
+    query = await db_model.loadedcommands_query()
+    loaded_commands = await db_objects.execute(query.where(LoadedCommands.callback == callback))
     return json({'status': 'success', 'loaded_commands': [{'command': lc.command.cmd,
                                                            'version': lc.version,
                                                            'apfell_version': lc.command.version} for lc in loaded_commands]})
@@ -98,8 +107,10 @@ async def get_loaded_commands_for_callback(request, id, user):
 async def update_callback(request, id, user):
     data = request.json
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        cal = await db_objects.get(Callback, id=id, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.callback_query()
+        cal = await db_objects.get(query, id=id, operation=operation)
         if 'description' in data:
             if data['description'] == 'reset':
                 # set the description back to what it was from the payload
@@ -123,7 +134,8 @@ async def update_callback(request, id, user):
                     # this means to remove the current parent
                     cal.pcallback = None
                 else:
-                    parent = await db_objects.get(Callback, id=data['parent'], operation=operation)
+                    query = await db_model.callback_query()
+                    parent = await db_objects.get(query, id=data['parent'], operation=operation)
                     if parent.id == cal.id:
                         return json({'status': 'error', 'error': 'cannot set parent = child'})
                     cal.pcallback = parent
@@ -143,7 +155,8 @@ async def update_callback(request, id, user):
 @protected()
 async def remove_callback(request, id, user):
     try:
-        cal = await db_objects.get(Callback, id=id)
+        query = await db_model.callback_query()
+        cal = await db_objects.get(query, id=id)
         if user['admin'] or cal.operation.name in user['operations']:
             cal.active = False
             await db_objects.update(cal)
@@ -163,17 +176,18 @@ async def remove_callback(request, id, user):
 async def callbacks_get_all_tasking(request, user, id):
     # Get all of the tasks and responses so far for the specified agent
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        callback = await db_objects.get(Callback, id=id, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, id=id, operation=operation)
         cb_json = callback.to_json()
         cb_json['tasks'] = []
-        tasks = await db_objects.execute(Task.select().where(Task.callback == callback).order_by(Task.id))
+        query = await db_model.task_query()
+        tasks = await db_objects.prefetch(query.where(Task.callback == callback).order_by(Task.id), Command.select())
         for t in tasks:
-            responses = await db_objects.execute(Response.select().where(Response.task == t).order_by(Response.id))
-            rs = []
-            for r in responses:
-                rs.append(r.to_json())
-            cb_json['tasks'].append({**t.to_json(), "responses": rs})
+            query = await db_model.response_query()
+            responses = await db_objects.execute(query.where(Response.task == t).order_by(Response.id))
+            cb_json['tasks'].append({**t.to_json(), "responses": [r.to_json() for r in responses]})
         return json({'status': 'success', **cb_json})
     except Exception as e:
         print(e)
@@ -185,8 +199,10 @@ async def callbacks_get_all_tasking(request, user, id):
 @protected()
 async def get_callback_keys(request, user, id):
     try:
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        callback = await db_objects.get(Callback, id=id, operation=operation)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, id=id, operation=operation)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find callback'})

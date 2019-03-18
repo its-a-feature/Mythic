@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, file
-from app.database_models.model import Operator, Payload, C2Profile, C2ProfileParameters, C2ProfileParametersInstance, PayloadType, Operation, PayloadCommand, Command, FileMeta
+from app.database_models.model import Payload, C2ProfileParameters, C2ProfileParametersInstance, PayloadCommand, FileMeta
 import pathlib
 from sanic_jwt.decorators import protected, inject_user
 import os
@@ -11,6 +11,7 @@ from app.api.transform_api import get_transforms_func
 import uuid
 import shutil
 import glob
+import app.database_models.model as db_model
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/", methods=['GET'])
@@ -18,7 +19,8 @@ import glob
 @protected()
 async def get_all_payloads(request, user):
     if user['admin']:
-        payloads = await db_objects.execute(Payload.select())
+        query = await db_model.payload_query()
+        payloads = await db_objects.execute(query)
         return json([p.to_json() for p in payloads])
     else:
         return json({"status": "error", 'error': 'Must be an admin to see all payloads'})
@@ -29,8 +31,10 @@ async def get_all_payloads(request, user):
 @protected()
 async def get_all_payloads_current_operation(request, user):
     if user['current_operation'] != "":
-        operation = await db_objects.get(Operation, name=user['current_operation'])
-        payloads = await db_objects.execute(Payload.select().where(Payload.operation == operation))
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.payload_query()
+        payloads = await db_objects.execute(query.where(Payload.operation == operation))
         return json([p.to_json() for p in payloads])
     else:
         return json({"status": "error", 'error': 'must be part of a current operation'})
@@ -41,7 +45,8 @@ async def get_all_payloads_current_operation(request, user):
 @protected()
 async def remove_payload(request, puuid, user, from_disk):
     try:
-        payload = await db_objects.get(Payload, uuid=puuid)
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=puuid)
     except Exception as e:
         print(e)
         return json({'status':'error', 'error': 'specified payload does not exist'})
@@ -54,7 +59,8 @@ async def remove_payload(request, puuid, user, from_disk):
             except Exception as e:
                 print(e)
         # if we started hosting this payload as a file in our database, we need to remove that as well
-        file_metas = await db_objects.execute(FileMeta.select().where(FileMeta.path == payload.location))
+        query = await db_model.filemeta_query()
+        file_metas = await db_objects.execute(query.where(FileMeta.path == payload.location))
         for fm in file_metas:
             await db_objects.delete(fm)
         success = {'status': 'success'}
@@ -73,20 +79,24 @@ async def register_new_payload_func(data, user):
         return {'status': 'error', 'error': '"c2_profile" field is required'}
     # the other parameters are based on the payload_type, c2_profile, or other payloads
     try:
-        operator = await db_objects.get(Operator, username=user['username'])
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get operator or operation when registering payload'}
     # we want to track the parent callbacks of new callbacks if possible
 
     try:
-        c2_profile = await db_objects.get(C2Profile, name=data['c2_profile'], operation=operation)
+        query = await db_model.c2profile_query()
+        c2_profile = await db_objects.get(query, name=data['c2_profile'], operation=operation)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get c2 profile when registering payload'}
     try:
-        payload_type = await db_objects.get(PayloadType, ptype=data['payload_type'])
+        query = await db_model.payloadtype_query()
+        payload_type = await db_objects.get(query, ptype=data['payload_type'])
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get payload type when registering payload'}
@@ -99,7 +109,8 @@ async def register_new_payload_func(data, user):
             return {'status': 'error', 'error': '"commands" field is required, select some on the right-hand side'}
         for cmd in data['commands']:
             try:
-                db_commands[cmd] = await db_objects.get(Command, cmd=cmd, payload_type=payload_type)
+                query = await db_model.command_query()
+                db_commands[cmd] = await db_objects.get(query, cmd=cmd, payload_type=payload_type)
             except Exception as e:
                 return {'status': 'error', 'error': 'failed to get command {}'.format(cmd)}
     if payload_type.wrapper:
@@ -141,15 +152,18 @@ async def register_new_payload_func(data, user):
     else:
         # this means we're looking at making a wrapped payload, so make sure we can find the right payload
         try:
-            wrapped_payload = await db_objects.get(Payload, uuid=data['wrapped_payload'], operation=operation)
+            query = await db_model.payload_query()
+            wrapped_payload = await db_objects.get(query, uuid=data['wrapped_payload'], operation=operation)
         except Exception as e:
             print(e)
             return {'status': 'error', 'error': 'failed to find the wrapped payload specified in our current operation'}
+        query = await db_model.payload_query()
         payload, create = await db_objects.get_or_create(Payload, operator=operator, payload_type=payload_type,
                                                          tag=tag, location=location, c2_profile=c2_profile,
                                                          uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
     # Get all of the c2 profile parameters and create their instantiations
-    db_c2_profile_parameters = await db_objects.execute(C2ProfileParameters.select().where(C2ProfileParameters.c2_profile == c2_profile))
+    query = await db_model.c2profileparameters_query()
+    db_c2_profile_parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == c2_profile))
     for param in db_c2_profile_parameters:
         # find the matching data in the data['c2_profile_parameters']
         try:
@@ -171,8 +185,10 @@ async def write_payload(uuid, user):
     #  do our stamping and compiling, save off the one final file to the rightful destination
     #  then delete the temp files. They will be in a temp folder identified by the payload's UUID which should be unique
     try:
-        payload = await db_objects.get(Payload, uuid=uuid)
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=uuid)
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get payload db object to write to disk'}
@@ -233,7 +249,8 @@ async def write_payload(uuid, user):
             elif 'COMMANDS_HERE' in line:
                 # go through all the commands and write them to the payload
                 try:
-                    commands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
+                    query = await db_model.payloadcommand_query()
+                    commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
                     for command in commands:
                         # try to open up the corresponding command file
                         cmd_file = open('./app/payloads/{}/commands/{}'.format(payload.payload_type.ptype, command.command.cmd), 'r')
@@ -252,20 +269,22 @@ async def write_payload(uuid, user):
                 replaced_line = line.replace('COMMAND_COUNT_HERE', str(count))
                 custom.write(replaced_line)
             elif 'COMMAND_STRING_LIST_HERE' in line:
-                commands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
+                query = await db_model.payloadcommand_query()
+                commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
                 cmdlist = ','.join([str('"' + cmd.command.cmd + '"') for cmd in commands])
                 replaced_line = line.replace('COMMAND_STRING_LIST_HERE', cmdlist)
                 custom.write(replaced_line)
             elif 'COMMAND_RAW_LIST_HERE' in line:
-                commands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
+                query = await db_model.payloadcommand_query()
+                commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
                 cmdlist = ','.join([cmd.command.cmd for cmd in commands])
                 replaced_line = line.replace('COMMAND_RAW_LIST_HERE', cmdlist)
                 custom.write(replaced_line)
             elif 'COMMAND_HEADERS_HERE' in line:
                 # go through all the commands and write them to the payload
                 try:
-                    commands = await db_objects.execute(
-                        PayloadCommand.select().where(PayloadCommand.payload == payload))
+                    query = await db_model.payloadcommand_query()
+                    commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
                     for command in commands:
                         # try to open up the corresponding command file
                         cmd_file = open(
@@ -366,7 +385,8 @@ async def create_payload(request, user):
     rsp = await register_new_payload_func(data, user)
     if rsp['status'] == "success":
         # now that it's registered, write the file, if we fail out here then we need to delete the db object
-        payload = await db_objects.get(Payload, uuid=rsp['uuid'])
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=rsp['uuid'])
         create_rsp = await write_payload(payload.uuid, user)
         if create_rsp['status'] == "success":
                 return json({'status': 'success', 'execute_help': payload.payload_type.execute_help,
@@ -385,9 +405,10 @@ async def write_c2(custom, base_c2, payload):
     # first get all of the parameter instances
     try:
         param_dict = {}
-        c2_param_instances = await db_objects.execute(C2ProfileParametersInstance.select().where(C2ProfileParametersInstance.payload == payload))
+        query = await db_model.c2profileparametersinstance_query()
+        c2_param_instances = await db_objects.execute(query.where(C2ProfileParametersInstance.payload == payload))
         for instance in c2_param_instances:
-            param = await db_objects.get(C2ProfileParameters, id=instance.c2_profile_parameters)
+            param = instance.c2_profile_parameters
             param_dict[param.key] = instance.value
         c2_code = base_c2.read()
         for key,val in param_dict.items():
@@ -407,7 +428,8 @@ async def get_payload(request, uuid, user):
     # return a blob of the requested payload
     # the pload string will be the uuid of a payload registered in the system
     try:
-        payload = await db_objects.get(Payload, uuid=uuid)
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=uuid)
     except Exception as e:
         return json({'status': 'error', 'error': 'payload not found'})
     if payload.operation.name in user['operations']:
@@ -426,14 +448,17 @@ async def get_payload(request, uuid, user):
 async def get_payloads_by_type(request, ptype, user):
     payload_type = unquote_plus(ptype)
     try:
-        payloadtype = await db_objects.get(PayloadType, ptype=payload_type)
+        query = await db_model.payloadtype_query()
+        payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find payload type'})
     if user['current_operation'] != "":
-        operation = await db_objects.get(Operation, name=user['current_operation'])
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
     else:
         return json({'status': 'error', 'error': 'must be part of an active operation'})
-    payloads = await db_objects.execute(Payload.select().where((Payload.operation == operation) & (Payload.payload_type == payloadtype)))
+    query = await db_model.payload_query()
+    payloads = await db_objects.execute(query.where((Payload.operation == operation) & (Payload.payload_type == payloadtype)))
     payloads_json = [p.to_json() for p in payloads]
     return json({'status': 'success', "payloads": payloads_json})
 
@@ -443,15 +468,18 @@ async def get_payloads_by_type(request, ptype, user):
 @protected()
 async def get_one_payload_info(request, uuid, user):
     try:
-        payload = await db_objects.get(Payload, uuid=uuid)
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=uuid)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload'})
     if payload.operation.name in user['operations']:
-        payloadcommands = await db_objects.execute(PayloadCommand.select().where(PayloadCommand.payload == payload))
+        query = await db_model.payloadcommand_query()
+        payloadcommands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
         commands = [{"cmd": c.command.cmd, "version": c.version, "apfell_version": c.command.version} for c in payloadcommands]
         # now we need to get the c2 profile parameters as well
-        c2_profile_params = await db_objects.execute(C2ProfileParametersInstance.select().where(C2ProfileParametersInstance.payload == payload))
+        query = await db_model.c2profileparametersinstance_query()
+        c2_profile_params = await db_objects.execute(query.where(C2ProfileParametersInstance.payload == payload))
         params = [p.to_json() for p in c2_profile_params]
         return json({'status': 'success', **payload.to_json(), "commands": commands, "c2_profile_parameters_instance": params})
     else:

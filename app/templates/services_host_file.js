@@ -8,10 +8,12 @@ var hosting_table = new Vue({
         start_button: function(host){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/services/host_directory",
             start_button_callback, "POST", {'port': host.port, 'directory': host.directory});
+            alertTop("info", "Starting...");
         },
         stop_button: function(host){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/services/host_directory/" + host.port.toString() + "/stop",
             stop_button_callback, "GET", null);
+            alertTop("info", "Stopping...");
         },
         delete_button: function(host){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/services/host_directory/" + host.port.toString(),
@@ -33,6 +35,7 @@ function create_directory_button(){
         //should have all the data we need, submit the POST request
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/services/host_directory",
         create_directory_callback, "POST", {'port': port, 'directory': dir});
+        alertTop("info", "Starting directory hosting...");
     });
 }
 function create_directory_callback(response){
@@ -44,6 +47,9 @@ function create_directory_callback(response){
     }
     if(data['status'] == 'success'){
         getServices();
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }else{
         alertTop("danger", data['error']);
     }
@@ -57,6 +63,9 @@ function stop_button_callback(response){
     }
     if(data['status'] == 'success'){
         getServices();
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }else{
         alertTop("danger", data['error']);
     }
@@ -70,6 +79,9 @@ function start_button_callback(response){
     }
     if(data['status'] == 'success'){
         getServices();
+        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+              $("#top-alert").slideUp(500);
+        });
     }else{
         alertTop("danger", data['error']);
     }
@@ -111,6 +123,7 @@ function create_file_button(){
             manual_file_upload, filedata, data, "POST");
             file.value = file.defaultValue;
         }
+        alertTop("info", "Loading file...");
     });
 }
 function manual_file_upload(response){
@@ -122,7 +135,11 @@ function manual_file_upload(response){
     }
     if(data['status'] == "error"){
         alertTop("danger", data['error']);
+        return;
     }
+    $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
+          $("#top-alert").slideUp(500);
+    });
 }
 getServices();
 var manual_file_table = new Vue({
@@ -151,6 +168,7 @@ function delete_callback(response){
 
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
+        return;
     }
     else{
         for(var i = 0; i < manual_file_table.files.length; i++){
