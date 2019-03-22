@@ -569,8 +569,11 @@ async def import_payload_type_func(ptype, operator, operation):
             query = await db_model.attack_query()
             attck = await db_objects.get(query, t_num=attack['t_num'])
             query = await db_model.attackcommand_query()
-            await db_objects.get_or_create(query, command=command, attack=attck)
-
+            try:
+                await db_objects.get(query, command=command, attack=attck)
+            except Exception as e:
+                # we got here so it doesn't exist, so create it and move on
+                await db_objects.create(ATTACKCommand, command=command, attack=attck)
         # now to process the artifacts
         for at in cmd['artifacts']:
             try:
