@@ -129,7 +129,7 @@
         },
         {
           "needs_admin":false,
-          "help_cmd":"quit"
+          "help_cmd":"quit",
           "version":1,
           "description":"Calls exit(0) to cleanly exit the agent",
           "cmd":"quit",
