@@ -1,0 +1,15 @@
+/* takes in the parameter: {"command":"jobs","params":"","id":"task number"}
+* returns information about the currently running jobs */
+int jobs(cJSON* json){
+    remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
+
+    char * job_string = get_current_jobs();
+
+    send_basic_response(job_string, cJSON_GetObjectItem(json, "id")->valueint);
+
+    free(job_string);
+}
+
+
+COMMAND_ENDS_HERE
+int jobs(cJSON *);

@@ -139,6 +139,32 @@
           "attack":[
           ],
           "artifacts": []
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"List current jobs that are running in the agent",
+          "version":1,
+          "description":"Looks at the internal storage for running threads to see what tasks are running",
+          "cmd":"jobs",
+          "parameters":[
+
+          ],
+          "attack":[
+          ],
+          "artifacts": []
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"Kills a current job",
+          "version":1,
+          "description":"Calls pthread_cancel on a currently running task in a thread to end it.",
+          "cmd":"jobs_kill {task#}",
+          "parameters":[
+
+          ],
+          "attack":[
+          ],
+          "artifacts": []
         }
       ]
     }

@@ -104,18 +104,18 @@ void add_task_to_queue(cJSON * json)
 m_function * get_tasking_func(cJSON* task)
 {
     /* task: {"command": "shell", "params": "whoami", "id": 5} */
-	pthread_mutex_lock(&global_lock);
+	//pthread_mutex_lock(&global_lock);
     char * command = cJSON_GetObjectItem(task, "command")->valuestring;
 	for(int i = 0; i < global_info->num_functions; i++)
 	{
 		if( strcmp(global_info->functions[i].name, command) == 0)
 		{
 			//we found the function, so return it
-			pthread_mutex_unlock(&global_lock);
+			//pthread_mutex_unlock(&global_lock);
 			return &(global_info->functions[i]);
 		}
 	}
-	pthread_mutex_unlock(&global_lock);
+	//pthread_mutex_unlock(&global_lock);
 	return NULL;
 }
 
@@ -255,12 +255,12 @@ void* get_so_handle(unsigned char* in_mem_buffer, size_t length) {
 }
 
 /* add a new thread to our jobs list*/
-void add_thread_to_global_info(unsigned int task_id, pthread_t* task, char* command){
+void add_thread_to_global_info(cJSON* task, pthread_t* thread_task){
     m_job * new_job = (m_job *)malloc(sizeof(m_job));
-    new_job->task = task_id;
-    new_job->job = task;
+    new_job->task = cJSON_GetObjectItem(task, "id")->valueint;
+    new_job->job = thread_task;
     new_job->next = NULL;
-    new_job->command_string = command;
+    new_job->command_string = cJSON_PrintUnformatted(task);
     // now iterate through our current list to find the end so we can add this one
     pthread_mutex_lock(&global_lock);
     if(global_info->jobs == NULL){
@@ -278,11 +278,60 @@ void add_thread_to_global_info(unsigned int task_id, pthread_t* task, char* comm
 }
 
 /* remove a thread from our jobs list*/
-void remove_thread_from_global_info(unsigned int task_id){
-
+pthread_t* remove_thread_from_global_info(unsigned int task_id){
+    pthread_t *thread = NULL;
+    if(global_info->jobs == NULL){
+        return;
+    }
+    pthread_mutex_lock(&global_lock);
+    m_job * curr_job = global_info->jobs;
+    m_job * prev_job = NULL;
+    while(curr_job != NULL){
+        if(curr_job->task == task_id){
+            //we found the task, we need to remove it
+            if(prev_job == NULL){
+                //we're trying to remove the first task
+                global_info->jobs = curr_job->next;
+                thread = curr_job->job;
+                free(curr_job);
+            }else{
+                //we're trying to remove one that isn't the first
+                prev_job->next = curr_job->next;
+                thread = curr_job->job;
+                free(curr_job);
+            }
+            // we found and removed the task, so return
+            pthread_mutex_unlock(&global_lock);
+            return thread;
+        }
+        //we didn't find the task, so update our pointers
+        prev_job = curr_job;
+        curr_job = curr_job->next;
+    }
+    pthread_mutex_unlock(&global_lock);
+    return thread;
 }
 
 /* Get all currently running jobs*/
-void get_current_jobs(){
+char * get_current_jobs(){
+    unsigned int job_info_length = 1000;
+    char * job_info = (char*)calloc(1000, 1);
+    pthread_mutex_lock(&global_lock);
+    //loop through all of our jobs
+    m_job * curr_job = global_info->jobs;
+    //printf("about to loop through current jobs\n");
+    while(curr_job != NULL){
+        if(strlen(curr_job->command_string) + strlen(job_info) + 1 > job_info_length ){
+            //we need to expand our job_info buffer to hold the new string
+            job_info = realloc(job_info, job_info_length*2);
+            job_info_length *= 2;
+        }
+        //printf("about to do memcpy in get_current_jobs\n");
+        memcpy(job_info + strlen(job_info), curr_job->command_string, strlen(curr_job->command_string));
+        //printf("Job %d: %s\n", curr_job->task, curr_job->command_string);
+        curr_job = curr_job->next;
+    }
+    pthread_mutex_unlock(&global_lock);
+    return job_info;
 
 }

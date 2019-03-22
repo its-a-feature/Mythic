@@ -79,4 +79,7 @@ cJSON* pop_tasking();
 int read_from_fd(int fd, char* buff, int buf_size);
 int send_basic_response(char * message, int task_id);
 void* get_so_handle(unsigned char* in_mem_buffer, size_t length);
+char* get_current_jobs();
+void add_thread_to_global_info(cJSON* , pthread_t* );
+pthread_t * remove_thread_from_global_info(unsigned int );
 #endif /* UTILS_H_ */

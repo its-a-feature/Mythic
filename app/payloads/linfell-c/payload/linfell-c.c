@@ -7,7 +7,7 @@ void* periodic_callback(){
 	 *   This is the producer thread that puts tasking into the global tasks array*/
 	while(1){
 		//loop forever until the main function ends
-		sleep(global_info->callback_interval + (rand() % global_info->callback_jitter));
+		sleep(global_info->callback_interval);
 		get_tasking();
 		//print_global_info();
 	}
@@ -17,7 +17,7 @@ void* perform_tasking(){
 	 *   if there is one, pass it off to the correct module and function*/
 	cJSON* task;
 	while(1){
-		sleep(1);
+		sleep(0.5);
 		task = pop_tasking();
 		if(task != NULL){
 			m_function *func = get_tasking_func(task);
@@ -28,6 +28,8 @@ void* perform_tasking(){
 				//Spin off a new thread to execute the function
                 cJSON * execute_task = cJSON_Duplicate(task, cJSON_False); // this will get deleted by the calling function when it exits
 				pthread_create(new_thread, NULL, (void*)func->func, execute_task);
+				add_thread_to_global_info(task, new_thread);
+                //printf("%s\n", get_current_jobs());
 				cJSON_Delete(task);
 			}
 			else{

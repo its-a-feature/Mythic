@@ -605,7 +605,11 @@ async def import_payload_type_func(ptype, operator, operation):
             for c2_file in ptype['c2_profiles'][c2_profile_name]:  # list of files
                 # associate the new payload type with this C2 profile and create directory as needed
                 query = await db_model.payloadtypec2profile_query()
-                await db_objects.get_or_create(query, payload_type=payload_type, c2_profile=c2_profile)
+                try:
+                    await db_objects.get(query, payload_type=payload_type, c2_profile=c2_profile)
+                except Exception as e:
+                    # it doesn't exist, so we create it
+                    await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=c2_profile)
                 os.makedirs("./app/c2_profiles/{}/{}/{}".format(operation.name, c2_profile_name, ptype['ptype']), exist_ok=True)
                 for c2_file_name in c2_file:
                     ptype_file = open("./app/c2_profiles/{}/{}/{}/{}".format(operation.name, c2_profile_name, ptype['ptype'], c2_file_name), 'wb')

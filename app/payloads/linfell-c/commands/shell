@@ -49,6 +49,7 @@ int shell(cJSON* json){
 
         if(err != SUCCESS){
             send_basic_response("Failed to read from forked process", cJSON_GetObjectItem(json, "id")->valueint);
+            remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
             free(buffer);
             cJSON_Delete(json);
             return err;
@@ -65,6 +66,7 @@ int shell(cJSON* json){
                 err = read_from_fd(PARENT_READ_FD, buffer, buf_size);
             }
         }
+        remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
         free(buffer);
         cJSON_Delete(json);
         return SUCCESS;
