@@ -129,7 +129,7 @@
         },
         {
           "needs_admin":false,
-          "help_cmd":"Quit the current callback",
+          "help_cmd":"quit"
           "version":1,
           "description":"Calls exit(0) to cleanly exit the agent",
           "cmd":"quit",
@@ -142,9 +142,9 @@
         },
         {
           "needs_admin":false,
-          "help_cmd":"List current jobs that are running in the agent",
+          "help_cmd":"jobs",
           "version":1,
-          "description":"Looks at the internal storage for running threads to see what tasks are running",
+          "description":"List current jobs that are running in the agent",
           "cmd":"jobs",
           "parameters":[
 
@@ -155,10 +155,10 @@
         },
         {
           "needs_admin":false,
-          "help_cmd":"Kills a current job",
+          "help_cmd":"jobs_kill {task#}",
           "version":1,
           "description":"Calls pthread_cancel on a currently running task in a thread to end it.",
-          "cmd":"jobs_kill {task#}",
+          "cmd":"jobs_kill",
           "parameters":[
 
           ],
