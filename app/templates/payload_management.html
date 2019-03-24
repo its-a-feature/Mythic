@@ -8,7 +8,7 @@
     <div class="panel-heading">Operation {{links.current_operation}}'s Payload Information</div>
         <table class="table table-condensed well-sm" >
             <tr>
-                <th><b>Delete</b></th>
+                <th><input type="checkbox" id="selectAllForDelete">&nbsp;<b>Delete</b></th>
                 <th><b>UUID</b></th>
                 <th><b>Config</b></th>
                 <th><b>Download</b></th>
@@ -22,7 +22,7 @@
         <!-- Repeat this for each payload -->
             <tr v-for="p in payloads" :key="p.creation_time" v-show="!p.deleted">
                 <td>
-                    <button type="button" class="btn btn-danger btn-sm" @click="delete_button(p)" >Delete</button>
+                    <input type="checkbox" v-model="p.checked"> <button type="button" class="btn btn-danger btn-sm" @click="delete_button(p)" >Delete</button>
                 </td>
                 <td>
 			        <button type="button" class="btn btn-info btn-sm" @click="show_uuid_button(p)">UUID</button>
@@ -43,6 +43,7 @@
         <!-- End of the repeating -->
         </table>
 </div>
+<button class="btn btn-danger btn-md" onclick="delete_selected_function()">Delete all Selected</button>
 
 <!-- THIS IS OUR MODAL FOR DELETING PAYLOAD -->
 <div class="modal fade bs-example-modal-sm" id="payloadDeleteModal" role="dialog">

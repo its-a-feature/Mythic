@@ -45,11 +45,20 @@ async def get_all_payloads_current_operation(request, user):
 @protected()
 async def remove_payload(request, puuid, user, from_disk):
     try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        return json(await remove_payload_func(puuid, from_disk, operation))
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Failed to find operation'})
+
+
+async def remove_payload_func(uuid, from_disk, operation):
+    try:
         query = await db_model.payload_query()
-        payload = await db_objects.get(query, uuid=puuid)
+        payload = await db_objects.get(query, uuid=uuid, operation=operation)
     except Exception as e:
         print(e)
-        return json({'status':'error', 'error': 'specified payload does not exist'})
+        return {'status':'error', 'error': 'specified payload does not exist'}
     try:
         payload.deleted = True
         await db_objects.update(payload)
@@ -64,10 +73,35 @@ async def remove_payload(request, puuid, user, from_disk):
         for fm in file_metas:
             await db_objects.delete(fm)
         success = {'status': 'success'}
-        return json({**success, **payload.to_json()})
+        return {**success, **payload.to_json()}
     except Exception as e:
         print(e)
-        return json({'status':'error', 'error': 'failed to delete payload'})
+        return {'status':'error', 'error': 'failed to delete payload: ' + uuid}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/payloads/delete_bulk", methods=['POST'])
+@inject_user()
+@protected()
+async def remove_multiple_payload(request, user):
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        data = request.json
+        errors = {}
+        successes = {}
+        for pload in data['payloads']:
+            status = await remove_payload_func(pload['uuid'], pload['from_disk'], operation)
+            if status['status'] == "error":
+                errors[pload['uuid']] = status['error']
+            else:
+                successes[pload['uuid']] = 'success'
+        if len(errors) == 0:
+            return json({'status': 'success', 'successes': successes})
+        else:
+            return json({'status': 'error', 'errors': errors, 'successes': successes})
+    except Exception as e:
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({'status': 'error', 'error': 'Failed to get operation', 'errors':{}, 'successes':{}})
 
 
 async def register_new_payload_func(data, user):

@@ -31,6 +31,50 @@ var payloads_table = new Vue({
     },
     delimiters: ['[[',']]']
 });
+// register the select all for deleting
+$( '#selectAllForDelete').unbind('click').click(function(){
+    for(var i = 0; i < payloads_table.payloads.length; i++){
+        if( $('#selectAllForDelete').is(":checked")){
+            payloads_table.payloads[i]['checked'] = true;
+        }
+        else{
+            payloads_table.payloads[i]['checked'] = false;
+        }
+    }
+
+});
+function delete_selected_function(){
+    $( '#payloadDeleteModal' ).modal('show');
+    $( '#payloadDeleteSubmit' ).unbind('click').click(function(){
+        data = {'payloads': []};
+        for(var i = 0; i < payloads_table.payloads.length; i++){
+            if(payloads_table.payloads[i]['checked']){
+                data['payloads'].push({'uuid': payloads_table.payloads[i]['uuid'], 'from_disk':$('#payloadDeleteFile').is(":checked")})
+            }
+        }
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/delete_bulk", delete_selected_callback, "POST", data);
+    });
+}
+function delete_selected_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+    }
+    if(data['status'] == 'error'){
+        alertTop("danger", "<b>Error</b>: " + JSON.stringify(data['error'], null, 2));
+    }
+    payloads_to_delete = Object.keys(data['successes']);
+    for(var i = 0; i < payloads_to_delete.length; i++){
+        for(var j = 0; j < payloads_table.payloads.length; j++){
+            if(payloads_table.payloads[j]['uuid'] == payloads_to_delete[i]){
+                payloads_table.payloads.splice(j, 1);
+            }
+        }
+    }
+    $('#selectAllForDelete').prop("checked", false);
+
+}
 function delete_callback(response){
 	try{
         var data = JSON.parse(response);
@@ -40,12 +84,12 @@ function delete_callback(response){
     }
 	if(data['status'] == 'success'){
 		var i = 0;
-		for( i = 0; i < payloads.length; i++){
-		    if(payloads[i].uuid == data['uuid']){
+		for( i = 0; i < payloads_table.payloads.length; i++){
+		    if(payloads_table.payloads[i].uuid == data['uuid']){
 		        break;
 		    }
 		}
-		payloads.splice(i, 1);
+		payloads_table.payloads.splice(i, 1);
 	}
 	else{
 		//there was an error, so we should tell the user
@@ -79,7 +123,10 @@ function startwebsocket_payloads(){
 	ws.onmessage = function(event){
 		if(event.data != ""){
 			pdata = JSON.parse(event.data);
-			payloads.push(pdata);
+			if(pdata['deleted'] == false){
+                pdata['checked'] = false; //add in this data to track if an agent is checked for deletion
+                payloads.push(pdata);
+            }
 			
 		}
 	}
