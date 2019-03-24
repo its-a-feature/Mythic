@@ -8,6 +8,7 @@
     "ptype":"apfell-jxa",
     "file_extension":".js",
     "wrapped_payload_type":"null",
+    "external": false,
     "files":[],
     "c2_profiles":{},
     "load_transforms":[

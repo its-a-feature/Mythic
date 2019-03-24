@@ -387,13 +387,19 @@ async def create_payload(request, user):
         # now that it's registered, write the file, if we fail out here then we need to delete the db object
         query = await db_model.payload_query()
         payload = await db_objects.get(query, uuid=rsp['uuid'])
-        create_rsp = await write_payload(payload.uuid, user)
-        if create_rsp['status'] == "success":
-                return json({'status': 'success', 'execute_help': payload.payload_type.execute_help,
-                             'filename': payload.location.split("/")[-1]})
+        if payload.payload_type.external is False:
+            create_rsp = await write_payload(payload.uuid, user)
+            if create_rsp['status'] == "success":
+                    return json({'status': 'success', 'execute_help': payload.payload_type.execute_help,
+                                 'filename': payload.location.split("/")[-1],
+                                 'uuid': rsp['uuid']})
+            else:
+                await db_objects.delete(payload, recursive=True)
+                return json({'status': 'error', 'error': create_rsp['error']})
         else:
-            await db_objects.delete(payload, recursive=True)
-            return json({'status': 'error', 'error': create_rsp['error']})
+            return json({'status': 'success', 'execute_help': payload.payload_type.execute_help,
+                         'filename': payload.location.split("/")[-1],
+                         'uuid': rsp['uuid']})
     else:
         print(rsp['error'])
         return json({'status': 'error', 'error': rsp['error']})

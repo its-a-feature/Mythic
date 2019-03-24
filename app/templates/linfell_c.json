@@ -9,6 +9,7 @@
       "ptype":"linfell-c",
       "file_extension":".c",
       "wrapped_payload_type":"null",
+      "external": false,
       "files":[],
       "c2_profiles":{},
       "load_transforms":[

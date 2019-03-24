@@ -31,7 +31,7 @@
                     <button type="button" class="btn btn-success btn-sm" @click="show_parameters_button(p)">Config</button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-success btn-sm" @click="download_payload_button(p)">Download</button>
+                    <button type="button" :disabled="p.external || p.deleted" class="btn btn-success btn-sm" @click="download_payload_button(p)">Download</button>
                 </td>
                 <td>[[ p.tag ]]</td>
                 <td>[[ p.operator ]]</td>
@@ -200,6 +200,10 @@
                           </td>
                       </tr>
                       <tr>
+                          <td style="width:450px">Is this payload going to be created externally to Apfell?</td>
+                          <td><input type="checkbox" id="payloadtypeCreateExternal"></td>
+                      </tr>
+                      <tr>
                           <td>Select code files to upload:</td>
                           <td><input multiple type="file" id="payloadtypeCreateUploadFiles"></td>
                       </tr>
@@ -263,6 +267,10 @@
 
                               </select>
                           </td>
+                      </tr>
+                      <tr>
+                          <td style="width:150px">Is this payload going to be created externally to Apfell?</td>
+                          <td><input type="checkbox" id="payloadtypeEditExternal"></td>
                       </tr>
                       <tr>
                           <td>Select code files to upload:</td>

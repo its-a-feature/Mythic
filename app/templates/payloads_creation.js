@@ -212,7 +212,7 @@ function submit_payload_callback(response){
         return;
     }
     if(data['status'] == "success"){
-        alertTop("success", "<b>Success!</b> Created file '" + data['filename'] + "'\n<b>Execution help:</b>\n" + data['execute_help']);
+        alertTop("success", "<b>Success!</b> Created file '" + data['filename'] + "'\n<b>Execution help:</b>\n" + data['execute_help'] + "\n<b>UUID:</b> " + data['uuid']);
     }
     else{
         $('#errors').html((data['error']));

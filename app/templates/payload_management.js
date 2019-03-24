@@ -121,6 +121,11 @@ var payloadtypes_table = new Vue({
             $('#payloadtypeEditPtype').val(p['ptype']);
             $('#payloadtypeEditPtype').prop("disabled", true); //don't want this to be edited
             $('#payloadtypeEditFileExtension').val(p['file_extension']);
+            if(p['external']){
+                $('#payloadtypeEditExternal').prop('checked', true);
+            }else{
+                $('#payloadtypeEditExternal').prop('checked', false);
+            }
             if(p['wrapper']){
                 $('#payloadtypeEditWrapper').prop('checked', true);
                 $('#payloadtypeEditWrappedPayloadType').val(p['wrapped_payload_type']);
@@ -151,6 +156,7 @@ var payloadtypes_table = new Vue({
                 data['command_template'] = $('#payloadtypeEditCommandTemplate').val();
                 data['supported_os'] = $('#payloadtypeEditSupportedOS').val();
                 data['execute_help'] = $('#payloadtypeEditExecuteHelp').val();
+                data['external'] = $('#payloadtypeEditExternal').is(":checked");
                 if($('#payloadtypeEditWrapper').is(":checked")){
                     data["wrapped_payload_type"]= $('#payloadtypeEditWrappedPayloadType').val();
                 }
@@ -1104,6 +1110,9 @@ function create_payloadtype_button(){
     if( $('#payloadtypeCreateWrapper').is(":checked")){
         $( '#payloadtypeCreateWrapper' ).click();
     }
+    if( $('#payloadtypeCreateExternal').is(":checked")){
+        $( '#payloadtypeCreateExternal' ).click();
+    }
     $( '#payloadtypeCreateModal' ).modal('show');
     $( '#payloadtypeCreateWrapper').unbind('click').click(function(){
         if( $('#payloadtypeCreateWrapper').is(":checked")){
@@ -1121,6 +1130,7 @@ function create_payloadtype_button(){
         data['command_template'] = $('#payloadtypeCreateCommandTemplate').val();
         data['supported_os'] = $('#payloadtypeCreateSupportedOS').val();
         data['execute_help'] = $('#payloadtypeCreateExecuteHelp').val();
+        data['external'] = $('#payloadtypeCreateExternal');
         if($('#payloadtypeCreateWrapper').is(":checked")){
             data["wrapped_payload_type"]= $('#payloadtypeCreateWrappedPayloadType').val();
         }

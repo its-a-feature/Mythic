@@ -59,6 +59,8 @@ async def create_payloadtype(request, user):
             return json({'status': 'error', 'error': 'must specify "supported_os" list'})
         if 'execute_help' not in data:
             data['execute_help'] = ""
+        if 'external' not in data:
+            data['external'] = False;
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
         if data['wrapper']:
@@ -75,13 +77,15 @@ async def create_payloadtype(request, user):
                                                   wrapper=data['wrapper'],
                                                   wrapped_payload_type=wrapped_payload_type,
                                                   supported_os=",".join(data['supported_os']),
-                                                  execute_help=data['execute_help'])
+                                                  execute_help=data['execute_help'],
+                                                  external=data['external'])
         else:
             payloadtype = await db_objects.create(PayloadType, ptype=data['ptype'], operator=operator,
                                                   file_extension=data['file_extension'],
                                                   wrapper=data['wrapper'], command_template=data['command_template'],
                                                   supported_os=",".join(data['supported_os']),
-                                                  execute_help=data['execute_help'])
+                                                  execute_help=data['execute_help'],
+                                                  external=data['external'])
         os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
         os.mkdir("./app/payloads/{}/payload".format(payloadtype.ptype))  # make the directory structure
         os.mkdir("./app/payloads/{}/commands".format(payloadtype.ptype))  # make the directory structure
@@ -148,6 +152,8 @@ async def update_payloadtype(request, user, ptype):
             payloadtype.supported_os = ",".join(data['supported_os'])
         if 'execute_help' in data:
             payloadtype.execute_help = data['execute_help']
+        if 'external' in data:
+            payloadtype.external = data['external']
         await db_objects.update(payloadtype)
         if request.files:
             code = request.files['upload_file'][0].body
@@ -481,7 +487,7 @@ async def import_payload_type_func(ptype, operator, operation):
             payload_type = await db_objects.create(PayloadType, ptype=ptype['ptype'], wrapped_payload_type=wrapped_payloadtype,
                                                    operator=operator, wrapper=True, command_template=ptype['command_template'],
                                                    supported_os=ptype['supported_os'], file_extension=ptype['file_extension'],
-                                                   execute_help=ptype['execute_help'])
+                                                   execute_help=ptype['execute_help'], external=ptype['external'])
 
     else:
         try:
@@ -493,7 +499,8 @@ async def import_payload_type_func(ptype, operator, operation):
                                                                command_template=ptype['command_template'],
                                                                supported_os=ptype['supported_os'],
                                                                file_extension=ptype['file_extension'],
-                                                               execute_help=ptype['execute_help'])
+                                                               execute_help=ptype['execute_help'],
+                                                               external=ptype['external'])
 
     payload_type.operator = operator
     payload_type.creation_time = datetime.datetime.utcnow()

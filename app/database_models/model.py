@@ -168,6 +168,7 @@ class PayloadType(p.Model):
     command_template = p.TextField(null=False, default="")
     supported_os = p.TextField(null=False, default="")  # indicate which OS/versions this payload works for
     execute_help = p.TextField(null=False, default="")  # helpful options on how to run
+    external = p.BooleanField(default=False, null=False)
 
     class Meta:
         database = apfell_db
@@ -458,6 +459,7 @@ class Payload(p.Model):
                     r[k] = getattr(self, k).name
                 elif k == 'payload_type':
                     r[k] = getattr(self, k).ptype
+                    r["external"] = getattr(self, k).external
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
                 elif k == 'wrapped_payload':
