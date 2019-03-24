@@ -73,9 +73,7 @@ async def get_one_file(request, id, cid):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/download/<id:int>", methods=['GET'])
-@inject_user()
-@protected()
-async def download_file(request, id, user):
+async def download_file(request, id):
     try:
         query = await db_model.filemeta_query()
         file_meta = await db_objects.get(query, id=id)
@@ -87,11 +85,14 @@ async def download_file(request, id, user):
         try:
             return await file(file_meta.path, filename=file_meta.path.split("/")[-1])
         except Exception as e:
-            return json({'status': 'error', 'error': 'File not found'})
+            print("File not found")
+            return raw('', status=404)
     elif not file_meta.complete:
-        return json({'status': 'error', 'error': 'file not done downloading'})
+        print("File not done downloading")
+        return raw('', status=404)
     else:
-        return json({'status': 'error', 'error': 'file was deleted'})
+        print("File was deleted")
+        return raw('', status=404)
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['DELETE'])
