@@ -211,6 +211,48 @@ If you want to write commands that leverage this, simply structure your messages
     </ul></li>
 </ul>
 
+<h4><b>Encryption</b></h4>
+<p>You're able to add in your own encryption via c2 profiles, but Apfell also provides some built-in encryption capabilities for you which live in <b>Apfell/app/crypto.py</b> and <b>Apfell/app/api/crypto_api.py</b>.</p>
+<ul>
+    <li>Every callback has 3 fields related to encryption:<ul>
+        <li><b>encryption_type</b> - The type of encryption to be done with the following two fields. Right now this is limited to <b>AES256</b>, but will expand over time.</li>
+        <li><b>encryption_key</b> - Base64 encoded version of the key</li>
+        <li><b>decryption_key</b> - Base64 encoded version of the key</li>
+    </ul></li>
+    <li>Every operation generates specific keys that can be used by all payloads for that operation if desired. Right now, each operation generates a unique AES256 key.</li>
+    <li>C2 profiles can specify their own AES crypto keys as desired if you don't want to use the random one generated for the operation<ul>
+        <li>If a parameter has a name of <b>AESPSK</b>, it will automatically get populated with the base64 of the operation's key when creating a payload so you have the option to see it or change it as desired </li>
+    </ul> </li>
+    <li>If you want to use the built in encryption, you will need to hit one of the following endpoints for your initial callback instead of the default <b>/callbacks</b> endpoint.</li>
+    <li>Static AES256 Pre-Shared Key: <b>/api/vX/crypto/aes_psk/UUID_HERE</b><ul>
+        <li>Apfell will look up the payload specified by "UUID_HERE", check its C2 profile parameters for one with a <b>name</b> of <b>AESPSK</b></li>
+        <li>Apfell will then use this value to decrypt the initial checkin data. Upon successfully decrypting it, Apfell will forward the traffic to the normal <b>/callbacks</b> endpoint and specify the above 3 encryption related fields.</li>
+        <li>Apfell will then take the response from that call, encrypt it with the same key, base64 encode it, and send it back</li>
+        <li>At this point, all future POST data from the agent MUST be encrypted with this key, and data sent to the agent will be encrypted with this key.<ul>
+            <li>For those that are curious, all of the endpoints will look up the callback and check if it has encryption, then encrypt/decrypt as necessary. Only the initial checkin will be handled by a separate endpoint</li>
+        </ul></li>
+    </ul></li>
+    <li>Encrypted Key Exchange with AES256 Pre-Shared Key: <b>/api/vX/crypto/EKE/*</b><ul>
+        <li>This endpoint is for doing an encrypted key exchange between the agent and apfell with an initially known PSK, but all subsquent requests will use an AES256 session key that's generated during the negotiation.</li>
+        <li>The agent and the Apfell server have a shared PSK (similar to the previous endpoint).</li>
+        <li>The agent will generate a full RSA Public/Private key pair. It will also generate a random session ID (just 10 random characters). The agent creates a JSON message of <b>{"SESSIONID": session_id_here, "PUB": base64_encoded_public_key}</b>, encrypts it with the shared AES256 key, and sends it off to <b>/api/vX/crypto/EKE/UUID_HERE</b>.</li>
+        <li>Apfell will look up the payload specified after /EKE/ by the agent's UUID, check its C2 profile parameters for one with a <b>name</b> of <b>AESPSK</b>, base64 decode the key, and decrypt the agent's message</li>
+        <li>Apfell generates a new AES256 session key and a nonce value and crafts them into a JSON message as <b>{"nonce": nonce, "SESSIONKEY": base64_encoded_key}</b>. Apfell then uses the agent's Public key to encrypt the data and send it back. Apfell saves off this new AES key and SESSION ID</li>
+        <li>The agent decrypts this message with its Private key and saves the new AES key.</li>
+        <li>The agent now gets all of its normal checkin data, encrypts it with the new AES key, and send the data to <b>/api/vX/crypto/EKE/SESSIONID</b>. Notice that it's almost the same URL, but this time you use the SESSIONID instead of the agent's UUID.</li>
+        <li>Apfell looks up the SESSIONID to see if there's a corresponding saved AES key, and if so, decrypts the data, sends it off to the normal <b>/callbacks</b> endpoint with the three encryption-based callback fields properly set, and reports back the checkin data as encrypted with the newest AES key</li>
+        <li>At this point, all future POST data from the agent MUST be encrypted with this new AES key, and data sent back to the agent will be encrypted with the same key.</li>
+    </ul></li>
+    <li><b>Encryption Specifics</b><ul>
+        <li>AES256<ul>
+            <li>Apfell expects CBC AES256 that's padded to 16 bytes.</li>
+            <li>The first 16 bytes of the encrypted message must be the IV. This is sent as 'plaintext' that's pre-pended to the encrypted message.</li>
+        </ul></li>
+        <li>RSA Pub/Priv<ul>
+            <li>Apfell uses RSA PKCS1 OAEP</li>
+        </ul></li>
+    </ul></li>
+</ul>
 {% endblock %}
 {% block scripts %}
 
