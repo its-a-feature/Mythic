@@ -220,9 +220,9 @@ class TransformOperation:
 
     async def outputAsZipFolder(self, payload: Payload, prior_output: str, parameter: None) -> FilePath:
         try:
+            # this does force .zip to output: ex: payload.location of test-payload becomes test-payload.zip on disk
             shutil.make_archive(payload.location, 'zip', self.working_dir)
-            if ".zip" in payload.location:
-                os.rename(payload.location + ".zip", payload.location)
+            os.rename(payload.location + ".zip", payload.location)
             return payload.location
         except Exception as e:
             raise Exception(str(e))
