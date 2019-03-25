@@ -6,7 +6,7 @@ Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bone
 BSides Seattle 2019 Slides: [Ready Player 2: Multiplayer Red Teaming against macOS](https://www.slideshare.net/CodyThomas6/ready-player-2-multiplayer-red-teaming-against-macos)  
 BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.com/playlist?list=PLHVFedjbv6sOz8OGuLdomdkr6-7VdMRQ9)
 
-* Current Version: 1.1
+* Current Version: 1.2
 
 ## Table of Contents
 * [Apfell](#Apfell)

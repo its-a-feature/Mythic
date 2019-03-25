@@ -17,7 +17,7 @@
       "cert_path": ""
     }
   ],
-  "apfellBase": "http://localhost/api/v1.1/",
+  "apfellBase": "http://localhost/api/v1.2/",
   "apfellNextTask": "tasks/callback/{}/nextTask",
   "apfellGetFile": "files/{}/callbacks/{}",
   "apfellPostResponse": "responses/{}",

