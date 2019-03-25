@@ -22,6 +22,7 @@ int load(cJSON* json){
 
     if(so_handle == NULL){
         send_basic_response("Failed to load module", cJSON_GetObjectItem(json, "id")->valueint);
+        remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
         return;
     }
     //iterate over all the commands in the cmds string and load each one
@@ -42,6 +43,7 @@ int load(cJSON* json){
     free(file_buffer);
     free(final_file_data);
     send_basic_response("Loaded commands", cJSON_GetObjectItem(json, "id")->valueint);
+    remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
     cJSON_Delete(json);
     return SUCCESS;
 

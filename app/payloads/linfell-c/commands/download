@@ -19,6 +19,7 @@ int download(cJSON* json){
     }else{
         send_basic_response("Download Finished!", cJSON_GetObjectItem(json, "id")->valueint);
     }
+    remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
     fclose(fptr);
     cJSON_Delete(json);
     return SUCCESS;

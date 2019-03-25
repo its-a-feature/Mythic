@@ -23,6 +23,7 @@ int upload(cJSON* json){
         //printf("Failed to open file for writing\n");
         free(file_buffer);
         send_basic_response("Failed to open file", cJSON_GetObjectItem(json, "id")->valueint);
+        remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
         cJSON_Delete(json);
         return -1;
     }
@@ -33,6 +34,7 @@ int upload(cJSON* json){
 
     //send a message back to the operator that we successfully wrote to disk
     send_basic_response("Successfully wrote to disk", cJSON_GetObjectItem(json, "id")->valueint);
+    remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
     cJSON_Delete(json);
     return SUCCESS;
 }
