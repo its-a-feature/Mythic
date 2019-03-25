@@ -1184,9 +1184,10 @@ async def response_query():
 
 
 async def filemeta_query():
-    return FileMeta.select(FileMeta, Operation, Operator)\
+    return FileMeta.select(FileMeta, Operation, Operator, Task)\
         .join(Operation).switch(FileMeta)\
-        .join(Operator).switch(FileMeta)
+        .join(Operator).switch(FileMeta)\
+        .join(Task, p.JOIN.LEFT_OUTER).switch(FileMeta)
 
 
 async def attack_query():

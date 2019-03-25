@@ -290,7 +290,7 @@ async def add_task_to_callback_func(data, cid, user):
                     return {**status, 'cmd': data['command'], 'params': data['params']}
                 # now create a corresponding file_meta
                 file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
-                                                    path=status['path'], operation=operation)
+                                                    path=status['path'], operation=operation, operator=op)
                 data['file_updates_with_task'].append(file_meta)
                 data['params'] = js.dumps({"cmds": data['params'], "file_id": file_meta.id})
 
