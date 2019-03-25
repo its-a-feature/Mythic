@@ -151,6 +151,15 @@ var callback_table = new Vue({
               this.direction = this.direction * -1;
             }
             this.sort = column;
+        },
+        check_all_callbacks:function(){
+            for(i in this.callbacks){
+                if($('#all_callback_checkbox').is(":checked")){
+                    this.callbacks[i]['selected'] = true;
+                }else{
+                    this.callbacks[i]['selected'] = false;
+                }
+            }
         }
     },
     computed:{
@@ -165,6 +174,7 @@ var callback_table = new Vue({
     },
     delimiters: ['[[',']]']
 });
+
 function get_all_tasking_callback(response){
     try{
         data = JSON.parse(response);
@@ -362,9 +372,23 @@ var task_data = new Vue({
                                         param_data[param_name] = "FILEUPLOAD";
                                     }
                                 }
-
-                                uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func,file_data,
+                                var base_type = callback_table.callbacks[data['cid']].payload_type;
+                                for( i in callback_table.callbacks ){
+                                    // loop through and submit the task for all of the callbacks that are selected that match the payload type of the current one we entered the command on
+                                    // also don't submit a test command to all of the agents
+                                    console.log(i);
+                                    console.log(callback_table.callbacks[i]);
+                                    if(callback_table.callbacks[i]['selected'] && ! task_data.test_command){
+                                        uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + i,post_task_callback_func,file_data,
+                                                                    {"command":command,"params": JSON.stringify(param_data), "test_command": task_data.test_command, "transform_status": transform_status});
+                                    }
+                                }
+                                if(task_data.test_command){
+                                    //if it is a test command we can go ahead and send it down (since it would be skipped by the above)
+                                    uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + i,post_task_callback_func,file_data,
                                     {"command":command,"params": JSON.stringify(param_data), "test_command": task_data.test_command, "transform_status": transform_status});
+                                }
+
                                 //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
                                 task_data.input_field = "";
                             });
@@ -372,9 +396,25 @@ var task_data = new Vue({
                         }
                         else{
                             //somebody knows what they're doing or a command just doesn't have parameters, send it off
-                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST",
+                           var base_type = callback_table.callbacks[data['cid']].payload_type;
+                                for( i in callback_table.callbacks ){
+                                console.log(i);
+                                console.log(callback_table.callbacks[i]);
+                                    // loop through and submit the task for all of the callbacks that are selected that match the payload type of the current one we entered the command on
+                                    // also don't submit a test command to all of the agents
+                                    if(callback_table.callbacks[i]['selected'] && ! task_data.test_command){
+                                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + i,post_task_callback_func, "POST",
                                 {"command":command,"params":params, "test_command": task_data.test_command, "transform_status": transform_status});
-                            task_data.input_field = "";
+                                    }
+                                }
+                                if(task_data.test_command){
+                                    //if it is a test command we can go ahead and send it down (since it would be skipped by the above)
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + i,post_task_callback_func, "POST",
+                                {"command":command,"params":params, "test_command": task_data.test_command, "transform_status": transform_status});
+                                }
+
+                                //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
+                                task_data.input_field = "";
                         }
                         return;
                     }

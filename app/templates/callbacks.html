@@ -6,8 +6,10 @@
 <div style="resize: vertical; overflow:auto; display:block; height:300px" class="panel panel-primary" id="callback_table">
     <div class="panel-heading">Current callbacks</div>
         <table class="table table-condensed">
+            <thead>
             <tr>
-                <th @click="sort_table('id')">Callback <span v-if="sort == 'id' && direction == 1" class="caret"></span><span v-else-if="sort == 'id'" class="caret" style="transform:rotate(180deg)"></span></th>
+                <th><input type="checkbox" @click="check_all_callbacks()" id="all_callback_checkbox"></th>
+                <th @click="sort_table('id')"> Callback <span v-if="sort == 'id' && direction == 1" class="caret"></span><span v-else-if="sort == 'id'" class="caret" style="transform:rotate(180deg)"></span></th>
                 <th @click="sort_table('host')">Host <span v-if="sort == 'host' && direction == 1" class="caret"></span><span v-else-if="sort == 'host'" class="caret" style="transform:rotate(180deg)"></span></th>
                 <th @click="sort_table('ip')">IP <span v-if="sort == 'ip' && direction == 1" class="caret"></span><span v-else-if="sort == 'ip'" class="caret" style="transform:rotate(180deg)"></span></th>
                 <th @click="sort_table('user')">User <span v-if="sort == 'user' && direction == 1" class="caret"></span><span v-else-if="sort == 'user'" class="caret" style="transform:rotate(180deg)"></span></th>
@@ -18,14 +20,16 @@
                 <th @click="sort_table('c2_profile')">C2 Profile <span v-if="sort == 'c2_profile' && direction == 1" class="caret"></span><span v-else-if="sort == 'c2_profile'" class="caret" style="transform:rotate(180deg)"></span></th>
                 <th @click="sort_table('operator')">Spawning Operator <span v-if="sort == 'operator' && direction == 1" class="caret"></span><span v-else-if="sort == 'operator'" class="caret" style="transform:rotate(180deg)"></span></th>
                 <th @click="sort_table('description')">Description <span v-if="sort == 'description' && direction == 1" class="caret"></span><span v-else-if="sort == 'description'" class="caret" style="transform:rotate(180deg)"></span></th>
-            </tr>
+            </tr></thead><tbody>
         <!-- Repeat this for each callback -->
             {% if config['new-callback-color'] == 'light' %}
             <tr v-for="callback in sorted_callbacks" :style="callback.selected ? 'background-color:' + shadeBlend(.5, callback.bg_color) : 'background-color:' + shadeBlend(0.90, callback.bg_color)" v-if="callback.active">
             {% else %}
             <tr v-for="callback in sorted_callbacks" :style="callback.selected ? 'background-color:' + shadeBlend(-0.5, callback.bg_color) : 'background-color:' + shadeBlend(-0.3, '{{config['background-color']}}')" v-if="callback.active">
             {% endif %}
+            <td><input type="checkbox" v-model="callback.selected"></td>
                 <td>
+
                     <!-- Split button -->
                     <div class="btn-group dropdown">
                       <button type="button" class="btn btn-primary btn-sm" @click="interact_button(callback)">Interact [[callback.id]]</button>
@@ -57,7 +61,7 @@
                 <td>[[ callback.c2_profile ]] </td>
                 <td>[[ callback.operator      ]]</td>
                 <td>[[ callback.description   ]]</td>
-            </tr>
+        </tr></tbody>
         <!-- End of the repeating -->
         </table>
 </div>
