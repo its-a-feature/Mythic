@@ -415,7 +415,7 @@ If you get everything set up just right, it can be annoying to recreate it for a
 Now that we have C2 profiles running, payload types created, commands configured, and payloads created, it’s time to actually start operating. The active callbacks page shows a lot of information about the current callbacks:
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_callback_view.png)  
 
-Since we’re tracking so much information along the way, you can see the typical information about the target (host, ip, user, pid), as well as the initial checkin, which payload type, which c2 profile, who created the initial payload, and the default description (this is auto populated from the base payload). 
+Since we’re tracking so much information along the way, you can see the typical information about the target (host, ip, user, pid), as well as the initial checkin, which payload type, which c2 profile, who created the initial payload, and the default description (this is auto populated from the base payload). If you select "interact" on a callback and then select multiple other callbacks, when you issue a task, your task will be issued to all selected callbacks.
 
 From the tasking line when you’re interacting with a callback, you can do a few directives to update some information. If you do `set description X`, the description will get updated (you can also do this from the dropdown next to the interact button). Now, if the description is set to something other than the default tag for the payload, then the corresponding tab will be updated to reflect this new description like below:
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_set_description.png)  
