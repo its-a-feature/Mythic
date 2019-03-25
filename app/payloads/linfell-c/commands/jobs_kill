@@ -5,15 +5,19 @@ int jobs_kill(cJSON* json){
     remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
     unsigned int task_id = atoi(cJSON_GetObjectItem(json, "params")->valuestring);
     pthread_t * job_to_kill = remove_thread_from_global_info(task_id);
-
+    if(job_to_kill == NULL){
+        send_basic_response("Failed to find task", cJSON_GetObjectItem(json, "id")->valueint);
+        return 0;
+    }
     int status = pthread_cancel(*job_to_kill);
     if(status != 0){
         send_basic_response("Failed to kill task", cJSON_GetObjectItem(json, "id")->valueint);
-        printf("Failed to kill task error: %d\n", status);
+        //printf("Failed to kill task error: %d\n", status);
     }
     else{
         send_basic_response("Killed Task", cJSON_GetObjectItem(json, "id")->valueint);
     }
+    return 0;
 
 }
 
