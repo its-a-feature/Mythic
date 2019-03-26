@@ -60,7 +60,7 @@ async def create_payloadtype(request, user):
         if 'execute_help' not in data:
             data['execute_help'] = ""
         if 'external' not in data:
-            data['external'] = False;
+            data['external'] = False
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
         if data['wrapper']:
@@ -484,6 +484,8 @@ async def import_payload_type_func(ptype, operator, operation):
                                                                    wrapped_payload_type=wrapped_payloadtype)
         except Exception as e:
             # this means we need to create it
+            if 'external' not in ptype:
+                ptype['external'] = False
             payload_type = await db_objects.create(PayloadType, ptype=ptype['ptype'], wrapped_payload_type=wrapped_payloadtype,
                                                    operator=operator, wrapper=True, command_template=ptype['command_template'],
                                                    supported_os=ptype['supported_os'], file_extension=ptype['file_extension'],
@@ -494,6 +496,8 @@ async def import_payload_type_func(ptype, operator, operation):
             query = await db_model.payloadtype_query()
             payload_type = await db_objects.get(query, ptype=ptype['ptype'])
         except Exception as e:
+            if 'external' not in ptype:
+                ptype['external'] = False
             payload_type = await db_objects.create(PayloadType, ptype=ptype['ptype'],
                                                                operator=operator, wrapper=False,
                                                                command_template=ptype['command_template'],
