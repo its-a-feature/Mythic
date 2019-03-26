@@ -376,8 +376,8 @@ var task_data = new Vue({
                                 for( i in callback_table.callbacks ){
                                     // loop through and submit the task for all of the callbacks that are selected that match the payload type of the current one we entered the command on
                                     // also don't submit a test command to all of the agents
-                                    console.log(i);
-                                    console.log(callback_table.callbacks[i]);
+                                    //console.log(i);
+                                    //console.log(callback_table.callbacks[i]);
                                     if(callback_table.callbacks[i]['selected'] && ! task_data.test_command){
                                         uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + i,post_task_callback_func,file_data,
                                                                     {"command":command,"params": JSON.stringify(param_data), "test_command": task_data.test_command, "transform_status": transform_status});
@@ -398,8 +398,8 @@ var task_data = new Vue({
                             //somebody knows what they're doing or a command just doesn't have parameters, send it off
                            var base_type = callback_table.callbacks[data['cid']].payload_type;
                                 for( i in callback_table.callbacks ){
-                                console.log(i);
-                                console.log(callback_table.callbacks[i]);
+                                //console.log(i);
+                                //console.log(callback_table.callbacks[i]);
                                     // loop through and submit the task for all of the callbacks that are selected that match the payload type of the current one we entered the command on
                                     // also don't submit a test command to all of the agents
                                     if(callback_table.callbacks[i]['selected'] && ! task_data.test_command){
@@ -792,31 +792,38 @@ function startwebsocket_newtasks(){
     }
 };
 function add_new_task(tsk){
-    if (callbacks[tsk['callback']]){
-        if (callbacks[tsk['callback']]['active'] == false){
-            return;
+    try{
+        console.log("in add_new_task: " + JSON.stringify(tsk));
+        var test = tsk['bob'].id.bleh;
+        if (callbacks[tsk['callback']]){
+            if (callbacks[tsk['callback']]['active'] == false){
+                return;
+            }
         }
-    }
-    if ( !(tsk['callback'] in all_tasks) ){
-        // if there is NOT this specific callback.id in the tasks dictionary
-        // then create it as an empty dictionary
-        Vue.set(all_tasks, tsk['callback'], {}); //create an empty dictionary
-    }
-    if( tsk.id in all_tasks[tsk['callback']] ){
-        // we already have this task, so we're actually going to update it
-        Vue.set(all_tasks[tsk['callback']], tsk['id'], Object.assign({}, all_tasks[tsk.callback][tsk.id], tsk));
-    }
-    else{
-        tsk.href = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + tsk.id;
-        Vue.set(all_tasks[tsk['callback']], tsk['id'], tsk);
-        task_data.meta[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['params']); // set up our cmd history
-        task_data.meta[tsk['callback']]['history_index'] = task_data.meta[tsk['callback']]['history'].length;
-        // in case this is the first task and we're waiting for it to show up, reset this
-        if(!meta[tsk['callback']]){
-            meta[tsk['callback']] = {};
+        if ( !(tsk['callback'] in all_tasks) ){
+            // if there is NOT this specific callback.id in the tasks dictionary
+            // then create it as an empty dictionary
+            Vue.set(all_tasks, tsk['callback'], {}); //create an empty dictionary
         }
-        meta[tsk['callback']].data = all_tasks[tsk['callback']];
-    }
+        if( tsk.id in all_tasks[tsk['callback']] ){
+            // we already have this task, so we're actually going to update it
+            Vue.set(all_tasks[tsk['callback']], tsk['id'], Object.assign({}, all_tasks[tsk.callback][tsk.id], tsk));
+        }
+        else{
+            tsk.href = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + tsk.id;
+            Vue.set(all_tasks[tsk['callback']], tsk['id'], tsk);
+            task_data.meta[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['params']); // set up our cmd history
+            task_data.meta[tsk['callback']]['history_index'] = task_data.meta[tsk['callback']]['history'].length;
+            // in case this is the first task and we're waiting for it to show up, reset this
+            if(!meta[tsk['callback']]){
+                meta[tsk['callback']] = {};
+            }
+            meta[tsk['callback']].data = all_tasks[tsk['callback']];
+        }
+     }catch(e){
+        console.log(e);
+        console.log(e.toString());
+     }
 }
 function startwebsocket_updatedtasks(){
     ws_updatedtasks = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/responses/current_operation');
