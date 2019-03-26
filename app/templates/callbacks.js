@@ -794,7 +794,6 @@ function startwebsocket_newtasks(){
 function add_new_task(tsk){
     try{
         console.log("in add_new_task: " + JSON.stringify(tsk));
-        var test = tsk['bob'].id.bleh;
         if (callbacks[tsk['callback']]){
             if (callbacks[tsk['callback']]['active'] == false){
                 return;
