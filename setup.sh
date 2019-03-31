@@ -82,9 +82,8 @@ openssl req -new -x509 -keyout ./app/ssl/apfell-ssl.key -out ./app/ssl/apfell-ce
 # python3.7 breaks stuff from python3.6 of course, so check the version and write out and use the appropriate requirements.txt
 if [[ "$(python3 --version)" == *"3.6"* ]]; then
     pip3 install -r requirements.txt
-elif [[ "$(python3 --version)" == *"3.5"* ]]; then
-    echo "[-] Python version needs to be 3.6+. Please install the correct version and restart"
-else
+    echo -e "\n[*] start server with \"sudo python3 server.py\"\n"
+elif [[ "$(python3 --version)" == *"3.7"* ]]; then
     # we need to rewrite requirements.txt with the right values
     echo "sanic==0.7.0" > requirements.txt
     echo "peewee-async==0.5.12" >> requirements.txt
@@ -93,13 +92,15 @@ else
     echo "jinja2" >> requirements.txt
     echo "uvloop==0.11.2" >> requirements.txt
     echo "sanic-wtf" >> requirements.txt
-    echo "cryptography" >> requirements.txt
+    echo "pycryptodome" >> requirements.txt
     echo "wtforms" >> requirements.txt
     echo "anytree" >> requirements.txt
     echo "websockets==5.0.1" >> requirements.txt
     echo "sanic-jwt" >> requirements.txt
     echo "fpdf" >> requirements.txt
     pip3 install -r requirements.txt
+    echo -e "\n[*] start server with \"sudo python3 server.py\"\n"
+else
+    echo "[-] Python version needs to be 3.6+. Please install the correct version and restart"
 fi
 
-echo -e "\n[*] start server with \"sudo python3 server.py\"\n"

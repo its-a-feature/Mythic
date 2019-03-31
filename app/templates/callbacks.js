@@ -68,54 +68,6 @@ var callback_table = new Vue({
                 }
             });
         },
-        spawn_menu: function(callback){
-            //display a modal menu for the user to get some information about spawning a new callback
-            possiblePayloads = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/current_operation"));
-            var payloads = '<option value="-1">current callback as template for new payload</option>';
-            for(var i = 0; i < possiblePayloads.length; i++){
-                if(possiblePayloads[i].tag !== ""){
-                    //if there's already a default tag, just use it to ID the payload
-                    payloads = payloads + '<option value="' + possiblePayloads[i].uuid + '">'
-                    + possiblePayloads[i].tag + '</option>';
-                }
-                else{
-                    //if there is no tag associated, ID it with uuid for now
-                    payloads = payloads + '<option value="' + possiblePayloads[i].uuid + '">'
-                    + possiblePayloads[i].uuid + '</option>';
-                }
-            }
-            $( '#spawnPayload' ).html(payloads);
-            var defaultNewTag = username + " on " + callback.id + " using " + $('#spawnMethod').val();
-            $( '#spawnTag').val(defaultNewTag);
-            $( '#spawnModal' ).modal('show');
-            // because we do this 'binding' with .click in this function, it happens every time we make the modal show
-            //   if we don't unbind each time, then we'll bind multiple times and call the function repeatedly for each click
-            $( '#spawnSubmit' ).unbind('click').click(function(){
-                //Now we have everything we need to submit this post request!
-                post_data = {'pcallback': callback.id, 'task': true, 'operator': username, 'command': $('#spawnMethod').val().split(" ")[0], 'params': $('#spawnMethod').val().split(" ").slice(1, ).join(' ')}
-                if( $('#spawnPayload').val() == -1){
-                    //we selected to use our current payload
-                    post_data['payload'] = callback.registered_payload;
-                }
-                else{
-                    //we selected an already existing payload that was registered, so use that uuid
-                    post_data['payload'] = $('#spawnPayload').val();
-                }
-                if( $('#spawnNewTag').val() == "on"){
-                    post_data['tag'] = $('#spawnTag').val();
-                }
-                else{
-                    if($('#spawnPayload').val() == -1){
-                        //we didn't specify a new tag and we want to use a new payload, so create a meaningful new tag
-                        post_data['tag'] = username + " on " + callback.id + " using " + $('#spawnMethod').val();
-                    }
-                }
-                //should have all the data we need, submit the POST request
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create",
-                null, "POST", post_data);
-            });
-
-        },
         hide_tasks: function(callback){
             meta[callback.id]['tasks'] = false;
             meta[callback.id]['screencaptures'] = false;
@@ -193,6 +145,9 @@ function get_all_tasking_callback(response){
             // executed after render
             clearAlertTop();
         }, 0);
+        Vue.nextTick().then(function(){
+            $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+        });
     }
     else{
         alertTop("danger", data['error']);
@@ -450,6 +405,9 @@ var task_data = new Vue({
                 autocomplete_commands.push(this.ptype_cmd_params[callbacks[metadata.id]['payload_type']][i].cmd );
             }
             autocomplete(document.getElementById("commandline"), autocomplete_commands );
+            Vue.nextTick().then(function(){
+                $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+            });
         },
         toggle_image: function(image){
             var panel = document.getElementById(image.remote_path).nextElementSibling;
@@ -559,7 +517,6 @@ var task_data = new Vue({
     updated: function(){
         this.$nextTick(function(){
             //this is called after the DOM is updated via VUE
-            $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
             if( $('#popover-content-editCommandSwitches').hasClass('show') ){
                 //the popover is visible but something changed, redraw it
                 $('#editCommandSwitches').popover('show');
@@ -814,10 +771,18 @@ function add_new_task(tsk){
             task_data.meta[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['params']); // set up our cmd history
             task_data.meta[tsk['callback']]['history_index'] = task_data.meta[tsk['callback']]['history'].length;
             // in case this is the first task and we're waiting for it to show up, reset this
-            if(!meta[tsk['callback']]){
-                meta[tsk['callback']] = {};
+            if(!task_data.meta.hasOwnProperty(tsk['callback'])){
+                task_data.meta[tsk['callback']] = {};
             }
-            meta[tsk['callback']].data = all_tasks[tsk['callback']];
+            task_data.meta[tsk['callback']].data = all_tasks[tsk['callback']];
+            if($('#bottom-tabs-content').scrollTop() + $('#bottom-tabs-content').height() == $('#bottom-tabs-content')[0].scrollHeight){
+                //if we're looking at the bottom of the content, scroll
+                Vue.nextTick().then(function(){
+                    $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+                });
+
+            }
+
         }
      }catch(e){
         console.log(e);
@@ -855,6 +820,13 @@ function add_new_response(rsp){
         var updated_response = rsp['response'].replace(/\\n|\r/g, '\n');
         // all_tasks->callback->task->response->id = timestamp, responsevalue
         Vue.set(all_tasks[rsp['task']['callback']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': updated_response});
+        if($('#bottom-tabs-content').scrollTop() + $('#bottom-tabs-content').height() == $('#bottom-tabs-content')[0].scrollHeight){
+            //if we're looking at the bottom of the content, scroll
+            Vue.nextTick().then(function(){
+                $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+            });
+
+        }
     }
 }
 function startwebsocket_updatedcallbacks(){
