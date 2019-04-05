@@ -335,7 +335,7 @@ async def start_c2profile(request, info, user):
         # run profiles with just /bin/bash, so they should be set up appropriately
         path = os.path.abspath('./app/c2_profiles/{}/{}/{}_server'.format(operation.name, name, name))
         os.chmod(path, mode=0o777)
-        p = await asyncio.create_subprocess_exec(path, '&', stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, cwd='./app/c2_profiles/{}/{}'.format(operation.name, name))
+        p = await asyncio.create_subprocess_exec(path, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, cwd='./app/c2_profiles/{}/{}'.format(operation.name, name))
         output = ""
         try:
             for i in range(10):
