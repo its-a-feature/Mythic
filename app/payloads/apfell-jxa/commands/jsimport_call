@@ -10,8 +10,8 @@ exports.jsimport_call = function(task, command, params){
         if(output == false){
             return "False";
         }
-        if(typeof(response) != "string"){
-            response = String(response);
+        if(typeof(output) != "string"){
+            output = String(output);
         }
         return output;
     }
