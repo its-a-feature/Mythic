@@ -7,10 +7,10 @@ exports.persist_folderaction = function(task, command, params){
     	var url = json_params['url'];
     	var code = json_params['code'];
     	var lang = json_params['language'];
-    	var code1 = `var app = Application.currentApplication();
-app.includeStandardAdditions = true;
-app.doShellScript(" osascript -l JavaScript -e \\\\"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('`;
-		var code2 = `')),$.NSUTF8StringEncoding)));\\\\" &> /dev/null &");`;
+    	var code1 = "var app = Application.currentApplication();\\n" +
+                    "app.includeStandardAdditions = true;\\n" +
+                    "app.doShellScript(\\" osascript -l JavaScript -e \\\\\\"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('";
+		var code2 = "')),$.NSUTF8StringEncoding)));\\\\\\" &> /dev/null &\\");";
 		var output = "";
     	// ======== Compile and write script to file ==========
     	ObjC.import('OSAKit');
@@ -38,7 +38,7 @@ app.doShellScript(" osascript -l JavaScript -e \\\\"eval(ObjC.unwrap($.NSString.
 				// if our folder already has folder actions, just take the reference for later
 				fa = se.folderActions[i];
 				fa_exists = true;
-				output += "Folder already has folder actions\n";
+				output += "Folder already has folder actions\\n";
 				break;
 			}
 		}
@@ -50,7 +50,7 @@ app.doShellScript(" osascript -l JavaScript -e \\\\"eval(ObjC.unwrap($.NSString.
 		for(var i = 0; i < fa.scripts.length; i++){
 			if(fa.scripts[i].posixPath() ==  script_path){
 				script_exists = true;
-				output += "Script already assigned to this folder\n";
+				output += "Script already assigned to this folder\\n";
 				break;
 			}
 		}
