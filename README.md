@@ -47,6 +47,7 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 * [Reporting](#Reporting)
 * [Analytics](#Analytics)
 * [Contributing](#Contributing)
+* [Basic Agent Creation Information](#Basic-Agent-Creation-Information)
 
 ## Installation
 
