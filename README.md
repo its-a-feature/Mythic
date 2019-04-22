@@ -11,7 +11,7 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 ## Table of Contents
 * [Apfell](#Apfell)
 * [Installation](#Installation)
-* [Starting Apfell](#Starting-Apfell)
+* [Connecting to Apfell](#Connecting-to-Apfell)
 * [Quick Walkthrough to operations](#Quick-Operational-Walkthrough)
 * [Users](#Users)
 * [Operations](#Operations)
@@ -54,11 +54,10 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 ```bash
 git clone https://github.com/its-a-feature/Apfell
 ```
-- Important note: This is made to work with *python 3.6*, so you must have python3.6+. I've managed to adjust the install script and the required versions of python dependencies if you're using python 3.7 (which is what is default installed now when you brew install in macOS), but I don't have any cases for using python versions earlier than 3.6.
-- This works best on Ubuntu or macOS, but can work on other distros (you just might have compile python3.6 yourself depending on the distro)
-- Install and setup the requirements. The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though. This can be installed and run on both Linux and macOS. 
-- On macOS, this requires brew to be installed - if it isn't already installed, I will install it for you.
-- Configure the installation in app/\_\_init\_\_.py. 
+- Important note: This is made to work with docker, so docker needs to be installed. If docker is not installed on your ubuntu machine, you can use the `./install_docker_debian.sh` to install it for you.
+- The server only runs on Ubuntu. 
+- The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though.
+- Configure the installation in /Apfell/apfell-docker/app/\_\_init\_\_.py. 
 ```bash
 # -------- CONFIGURE SETTINGS HERE -----------
 db_name = 'apfell_db'
@@ -79,27 +78,45 @@ whitelisted_ip_blocks = ['0.0.0.0/0']  # only allow connections from these IPs t
 # by default this is off, but you can turn it on and the server will use the above ssl_cert_path and ssl_key_path
 use_ssl = False
 ```
-- Once you're ready to finally install, simply run the setup script and you should be good to go!
+- Once you're ready to finally install, simply run the setup script and then the start script and you should be good to go!
 ```bash
-# The setup.sh will install postgres and pip3 install the requirements
-# If you're on Linux:
-cd Apfell && chmod +x setup.sh && sudo ./setup.sh && cd ..
-# If you're on macOS (note the lack of sudo!):
-cd Apfell & chmod +x setup.sh && ./setup.sh && cd ..
+./setup_apfell.sh
+./start_apfell.sh
 ```
 
-## Starting Apfell
-- Start the server:
-```bash
-sudo python3 server.py # sudo here is needed if you ever plan on opening a port less than 1024
-[2018-07-16 14:39:14 -0700] [28381] [INFO] Goin' Fast @ http://0.0.0.0:80
-```
+## Connecting to Apfell
+
 By default, the server will bind to 0.0.0.0 on port 80. This is an alias meaning that it will be listening on all IPv4 addresses on the machine. You don't actually browse to https://0.0.0.0:80 in your browser. Instead, you'll browse to either https://localhost:80 if you're on the same machine that's running the server, or you can browse to any of the IPv4 addresses on the machine that's running the server. You could also browse to the IP address you specified in `server_ip = 'localhost'` in the installation section.  
 
 - All requests from the browser to the apfell server are dynamic and based on the `server_ip` and `listen_port` you specified in the `app/__init__.py` file. I cannot stress this enough that you need to set this to a routable IP address so the browser can connect remotely.
 
 Apfell uses JSON Web Token (JWT) for authentication. When you use the browser (vs the API on the commandline), I store your access and refresh tokens in a cookie. This should be seamless as long as you leave the server running; however, the history of the refresh tokens is saved in memory. So, if you authenticate in the browser, then restart the server, you'll have to sign in again.
 - Browse to the server with any modern web browser. This is where you can sign in. This url and `/register` are the ones protected by `whitelisted_ip_blocks` in the `app/__init__.py`. The default username and password here is `apfell_admin` and `apfell_password`.  
+
+### Starting or Stopping containers
+
+Apfell now uses docker containers for all c2 profiles and payload types. This allows us to have more control over the environments. 
+
+Simply do `./start_c2_profiles.sh` or `./stop_c2_profiles.sh` to start/stop all c2 profiles located on the Apfell server, or you can be more granular for specific profiles like `./start_c2_profiles.sh RESTful_Patchthrough` to just start/stop a single profile.  The same can be done for payload type build servers as well.
+
+C2 profiles and payload types cannot have spaces in the name - this allows us to have easy persistence of changes across containers starting/stopping by mapping directories into the containers.
+
+If you want to reset the data for a specific thing, use the corresponding `reset` script. For example, `./reset_postgres_database.sh` will remove the backend database files so that you can start it fresh again.
+
+### Creating new Containers
+
+If you want to create a new container to use, create a new folder in `C2_Profiles` or `Payload_Types` with the name of the c2 profile or payload type. Within that folder make a new file called `Dockerfile` which contains the following:
+```bash
+From c2_profile_base
+```
+or
+```bash
+From payload_type_base
+```
+
+and place any other files you need in that directory as well. Then, start the container with the corresponding start script. The container will be started and will start sending heartbeat messages to the main Apfell server.
+
+In the Apfell server, make sure to register a new PayloadType or C2Profile with the same name, and you should see the container light turn green.  If there is no heartbeat message in the last 30 seconds, then container light will flash red to indicate that something is wrong.
 
 ## Users
 Everybody that uses Apfell must register an account before being able to login. The password is hashed and stored in the database (you can change your password at any time). The database keeps track of when the account was created and the last time you logged in. When you successfully authenticate, you’re given two JWTs (JSON Web Tokens) - an authentication and a refresh token. If you’re using your browser, these tokens are saved in cookies in your browser and passed with each request. The majority of Apfell interaction is through a series of RESTful interfaces and websockets that the UI wraps for ease of access. If you’re interacting with the RESTful interfaces from your own custom tool or the command line, then you need to pass these tokens along in an Authorization header.
