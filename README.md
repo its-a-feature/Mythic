@@ -191,7 +191,7 @@ The name must be unique within an operation, the description can be whatever you
 
 ### C2 Profile Server Code
 
-You can upload whatever you want for server code - any configuration files you want, any languages, any size. Of all the files you upload, when you start a c2 profile, Apfell will execute the file called “profileName_server”. For example, if you create a c2 profile called “Twitter profile”, then the file that will actually be executed must be called “Twitter profile_server”. 
+You can upload whatever you want for server code - any configuration files you want, any languages, any size. Of all the files you upload, when you start a c2 profile, Apfell will execute the file called “server”. For example, if you create a c2 profile called “Twitter_profile”, then the file that will actually be executed must be called “server”, but the folder name must still be "Twitter_profile". 
 
 If you want to look back at the files you’ve uploaded so far, download them, or remove them, simply click the `Edit Files` button to see the files broken out by server files and associated agent files:  
 
