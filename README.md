@@ -561,3 +561,29 @@ Once you've logged into Apfell, you can access some additional help.
 - CommandLines - provides information about how to interact with the RESTful interface via terminal and Curl
 - Documentation - will eventually provide a more thorough manual of how Apfell is organized, how to extend it, how logging works, and how to interact with the dashboards
 - apfell-jxa help - provides help on the command lines that can be sent to the apfell-jxa RAT, how they work, and their parameters
+
+
+## Basic Agent Creation Information
+
+### C2 Information
+
+The agent needs to be able to make web requests to (or communicate through a C2 profile which makes the requests) the following URLs:
+- POST: `http://apfell.server:apfell_port/api/v1.2/callbacks`  
+  - You can alternatively look at the in-server help (API -> C2 Documentation) to see the endpoints for encryption
+  - This endpoint is registering a new callback
+  - This request needs to have a JSON blob of: `{"user":"username","host":"hostname","pid":561,"ip":"192.168.12.52","uuid":"UUID_HERE"}`
+  - This will get back `{'status': 'success', "id": #, other information about the callback}`, but the status value and ID value are what's important here
+- GET: `http://apfell.server:apfell_port/api/v1.2/tasks/callback/#/nextTask`
+  - The # will be replaced with the ID value from the POST above this
+  - The response will be either `{'command': "None"}` or will be `{"command": "some command name", "params": "some params, potentially a JSON blob", "id": #}`
+  - The ID here is the Task ID and will be used in the next message to post data back as a response to that specific task
+- POST: `http://apfell.server:apfell_port/api/v1.2/responses/#`
+  - The # will be replaced with the task number that you're returning data for. You can post back to the same task # multiple times.
+  - The post needs to have a JSON blob of: `{"response": "aXRzLWEtZmVhdHVyZQ=="}` where the base64 encoded value is the output of the task. This can be a base64 encoded JSON blob as well and is expected for certain commands (See the API -> C2 Documentation for which ones)
+- GET: `http://apfell.server:apfell_port/api/v1.2/files/#1/callbacks/#2`
+  - This is to pull down files from the c2 server (these can be files to drop to disk, load into memory, or anything else)
+  - The #1 is the file number; this value will be given as part of the tasking command
+  - The #2 is the callback's ID (which you got from making the POST to /callbacks); this allows the server to automatically encrypt the response if necessary based on a lookup of the callback's encryption/decryption keys  
+  - The file will come back as a base64 encoded (and potentially encrypted) blob
+
+Outside of these, the agent right now just needs to be able to handle the contents of the commands that are associated with it. These can be whatever you design to go with your agent, so there's no formal guidance. If you want to hook into Apfell's tracking/display for things like keylogging, screenshots, uploads, downloads, or encryption, check out the `API -> C2 Documentation` for what's required for each one.
