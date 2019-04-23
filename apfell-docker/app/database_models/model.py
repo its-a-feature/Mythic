@@ -243,6 +243,7 @@ class Command(p.Model):
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
     version = p.IntegerField(null=False, default=1)  # what version, so we can know if loaded commands are out of date
+    #is_exit = p.BooleanField(null=False, default=False)  # indicate if this command is the exit command for a payload type
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)
@@ -902,7 +903,6 @@ class Keylog(p.Model):
             try:
                 if k == 'task' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).id
-                    r['task_command'] = getattr(self, k).command.cmd
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
                 else:
@@ -1222,7 +1222,7 @@ async def keylog_query():
         .join(Task)\
             .join(Callback).switch(Task)\
             .join(Operator).switch(Task)\
-            .join(Command, on=( (Task.command.is_null()) | (Task.command.is_null(False)))).switch(Task)\
+            .join(Command).switch(Task)\
             .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Keylog)\
         .join(Operation).switch(Keylog)
 

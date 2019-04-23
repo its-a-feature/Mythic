@@ -136,7 +136,9 @@ function alertBottom(type, string){
     $( '#bottom-alert' ).append(html);
 }
 function clearAlertTop(){
-    $( '#top-alert' ).html("");
+    $("#top-alert").fadeTo(20, 50).slideUp(500, function(){
+          $("#middle-alert").slideUp(500);
+    });
 }
 function clearAlertBottom(){
     $( '#bottom-alert' ).html("");

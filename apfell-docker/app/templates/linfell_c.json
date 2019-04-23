@@ -78,6 +78,26 @@
           "artifacts": []
         },
         {
+          "needs_admin": false,
+          "help_cmd": "screencapture",
+          "version": 1,
+          "description": "Calls the gnome-screenshot util (very non-opsec safe because it causes a screen flash) and saves the file out to /tmp, downloads it, then deletes the file. Purely for demo purposes",
+          "cmd": "screencapture",
+          "parameters": [],
+          "attack": [],
+          "artifacts": []
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "keylog",
+          "version": 1,
+          "description": "Uses a modified version of Empire's python xkeylogger to stream keylogs back to the Apfell server whenever the user switches between programs. This starts a log-running job that you will need to do jobs_kill to stop. You can see the results of the keylog in its own callback-specific tab or across the whole operation.",
+          "cmd": "keylog",
+          "parameters": [],
+          "attack": [],
+          "artifacts": []
+        },
+        {
           "needs_admin":false,
           "help_cmd":"shell {command}",
           "version":1,

@@ -10,18 +10,23 @@ var keylog = new Vue({
 });
 function host_window(){
     var data = {"grouping": "host", "sub_grouping": "window"};
+    alertTop("info", "Getting keylogs...");
     get_keylogging(data);
 }
+host_window();
 function host_time(){
     var data = {"grouping": "host", "sub_grouping": "time"};
+    alertTop("info", "Getting keylogs...");
     get_keylogging(data);
 }
 function user_window(){
     var data = {"grouping": "user", "sub_grouping": "window"};
+    alertTop("info", "Getting keylogs...");
     get_keylogging(data);
 }
 function user_time(){
     var data = {"grouping": "user", "sub_grouping": "time"};
+    alertTop("info", "Getting keylogs...");
     get_keylogging(data);
 }
 function get_keylogging(data){
@@ -38,6 +43,7 @@ function keylog_callback(response){
         keylog.data['grouping'] = data['grouping'];
         keylog.data['sub_grouping'] = data['sub_grouping'];
         keylog.keylogs = data['keylogs'];
+        clearAlertTop();
     }
     else{
         alertTop("danger", data['error']);
