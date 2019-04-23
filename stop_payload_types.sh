@@ -13,8 +13,8 @@ fi
 # build out the standard image for building payload types
 echo "Pruning old images..."
 docker image prune -f
-echo "Building golden payload_type_base image..."
-docker build -f "./Payload_Types/Dockerfile" --rm -t "payload_type_base" "./Payload_Types"
+#echo "Building golden payload_type_base image..."
+#docker build -f "./Payload_Types/Dockerfile" --rm -t "payload_type_base" "./Payload_Types"
 # now loop through the profiles to build out their variations
 echo "Looping through payload types..."
 for p in "${payloads[@]}"
