@@ -351,15 +351,18 @@ async def add_task_to_callback_func(data, cid, user):
             payload_type.container_running = False
             await db_objects.update(payload_type)
         result = {'status': 'success'}  # we are successful now unless the rabbitmq service is down
+        if task is not None:
+            await add_command_attack_to_task(task, cmd)
         if task is None:
             # only create the task if there are no cmd_transforms, or there are and the container is up
             if len(cmd_transforms['transforms']) == 0 or len(["a" for v in data['transform_status'].values() if v]) == 0 and not data['test_command']:
                 task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'], original_params=original_params, status="submitted")
-
+                await add_command_attack_to_task(task, cmd)
             elif payload_type.container_running:
                 # by default tasks are created in a preprocessing state so an agent won't get them as they're tasked to the corresponding build-servers for potential modifications
                 task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
                                                original_params=original_params)
+                # we don't want to add ATT&CK and ArtifactTask yet since we need the final results to come back from rabbitmq first
                 result = await send_pt_rabbitmq_message(cb.registered_payload.payload_type.ptype,
                                                         "command_transform.{}".format(task.id),
                                                         base64.b64encode(
@@ -369,7 +372,7 @@ async def add_task_to_callback_func(data, cid, user):
                 return {"status": "error",
                         'error': 'payload\'s container not running, no heartbeat in over 30 seconds, so it cannot be tasked to do transforms or tests',
                         "cmd": cmd.cmd, "params": data['params']}
-        await add_command_attack_to_task(task, cmd)
+
         for update_file in data['file_updates_with_task']:
             # now we can associate the task with the filemeta object
             update_file.task = task
@@ -491,7 +494,7 @@ async def add_command_attack_to_task(task, command):
             try:
                 query = await db_model.attacktask_query()
                 # try to get the query, if it doens't exist, then create it in the exception
-                await db_objects.get(ATTACKTask, task=task, attack=attack.attack)
+                await db_objects.get(query, task=task, attack=attack.attack)
             except Exception as e:
                 await db_objects.create(ATTACKTask, task=task, attack=attack.attack)
         # now do the artifact adjustments as well

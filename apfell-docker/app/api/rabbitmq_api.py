@@ -5,6 +5,7 @@ import aio_pika
 import asyncio
 import base64
 import json
+import sys
 
 
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
@@ -68,6 +69,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         task.params = message_body['params']
                         if not message_body['test_command']:
                             task.status = "submitted"
+                            await add_command_attack_to_task(task, task.command)
                         else:
                             task.status = "processed"
                             await db_objects.create(db_model.Response, task=task, response="TEST COMMAND RESULTS:\n{}".format(message_body['step_output']))
@@ -93,6 +95,37 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         await db_objects.update(task)
             except Exception as e:
                 print("Exception in rabbit_pt_callback: " + str(e))
+
+
+async def add_command_attack_to_task(task, command):
+    try:
+        query = await db_model.attackcommand_query()
+        attack_mappings = await db_objects.execute(query.where(db_model.ATTACKCommand.command == command))
+        for attack in attack_mappings:
+            try:
+                query = await db_model.attacktask_query()
+                # try to get the query, if it doens't exist, then create it in the exception
+                await db_objects.get(query, task=task, attack=attack.attack)
+            except Exception as e:
+                await db_objects.create(db_model.ATTACKTask, task=task, attack=attack.attack)
+        # now do the artifact adjustments as well
+        query = await db_model.artifacttemplate_query()
+        artifacts = await db_objects.execute(query.where(db_model.ArtifactTemplate.command == command))
+        for artifact in artifacts:
+            temp_string = artifact.artifact_string
+            if artifact.command_parameter is not None and artifact.command_parameter != 'null':
+                # we need to swap out temp_string's replace_string with task's param's command_parameter.name value
+                parameter_dict = json.loads(task.params)
+                temp_string = temp_string.replace(artifact.replace_string, str(parameter_dict[artifact.command_parameter.name]))
+            else:
+                # we need to swap out temp_string's replace_string with task's params value
+                if artifact.replace_string != "":
+                    temp_string = temp_string.replace(artifact.replace_string, str(task.params))
+            await db_objects.create(db_model.TaskArtifact, task=task, artifact_template=artifact, artifact_instance=temp_string)
+
+    except Exception as e:
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        raise e
 
 
 async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
