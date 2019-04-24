@@ -1448,10 +1448,21 @@ function container_heartbeat_check(){
         }else{
             if(payloadtypes_table.payloadtypes[i]['container_running'] == true){
                 // if it's currently set to running, let's change it in the db that it's down
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypes_table.payloadtypes[i]['ptype'], null, "PUT", {"container_running": false});
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypes_table.payloadtypes[i]['ptype'], change_heartbeat_callback, "PUT", {"container_running": false});
             }
             payloadtypes_table.payloadtypes[i]['container_running'] = false;
         }
+    }
+}
+function change_heartbeat_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] != "success"){
+        alertTop("danger", data['error']);
     }
 }
 setInterval(container_heartbeat_check, 500);
