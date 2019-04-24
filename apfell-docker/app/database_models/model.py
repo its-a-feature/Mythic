@@ -1246,9 +1246,10 @@ async def artifacttemplate_query():
 
 
 async def taskartifact_query():
-    return TaskArtifact.select(TaskArtifact, Task, ArtifactTemplate, Command, Artifact)\
-        .join(Task).switch(TaskArtifact)\
-        .join(ArtifactTemplate).join(Command).switch(ArtifactTemplate).join(Artifact).switch(TaskArtifact)
+    return TaskArtifact.select(TaskArtifact, Task, Callback, ArtifactTemplate, Command, Artifact)\
+        .join(Task).join(Callback).switch(Task).switch(TaskArtifact)\
+        .join(ArtifactTemplate).join(Command).switch(ArtifactTemplate)\
+        .join(Artifact).switch(TaskArtifact)
 
 
 async def staginginfo_query():
