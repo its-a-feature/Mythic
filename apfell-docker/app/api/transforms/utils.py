@@ -17,10 +17,10 @@ class CommandTransformOperation:
         encoded = base64.b64encode(str.encode(task_params)).decode('utf-8')
         return "echo '{}' | base64 -D | sh".format(encoded)
 
-
     async def base64EncodeLinuxShell(self, task_params: str, parameter: None) -> str:
         encoded = base64.b64encode(str.encode(task_params)).decode('utf-8')
         return "echo '{}' | base64 -d | sh".format(encoded)
+
 
 class TransformOperation:
     def __init__(self, working_dir=""):

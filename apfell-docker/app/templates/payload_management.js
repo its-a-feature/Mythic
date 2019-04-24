@@ -396,12 +396,13 @@ var payloadtypes_table = new Vue({
                             //Now handle sending updates for the artifacts with this command
                             for(var j = 0; j < edit_command_artifacts_table.add_command_artifact.length; j++){
                                 data = edit_command_artifacts_table.add_command_artifact[j];
+                                console.log(data);
                                 if(!data.hasOwnProperty("id")){
                                     //we're creating a new artifact_template mapping
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates", null, "POST", data);
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates", create_or_edit_command_artifacts_callback, "POST", data);
                                 }else{
                                     //we're updating an artifact in some way
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates/" + data['id'], null, "PUT", data);
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates/" + data['id'], create_or_edit_command_artifacts_callback, "PUT", data);
                                 }
                             }
                           }
@@ -484,6 +485,15 @@ var payloadtypes_table = new Vue({
     },
     delimiters: ['[[', ']]']
 });
+function create_or_edit_command_artifacts_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    console.log(data);
+}
 function set_files_edit_payloadtype_callback(response){
     try{
         var data = JSON.parse(response);

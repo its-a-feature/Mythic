@@ -1241,7 +1241,7 @@ async def artifact_query():
 async def artifacttemplate_query():
     return ArtifactTemplate.select(ArtifactTemplate, Command, CommandParameters, Artifact, PayloadType)\
         .join(Command).join(PayloadType).switch(ArtifactTemplate)\
-        .join(CommandParameters).switch(ArtifactTemplate)\
+        .join(CommandParameters, p.JOIN.LEFT_OUTER).switch(ArtifactTemplate)\
         .join(Artifact).switch(ArtifactTemplate)
 
 

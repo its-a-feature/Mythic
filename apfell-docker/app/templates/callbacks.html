@@ -154,12 +154,12 @@
             >
             <span class="input-group-btn" style="position:relative">
                 <button type="button" class="btn btn-danger" @click="task_button(input_field_placeholder)">Submit Task</button>
-                <a data-toggle="popover" tabindex="0" data-placement="top" type="button" data-html="true" href="#" id="editCommandSwitches" :class="hasTransformsSet ? 'btn btn-warning' : 'btn btn-success'" style="margin: 1; padding: 0; position: relative"><img src="/gear_med.png" width="30px" height="32px"></a>
+                <a data-toggle="popover" tabindex="0" data-placement="top" type="button" data-html="true" href="#" id="editCommandSwitches" :class="hasTransformsSet ? 'btn btn-warning' : 'btn btn-success'" style="margin: 1; padding: 0; position: relative;"><img src="/gear_med.png" width="30px" height="32px"></a>
             </span>
         </div>
     </div>
     <!-- START POPOVER FOR EDITING RUNNING COMMAND TRANSFORMS -->
-    <div id="popover-content-editCommandSwitches" class="hide" style="position:relative">
+    <div id="popover-content-editCommandSwitches" class="hide" style="position:relative;">
         <table v-if="get_payload_type != null && get_cmd_index != -1">
             Changes are temporary unless you persist them across the operation
             <tr>
@@ -618,7 +618,7 @@ input:checked + .slider:before {
 }
 .popover-content{
     background:{{config['background-color']}};
-    color: {{config['text-color']}}
+    color: {{config['text-color']}};
 }
 .navbar-nav > .dropdown > .dropdown-toggle > .caret{
     color: {{ config['top-caret'] }};

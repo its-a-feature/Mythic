@@ -398,8 +398,11 @@ async def create_attack_mappings_for_command(request, user, id, t_num):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command'})
-    query = await db_model.attackcommand_query()
-    attackcommand, created = await db_objects.get_or_create(query, attack=attack, command=command)
+    try:
+        query = await db_model.attackcommand_query()
+        attackcommand = await db_objects.get(query, attack=attack, command=command)
+    except Exception as e:
+        attackcommand = await db_objects.create(ATTACKCommand, attack=attack, command=command)
     return json({'status': 'success', **attackcommand.to_json()})
 
 
@@ -517,7 +520,7 @@ async def get_artifact_templates_for_command(request, user, cid):
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates/<aid:int>", methods=['DELETE'])
 @inject_user()
 @protected()
-async def update_artifact_template_for_command(request, user, cid, aid):
+async def delete_artifact_template_for_command(request, user, cid, aid):
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)
