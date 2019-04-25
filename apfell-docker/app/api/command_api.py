@@ -42,7 +42,12 @@ async def check_command(request, user, ptype, cmd):
         params = await db_objects.execute(query.where(CommandParameters.command == command))
         query = await db_model.attackcommand_query()
         attacks = await db_objects.execute(query.where(ATTACKCommand.command == command))
-        status = {**status, **command.to_json(), "params": [p.to_json() for p in params], "attack": [a.to_json() for a in attacks]}
+        query = await db_model.artifacttemplate_query()
+        artifacts = await db_objects.execute(query.where(ArtifactTemplate.command == command))
+        query = await db_model.commandtransform_query()
+        transforms = await db_objects.execute(query.where(CommandTransform.command == command))
+        status = {**status, **command.to_json(), "params": [p.to_json() for p in params], "attack": [a.to_json() for a in attacks],
+                  "artifacts": [a.to_json() for a in artifacts], 'transforms': [t.to_json() for t in transforms]}
     except Exception as e:
         # the command doesn't exist yet, which is good
         pass
@@ -128,6 +133,19 @@ async def update_command(request, user, id):
     if "help_cmd" in data and data['help_cmd'] != command.help_cmd:
         command.help_cmd = data['help_cmd']
         updated_command = True
+    if "is_exit" in data and data['is_exit'] is True:
+        query = await db_model.command_query()
+        try:
+            exit_commands = await db_objects.execute(
+                query.where((Command.is_exit == True) & (Command.payload_type == command.payload_type)))
+            # one is already set, so set it to false
+            for e in exit_commands:
+                e.is_exit = False
+                await db_objects.update(e)
+            command.is_exit = data['is_exit']
+        except Exception as e:
+            # one doesn't exist, so let this one be set
+            print(str(e))
     if request.files:
         updated_command = True
         cmd_code = request.files['upload_file'][0].body
@@ -194,15 +212,27 @@ async def create_command_func(data, user):
         return {'status': 'error', 'error': '"payload_type" is a required field'}
     if "code" not in data:
         return {'status': 'error', 'error': '"code" is a required field'}
+    if "is_exit" not in data:
+        return {'status': 'error', 'error': '"is_exit" is a required field'}
     # now we know all the fields exist
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
         query = await db_model.payloadtype_query()
         payload_type = await db_objects.get(query, ptype=data['payload_type'])
+        if data['is_exit'] is True:
+            query = await db_model.command_query()
+            try:
+                exit_command = await db_objects.get(query.where( (Command.is_exit == True) & (Command.payload_type == payload_type)))
+                # one is already set, so set it to false
+                exit_command.is_exit = False
+                await db_objects.update(exit_command)
+            except Exception as e:
+                # one doesn't exist, so let this one be set
+                pass
         command = await db_objects.create(Command, needs_admin=data['needs_admin'], help_cmd=data['help_cmd'],
                                           description=data['description'], cmd=data['cmd'],
-                                          payload_type=payload_type, operator=operator)
+                                          payload_type=payload_type, operator=operator, is_exit=data['is_exit'])
         cmd_file = open("./app/payloads/{}/commands/{}".format(payload_type.ptype, command.cmd), "wb")
         cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)

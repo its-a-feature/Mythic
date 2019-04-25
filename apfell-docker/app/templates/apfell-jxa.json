@@ -461,7 +461,8 @@
       "cmd":"exit",
       "parameters":[],
       "attack":[],
-      "artifacts": []
+      "artifacts": [],
+      "is_exit": true
     },
     {
     "needs_admin":false,

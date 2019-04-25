@@ -243,7 +243,7 @@ class Command(p.Model):
     operator = p.ForeignKeyField(Operator, null=False)
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
     version = p.IntegerField(null=False, default=1)  # what version, so we can know if loaded commands are out of date
-    #is_exit = p.BooleanField(null=False, default=False)  # indicate if this command is the exit command for a payload type
+    is_exit = p.BooleanField(null=False, default=False)  # indicate if this command is the exit command for a payload type
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)

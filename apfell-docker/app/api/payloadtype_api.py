@@ -255,7 +255,10 @@ async def delete_one_payloadtype(request, user, ptype, fromDisk):
             await db_objects.delete(payloadtype, recursive=True)
             if fromDisk == 1:
                 # this means we should delete the corresponding folder from disk as well
-                rmtree("./app/payloads/{}".format(payloadtype_json['ptype']))
+                try:
+                    rmtree("./app/payloads/{}".format(payloadtype_json['ptype']))
+                except Exception as e:
+                    print("Directory didn't exist")
             return json({'status': 'success', **payloadtype_json})
         except Exception as e:
             print(e)
@@ -643,6 +646,20 @@ async def import_payload_type_func(ptype, operator, operation):
                                     **ct)
     # now that we have the payload type, start processing the commands and their parts
     for cmd in ptype['commands']:
+        if 'is_exit' not in cmd:
+            cmd['is_exit'] = False
+        elif cmd['is_exit'] is True:
+            # this is trying to say it is the exit command for this payload type
+            # there can only be one for a given payload type though, so check. if one exists, change it
+            query = await db_model.command_query()
+            try:
+                exit_command = await db_objects.get(query.where( (Command.is_exit == True) & (Command.payload_type == payload_type)))
+                # one is already set, so set it to false
+                exit_command.is_exit = False
+                await db_objects.update(exit_command)
+            except Exception as e:
+                # one doesn't exist, so let this one be set
+                pass
         try:
             query = await db_model.command_query()
             command = await db_objects.get(query, cmd=cmd['cmd'], payload_type=payload_type)
@@ -650,13 +667,14 @@ async def import_payload_type_func(ptype, operator, operation):
             command.needs_admin = cmd['needs_admin']
             command.version = cmd['version']
             command.help_cmd = cmd['help_cmd']
+            command.is_exit = cmd['is_exit']
             command.operator = operator
             await db_objects.update(command)
         except Exception as e:  # this means that the command doesn't already exist
             command = await db_objects.create(Command, cmd=cmd['cmd'], payload_type=payload_type,
                                            description=cmd['description'], version=cmd['version'],
                                            needs_admin=cmd['needs_admin'], help_cmd=cmd['help_cmd'],
-                                           operator=operator)
+                                           operator=operator, is_exit=cmd['is_exit'])
         # now to process the parameters
         for param in cmd['parameters']:
             try:

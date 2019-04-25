@@ -243,7 +243,8 @@ var payloadtypes_table = new Vue({
                 var file = document.getElementById('commandAddFile');
                 var code = "";
                 var data = {'cmd': $('#commandAddCmd').val(), 'help_cmd': $('#commandAddHelpCmd').val(),
-                'description': $('#commandAddDescription').val(), 'payload_type': p.ptype, 'code': ""};
+                'description': $('#commandAddDescription').val(), 'payload_type': p.ptype, 'code': "",
+                "is_exit": $('#commandAddIsExit').is(":checked")};
 
                 data['needs_admin'] = $('#commandAddNeedsAdmin').is(":checked");
                 if(file.files.length > 0){
@@ -260,6 +261,7 @@ var payloadtypes_table = new Vue({
                 $('#commandAddDescription').val("");
                 $('#commandAddHelpCmd').val("");
                 $('#commandAddNeedsAdmin').prop('checked', false);
+                $('#commandAddIsExit').prop('checked', false);
                 $('#commandAddCode').val("");
                 $('#commandAddCmd').val("");
                 $('#commandAddVersion').val(1);
@@ -273,6 +275,7 @@ var payloadtypes_table = new Vue({
                 $('#commandAddDescription').val("");
                 $('#commandAddHelpCmd').val("");
                 $('#commandAddNeedsAdmin').prop('checked', false);
+                $('#commandAddIsExit').prop('checked', false);
                 $('#commandAddCode').val("");
                 $('#commandAddCmd').val("");
                 add_command_parameters_table.add_command_parameters = [];
@@ -291,6 +294,8 @@ var payloadtypes_table = new Vue({
                     $('#commandAddHelpCmd').prop('disabled', true);
                     $('#commandAddNeedsAdmin').prop('checked', data['needs_admin']);
                     $('#commandAddNeedsAdmin').prop('disabled', true);
+                    $('#commandAddIsExit').prop('checked', data['is_exit']);
+                    $('#commandAddIsExit').prop('disabled', true);
                     $('#commandAddVersion').val(data['version']);
                 }
                 else{
@@ -301,6 +306,8 @@ var payloadtypes_table = new Vue({
                     $('#commandAddHelpCmd').prop('disabled', false);
                     $('#commandAddNeedsAdmin').prop('checked', false);
                     $('#commandAddNeedsAdmin').prop('disabled', false);
+                    $('#commandAddIsExit').prop('checked', false);
+                    $('#commandAddIsExit').prop('disabled', false);
                     $('#commandAddVersion').val(1);
                 }
                 if(data_json.hasOwnProperty("code")){
@@ -326,21 +333,21 @@ var payloadtypes_table = new Vue({
                 types = types + '<option value="' + p.commands[i]['cmd'] + '">' + p.commands[i]['cmd'] + '</option>';
             };
             $( '#commandEditCmd' ).html(types);
-            set_edit_command_params( $('#commandEditCmd').val(), p );
+            //set_edit_command_params( $('#commandEditCmd').val(), p );
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + $('#commandEditCmd').val(), set_edit_command_info_callback, "GET", null);
             $('#commandEditVersion').prop('disabled', true);
             $( '#commandEditModal' ).modal('show');
             $( '#commandEditCmd' ).unbind('change').change(function(){
                 // Populate the various parts of the modal on select changes
                 cmd = $(this).find("option:selected").attr('value');
-                set_edit_command_params(cmd, p);
-
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + cmd, set_edit_command_info_callback, "GET", null);
             });
             $( '#commandEditSubmit' ).unbind('click').click(function(){
                 //check for changes between what we have and what's in the fields, only submit those differences
                 //an uploaded file takes precidence over text in the text block
                 var cmd = $('#commandEditCmd').val();
                 data = {'help_cmd': $('#commandEditHelpCmd').val(), 'description': $('#commandEditDescription').val(),
-                'needs_admin': $('#commandEditNeedsAdmin').is(":checked")};
+                'needs_admin': $('#commandEditNeedsAdmin').is(":checked"), "is_exit": $('#commandEditIsExit').is(":checked")};
                 for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
                     if(payloadtypes_table.payloadtypes[i]['ptype'] == p['ptype']){
                         payloadtypes_table.payloadtypes[i]['commands_set'].forEach(function(command){
@@ -364,11 +371,11 @@ var payloadtypes_table = new Vue({
                                 data = command_parameters_table.command_parameters[j];
                                 if(data.hasOwnProperty('id')){
                                     //this means it's a parameter we had before, so send an update
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters/" + data['id'], command_edit_callback, "PUT", data);
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters/" + data['id'], null, "PUT", data);
                                 }
                                 else if(data['name'] != ""){
                                     //make sure they entered something for the name, and send a POST to create the parameter
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters", command_edit_callback, "POST", data);
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters", null, "POST", data);
                                 }
                             }
                             //Now handle sending updates for the transforms on this command
@@ -525,7 +532,6 @@ function command_edit_callback(response){
             payloadtypes_table.payloadtypes.forEach(function(ptype){
                 ptype['commands_set'].forEach(function(cmd){
                     if(cmd_id == cmd.id){
-                        cmd.version = version;
                         return;
                     }
                 });
@@ -731,31 +737,6 @@ function remove_create_transform_options_callback(response){
         }
     }
 }
-function set_edit_command_params(command, curr_payload){
-    for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-        if(payloadtypes_table.payloadtypes[i]['ptype'] == curr_payload['ptype']){
-            payloadtypes_table.payloadtypes[i]['commands_set'].forEach(function(cmd){
-              if (cmd.cmd == command) {
-                //found the right command to use to populate
-                $( '#commandEditDescription' ).val(cmd.description);
-                $( '#commandEditHelpCmd' ).val(cmd.help_cmd);
-                $( '#commandEditVersion').val(cmd.version);
-                $( '#commandEditNeedsAdmin' ).prop('checked', cmd.needs_admin);
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cmd.id + "/code/string", set_edit_code_callback, "GET", null);
-                // Get the associated command parameters for this command
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cmd.id + "/parameters/", set_edit_command_parameters, "GET", null);
-                // Get the associated command transforms for this command
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + cmd.id, set_edit_command_transforms, "GET", null);
-                // Get the associated att&ck command transforms for this command
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cmd.id + "/mitreattack", set_edit_command_attack, "GET", null);
-                // Get the associated artifacts for this command
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cmd.id + "/artifact_templates", set_edit_command_artifact, "GET", null);
-                return;
-              }
-            });
-        }
-    }
-}
 function set_edit_code_callback(response){
     try{
         $( '#commandEditCode' ).val(atob(response));
@@ -763,6 +744,45 @@ function set_edit_code_callback(response){
     }catch(error){
         $( '#commandEditCode' ).val("");
     }
+}
+function set_edit_command_info_callback(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == "success"){
+        //console.log(data);
+        set_edit_code_callback(data['code']);
+        set_edit_command_parameters(JSON.stringify(data['params']));
+        set_edit_command_transforms(JSON.stringify({'status':'success', 'transforms': data['transforms']}));
+        set_edit_command_attack(JSON.stringify({'status': 'success', 'attack': data['attack']}));
+        set_edit_command_artifact(JSON.stringify({'status': 'success', 'artifacts': data['artifacts']}));
+        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
+                payloadtypes_table.payloadtypes[i]['commands_set'].forEach(function(cmd){
+                  if (cmd.cmd == data['cmd']) {
+                    cmd.description = data['description'];
+                    cmd.help_cmd = data['help_cmd'];
+                    cmd.version = data['version'];
+                    cmd.needs_admin = data['needs_admin'];
+                    cmd.is_exit = data['is_exit'];
+                    $( '#commandEditDescription' ).val(cmd.description);
+                    $( '#commandEditHelpCmd' ).val(cmd.help_cmd);
+                    $( '#commandEditVersion').val(cmd.version);
+                    $( '#commandEditNeedsAdmin' ).prop('checked', cmd.needs_admin);
+                    $( '#commandEditIsExit' ).prop('checked', cmd.is_exit);
+
+                  }
+                 });
+             }
+        }
+    }else{
+
+        alertTop("danger", data['error']);
+    }
+
 }
 var command_parameters = [];
 var command_parameters_table = new Vue({

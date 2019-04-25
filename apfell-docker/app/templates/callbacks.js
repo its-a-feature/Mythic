@@ -76,8 +76,13 @@ var callback_table = new Vue({
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'],
-            null, "POST", {"command":"exit","params":""});
+            //for the given callback, find its payload type, that payload type's exit command, and issue that
+            for(var i = 0; i < task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']].length; i++){
+               if(task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i]['is_exit']){
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'], null, "POST", {"command":task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i].cmd,"params":"", 'transform_status':{}});
+               }
+            }
+
         },
         remove_callback: function(callback){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
