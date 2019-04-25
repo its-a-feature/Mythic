@@ -127,6 +127,9 @@ function alertTop(type, string, delay=4){
     //    $( '#top-alert' ).html(html);
     //}
     delay = delay * 1000;
+    if( type == "danger" && delay == 4000){
+        delay = 0;
+    }
     $.notify({
 	// options
 	message: string
