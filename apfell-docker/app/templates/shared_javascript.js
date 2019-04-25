@@ -115,17 +115,59 @@ function pythonToJSJson(string){
     return updated;
 }
 
-function alertTop(type, string){
-    document.getElementById("top-alert").style = "";
-    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\" style=\"white-space: pre-wrap\">" +
-    string +
-    "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
-    if($('#top-alert').html() === undefined){
-        $( '#top-alert' ).html($( '#alert-top' ).html() + html);
-    }
-    else{
-        $( '#top-alert' ).html(html);
-    }
+function alertTop(type, string, delay=4){
+    //document.getElementById("top-alert").style = "";
+    //var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\" style=\"white-space: pre-wrap\">" +
+    //string +
+    //"<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
+    //if($('#top-alert').html() === undefined){
+    //    $( '#top-alert' ).html($( '#alert-top' ).html() + html);
+    //}
+    //else{
+    //    $( '#top-alert' ).html(html);
+    //}
+    delay = delay * 1000;
+    $.notify({
+	// options
+	message: string
+    },{
+	// settings
+	element: 'body',
+	position: null,
+	type: type,
+	allow_dismiss: true,
+	newest_on_top: false,
+	showProgressbar: false,
+	placement: {
+		from: "top",
+		align: "right"
+	},
+	offset: 20,
+	spacing: 10,
+	z_index: 1031,
+	delay: delay,
+	timer: 1000,
+	animate: {
+		enter: 'animated fadeInDown',
+		exit: 'animated fadeOutUp'
+	},
+	onShow: null,
+	onShown: null,
+	onClose: null,
+	onClosed: null,
+	icon_type: 'class',
+	template: '<div data-notify="container" class="alert alert-{0}" role="alert">' +
+		'<button type="button" aria-hidden="true" class="close" data-notify="dismiss">×</button>' +
+		'<span data-notify="icon"></span> ' +
+		'<span data-notify="title">{1}</span> ' +
+		'<span data-notify="message">{2}</span>' +
+		'<div class="progress" data-notify="progressbar">' +
+			'<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>' +
+		'</div>' +
+		'<a href="{3}" target="{4}" data-notify="url"></a>' +
+	'</div>'
+});
+
 
 }
 function alertBottom(type, string){
@@ -139,6 +181,7 @@ function clearAlertTop(){
     $("#top-alert").fadeTo(20, 50).slideUp(500, function(){
           $("#middle-alert").slideUp(500);
     });
+    $.notifyClose();
 }
 function clearAlertBottom(){
     $( '#bottom-alert' ).html("");

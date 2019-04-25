@@ -20,8 +20,7 @@ var callback_table = new Vue({
                 ws_newtasks.send("a" + callback.id);
                 ws_updatedtasks.send("a" + callback.id);
             }catch(error){
-                clearAlertTop();
-                alertTop("danger", "Network connections not established yet, please close tab and click \"Interact\" again");
+                alertTop("danger", "Network connections not established yet, please click \"Interact\" again");
                 return;
             }
             //get the data from teh background process (all_tasks) into the bottom tab that's being loaded (task_data.meta)
@@ -42,7 +41,7 @@ var callback_table = new Vue({
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 // show loading data until we load all of our data in, then it will be automatically cleared
-                alertTop("success", "Loading data...");
+                alertTop("success", "Loading data...", 1);
             }, 0);
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
@@ -192,7 +191,7 @@ function edit_description_callback(response){
     try{
         data = JSON.parse(response);
     }catch(error){
-        alertMiddle("danger", "session expired, refresh please");
+        alertTop("danger", "session expired, refresh please");
     }
     if(data['status'] != 'success'){
         alertTop("danger", data['error']);
@@ -232,15 +231,15 @@ var task_data = new Vue({
                     //special category of trying to do a local help
                     if(command == "help"){
                         if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] == params){
-                            alertMiddle("info", "<b>Usage: </b>" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd'] +
-                            "<br><b>Description:</b>" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['description']);
+                            alertTop("info", "<b>Usage: </b>" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd'] +
+                            "<br><b>Description:</b>" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['description'],0);
                             return;
                         }
                         else if(params.length == 0){
-                            alertMiddle("info", "Usage: help {command_name}");
-                            $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                  $("#middle-alert").slideUp(500);
-                            });
+                            alertTop("info", "Usage: help {command_name}", 2);
+                            //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                            //      $("#middle-alert").slideUp(500);
+                            //});
                             return;
                         }
                     }
@@ -262,25 +261,25 @@ var task_data = new Vue({
                                     return;
                                 }
                                 if(rdata['status'] == 'success'){
-                                    alertMiddle("success", "Successfully modified current callback's metadata");
-                                    $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                          $("#middle-alert").slideUp(500);
-                                    });
+                                    alertTop("success", "Successfully modified current callback's metadata", 1);
+                                    //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                    //      $("#middle-alert").slideUp(500);
+                                    //});
                                     task_data.input_field = "";
                                 }
                                 else{
-                                    alertMiddle("danger", "Failed to set current callback's metadata: " + rdata['error']);
-                                    $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                          $("#middle-alert").slideUp(500);
-                                    });
+                                    alertTop("danger", "Failed to set current callback's metadata: " + rdata['error']);
+                                    //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                    //      $("#middle-alert").slideUp(500);
+                                    //});
                                 }
                             }, "PUT", set_data);
                         }
                         else{
-                            alertMiddle("danger", "Wrong number of params for set. Should be set {field} {value}");
-                            $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                  $("#middle-alert").slideUp(500);
-                            });
+                            alertTop("danger", "Wrong number of params for set. Should be set {field} {value}");
+                            //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                            //      $("#middle-alert").slideUp(500);
+                            //});
                             return;
                         }
                         return;
@@ -308,10 +307,10 @@ var task_data = new Vue({
                                 params_table.credentials = credentials['credentials'];
                             }
                             else{
-                                alertMiddle("danger", credentials['error']);
-                                $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                      $("#middle-alert").slideUp(500);
-                                });
+                                alertTop("danger", credentials['error']);
+                                //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                                //      $("#middle-alert").slideUp(500);
+                                //});
                                 return;
                             }
                             $( '#paramsModal' ).modal('show');
@@ -382,14 +381,14 @@ var task_data = new Vue({
                 //If we got here, that means we're looking at an unknown command
                 if(command == "help"){
                     // just means we never found the param command to help out with
-                    alertMiddle("warning", "Unknown command: " + params);
+                    alertTop("warning", "Unknown command: " + params, 2);
                 }
                 else{
-                    alertMiddle("warning", "Unknown command: " + command);
+                    alertTop("warning", "Unknown command: " + command, 2);
                 }
-                $("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                      $("#middle-alert").slideUp(500);
-                });
+                //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
+                //      $("#middle-alert").slideUp(500);
+                //});
             }
 
         },
@@ -454,7 +453,7 @@ var task_data = new Vue({
         },
         persist_transform_active_status: function(payload_type, cmd_index){
             for(var i = 0; i < this.ptype_cmd_params[payload_type][cmd_index]['transforms'].length; i++){
-                console.log(JSON.stringify(this.ptype_cmd_params[payload_type][cmd_index]['transforms'][i]));
+                //console.log(JSON.stringify(this.ptype_cmd_params[payload_type][cmd_index]['transforms'][i]));
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + this.ptype_cmd_params[payload_type][cmd_index]['transforms'][i]['id'],
                     persist_transform_active_status_callback, "PUT", this.ptype_cmd_params[payload_type][cmd_index]['transforms'][i]);
             }
@@ -604,7 +603,7 @@ function view_callback_screenshots(response){
     try{
         data = JSON.parse(response);
     }catch(error){
-        alertMiddle("danger", "session expired, refresh please");
+        alertTop("danger", "session expired, refresh please");
     }
     if(data['status'] == "success"){
         meta[data['callback']]['images'] = [];
@@ -622,7 +621,7 @@ function view_callback_keylogs(response){
     try{
         data = JSON.parse(response);
     }catch(error){
-        alertMiddle("danger", "session expired, refresh please");
+        alertTop("danger", "session expired, refresh please");
     }
     if(data['status'] == "success"){
         //meta[data['callback']]['keylog_data'] = [];
@@ -636,19 +635,15 @@ function post_task_callback_func(response){
     try{
         data = JSON.parse(response);
     }catch(error){
-        alertMiddle("danger", "session expired, refresh please");
+        alertTop("danger", "session expired, refresh please");
     }
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
         task_data.input_field = data['cmd'] + " " + data['params'];
-    }else if(data['status'] == "success" && data.hasOwnProperty("test_output")){
-        task_data.input_field = data['cmd'] + " " + data['params'];
-        // now also display the output after each stage of the transform process
-        alertMiddle("info", JSON.stringify(data['test_output'], null, 2));
     }
 }
 function startwebsocket_callbacks(){
-    alertTop("info", "Loading callbacks...");
+    alertTop("info", "Loading callbacks...", 1);
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/callbacks/current_operation');
     ws.onmessage = function(event){
         if (event.data != ""){
@@ -700,10 +695,10 @@ function startwebsocket_callbacks(){
         }
     };
     ws.onclose = function(){
-        alertMiddle("danger", "Socked closed. Please reload the page");
+        alertTop("danger", "Socked closed. Please reload the page");
     }
     ws.onerror = function(){
-        alertMiddle("danger", "Socket errored. Please reload the page");
+        alertTop("danger", "Socket errored. Please reload the page");
     }
     ws.onopen = function(event){
         //console.debug("opened");
@@ -715,7 +710,7 @@ function register_new_command_info(response){
     try{
         data = JSON.parse(response);
     }catch(error){
-        alertMiddle("danger", "session expired, refresh please");
+        alertTop("danger", "session expired, refresh please");
     }
     if(data['status'] == "success"){
         delete data['status'];
@@ -747,10 +742,10 @@ function startwebsocket_newtasks(){
         ws_newtasks.send("");
     };
     ws_newtasks.onclose = function(){
-        alertMiddle("danger", "Socked closed. Please reload the page");
+        alertTop("danger", "Socked closed. Please reload the page");
     }
     ws_newtasks.onerror = function(){
-        alertMiddle("danger", "Socket errored. Please reload the page");
+        alertTop("danger", "Socket errored. Please reload the page");
     }
 };
 function add_new_task(tsk){
@@ -805,10 +800,10 @@ function startwebsocket_updatedtasks(){
         ws_updatedtasks.send("");
     };
     ws_updatedtasks.onclose = function(){
-        alertMiddle("danger", "Socked closed. Please reload the page");
+        alertTop("danger", "Socked closed. Please reload the page");
     }
     ws_updatedtasks.onerror = function(){
-        alertMiddle("danger", "Socket errored. Please reload the page");
+        alertTop("danger", "Socket errored. Please reload the page");
     }
 };
 function add_new_response(rsp){
@@ -854,10 +849,10 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
         }
     };
     ws.onclose = function(){
-        alertMiddle("danger", "Socked closed. Please reload the page");
+        alertTop("danger", "Socked closed. Please reload the page");
     }
     ws.onerror = function(){
-        alertMiddle("danger", "Socket errored. Please reload the page");
+        alertTop("danger", "Socket errored. Please reload the page");
     }
 };
 function startwebsocket_commands(){
@@ -960,10 +955,10 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/al
         }
     };
     ws.onclose = function(){
-        alertMiddle("danger", "Socked closed. Please reload the page");
+        alertTop("danger", "Socked closed. Please reload the page");
     }
     ws.onerror = function(){
-        alertMiddle("danger", "Socket errored. Please reload the page");
+        alertTop("danger", "Socket errored. Please reload the page");
     }
 };
 function updateClocks(){

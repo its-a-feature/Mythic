@@ -228,10 +228,10 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/pa
             data = JSON.parse(event.data);
             if(data['uuid'] == global_uuid){
                 if(data['build_phase'] == "success"){
-                    alertTop("success", "Success! Your agent, " + data['location'].split("/").pop() + ", was successfully built.\n<b>Execution help:</b> " + data['build_message'] + "\n<b>UUID:</b> " + data['uuid']);
+                    alertTop("success", "Success! Your agent, " + data['location'].split("/").pop() + ", was successfully built.<br><b>Execution help:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid'], 0);
                 }
                 else if(data['build_phase'] == "error"){
-                    alertTop("danger", "Uh oh, something went wrong.\n<b>Error message:</b> " + data['build_message']);
+                    alertTop("danger", "Uh oh, something went wrong.<br><b>Error message:</b> " + data['build_message']);
                 }
             }
         }
