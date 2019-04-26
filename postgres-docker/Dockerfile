@@ -1,5 +1,4 @@
 From postgres:9.4
-
 COPY postgres.conf /etc/postgresql/postgresql.conf
 ENV config_file=/etc/postgresql/postgresql.conf
 ENV POSTGRES_USER 'apfell_user'

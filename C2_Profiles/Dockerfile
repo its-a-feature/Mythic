@@ -1,4 +1,5 @@
 From python:3.6-jessie
+RUN pip install aio_pika
 RUN pip install pika
 RUN mkdir /Apfell_service
 RUN mkdir /Apfell

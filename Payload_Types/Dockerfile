@@ -1,11 +1,11 @@
 From python:3.6-jessie
 RUN pip install aio_pika
-RUN pip install pika
-RUN mkdir /Apfell_service
-RUN mkdir /Apfell
-RUN mkdir /Apfell/apfell
-RUN touch /Apfell/apfell/__init__.py
-RUN touch /Apfell/__init__.py
+
+RUN mkdir /Apfell_service 2>/dev/null
+RUN mkdir /Apfell 2>/dev/null
+RUN mkdir /Apfell/apfell 2>/dev/null
+RUN touch /Apfell/apfell/__init__.py 2>/dev/null
+RUN touch /Apfell/__init__.py 2>/dev/null
 COPY ["apfell_heartbeat.py", "/Apfell_service/apfell_heartbeat.py"]
 COPY ["apfell_service.py", "/Apfell_service/apfell_service.py"]
 

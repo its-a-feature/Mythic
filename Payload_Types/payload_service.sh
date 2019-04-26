@@ -1,9 +1,7 @@
 #!/bin/bash
 
-python /Apfell_service/apfell_heartbeat.py &
-
-mkdir /Apfell/apfell
+python3 /Apfell_service/apfell_heartbeat.py &
 
 hostname=$(hostname)
 
-python /Apfell_service/apfell_service.py "$hostname"
+python3 /Apfell_service/apfell_service.py "$hostname"

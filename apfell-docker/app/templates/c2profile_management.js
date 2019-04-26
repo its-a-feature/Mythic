@@ -93,7 +93,7 @@ var payloads_table = new Vue({
 	        else{
 	            command = "start";
 	        }
-	        alertTop("info", "Submitting start task to container...");
+	        alertTop("info", "Submitting " + command + " task to container...");
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/" + command, update_profile_running, "GET", null);
 	    },
 	    parameters_button: function(p){
@@ -299,14 +299,8 @@ function update_profile_running(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-	if(data['status'] != 'success'){
+	if(data['status'] == 'error'){
 		alertTop("danger", data['error']);
-	}
-	else{
-	    alertTop("info", "Submitted to queue...");
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
 	}
 }
 function update_profile_files(response){

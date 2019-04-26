@@ -8,7 +8,7 @@ fi
 
 # Wait for RabbitMQ startup
 for (( ; ; )) ; do
-  sleep 5
+  sleep 2
   rabbitmqctl -q node_health_check > /dev/null 2>&1
   if [ $? -eq 0 ] ; then
     echo "$0 `date` rabbitmq is now running"

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import aio_pika
 import os
-import time
 import sys
 import base64
 import json
