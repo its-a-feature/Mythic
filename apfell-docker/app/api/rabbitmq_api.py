@@ -165,87 +165,91 @@ async def start_listening():
 
 
 async def connect_and_consume_c2():
-    try:
-        connection = await aio_pika.connect_robust(host="127.0.0.1",
-                                                   login="apfell_user",
-                                                   password="apfell_password",
-                                                   virtualhost="apfell_vhost")
-        channel = await connection.channel()
-        # declare our exchange
-        await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)
-        # get a random queue that only the apfell server will use to listen on to catch all heartbeats
-        queue = await channel.declare_queue('', exclusive=True)
-        # bind the queue to the exchange so we can actually catch messages
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.heartbeat.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="c2.status.#")
-        await channel.set_qos(prefetch_count=20)
-        print(' [*] Waiting for messages in connect_and_consume_c2.')
+    connection = None
+    while connection is None:
         try:
-            task = queue.consume(rabbit_c2_callback)
-            result = await asyncio.wait_for(task, None)
+            connection = await aio_pika.connect_robust(host="127.0.0.1",
+                                                       login="apfell_user",
+                                                       password="apfell_password",
+                                                       virtualhost="apfell_vhost")
+            channel = await connection.channel()
+            # declare our exchange
+            await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)
+            # get a random queue that only the apfell server will use to listen on to catch all heartbeats
+            queue = await channel.declare_queue('', exclusive=True)
+            # bind the queue to the exchange so we can actually catch messages
+            # await queue.bind(exchange='apfell_traffic', routing_key="c2.heartbeat.#")
+            await queue.bind(exchange='apfell_traffic', routing_key="c2.status.#")
+            await channel.set_qos(prefetch_count=20)
+            print(' [*] Waiting for messages in connect_and_consume_c2.')
+            try:
+                task = queue.consume(rabbit_c2_callback)
+                result = await asyncio.wait_for(task, None)
+            except Exception as e:
+                print("Exception in connect_and_consume .consume: {}".format(str(e)))
+
         except Exception as e:
-            print("Exception in connect_and_consume .consume: {}".format(str(e)))
-            raise e
-    except Exception as e:
-        print("Exception in connect_and_consume connect: {}".format(str(e)))
-        raise e
+            print("Exception in connect_and_consume connect: {}".format(str(e)))
+        await asyncio.sleep(2)
 
 
 async def connect_and_consume_pt():
-    try:
-        connection = await aio_pika.connect_robust(host="127.0.0.1",
-                                                   login="apfell_user",
-                                                   password="apfell_password",
-                                                   virtualhost="apfell_vhost")
-        channel = await connection.channel()
-        # declare our exchange
-        await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)
-        # get a random queue that only the apfell server will use to listen on to catch all heartbeats
-        queue = await channel.declare_queue('', exclusive=True)
-        # bind the queue to the exchange so we can actually catch messages
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.heartbeat.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.create_payload_with_code.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.create_external_payload.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.load_transform_code.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.command_transform.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.load_transform_with_code.#")
-        await channel.set_qos(prefetch_count=20)
-        print(' [*] Waiting for messages in connect_and_consume_pt.')
+    connection = None
+    while connection is None:
         try:
-            task = queue.consume(rabbit_pt_callback)
-            result = await asyncio.wait_for(task, None)
+            connection = await aio_pika.connect_robust(host="127.0.0.1",
+                                                       login="apfell_user",
+                                                       password="apfell_password",
+                                                       virtualhost="apfell_vhost")
+            channel = await connection.channel()
+            # declare our exchange
+            await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)
+            # get a random queue that only the apfell server will use to listen on to catch all heartbeats
+            queue = await channel.declare_queue('', exclusive=True)
+            # bind the queue to the exchange so we can actually catch messages
+            # await queue.bind(exchange='apfell_traffic', routing_key="c2.heartbeat.#")
+            await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.create_payload_with_code.#")
+            await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.create_external_payload.#")
+            await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.load_transform_code.#")
+            await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.command_transform.#")
+            await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.load_transform_with_code.#")
+            await channel.set_qos(prefetch_count=20)
+            print(' [*] Waiting for messages in connect_and_consume_pt.')
+            try:
+                task = queue.consume(rabbit_pt_callback)
+                result = await asyncio.wait_for(task, None)
+            except Exception as e:
+                print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except Exception as e:
-            print("Exception in connect_and_consume .consume: {}".format(str(e)))
-            raise e
-    except Exception as e:
-        print("Exception in connect_and_consume connect: {}".format(str(e)))
-        raise e
+            print("Exception in connect_and_consume connect: {}".format(str(e)))
+        await asyncio.sleep(2)
 
 
 async def connect_and_consume_heartbeats():
-    try:
-        connection = await aio_pika.connect_robust(host="127.0.0.1",
-                                                   login="apfell_user",
-                                                   password="apfell_password",
-                                                   virtualhost="apfell_vhost")
-        channel = await connection.channel()
-        # declare our exchange
-        await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)
-        # get a random queue that only the apfell server will use to listen on to catch all heartbeats
-        queue = await channel.declare_queue('', exclusive=True)
-        # bind the queue to the exchange so we can actually catch messages
-        await queue.bind(exchange='apfell_traffic', routing_key="*.heartbeat.#")
-        await channel.set_qos(prefetch_count=20)
-        print(' [*] Waiting for messages in connect_and_consume_heartbeats.')
+    connection = None
+    while connection is None:
         try:
-            task = queue.consume(rabbit_heartbeat_callback)
-            result = await asyncio.wait_for(task, None)
+            connection = await aio_pika.connect_robust(host="127.0.0.1",
+                                                       login="apfell_user",
+                                                       password="apfell_password",
+                                                       virtualhost="apfell_vhost")
+            channel = await connection.channel()
+            # declare our exchange
+            await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)
+            # get a random queue that only the apfell server will use to listen on to catch all heartbeats
+            queue = await channel.declare_queue('', exclusive=True)
+            # bind the queue to the exchange so we can actually catch messages
+            await queue.bind(exchange='apfell_traffic', routing_key="*.heartbeat.#")
+            await channel.set_qos(prefetch_count=20)
+            print(' [*] Waiting for messages in connect_and_consume_heartbeats.')
+            try:
+                task = queue.consume(rabbit_heartbeat_callback)
+                result = await asyncio.wait_for(task, None)
+            except Exception as e:
+                print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except Exception as e:
-            print("Exception in connect_and_consume .consume: {}".format(str(e)))
-            raise e
-    except Exception as e:
-        print("Exception in connect_and_consume connect: {}".format(str(e)))
-        raise e
+            print("Exception in connect_and_consume connect: {}".format(str(e)))
+        await asyncio.sleep(2)
 
 
 async def send_c2_rabbitmq_message(name, command, message_body):
