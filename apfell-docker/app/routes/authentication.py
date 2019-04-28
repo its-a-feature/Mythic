@@ -10,6 +10,7 @@ refresh_tokens = {}  # having this not persist past reboot of the server and for
 
 # defaults to /auth
 async def authenticate(request):
+    print("called authenticate")
     username = request.json.get("username", None)
     password = request.json.get("password", None)
     if not username or not password:
@@ -42,13 +43,15 @@ async def authenticate(request):
 # defaults to /me
 async def retrieve_user(request, payload, *args, **kwargs):
     user_id = None
+    user = None
     if payload:
         user_id = payload.get('user_id', None)
     try:
         if user_id is None or user_id not in refresh_tokens:
             raise exceptions.AuthenticationFailed("Invalid auth token or your refresh token is gone. Login again")
-        query = await operator_query()
-        user = await db_objects.get(query, id=user_id)
+        if user is None:
+            query = await operator_query()
+            user = await db_objects.get(query, id=user_id)
         user_json = user.to_json()
         query = await operatoroperation_query()
         operationmap = await db_objects.execute(query.where(OperatorOperation.operator == user))
@@ -69,6 +72,7 @@ async def retrieve_user(request, payload, *args, **kwargs):
         user_json['ui_config'] = json.loads(user_json['ui_config'])
         return {**user_json, "user_id": user.id, "operations": operations, "admin_operations": admin_ops}
     except exceptions.AuthenticationFailed as e:
+        print("got authentication failed in retrieve_user. {}".format(str(e)))
         raise e
     except Exception as e:
         print(e)
@@ -100,7 +104,10 @@ async def add_scopes_to_payload(user, *args, **kwargs):
 
 
 async def store_refresh_token(user_id, refresh_token, *args, **kwargs):
-    refresh_tokens[user_id] = refresh_token
+    try:
+        refresh_tokens[user_id] = refresh_token
+    except Exception as e:
+        pass
     return
 
 
@@ -112,4 +119,5 @@ async def retrieve_refresh_token(request, user_id, *args, **kwargs):
 
 
 async def invalidate_refresh_token(user_id):
-    del refresh_tokens[user_id]
+    if user_id in refresh_tokens:
+        del refresh_tokens[user_id]

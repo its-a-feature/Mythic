@@ -27,6 +27,8 @@ async def create_callback(request):
 
 
 async def create_callback_func(data):
+    if not data:
+        return {'status': 'error', 'error': "Data is required for POST"}
     if 'user' not in data:
         return {'status': 'error', 'error': 'User required'}
     if 'host' not in data:

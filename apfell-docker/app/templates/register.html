@@ -8,6 +8,7 @@
     <font size="12"><b>Register</b></font><br>
     <form action="" method="post">
         <span style="color: red;">{{ errors.validate_errors }}</span>
+        {{ form.csrf_token }}
         <table>
             <tr>
                 <td>{{ form.username.label }}</td>

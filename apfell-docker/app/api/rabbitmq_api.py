@@ -31,10 +31,10 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
 async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
-        print(" [x] %r:%r" % (
-            message.routing_key,
-            message.body.decode('utf-8')
-        ))
+        #print(" [x] %r:%r" % (
+        #    message.routing_key,
+        #    message.body.decode('utf-8')
+        #))
         if pieces[1] == "status":
             try:
                 if pieces[3] == "create_payload_with_code":
@@ -131,10 +131,10 @@ async def add_command_attack_to_task(task, command):
 async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
-        print(" [x] %r:%r" % (
-            message.routing_key,
-            message.body
-        ))
+        #print(" [x] %r:%r" % (
+        #    message.routing_key,
+        #    message.body
+        #))
         try:
             if pieces[0] == "c2":
                 query = await db_model.c2profile_query()
@@ -207,7 +207,6 @@ async def connect_and_consume_pt():
             # get a random queue that only the apfell server will use to listen on to catch all heartbeats
             queue = await channel.declare_queue('', exclusive=True)
             # bind the queue to the exchange so we can actually catch messages
-            # await queue.bind(exchange='apfell_traffic', routing_key="c2.heartbeat.#")
             await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.create_payload_with_code.#")
             await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.create_external_payload.#")
             await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.load_transform_code.#")
@@ -272,7 +271,7 @@ async def send_c2_rabbitmq_message(name, command, message_body):
         await connection.close()
         return {"status": "success"}
     except Exception as e:
-        print(str(e))
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": 'error', 'error': "Failed to connect to rabbitmq, refresh"}
 
 
@@ -296,5 +295,5 @@ async def send_pt_rabbitmq_message(payload_type, command, message_body):
         await connection.close()
         return {"status": "success"}
     except Exception as e:
-        print(str(e))
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": 'error', 'error': "Failed to connect to rabbitmq, refresh"}

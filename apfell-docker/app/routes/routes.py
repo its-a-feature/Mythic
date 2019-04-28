@@ -16,6 +16,7 @@ from app.routes.authentication import invalidate_refresh_token
 from app.api.payloadtype_api import import_payload_type_func
 from app.crypto import create_key_AES256
 import app.database_models.model as db_model
+from app.routes.authentication import retrieve_user
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 

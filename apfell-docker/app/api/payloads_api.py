@@ -60,7 +60,7 @@ async def remove_payload_func(uuid, from_disk, operation):
         query = await db_model.payload_query()
         payload = await db_objects.get(query, uuid=uuid, operation=operation)
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status':'error', 'error': 'specified payload does not exist'}
     try:
         payload.deleted = True
@@ -69,7 +69,7 @@ async def remove_payload_func(uuid, from_disk, operation):
             try:
                 os.remove(payload.location)
             except Exception as e:
-                print(e)
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         # if we started hosting this payload as a file in our database, we need to remove that as well
         query = await db_model.filemeta_query()
         file_metas = await db_objects.execute(query.where(FileMeta.path == payload.location))
@@ -78,7 +78,7 @@ async def remove_payload_func(uuid, from_disk, operation):
         success = {'status': 'success'}
         return {**success, **payload.to_json()}
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status':'error', 'error': 'failed to delete payload: ' + uuid}
 
 
@@ -121,7 +121,7 @@ async def register_new_payload_func(data, user):
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status': 'error', 'error': 'failed to get operator or operation when registering payload'}
     # we want to track the parent callbacks of new callbacks if possible
 
@@ -129,13 +129,13 @@ async def register_new_payload_func(data, user):
         query = await db_model.c2profile_query()
         c2_profile = await db_objects.get(query, name=data['c2_profile'])
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status': 'error', 'error': 'failed to get c2 profile when registering payload'}
     try:
         query = await db_model.payloadtype_query()
         payload_type = await db_objects.get(query, ptype=data['payload_type'])
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status': 'error', 'error': 'failed to get payload type when registering payload'}
     tag = data['tag'] if 'tag' in data else ""
     # if the type of payload is a wrapper, then it doesn't have any commands associated with it
@@ -143,7 +143,7 @@ async def register_new_payload_func(data, user):
     if not payload_type.wrapper:
         db_commands = {}
         if 'commands' not in data or data['commands'] is None:
-            return {'status': 'error', 'error': '"commands" field is required, select some on the right-hand side'}
+            data['commands'] = []
         for cmd in data['commands']:
             try:
                 query = await db_model.command_query()
@@ -182,7 +182,7 @@ async def register_new_payload_func(data, user):
                 try:
                     await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd], version=db_commands[cmd].version)
                 except Exception as e:
-                    print(e)
+                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                     # this should delete any PayloadCommands that managed to get created before the error
                     await db_objects.delete(payload, recursive=True)
                     return json({'status': 'error', 'error': "Failed to create payloadcommand: " + str(e)})
@@ -192,7 +192,7 @@ async def register_new_payload_func(data, user):
             query = await db_model.payload_query()
             wrapped_payload = await db_objects.get(query, uuid=data['wrapped_payload'], operation=operation)
         except Exception as e:
-            print(e)
+            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             return {'status': 'error', 'error': 'failed to find the wrapped payload specified in our current operation'}
         query = await db_model.payload_query()
         payload, create = await db_objects.get_or_create(Payload, operator=operator, payload_type=payload_type,
@@ -206,7 +206,7 @@ async def register_new_payload_func(data, user):
         try:
             await db_objects.create(C2ProfileParametersInstance, c2_profile_parameters=param, value=data['c2_profile_parameters'][param.name], payload=payload)
         except Exception as e:
-            print(e)
+            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             # remove our payload that we managed to create
             await db_objects.delete(payload, recursive=True)
             return {'status': 'error', 'error': 'failed to create parameter instance: ' + str(e)}
@@ -227,7 +227,7 @@ async def write_payload(uuid, user):
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status': 'error', 'error': 'failed to get payload db object to write to disk'}
     try:
         if payload.payload_type.file_extension:
@@ -257,7 +257,7 @@ async def write_payload(uuid, user):
                 raise e
 
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         shutil.rmtree(working_path)
         return {'status': 'error', 'error': 'failed to open all needed files. ' + str(e)}
     # if we didn't actually find C2PROFILEHERE in the main code, we are probably looking at a multi-file project
@@ -297,7 +297,7 @@ async def write_payload(uuid, user):
                                 break  # stop once we find 'COMMAND_ENDS_HERE'
                         cmd_file.close()
                 except Exception as e:
-                    print(e)
+                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                     return {'status': 'error', 'error': 'failed to get and write commands to payload on disk'}
             elif 'COMMAND_COUNT_HERE' in line:
                 count = await db_objects.count(PayloadCommand.select().where(PayloadCommand.payload == payload))
@@ -333,7 +333,7 @@ async def write_payload(uuid, user):
                         #custom.write(cmd_file.read())
                         cmd_file.close()
                 except Exception as e:
-                    print(e)
+                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                     return {'status': 'error', 'error': 'failed to get and write commands to payload on disk'}
             elif 'WRAPPEDPAYLOADHERE' in line and payload.payload_type.wrapper:
                 # first we need to do the proper encoding, then we write it do the appropriate spot
@@ -352,7 +352,7 @@ async def write_payload(uuid, user):
     try:
         base_c2.close()
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         pass
     custom.close()
     if not wrote_c2_inline:
@@ -438,10 +438,11 @@ async def create_payload(request, user):
                                 "commands": commands,
                                 "c2_profile_parameters_instance": params,
                                 }
-                status = await send_pt_rabbitmq_message(payload.payload_type,
+                # if the payload is truely external, this message will just go into the ether
+                status = await send_pt_rabbitmq_message(payload.payload_type.ptype,
                                                         "create_external_payload.{}".format(payload.uuid),
-                                                        base64.b64encode(js.dumps(message_json)).decode('utf-8'))
-                return json(status)
+                                                        base64.b64encode(js.dumps(message_json).encode()).decode('utf-8'))
+                return json({**status, "uuid": rsp['uuid']})
             return json({'status': 'error', 'error': 'failed to query for transforms'})
     else:
         print(rsp['error'])

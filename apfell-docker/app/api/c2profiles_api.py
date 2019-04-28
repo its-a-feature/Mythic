@@ -235,7 +235,9 @@ async def update_c2profile(request, info, user):
                     payload_types.append(map.ptype)
                 else:
                     # now that we don't have the mapping, we also need to remove the files on the server
-                    shutil.rmtree("./app/c2_profiles/{}/{}".format(profile.name, map.ptype))
+                    # don't default remove files for now because people might just accidentally unselect a payload type
+                    # TODO make this a configurable option to delete from disk
+                    # shutil.rmtree("./app/c2_profiles/{}/{}".format(profile.name, map.ptype))
                     # it was in our mapping, now it's not, so remove it from the database mapping
                     await db_objects.delete(m)
             # if there's anything left in data['payload_types'], it means we need to add it to the database
@@ -716,7 +718,10 @@ async def import_c2_profile_func(data, operator):
         try:
             query = await db_model.payloadtype_query()
             payload_type = await db_objects.get(query, ptype=ptype)
-            await db_objects.get_or_create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+            try:
+                await db_objects.get(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+            except Exception as e:
+                await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
         except Exception as e:
             # payload type doesn't exist, so skip it and move on
             continue
@@ -735,6 +740,12 @@ async def register_default_profile_operation(operator):
                 shutil.rmtree("./app/c2_profiles/{}".format(p['name']))
             shutil.copytree("./app/default_files/c2_profiles/{}".format(p['name']),
                             "./app/c2_profiles/{}".format(p['name']))
+            # remove all mapped c2 profile payload types
+            query = await db_model.payloadtypec2profile_query()
+            mappings = await db_objects.execute(query.switch(C2Profile).where(C2Profile.name == p['name']))
+            for m in mappings:
+                print("removing {}".format(m.payload_type.ptype))
+                await db_objects.delete(m)
             await import_c2_profile_func(p, operator)
         return {'status': 'success'}
     except Exception as e:
