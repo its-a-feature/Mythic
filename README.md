@@ -591,4 +591,22 @@ The agent needs to be able to make web requests to (or communicate through a C2 
   - The #2 is the callback's ID (which you got from making the POST to /callbacks); this allows the server to automatically encrypt the response if necessary based on a lookup of the callback's encryption/decryption keys  
   - The file will come back as a base64 encoded (and potentially encrypted) blob
 
+### Feature Hooking
+If you want to hook into the features of apfell, such as properly tracking keylogging, file upload/download, screenshots, etc, then there are a few more specifications you can meet. All of the following specifications refers to what is base64 encoded within the response field from above.
+
+- File Download (moving files from agent to apfell server)
+  - The first message would contain something like: `{"response": "eyJ0b3RhbF9jaHVua3MiOiA0LCAidGFzayI6IDI1fQ=="}`, which decoded is: `{"total_chunks": 4, "task": 25}`
+  - The indicates to Apfell how many different chunks it'll take to download the file and which task this is associated with
+  - Apfell will register this file in the database and return a JSON object which, among other information, has a `file_id` field.
+  - Then, the agent sends all of its chunks like: `{"response": "base64data=="}` which will decode to: `{"chunk_num": 1, "file_id": #_from_prior_response, "chunk_data": base64_blob==}` for each chunk of data
+  - This is how you can download any file to the Apfell server. If the initiating command is called `screencapture`, then the resulting file from this process will be saved in a special `screenshot` folder for the corresponding host you did a screencapture on and will populate in the expected spots in the UI for screencaptures
+- Screencapture
+  - The `screncapture` command will automatically append the current time and use that as the filename for the resulting screencapture file on disk. 
+  - Otherwise, it follows the exact same procedure as the previous file download
+- Keylog
+  - No information is presented to the main user console (We don't want to flood them with "got keystroke" messages)
+  - The agent should send responses like `{"response": "eyJ1c2VyIjogIml0cy1hLWZlYXR1cmUiLCAid2luZG93X3RpdGxlIjogIk5vdGVwYWQgLSBVbnRpdGxlZCIsICJrZXlzdHJva2VzIjogIm15IHBhc3N3b3JkIGlzIHplcjBjMDBsIn0="}` for example which decodes to `{"user": "its-a-feature", "window_title": "Notepad - Untitled", "keystrokes": "my password is zer0c00l"}`
+  - The key here is that the agent sends back three important pieces of information: user, window_title, keystrokes. This allows me to do better grouping, sorting, and eventually analysis on the data that comes back instead of just having a massive dump of text that's impossible to analyze.
+  - If you want to present information back to the user, simply return either a status message (`{"status": "started"}` or `{"status": "stopped"}`) or a a non-JSON formatted status message that can be displayed to the user to indicate start/stop of the keylogger.
+  
 Outside of these, the agent right now just needs to be able to handle the contents of the commands that are associated with it. These can be whatever you design to go with your agent, so there's no formal guidance. If you want to hook into Apfell's tracking/display for things like keylogging, screenshots, uploads, downloads, or encryption, check out the `API -> C2 Documentation` for what's required for each one.
