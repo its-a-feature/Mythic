@@ -24,7 +24,6 @@ def deal_with_stdout():
     while True:
         try:
             for line in iter(process.stdout.readline, b''):
-                #print(line)
                 output += line.decode('utf-8')
         except Exception as e:
             print("Exiting thread due to: {}\n".format(str(e)))

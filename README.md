@@ -580,7 +580,7 @@ The agent needs to be able to make web requests to (or communicate through a C2 
   - This will get back `{'status': 'success', "id": #, other information about the callback}`, but the status value and ID value are what's important here
 - GET: `http://apfell.server:apfell_port/api/v1.2/tasks/callback/#/nextTask`
   - The # will be replaced with the ID value from the POST above this
-  - The response will be either `{'command': "None"}` or will be `{"command": "some command name", "params": "some params, potentially a JSON blob", "id": #}`
+  - The response will be either `{'command': "none"}` or will be `{"command": "some command name", "params": "some params, potentially a JSON blob", "id": #}`
   - The ID here is the Task ID and will be used in the next message to post data back as a response to that specific task
 - POST: `http://apfell.server:apfell_port/api/v1.2/responses/#`
   - The # will be replaced with the task number that you're returning data for. You can post back to the same task # multiple times.

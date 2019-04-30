@@ -284,21 +284,25 @@ async def add_task_to_callback_func(data, cid, user):
             data['params'] = datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S') + ".png"
         elif cmd.cmd == "load":
             try:
-                if not cb.registered_payload.payload_type.container_running:
-                    return {"status": "error",
-                            'error': 'build container not running, so cannot task to do load transforms',
-                            'cmd': data['command'], 'params': data['params']}
-                if cb.registered_payload.payload_type.last_heartbeat < datetime.utcnow() + timedelta(seconds=-30):
-                    query = await db_model.payloadtype_query()
-                    payload_type = await db_objects.get(query, ptype=cb.registered_payload.payload_type.ptype)
-                    payload_type.container_running = False
-                    await db_objects.update(payload_type)
-                    return {"status": "error", 'error': 'build container not running, no heartbeat in over 30 seconds'}
-                task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
-                                               original_params=data['params'], status="preprocessing")
-                status = await perform_load_transforms(data, cb, operation, op, task)
-                if status['status'] == "error":
-                    return {'status': 'error', 'error': status['error'], 'cmd': data['command'], 'params': data['params']}
+                if cb.registered_payload.payload_type.external:
+                    task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
+                                                   original_params=data['params'], status="submitted")
+                else:
+                    if not cb.registered_payload.payload_type.container_running:
+                        return {"status": "error",
+                                'error': 'build container not running, so cannot task to do load transforms',
+                                'cmd': data['command'], 'params': data['params']}
+                    if cb.registered_payload.payload_type.last_heartbeat < datetime.utcnow() + timedelta(seconds=-30):
+                        query = await db_model.payloadtype_query()
+                        payload_type = await db_objects.get(query, ptype=cb.registered_payload.payload_type.ptype)
+                        payload_type.container_running = False
+                        await db_objects.update(payload_type)
+                        return {"status": "error", 'error': 'build container not running, no heartbeat in over 30 seconds'}
+                    task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
+                                                   original_params=data['params'], status="preprocessing")
+                    status = await perform_load_transforms(data, cb, operation, op, task)
+                    if status['status'] == "error":
+                        return {'status': 'error', 'error': status['error'], 'cmd': data['command'], 'params': data['params']}
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params']}

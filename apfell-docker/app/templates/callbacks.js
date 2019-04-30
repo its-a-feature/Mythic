@@ -750,7 +750,7 @@ function startwebsocket_newtasks(){
 };
 function add_new_task(tsk){
     try{
-        console.log("in add_new_task: " + JSON.stringify(tsk));
+        //console.log("in add_new_task: " + JSON.stringify(tsk));
         if (callbacks[tsk['callback']]){
             if (callbacks[tsk['callback']]['active'] == false){
                 return;
@@ -794,7 +794,8 @@ function startwebsocket_updatedtasks(){
     ws_updatedtasks.onmessage = function(event){
         if (event.data != ""){
             rsp = JSON.parse(event.data);
-            //console.log(rsp);
+            console.log("about to call add_new_response with:");
+            console.log(rsp);
             add_new_response(rsp);
         }
         ws_updatedtasks.send("");

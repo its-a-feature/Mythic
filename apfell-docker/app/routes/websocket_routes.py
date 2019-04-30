@@ -39,7 +39,7 @@ async def ws_tasks(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         # print("closed /ws/tasks")
         pool.close()
@@ -73,7 +73,7 @@ async def ws_tasks_current_operation(request, ws, user):
                                 await ws.send("")  # this is our test to see if the client is still there
                             except Exception as e:
                                 print(e)
-                                return
+                                continue
                             try:
                                 msg = await ws.recv()
                                 if msg != "":
@@ -120,7 +120,7 @@ async def ws_responses(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         # print("closed /ws/task_updates")
         pool.close()
@@ -204,7 +204,7 @@ async def ws_callbacks_current_operation(request, ws, user):
                                 continue
                             except Exception as e:
                                 print(e)
-                                return
+                                continue
     finally:
         pool.close()
 
@@ -235,7 +235,7 @@ async def ws_updated_callbacks(request, ws, user):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -269,7 +269,7 @@ async def ws_callbacks_updated_current_operation(request, ws, user):
                                 continue
                             except Exception as e:
                                 print(e)
-                                return
+                                continue
     finally:
         pool.close()
 
@@ -304,7 +304,7 @@ async def ws_payloads(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -381,7 +381,7 @@ async def ws_c2profiles(request, ws, user):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -420,7 +420,7 @@ async def ws_c2profile_current_operation(request, ws, user):
                                 continue
                             except Exception as e:
                                 print(e)
-                                return
+                                continue
     finally:
         pool.close()
 
@@ -453,7 +453,7 @@ async def ws_payloadtypec2profile(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -488,7 +488,7 @@ async def ws_operators(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -518,7 +518,7 @@ async def ws_updated_operators(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -554,7 +554,7 @@ async def ws_payloadtypes(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -589,7 +589,7 @@ async def ws_commands(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -642,7 +642,7 @@ async def ws_commands(request, ws):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -695,7 +695,7 @@ async def ws_screenshots(request, ws, user):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
@@ -732,7 +732,7 @@ async def ws_updated_screenshots(request, ws, user):
                             continue
                         except Exception as e:
                             print(e)
-                            return
+                            continue
     finally:
         pool.close()
 
