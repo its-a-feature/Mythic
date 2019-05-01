@@ -47,7 +47,8 @@ var attack_matrix = new Vue({
                  'lateral-movement': [{'mappings': {}, 'name':'', 't_num': ''}],
                  'collection': [{'mappings': {}, 'name':'', 't_num': ''}],
                  'exfiltration': [{'mappings': {}, 'name':'', 't_num': ''}],
-                 'command-and-control': [{'mappings': {}, 'name':'', 't_num': ''}]
+                 'command-and-control': [{'mappings': {}, 'name':'', 't_num': ''}],
+                 'impact': [{"mappings":{}, "name":'', 't_num':''}]
                 }
     },
     methods: {

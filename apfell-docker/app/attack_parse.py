@@ -10,11 +10,11 @@ for obj in attack['objects']:
         for ext_ref in obj['external_references']:
             if 'external_id' in ext_ref and ext_ref['source_name'] == 'mitre-attack':
                 t_num = ext_ref['external_id']
-		name = obj['name']
-		os = ' '.join(obj['x_mitre_platforms']) 
+                name = obj['name']
+                os = ' '.join(obj['x_mitre_platforms'])
                 tactics = [x['phase_name'] for x in obj['kill_chain_phases'] if x['kill_chain_name'] == 'mitre-attack']
                 tactics = " ".join(tactics)
-		#tactic = obj['kill_chain_phases'][0]['phase_name']
-		attack_list.append({"t_num": t_num, "name": name, "os": os, "tactic": tactics})
+                #tactic = obj['kill_chain_phases'][0]['phase_name']
+                attack_list.append({"t_num": t_num, "name": name, "os": os, "tactic": tactics})
 full_output = {"techniques": attack_list}
 output.write(js.dumps(full_output))
