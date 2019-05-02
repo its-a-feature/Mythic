@@ -1,4 +1,6 @@
 sanic==19.3.1
+psycopg2==2.7.5
+psycopg2-binary==2.8.2
 peewee-async==0.5.10
 aiopg==0.13.2
 peewee==2.10.2
