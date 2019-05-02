@@ -9,7 +9,7 @@ import json as js
 import glob
 import base64, datetime
 import app.database_models.model as db_model
-from api.rabbitmq_api import send_pt_rabbitmq_message
+from app.api.rabbitmq_api import send_pt_rabbitmq_message
 
 
 # payloadtypes aren't inherent to an operation

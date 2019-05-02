@@ -17,7 +17,8 @@ add-apt-repository -y \
 
 apt-get update
 
-apt-get install -y docker-ce docker-ce-cli containerd.io
+#apt-get install -y docker-ce docker-ce-cli containerd.io
+apt-get install -y -qq --no-install-recommends docker-ce >/dev/null
 
 # get docker-compose
 curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
