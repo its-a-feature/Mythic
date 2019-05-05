@@ -121,6 +121,9 @@ async def get_next_task(request, cid):
     except Exception as e:
         print("Callback did not exist, returning blank message")
         return json({})
+    command_string = ""
+    params_string = ""
+    task_id = -1
     try:
         callback.last_checkin = datetime.utcnow()
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active
@@ -136,23 +139,29 @@ async def get_next_task(request, cid):
                 tasks = tasks[0]
                 tasks.status = "processing"
                 await db_objects.update(tasks)
+                command_string = tasks.command.cmd
+                params_string = tasks.params
+                task_id = tasks.id
             else:
-                return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
+                command_string = "none"
+                #return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
         else:
             # operation is complete, just return blank for now, potentially an exit command later
-            return json({})
+            #return json({})
+            print("Got a request from an opeation that's done")
     except Exception as e:
         print(e)
-        return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
+        #return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
+        command_string = "none"
     if callback.encryption_type != "" and callback.encryption_type is not None:
         # encrypt the message before returning it
-        string_message = js.dumps({"command": tasks.command.cmd, "params": tasks.params, "id": tasks.id})
+        string_message = js.dumps({"command": command_string, "params": params_string, "id": task_id})
         if callback.encryption_type == "AES256":
             raw_encrypted = await crypt.encrypt_AES256(data=string_message.encode(),
                                                        key=base64.b64decode(callback.encryption_key))
             return raw(base64.b64encode(raw_encrypted), status=200)
     else:
-        return json({"command": tasks.command.cmd, "params": tasks.params, "id": tasks.id})
+        return json({"command": command_string, "params": params_string, "id": task_id})
 
 
 # create a new task to a specific callback

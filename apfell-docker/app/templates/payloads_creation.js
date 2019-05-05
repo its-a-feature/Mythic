@@ -231,11 +231,13 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/pa
             if(global_uuids[data['uuid']] == false){
                 if(data['build_phase'] == "success"){
                     alertTop("success", "Success! Your agent, " + data['location'].split("/").pop() + ", was successfully built.<br><b>Execution help:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid'], 0);
+                    global_uuids[data['uuid']] = true;
                 }
                 else if(data['build_phase'] == "error"){
                     alertTop("danger", "Uh oh, something went wrong.<br><b>Error message:</b> " + data['build_message']);
+                    global_uuids[data['uuid']] = true;
                 }
-                global_uuids[data['uuid']] = true;
+
             }
         }
     };
