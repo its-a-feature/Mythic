@@ -6,6 +6,7 @@ from app.database_models.model import Callback, Payload, PayloadType, C2Profile,
 from sanic_jwt.decorators import protected, inject_user
 import app.database_models.model as db_model
 import aio_pika
+import sys
 
 
 # --------------- TASKS --------------------------
@@ -325,7 +326,7 @@ async def ws_payloads_current_operation(request, ws, user):
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.payload_query()
-                        payloads = await db_objects.execute(query.where(Payload.operation == operation).order_by(Payload.id))
+                        payloads = await db_objects.execute(query.where( (Payload.operation == operation) & (Payload.deleted == False)).order_by(Payload.id))
                         for p in payloads:
                             await ws.send(js.dumps(p.to_json()))
                         await ws.send("")
@@ -937,11 +938,11 @@ async def ws_c2_status_messages(request, ws, user):
             except Exception as e:
                 return
     except Exception as e:
-        print("Exception in start_listening: {}".format(str(e)))
-        await ws.send("{\"status\": \"error\", \"error\": \"Failed to connect to rabbitmq, {}\"}".format(str(e)))
+        print("Exception in ws_c2_status_messages: {}".format(str(sys.exc_info())))
+        await ws.send(js.dumps({"status": "error", "error": "Failed to connect to rabbitmq, {}".format(str(e))}))
 
 
-# messages back from rabbitmq with key: c2.status.#
+# messages back from rabbitmq with key: pt.status.#
 @apfell.websocket('/ws/rabbitmq/pt_status')
 @inject_user()
 @protected()
@@ -981,5 +982,5 @@ async def ws_payload_type_status_messages(request, ws, user):
             except Exception as e:
                 return
     except Exception as e:
-        print("Exception in start_listening: {}".format(str(e)))
-        await ws.send("{\"status\": \"error\", \"error\": \"Failed to connect to rabbitmq, {}\"}".format(str(e)))
+        print("Exception in ws_payload_type_status_messages: {}".format(str(sys.exc_info())))
+        await ws.send(js.dumps({"status": "error", "error": "Failed to connect to rabbitmq, {}".format(str(e))}))

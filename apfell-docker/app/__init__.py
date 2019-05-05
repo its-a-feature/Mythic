@@ -22,7 +22,7 @@ use_ssl = False
 # --------------------------------------------
 # custom loop to pass to db manager
 dbloop = uvloop.new_event_loop()
-apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1')
+apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=50)
 apfell_db.connect_async(loop=dbloop)
 db_objects = Manager(apfell_db, loop=dbloop)
 

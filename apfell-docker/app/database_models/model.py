@@ -987,6 +987,7 @@ class ArtifactTemplate(p.Model):
     artifact_string = p.TextField(null=False, default="")  # ex: Command Line: sh -c *
     # if replace_string is left empty, '', then artifact_string will be used unmodified
     replace_string = p.CharField(null=False, default="")
+    deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -1017,7 +1018,7 @@ class ArtifactTemplate(p.Model):
 
 class TaskArtifact(p.Model):
     task = p.ForeignKeyField(Task)
-    artifact_template = p.ForeignKeyField(ArtifactTemplate)
+    artifact_template = p.ForeignKeyField(ArtifactTemplate, null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     artifact_instance = p.TextField(null=False, default="")
 
@@ -1030,13 +1031,15 @@ class TaskArtifact(p.Model):
             try:
                 if k == "artifact_template":
                     if getattr(self, k) is not None and getattr(self, k) != "null":
-                        r[k] = getattr(self, k).command.cmd
+                        #r[k] = getattr(self, k).command.cmd
                         r["artifact_name"] = getattr(self, k).artifact.name
                     else:
                         r[k] = "null"
+                        r['artifact_name'] = "null"
                 elif k == 'task':
                     r["task_id"] = getattr(self, k).id
                     r["task"] = getattr(self, k).params
+                    r['artifact_template'] = getattr(self, k).command.cmd
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -1247,9 +1250,8 @@ async def artifacttemplate_query():
 
 async def taskartifact_query():
     return TaskArtifact.select(TaskArtifact, Task, Callback, ArtifactTemplate, Command, Artifact)\
-        .join(Task).join(Callback).switch(Task).switch(TaskArtifact)\
-        .join(ArtifactTemplate).join(Command).switch(ArtifactTemplate)\
-        .join(Artifact).switch(TaskArtifact)
+        .join(Task).join(Callback).switch(Task).join(Command).switch(TaskArtifact)\
+        .join(ArtifactTemplate, p.JOIN.LEFT_OUTER).join(Artifact).switch(TaskArtifact)
 
 
 async def staginginfo_query():

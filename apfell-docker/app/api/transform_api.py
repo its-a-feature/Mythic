@@ -102,7 +102,7 @@ async def register_transform_for_ptype(request, user, ptype):
         return json({'status': 'error', 'error': 'Must specify a type for this transform (\"load\" or \"create\"'})
     if "order" not in data or data['order'] is None:
         return json({'status': 'error', 'error': 'Must provide an order to this transform'})
-    if data['order'] <= 0:
+    if int(data['order']) <= 0:
         return json({'status': 'error', 'error': 'Order must be positive'})
     try:
         transform = await db_objects.create(Transform, name=data['name'], parameter=data['parameter'],

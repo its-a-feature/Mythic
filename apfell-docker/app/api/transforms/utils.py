@@ -4,6 +4,8 @@ import os
 from typing import List, Dict, NewType
 import asyncio
 import uuid
+import shutil
+import zipfile
 
 FilePath = NewType('FilePath', str)
 FileName = NewType('FileName', str)
@@ -138,3 +140,40 @@ class TransformOperation:
 
     async def strToByteArray(self, prior_output: str, parameter: None) -> bytearray:
         return bytearray(prior_output.encode('utf-8'))
+
+    async def outputAsZipFolder(self, prior_output: str, parameter: None) -> bytearray:
+        try:
+            # this does force .zip to output: ex: payload.location of test-payload becomes test-payload.zip on disk
+            temp_uuid = str(uuid.uuid4())
+            shutil.make_archive(temp_uuid, 'zip', self.working_dir)
+            data = open(temp_uuid + ".zip", 'rb').read()
+            os.remove(temp_uuid + ".zip")
+            return data
+        except Exception as e:
+            raise Exception(str(e))
+
+    async def outputPythonLoadsAsZipFolder(self, prior_output: Dict[str, str], parameter: None) -> bytearray:
+        try:
+            # this does force .zip to output: ex: payload.location of test-payload becomes test-payload.zip on disk
+            for n, v in prior_output.items():
+                # only read up until the flag COMMAND_ENDS_HERE
+                file_content = base64.b64decode(v).decode('utf-8')
+                try:
+                    end_index = file_content.index("COMMAND_ENDS_HERE")
+                    file_content = file_content[0:end_index]
+                except Exception as e:
+                    pass
+                file_content = bytearray(file_content.encode('utf-8'))
+
+                f = open(n + ".py", 'wb')
+                f.write(file_content)
+                f.close()
+                zf = zipfile.ZipFile(n + ".zip", mode='w')
+                zf.write(n + ".py")
+                zf.close()
+                data = open(n + ".zip", 'rb').read()
+                os.remove(n + ".zip")
+                os.remove(n + ".py")
+                return data
+        except Exception as e:
+            raise Exception(str(e))

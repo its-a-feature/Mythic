@@ -202,6 +202,8 @@ async def update_task_for_callback(request, id):
                         # you can report back multiple artifacts at once, no reason to make separate C2 requests
                         await db_objects.create(TaskArtifact, task=task, artifact_template=base_artifact_template,
                                                 artifact_instance=str(artifact['artifact']))
+                        final_output += "Added artifact"
+                        json_return_info = {**json_return_info, "status": "success"}
                     except Exception as e:
                         final_output += "\nFailed to work with artifact: " + str(artifact) + " due to: " + str(e)
                         json_return_info = {**json_return_info, 'status': 'error', 'error': final_output}

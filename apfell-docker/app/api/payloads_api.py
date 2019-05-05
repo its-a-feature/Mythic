@@ -174,9 +174,17 @@ async def register_new_payload_func(data, user):
         location = "./app/payloads/operations/{}/{}{}".format(user['current_operation'], uuid, file_extension)
     # Register payload
     if not payload_type.wrapper:
-        payload, create = await db_objects.create_or_get(Payload, operator=operator, payload_type=payload_type,
-                                                         tag=tag, location=location, c2_profile=c2_profile,
-                                                         uuid=uuid, operation=operation)
+        create = False
+        try:
+            query = await db_model.payload_query()
+            payload = await db_objects.get(query, operator=operator, payload_type=payload_type,
+                                                             tag=tag, location=location, c2_profile=c2_profile,
+                                                             uuid=uuid, operation=operation)
+        except Exception as e:
+            payload = await db_objects.create(Payload, operator=operator, payload_type=payload_type,
+                                                             tag=tag, location=location, c2_profile=c2_profile,
+                                                             uuid=uuid, operation=operation)
+            create = True
         if create:
             for cmd in db_commands:
                 try:
@@ -194,10 +202,15 @@ async def register_new_payload_func(data, user):
         except Exception as e:
             print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             return {'status': 'error', 'error': 'failed to find the wrapped payload specified in our current operation'}
-        query = await db_model.payload_query()
-        payload, create = await db_objects.get_or_create(Payload, operator=operator, payload_type=payload_type,
-                                                         tag=tag, location=location, c2_profile=c2_profile,
-                                                         uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
+        try:
+            query = await db_model.payload_query()
+            payload = await db_objects.get(query, operator=operator, payload_type=payload_type,
+                                                             tag=tag, location=location, c2_profile=c2_profile,
+                                                             uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
+        except Exception as e:
+            payload = await db_objects.create(Payload, operator=operator, payload_type=payload_type,
+                                           tag=tag, location=location, c2_profile=c2_profile,
+                                           uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
     # Get all of the c2 profile parameters and create their instantiations
     query = await db_model.c2profileparameters_query()
     db_c2_profile_parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == c2_profile))
@@ -416,8 +429,7 @@ async def create_payload(request, user):
         if payload.payload_type.external is False:
             create_rsp = await write_payload(payload.uuid, user)
             if create_rsp['status'] == "success":
-                return json({'status': 'success', 'execute_help': payload.payload_type.execute_help,
-                             'filename': payload.location.split("/")[-1],
+                return json({'status': 'success',
                              'uuid': rsp['uuid']})
             else:
                 await db_objects.delete(payload, recursive=True)

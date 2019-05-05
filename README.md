@@ -1,5 +1,5 @@
 # Apfell
-A macOS, post-exploit, red teaming framework built with python3 and JavaScript. It's designed to provide a collaborative and user friendly interface for operators, managers, and reporting throughout mac and linux based red teaming. This is a work-in-progress as I have free time, so please bear with me.
+A cross-platform, post-exploit, red teaming framework built with python3, docker, and a web browser UI. It's designed to provide a collaborative and user friendly interface for operators, managers, and reporting throughout mac and linux based red teaming. This is a work-in-progress as I have free time, so please bear with me.
 
 ## Details
 Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bones-apfell-server-code-release/) on the initial release of the framework and what the bare bones content can do.
@@ -173,6 +173,11 @@ Your payload type code will have `keywords` for where the C2 profile code and se
 |COMMAND_HEADERS_HERE|If your code requires separate header code (like C code needing function prototypes), then this is a way to include that information. The format of a command file is explained later.|
 
 The timing of when these keys are used is described in the payload creation section, but I’ve included them here as reference for when you’re creating your agent code.
+
+When working with transforms for creation or loading, there are a few important pieces of information to remember:
+- For payload creation, all of your files (payload and c2 files) can be referenced within any of the transforms under the `self.working_dir` directory
+- For module loading, the raw bytes for all of the commands you selected to load can be accessed via the dictionary provided as the first `prior_output`
+  - Remember: transforms are meant to be chained together - the output of one be used as the `prior_output` for the next command. The first transform's `prior_output` is a dictionary in `{"command_name": "base64 encoded contents of file", "command2": "base64 encoded contents"}`
 
 ## C2 Profiles
 A c2 profile consists of two pieces - server side code that interfaces with the default RESTful APIs and agent code that goes into a payload at creation time. I’ll cover what each of these pieces entails in the following sections. I provide two profiles initially, with more to come in the future. You can see the general information from the management page:

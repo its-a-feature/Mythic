@@ -541,7 +541,7 @@ async def get_artifact_templates_for_command(request, user, cid):
         return json({'status': 'error', 'error': 'failed to find that command'})
     try:
         query = await db_model.artifacttemplate_query()
-        artifacts = await db_objects.execute(query.where(ArtifactTemplate.command == command))
+        artifacts = await db_objects.execute(query.where( (ArtifactTemplate.command == command) & (ArtifactTemplate.deleted == False)))
     except:
         return json({'status': 'error', 'error': 'Failed to get artifact templates for command'})
     return json({'status': 'success', 'artifacts': [a.to_json() for a in artifacts]})
@@ -560,8 +560,9 @@ async def delete_artifact_template_for_command(request, user, cid, aid):
         print(e)
         return json({'status': 'error', 'error': 'failed to find that command or artifact'})
     try:
-        artifact_json = artifact.to_json()
-        await db_objects.delete(artifact, recursive=True)
-        return json({'status': 'success', **artifact_json})
-    except:
+        artifact.deleted = True
+        await db_objects.update(artifact)
+        return json({'status': 'success', **artifact.to_json()})
+    except Exception as e:
+        print(e)
         return json({'status': 'error', 'error': 'failed to delete artifact template'})

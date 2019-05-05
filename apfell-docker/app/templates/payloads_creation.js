@@ -204,7 +204,7 @@ function submit_payload(){
     data['wrapped_payload'] = $('#wrappedPayload option:selected').attr("name");
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
 }
-var global_uuid = "";
+var global_uuids = {};
 function submit_payload_callback(response){
     try{
         data = JSON.parse(response);
@@ -214,7 +214,7 @@ function submit_payload_callback(response){
     }
     if(data['status'] == "success"){
         alertTop("info", "Agent " + data['uuid'] + " submitted to the build process...");
-        global_uuid = data['uuid'];
+        global_uuids[data['uuid']] = false;  // indicate if we've seen the final success/failure message for this yet or not
     }
     else{
         $('#errors').html((data['error']));
@@ -224,15 +224,18 @@ function submit_payload_callback(response){
 function startwebsocket_rabbitmq_build_finished(){
 var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
     ws.onmessage = function(event){
+        // sometimes we get teh messages too quickly and so we get the same data twice when querying the db
         if (event.data != ""){
+            console.log(event.data);
             data = JSON.parse(event.data);
-            if(data['uuid'] == global_uuid){
+            if(global_uuids[data['uuid']] == false){
                 if(data['build_phase'] == "success"){
                     alertTop("success", "Success! Your agent, " + data['location'].split("/").pop() + ", was successfully built.<br><b>Execution help:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid'], 0);
                 }
                 else if(data['build_phase'] == "error"){
                     alertTop("danger", "Uh oh, something went wrong.<br><b>Error message:</b> " + data['build_message']);
                 }
+                global_uuids[data['uuid']] = true;
             }
         }
     };
