@@ -58,6 +58,7 @@ class DiffieHellman(object):
     By default, this class uses the 6144-bit MODP Group (Group 17) from RFC 3526.
     This prime is sufficient to generate an AES 256 key when used with
     a 540+ bit exponent.
+    Taken from: https://github.com/lowazo/pyDHE
     """
     import hashlib
     import ssl
