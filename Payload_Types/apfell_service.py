@@ -229,10 +229,15 @@ async def callback(message: aio_pika.IncomingMessage):
 async def apfell_service():
     global hostname
     global exchange
-    connection = await aio_pika.connect_robust(host="127.0.0.1",
-                                               login="apfell_user",
-                                               password="apfell_password",
-                                               virtualhost="apfell_vhost")
+    connection = None
+    while connection is None:
+        try:
+            connection = await aio_pika.connect_robust(host="127.0.0.1",
+                                                       login="apfell_user",
+                                                       password="apfell_password",
+                                                       virtualhost="apfell_vhost")
+        except Exception as e:
+            await asyncio.sleep(1)
     try:
         channel = await connection.channel()
         # declare our exchange

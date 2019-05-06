@@ -239,7 +239,7 @@ async def handler_404(request, exception):
 
 @apfell.middleware('request')
 async def check_ips(request):
-    if request.path == "/login" or request.path == "/register":
+    if request.path == "/login" or request.path == "/register" or request.path == '/auth':
         ip = ip_address(request.ip)
         for block in apfell.config['WHITELISTED_IPS']:
             if ip in block:
