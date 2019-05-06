@@ -474,10 +474,10 @@ async def export_command_list(request, user, ptype):
                 attack_list.append(a_json)
             cmd_json['attack'] = attack_list
             query = await db_model.artifacttemplate_query()
-            artifacts = await db_objects.execute(query.where(ArtifactTemplate.command == c))
+            artifacts = await db_objects.execute(query.where( (ArtifactTemplate.command == c) & (ArtifactTemplate.deleted == False)))
             artifact_list = []
             for a in artifacts:
-                a_json = {"command_parameter": a.command_parameter, "artifact": a.artifact.name,
+                a_json = {"command_parameter": a.command_parameter.name if a.command_parameter else "null", "artifact": a.artifact.name,
                           "artifact_string": a.artifact_string, "replace_string": a.replace_string}
                 artifact_list.append(a_json)
             cmd_json['artifacts'] = artifact_list

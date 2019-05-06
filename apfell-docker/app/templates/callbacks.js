@@ -808,26 +808,30 @@ function startwebsocket_updatedtasks(){
     }
 };
 function add_new_response(rsp){
-    if(rsp['task']['callback'] in all_tasks){
-        //if we have that callback id in our all_tasks list
-        if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]){
-            Vue.set(all_tasks[ rsp['task']['callback'] ], rsp['task']['id'], {});
-        }
-        if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]['response']){
-            //but we haven't received any responses for the specified task_id
-            Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']], 'response', {});
-        }
-        //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
-        var updated_response = rsp['response'].replace(/\\n|\r/g, '\n');
-        // all_tasks->callback->task->response->id = timestamp, responsevalue
-        Vue.set(all_tasks[rsp['task']['callback']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': updated_response});
-        if($('#bottom-tabs-content').scrollTop() + $('#bottom-tabs-content').height() == $('#bottom-tabs-content')[0].scrollHeight){
-            //if we're looking at the bottom of the content, scroll
-            Vue.nextTick().then(function(){
-                $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
-            });
+    try{
+        if(rsp['task']['callback'] in all_tasks){
+            //if we have that callback id in our all_tasks list
+            if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]){
+                Vue.set(all_tasks[ rsp['task']['callback'] ], rsp['task']['id'], {});
+            }
+            if(!all_tasks[rsp['task']['callback']][rsp['task']['id']]['response']){
+                //but we haven't received any responses for the specified task_id
+                Vue.set(all_tasks[ rsp['task']['callback']] [rsp['task']['id']], 'response', {});
+            }
+            //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
+            var updated_response = rsp['response'].replace(/\\n|\r/g, '\n');
+            // all_tasks->callback->task->response->id = timestamp, responsevalue
+            Vue.set(all_tasks[rsp['task']['callback']] [rsp['task']['id']] ['response'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': updated_response});
+            if($('#bottom-tabs-content').scrollTop() + $('#bottom-tabs-content').height() == $('#bottom-tabs-content')[0].scrollHeight){
+                //if we're looking at the bottom of the content, scroll
+                Vue.nextTick().then(function(){
+                    $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+                });
 
+            }
         }
+    }catch(error){
+        console.log(error.toString());
     }
 }
 function startwebsocket_updatedcallbacks(){
