@@ -1,0 +1,11 @@
+def quit(apfell, c2, params="whoami", task_id=-1):
+    try:
+        import thread
+    except Exception as e:
+        c2.post_response(response="Failed to import modules", task_id=task_id)
+        apfell.remove_job(tasi_id)
+        return
+    apfell.remove_job(task_id)  # need to do this to remove your task from the list
+    thread.interrupt_main()
+
+COMMAND_ENDS_HERE

@@ -35,7 +35,7 @@
         "hint": ""
       }
     ],
-    "payload_types": ["apfell-jxa", "linfell"]
+    "payload_types": ["apfell-jxa", "linfell", "viper"]
   },
     {
     "name":"RESTful_Patchthrough",

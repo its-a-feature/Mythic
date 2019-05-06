@@ -16,18 +16,18 @@
         <div class="panel-heading">[[key.toString()]]'s Keylog Data</div>
             <!-- CONFIGURE THE DISPLAY FOR IF WE'RE GROUPING BY WINDOW -->
             <div v-for="(window, key2, index2) in group" v-if="data.sub_grouping == 'window'">
-                Keystrokes from <font color="red">[[window[0].user]]</font> in window <font color="green">[[window[0].window]]</font>
-                <span v-if="data.grouping == 'user'"> on <font color="purple">[[window[0].callback.host]]</font></span> <br>
+                <font color="red">[[window[0].user]]</font> in window <font color="green"><b>[[window[0].window]]</b></font>
+                <span v-if="data.grouping == 'user'"> on <font color="purple"><b>[[window[0].callback.host]]</b></font></span> <br>
                 <div v-for="log in window">
-                    <font color="blue">([[log.timestamp]])</font>
+                    <font color="blue">([[log.timestamp]])</font>(<span> Callback [[window[0].callback.id]]-<a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + window[0].task" target="_blank"><b>[[window[0].task]]</b></a></span>)
                     <font color="black">[[log.keystrokes]]</font>
                 </div>
             </div>
             <!-- CONFIGURE THE DISPLAY FOR IF WE'RE GROUPING BY TIME -->
             <div v-for="(log, key2, index2) in group" v-if="data.sub_grouping == 'time'" :key="key2">
-                Keystrokes from <font color="red">[[log.user]]</font> in window <font color="green">[[log.window]]</font>
-                <span v-if="data.grouping == 'user'"> on <font color="purple">[[log.callback.host]]</font></span> <br>
-                <font color="blue">([[log.timestamp]])</font>
+                <font color="red">[[log.user]]</font> in window <font color="green"><b>[[log.window]]</b></font>
+                <span v-if="data.grouping == 'user'"> on <font color="purple"><b>[[log.callback.host]]</b></font></span> <br>
+                <font color="blue">([[log.timestamp]])</font>(<span> Callback [[log.callback.id]]-<a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + log.task" target="_blank"><b>[[log.task]]</b></a> </span>)
                 <font color="black">[[log.keystrokes]]</font>
             </div>
     </div>

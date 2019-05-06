@@ -321,6 +321,13 @@ async def initial_setup():
         await import_payload_type_func(ptype, admin, operation)
     file.close()
     print("created Linfell-c payload")
+    file = open('./app/templates/viper.json', 'r')
+    viper = js.load(file)  # this is a lot of data and might take a hot second to load
+    print("parsed viper payload file")
+    for ptype in viper['payload_types']:
+        await import_payload_type_func(ptype, admin, operation)
+    file.close()
+    print("created viper payload")
     await register_default_profile_operation(admin)
     print("Successfully finished initial setup")
 

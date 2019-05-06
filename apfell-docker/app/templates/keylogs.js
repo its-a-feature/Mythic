@@ -43,7 +43,7 @@ function keylog_callback(response){
         keylog.data['grouping'] = data['grouping'];
         keylog.data['sub_grouping'] = data['sub_grouping'];
         keylog.keylogs = data['keylogs'];
-        clearAlertTop();
+        //clearAlertTop();
     }
     else{
         alertTop("danger", data['error']);

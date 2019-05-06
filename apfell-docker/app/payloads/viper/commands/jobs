@@ -1,0 +1,14 @@
+def jobs(apfell, c2, params="", task_id=-1):
+    try:
+        import json
+    except Exception as e:
+        c2.post_response(response="Failed to import required modules", task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    try:
+        apfell.remove_job(task_id)
+        c2.post_response(response=json.dumps(apfell.get_jobs()), task_id=task_id)
+    except Exception as e:
+        c2.post_response(response="Failed to remove job", task_id=task_id)
+        apfell.remove_job(task_id)
+COMMAND_ENDS_HERE
