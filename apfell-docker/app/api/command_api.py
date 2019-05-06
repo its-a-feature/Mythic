@@ -43,7 +43,7 @@ async def check_command(request, user, ptype, cmd):
         query = await db_model.attackcommand_query()
         attacks = await db_objects.execute(query.where(ATTACKCommand.command == command))
         query = await db_model.artifacttemplate_query()
-        artifacts = await db_objects.execute(query.where(ArtifactTemplate.command == command))
+        artifacts = await db_objects.execute(query.where( (ArtifactTemplate.command == command) & (ArtifactTemplate.deleted == False)))
         query = await db_model.commandtransform_query()
         transforms = await db_objects.execute(query.where(CommandTransform.command == command))
         status = {**status, **command.to_json(), "params": [p.to_json() for p in params], "attack": [a.to_json() for a in attacks],

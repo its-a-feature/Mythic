@@ -9,7 +9,8 @@
         "postResponse": "/upload.php\\?page=(\\d+)",
         "postNewCallback": "/login",
         "postNewCallbackAESPSK": "/register.php\\?SessionID=([\\w-]+)\\b",
-        "postNewCallbackEKE": "/signup.php\\?SessionID=([\\w-]+)\\b"
+        "postNewCallbackEKE": "/signup.php\\?SessionID=([\\w-]+)\\b",
+        "postNewCallbackDHEKE": "/recover_account.php\\?SessionID=([\\w-]+)\\b"
       },
       "port": 9000,
       "host": "0.0.0.0",
@@ -23,5 +24,6 @@
   "apfellPostResponse": "responses/{}",
   "apfellNewCallback": "callbacks/",
   "apfellNewCallbackAESPSK": "crypto/aes_psk/{}",
-  "apfellNewCallbackEKE": "crypto/EKE/{}"
+  "apfellNewCallbackEKE": "crypto/EKE/{}",
+  "apfellNewCallbackDHEKE": "crypto/DHEKE/{}"
 }

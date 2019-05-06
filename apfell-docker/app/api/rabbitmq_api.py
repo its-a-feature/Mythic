@@ -110,7 +110,7 @@ async def add_command_attack_to_task(task, command):
                 await db_objects.create(db_model.ATTACKTask, task=task, attack=attack.attack)
         # now do the artifact adjustments as well
         query = await db_model.artifacttemplate_query()
-        artifacts = await db_objects.execute(query.where(db_model.ArtifactTemplate.command == command))
+        artifacts = await db_objects.execute(query.where( (db_model.ArtifactTemplate.command == command) & (db_model.ArtifactTemplate.deleted == False)))
         for artifact in artifacts:
             temp_string = artifact.artifact_string
             if artifact.command_parameter is not None and artifact.command_parameter != 'null':

@@ -146,9 +146,6 @@ function check_status_callback(response){
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
-    else{
-        alertTop("info", "Task submitted to container...");
-    }
 }
 var folders = [];
 var profile_files_modal = new Vue({

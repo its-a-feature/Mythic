@@ -136,7 +136,8 @@ if __name__ == '__main__':
                 inst['POST']['postResponse']: {'url': main_config['apfellBase'] + main_config['apfellPostResponse']},
                 inst['POST']['postNewCallback']: {'url': main_config['apfellBase'] + main_config['apfellNewCallback']},
                 inst['POST']['postNewCallbackAESPSK']: {'url': main_config['apfellBase'] + main_config['apfellNewCallbackAESPSK']},
-                inst['POST']['postNewCallbackEKE']: {'url': main_config['apfellBase'] + main_config['apfellNewCallbackEKE']}
+                inst['POST']['postNewCallbackEKE']: {'url': main_config['apfellBase'] + main_config['apfellNewCallbackEKE']},
+                inst['POST']['postNewCallbackDHEKE']: {'url': main_config['apfellBase'] + main_config['apfellNewCallbackDHEKE']}
                 }
             specific_config['port'] = inst['port']
             specific_config['host'] = inst['host']
