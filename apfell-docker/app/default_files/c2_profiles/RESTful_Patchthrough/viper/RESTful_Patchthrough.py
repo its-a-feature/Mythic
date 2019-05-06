@@ -26,7 +26,7 @@ class C2():
         self.host_header = "domain_front" if len("domain_front") > 0 else ""
         # adjust the checkin URI based on what we're tyring to do
         if self.EKE == True:
-            self.checkin_uri = "DHEKE_NEW_CALLBACK"
+            self.checkin_uri = "EKE_DH_NEW_CALLBACK"
             self.encryption = True
             self.clientPub = DiffieHellman()
         elif self.aes_encryption_key != "":

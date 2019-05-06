@@ -108,7 +108,7 @@
       },
       {
         "name": "Diffie-Hellman based Encrypted Key Exchange new callback",
-        "key": "DHEKE_NEW_CALLBACK",
+        "key": "EKE_DH_NEW_CALLBACK",
         "hint": "\/recover_account.php?SessionID=*"
       }
     ],
