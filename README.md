@@ -66,7 +66,7 @@ db_user = 'apfell_user'
 db_pass = 'super_secret_apfell_user_password'  # used by the server to communicate with the local postgres database
 # server_ip is what your browser will use to find its way back to this server
 # change this to be the IP or domain name of how your operators will reach this server
-server_ip = 'localhost'  
+server_ip = '127.0.0.1'  
 listen_port = '80'  # similarly, this is the IP the browser will use to connect back to this apfell server
 # this is what IP addresses apfell should bind to locally. leave it as 0.0.0.0 unless you have a reason to specify a specific IP address
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
@@ -82,17 +82,20 @@ use_ssl = False
 - Once you're ready to finally install, simply run the setup script and then the start script and you should be good to go!
 ```bash
 ./setup_apfell.sh
-./start_apfell.sh
 ```
+- You can run `status_check.sh` to check to make sure everything is running
+- To get more detailed diagnostic information, you can run `display_output.sh`
+  - By default, this will dump the logs from all the containers into a local file called `display_output.txt`.
+  - If there is a specific container(s) you want to see the logs for, just supply them as arguments at the end of the call: `display_output.sh apfell_apfell restfulpatchthrough`
 
 ## Connecting to Apfell
 
-By default, the server will bind to 0.0.0.0 on port 80. This is an alias meaning that it will be listening on all IPv4 addresses on the machine. You don't actually browse to https://0.0.0.0:80 in your browser. Instead, you'll browse to either https://localhost:80 if you're on the same machine that's running the server, or you can browse to any of the IPv4 addresses on the machine that's running the server. You could also browse to the IP address you specified in `server_ip = 'localhost'` in the installation section.  
+By default, the server will bind to 0.0.0.0 on port 80. This is an alias meaning that it will be listening on all IPv4 addresses on the machine. You don't actually browse to http://0.0.0.0:80 in your browser. Instead, you'll browse to either http://127.0.0.1:80 if you're on the same machine that's running the server, or you can browse to any of the IPv4 addresses on the machine that's running the server. You could also browse to the IP address you specified in `server_ip = 'localhost'` in the installation section.  
 
-- All requests from the browser to the apfell server are dynamic and based on the `server_ip` and `listen_port` you specified in the `app/__init__.py` file. I cannot stress this enough that you need to set this to a routable IP address so the browser can connect remotely.
+- All requests from the browser to the apfell server are dynamic and based on the `server_ip` and `listen_port` you specified in the `Apfell/apfell-docker/app/__init__.py` file. I cannot stress this enough that you need to set this to a routable IP address so the browser can connect remotely.
 
 Apfell uses JSON Web Token (JWT) for authentication. When you use the browser (vs the API on the commandline), I store your access and refresh tokens in a cookie. This should be seamless as long as you leave the server running; however, the history of the refresh tokens is saved in memory. So, if you authenticate in the browser, then restart the server, you'll have to sign in again.
-- Browse to the server with any modern web browser. This is where you can sign in. This url and `/register` are the ones protected by `whitelisted_ip_blocks` in the `app/__init__.py`. The default username and password here is `apfell_admin` and `apfell_password`.  
+- Browse to the server with any modern web browser. This is where you can sign in. This url and `/register` are the ones protected by `whitelisted_ip_blocks` in the `Apfell/apfell-docker/app/__init__.py`. The default username and password here is `apfell_admin` and `apfell_password`.  
 
 ### Starting or Stopping containers
 
@@ -118,6 +121,8 @@ From payload_type_base
 and place any other files you need in that directory as well. Then, start the container with the corresponding start script. The container will be started and will start sending heartbeat messages to the main Apfell server.
 
 In the Apfell server, make sure to register a new PayloadType or C2Profile with the same name, and you should see the container light turn green.  If there is no heartbeat message in the last 30 seconds, then container light will flash red to indicate that something is wrong.
+
+When dealing with Payload Type containers, they need to have a copy of the transforms for building/loading/modifying command arguments. When you first create a container, this information is not present; however, if you modify/update the Transforms in the UI `Manage Operations -> Transform Management`, then the updated version will get pushed to all currently running containers. So, you can always go to that page and click `Update Code` without having to change anything to get the code pushed to all running containers. 
 
 ## Users
 Everybody that uses Apfell must register an account before being able to login. The password is hashed and stored in the database (you can change your password at any time). The database keeps track of when the account was created and the last time you logged in. When you successfully authenticate, you’re given two JWTs (JSON Web Tokens) - an authentication and a refresh token. If you’re using your browser, these tokens are saved in cookies in your browser and passed with each request. The majority of Apfell interaction is through a series of RESTful interfaces and websockets that the UI wraps for ease of access. If you’re interacting with the RESTful interfaces from your own custom tool or the command line, then you need to pass these tokens along in an Authorization header.
