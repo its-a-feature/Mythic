@@ -2,7 +2,7 @@ from app import apfell, db_objects
 import aiopg
 import json as js
 import asyncio
-from app.database_models.model import Callback, Payload, PayloadType, C2Profile, Credential, FileMeta, Task, Command
+from app.database_models.model import Callback, Payload, PayloadType, C2Profile, Credential, FileMeta, Task, Command, Keylog
 from sanic_jwt.decorators import protected, inject_user
 import app.database_models.model as db_model
 import aio_pika
@@ -898,6 +898,42 @@ async def ws_credentials_current_operation(request, ws, user):
                             continue
     finally:
         pool.close()
+
+# ------------- KEYLOG ---------------------------
+# notifications for new keylogs
+@apfell.websocket('/ws/keylogs/current_operation')
+@inject_user()
+@protected()
+async def ws_keylogs_current_operation(request, ws, user):
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newkeylog";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    query = await db_model.operation_query()
+                    operation = await db_objects.get(query, name=user['current_operation'])
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (msg.payload)
+                            try:
+                                query = await db_model.keylog_query()
+                                c = await db_objects.get(query, id=id, operation=operation)
+                                await ws.send(js.dumps({**c.to_json()}))
+                            except Exception as e:
+                                pass  # we got a file that's just not part of our current operation, so move on
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        pool.close()
+
 
 # ------------- RABBITMQ DATA ---------------------------
 # messages back from rabbitmq with key: c2.status.#

@@ -860,6 +860,23 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
         alertTop("danger", "Socket errored. Please reload the page");
     }
 };
+function startwebsocket_newkeylogs(){
+var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/keylogs/current_operation');
+    ws.onmessage = function(event){
+        if (event.data != ""){
+            rsp = JSON.parse(event.data);
+            console.log(rsp);
+            key_stroke_alert = rsp['keystrokes'];
+            alertTop("success", "<b>New Keylog from " + rsp.id + ": </b>" + key_stroke_alert, 8);
+        }
+    };
+    ws.onclose = function(){
+        alertTop("danger", "Socked closed. Please reload the page");
+    }
+    ws.onerror = function(){
+        alertTop("danger", "Socket errored. Please reload the page");
+    }
+};startwebsocket_newkeylogs();
 function startwebsocket_commands(){
 var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/all_command_info');
     ws.onmessage = function(event){
