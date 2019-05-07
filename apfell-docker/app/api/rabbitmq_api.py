@@ -62,6 +62,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     if pieces[4] == "error":
                         # create a response that there was an error and set task to processed
                         task.status = "processed"
+                        task.timestamp = datetime.datetime.utcnow()
                         await db_objects.update(task)
                         await db_objects.create(db_model.Response, task=task, response=message.body.decode('utf-8'))
                     else:
@@ -69,9 +70,11 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         task.params = message_body['params']
                         if not message_body['test_command']:
                             task.status = "submitted"
+                            task.timestamp = datetime.datetime.utcnow()
                             await add_command_attack_to_task(task, task.command)
                         else:
                             task.status = "processed"
+                            task.timestamp = datetime.datetime.utcnow()
                             await db_objects.create(db_model.Response, task=task, response="TEST COMMAND RESULTS:\n{}".format(message_body['step_output']))
                         await db_objects.update(task)
                 elif pieces[3] == "load_transform_with_code":
@@ -79,6 +82,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     task = await db_objects.get(query, id=pieces[5])
                     if pieces[4] == "error":
                         task.status = "processed"
+                        task.timestamp = datetime.datetime.now()
                         await db_objects.update(task)
                         await db_objects.create(db_model.Response, task=task, response=message.body.decode('utf-8'))
                     else:
@@ -91,6 +95,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                                             complete=True, path=file_name, operation=task.callback.operation,
                                                             operator=task.operator, task=task)
                         task.status = "submitted"
+                        task.timestamp = datetime.datetime.utcnow()
                         task.params = json.dumps({"cmds": task.params, "file_id": file_meta.id})
                         await db_objects.update(task)
             except Exception as e:

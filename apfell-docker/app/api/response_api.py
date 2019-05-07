@@ -143,6 +143,7 @@ async def update_task_for_callback(request, id):
                     final_output += "Recieved meta data: \n" + js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
                     resp = await db_objects.create(Response, task=task, response=final_output)
                     task.status = "processed"
+                    task.timestamp = datetime.datetime.utcnow()
                     await db_objects.update(task)
                     json_return_info = {**json_return_info, 'file_id': rsp['id']}
                 else:
@@ -223,6 +224,7 @@ async def update_task_for_callback(request, id):
             # if we got here, we got JSON back, but without any keywords
             resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
+        task.timestamp = datetime.datetime.utcnow()
         await db_objects.update(task)
     # handle the final reply back if it needs to be encrypted or not
     if callback.encryption_type != "" and callback.encryption_type is not None:

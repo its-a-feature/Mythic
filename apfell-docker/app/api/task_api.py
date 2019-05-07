@@ -138,6 +138,7 @@ async def get_next_task(request, cid):
             if len(tasks) != 0:
                 tasks = tasks[0]
                 tasks.status = "processing"
+                tasks.timestamp = datetime.utcnow()
                 await db_objects.update(tasks)
                 command_string = tasks.command.cmd
                 params_string = tasks.params
@@ -592,6 +593,7 @@ async def clear_tasks_for_callback_func(data, cid, user):
                     t_removed = t.to_json()
                     # don't actually delete it, just mark it as completed with a response of "CLEARED TASK"
                     t.status = "processed"
+                    t.timestamp = datetime.utcnow()
                     await db_objects.update(t)
                     # we need to adjust all of the things associated with this task now since it didn't actually happen
                     # find/remove ATTACKTask, TaskArtifact, FileMeta
