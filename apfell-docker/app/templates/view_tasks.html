@@ -7,10 +7,10 @@
     <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll" :class="callback.active ? 'panel panel-primary' : 'panel panel-warning'" id="'callback'+callback.id" :key="callback.id" v-show="Object.keys(callback.tasks).length > 0">
         <div class="panel-heading" >Tasks for Callback: [[callback.user]]@[[callback.host]] with pid ([[callback.pid]]) <button v-if="!callback.active" class="btn btn-sm btn-success" @click="make_active(callback)">Make Callback Active</button></div>
             <div v-if="callback.hasOwnProperty('tasks')">
-                <div v-for="(t,i) in callback.tasks" :key="t.id">
+                <div v-for="(t,i) in callback.tasks" :key="t.id" style="word-wrap: break-word">
 
                     <button class="accordion" :id="'task' + t.id" style="width: 100%;border: 2px solid #ADD8E6;text-align: left;" @click="toggle_response(t, i)">[[t.operator]]'s task [[t.id]]: [[t.command]] [[t.original_params]]</button>
-                    <div class="response-background" v-if="t.hasOwnProperty('responses')">
+                    <div class="response-background" v-if="t.hasOwnProperty('responses')" style="word-wrap: break-word">
 
                         <template v-if="t.comment != ''">
                             <button class="btn btn-danger btn-sm" @click="remove_comment(t.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[t.comment_operator]]</span>'s comment: [[t.comment]]<hr>

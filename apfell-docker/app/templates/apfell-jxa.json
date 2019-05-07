@@ -486,7 +486,8 @@
     "cmd":"load",
     "parameters":[],
     "attack":[
-      {"t_num":"T1129","attack_name":"Execution through Module Load"}
+      {"t_num":"T1129","attack_name":"Execution through Module Load"},
+      {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"}
     ],
     "artifacts": []
     },
@@ -986,7 +987,8 @@
       ],
       "attack":[
         {"t_num": "T1105", "attack_name": "Remote File Copy"},
-        {"t_num": "T1132", "attack_name": "Data Encoding"}
+        {"t_num": "T1132", "attack_name": "Data Encoding"},
+        {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"}
       ],
       "artifacts": [
          {"command_parameter":"remote_path","artifact":"File Create","artifact_string":"*","replace_string":"*"}

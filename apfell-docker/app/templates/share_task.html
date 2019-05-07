@@ -5,7 +5,7 @@
 
 <div style="resize: vertical; overflow:auto;" class="panel panel-primary" id="task_info">
     <div class="panel-heading">[[callback.user]]@[[callback.host]]([[callback.pid]])#</div>
-    <div class="well">
+    <div class="well" style="word-wrap: break-word">
         <template v-if="task.comment != ''">
             <button class="btn btn-danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<hr>
         </template>

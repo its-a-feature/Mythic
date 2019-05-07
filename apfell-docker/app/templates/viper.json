@@ -47,7 +47,7 @@
             "name":"jitter"
           }
         ],
-        "attack":[],
+        "attack":[{"t_num": "T1029", "attack_name": "Scheduled Transfer"}],
         "artifacts":[]
       },
       {
@@ -95,7 +95,10 @@
         "description":"Zips up a single command as a module and loads it into the current agent",
         "cmd":"load",
         "parameters":[],
-        "attack":[],
+        "attack":[
+          {"t_num":"T1129","attack_name":"Execution through Module Load"},
+          {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"}
+        ],
         "artifacts":[]
       },
       {
@@ -117,8 +120,12 @@
         "description":"Execute a command in the local terminal and stream the output back to the Apfell server",
         "cmd":"shell",
         "parameters":[],
-        "attack":[],
-        "artifacts":[{"command_parameter":null,"artifact":"Process Create","artifact_string":"sh -c *","replace_string":"*"}]
+        "attack":[
+          {"t_num":"T1059","attack_name":"Command-Line Interface"}
+        ],
+        "artifacts":[
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"sh -c *","replace_string":"*"}
+        ]
       },
       {
         "needs_admin":false,
@@ -128,7 +135,11 @@
         "description":"Download files in 5MB chunks",
         "cmd":"download",
         "parameters":[],
-        "attack":[],
+        "attack":[
+          {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"},
+          {"t_num": "T1041", "attack_name": "Exfiltration Over Command and Control Channel"},
+          {"t_num": "T1020", "attack_name": "Automated Exfiltration"}
+        ],
         "artifacts":[]
       },
       {
@@ -161,8 +172,14 @@
             "name":"file_id"
           }
         ],
-        "attack":[],
-        "artifacts":[{"command_parameter":"remote_path","artifact":"File Create","artifact_string":"*","replace_string":"*"}]
+        "attack":[
+          {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"},
+          {"t_num": "T1105", "attack_name": "Remote File Copy"},
+          {"t_num": "T1132", "attack_name": "Data Encoding"}
+        ],
+        "artifacts":[
+          {"command_parameter":"remote_path","artifact":"File Create","artifact_string":"*","replace_string":"*"}
+        ]
       },
       {
         "needs_admin":false,
@@ -183,7 +200,9 @@
         "description":"Start a new python process to keylog the current user by dropping and executing .k.py in the current directory",
         "cmd":"keylog",
         "parameters":[],
-        "attack":[],
+        "attack":[
+          {"t_num":"T1056","attack_name":"Input Capture"}
+        ],
         "artifacts":[
           {"command_parameter":null,"artifact":"File Create","artifact_string":".k.py is written to the current directory","replace_string":""},
           {"command_parameter":null,"artifact":"Process Create","artifact_string":"python .k.py","replace_string":""}

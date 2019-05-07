@@ -106,7 +106,7 @@
         <!-- REPEAT for each task for the specific callback that's selected -->
         <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.tasks" :id="'tasks' + metadata.id" >
             <div :id="'tasks' + metadata.id + 'data'" >
-                <div class="well well-sm" v-for="task in metadata.data" :key="task.id" :id="'task' + task.id">
+                <div class="well well-sm" v-for="task in metadata.data" :key="task.id" :id="'task' + task.id" style="word-wrap: break-word">
                     <template v-if="task.comment != ''">
                         <button class="btn btn-danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<br><hr>
                     </template>
