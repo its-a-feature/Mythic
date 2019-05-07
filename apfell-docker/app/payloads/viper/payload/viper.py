@@ -78,7 +78,7 @@ class Apfell():
         #print(sys.modules)
         for x in range(len(sys.meta_path)):
             try:
-                print("{} - {}".format(str(x), str(sys.meta_path[x].get_paths())))
+                #print("{} - {}".format(str(x), str(sys.meta_path[x].get_paths())))
                 if sys.meta_path[x].get_paths() == new_load.get_paths():
                     sys.meta_path[x] = new_load
                     #print("matched paths")
@@ -103,7 +103,7 @@ class Apfell():
             #del self.jobs[task_id]
             self.jobs[task_id]['stop'] = True  # signal for thread to stop
         except Exception as e:
-            print(str(e))
+            #print(str(e))
             pass
 
     def get_jobs(self):

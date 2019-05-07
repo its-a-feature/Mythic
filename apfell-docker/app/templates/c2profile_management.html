@@ -112,14 +112,29 @@
                             <th align="left" width="50"><b>Delete</b></th>
                             <th align="left" width="50"><b>Download</b></th>
                             <th align="left"><b>
-                                <div v-if="folder.folder.includes('/Apfell/')">Server files (Deletions are permanent) </div>
-                                <div v-else>Agent Files in [[folder.folder.replace("./app/c2_profiles/" + profile_name + "/","")]] (Deletions are permanent)</div>
+                                Agent Files in [[folder.folder.replace("./app/c2_profiles/" + profile_name + "/","")]] (Deletions are permanent)
                             </b></th>
                         </tr>
                         <template v-for="file in folder.filenames">
                             <tr>
                                 <td><button class="btn btn-danger btn-sm" @click="delete_file_button(folder.folder, file)">X</button></td>
                                 <td><button class="btn btn-success btn-sm" @click="download_file_button(folder.folder, file)">Download</button></td>
+                                <td>[[file]]</td>
+                            </tr>
+                        </template>
+                    </table>
+                </template>
+                <template>
+                    <table class="table table-condensed well-sm">
+                        <tr>
+                            <th align="left" width="50"><b>Delete</b></th>
+                            <th align="left" width="50"><b>Download</b></th>
+                            <th align="left"><b>Server files (Deletions are permanent)</b> <span v-if="server_folder.length == 0"><img class="spinning" src="/static/refresh.png" style="width:25px; height:25px"></span></th>
+                        </tr>
+                        <template v-for="file in server_folder">
+                            <tr>
+                                <td><button class="btn btn-danger btn-sm" @click="delete_file_button('/Apfell/', file)">X</button></td>
+                                <td><button class="btn btn-success btn-sm" @click="download_file_button('/Apfell/', file)">Download</button></td>
                                 <td>[[file]]</td>
                             </tr>
                         </template>
@@ -140,7 +155,7 @@
 	    <div class="modal-header">
 		<button type="button" class="close" data-dismiss="modal">x</button>
 		<h3 id="updateLabel">Update the current C2 profile</h3>
-		Update the current profile's description, name, and/or supported payload types. If the container is down, you won't be able to upload new files to the container.
+		Update the current profile's description, and/or supported payload types. If the container is down, you won't be able to upload new files to the container.
 	    </div>
 	    <div class="modal-body" id="profileUpdateBody">
             <table cellpadding="10" style="width:100%">
@@ -614,5 +629,17 @@ span.operation {
   border-radius: 50%;
   box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #006 0 -1px 9px, #3F8CFF 0 2px 14px;
 }
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
+}
 
+@-webkit-keyframes spin2 {
+    from { -webkit-transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); }
+}
+.spinning {
+    animation: spin 1s infinite linear;
+    -webkit-animation: spin2 1s infinite linear;
+}
 {% endblock %}

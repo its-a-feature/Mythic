@@ -79,6 +79,7 @@ var payloads_table = new Vue({
 	    edit_files_button: function(p){
 	        //alertTop("info", "Loading files...");
 	        profile_files_modal.profile_name = p.name;
+	        profile_files_modal.server_folder = [];
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/files", edit_files_callback, "GET", null);
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/container_files", null, "GET", null);
             $('#profileFilesModal').modal('show');
@@ -152,7 +153,8 @@ var profile_files_modal = new Vue({
     el: '#profileFilesModal',
     data: {
         profile_name: "",
-        folders: []
+        folders: [],
+        server_folder: []
     },
     methods: {
         delete_file_button: function(folder, file){
@@ -209,6 +211,7 @@ function edit_files_callback(response){
         alertTop("danger", data['error']);
     }
     else{
+        alertTop("info", "Tasked rabbitmq for container files...");
         profile_files_modal.folders = data['files'];
     }
 }
@@ -425,21 +428,30 @@ function startwebsocket_rabbitmqresponses(){
 			if(rdata['status'] == "success"){
 			    if(pieces[4] == "listfiles"){
 			        data = JSON.parse(rdata['body']);
+			        alertTop("success", "Received file list from container", 2);
 			        for(var i = 0; i < data.length; i++){
-			            profile_files_modal.folders.push(data[i]);
+			            console.log(data[i]);
+			            for(var j = 0; j < data[i]['filenames'].length; j++){
+			                profile_files_modal.server_folder.push(data[i]['filenames'][j]);
+                        }
                     }
 			    }else if(pieces[4] == "removefile"){
 			        //console.log(rdata);
 			        data = JSON.parse(rdata['body']);
-			        delete_file_button_callback(JSON.stringify({"status": "success", "folder": data['folder'], "file": data['file']}));
+			        for(var i = 0; i < profile_files_modal.server_folder.length; i++){
+			            if(profile_files_modal.server_folder[i] == data['file']){
+			                profile_files_modal.server_folder.splice(i, 1);
+			                return;
+			            }
+			        }
 			    }else if(pieces[4] == "getfile"){
 			        //console.log(rdata['body']);
 			        data = JSON.parse(rdata['body']);
-			        clearAlertTop();
+			        //clearAlertTop();
 			        download_from_memory(data['filename'], data['data']);
 			    }
 			    else{
-			        alertTop("success", "<b>Received Message</b>: " + rdata['body']);
+			        alertTop("success", "<b>Received Message</b>: " + rdata['body'], 0);
 			    }
 
 			}else{

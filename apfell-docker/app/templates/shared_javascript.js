@@ -132,7 +132,7 @@ function alertTop(type, string, delay=4){
     }
     $.notify({
 	// options
-	message: string
+	message: string,
     },{
 	// settings
 	element: 'body',
@@ -163,7 +163,7 @@ function alertTop(type, string, delay=4){
 		'<button type="button" aria-hidden="true" class="close" data-notify="dismiss">×</button>' +
 		'<span data-notify="icon"></span> ' +
 		'<span data-notify="title">{1}</span> ' +
-		'<span data-notify="message">{2}</span>' +
+		'<span data-notify="message">{2}&nbsp;&nbsp;&nbsp;&nbsp;</span>' +
 		'<div class="progress" data-notify="progressbar">' +
 			'<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>' +
 		'</div>' +
@@ -182,7 +182,7 @@ function alertBottom(type, string){
 }
 function clearAlertTop(){
     $("#top-alert").fadeTo(20, 50).slideUp(500, function(){
-          $("#middle-alert").slideUp(500);
+          $("#top-alert").slideUp(500);
     });
     $.notifyClose();
 }

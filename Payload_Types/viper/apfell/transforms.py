@@ -9,6 +9,7 @@ import zipfile
 
 FilePath = NewType('FilePath', str)
 FileName = NewType('FileName', str)
+ParameterName = NewType('ParameterName', str)
 DataDictAsString = NewType('DataDictAsString', str)
 
 
@@ -22,6 +23,14 @@ class CommandTransformOperation:
     async def base64EncodeLinuxShell(self, task_params: str, parameter: None) -> str:
         encoded = base64.b64encode(str.encode(task_params)).decode('utf-8')
         return "echo '{}' | base64 -d | sh".format(encoded)
+
+    async def base64EncodeLinuxCommand(self, task_params: str, parameter: ParameterName) -> str:
+        # finds the field indicated by 'parameter' and updates it to be base64 encoded
+        import json
+        param_dict = json.loads(task_params)
+        encoded = base64.b64encode(str.encode(param_dict[parameter])).decode('utf-8')
+        param_dict[parameter] = "echo '{}' | base64 -d | sh".format(encoded)
+        return json.dumps(param_dict)
 
 
 class TransformOperation:

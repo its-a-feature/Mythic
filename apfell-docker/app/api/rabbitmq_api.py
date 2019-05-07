@@ -183,9 +183,12 @@ async def connect_and_consume_c2():
             # get a random queue that only the apfell server will use to listen on to catch all heartbeats
             queue = await channel.declare_queue('', exclusive=True)
             # bind the queue to the exchange so we can actually catch messages
-            # await queue.bind(exchange='apfell_traffic', routing_key="c2.heartbeat.#")
-            await queue.bind(exchange='apfell_traffic', routing_key="c2.status.#")
-            await channel.set_qos(prefetch_count=20)
+            await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.stopped")
+            await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.running")
+            await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.running.start")
+            await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.stopped.stop")
+
+            await channel.set_qos(prefetch_count=50)
             print(' [*] Waiting for messages in connect_and_consume_c2.')
             try:
                 task = queue.consume(rabbit_c2_callback)

@@ -32,6 +32,7 @@ function upload_code_button(){
         uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/upload/",
         file_upload_callback, filedata, data, "POST");
         file.value = file.defaultValue;
+        alertTop("info", "Submitted updates...");
     });
 }
 function file_upload_callback(response){
@@ -51,6 +52,7 @@ function file_upload_callback(response){
 function update_code_button(){
     var code = btoa(transform_code.code);
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/upload", update_code_callback, "POST", {"code": code});
+    alertTop("info", "Submitted updates...");
 }
 function update_code_callback(response){
     try{
@@ -62,6 +64,6 @@ function update_code_callback(response){
     if(data['status'] != 'success'){
         alertTop("danger", data['error']);
     }else{
-        alertTop("success", "Success");
+        alertTop("success", "Successfully updated");
     }
 }

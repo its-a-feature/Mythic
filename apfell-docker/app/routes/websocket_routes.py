@@ -962,9 +962,14 @@ async def ws_c2_status_messages(request, ws, user):
         # get a random queue that only the apfell server will use to listen on to catch all heartbeats
         queue = await channel.declare_queue('', exclusive=True)
         # bind the queue to the exchange so we can actually catch messages
+        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.listfiles")
+        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.getfile")
+        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.writefile")
+        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.removefile")
+        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.running.status")
+        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.stopped.status")
         await queue.bind(exchange='apfell_traffic', routing_key="c2.status.#")
-
-        await channel.set_qos(prefetch_count=5)
+        await channel.set_qos(prefetch_count=50)
         print(' [*] Waiting for messages in websocket. To exit press CTRL+C')
         await queue.consume(send_data)
         while True:
@@ -1008,7 +1013,7 @@ async def ws_payload_type_status_messages(request, ws, user):
         await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.removefile.#")
         await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.getfile.#")
         await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.writefile.#")
-        await channel.set_qos(prefetch_count=5)
+        await channel.set_qos(prefetch_count=50)
         print(' [*] Waiting for messages in websocket. To exit press CTRL+C')
         await queue.consume(send_data)
         while True:

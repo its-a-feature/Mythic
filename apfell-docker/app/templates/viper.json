@@ -3,7 +3,7 @@
     "wrapper":false,
     "command_template":"def shell(apfell, c2, params=\"whoami\", task_id=-1):\n    apfell.remove_job(task_id) # need to do this to remove your task from the list\n    pass\n\nCOMMAND_ENDS_HERE",
     "supported_os":"linux (x86),linux (x64)",
-    "execute_help":"Python 2.7 Agent - either \"echo base64 | python &\" or python filename.py ",
+    "execute_help":"Python 2.7 Agent - either \"echo \"base64\" | base64 -d | python &\" or python filename.py",
     "external":false,
     "container_running":false,
     "service":"rabbitmq",
@@ -124,7 +124,46 @@
           {"t_num":"T1059","attack_name":"Command-Line Interface"}
         ],
         "artifacts":[
-          {"command_parameter":null,"artifact":"Process Create","artifact_string":"sh -c *","replace_string":"*"}
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"sh -c *","replace_string":"*"},
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"*","replace_string":"*"}
+        ]
+      },
+      {
+        "needs_admin":true,
+        "help_cmd":"shell_sudo {\"password\":\"password\", \"cmd\":\"whoami\", \"background\": True}",
+        "version":1,
+        "is_exit":false,
+        "description":"Execute a command in the local terminal and stream the output back to the Apfell server via \"sudo -S\" and passing a password in via stdin. To background a task with this method, select the background checkbox and the command becomes \"sudo -S -b [command]\"",
+        "cmd":"shell_sudo",
+        "parameters":[
+          {
+            "type":"Credential",
+            "hint":"",
+            "choices":"",
+            "required":true,
+            "name":"password"
+          },
+          {
+            "type":"String",
+            "hint":"Command to run",
+            "choices":"",
+            "required":true,
+            "name":"cmd"
+          },
+          {
+            "type": "Boolean",
+            "hint": "",
+            "choices": "",
+            "required": false,
+            "name": "background"
+          }
+        ],
+        "attack":[
+          {"t_num":"T1059","attack_name":"Command-Line Interface"}
+        ],
+        "artifacts":[
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"sudo -S [-b] *","replace_string":"*"},
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"*","replace_string":"*"}
         ]
       },
       {
