@@ -203,6 +203,7 @@ function submit_payload(){
     data['commands'] = $('#payload_commands').val();
     data['wrapped_payload'] = $('#wrappedPayload option:selected').attr("name");
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
+    alertTop("info", "Submitted creation request...");
 }
 var global_uuids = {};
 function submit_payload_callback(response){
