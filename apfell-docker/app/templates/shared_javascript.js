@@ -8,6 +8,7 @@ function httpGetAsync(theUrl, callback, method, data){
     }
     xmlHttp.withCredentials = true;
     xmlHttp.open(method, theUrl, true); // true for asynchronous
+    xmlHttp.setRequestHeader("content-type", "application/json");
     xmlHttp.send(JSON.stringify(data));
 }
 function uploadFile(url, callback, file){
@@ -106,6 +107,7 @@ function httpGetSync(theUrl){
     xmlHttp.withCredentials = true;
     xmlHttp.open( "GET", theUrl, false); //false means synchronous
     xmlHttp.send( null );
+    xmlHttp.setRequestHeader("content-type", "application/json");
     return xmlHttp.responseText; // should just use this to get JSON data from RESTful APIs
 }
 function pythonToJSJson(string){

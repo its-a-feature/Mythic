@@ -1,4 +1,4 @@
-from app import apfell, db_objects
+from app import apfell, db_objects, server_ip, listen_port, use_ssl
 import aiopg
 import json as js
 import asyncio
@@ -14,6 +14,9 @@ import sys
 @apfell.websocket('/ws/tasks')
 @protected()
 async def ws_tasks(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -50,6 +53,9 @@ async def ws_tasks(request, ws):
 @inject_user()
 @protected()
 async def ws_tasks_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     viewing_callbacks = set()  # this is a list of callback IDs that the operator is viewing, so only update those
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
@@ -96,6 +102,9 @@ async def ws_tasks_current_operation(request, ws, user):
 @apfell.websocket('/ws/responses')
 @protected()
 async def ws_responses(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -132,6 +141,9 @@ async def ws_responses(request, ws):
 @inject_user()
 @protected()
 async def ws_responses_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     viewing_callbacks = set()  # this is a list of callback IDs that the operator is viewing, so only update those
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
@@ -176,6 +188,9 @@ async def ws_responses_current_operation(request, ws, user):
 @inject_user()
 @protected()
 async def ws_callbacks_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -215,6 +230,9 @@ async def ws_callbacks_current_operation(request, ws, user):
 @inject_user()
 @protected()
 async def ws_updated_callbacks(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -246,6 +264,9 @@ async def ws_updated_callbacks(request, ws, user):
 @inject_user()
 @protected()
 async def ws_callbacks_updated_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -280,6 +301,9 @@ async def ws_callbacks_updated_current_operation(request, ws, user):
 @apfell.websocket('/ws/payloads')
 @protected()
 async def ws_payloads(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -315,6 +339,9 @@ async def ws_payloads(request, ws):
 @inject_user()
 @protected()
 async def ws_payloads_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -357,6 +384,9 @@ async def ws_payloads_current_operation(request, ws, user):
 @inject_user()
 @protected()
 async def ws_c2profiles(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -392,6 +422,9 @@ async def ws_c2profiles(request, ws, user):
 @inject_user()
 @protected()
 async def ws_c2profile_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -429,6 +462,9 @@ async def ws_c2profile_current_operation(request, ws, user):
 @apfell.websocket('/ws/payloadtypec2profile')
 @protected()
 async def ws_payloadtypec2profile(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -464,6 +500,9 @@ async def ws_payloadtypec2profile(request, ws):
 @apfell.websocket('/ws/operators')
 @protected()
 async def ws_operators(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -498,6 +537,9 @@ async def ws_operators(request, ws):
 @apfell.websocket('/ws/updatedoperators')
 @protected()
 async def ws_updated_operators(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -529,6 +571,9 @@ async def ws_updated_operators(request, ws):
 @apfell.websocket('/ws/payloadtypes')
 @protected()
 async def ws_payloadtypes(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -565,6 +610,9 @@ async def ws_payloadtypes(request, ws):
 @apfell.websocket('/ws/commands')
 @protected()
 async def ws_commands(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -599,6 +647,9 @@ async def ws_commands(request, ws):
 @apfell.websocket('/ws/all_command_info')
 @protected()
 async def ws_commands(request, ws):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -654,6 +705,9 @@ async def ws_commands(request, ws):
 @inject_user()
 @protected()
 async def ws_screenshots(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -706,6 +760,9 @@ async def ws_screenshots(request, ws, user):
 @inject_user()
 @protected()
 async def ws_updated_screenshots(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -743,6 +800,9 @@ async def ws_updated_screenshots(request, ws, user):
 @inject_user()
 @protected()
 async def ws_files_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -815,6 +875,9 @@ async def ws_files_current_operation(request, ws, user):
 @inject_user()
 @protected()
 async def ws_updated_files(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -865,6 +928,9 @@ async def ws_updated_files(request, ws, user):
 @inject_user()
 @protected()
 async def ws_credentials_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -905,6 +971,9 @@ async def ws_credentials_current_operation(request, ws, user):
 @inject_user()
 @protected()
 async def ws_keylogs_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -941,6 +1010,9 @@ async def ws_keylogs_current_operation(request, ws, user):
 @inject_user()
 @protected()
 async def ws_c2_status_messages(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     async def send_data(message: aio_pika.IncomingMessage):
         with message.process():
             data = {"status": "success",
@@ -988,6 +1060,9 @@ async def ws_c2_status_messages(request, ws, user):
 @inject_user()
 @protected()
 async def ws_payload_type_status_messages(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
     async def send_data(message: aio_pika.IncomingMessage):
         with message.process():
             data = {"status": "success",
@@ -1025,3 +1100,22 @@ async def ws_payload_type_status_messages(request, ws, user):
     except Exception as e:
         print("Exception in ws_payload_type_status_messages: {}".format(str(sys.exc_info())))
         await ws.send(js.dumps({"status": "error", "error": "Failed to connect to rabbitmq, {}".format(str(e))}))
+
+
+# CHECK ORIGIN HEADERS FOR WEBSOCKETS
+async def valid_origin_header(request):
+    if 'origin' not in request.headers:
+        return False
+    if use_ssl and listen_port == '443':
+        if request.headers['origin'] != "https://{}".format(server_ip):
+            return False
+    elif use_ssl:
+        if request.headers['origin'] != "https://{}:{}".format(server_ip, listen_port):
+            return False
+    elif listen_port == '80':
+        if request.headers['origin'] != "http://{}".format(server_ip):
+            return False
+    else:
+        if request.headers['origin'] != "http://{}:{}".format(server_ip, listen_port):
+            return False
+    return True

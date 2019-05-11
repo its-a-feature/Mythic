@@ -227,7 +227,7 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/pa
     ws.onmessage = function(event){
         // sometimes we get teh messages too quickly and so we get the same data twice when querying the db
         if (event.data != ""){
-            console.log(event.data);
+            //console.log(event.data);
             data = JSON.parse(event.data);
             if(global_uuids[data['uuid']] == false){
                 if(data['build_phase'] == "success"){
