@@ -109,7 +109,7 @@ class MyAuthentication(Authentication):
                 user.last_login = datetime.datetime.now()
                 await db_objects.update(user)
                 # now we have successful authentication, return appropriately
-                print("success authentication")
+                #print("success authentication")
                 return {'user_id': user.id, 'username': user.username, 'auth': 'user'}
             except Exception as e:
                 print("failed to update user in authenticate")
