@@ -1,14 +1,14 @@
-from app import apfell, db_objects, links, use_ssl, server_ip, listen_port
+from app import apfell, db_objects, links, use_ssl
 from sanic.response import json
 from sanic import response
-from sanic.exceptions import NotFound
+from sanic.exceptions import NotFound, Unauthorized
 from jinja2 import Environment, PackageLoader
-from app.database_models.model import Operator, Operation, OperatorOperation, C2Profile, PayloadType, Command, CommandParameters, Transform, ATTACK, Artifact
+from app.database_models.model import Operator, Operation, OperatorOperation, ATTACK, Artifact
 from app.forms.loginform import LoginForm, RegistrationForm
 import datetime
 import app.crypto as crypto
 from sanic_jwt import BaseEndpoint, utils, exceptions
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import json as js
 from ipaddress import ip_address
 from app.api.c2profiles_api import register_default_profile_operation
@@ -16,14 +16,14 @@ from app.routes.authentication import invalidate_refresh_token
 from app.api.payloadtype_api import import_payload_type_func
 from app.crypto import create_key_AES256
 import app.database_models.model as db_model
-from app.routes.authentication import retrieve_user
+
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
 
 @apfell.route("/")
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def index(request, user):
     template = env.get_template('main_page.html')
     content = template.render(name=user['username'], links=links, current_operation=user['current_operation'], config=user['ui_config'])
@@ -58,21 +58,24 @@ class Login(BaseEndpoint):
                             await db_objects.update(user)  # update the last login time to be now
                             access_token, output = await self.responses.get_access_token_output(
                                 request,
-                                {'user_id': user.id},
+                                {'user_id': user.id, 'auth': 'cookie'},
                                 self.config,
                                 self.instance)
-                            refresh_token = await self.instance.auth.generate_refresh_token(request, {'user_id': user.id})
+                            refresh_token = await self.instance.auth.generate_refresh_token(request, {'user_id': user.id, 'auth': 'cookie'})
                             output.update({
                                 self.config.refresh_token_name(): refresh_token
                             })
-                            resp = response.redirect("/")
+                            template = env.get_template('login.html')
+                            content = template.render(links=links, form=form, errors=errors, access_token=access_token, refresh_token=refresh_token)
+                            resp = response.html(content)
+                            # resp = response.redirect("/")
                             resp.cookies[self.config.cookie_access_token_name()] = access_token
                             resp.cookies[self.config.cookie_access_token_name()]['httponly'] = True
                             resp.cookies[self.config.cookie_refresh_token_name()] = refresh_token
                             resp.cookies[self.config.cookie_refresh_token_name()]['httponly'] = True
                             return resp
                         except Exception as e:
-                            print(e)
+                            print("post login error:" + str(e))
                             errors['validate_errors'] = "failed to update login time"
                 else:
                     errors['validate_errors'] = "Username or password invalid"
@@ -114,7 +117,11 @@ class Register(BaseEndpoint):
                 output.update({
                     self.config.refresh_token_name(): refresh_token
                 })
-                resp = response.redirect("/")
+                # we want to make sure to store access/refresh token in JS before moving into the rest of the app
+                template = env.get_template('register.html')
+                content = template.render(links=links, form=form, errors=errors, access_token=access_token,
+                                          refresh_token=refresh_token)
+                resp = response.html(content)
                 resp.cookies[self.config.cookie_access_token_name()] = access_token
                 resp.cookies[self.config.cookie_access_token_name()]['httponly'] = True
                 resp.cookies[self.config.cookie_refresh_token_name()] = refresh_token
@@ -168,7 +175,7 @@ class UIRefresh(BaseEndpoint):
 
 @apfell.route("/settings", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def settings(request, user):
     template = env.get_template('settings.html')
     try:
@@ -190,7 +197,7 @@ async def settings(request, user):
 
 @apfell.route("/search", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def search(request, user):
     template = env.get_template('search.html')
     try:
@@ -208,7 +215,7 @@ async def search(request, user):
 
 @apfell.route("/settings", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def settings(request, user):
     data = request.json
     if user['admin']:
@@ -222,7 +229,7 @@ async def settings(request, user):
 
 @apfell.route("/logout")
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def logout(request, user):
     resp = response.redirect("/login")
     del resp.cookies['access_token']
@@ -237,6 +244,12 @@ async def handler_404(request, exception):
     return json({'error': 'Not Found'}, status=404)
 
 
+@apfell.exception(Unauthorized)
+async def handler_403(request, exception):
+    print(request.location)
+    return json({}, status=403)
+
+
 @apfell.middleware('request')
 async def check_ips(request):
     if request.path in ["/login", "/register", "/auth"]:
@@ -249,8 +262,7 @@ async def check_ips(request):
 
 @apfell.middleware('request')
 async def reroute_to_login(request):
-    # if a browser attempted to go somewhere without a cookie, reroute them to the login page
-    if 'access_token' not in request.cookies and 'authorization' not in request.headers:
+    if 'access_token' not in request.cookies and 'Authorization' not in request.headers and 'apitoken' not in request.headers:
         if "/login" not in request.path and "/register" not in request.path and "/auth" not in request.path and "/static" not in request.path and "favicon" not in request.path:
             if apfell.config['API_BASE'] not in request.path:
                 return response.redirect("/login")

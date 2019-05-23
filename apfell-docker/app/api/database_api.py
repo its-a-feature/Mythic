@@ -1,16 +1,19 @@
 from app import apfell, db_objects
 import shutil
 from sanic.response import json
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 from app.database_models.model import Payload, Callback, FileMeta, Keylog, Credential
 import os
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/database/clear", methods=['POST'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def database_clears(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])

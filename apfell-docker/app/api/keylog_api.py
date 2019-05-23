@@ -1,16 +1,18 @@
 from app import apfell, db_objects
 from sanic.response import json
 from app.database_models.model import Task, Keylog
-import base64
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 # Get all keystrokes for an operation
 @apfell.route(apfell.config['API_BASE'] + "/keylogs/current_operation", methods=['GET', 'POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_operations_keystrokes(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -60,8 +62,10 @@ async def get_operations_keystrokes(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/keylogs/callback/<id:int>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_callback_keystrokes(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])

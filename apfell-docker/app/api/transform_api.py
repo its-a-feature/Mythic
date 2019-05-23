@@ -1,19 +1,22 @@
 from app import apfell, db_objects
 from sanic.response import json, file
 from app.database_models.model import Transform, CommandTransform
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 from urllib.parse import unquote_plus
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
 import datetime
 import importlib, sys
 import base64
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bytype/<ptype:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_transforms_by_type(request, ptype, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -34,8 +37,10 @@ async def get_transforms_by_type(request, ptype, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/options", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_transforms_options(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     return json(await get_transforms_options_func())
 
 
@@ -80,8 +85,10 @@ async def get_type_hints(func):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bytype/<ptype:string>", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def register_transform_for_ptype(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -116,8 +123,10 @@ async def register_transform_for_ptype(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/<id:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_transform(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.transform_query()
         transform = await db_objects.get(query, id=id)
@@ -131,15 +140,19 @@ async def delete_transform(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/code/download", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_transform_code(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     return await file("./app/api/transforms/utils.py", filename="utils.py")
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/code/view", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def view_transform_code(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         code = base64.b64encode(open('./app/api/transforms/utils.py', 'rb').read()).decode('utf-8')
     except Exception as e:
@@ -150,8 +163,10 @@ async def view_transform_code(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/code/upload", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def upload_c2_profile_payload_type_code(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # upload a new transforms file to our server and reload the transforms code
     try:
         data = request.json
@@ -196,8 +211,10 @@ async def upload_c2_profile_payload_type_code(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/<id:int>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_transform_for_ptype(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     try:
         query = await db_model.transform_query()
@@ -245,8 +262,10 @@ async def get_transforms_func(ptype, t_type):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bycommand/<id:int>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_transforms_by_command(request, id, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -269,8 +288,10 @@ async def get_transforms_by_command(request, id, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bycommand/options", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_commandtransforms_options(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     return json(await get_commandtransforms_options_func())
 
 
@@ -311,8 +332,10 @@ async def get_command_type_hints(func):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bycommand/<id:int>", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def register_transform_for_command(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -348,8 +371,10 @@ async def register_transform_for_command(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bycommand/<id:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_commandtransform(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -365,8 +390,10 @@ async def delete_commandtransform(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bycommand/<id:int>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_transform_for_command(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     try:
         query = await db_model.operation_query()

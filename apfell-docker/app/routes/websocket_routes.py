@@ -3,7 +3,7 @@ import aiopg
 import json as js
 import asyncio
 from app.database_models.model import Callback, Payload, PayloadType, C2Profile, Credential, FileMeta, Task, Command, Keylog
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 import aio_pika
 import sys
@@ -12,7 +12,7 @@ import sys
 # --------------- TASKS --------------------------
 # notifications for new tasks
 @apfell.websocket('/ws/tasks')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_tasks(request, ws):
     if not await valid_origin_header(request):
         return
@@ -51,7 +51,7 @@ async def ws_tasks(request, ws):
 
 @apfell.websocket('/ws/tasks/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_tasks_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -100,7 +100,7 @@ async def ws_tasks_current_operation(request, ws, user):
 # --------------- RESPONSES ---------------------------
 # notifications for task updates
 @apfell.websocket('/ws/responses')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_responses(request, ws):
     if not await valid_origin_header(request):
         return
@@ -139,7 +139,7 @@ async def ws_responses(request, ws):
 # notifications for task updates
 @apfell.websocket('/ws/responses/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_responses_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -186,7 +186,7 @@ async def ws_responses_current_operation(request, ws, user):
 # --------------------- CALLBACKS ------------------
 @apfell.websocket('/ws/callbacks/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_callbacks_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -228,7 +228,7 @@ async def ws_callbacks_current_operation(request, ws, user):
 # notifications for updated callbacks
 @apfell.websocket('/ws/updatedcallbacks')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_updated_callbacks(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -262,7 +262,7 @@ async def ws_updated_callbacks(request, ws, user):
 # notifications for updated callbacks
 @apfell.websocket('/ws/updatedcallbacks/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_callbacks_updated_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -299,7 +299,7 @@ async def ws_callbacks_updated_current_operation(request, ws, user):
 # --------------- PAYLOADS -----------------------
 # notifications for new payloads
 @apfell.websocket('/ws/payloads')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_payloads(request, ws):
     if not await valid_origin_header(request):
         return
@@ -337,7 +337,7 @@ async def ws_payloads(request, ws):
 # notifications for new payloads
 @apfell.websocket('/ws/payloads/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_payloads_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -382,7 +382,7 @@ async def ws_payloads_current_operation(request, ws, user):
 # notifications for new c2profiles
 @apfell.websocket('/ws/c2profiles')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_c2profiles(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -420,7 +420,7 @@ async def ws_c2profiles(request, ws, user):
 # notifications for new c2profiles
 @apfell.websocket('/ws/c2profiles/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_c2profile_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -460,7 +460,7 @@ async def ws_c2profile_current_operation(request, ws, user):
 
 
 @apfell.websocket('/ws/payloadtypec2profile')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_payloadtypec2profile(request, ws):
     if not await valid_origin_header(request):
         return
@@ -498,7 +498,7 @@ async def ws_payloadtypec2profile(request, ws):
 # ---------------- OPERATORS --------------------------
 # notifications for new operators
 @apfell.websocket('/ws/operators')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_operators(request, ws):
     if not await valid_origin_header(request):
         return
@@ -535,7 +535,7 @@ async def ws_operators(request, ws):
 
 # notifications for updated operators
 @apfell.websocket('/ws/updatedoperators')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_updated_operators(request, ws):
     if not await valid_origin_header(request):
         return
@@ -569,7 +569,7 @@ async def ws_updated_operators(request, ws):
 # ---------------- PAYLOADTYPES --------------------------
 # notifications for new payloadtypes
 @apfell.websocket('/ws/payloadtypes')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_payloadtypes(request, ws):
     if not await valid_origin_header(request):
         return
@@ -608,7 +608,7 @@ async def ws_payloadtypes(request, ws):
 # ---------------- COMMANDS --------------------------
 # notifications for new commands
 @apfell.websocket('/ws/commands')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_commands(request, ws):
     if not await valid_origin_header(request):
         return
@@ -645,7 +645,7 @@ async def ws_commands(request, ws):
 
 # notifications for new commands
 @apfell.websocket('/ws/all_command_info')
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_commands(request, ws):
     if not await valid_origin_header(request):
         return
@@ -703,7 +703,7 @@ async def ws_commands(request, ws):
 # notifications for new screenshots
 @apfell.websocket('/ws/screenshots')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_screenshots(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -758,7 +758,7 @@ async def ws_screenshots(request, ws, user):
 # notifications for updated screenshots
 @apfell.websocket('/ws/updated_screenshots')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_updated_screenshots(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -798,7 +798,7 @@ async def ws_updated_screenshots(request, ws, user):
 # notifications for new files in the current operation
 @apfell.websocket('/ws/files/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_files_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -873,7 +873,7 @@ async def ws_files_current_operation(request, ws, user):
 # notifications for new files in the current operation
 @apfell.websocket('/ws/updated_files/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_updated_files(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -926,7 +926,7 @@ async def ws_updated_files(request, ws, user):
 # notifications for new credentials
 @apfell.websocket('/ws/credentials/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_credentials_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -969,7 +969,7 @@ async def ws_credentials_current_operation(request, ws, user):
 # notifications for new keylogs
 @apfell.websocket('/ws/keylogs/current_operation')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_keylogs_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -1008,7 +1008,7 @@ async def ws_keylogs_current_operation(request, ws, user):
 # messages back from rabbitmq with key: c2.status.#
 @apfell.websocket('/ws/rabbitmq/c2_status')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_c2_status_messages(request, ws, user):
     if not await valid_origin_header(request):
         return
@@ -1058,7 +1058,7 @@ async def ws_c2_status_messages(request, ws, user):
 # messages back from rabbitmq with key: pt.status.#
 @apfell.websocket('/ws/rabbitmq/pt_status')
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_payload_type_status_messages(request, ws, user):
     if not await valid_origin_header(request):
         return

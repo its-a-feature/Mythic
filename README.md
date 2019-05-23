@@ -48,6 +48,7 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 * [Analytics](#Analytics)
 * [Contributing](#Contributing)
 * [Basic Agent Creation Information](#Basic-Agent-Creation-Information)
+* [API Tokens](#API-Tokens)
 
 ## Installation
 
@@ -229,7 +230,7 @@ The `name` must be unique within a c2 profile and is displayed to the user when 
 
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_create_c2.png)  
 
-In the `default` and `RESTful Patchthrough` C2 profiles, there are some interesting options involving encryption. When an operation is created, a random, 32bit AES key is generated and saved. The base64 of this value is auto populated into any C2 profile parameter where the `key` is `AESPSK` (which you can see in the above screenshots). If this parameter has a value, then the profile will use it to encrypt all communications with the server. Additionally, if the `Encrypted Key Exchange` value is `T`, then this `AES Pre-shared key` value is used for initial communications to the server to help negotiate a new 32bit AES key per callback that will be used. This is extremely similar to the method used by [Empire](https://www.powershellempire.com/?page_id=147).
+In the `default` and `RESTful Patchthrough` C2 profiles, there are some interesting options involving encryption. When an operation is created, a random, 32byte AES key is generated and saved. The base64 of this value is auto populated into any C2 profile parameter where the `key` is `AESPSK` (which you can see in the above screenshots). If this parameter has a value, then the profile will use it to encrypt all communications with the server. Additionally, if the `Encrypted Key Exchange` value is `T`, then this `AES Pre-shared key` value is used for initial communications to the server to help negotiate a new 32byte AES key per callback that will be used. This is extremely similar to the method used by [Empire](https://www.powershellempire.com/?page_id=147).
 
 ### C2 Profile Debugging
 For all c2 profiles other than the default one, you can start and stop them at will. When you start one, I get the first few seconds of output to display back in case there are any errors. For example, when you start the RESTful Patchthrough c2 profile:
@@ -618,5 +619,25 @@ If you want to hook into the features of apfell, such as properly tracking keylo
   - The agent should send responses like `{"response": "eyJ1c2VyIjogIml0cy1hLWZlYXR1cmUiLCAid2luZG93X3RpdGxlIjogIk5vdGVwYWQgLSBVbnRpdGxlZCIsICJrZXlzdHJva2VzIjogIm15IHBhc3N3b3JkIGlzIHplcjBjMDBsIn0="}` for example which decodes to `{"user": "its-a-feature", "window_title": "Notepad - Untitled", "keystrokes": "my password is zer0c00l"}`
   - The key here is that the agent sends back three important pieces of information: user, window_title, keystrokes. This allows me to do better grouping, sorting, and eventually analysis on the data that comes back instead of just having a massive dump of text that's impossible to analyze.
   - If you want to present information back to the user, simply return either a status message (`{"status": "started"}` or `{"status": "stopped"}`) or a a non-JSON formatted status message that can be displayed to the user to indicate start/stop of the keylogger.
+
+## API Tokens
+There are two kinds of API tokens available: C2 and User. Endpoints are now also scoped based on the authentication method (Cookies, Authorization: Bearer, and apitokens) which limits what you're able to access with each.
+- Rationale for doing this:
+  - It was brought to my attention that there's possibilities for CSRF related to the JSON RESTful API endpoints since I allow cookie usage in the browser. To attempt to fix this, all queries to the RESTful endpoints require explicit headers to be set with the Authentication or API headers; however, that doesn't work with things like `<a href` style links. So, I came up with a compromise. Endpoints that just return browser pages are ok to use cookies because a request to these don't get you anything special and don't modify the system. Endpoints that get information from the database or modify the system require the `Authorization: Bearer` or `apitoken` headers.
+- Cookie-based Endpoints
+  - These are the endpoints that return web pages. They are the ones that don't have `api/vX.Y` in them.
+- Authorization: Bearer-based Endpoints
+  - These are the endpoints that have `api/vX.Y` in them that are NOT hit by the agent for callbacks. If there is an `Authorization: Bearer value_here` then it's treated as though a user is specifically doing this action (manually via CLI or via the browser).
+  - As a reminder, to use these simply do `curl -H "Authorization: Bearer token_here" http://127.0.0.1/api/v1.2/apitokens`
+  - These kinds of tokens DO expire. When they do expire, you need to supply an additional header of `refresh_token` and value of your refresh_token to get a new `access_token`
+- Apitokens-based Endpoints
+  - These are also endpoints that have `api/vX.Y` in tehm that are NOT hit by the agent for callbacks. These endpoints are split in two:
+    - C2: an apitoken with a type of C2 is limited to ONLY endpoints that deal with getting or setting information about a callback (i.e. `POSTing to /callbacks`, `PUTing to /callbacks/callback_id`, `GETting /callbacks/callback_id`, and `GETting /callbacks/callback_id/keys`). This allows you to create and store this token in a C2 profile without worry that it can be used by any teammember to act as you in the rest of the environment.
+    - User: an apitoken with a type of User is allowed to act exactly like a user for all actions. Ideally you'll keep this close-held or used in a personal script to act like you as you script actions against the server
+    - Usage: to use these tokens, simply supply an `apitoken` header with your token: ex: `curl -H "apitoken: value_here" http://127.0.0.1/api/v1.2/apitokens`. 
+  - These tokens do NOT expire! They can be deactivated or deleted though which will essentially expire them.
+  
+API Tokens can be viewed in the `Profile -> Settings` page. You can create API tokens for yourself only. Additionally, if you don't want to completely delete a token, you can `deactiveate` and `reactivate` them at any time from this interface as well. An inactive token will not be allowed to perform any actions, but will stay in the database.
+
   
 Outside of these, the agent right now just needs to be able to handle the contents of the commands that are associated with it. These can be whatever you design to go with your agent, so there's no formal guidance. If you want to hook into Apfell's tracking/display for things like keylogging, screenshots, uploads, downloads, or encryption, check out the `API -> C2 Documentation` for what's required for each one.

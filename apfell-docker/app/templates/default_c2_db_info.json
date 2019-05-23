@@ -30,7 +30,7 @@
         "hint": "T"
       },
       {
-        "name": "Base64 32bit AES Key",
+        "name": "Base64 32byte AES Key",
         "key": "AESPSK",
         "hint": ""
       }
@@ -102,7 +102,7 @@
         "hint": "T"
       },
       {
-        "name": "Base64 32bit AES Key",
+        "name": "Base64 32byte AES Key",
         "key": "AESPSK",
         "hint": ""
       },

@@ -2,8 +2,8 @@ from app import apfell, db_objects
 from sanic.response import json
 from app.database_models.model import Operation, OperatorOperation
 from urllib.parse import unquote_plus
-from sanic_jwt.decorators import protected, inject_user
-from app.api.c2profiles_api import register_default_profile_operation
+from sanic_jwt.decorators import scoped, inject_user
+from sanic.exceptions import abort
 import os
 import shutil
 from app.crypto import create_key_AES256
@@ -12,8 +12,10 @@ import app.database_models.model as db_model
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_operations(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # we already get this information populated as part of our user authentication
     output = []
     if user['admin']:
@@ -43,8 +45,10 @@ async def get_all_operations(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/<op:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_operation(request, user, op):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # get information about a single operation
     # first confirm that this authenticated user as permission to view the op
     #   side effect is that we confirm if the op is real or not
@@ -67,8 +71,10 @@ async def get_one_operation(request, user, op):
 
 @apfell.route(apfell.config['API_BASE'] + "/operations", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_operation(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # this will create a new operation (must be admin to do this)
     # needs a unique operation name, a user that will be admin
     # optionally, include a list of users that will be part of the operation
@@ -122,8 +128,10 @@ async def add_user_to_operation_func(operation, users):
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/<op:string>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_operation(request, user, op):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # this can change the name (assuming it's still unique), ['name']
     # this can change the admin user assuming the person submitting is the current admin or overall admin ['admin']
     # this can change the users ['add_users'], ['remove_users']
@@ -182,8 +190,10 @@ async def update_operation(request, user, op):
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/<op:string>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_operation(request, user, op):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # only the admin of an operation or an overall admin can delete an operation
     op = unquote_plus(op)
     if op in user['admin_operations'] or user['admin']:
@@ -193,11 +203,6 @@ async def delete_operation(request, user, op):
             # Need to go through and delete all the things that relate to this operation, then delete the operation
             # callbacks, payloads, profiles, mappings (operatoroperation, payloadtypec2profile), tasks, responses
             await db_objects.delete(operation, recursive=True)
-            try:
-                # delete the operation's c2 profiles
-                shutil.rmtree("./app/c2_profiles/{}/".format(operation.name))
-            except Exception as e:
-                pass
             try:
                 # delete the operation's files (downloads, uploads, and screenshots)
                 shutil.rmtree("./app/files/{}".format(operation.name))

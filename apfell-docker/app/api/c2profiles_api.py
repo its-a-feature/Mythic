@@ -2,20 +2,23 @@ from app import apfell, db_objects
 from sanic.response import json, file
 from app.database_models.model import C2Profile, PayloadTypeC2Profile, PayloadType, C2ProfileParameters, FileMeta
 from urllib.parse import unquote_plus
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import shutil
 import os
 import json as js
 import base64
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_c2_rabbitmq_message
+from sanic.exceptions import abort
 
 
 # Get all the currently registered profiles
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_c2profiles(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     #  this syntax is atrocious for getting a pretty version of the results from a many-to-many join table)
     query = await db_model.c2profile_query()
     all_profiles = await db_objects.execute(query)
@@ -38,8 +41,10 @@ async def get_all_c2profiles(request, user):
 # Get all currently registered profiles that support a given payload type
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/type/<info:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_c2profiles_by_type(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     ptype = unquote_plus(info)
     try:
         profiles = await get_c2profiles_by_type_function(ptype, user)
@@ -52,8 +57,10 @@ async def get_c2profiles_by_type(request, info, user):
 # Get all currently registered profiles that support a given payload type
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/current_operation/type/<info:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_c2profiles_by_type_in_current_operation(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     ptype = unquote_plus(info)
     try:
         profiles = await get_c2profiles_by_type_function(ptype, user)
@@ -79,8 +86,10 @@ async def get_c2profiles_by_type_function(ptype, user_dict):
 # Register a new profile
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def register_new_c2profile(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -139,8 +148,10 @@ async def register_new_c2profile(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/upload", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def upload_c2_profile_payload_type_code(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     c2profile = unquote_plus(info)
     # we either get a file from the browser or somebody uploads it via a base64 encoded "code" field
     if request.form:
@@ -203,8 +214,10 @@ async def upload_c2_profile_payload_type_code(request, info, user):
 # Update a current profile
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_c2profile(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     data = request.json
     payload_types = []
@@ -263,8 +276,10 @@ async def update_c2profile(request, info, user):
 # Start running a profile's server side code
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/start", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def start_c2profile(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
@@ -281,8 +296,10 @@ async def start_c2profile(request, info, user):
 # Start running a profile's server side code
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/stop", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def stop_c2profile(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
@@ -303,8 +320,10 @@ async def stop_c2profile_func(profile_name):
 # Return the current input and output of the c2 profile for the user
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/status", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def status_c2profile(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'check main server logs for that info'})
@@ -322,8 +341,10 @@ async def status_c2profile(request, info, user):
 # Get c2 profile files listing for the user
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_file_list_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -345,8 +366,10 @@ async def get_file_list_for_c2profiles(request, info, user):
 # Get c2 profile files listing for the user
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/container_files", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_container_file_list_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -363,8 +386,10 @@ async def get_container_file_list_for_c2profiles(request, info, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/delete", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_file_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -386,8 +411,10 @@ async def remove_file_for_c2profiles(request, info, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/container_delete", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_container_file_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -405,8 +432,10 @@ async def remove_container_file_for_c2profiles(request, info, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/download", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_file_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -427,8 +456,10 @@ async def download_file_for_c2profiles(request, info, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/container_download", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_container_file_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -447,8 +478,10 @@ async def download_container_file_for_c2profiles(request, info, user):
 # Delete a profile
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_c2profile(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         info = unquote_plus(info)
         query = await db_model.c2profile_query()
@@ -481,8 +514,10 @@ async def delete_c2profile(request, info, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_c2profile_parameters(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.operation_query()
@@ -509,8 +544,10 @@ async def get_c2profile_parameters(request, info, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters/<id:int>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def edit_c2profile_parameters(request, info, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     name = unquote_plus(info)
     try:
@@ -537,8 +574,10 @@ async def edit_c2profile_parameters(request, info, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_c2profile_parameters(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     name = unquote_plus(info)
     try:
@@ -563,8 +602,10 @@ async def create_c2profile_parameters(request, info, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters/<id:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_c2profile_parameter(request, info, id, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -589,8 +630,10 @@ async def delete_c2profile_parameter(request, info, id, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/create_instance/", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_c2profile_instance_replace_values(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     try:
         query = await db_model.operation_query()
@@ -639,8 +682,10 @@ async def create_c2profile_instance_replace_values(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/export/<info:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def export_c2_profile(request, user, info):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         info = unquote_plus(info)
         query = await db_model.c2profile_query()
@@ -664,8 +709,10 @@ async def export_c2_profile(request, user, info):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/import", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def import_c2_profile(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if request.files:
         try:
             data = js.loads(request.files['upload_file'][0].body)
@@ -755,8 +802,10 @@ async def register_default_profile_operation(operator):
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/reset", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def reset_c2_profile(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])

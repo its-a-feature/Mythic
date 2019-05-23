@@ -2,20 +2,23 @@ from app import apfell, db_objects
 from sanic.response import json, raw
 from app.database_models.model import Task, Response, Callback, Keylog, TaskArtifact, Artifact, ArtifactTemplate, Command
 import base64
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
 import json as js
 import datetime
 import app.crypto as crypt
 import app.database_models.model as db_model
 import sys
+from sanic.exceptions import abort
 
 
 # This gets all responses in the database
 @apfell.route(apfell.config['API_BASE'] + "/responses/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_responses(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         responses = []
         query = await db_model.operation_query()
@@ -37,8 +40,10 @@ async def get_all_responses(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/responses/by_task/<id:int>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_responses_for_task(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -54,8 +59,10 @@ async def get_all_responses_for_task(request, user, id):
 # Get a single response
 @apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_response(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.response_query()
         resp = await db_objects.get(query, id=id)
@@ -72,8 +79,10 @@ async def get_one_response(request, user, id):
 # Get a single response
 @apfell.route(apfell.config['API_BASE'] + "/responses/search", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def search_responses(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         data = request.json
         if 'search' not in data:

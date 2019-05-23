@@ -1,7 +1,7 @@
 from app import apfell, db_objects
 from sanic.response import json, file
 from app.database_models.model import PayloadType, Command, CommandParameters, CommandTransform, ATTACKCommand, PayloadTypeC2Profile, Transform, ArtifactTemplate
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 from urllib.parse import unquote_plus
 import os
 from shutil import rmtree
@@ -10,13 +10,16 @@ import glob
 import base64, datetime
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
+from sanic.exceptions import abort
 
 
 # payloadtypes aren't inherent to an operation
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_payloadtypes(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     query = await db_model.payloadtype_query()
     payloads = await db_objects.execute(query)
     return json([p.to_json() for p in payloads])
@@ -24,8 +27,10 @@ async def get_all_payloadtypes(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_payloadtypes(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -38,8 +43,10 @@ async def get_all_payloadtypes(request, user, ptype):
 # anybody can create a payload type for now, maybe just admins in the future?
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_payloadtype(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # this needs to know the name of the type, everything else is done for you
     if request.form:
         data = js.loads(request.form.get('json'))
@@ -116,8 +123,10 @@ async def create_payloadtype(request, user):
 # anybody can create a payload type for now, maybe just admins in the future?
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_payloadtype(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -176,8 +185,10 @@ async def update_payloadtype(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/upload", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def upload_payload_code(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -205,8 +216,10 @@ async def upload_payload_code(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/container_upload", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def upload_payload_container_code(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -238,8 +251,10 @@ async def upload_payload_container_code(request, user, ptype):
 # payloadtypes aren't inherent to an operation
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/<fromDisk:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_one_payloadtype(request, user, ptype, fromDisk):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -270,8 +285,10 @@ async def delete_one_payloadtype(request, user, ptype, fromDisk):
 # get all the commands associated with a specitic payload_type
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/commands", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_commands_for_payloadtype(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -294,8 +311,10 @@ async def get_commands_for_payloadtype(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def list_uploaded_files_for_payloadtype(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -315,8 +334,11 @@ async def list_uploaded_files_for_payloadtype(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/container_files", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def list_uploaded_container_files_for_payloadtype(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
+    # apitoken for this won't help much since it's rabbitmq based
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -333,8 +355,10 @@ async def list_uploaded_container_files_for_payloadtype(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/delete", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_uploaded_files_for_payloadtype(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -356,8 +380,11 @@ async def remove_uploaded_files_for_payloadtype(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/container_delete", methods=['POST'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def remove_uploaded_container_files_for_payloadtype(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
+    # apitoken access for this won't help since it's rabbitmq based
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -379,8 +406,10 @@ async def remove_uploaded_container_files_for_payloadtype(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/download", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_file_for_payloadtype(request, ptype, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -401,8 +430,11 @@ async def download_file_for_payloadtype(request, ptype, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/container_download", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def download_container_file_for_payloadtype(request, ptype, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
+    # apitoken access for this own't help since it's rabbitmq based
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -421,8 +453,10 @@ async def download_container_file_for_payloadtype(request, ptype, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/export", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def export_command_list(request, user, ptype):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -532,8 +566,10 @@ async def export_command_list(request, user, ptype):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/import", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def import_payloadtype_and_commands(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # The format for this will be the same as the default_commands.json file or what you get from the export function
     # This allows you to import commands across a set of different payload types at once
     if request.files:

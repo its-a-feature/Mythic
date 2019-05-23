@@ -7,6 +7,7 @@ import json as js
 from app.api.callback_api import create_callback_func
 import app.database_models.model as db_model
 import sys
+from sanic_jwt.decorators import inject_user, scoped
 
 
 # this is an unprotected API so that agents and c2 profiles can hit this when staging
@@ -243,6 +244,8 @@ async def AESPSK_Create_Callback(request, uuid):
 
 
 @apfell.route(apfell.config['API_BASE'] + "/list_crypto_options", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_c2', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def list_crypto_options(request):
     return json({'types': ['AES256']})
 

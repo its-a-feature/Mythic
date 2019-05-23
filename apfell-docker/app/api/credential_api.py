@@ -1,14 +1,17 @@
 from app import apfell, db_objects
 from sanic.response import json
 from app.database_models.model import Credential
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/credentials/current_operation", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_current_operation_credentials(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()
@@ -25,8 +28,10 @@ async def get_current_operation_credentials(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/credentials", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_credential(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()
@@ -81,8 +86,10 @@ async def create_credential(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/credentials/<id:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_credential(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()

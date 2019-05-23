@@ -2,7 +2,7 @@ from app import apfell, db_objects
 from sanic.response import json, file
 from app.database_models.model import Payload, C2ProfileParameters, C2ProfileParametersInstance, PayloadCommand, FileMeta
 import pathlib
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import os
 from urllib.parse import unquote_plus
 import base64
@@ -15,12 +15,15 @@ import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
 import json as js
 from datetime import datetime, timedelta
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_payloads(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if user['admin']:
         query = await db_model.payload_query()
         payloads = await db_objects.execute(query)
@@ -31,8 +34,10 @@ async def get_all_payloads(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/current_operation", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_payloads_current_operation(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if user['current_operation'] != "":
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -45,8 +50,10 @@ async def get_all_payloads_current_operation(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/<puuid:string>/<from_disk:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_payload(request, puuid, user, from_disk):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -84,8 +91,10 @@ async def remove_payload_func(uuid, from_disk, operation):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/delete_bulk", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_multiple_payload(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -415,8 +424,10 @@ async def write_payload(uuid, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/create", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_payload(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     if 'tag' not in data:
         data['tag'] = data['payload_type'] + " payload created by " + user['username']
@@ -485,8 +496,10 @@ async def write_c2(custom, base_c2, payload):
 # needs to not be protected so the implant can call back and get a copy of an agent to run
 @apfell.route(apfell.config['API_BASE'] + "/payloads/download/<uuid:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_payload(request, uuid, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # return a blob of the requested payload
     # the pload string will be the uuid of a payload registered in the system
     try:
@@ -506,8 +519,10 @@ async def get_payload(request, uuid, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/bytype/<ptype:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_payloads_by_type(request, ptype, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -527,8 +542,10 @@ async def get_payloads_by_type(request, ptype, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/payloads/<uuid:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_payload_info(request, uuid, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.payload_query()
         payload = await db_objects.get(query, uuid=uuid)

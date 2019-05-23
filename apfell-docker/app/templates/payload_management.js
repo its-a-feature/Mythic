@@ -26,7 +26,8 @@ var payloads_table = new Vue({
             $( '#payloadConfigModal' ).modal('show');
         },
         download_payload_button: function(p){
-            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + p.uuid, '_blank').focus();
+            payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + p.uuid);
+            download_from_memory(p.location.split("/").slice(-1)[0], btoa(payload));
         }
     },
     delimiters: ['[[',']]']

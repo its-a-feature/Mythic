@@ -1,18 +1,21 @@
 from app import apfell, db_objects
 from sanic.response import json, file, text
 from app.database_models.model import Command, CommandParameters, CommandTransform, ATTACKCommand, ArtifactTemplate
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 from urllib.parse import unquote_plus
 import json as js
 import base64
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 # commands aren't inherent to an operation, they're unique to a payloadtype
 @apfell.route(apfell.config['API_BASE'] + "/commands/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_commands(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     all_commands = []
     query = await db_model.command_query()
     commands = await db_objects.execute(query.order_by(Command.id))
@@ -26,8 +29,10 @@ async def get_all_commands(request, user):
 # Get information about a specific command, including its code, if it exists (used in checking before creating a new command)
 @apfell.route(apfell.config['API_BASE'] + "/commands/<ptype:string>/check/<cmd:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def check_command(request, user, ptype, cmd):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     status = {'status': 'success'}
     try:
         query = await db_model.payloadtype_query()
@@ -64,8 +69,10 @@ async def check_command(request, user, ptype, cmd):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_command(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -86,8 +93,10 @@ async def remove_command(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/code/<resp_type:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_command_code(request, user, id, resp_type):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     resp_type = unquote_plus(resp_type)
     try:
         query = await db_model.command_query()
@@ -109,8 +118,10 @@ async def get_command_code(request, user, id, resp_type):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_command(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     updated_command = False
     try:
         query = await db_model.command_query()
@@ -173,8 +184,10 @@ async def update_command(request, user, id):
 # anybody can create a command for now, maybe just admins in the future?
 @apfell.route(apfell.config['API_BASE'] + "/commands/", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_command(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -249,8 +262,10 @@ async def create_command_func(data, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/parameters", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_command_parameter(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
@@ -292,8 +307,10 @@ async def create_command_parameter(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/parameters/<pid:int>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_command_parameter(request, user, cid, pid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     updated_a_field = False
     try:
         query = await db_model.operator_query()
@@ -345,8 +362,10 @@ async def update_command_parameter(request, user, cid, pid):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/parameters/<pid:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_command_parameter(request, user, cid, pid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)
@@ -368,8 +387,10 @@ async def remove_command_parameter(request, user, cid, pid):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/parameters/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_parameters_for_command(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -385,8 +406,10 @@ async def get_all_parameters_for_command(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_attack_mappings_for_command(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -400,8 +423,10 @@ async def get_all_attack_mappings_for_command(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/<t_num:string>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_attack_mapping_for_command(request, user, id, t_num):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -418,8 +443,10 @@ async def remove_attack_mapping_for_command(request, user, id, t_num):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/<t_num:string>", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_attack_mappings_for_command(request, user, id, t_num):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -438,8 +465,10 @@ async def create_attack_mappings_for_command(request, user, id, t_num):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/mitreattack/<t_num:string>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def adjust_attack_mappings_for_command(request, user, id, t_num):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     try:
         query = await db_model.command_query()
@@ -460,8 +489,10 @@ async def adjust_attack_mappings_for_command(request, user, id, t_num):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_artifact_template_for_command(request, user, cid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     if "artifact" not in data:
         return json({'status': 'error', 'error': '"artifact" is a required element'})
@@ -500,8 +531,10 @@ async def create_artifact_template_for_command(request, user, cid):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates/<aid:int>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_artifact_template_for_command(request, user, cid, aid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)
@@ -531,8 +564,10 @@ async def update_artifact_template_for_command(request, user, cid, aid):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_artifact_templates_for_command(request, user, cid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)
@@ -549,8 +584,10 @@ async def get_artifact_templates_for_command(request, user, cid):
 
 @apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/artifact_templates/<aid:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_artifact_template_for_command(request, user, cid, aid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)

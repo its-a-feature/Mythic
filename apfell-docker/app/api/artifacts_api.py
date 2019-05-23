@@ -1,14 +1,17 @@
 from app import apfell, db_objects
 from sanic.response import json
 from app.database_models.model import Artifact, Task, Callback
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/artifacts", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_artifacts(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     query = await db_model.artifact_query()
     artifacts = await db_objects.execute(query)
     return json({'status': 'success', 'artifacts': [a.to_json() for a in artifacts]})
@@ -16,8 +19,10 @@ async def get_all_artifacts(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/artifacts", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_artifact(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     if "name" not in data:
         return json({'status': 'error', 'error': '"name" is a required parameter'})
@@ -32,8 +37,10 @@ async def create_artifact(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/artifacts/<id:int>", methods=['PUT'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_artifact(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     try:
         query = await db_model.artifact_query()
@@ -53,8 +60,10 @@ async def update_artifact(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/artifacts/<id:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_artifact(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.artifact_query()
         artifact = await db_objects.get(query, id=id)
@@ -70,8 +79,10 @@ async def update_artifact(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/artifact_tasks", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_artifact_tasks(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # get all of the artifact tasks for the current operation
     try:
         query = await db_model.operation_query()
@@ -88,8 +99,10 @@ async def get_all_artifact_tasks(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/<aid:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_artifact_tasks(request, user, aid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.taskartifact_query()
         artifact_task = await db_objects.get(query, id=aid)

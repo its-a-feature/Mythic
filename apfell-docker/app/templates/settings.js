@@ -302,3 +302,100 @@ function disable_registration_callback(response){
         alertTop("danger", data['error']);
     }
 }
+
+// ----------- APITOKEN SECTION -------------------
+var apitoken_table = new Vue({
+    el: '#apitokens_table',
+    data: {
+        tokens: []
+    },
+    methods: {
+        delete_apitoken_button: function(t){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/apitokens/" + t.id, delete_token_callback, "DELETE", null);
+        },
+        toggle_active_button: function(t){
+            if(t.active){data = {"active": false}}
+            else{data = {"active": true}}
+
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/apitokens/" + t.id, toggle_apitoken_callback, "PUT", data);
+        },
+        create_apitoken_button: function(){
+            $( '#apitokenCreateModal' ).modal('show');
+            $( '#apitokenCreateSubmit' ).unbind('click').click(function(){
+                data = {"token_type": $( '#apitokenCreateTokenType').val()};
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/apitokens/", create_apitoken_callback, "POST", data);
+            });
+        }
+    },
+    delimiters: ['[[', ']]']
+});
+function get_tokens(){
+    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/apitokens", get_tokens_callback, "GET", null);
+}
+get_tokens();
+function get_tokens_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        apitoken_table.tokens = data['apitokens'];
+    }
+    else{
+        alertTop("danger", "Error: " + data['error']);
+    }
+}
+function delete_token_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        for(var i = 0; i < apitoken_table.tokens.length; i++){
+            if(apitoken_table.tokens[i].id == data['id']){
+                apitoken_table.tokens.splice(i, 1);
+                return;
+            }
+        }
+    }
+    else{
+        alertTop("danger", "Error: " + data['error']);
+    }
+}
+function toggle_apitoken_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        for(var i = 0; i < apitoken_table.tokens.length; i++){
+            if(apitoken_table.tokens[i].id == data['id']){
+                Vue.set(apitoken_table.tokens, i, data);
+                return;
+            }
+        }
+    }
+    else{
+        alertTop("danger", "Error: " + data['error']);
+    }
+}
+function create_apitoken_callback(response){
+    try{
+        var data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        Vue.set(apitoken_table.tokens, apitoken_table.tokens.length, data);
+    }
+    else{
+        alertTop("danger", "Error: " + data['error']);
+    }
+}

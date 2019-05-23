@@ -77,6 +77,93 @@
         <!-- End of the repeating -->
         </table>
 </div>
+<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="apitokens_table">
+    <div class="panel-heading">API Tokens</div>
+        <table class="table table-condensed" style="width:100%;table-layout:fixed;word-wrap: break-word">
+            <tr>
+                <th style="width:7em"><b>Delete</b></th>
+                <th style="width:7em"><b>Active?</b></th>
+                <th style="width:10em"><b>Token Type</b></th>
+                <th><b>Token Value</b></th>
+                <th style="align:right;width:10em"><b>Creation time</b></th>
+                <th style="align:right;width:10em"><b>Operator</b></th>
+            </tr>
+            <tr v-for="token in tokens" :key="token.id">
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" @click="delete_apitoken_button(token)">Delete</button>
+                </td>
+                <td>
+                    <template v-if="token.active">
+                        <button type="button" class="btn btn-warning btn-sm" @click="toggle_active_button(token)">Deactivate</button>
+                    </template>
+                    <template v-else>
+                        <button type="button" class="btn btn-success btn-sm" @click="toggle_active_button(token)">Reactivate</button>
+                    </template>
+                </td>
+                <td>
+                    [[token.token_type]]
+                </td>
+                <td>
+                    [[token.token_value]]
+                </td>
+                <td>
+                    [[toLocalTime(token.creation_time)]]
+                </td>
+                <td>
+                    [[token.operator]]
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <button type="button" class="btn btn-success btn-md" @click="create_apitoken_button()">Create Token</button>
+                </td>
+                <td>
+
+                </td>
+                <td>
+
+                </td>
+                <td>
+
+                </td>
+                <td></td>
+            </tr>
+        </table>
+</div>
+<!-- THIS IS OUR MODAL FOR CREATING APITOKEN -->
+<div class="modal fade bs-example-modal-sm" id="apitokenCreateModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Create an API Token</h3>
+                Be careful using leaving API Tokens unattended, but they can be revoked. <br>
+                C2 API tokens have VERY limited scope in their capabilities. <br>
+                User API tokens grant full user access.
+            </div>
+            <div class="modal-body">
+                <table style="width:100%">
+                    <tr>
+                        <td>
+                            Token Type
+                        </td>
+                        <td>
+                            <select id="apitokenCreateTokenType">
+                                <option value="C2">C2</option>
+                                <option value="User">User</option>
+                            </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+              <div class="modal-footer">
+                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn-success" data-dismiss="modal" id="apitokenCreateSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR CREATING APITOKEN -->
 <div v-if="current_operator.admin">
     <button type="button" class="btn btn-success btn-sm" onclick="disable_registration_button()">Disable New Registrations</button>
 </div>

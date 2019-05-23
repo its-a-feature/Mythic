@@ -1,16 +1,19 @@
 from app import apfell, db_objects
 from app.database_models.model import *
 from sanic.response import json, file
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 from fpdf import FPDF, HTMLMixin
 import sys
+from sanic.exceptions import abort
 
 
 # ------- REPORTING-BASED API FUNCTION -----------------
 @apfell.route(apfell.config['API_BASE'] + "/reporting/full_timeline", methods=['GET', 'POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def reporting_full_timeline_api(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # post takes in configuration parameters for how to display the timeline
     # {"output_type": {pdf | csv }, "cmd_output": {true | false}, "strict": {time | task}}
     #  strict refers to if we need to adhere to strict ordering of commands issued, response timings, or nothing
@@ -186,8 +189,10 @@ class PDF(FPDF, HTMLMixin):
 
 @apfell.route(apfell.config['API_BASE'] + "/reporting/full_timeline/get", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_full_timeline_api(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         return await file("./app/files/{}/full_timeline.pdf".format(user['current_operation']), filename="full_timeline.pdf")
     except Exception as e:

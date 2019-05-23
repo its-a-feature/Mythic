@@ -1,14 +1,14 @@
 from app import apfell, links, use_ssl
 from sanic import response
 from jinja2 import Environment, PackageLoader
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
 
 @apfell.route("/services/host_file", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def services_host_file(request, user):
     template = env.get_template('services_host_file.html')
     if use_ssl:

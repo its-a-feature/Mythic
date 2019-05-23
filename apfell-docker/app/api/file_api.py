@@ -2,19 +2,22 @@ from app import apfell, db_objects
 from app.database_models.model import FileMeta, Callback, Payload, Task, Command
 from sanic.response import json, raw, file
 import base64
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import os
 from binascii import unhexlify
 import json as js
 import app.crypto as crypt
 import sys
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_files_meta(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.filemeta_query()
         files = await db_objects.prefetch(query, Task.select(), Command.select(), Callback.select())
@@ -25,8 +28,10 @@ async def get_all_files_meta(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/current_operation", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_current_operations_files_meta(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()
@@ -97,8 +102,10 @@ async def download_file(request, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_filemeta_in_database(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -129,8 +136,10 @@ async def create_filemeta_in_database(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_filemeta_in_database(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     return await json(create_filemeta_in_database_func(request.json))
 
 
@@ -189,8 +198,10 @@ async def create_filemeta_in_database_func(data):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/manual", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_filemeta_in_database_manual(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -257,8 +268,10 @@ async def create_filemeta_in_database_manual_func(data, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_file_to_disk(request, id, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     return await json(download_file_to_disk_func({**request.json, "file_id": id}))
 
 
@@ -298,8 +311,10 @@ async def download_file_to_disk_func(data):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/screencaptures", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def list_all_screencaptures_per_operation(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     if user['current_operation'] != "":
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -315,8 +330,10 @@ async def list_all_screencaptures_per_operation(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/bycallback/<id:int>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def list_all_screencaptures_per_callback(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.callback_query()
         callback = await db_objects.get(query, id=id)
@@ -338,8 +355,10 @@ async def list_all_screencaptures_per_callback(request, user, id):
 
 @apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/<id:int>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_screencapture(request, user, id):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.filemeta_query()
         file_meta = await db_objects.get(query, id=id)

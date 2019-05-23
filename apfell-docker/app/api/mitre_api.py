@@ -1,14 +1,17 @@
 from app import apfell, db_objects
 from sanic.response import json
 from app.database_models.model import Task, ATTACKCommand, ATTACKTask, Callback, Command
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     query = await db_model.attack_query()
     attack_entries = await db_objects.execute(query)
     matrix = {}
@@ -23,8 +26,10 @@ async def get_all_mitre_attack_ids(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/listing", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.attack_query()
         attack_entries = await db_objects.execute(query)
@@ -35,8 +40,10 @@ async def get_all_mitre_attack_ids(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/bycommand", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids_by_command(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     query = await db_model.attack_query()
     attack_entries = await db_objects.execute(query)
     matrix = {}
@@ -61,8 +68,10 @@ async def get_all_mitre_attack_ids_by_command(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/bytask", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids_by_task(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     query = await db_model.attack_query()
     attack_entries = await db_objects.execute(query)
     matrix = {}
@@ -86,8 +95,10 @@ async def get_all_mitre_attack_ids_by_task(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/regex", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def regex_against_tasks(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     try:
         query = await db_model.operation_query()
@@ -135,8 +146,10 @@ async def regex_against_tasks(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/task/<tid:int>/attack/<tnum:string>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_task_attack_mapping(request, user, tid, tnum):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     try:
         query = await db_model.task_query()
         task = await db_objects.get(query, id=tid)

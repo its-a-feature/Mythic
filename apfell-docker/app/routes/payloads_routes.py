@@ -1,14 +1,14 @@
 from app import apfell, links, use_ssl
 from sanic import response
 from jinja2 import Environment, PackageLoader
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
 
 @apfell.route("/payloads/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def payloads_creation(request, user):
     template = env.get_template('payloads_creation.html')
     if use_ssl:
@@ -20,7 +20,7 @@ async def payloads_creation(request, user):
 
 @apfell.route("/instantiate_c2profile/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def instantiate_c2profile(request, user):
     template = env.get_template('instantiate_c2profile.html')
     if use_ssl:

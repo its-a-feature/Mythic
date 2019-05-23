@@ -6,16 +6,20 @@ function httpGetAsync(theUrl, callback, method, data){
                 callback(xmlHttp.responseText);
             }
     }
-    xmlHttp.withCredentials = true;
+    //xmlHttp.withCredentials = true;
     xmlHttp.open(method, theUrl, true); // true for asynchronous
     xmlHttp.setRequestHeader("content-type", "application/json");
+    xmlHttp.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("access_token"));
+    xmlHttp.setRequestHeader("refresh_token", sessionStorage.getItem("refresh_token"));
     xmlHttp.send(JSON.stringify(data));
 }
 function uploadFile(url, callback, file){
     var xhr = new XMLHttpRequest();
     var fd = new FormData();
     xhr.open("POST", url, true);
-    xhr.withCredentials = true;
+    //xhr.withCredentials = true;
+    xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("access_token"));
+    xhr.setRequestHeader("refresh_token", sessionStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4 && xhr.status == 200) {
             // Every thing ok, file uploaded
@@ -31,7 +35,9 @@ function uploadFiles(url, callback, file){
     var xhr = new XMLHttpRequest();
     var fd = new FormData();
     xhr.open("POST", url, true);
-    xhr.withCredentials = true;
+    //xhr.withCredentials = true;
+    xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("access_token"));
+    xhr.setRequestHeader("refresh_token", sessionStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4 && xhr.status == 200) {
             // Every thing ok, file uploaded
@@ -51,7 +57,9 @@ function uploadFileAndJSON(url, callback, file, data, method){
     var xhr = new XMLHttpRequest();
     var fd = new FormData();
     xhr.open(method, url, true);
-    xhr.withCredentials = true;
+    //xhr.withCredentials = true;
+    xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("access_token"));
+    xhr.setRequestHeader("refresh_token", sessionStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4 && xhr.status == 200) {
             // Every thing ok, file uploaded
@@ -73,7 +81,9 @@ function uploadCommandFilesAndJSON(url, callback, file_dict, data){
     var xhr = new XMLHttpRequest();
     var fd = new FormData();
     xhr.open("POST", url, true);
-    xhr.withCredentials = true;
+    //xhr.withCredentials = true;
+    xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("access_token"));
+    xhr.setRequestHeader("refresh_token", sessionStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4 && xhr.status == 200) {
             // Every thing ok, file uploaded
@@ -106,8 +116,10 @@ function httpGetSync(theUrl){
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.withCredentials = true;
     xmlHttp.open( "GET", theUrl, false); //false means synchronous
-    xmlHttp.send( null );
     xmlHttp.setRequestHeader("content-type", "application/json");
+    xmlHttp.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("access_token"));
+    xmlHttp.setRequestHeader("refresh_token", sessionStorage.getItem("refresh_token"));
+    xmlHttp.send( null );
     return xmlHttp.responseText; // should just use this to get JSON data from RESTful APIs
 }
 function pythonToJSJson(string){
@@ -195,3 +207,13 @@ function toLocalTime(date){
     var init_date = new Date(date + " UTC");
     return init_date.toDateString() + " " + init_date.toTimeString().substring(0,8);
 }
+
+// Set our access token and referesh token in the session storage when we first log in
+// this will be manually added to all GET/POST requests made to API calls
+{% if access_token is defined %}
+sessionStorage.setItem("access_token", "{{access_token}}");
+{% endif %}
+{% if refresh_token is defined %}
+sessionStorage.setItem("refresh_token", "{{refresh_token}}");
+window.location = "/";
+{% endif %}

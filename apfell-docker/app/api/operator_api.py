@@ -5,14 +5,17 @@ from sanic import response
 from app import crypto
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import inject_user
-from sanic_jwt import protected
+from sanic_jwt import scoped
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_operators(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     query = await db_model.operator_query()
     ops = await db_objects.execute(query)
     return json([p.to_json() for p in ops])
@@ -20,8 +23,10 @@ async def get_all_operators(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_operator(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     data = request.json
     if 'username' not in data:
         return json({'status': 'error',
@@ -47,8 +52,10 @@ async def create_operator(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_operator(request, name, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(name)
     try:
         query = await db_model.operator_query()
@@ -61,8 +68,10 @@ async def get_one_operator(request, name, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/config/<name:string>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_config_item(request, name, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(name)
     try:
         if name == "default":
@@ -77,8 +86,10 @@ async def get_one_config_item(request, name, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=["PUT"])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_operator(request, name, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(name)
     if name != user['username'] and not user['admin']:
         # you can't change the name of somebody else unless you're admin
@@ -117,8 +128,10 @@ async def update_operator(request, name, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=["DELETE"])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_operator(request, name, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     name = unquote_plus(name)
     if name != user['username'] and not user['admin']:
         return json({'status': 'error', 'error': 'cannot delete anybody but yourself unless you\'re admin'})

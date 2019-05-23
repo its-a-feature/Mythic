@@ -1073,6 +1073,34 @@ class StagingInfo(p.Model):
         return str(self.to_json())
 
 
+class APITokens(p.Model):
+    # this offers a way to interact with specific interfaces without a JWT expiring
+    token_type = p.TextField(null=False)  # [C2, User]
+    token_value = p.TextField(null=False)
+    active = p.BooleanField(null=False, default=True)
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    operator = p.ForeignKeyField(Operator)  # act on behalf of which user
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == "operator":
+                    r[k] = getattr(self, k).username
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k))
+        r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 # -------------- TABLE SPECIFIC ASYNC JOIN QUERIES -----------
 async def operator_query():
     return Operator.select(Operator, Operation)\
@@ -1258,13 +1286,18 @@ async def staginginfo_query():
     return StagingInfo.select()
 
 
+async def apitokens_query():
+    return APITokens.select(APITokens, Operator)\
+        .join(Operator).switch(APITokens)
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'response', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate',
-               'taskartifact', 'staginginfo']
+               'taskartifact', 'staginginfo', 'apitokens']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -1285,7 +1318,7 @@ def pg_register_updates():
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate', 'taskartifact',
-               'staginginfo']
+               'staginginfo', 'apitokens']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -1347,6 +1380,7 @@ Artifact.create_table(True)
 ArtifactTemplate.create_table(True)
 TaskArtifact.create_table(True)
 StagingInfo.create_table(True)
+APITokens.create_table(True)
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()

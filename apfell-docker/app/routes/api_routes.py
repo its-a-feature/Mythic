@@ -2,14 +2,14 @@ from app import apfell, links, use_ssl
 from sanic import response
 from jinja2 import Environment, PackageLoader
 import json as js
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
 
 @apfell.route("/apiui/commandlines")
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def apiui_commandline(request, user):
     data = open("./app/api/cli_api.json", 'r').read().replace("API_BASE", apfell.config['API_BASE'])
     api_data = js.loads(data)
@@ -25,7 +25,7 @@ async def apiui_commandline(request, user):
 
 @apfell.route("/apiui/documentation")
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def apiui_documentation(request, user):
     template = env.get_template('apiui_documentation.html')
     if use_ssl:
@@ -37,7 +37,7 @@ async def apiui_documentation(request, user):
 
 @apfell.route("/apiui/command_help")
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def apiui_command_help(request, user):
     template = env.get_template('apiui_command_help.html')
     if use_ssl:

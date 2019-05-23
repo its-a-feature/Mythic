@@ -2,15 +2,18 @@ from app import apfell, db_objects
 from app.database_models.model import Callback
 from sanic.response import text
 from anytree import Node, find_by_attr, RenderTree, DoubleStyle
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
+from sanic.exceptions import abort
 
 
 # ------- ANALYTIC-BASED API FUNCTION -----------------
 @apfell.route(apfell.config['API_BASE'] + "/analytics/callback_tree", methods=['GET', 'POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def analytics_callback_tree_api(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # look at the current callbacks and return their data in a more manageable tree format
     # http://anytree.readthedocs.io/en/latest/
     query = await db_model.operation_query()
@@ -84,8 +87,10 @@ async def analytics_payload_tree_api_function(payload, config):
 
 @apfell.route(apfell.config['API_BASE'] + "/analytics/payload_tree", methods=['GET', 'POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def analytics_payload_tree_api(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # each payload is the root of a tree, all of the corresponding callbacks that use it are under that tree
     query = await db_model.payload_query()
     dbpayloads = await db_objects.execute(query)

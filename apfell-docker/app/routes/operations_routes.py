@@ -1,12 +1,12 @@
 from app import apfell, links, use_ssl
 from app.routes.routes import env
 from sanic import response
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
 
 
 @apfell.route("/callbacks")
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def callbacks(request, user):
     template = env.get_template('callbacks.html')
     if use_ssl:
@@ -18,7 +18,7 @@ async def callbacks(request, user):
 
 @apfell.route("/db_management")
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def db_management(request, user):
     template = env.get_template('database_management.html')
     if use_ssl:
@@ -30,7 +30,7 @@ async def db_management(request, user):
 
 @apfell.route("/payload_management",methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def payload_management(request, user):
     template = env.get_template('payload_management.html')
     if use_ssl:
@@ -42,7 +42,7 @@ async def payload_management(request, user):
 
 @apfell.route("/analytics", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def analytics(request, user):
     template = env.get_template('analytics.html')
     if use_ssl:
@@ -54,7 +54,7 @@ async def analytics(request, user):
 
 @apfell.route("/c2profile_management", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def c2profile_management(request, user):
     template = env.get_template('c2profile_management.html')
     if use_ssl:
@@ -68,7 +68,7 @@ async def c2profile_management(request, user):
 
 @apfell.route("/operations_management", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def operations_management(request, user):
     template = env.get_template('operations_management.html')
     if use_ssl:
@@ -82,7 +82,7 @@ async def operations_management(request, user):
 
 @apfell.route("/screencaptures", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def screencaptures(request, user):
     template = env.get_template('screencaptures.html')
     if use_ssl:
@@ -96,7 +96,7 @@ async def screencaptures(request, user):
 
 @apfell.route("/keylogs", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def keylogs(request, user):
     template = env.get_template('keylogs.html')
     if use_ssl:
@@ -110,7 +110,7 @@ async def keylogs(request, user):
 
 @apfell.route("/files", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def files(request, user):
     template = env.get_template('files.html')
     if use_ssl:
@@ -124,7 +124,7 @@ async def files(request, user):
 
 @apfell.route("/credentials", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def credentials(request, user):
     template = env.get_template('credentials.html')
     if use_ssl:
@@ -138,7 +138,7 @@ async def credentials(request, user):
 
 @apfell.route("/view_tasks", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def view_tasks(request, user):
     template = env.get_template('view_tasks.html')
     if use_ssl:
@@ -152,7 +152,7 @@ async def view_tasks(request, user):
 
 @apfell.route("/tasks/<tid:int>", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def view_shared_task(request, user, tid):
     template = env.get_template('share_task.html')
     if use_ssl:
@@ -166,7 +166,7 @@ async def view_shared_task(request, user, tid):
 
 @apfell.route("/transform_management", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def transform_management(request, user):
     template = env.get_template('transform_management.html')
     if use_ssl:
@@ -180,7 +180,7 @@ async def transform_management(request, user):
 
 @apfell.route("/artifacts_management", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def artifacts_management(request, user):
     template = env.get_template('artifacts_management.html')
     if use_ssl:
@@ -194,7 +194,7 @@ async def artifacts_management(request, user):
 
 @apfell.route("/reporting_artifacts", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def reporting_artifacts(request, user):
     template = env.get_template('reporting_artifacts.html')
     if use_ssl:
@@ -208,7 +208,7 @@ async def reporting_artifacts(request, user):
 
 @apfell.route("/comments", methods=['GET'])
 @inject_user()
-@protected()
+@scoped('auth:user')
 async def comments(request, user):
     template = env.get_template('comments.html')
     if use_ssl:

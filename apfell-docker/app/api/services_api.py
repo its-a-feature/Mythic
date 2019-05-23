@@ -1,7 +1,8 @@
 from app import apfell
 from sanic.response import json
 import asyncio
-from sanic_jwt.decorators import protected, inject_user
+from sanic_jwt.decorators import scoped, inject_user
+from sanic.exceptions import abort
 
 # this is temporary, it will be stored in the database soon
 web_servers = []  # will have dicts of {handle, port, directory}
@@ -10,15 +11,19 @@ web_servers = []  # will have dicts of {handle, port, directory}
 # ------------ HOST FILE ------------------------
 @apfell.route(apfell.config['API_BASE'] + "/services/host_directory", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_web_servers(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     return json(web_servers)
 
 
 @apfell.route(apfell.config['API_BASE'] + "/services/host_directory", methods=['POST'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_new_host_directory(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     # expects to get port, directory
     data = request.json
     if 'port' not in data:
@@ -62,8 +67,10 @@ async def create_new_host_directory(request, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/services/host_directory/<port:int>/stop", methods=['GET'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def stop_host_directory(request, port, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     for server in web_servers:
         if server['port'] == str(port):
             try:
@@ -78,8 +85,10 @@ async def stop_host_directory(request, port, user):
 
 @apfell.route(apfell.config['API_BASE'] + "/services/host_directory/<port:int>", methods=['DELETE'])
 @inject_user()
-@protected()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_host_directory(request, port, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(403)
     for i in range(len(web_servers)):
         if web_servers[i]['port'] == str(port):
             try:
