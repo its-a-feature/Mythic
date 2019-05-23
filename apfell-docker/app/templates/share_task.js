@@ -39,7 +39,7 @@ function set_info(response){
         return;
     }
     else{
-        console.log(data);
+        //console.log(data);
         task_info.callback = data['callback'];
         task_info.task = data['task'];
         task_info.responses = data['responses'];

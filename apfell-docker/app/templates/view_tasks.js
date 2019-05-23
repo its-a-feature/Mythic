@@ -17,6 +17,9 @@ var tasks_div = new Vue({
                     alertTop("danger", responses['error']);
                 }
                 else{
+                    for(var i = 0; i < responses.length; i++){
+                        responses[i]['response'] = responses[i]['response'].replace(/\\n|\r/g, '\n');
+                    }
                     Vue.set(task, 'responses', responses);
                 }
             }
