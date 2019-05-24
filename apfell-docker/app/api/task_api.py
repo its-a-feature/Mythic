@@ -21,7 +21,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_tasks(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     query = await db_model.task_query()
     full_task_data = await db_objects.prefetch(query, Command.select())
     if user['admin']:
@@ -41,7 +41,7 @@ async def get_all_tasks(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def search_tasks(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         data = request.json
         if 'search' not in data:
@@ -67,7 +67,7 @@ async def search_tasks(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_tasks_for_callback(request, cid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.callback_query()
         callback = await db_objects.get(query, id=cid)
@@ -94,7 +94,7 @@ async def get_all_tasks_for_callback(request, cid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_tasks_by_callback_in_current_operation(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -180,7 +180,7 @@ async def get_next_task(request, cid):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def add_task_to_callback(request, cid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # some commands can optionally upload files or indicate files for use
     # if they are uploaded here, process them first and substitute the values with corresponding file_id numbers
     if user['current_operation'] == "":
@@ -547,7 +547,7 @@ async def add_command_attack_to_task(task, command):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_not_completed_tasks_for_callback(request, cid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return json(await get_all_not_completed_tasks_for_callback_func(cid, user))
 
 
@@ -575,7 +575,7 @@ async def get_all_not_completed_tasks_for_callback_func(cid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def clear_tasks_for_callback(request, cid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return json(await clear_tasks_for_callback_func(request.json, cid, user))
 
 
@@ -643,7 +643,7 @@ async def clear_tasks_for_callback_func(data, cid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_task_and_responses(request, tid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.task_query()
         task = await db_objects.prefetch(query.where(Task.id == tid), Command.select())
@@ -666,7 +666,7 @@ async def get_one_task_and_responses(request, tid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def add_comment_to_task(request, tid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.task_query()
         task = await db_objects.prefetch(query.where(Task.id == tid), Command.select())
@@ -694,7 +694,7 @@ async def add_comment_to_task(request, tid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_task_comment(request, tid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.task_query()
         task = await db_objects.prefetch(query.where(Task.id == tid), Command.select())
@@ -718,7 +718,7 @@ async def remove_task_comment(request, tid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_comments_by_operator_in_current_operation(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -751,7 +751,7 @@ async def get_comments_by_operator_in_current_operation(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_comments_by_callback_in_current_operation(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
@@ -779,7 +779,7 @@ async def get_comments_by_callback_in_current_operation(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def search_comments_by_callback_in_current_operation(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])

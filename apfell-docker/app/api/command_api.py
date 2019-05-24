@@ -15,7 +15,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_commands(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     all_commands = []
     query = await db_model.command_query()
     commands = await db_objects.execute(query.order_by(Command.id))
@@ -32,7 +32,7 @@ async def get_all_commands(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def check_command(request, user, ptype, cmd):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     status = {'status': 'success'}
     try:
         query = await db_model.payloadtype_query()
@@ -72,7 +72,7 @@ async def check_command(request, user, ptype, cmd):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_command(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -96,7 +96,7 @@ async def remove_command(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_command_code(request, user, id, resp_type):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     resp_type = unquote_plus(resp_type)
     try:
         query = await db_model.command_query()
@@ -121,7 +121,7 @@ async def get_command_code(request, user, id, resp_type):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_command(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     updated_command = False
     try:
         query = await db_model.command_query()
@@ -187,7 +187,7 @@ async def update_command(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_command(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -265,7 +265,7 @@ async def create_command_func(data, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_command_parameter(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
@@ -310,7 +310,7 @@ async def create_command_parameter(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_command_parameter(request, user, cid, pid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     updated_a_field = False
     try:
         query = await db_model.operator_query()
@@ -365,7 +365,7 @@ async def update_command_parameter(request, user, cid, pid):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_command_parameter(request, user, cid, pid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)
@@ -390,7 +390,7 @@ async def remove_command_parameter(request, user, cid, pid):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_parameters_for_command(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -409,7 +409,7 @@ async def get_all_parameters_for_command(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_attack_mappings_for_command(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -426,7 +426,7 @@ async def get_all_attack_mappings_for_command(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_attack_mapping_for_command(request, user, id, t_num):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -446,7 +446,7 @@ async def remove_attack_mapping_for_command(request, user, id, t_num):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_attack_mappings_for_command(request, user, id, t_num):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -468,7 +468,7 @@ async def create_attack_mappings_for_command(request, user, id, t_num):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def adjust_attack_mappings_for_command(request, user, id, t_num):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     try:
         query = await db_model.command_query()
@@ -492,7 +492,7 @@ async def adjust_attack_mappings_for_command(request, user, id, t_num):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_artifact_template_for_command(request, user, cid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     if "artifact" not in data:
         return json({'status': 'error', 'error': '"artifact" is a required element'})
@@ -534,7 +534,7 @@ async def create_artifact_template_for_command(request, user, cid):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_artifact_template_for_command(request, user, cid, aid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)
@@ -567,7 +567,7 @@ async def update_artifact_template_for_command(request, user, cid, aid):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_artifact_templates_for_command(request, user, cid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)
@@ -587,7 +587,7 @@ async def get_artifact_templates_for_command(request, user, cid):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_artifact_template_for_command(request, user, cid, aid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=cid)

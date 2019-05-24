@@ -11,7 +11,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     query = await db_model.attack_query()
     attack_entries = await db_objects.execute(query)
     matrix = {}
@@ -29,7 +29,7 @@ async def get_all_mitre_attack_ids(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.attack_query()
         attack_entries = await db_objects.execute(query)
@@ -43,7 +43,7 @@ async def get_all_mitre_attack_ids(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids_by_command(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     query = await db_model.attack_query()
     attack_entries = await db_objects.execute(query)
     matrix = {}
@@ -71,7 +71,7 @@ async def get_all_mitre_attack_ids_by_command(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_mitre_attack_ids_by_task(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     query = await db_model.attack_query()
     attack_entries = await db_objects.execute(query)
     matrix = {}
@@ -98,7 +98,7 @@ async def get_all_mitre_attack_ids_by_task(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def regex_against_tasks(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     try:
         query = await db_model.operation_query()
@@ -149,7 +149,7 @@ async def regex_against_tasks(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_task_attack_mapping(request, user, tid, tnum):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.task_query()
         task = await db_objects.get(query, id=tid)

@@ -11,7 +11,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_artifacts(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     query = await db_model.artifact_query()
     artifacts = await db_objects.execute(query)
     return json({'status': 'success', 'artifacts': [a.to_json() for a in artifacts]})
@@ -22,7 +22,7 @@ async def get_all_artifacts(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_artifact(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     if "name" not in data:
         return json({'status': 'error', 'error': '"name" is a required parameter'})
@@ -40,7 +40,7 @@ async def create_artifact(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_artifact(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     try:
         query = await db_model.artifact_query()
@@ -63,7 +63,7 @@ async def update_artifact(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_artifact(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.artifact_query()
         artifact = await db_objects.get(query, id=id)
@@ -82,7 +82,7 @@ async def update_artifact(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_artifact_tasks(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # get all of the artifact tasks for the current operation
     try:
         query = await db_model.operation_query()
@@ -102,7 +102,7 @@ async def get_all_artifact_tasks(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_artifact_tasks(request, user, aid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.taskartifact_query()
         artifact_task = await db_objects.get(query, id=aid)

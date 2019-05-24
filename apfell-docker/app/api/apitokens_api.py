@@ -11,7 +11,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_c2', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_apitokens(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
@@ -28,7 +28,7 @@ async def get_apitokens(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_apitokens(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         data = request.json
     except Exception as e:
@@ -56,7 +56,7 @@ async def create_apitokens(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def modify_apitokens(request, user, tid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         data = request.json
     except Exception as e:
@@ -84,7 +84,7 @@ async def modify_apitokens(request, user, tid):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_apitokens(request, user, tid):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])

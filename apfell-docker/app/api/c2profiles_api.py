@@ -18,7 +18,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_c2profiles(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     #  this syntax is atrocious for getting a pretty version of the results from a many-to-many join table)
     query = await db_model.c2profile_query()
     all_profiles = await db_objects.execute(query)
@@ -44,7 +44,7 @@ async def get_all_c2profiles(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_c2profiles_by_type(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     ptype = unquote_plus(info)
     try:
         profiles = await get_c2profiles_by_type_function(ptype, user)
@@ -60,7 +60,7 @@ async def get_c2profiles_by_type(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_c2profiles_by_type_in_current_operation(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     ptype = unquote_plus(info)
     try:
         profiles = await get_c2profiles_by_type_function(ptype, user)
@@ -89,7 +89,7 @@ async def get_c2profiles_by_type_function(ptype, user_dict):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def register_new_c2profile(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -151,7 +151,7 @@ async def register_new_c2profile(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def upload_c2_profile_payload_type_code(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     c2profile = unquote_plus(info)
     # we either get a file from the browser or somebody uploads it via a base64 encoded "code" field
     if request.form:
@@ -217,7 +217,7 @@ async def upload_c2_profile_payload_type_code(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     data = request.json
     payload_types = []
@@ -279,7 +279,7 @@ async def update_c2profile(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def start_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
@@ -299,7 +299,7 @@ async def start_c2profile(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def stop_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
@@ -323,7 +323,7 @@ async def stop_c2profile_func(profile_name):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def status_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     if name == "default":
         return json({'status': 'error', 'error': 'check main server logs for that info'})
@@ -344,7 +344,7 @@ async def status_c2profile(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_file_list_for_c2profiles(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -369,7 +369,7 @@ async def get_file_list_for_c2profiles(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_container_file_list_for_c2profiles(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -389,7 +389,7 @@ async def get_container_file_list_for_c2profiles(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_file_for_c2profiles(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -414,7 +414,7 @@ async def remove_file_for_c2profiles(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_container_file_for_c2profiles(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -435,7 +435,7 @@ async def remove_container_file_for_c2profiles(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_file_for_c2profiles(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -459,7 +459,7 @@ async def download_file_for_c2profiles(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_container_file_for_c2profiles(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -481,7 +481,7 @@ async def download_container_file_for_c2profiles(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         info = unquote_plus(info)
         query = await db_model.c2profile_query()
@@ -517,7 +517,7 @@ async def delete_c2profile(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_c2profile_parameters(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.operation_query()
@@ -547,7 +547,7 @@ async def get_c2profile_parameters(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def edit_c2profile_parameters(request, info, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     name = unquote_plus(info)
     try:
@@ -577,7 +577,7 @@ async def edit_c2profile_parameters(request, info, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_c2profile_parameters(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     name = unquote_plus(info)
     try:
@@ -605,7 +605,7 @@ async def create_c2profile_parameters(request, info, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_c2profile_parameter(request, info, id, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
     try:
         query = await db_model.c2profile_query()
@@ -633,7 +633,7 @@ async def delete_c2profile_parameter(request, info, id, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_c2profile_instance_replace_values(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     try:
         query = await db_model.operation_query()
@@ -685,7 +685,7 @@ async def create_c2profile_instance_replace_values(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def export_c2_profile(request, user, info):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         info = unquote_plus(info)
         query = await db_model.c2profile_query()
@@ -712,7 +712,7 @@ async def export_c2_profile(request, user, info):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def import_c2_profile(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if request.files:
         try:
             data = js.loads(request.files['upload_file'][0].body)
@@ -805,7 +805,7 @@ async def register_default_profile_operation(operator):
 @scoped('auth:user')
 async def reset_c2_profile(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])

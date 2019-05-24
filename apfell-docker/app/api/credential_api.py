@@ -11,7 +11,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_current_operation_credentials(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()
@@ -31,7 +31,7 @@ async def get_current_operation_credentials(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_credential(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()
@@ -89,7 +89,7 @@ async def create_credential(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_credential(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()

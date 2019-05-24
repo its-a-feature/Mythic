@@ -13,7 +13,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def analytics_callback_tree_api(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # look at the current callbacks and return their data in a more manageable tree format
     # http://anytree.readthedocs.io/en/latest/
     query = await db_model.operation_query()
@@ -90,7 +90,7 @@ async def analytics_payload_tree_api_function(payload, config):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def analytics_payload_tree_api(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # each payload is the root of a tree, all of the corresponding callbacks that use it are under that tree
     query = await db_model.payload_query()
     dbpayloads = await db_objects.execute(query)

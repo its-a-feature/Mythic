@@ -246,7 +246,7 @@ async def handler_404(request, exception):
 
 @apfell.exception(Unauthorized)
 async def handler_403(request, exception):
-    return json({}, status=403)
+    return response.redirect("/")
 
 
 @apfell.middleware('request')

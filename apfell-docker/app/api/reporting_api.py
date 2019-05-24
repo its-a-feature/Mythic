@@ -13,7 +13,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def reporting_full_timeline_api(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # post takes in configuration parameters for how to display the timeline
     # {"output_type": {pdf | csv }, "cmd_output": {true | false}, "strict": {time | task}}
     #  strict refers to if we need to adhere to strict ordering of commands issued, response timings, or nothing
@@ -192,7 +192,7 @@ class PDF(FPDF, HTMLMixin):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_full_timeline_api(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         return await file("./app/files/{}/full_timeline.pdf".format(user['current_operation']), filename="full_timeline.pdf")
     except Exception as e:

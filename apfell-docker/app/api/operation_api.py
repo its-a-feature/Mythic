@@ -15,7 +15,7 @@ import app.database_models.model as db_model
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_operations(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # we already get this information populated as part of our user authentication
     output = []
     if user['admin']:
@@ -48,7 +48,7 @@ async def get_all_operations(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_operation(request, user, op):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # get information about a single operation
     # first confirm that this authenticated user as permission to view the op
     #   side effect is that we confirm if the op is real or not
@@ -74,7 +74,7 @@ async def get_one_operation(request, user, op):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_operation(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # this will create a new operation (must be admin to do this)
     # needs a unique operation name, a user that will be admin
     # optionally, include a list of users that will be part of the operation
@@ -131,7 +131,7 @@ async def add_user_to_operation_func(operation, users):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_operation(request, user, op):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # this can change the name (assuming it's still unique), ['name']
     # this can change the admin user assuming the person submitting is the current admin or overall admin ['admin']
     # this can change the users ['add_users'], ['remove_users']
@@ -193,7 +193,7 @@ async def update_operation(request, user, op):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_operation(request, user, op):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # only the admin of an operation or an overall admin can delete an operation
     op = unquote_plus(op)
     if op in user['admin_operations'] or user['admin']:

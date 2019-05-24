@@ -17,7 +17,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_files_meta(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.filemeta_query()
         files = await db_objects.prefetch(query, Task.select(), Command.select(), Callback.select())
@@ -31,7 +31,7 @@ async def get_all_files_meta(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_current_operations_files_meta(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if user['current_operation'] != "":
         try:
             query = await db_model.operation_query()
@@ -105,7 +105,7 @@ async def download_file(request, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_filemeta_in_database(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -139,7 +139,7 @@ async def create_filemeta_in_database(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_filemeta_in_database(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return await json(create_filemeta_in_database_func(request.json))
 
 
@@ -201,7 +201,7 @@ async def create_filemeta_in_database_func(data):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_filemeta_in_database_manual(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
@@ -271,7 +271,7 @@ async def create_filemeta_in_database_manual_func(data, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_file_to_disk(request, id, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return await json(download_file_to_disk_func({**request.json, "file_id": id}))
 
 
@@ -314,7 +314,7 @@ async def download_file_to_disk_func(data):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def list_all_screencaptures_per_operation(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if user['current_operation'] != "":
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -333,7 +333,7 @@ async def list_all_screencaptures_per_operation(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def list_all_screencaptures_per_callback(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.callback_query()
         callback = await db_objects.get(query, id=id)
@@ -358,7 +358,7 @@ async def list_all_screencaptures_per_callback(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_screencapture(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.filemeta_query()
         file_meta = await db_objects.get(query, id=id)

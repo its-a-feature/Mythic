@@ -23,7 +23,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_payloads(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if user['admin']:
         query = await db_model.payload_query()
         payloads = await db_objects.execute(query)
@@ -37,7 +37,7 @@ async def get_all_payloads(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_payloads_current_operation(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     if user['current_operation'] != "":
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -53,7 +53,7 @@ async def get_all_payloads_current_operation(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_payload(request, puuid, user, from_disk):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -94,7 +94,7 @@ async def remove_payload_func(uuid, from_disk, operation):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def remove_multiple_payload(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -427,7 +427,7 @@ async def write_payload(uuid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_payload(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     if 'tag' not in data:
         data['tag'] = data['payload_type'] + " payload created by " + user['username']
@@ -499,7 +499,7 @@ async def write_c2(custom, base_c2, payload):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_payload(request, uuid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # return a blob of the requested payload
     # the pload string will be the uuid of a payload registered in the system
     try:
@@ -522,7 +522,7 @@ async def get_payload(request, uuid, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_payloads_by_type(request, ptype, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -545,7 +545,7 @@ async def get_payloads_by_type(request, ptype, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_one_payload_info(request, uuid, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.payload_query()
         payload = await db_objects.get(query, uuid=uuid)

@@ -14,7 +14,7 @@ web_servers = []  # will have dicts of {handle, port, directory}
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_all_web_servers(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return json(web_servers)
 
 
@@ -23,7 +23,7 @@ async def get_all_web_servers(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def create_new_host_directory(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # expects to get port, directory
     data = request.json
     if 'port' not in data:
@@ -70,7 +70,7 @@ async def create_new_host_directory(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def stop_host_directory(request, port, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     for server in web_servers:
         if server['port'] == str(port):
             try:
@@ -88,7 +88,7 @@ async def stop_host_directory(request, port, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_host_directory(request, port, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     for i in range(len(web_servers)):
         if web_servers[i]['port'] == str(port):
             try:

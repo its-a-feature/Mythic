@@ -16,7 +16,7 @@ from sanic.exceptions import abort
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_transforms_by_type(request, ptype, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -40,7 +40,7 @@ async def get_transforms_by_type(request, ptype, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_transforms_options(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return json(await get_transforms_options_func())
 
 
@@ -88,7 +88,7 @@ async def get_type_hints(func):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def register_transform_for_ptype(request, user, ptype):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     payload_type = unquote_plus(ptype)
     try:
         query = await db_model.payloadtype_query()
@@ -126,7 +126,7 @@ async def register_transform_for_ptype(request, user, ptype):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_transform(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.transform_query()
         transform = await db_objects.get(query, id=id)
@@ -143,7 +143,7 @@ async def delete_transform(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_transform_code(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return await file("./app/api/transforms/utils.py", filename="utils.py")
 
 
@@ -152,7 +152,7 @@ async def download_transform_code(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def view_transform_code(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         code = base64.b64encode(open('./app/api/transforms/utils.py', 'rb').read()).decode('utf-8')
     except Exception as e:
@@ -166,7 +166,7 @@ async def view_transform_code(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def upload_c2_profile_payload_type_code(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # upload a new transforms file to our server and reload the transforms code
     try:
         data = request.json
@@ -214,7 +214,7 @@ async def upload_c2_profile_payload_type_code(request, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_transform_for_ptype(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     try:
         query = await db_model.transform_query()
@@ -265,7 +265,7 @@ async def get_transforms_func(ptype, t_type):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_transforms_by_command(request, id, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -291,7 +291,7 @@ async def get_transforms_by_command(request, id, user):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_commandtransforms_options(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     return json(await get_commandtransforms_options_func())
 
 
@@ -335,7 +335,7 @@ async def get_command_type_hints(func):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def register_transform_for_command(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -374,7 +374,7 @@ async def register_transform_for_command(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def delete_commandtransform(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
@@ -393,7 +393,7 @@ async def delete_commandtransform(request, user, id):
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def update_transform_for_command(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
-        abort(403)
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     try:
         query = await db_model.operation_query()
