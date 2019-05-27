@@ -44,7 +44,7 @@ async def create_operator(request, user):
         # await db_objects.create(OperatorOperation, operator=user, operation=default_operation)
         success = {'status': 'success'}
         new_user = user.to_json()
-        return response.json({**success, **new_user}, status=201)
+        return response.json({**success, **new_user})
     except:
         return json({'status': 'error',
                      'error': 'failed to add user'})
@@ -63,7 +63,7 @@ async def get_one_operator(request, name, user):
         return json({'status': 'success', **op.to_json()})
     except:
         print("Failed to get operator")
-        return json({'status': 'error', 'error': 'failed to get operator'}, status=404)
+        return json({'status': 'error', 'error': 'failed to get operator'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/config/<name:string>", methods=['GET'])
@@ -98,8 +98,6 @@ async def update_operator(request, name, user):
         query = await db_model.operator_query()
         op = await db_objects.get(query, username=name)
         data = request.json
-        if 'username' in data and data['username'] is not "apfell_admin":  # TODO right now hard-coded to not change this username
-            op.username = data['username']
         if 'password' in data:
             op.password = await crypto.hash_SHA512(data['password'])
         if 'admin' in data and user['admin']:  # only a current admin can make somebody an admin
