@@ -8,6 +8,7 @@ services:
                  - postgres-data-volume:/var/lib/postgresql/data
                 labels:
                         NAME: "apfell_postgres"
+                restart: on-failure
         rabbitmq:
                 build: ./rabbitmq-docker
                 container_name: apfell_rabbitmq
@@ -32,7 +33,7 @@ services:
                 depends_on:
                  - postgres
                  - rabbitmq
-                command: ["./wait-for-postgres.sh", "postgres:5432", "--", "python", "/Apfell/server.py"]
+                command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Apfell/server.py"]
         
 
 volumes:

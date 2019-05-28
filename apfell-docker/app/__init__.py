@@ -1,7 +1,7 @@
 from sanic import Sanic
 import uvloop
 from peewee_async import Manager, PooledPostgresqlDatabase
-from sanic_jwt import Initialize, Configuration, Responses, Authentication
+from sanic_jwt import Initialize
 from ipaddress import ip_network
 
 # -------------------------------------------
@@ -67,9 +67,10 @@ async def add_session(request):
   request['session'] = session
 
 
+
 Initialize(apfell,
-           authenticate=app.routes.authentication.authenticate,
-           retrieve_user=app.routes.authentication.retrieve_user,
+           authentication_class=app.routes.authentication.MyAuthentication,
+           configuration_class=app.routes.authentication.MyConfig,
            cookie_set=True,
            cookie_strict=False,
            cookie_access_token_name='access_token',
@@ -88,4 +89,5 @@ Initialize(apfell,
            refresh_token_enabled=True,
            expiration_delta=14400,  # initial token expiration time
            store_refresh_token=app.routes.authentication.store_refresh_token,
-           retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token)
+           retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token,
+           login_redirect_url="/login")
