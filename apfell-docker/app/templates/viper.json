@@ -1,0 +1,253 @@
+{"payload_types": [
+  {
+    "wrapper":false,
+    "command_template":"def shell(apfell, c2, params=\"whoami\", task_id=-1):\n    apfell.remove_job(task_id) # need to do this to remove your task from the list\n    pass\n\nCOMMAND_ENDS_HERE",
+    "supported_os":"linux (x86),linux (x64)",
+    "execute_help":"Python 2.7 Agent - either \"echo \"base64\" | base64 -d | python &\" or python filename.py",
+    "external":false,
+    "container_running":false,
+    "service":"rabbitmq",
+    "ptype":"viper",
+    "file_extension":".py",
+    "wrapped_payload_type":"null",
+    "files":[],
+    "c2_profiles":{
+      "default":[],
+      "RESTful_Patchthrough":[]
+    },
+    "load_transforms":[
+      {
+        "parameter":"",
+        "name":"outputPythonLoadsAsZipFolder",
+        "order":1
+      }
+    ],
+    "create_transforms":[],
+    "commands":[
+      {
+        "needs_admin":false,
+        "help_cmd":"sleep_time {\"interval\": 5, \"jitter\": 20}",
+        "version":1,
+        "is_exit":false,
+        "description":"Update the sleep time for the agent in seconds and jitter in percentage",
+        "cmd":"sleep_time",
+        "parameters":[
+          {
+            "type":"Number",
+            "hint":"",
+            "choices":"",
+            "required":true,
+            "name":"interval"
+          },
+          {
+            "type":"Number",
+            "hint":"",
+            "choices":"",
+            "required":true,
+            "name":"jitter"
+          }
+        ],
+        "attack":[{"t_num": "T1029", "attack_name": "Scheduled Transfer"}],
+        "artifacts":[]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"quit",
+        "version":1,
+        "is_exit":true,
+        "description":"Exit the main program by sending a keyboard interrupt to the main thread.",
+        "cmd":"quit",
+        "parameters":[],
+        "attack":[],
+        "artifacts":[]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"new_artifact {\"base_artifact\": \"base artifact type\", \"artifact\": \"the thing you want to report\"}",
+        "version":1,
+        "is_exit":false,
+        "description":"Demo purpose to easily show how agents can register new artifacts to the Apfell server",
+        "cmd":"new_artifact",
+        "parameters":[
+          {
+            "type":"String",
+            "hint":"ex: \/home\/bob\/malware.png",
+            "choices":"",
+            "required":true,
+            "name":"artifact"
+          },
+          {
+            "type":"String",
+            "hint":"ex: File Write",
+            "choices":"",
+            "required":true,
+            "name":"base_artifact"
+          }
+        ],
+        "attack":[],
+        "artifacts":[]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"load command_name",
+        "version":1,
+        "is_exit":false,
+        "description":"Zips up a single command as a module and loads it into the current agent",
+        "cmd":"load",
+        "parameters":[],
+        "attack":[
+          {"t_num":"T1129","attack_name":"Execution through Module Load"},
+          {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"}
+        ],
+        "artifacts":[]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"jobs_kill task#",
+        "version":2,
+        "is_exit":false,
+        "description":"Signal to a currently running job to stop. Due to the threading capabilities in Python 2.7, you cannot stop a thread directly, but signal that it should stop, and it's up to the thread to periodically check. If you write a long-lasting task, please make sure to check \"apfell.should_thread_stop(task_id)\" to see if you've been signaled to stop.",
+        "cmd":"jobs_kill",
+        "parameters":[],
+        "attack":[],
+        "artifacts":[]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"shell command",
+        "version":1,
+        "is_exit":false,
+        "description":"Execute a command in the local terminal and stream the output back to the Apfell server",
+        "cmd":"shell",
+        "parameters":[],
+        "attack":[
+          {"t_num":"T1059","attack_name":"Command-Line Interface"}
+        ],
+        "artifacts":[
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"sh -c *","replace_string":"*"},
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"*","replace_string":"*"}
+        ]
+      },
+      {
+        "needs_admin":true,
+        "help_cmd":"shell_sudo {\"password\":\"password\", \"cmd\":\"whoami\", \"background\": True}",
+        "version":1,
+        "is_exit":false,
+        "description":"Execute a command in the local terminal and stream the output back to the Apfell server via \"sudo -S\" and passing a password in via stdin. To background a task with this method, select the background checkbox and the command becomes \"sudo -S -b [command]\"",
+        "cmd":"shell_sudo",
+        "parameters":[
+          {
+            "type":"Credential",
+            "hint":"",
+            "choices":"",
+            "required":true,
+            "name":"password"
+          },
+          {
+            "type":"String",
+            "hint":"Command to run",
+            "choices":"",
+            "required":true,
+            "name":"cmd"
+          },
+          {
+            "type": "Boolean",
+            "hint": "",
+            "choices": "",
+            "required": false,
+            "name": "background"
+          }
+        ],
+        "attack":[
+          {"t_num":"T1059","attack_name":"Command-Line Interface"}
+        ],
+        "artifacts":[
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"sudo -S [-b] *","replace_string":"*"},
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"*","replace_string":"*"}
+        ]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"download \/path\/to\/file",
+        "version":1,
+        "is_exit":false,
+        "description":"Download files in 5MB chunks",
+        "cmd":"download",
+        "parameters":[],
+        "attack":[
+          {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"},
+          {"t_num": "T1041", "attack_name": "Exfiltration Over Command and Control Channel"},
+          {"t_num": "T1020", "attack_name": "Automated Exfiltration"}
+        ],
+        "artifacts":[]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"upload (with no params will open a dialog box). Otherwise, upload {\"file_id\": #, \"remote_path\": \"\/path\/to\/destination\"}",
+        "version":1,
+        "is_exit":false,
+        "description":"Upload a file already hosted by Apfell (via file_id) or a file on your local attacker box to a remote location on the victim.",
+        "cmd":"upload",
+        "parameters":[
+          {
+            "type":"File",
+            "hint":"",
+            "choices":"",
+            "required":false,
+            "name":"file"
+          },
+          {
+            "type":"String",
+            "hint":"",
+            "choices":"",
+            "required":false,
+            "name":"remote_path"
+          },
+          {
+            "type":"Number",
+            "hint":"",
+            "choices":"",
+            "required":false,
+            "name":"file_id"
+          }
+        ],
+        "attack":[
+          {"t_num": "T1030", "attack_name": "Data Transfer Size Limits"},
+          {"t_num": "T1105", "attack_name": "Remote File Copy"},
+          {"t_num": "T1132", "attack_name": "Data Encoding"}
+        ],
+        "artifacts":[
+          {"command_parameter":"remote_path","artifact":"File Create","artifact_string":"*","replace_string":"*"}
+        ]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"jobs",
+        "version":1,
+        "is_exit":false,
+        "description":"List out the currently running tasks in the agent",
+        "cmd":"jobs",
+        "parameters":[],
+        "attack":[],
+        "artifacts":[]
+      },
+      {
+        "needs_admin":false,
+        "help_cmd":"keylog",
+        "version":1,
+        "is_exit":false,
+        "description":"Start a new python process to keylog the current user by dropping and executing .k.py in the current directory",
+        "cmd":"keylog",
+        "parameters":[],
+        "attack":[
+          {"t_num":"T1056","attack_name":"Input Capture"}
+        ],
+        "artifacts":[
+          {"command_parameter":null,"artifact":"File Create","artifact_string":".k.py is written to the current directory","replace_string":""},
+          {"command_parameter":null,"artifact":"Process Create","artifact_string":"python .k.py","replace_string":""}
+        ]
+      }
+    ]
+  }
+]
+}

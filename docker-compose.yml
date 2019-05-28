@@ -1,0 +1,43 @@
+version: '2.4'
+services:
+        postgres:
+                build: ./postgres-docker
+                container_name: apfell_postgres
+                network_mode: host
+                volumes:
+                 - postgres-data-volume:/var/lib/postgresql/data
+                labels:
+                        NAME: "apfell_postgres"
+        rabbitmq:
+                build: ./rabbitmq-docker
+                container_name: apfell_rabbitmq
+                hostname: "rabbitmq"
+                network_mode: host
+                volumes:
+                 - rabbitmq-data-volume:/var/lib/rabbitmq
+                labels:
+                        NAME: "apfell_rabbitmq"
+                restart: on-failure
+                mem_limit: 512M
+        apfell:
+                build: ./apfell-docker
+                network_mode: host
+                container_name: apfell_apfell
+                volumes:
+                 - apfell-file-data:/Apfell/app/files
+                 - apfell-payload-data:/Apfell/app/payloads/operations
+                 - apfell-c2-data:/Apfell/app/c2_profiles
+                labels:
+                        NAME: "apfell_apfell"
+                depends_on:
+                 - postgres
+                 - rabbitmq
+                command: ["./wait-for-postgres.sh", "postgres:5432", "--", "python", "/Apfell/server.py"]
+        
+
+volumes:
+        postgres-data-volume:
+        apfell-file-data:
+        apfell-payload-data:
+        apfell-c2-data:
+        rabbitmq-data-volume:

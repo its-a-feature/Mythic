@@ -1,0 +1,46 @@
+{
+  "instances": [
+    {
+      "GET": {
+        "getNextTask": "/admin.php\\?q=(\\d+)",
+        "getFile": "/download.php\\?file=(\\d+)&ID=(\\d+)"
+      },
+      "POST": {
+        "postResponse": "/upload.php\\?page=(\\d+)",
+        "postNewCallback": "/login",
+        "postNewCallbackAESPSK": "/register.php\\?SessionID=([\\w-]+)\\b",
+        "postNewCallbackEKE": "/signup.php\\?SessionID=([\\w-]+)\\b",
+        "postNewCallbackDHEKE": "/recover_account.php\\?SessionID=([\\w-]+)\\b"
+      },
+      "port": 9000,
+      "host": "0.0.0.0",
+      "key_path": "",
+      "cert_path": ""
+    },
+    {
+      "GET": {
+        "getNextTask": "/admin2.php\\?q=(\\d+)",
+        "getFile": "/download2.php\\?file=(\\d+)&ID=(\\d+)"
+      },
+      "POST": {
+        "postResponse": "/upload2.php\\?page=(\\d+)",
+        "postNewCallback": "/login2",
+        "postNewCallbackAESPSK": "/register2.php\\?SessionID=([\\w-]+)\\b",
+        "postNewCallbackEKE": "/signup2.php\\?SessionID=([\\w-]+)\\b",
+        "postNewCallbackDHEKE": "/recover_account2.php\\?SessionID=([\\w-]+)\\b"
+      },
+      "port": 9001,
+      "host": "0.0.0.0",
+      "key_path": "",
+      "cert_path": ""
+    }
+  ],
+  "apfellBase": "http://localhost/api/v1.2/",
+  "apfellNextTask": "tasks/callback/{}/nextTask",
+  "apfellGetFile": "files/{}/callbacks/{}",
+  "apfellPostResponse": "responses/{}",
+  "apfellNewCallback": "callbacks/",
+  "apfellNewCallbackAESPSK": "crypto/aes_psk/{}",
+  "apfellNewCallbackEKE": "crypto/EKE/{}",
+  "apfellNewCallbackDHEKE": "crypto/DHEKE/{}"
+}

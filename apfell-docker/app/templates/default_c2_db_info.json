@@ -1,0 +1,118 @@
+{
+  "profiles": [
+    {
+    "name":"default",
+    "description":"Default RESTful C2 channel",
+    "params":[
+      {
+        "name":"callback host",
+        "key":"callback_host",
+        "hint":"http(s):\/\/domain.com"
+      },
+      {
+        "name":"callback port",
+        "key":"callback_port",
+        "hint":"80"
+      },
+      {
+        "name":"callback interval (in seconds)",
+        "key":"callback_interval",
+        "hint":"10"
+      },
+      {
+        "name":"Host header (for domain fronting)",
+        "key":"domain_front",
+        "hint":""
+      },
+      {
+        "name": "Encrypted Key Exchange (T/F)",
+        "key": "encrypted_exchange_check",
+        "hint": "T"
+      },
+      {
+        "name": "Base64 32byte AES Key",
+        "key": "AESPSK",
+        "hint": ""
+      }
+    ],
+    "payload_types": ["apfell-jxa", "linfell", "viper"]
+  },
+    {
+    "name":"RESTful_Patchthrough",
+    "description":"Modify default RESTful interfaces for callback. Parameters must match up with server though (manual process)",
+    "params":[
+      {
+        "name":"callback host",
+        "key":"callback_host",
+        "hint":"http(s):\/\/domain.com"
+      },
+      {
+        "name":"callback port",
+        "key":"callback_port",
+        "hint":"9000"
+      },
+      {
+        "name":"callback interval (in seconds)",
+        "key":"callback_interval",
+        "hint":"10"
+      },
+      {
+        "name":"Get a File (for load/download) - Needs two instances of IDSTRING",
+        "key":"GETFILE",
+        "hint":"\/download.php?file=*&ID=*"
+      },
+      {
+        "name":"Get next task",
+        "key":"GETNEXTTASK",
+        "hint":"\/admin.php?q=*"
+      },
+      {
+        "name":"ID Field (some string to represent where variables go in the URI)",
+        "key":"IDSTRING",
+        "hint":"*"
+      },
+      {
+        "name":"cleartext new callback",
+        "key":"NEWCALLBACK",
+        "hint":"\/login"
+      },
+      {
+        "name": "AES pre-shared key new callback",
+        "key": "AES_PSK_NEW_CALLBACK",
+        "hint": "\/register.php?SessionID=*"
+      },
+      {
+        "name": "Encrypted Key Exchange new callback",
+        "key": "EKE_NEW_CALLBACK",
+        "hint": "\/signup.php?SessionID=*"
+      },
+      {
+        "name":"Post responses",
+        "key":"POSTRESPONSE",
+        "hint":"\/upload.php?page=*"
+      },
+      {
+        "name":"Host header (for domain fronting)",
+        "key":"domain_front",
+        "hint":""
+      },
+      {
+        "name": "Encrypted Key Exchange (T/F)",
+        "key": "encrypted_exchange_check",
+        "hint": "T"
+      },
+      {
+        "name": "Base64 32byte AES Key",
+        "key": "AESPSK",
+        "hint": ""
+      },
+      {
+        "name": "Diffie-Hellman based Encrypted Key Exchange new callback",
+        "key": "EKE_DH_NEW_CALLBACK",
+        "hint": "\/recover_account.php?SessionID=*"
+      }
+    ],
+    "payload_types": ["apfell-jxa", "viper"]
+    }
+  ]
+}

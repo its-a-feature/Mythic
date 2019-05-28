@@ -1,5 +1,5 @@
 # Apfell
-A macOS, post-exploit, red teaming framework built with python3 and JavaScript. It's designed to provide a collaborative and user friendly interface for operators, managers, and reporting throughout mac and linux based red teaming. This is a work-in-progress as I have free time, so please bear with me.
+A cross-platform, post-exploit, red teaming framework built with python3, docker, docker-compose, and a web browser UI. It's designed to provide a collaborative and user friendly interface for operators, managers, and reporting throughout mac and linux based red teaming. This is a work-in-progress as I have free time, so please bear with me.
 
 ## Details
 Check out my [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bones-apfell-server-code-release/) on the initial release of the framework and what the bare bones content can do.
@@ -11,7 +11,7 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 ## Table of Contents
 * [Apfell](#Apfell)
 * [Installation](#Installation)
-* [Starting Apfell](#Starting-Apfell)
+* [Connecting to Apfell](#Connecting-to-Apfell)
 * [Quick Walkthrough to operations](#Quick-Operational-Walkthrough)
 * [Users](#Users)
 * [Operations](#Operations)
@@ -47,6 +47,8 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 * [Reporting](#Reporting)
 * [Analytics](#Analytics)
 * [Contributing](#Contributing)
+* [Basic Agent Creation Information](#Basic-Agent-Creation-Information)
+* [API Tokens](#API-Tokens)
 
 ## Installation
 
@@ -54,11 +56,10 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 ```bash
 git clone https://github.com/its-a-feature/Apfell
 ```
-- Important note: This is made to work with *python 3.6*, so you must have python3.6+. I've managed to adjust the install script and the required versions of python dependencies if you're using python 3.7 (which is what is default installed now when you brew install in macOS), but I don't have any cases for using python versions earlier than 3.6.
-- This works best on Ubuntu or macOS, but can work on other distros (you just might have compile python3.6 yourself depending on the distro)
-- Install and setup the requirements. The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though. This can be installed and run on both Linux and macOS. 
-- On macOS, this requires brew to be installed - if it isn't already installed, I will install it for you.
-- Configure the installation in app/\_\_init\_\_.py. 
+- Important note: This is made to work with docker, so docker needs to be installed. If docker is not installed on your ubuntu machine, you can use the `./install_docker_debian.sh` to install it for you.
+- The server only runs on Ubuntu. 
+- The setup script will also create a default user `apfell_admin` with a default password `apfell_password` that can be used. It's recommended to change this user's password after installing though.
+- Configure the installation in /Apfell/apfell-docker/app/\_\_init\_\_.py. 
 ```bash
 # -------- CONFIGURE SETTINGS HERE -----------
 db_name = 'apfell_db'
@@ -66,7 +67,7 @@ db_user = 'apfell_user'
 db_pass = 'super_secret_apfell_user_password'  # used by the server to communicate with the local postgres database
 # server_ip is what your browser will use to find its way back to this server
 # change this to be the IP or domain name of how your operators will reach this server
-server_ip = 'localhost'  
+server_ip = '127.0.0.1'  
 listen_port = '80'  # similarly, this is the IP the browser will use to connect back to this apfell server
 # this is what IP addresses apfell should bind to locally. leave it as 0.0.0.0 unless you have a reason to specify a specific IP address
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
@@ -79,27 +80,50 @@ whitelisted_ip_blocks = ['0.0.0.0/0']  # only allow connections from these IPs t
 # by default this is off, but you can turn it on and the server will use the above ssl_cert_path and ssl_key_path
 use_ssl = False
 ```
-- Once you're ready to finally install, simply run the setup script and you should be good to go!
+- Once you're ready to finally install, simply run the setup script and then the start script and you should be good to go!
 ```bash
-# The setup.sh will install postgres and pip3 install the requirements
-# If you're on Linux:
-cd Apfell && chmod +x setup.sh && sudo ./setup.sh && cd ..
-# If you're on macOS (note the lack of sudo!):
-cd Apfell & chmod +x setup.sh && ./setup.sh && cd ..
+./setup_apfell.sh
 ```
+- You can run `status_check.sh` to check to make sure everything is running
+- To get more detailed diagnostic information, you can run `display_output.sh`
+  - By default, this will dump the logs from all the containers into a local file called `display_output.txt`.
+  - If there is a specific container(s) you want to see the logs for, just supply them as arguments at the end of the call: `display_output.sh apfell_apfell restfulpatchthrough`
 
-## Starting Apfell
-- Start the server:
-```bash
-sudo python3 server.py # sudo here is needed if you ever plan on opening a port less than 1024
-[2018-07-16 14:39:14 -0700] [28381] [INFO] Goin' Fast @ http://0.0.0.0:80
-```
-By default, the server will bind to 0.0.0.0 on port 80. This is an alias meaning that it will be listening on all IPv4 addresses on the machine. You don't actually browse to https://0.0.0.0:80 in your browser. Instead, you'll browse to either https://localhost:80 if you're on the same machine that's running the server, or you can browse to any of the IPv4 addresses on the machine that's running the server. You could also browse to the IP address you specified in `server_ip = 'localhost'` in the installation section.  
+## Connecting to Apfell
 
-- All requests from the browser to the apfell server are dynamic and based on the `server_ip` and `listen_port` you specified in the `app/__init__.py` file. I cannot stress this enough that you need to set this to a routable IP address so the browser can connect remotely.
+By default, the server will bind to 0.0.0.0 on port 80. This is an alias meaning that it will be listening on all IPv4 addresses on the machine. You don't actually browse to http://0.0.0.0:80 in your browser. Instead, you'll browse to either http://127.0.0.1:80 if you're on the same machine that's running the server, or you can browse to any of the IPv4 addresses on the machine that's running the server. You could also browse to the IP address you specified in `server_ip = 'localhost'` in the installation section.  
+
+- All requests from the browser to the apfell server are dynamic and based on the `server_ip` and `listen_port` you specified in the `Apfell/apfell-docker/app/__init__.py` file. I cannot stress this enough that you need to set this to a routable IP address so the browser can connect remotely.
 
 Apfell uses JSON Web Token (JWT) for authentication. When you use the browser (vs the API on the commandline), I store your access and refresh tokens in a cookie. This should be seamless as long as you leave the server running; however, the history of the refresh tokens is saved in memory. So, if you authenticate in the browser, then restart the server, you'll have to sign in again.
-- Browse to the server with any modern web browser. This is where you can sign in. This url and `/register` are the ones protected by `whitelisted_ip_blocks` in the `app/__init__.py`. The default username and password here is `apfell_admin` and `apfell_password`.  
+- Browse to the server with any modern web browser. This is where you can sign in. This url and `/register` are the ones protected by `whitelisted_ip_blocks` in the `Apfell/apfell-docker/app/__init__.py`. The default username and password here is `apfell_admin` and `apfell_password`.  
+
+### Starting or Stopping containers
+
+Apfell now uses docker containers for all c2 profiles and payload types. This allows us to have more control over the environments. 
+
+Simply do `./start_c2_profiles.sh` or `./stop_c2_profiles.sh` to start/stop all c2 profiles located on the Apfell server, or you can be more granular for specific profiles like `./start_c2_profiles.sh RESTful_Patchthrough` to just start/stop a single profile.  The same can be done for payload type build servers as well.
+
+C2 profiles and payload types cannot have spaces in the name - this allows us to have easy persistence of changes across containers starting/stopping by mapping directories into the containers.
+
+If you want to reset the data for a specific thing, use the corresponding `reset` script. For example, `./reset_postgres_database.sh` will remove the backend database files so that you can start it fresh again.
+
+### Creating new Containers
+
+If you want to create a new container to use, create a new folder in `C2_Profiles` or `Payload_Types` with the name of the c2 profile or payload type. Within that folder make a new file called `Dockerfile` which contains the following:
+```bash
+From c2_profile_base
+```
+or
+```bash
+From payload_type_base
+```
+
+and place any other files you need in that directory as well. Then, start the container with the corresponding start script. The container will be started and will start sending heartbeat messages to the main Apfell server.
+
+In the Apfell server, make sure to register a new PayloadType or C2Profile with the same name, and you should see the container light turn green.  If there is no heartbeat message in the last 30 seconds, then container light will flash red to indicate that something is wrong.
+
+When dealing with Payload Type containers, they need to have a copy of the transforms for building/loading/modifying command arguments. When you first create a container, this information is not present; however, if you modify/update the Transforms in the UI `Manage Operations -> Transform Management`, then the updated version will get pushed to all currently running containers. So, you can always go to that page and click `Update Code` without having to change anything to get the code pushed to all running containers. 
 
 ## Users
 Everybody that uses Apfell must register an account before being able to login. The password is hashed and stored in the database (you can change your password at any time). The database keeps track of when the account was created and the last time you logged in. When you successfully authenticate, you’re given two JWTs (JSON Web Tokens) - an authentication and a refresh token. If you’re using your browser, these tokens are saved in cookies in your browser and passed with each request. The majority of Apfell interaction is through a series of RESTful interfaces and websockets that the UI wraps for ease of access. If you’re interacting with the RESTful interfaces from your own custom tool or the command line, then you need to pass these tokens along in an Authorization header.
@@ -156,6 +180,11 @@ Your payload type code will have `keywords` for where the C2 profile code and se
 
 The timing of when these keys are used is described in the payload creation section, but I’ve included them here as reference for when you’re creating your agent code.
 
+When working with transforms for creation or loading, there are a few important pieces of information to remember:
+- For payload creation, all of your files (payload and c2 files) can be referenced within any of the transforms under the `self.working_dir` directory
+- For module loading, the raw bytes for all of the commands you selected to load can be accessed via the dictionary provided as the first `prior_output`
+  - Remember: transforms are meant to be chained together - the output of one be used as the `prior_output` for the next command. The first transform's `prior_output` is a dictionary in `{"command_name": "base64 encoded contents of file", "command2": "base64 encoded contents"}`
+
 ## C2 Profiles
 A c2 profile consists of two pieces - server side code that interfaces with the default RESTful APIs and agent code that goes into a payload at creation time. I’ll cover what each of these pieces entails in the following sections. I provide two profiles initially, with more to come in the future. You can see the general information from the management page:
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_c2_profiles.png)  
@@ -173,7 +202,7 @@ The name must be unique within an operation, the description can be whatever you
 
 ### C2 Profile Server Code
 
-You can upload whatever you want for server code - any configuration files you want, any languages, any size. Of all the files you upload, when you start a c2 profile, Apfell will execute the file called “profileName_server”. For example, if you create a c2 profile called “Twitter profile”, then the file that will actually be executed must be called “Twitter profile_server”. 
+You can upload whatever you want for server code - any configuration files you want, any languages, any size. Of all the files you upload, when you start a c2 profile, Apfell will execute the file called “server”. For example, if you create a c2 profile called “Twitter_profile”, then the file that will actually be executed must be called “server”, but the folder name must still be "Twitter_profile". 
 
 If you want to look back at the files you’ve uploaded so far, download them, or remove them, simply click the `Edit Files` button to see the files broken out by server files and associated agent files:  
 
@@ -201,7 +230,7 @@ The `name` must be unique within a c2 profile and is displayed to the user when 
 
 ![alt text](https://github.com/its-a-feature/its-a-feature.github.io/raw/master/images/readme_create_c2.png)  
 
-In the `default` and `RESTful Patchthrough` C2 profiles, there are some interesting options involving encryption. When an operation is created, a random, 32bit AES key is generated and saved. The base64 of this value is auto populated into any C2 profile parameter where the `key` is `AESPSK` (which you can see in the above screenshots). If this parameter has a value, then the profile will use it to encrypt all communications with the server. Additionally, if the `Encrypted Key Exchange` value is `T`, then this `AES Pre-shared key` value is used for initial communications to the server to help negotiate a new 32bit AES key per callback that will be used. This is extremely similar to the method used by [Empire](https://www.powershellempire.com/?page_id=147).
+In the `default` and `RESTful Patchthrough` C2 profiles, there are some interesting options involving encryption. When an operation is created, a random, 32byte AES key is generated and saved. The base64 of this value is auto populated into any C2 profile parameter where the `key` is `AESPSK` (which you can see in the above screenshots). If this parameter has a value, then the profile will use it to encrypt all communications with the server. Additionally, if the `Encrypted Key Exchange` value is `T`, then this `AES Pre-shared key` value is used for initial communications to the server to help negotiate a new 32byte AES key per callback that will be used. This is extremely similar to the method used by [Empire](https://www.powershellempire.com/?page_id=147).
 
 ### C2 Profile Debugging
 For all c2 profiles other than the default one, you can start and stop them at will. When you start one, I get the first few seconds of output to display back in case there are any errors. For example, when you start the RESTful Patchthrough c2 profile:
@@ -544,3 +573,71 @@ Once you've logged into Apfell, you can access some additional help.
 - CommandLines - provides information about how to interact with the RESTful interface via terminal and Curl
 - Documentation - will eventually provide a more thorough manual of how Apfell is organized, how to extend it, how logging works, and how to interact with the dashboards
 - apfell-jxa help - provides help on the command lines that can be sent to the apfell-jxa RAT, how they work, and their parameters
+
+
+## Basic Agent Creation Information
+
+### C2 Information
+
+The agent needs to be able to make web requests to (or communicate through a C2 profile which makes the requests) the following URLs:
+- POST: `http://apfell.server:apfell_port/api/v1.2/callbacks`  
+  - You can alternatively look at the in-server help (API -> C2 Documentation) to see the endpoints for encryption
+  - This endpoint is registering a new callback
+  - This request needs to have a JSON blob of: `{"user":"username","host":"hostname","pid":561,"ip":"192.168.12.52","uuid":"UUID_HERE"}`
+  - You get a UUID when you create an agent. If you are wanting to do this for testing or you want to create an agent outside of Apfell (but still have it connect in), you can do the following:
+    - Create your payload type in Apfell and check the box next to `Is this payload going to be created externally to Apfell?`
+    - Now go to `Create Components -> Create Base Payload`, plug in all the values you plan to use with your agent, and hit create
+    - A payload object will be created in the database for you and will appear on the Payload Management screen. The payload creation page will display your UUID, or you can always look it up later by clicking the `UUID` button next to your payload.
+  - This will get back `{'status': 'success', "id": #, other information about the callback}`, but the status value and ID value are what's important here
+- GET: `http://apfell.server:apfell_port/api/v1.2/tasks/callback/#/nextTask`
+  - The # will be replaced with the ID value from the POST above this
+  - The response will be either `{'command': "none"}` or will be `{"command": "some command name", "params": "some params, potentially a JSON blob", "id": #}`
+  - The ID here is the Task ID and will be used in the next message to post data back as a response to that specific task
+- POST: `http://apfell.server:apfell_port/api/v1.2/responses/#`
+  - The # will be replaced with the task number that you're returning data for. You can post back to the same task # multiple times.
+  - The post needs to have a JSON blob of: `{"response": "aXRzLWEtZmVhdHVyZQ=="}` where the base64 encoded value is the output of the task. This can be a base64 encoded JSON blob as well and is expected for certain commands (See the API -> C2 Documentation for which ones)
+- GET: `http://apfell.server:apfell_port/api/v1.2/files/#1/callbacks/#2`
+  - This is to pull down files from the c2 server (these can be files to drop to disk, load into memory, or anything else)
+  - The #1 is the file number; this value will be given as part of the tasking command
+  - The #2 is the callback's ID (which you got from making the POST to /callbacks); this allows the server to automatically encrypt the response if necessary based on a lookup of the callback's encryption/decryption keys  
+  - The file will come back as a base64 encoded (and potentially encrypted) blob
+
+### Feature Hooking
+If you want to hook into the features of apfell, such as properly tracking keylogging, file upload/download, screenshots, etc, then there are a few more specifications you can meet. All of the following specifications refers to what is base64 encoded within the response field from above.
+
+- File Download (moving files from agent to apfell server)
+  - The first message would contain something like: `{"response": "eyJ0b3RhbF9jaHVua3MiOiA0LCAidGFzayI6IDI1fQ=="}`, which decoded is: `{"total_chunks": 4, "task": 25}`
+  - The indicates to Apfell how many different chunks it'll take to download the file and which task this is associated with
+  - Apfell will register this file in the database and return a JSON object which, among other information, has a `file_id` field.
+  - Then, the agent sends all of its chunks like: `{"response": "base64data=="}` which will decode to: `{"chunk_num": 1, "file_id": #_from_prior_response, "chunk_data": base64_blob==}` for each chunk of data
+  - This is how you can download any file to the Apfell server. If the initiating command is called `screencapture`, then the resulting file from this process will be saved in a special `screenshot` folder for the corresponding host you did a screencapture on and will populate in the expected spots in the UI for screencaptures
+- Screencapture
+  - The `screncapture` command will automatically append the current time and use that as the filename for the resulting screencapture file on disk. 
+  - Otherwise, it follows the exact same procedure as the previous file download
+- Keylog
+  - No information is presented to the main user console (We don't want to flood them with "got keystroke" messages)
+  - The agent should send responses like `{"response": "eyJ1c2VyIjogIml0cy1hLWZlYXR1cmUiLCAid2luZG93X3RpdGxlIjogIk5vdGVwYWQgLSBVbnRpdGxlZCIsICJrZXlzdHJva2VzIjogIm15IHBhc3N3b3JkIGlzIHplcjBjMDBsIn0="}` for example which decodes to `{"user": "its-a-feature", "window_title": "Notepad - Untitled", "keystrokes": "my password is zer0c00l"}`
+  - The key here is that the agent sends back three important pieces of information: user, window_title, keystrokes. This allows me to do better grouping, sorting, and eventually analysis on the data that comes back instead of just having a massive dump of text that's impossible to analyze.
+  - If you want to present information back to the user, simply return either a status message (`{"status": "started"}` or `{"status": "stopped"}`) or a a non-JSON formatted status message that can be displayed to the user to indicate start/stop of the keylogger.
+
+## API Tokens
+There are two kinds of API tokens available: C2 and User. Endpoints are now also scoped based on the authentication method (Cookies, Authorization: Bearer, and apitokens) which limits what you're able to access with each.
+- Rationale for doing this:
+  - It was brought to my attention that there's possibilities for CSRF related to the JSON RESTful API endpoints since I allow cookie usage in the browser. To attempt to fix this, all queries to the RESTful endpoints require explicit headers to be set with the Authentication or API headers; however, that doesn't work with things like `<a href` style links. So, I came up with a compromise. Endpoints that just return browser pages are ok to use cookies because a request to these don't get you anything special and don't modify the system. Endpoints that get information from the database or modify the system require the `Authorization: Bearer` or `apitoken` headers.
+- Cookie-based Endpoints
+  - These are the endpoints that return web pages. They are the ones that don't have `api/vX.Y` in them.
+- Authorization: Bearer-based Endpoints
+  - These are the endpoints that have `api/vX.Y` in them that are NOT hit by the agent for callbacks. If there is an `Authorization: Bearer value_here` then it's treated as though a user is specifically doing this action (manually via CLI or via the browser).
+  - As a reminder, to use these simply do `curl -H "Authorization: Bearer token_here" http://127.0.0.1/api/v1.2/apitokens`
+  - These kinds of tokens DO expire. When they do expire, you need to supply an additional header of `refresh_token` and value of your refresh_token to get a new `access_token`
+- Apitokens-based Endpoints
+  - These are also endpoints that have `api/vX.Y` in tehm that are NOT hit by the agent for callbacks. These endpoints are split in two:
+    - C2: an apitoken with a type of C2 is limited to ONLY endpoints that deal with getting or setting information about a callback (i.e. `POSTing to /callbacks`, `PUTing to /callbacks/callback_id`, `GETting /callbacks/callback_id`, and `GETting /callbacks/callback_id/keys`). This allows you to create and store this token in a C2 profile without worry that it can be used by any teammember to act as you in the rest of the environment.
+    - User: an apitoken with a type of User is allowed to act exactly like a user for all actions. Ideally you'll keep this close-held or used in a personal script to act like you as you script actions against the server
+    - Usage: to use these tokens, simply supply an `apitoken` header with your token: ex: `curl -H "apitoken: value_here" http://127.0.0.1/api/v1.2/apitokens`. 
+  - These tokens do NOT expire! They can be deactivated or deleted though which will essentially expire them.
+  
+API Tokens can be viewed in the `Profile -> Settings` page. You can create API tokens for yourself only. Additionally, if you don't want to completely delete a token, you can `deactiveate` and `reactivate` them at any time from this interface as well. An inactive token will not be allowed to perform any actions, but will stay in the database.
+
+  
+Outside of these, the agent right now just needs to be able to handle the contents of the commands that are associated with it. These can be whatever you design to go with your agent, so there's no formal guidance. If you want to hook into Apfell's tracking/display for things like keylogging, screenshots, uploads, downloads, or encryption, check out the `API -> C2 Documentation` for what's required for each one.

