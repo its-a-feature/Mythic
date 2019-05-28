@@ -25,11 +25,10 @@ async def get_all_operations(request, user):
     else:
         operations = user['operations']
     for op in operations:
-        data = {}
         # for each operation you're a member of, get all members and the admin name
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=op)
-        data['admin'] = operation.admin.username
+        data = operation.to_json()
         data['members'] = [data['admin']]
         query = await db_model.operatoroperation_query()
         operationmap = await db_objects.execute(query.where(OperatorOperation.operation == operation))
@@ -37,8 +36,6 @@ async def get_all_operations(request, user):
             o = map.operator
             if o.username not in data['members']:
                 data['members'].append(o.username)
-        data['name'] = op
-        data['complete'] = operation.complete
         output.append(data)
     return json(output)
 
@@ -64,7 +61,7 @@ async def get_one_operation(request, user, op):
             o = operator.operator
             operators.append(o.username)
         status = {'status': 'success'}
-        return json({**operation.to_json(), "operators": operators, **status})
+        return json({**operation.to_json(), "members": operators, **status})
     else:
         return json({"status": 'error', 'error': 'failed to find operation or not authorized'})
 

@@ -429,6 +429,7 @@ async def create_payload(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
+    print(data)
     if 'tag' not in data:
         data['tag'] = data['payload_type'] + " payload created by " + user['username']
     # first we need to register the payload
@@ -562,7 +563,6 @@ async def get_one_payload_info(request, uuid, user):
         params = [p.to_json() for p in c2_profile_params]
         return json({'status': 'success', **payload.to_json(),
                      "commands": commands,
-                     "c2_profile_parameters_instance": params,
-                     "build_message": payload.build_message})
+                     "c2_profile_parameters_instance": params})
     else:
         return json({'status': 'error', 'error': 'you need to be part of the right operation to see this'})
