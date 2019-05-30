@@ -110,10 +110,10 @@ class Register(BaseEndpoint):
                 # generate JWT token to be stored in a cookie
                 access_token, output = await self.responses.get_access_token_output(
                     request,
-                    {'user_id': user.id},
+                    {'user_id': user.id, 'auth': 'cookie'},
                     self.config,
                     self.instance)
-                refresh_token = await self.instance.auth.generate_refresh_token(request, {'user_id': user.id})
+                refresh_token = await self.instance.auth.generate_refresh_token(request, {'user_id': user.id, 'auth': 'cookie'})
                 output.update({
                     self.config.refresh_token_name(): refresh_token
                 })
@@ -129,6 +129,7 @@ class Register(BaseEndpoint):
                 return resp
             except Exception as e:
                 # failed to insert into database
+                print(e)
                 errors['validate_errors'] = "Username already exists"
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)

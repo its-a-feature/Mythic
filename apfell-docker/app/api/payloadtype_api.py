@@ -28,7 +28,7 @@ async def get_all_payloadtypes(request, user):
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>", methods=['GET'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def get_all_payloadtypes(request, user, ptype):
+async def get_one_payloadtype(request, user, ptype):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     payload_type = unquote_plus(ptype)

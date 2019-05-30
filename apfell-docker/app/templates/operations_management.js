@@ -42,23 +42,23 @@ var operations_table = new Vue({
 		            data['admin'] = $( '#operationModifyAdmin' ).val();
 		        }
 		        new_members = $( '#operationModifyMembers' ).val();
-		        add_users = [];
-		        remove_users = [];
+		        add_members = [];
+		        remove_members = [];
 		        for( var i = 0; i < new_members.length; i++){
 		            if(o.members.indexOf(new_members[i]) == -1){
-		                add_users.push(new_members[i]);
+		                add_members.push(new_members[i]);
 		            }
 		        }
-		        if(add_users.length > 0){
-		            data['add_users'] = add_users;
+		        if(add_members.length > 0){
+		            data['add_members'] = add_members;
 		        }
 		        for(var i = 0; i < o.members.length; i++){
 		            if(new_members.indexOf(o.members[i]) == -1){
-		                remove_users.push(o.members[i]);
+		                remove_members.push(o.members[i]);
 		            }
 		        }
-		        if(remove_users.length > 0){
-		            data['remove_users'] = remove_users;
+		        if(remove_members.length > 0){
+		            data['remove_members'] = remove_members;
 		        }
 		        // make sure the admin didn't get added to the 'remove-users' group
 			    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/" + o.name, modify_operation, "PUT", data);
@@ -89,11 +89,11 @@ function modify_operation(response){
             if(data['old_name']){
                 if(operations[i]['name'] == data['old_name']){
                     operations_table.operations[i]['name'] = data['name'];
-                    operations_table.operations[i].members = data['operators'];
+                    operations_table.operations[i].members = data['members'];
                 }
             }
             else if(operations[i]['name'] == data['name']){
-                operations_table.operations[i].members = data['operators'];
+                operations_table.operations[i].members = data['members'];
             }
         }
     }

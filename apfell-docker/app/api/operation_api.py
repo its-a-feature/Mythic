@@ -146,16 +146,16 @@ async def update_operation(request, user, op):
                     await db_objects.update(operation)
                 except Exception as e:
                     return json({'status': 'error', 'error': 'failed to update the admin'})
-            if 'add_users' in data:
-                for new_member in data['add_users']:
+            if 'add_members' in data:
+                for new_member in data['add_members']:
                     try:
                         query = await db_model.operator_query()
                         operator = await db_objects.get(query, username=new_member)
                         map = await db_objects.create(OperatorOperation, operator=operator, operation=operation)
                     except Exception as e:
                         return json({'status': 'error', 'error': 'failed to add user {} to the operation'.format(new_member)})
-            if 'remove_users' in data:
-                for old_member in data['remove_users']:
+            if 'remove_members' in data:
+                for old_member in data['remove_members']:
                     try:
                         query = await db_model.operator_query()
                         operator = await db_objects.get(query, username=old_member)
@@ -178,7 +178,7 @@ async def update_operation(request, user, op):
             if 'complete' in data:
                 operation.complete = data['complete']
                 await db_objects.update(operation)
-            return json({'status': 'success', 'operators': all_users, **operation.to_json()})
+            return json({'status': 'success', 'members': all_users, **operation.to_json()})
         else:
             return json({'status': 'error', 'error': 'operation is complete and cannot be modified'})
     else:
