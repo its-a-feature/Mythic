@@ -442,7 +442,9 @@ var payloadtypes_table = new Vue({
             });
         },
         export_commands_button: function(p){
-            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype + "/export", '_blank').focus();
+            //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype + "/export", '_blank').focus();
+            payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype + "/export");
+            download_from_memory(p.ptype + ".json", payload);
         },
         edit_create_transforms_button: function(p, index){
             //I do this parse/unparse thing so that i can get a deep copy of the dictionary without holding onto vue's getters and setters
@@ -1077,7 +1079,9 @@ var payloadtypeFiles = new Vue({
                 alertTop("info", "Tasked download...");
             }
             else{
-                window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
+                //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
+                payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download?folder=" + folder + "&file=" + file);
+                download_from_memory(file, payload);
             }
         }
     },
