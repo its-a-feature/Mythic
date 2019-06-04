@@ -87,7 +87,7 @@ var payloads_table = new Vue({
 	    export_profile_button: function(p){
             //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/export/" + p.name, '_blank').focus();
             payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/export/" + p.name);
-            download_from_memory(p.name + ".json", payload);
+            download_from_memory(p.name + ".json", btoa(payload));
 	    },
 	    running_button: function(p){
 	        if (p.running){
@@ -174,7 +174,7 @@ var profile_files_modal = new Vue({
             }else{
                 //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
                 payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/download?folder=" + folder + "&file=" + file);
-                download_from_memory(file, payload);
+                download_from_memory(file, btoa(payload));
             }
         }
     },
