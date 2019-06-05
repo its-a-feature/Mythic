@@ -1,5 +1,0 @@
-def screencapture(apfell, c2, params="whoami", task_id=-1):
-
-    apfell.remove_job(task_id) # need to do this to remove your task from the list
-
-COMMAND_ENDS_HERE

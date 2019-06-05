@@ -23,7 +23,7 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
             query = await db_model.c2profileparameters_query()
             c2_param = await db_objects.get(query, c2_profile=payload.c2_profile, key="AESPSK")
             query = await db_model.c2profileparametersinstance_query()
-            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param)
+            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param, payload=payload)
             AESPSK_String = c2_param_instance.value
         except Exception as e:
             print(str(e))
@@ -112,7 +112,7 @@ async def DHEKE_AESPSK_Create_Callback(request, uuid):
             query = await db_model.c2profileparameters_query()
             c2_param = await db_objects.get(query, c2_profile=payload.c2_profile, key="AESPSK")
             query = await db_model.c2profileparametersinstance_query()
-            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param)
+            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param, payload=payload)
             AESPSK_String = c2_param_instance.value
         except Exception as e:
             print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
@@ -206,7 +206,7 @@ async def AESPSK_Create_Callback(request, uuid):
             query = await db_model.c2profileparameters_query()
             c2_param = await db_objects.get(query, c2_profile=payload.c2_profile, key="AESPSK")
             query = await db_model.c2profileparametersinstance_query()
-            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param)
+            c2_param_instance = await db_objects.get(query, c2_profile_parameters=c2_param, payload=payload)
             AESPSK_String = c2_param_instance.value
             # print("AESb64key: " + AESPSK_String )
         except Exception as e:

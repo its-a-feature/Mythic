@@ -429,7 +429,6 @@ async def create_payload(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
-    print(data)
     if 'tag' not in data:
         data['tag'] = data['payload_type'] + " payload created by " + user['username']
     # first we need to register the payload
