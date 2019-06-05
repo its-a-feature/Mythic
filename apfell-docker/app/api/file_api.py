@@ -357,8 +357,8 @@ async def list_all_screencaptures_per_callback(request, user, id):
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_screencapture(request, user, id):
-    if user['auth'] not in ['access_token', 'apitoken']:
-        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    #if user['auth'] not in ['access_token', 'apitoken']:
+    #    abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
         query = await db_model.filemeta_query()
         file_meta = await db_objects.get(query, id=id)
