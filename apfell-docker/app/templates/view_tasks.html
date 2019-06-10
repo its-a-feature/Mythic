@@ -4,8 +4,8 @@
 <h2>Operation <font color="{{config['operation-color']}}">{{current_operation}}</font>'s Tasks</h2>
 
 <div id="tasks_div">
-    <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll" :class="callback.active ? 'panel panel-primary' : 'panel panel-warning'" id="'callback'+callback.id" :key="callback.id" v-show="Object.keys(callback.tasks).length > 0">
-        <div class="panel-heading" >Tasks for Callback: [[callback.user]]@[[callback.host]] with pid ([[callback.pid]]) <button v-if="!callback.active" class="btn btn-sm btn-success" @click="make_active(callback)">Make Callback Active</button></div>
+    <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll" :class="callback.active ? 'panel panel-primary' : 'panel panel-warning'" id="'callback'+callback.id" :key="callback.id">
+        <div class="panel-heading" >Tasks for Callback [[callback.id]]: [[callback.user]]@[[callback.host]] with pid ([[callback.pid]])  <button class="btn btn-sm btn-success" @click="load_tasks(callback)">Load Tasks</button> <button v-if="!callback.active" class="btn btn-sm btn-success" @click="make_active(callback)">Make Callback Active</button></div>
             <div v-if="callback.hasOwnProperty('tasks')">
                 <div v-for="(t,i) in callback.tasks" :key="t.id" style="word-wrap: break-word">
 
@@ -15,12 +15,14 @@
                         <template v-if="t.comment != ''">
                             <button class="btn btn-danger btn-sm" @click="remove_comment(t.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[t.comment_operator]]</span>'s comment: [[t.comment]]<hr>
                         </template>
-                        (<span class="operator">[[t.operator]]'s</span> task: <a :href="t.href" target="_blank"><b>[[t.id]]</b></a> <button class="btn btn btn-sm" @click="add_comment(t)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button>): <span class="display">[[callback.user]]@[[callback.host]]([[callback.pid]])#&nbsp;</span> [[t.command]] [[t.original_params]]<br>
+                        (<span class="operator">[[t.operator]]'s</span> task: <a :href="t.href" target="_blank"><b>[[t.id]]</b></a> <button class="btn btn btn-sm" @click="add_comment(t)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button>): <span class="display">[[callback.user]]@[[callback.host]]([[callback.pid]])#&nbsp;</span><br>
+                        [[t.command]] [[t.original_params]]<br>
                         <div v-if="t.params != t.original_params">
                             <button class="accordion" :id="'toggle_task' + t.id" @click="toggle_show_params(t.id)">Show transformed params</button><span class="response" style="display:none">[[t.params]]</span>
                         </div>
                         <span v-if="t.hasOwnProperty('responses')" v-for="r in t.responses" :key="r.id" style="white-space: pre-wrap">
-                            <span class="timestamp">([[toLocalTime(r.timestamp)]])</span>&nbsp;&nbsp;<span class="response">[[r.response]]</span>
+                            <span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br>
+                            <span class="response">[[r.response]]</span>
                         </span>
                         <br>
                     </div>

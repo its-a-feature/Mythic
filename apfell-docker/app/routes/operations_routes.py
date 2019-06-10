@@ -164,6 +164,20 @@ async def view_shared_task(request, user, tid):
     return response.html(content)
 
 
+@apfell.route("/split_callbacks/<cid:int>", methods=['GET'])
+@inject_user()
+@scoped('auth:user')
+async def view_split_callbacks(request, user, cid):
+    template = env.get_template('split_callback.html')
+    if use_ssl:
+        content = template.render(links=links, name=user['username'], http="https", ws="wss", admin=user['admin'],
+                                  current_operation=user['current_operation'], cid=cid, config=user['ui_config'])
+    else:
+        content = template.render(links=links, name=user['username'], http="http", ws="ws", admin=user['admin'],
+                                  current_operation=user['current_operation'], cid=cid, config=user['ui_config'])
+    return response.html(content)
+
+
 @apfell.route("/transform_management", methods=['GET'])
 @inject_user()
 @scoped('auth:user')

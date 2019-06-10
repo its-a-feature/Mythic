@@ -4,13 +4,114 @@
 <div class="block1">
     <h1>Welcome to Apfell, where nothing is a bug and everything is a feature</h1>
     <p>
-        Apfell is meant to be a post-exploit, collaborative, red teaming framework for macOS. Everything is open sourced as well. <br>
-        Check out <a href="https://its-a-feature.github.io">my github website</a> for more information on the process of creating Apfell, code repos, and blog posts on updates.<br>
+        Apfell is meant to be a post-exploit, collaborative, red teaming framework. <br>
+        Check out <a href="https://its-a-feature.github.io">my GitHub website</a> or my <a href="https://github.com/its-a-feature">GitHub Repos</a> for more information on the process of creating Apfell, code repos, and blog posts on updates.<br>
     </p>
+    <h4> Be sure to go to "Manage Operations"->"Operations Management" and make an operation your "current operation"</h4><br>
+
+    <h4>What is this Apfell framework?</h4>
     <p>
-        This is the initial, bare-bones release of Apfell that accompanies my <a href="https://its-a-feature.github.io">Creating an Apfell</a> blog series.
+        Apfell is meant to be an extendable user interface that allows operators to create/adjust/control agents in an easier fashion than starting from scratch.<br>
+        For information on agent specific commands, check out: API -> Payload Type Command Help<br>
+        For information on the available RESTful endpoints, check out: API -> RESTful API<br>
+        For information on how to create a new agent or leverage some internal features, check out: API -> C2 Documentation<br>
     </p>
-    <h4> Be sure to go to "Manage Operations"->"Operations Management" and make an operation your "current operation"</h4>
+
+    <h4>How can I quickly start using this framework?</h4>
+    <ol>
+        <li>Select an operation to be your current operation (this affects what payloads, callbacks, and tasking you see)<ul>
+            <li>
+                Manage Operations -> Operations Management
+            </li>
+            <li>
+                Select an operation to "Make Current". You'll see this reflected in the top navigation bar
+            </li>
+        </ul></li>
+        <li>
+            If you want to use a C2 profile other than the default one, you need to start it<ul>
+            <li>
+                Manage Operations -> C2 Profiles Management
+            </li>
+            <li>
+                Potentially update the configuration for the profile via "Edit Files", download, modify, and re-upload
+            </li>
+            <li>
+                Click "Start"
+            </li>
+        </ul>
+        </li>
+        <li>
+            Create your payload<ul>
+            <li>
+                Create Components -> Create Base Payload
+            </li>
+            <li>
+                Select your C2 Profile
+            </li>
+            <li>
+                Fill in any required parameters (some may be auto-populated with hints or default values)
+            </li>
+            <li>
+                Select a payload type that supports this profile
+            </li>
+            <li>
+                Supply a name for your payload
+            </li>
+            <li>
+                Supply a tag for your payload. This tag will auto-populate for the description of any callbacks based on this payload.
+            </li>
+            <li>
+                Select any/all commands you want to be initially available in this payload. Depending on the payload type, you can load more commands after you get a callback.
+            </li>
+            <li>
+                Click "Submit". This will either submit the tasking to the corresponding container or, if it's an external payload type, then it just registers the payload and data in the database.
+            </li>
+        </ul>
+        </li>
+        <li>
+            View/Download/host the payload<ul>
+            <li>
+                Manage Operations -> Payload Management<ul>
+                <li>
+                    Click "Download" to download the payload to your system
+                </li>
+                <li>
+                    Click "Config" to view the metadata about your payload
+                </li>
+                <li>
+                    Click "UUID" to view the unique identifier for the payload
+                </li>
+            </ul>
+            </li>
+            <li>
+                To host the payload for execution:<ul>
+                <li>
+                    Services -> Host Files
+                </li>
+                <li>
+                    Click "Host New File"
+                </li>
+                <li>
+                    You can either upload a file to host or, since the payload is already on the Apfell server, check "Local File"<ul>
+                    <li>
+                        Paste in the payload's UUID and the system will automatically pull all the info for it
+                    </li>
+                </ul>
+                </li>
+            </ul>
+            </li>
+        </ul>
+        </li>
+        <li>
+            Execute your payload
+        </li>
+        <li>
+            You'll get a new callback in Operational Views -> Active Callbacks
+        </li>
+        <li>
+            Click "Interact" on a callback and start typing commands to use your new agent
+        </li>
+    </ol>
     <table>
         <tr>
             <td>

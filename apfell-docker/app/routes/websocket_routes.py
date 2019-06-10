@@ -143,7 +143,6 @@ async def ws_responses(request, ws):
 async def ws_responses_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-
     viewing_callbacks = set()  # this is a list of callback IDs that the operator is viewing, so only update those
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
@@ -190,7 +189,6 @@ async def ws_responses_current_operation(request, ws, user):
 async def ws_callbacks_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -214,6 +212,55 @@ async def ws_callbacks_current_operation(request, ws, user):
                                 query = await db_model.callback_query()
                                 cb = await db_objects.get(query, id=id, operation=operation)
                                 await ws.send(js.dumps(cb.to_json()))
+                            except asyncio.QueueEmpty as e:
+                                await asyncio.sleep(0.5)
+                                await ws.send("") # this is our test to see if the client is still there
+                                continue
+                            except Exception as e:
+                                print(e)
+                                continue
+    finally:
+        pool.close()
+
+
+@apfell.websocket('/ws/unified_callback/<cid:int>')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_unified_single_callback_current_operation(request, ws, user, cid):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "updatedcallback";')
+                    await cur.execute('LISTEN "newtask";')
+                    await cur.execute('LISTEN "updatedtask";')
+                    await cur.execute('LISTEN "newresponse";')
+                    if user['current_operation'] != "":
+                        # before we start getting new things, update with all of the old data
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(query, name=user['current_operation'])
+                        query = await db_model.callback_query()
+                        callback = await db_objects.get(query, operation=operation, id=cid)
+                        await ws.send(js.dumps(callback.to_json()))
+                        await ws.send("")
+                        # now pull off any new callbacks we got queued up while processing the old data
+                        while True:
+                            # msg = await conn.notifies.get()
+                            try:
+                                msg = conn.notifies.get_nowait()
+                                id = msg.payload
+                                if msg.channel == "updatedcallback":
+                                    query = await db_model.callback_query()
+                                    obj = await db_objects.get(query, id=id, operation=operation)
+                                elif "task" in msg.channel:
+                                    query = await db_model.task_query()
+                                    obj = await db_objects.get(query, id=id, callback=callback)
+                                else:
+                                    query = await db_model.response_query()
+                                    obj = await db_objects.get(query, id=id)
+                                await ws.send(js.dumps(obj.to_json()))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(0.5)
                                 await ws.send("") # this is our test to see if the client is still there

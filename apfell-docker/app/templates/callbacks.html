@@ -65,7 +65,6 @@
         <!-- End of the repeating -->
         </table>
 </div>
-<div id="middle-alert"></div>
 <div class="panel panel-info" id="bottom-data">
     <!-- Tabs at the bottom of the screen - just the names at the top though-->
     <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
@@ -111,12 +110,12 @@
                         <button class="btn btn-danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<br><hr>
                     </template>
                     (<span class="operator">[[task.operator]]</span>'s task: <a :href="task.href" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn-sm" @click="add_comment(task)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button> - [[task.status]] at <span class="timestamp">[[toLocalTime(task.timestamp)]]</span>)
-                    <span class="display">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</span>
+                    <span class="display">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</span><br>
                     [[task.command]]&nbsp;[[task.original_params]]
                     <div v-if="task.params != task.original_params">
                         <button class="accordion" :id="'toggle_task' + task.id" @click="toggle_show_params(task.id)">Show transformed params</button><span class="response" style="display:none">&nbsp;&nbsp;[[task.params]]</span>
                     </div>
-                    <span v-for="rsp in task.response" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap"><br><span class="timestamp">([[toLocalTime(rsp.timestamp)]])</span>&nbsp;&nbsp;<span class="response">[[rsp.response]]</span>
+                    <span v-for="rsp in task.response" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap"><br><span class="timestamp">([[toLocalTime(rsp.timestamp)]])</span><br><span class="response">[[rsp.response]]</span>
                     </span>
                 </div>
             </div>

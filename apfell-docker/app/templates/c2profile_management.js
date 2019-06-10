@@ -80,6 +80,7 @@ var payloads_table = new Vue({
 	        //alertTop("info", "Loading files...");
 	        profile_files_modal.profile_name = p.name;
 	        profile_files_modal.server_folder = [];
+	        profile_files_modal.got_list_from_container = false;
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/files", edit_files_callback, "GET", null);
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/container_files", null, "GET", null);
             $('#profileFilesModal').modal('show');
@@ -156,7 +157,8 @@ var profile_files_modal = new Vue({
     data: {
         profile_name: "",
         folders: [],
-        server_folder: []
+        server_folder: [],
+        got_list_from_container: false
     },
     methods: {
         delete_file_button: function(folder, file){
@@ -216,6 +218,7 @@ function edit_files_callback(response){
     }
     else{
         alertTop("info", "Tasked rabbitmq for container files...");
+        got_list_from_container = false;
         profile_files_modal.folders = data['files'];
     }
 }
@@ -433,8 +436,10 @@ function startwebsocket_rabbitmqresponses(){
 			    if(pieces[4] == "listfiles"){
 			        data = JSON.parse(rdata['body']);
 			        alertTop("success", "Received file list from container", 2);
+			        profile_files_modal.got_list_from_container = true;
+			        //console.log(JSON.stringify(rdata, null, 2));
 			        for(var i = 0; i < data.length; i++){
-			            console.log(data[i]);
+			            //console.log(data[i]);
 			            for(var j = 0; j < data[i]['filenames'].length; j++){
 			                profile_files_modal.server_folder.push(data[i]['filenames'][j]);
                         }

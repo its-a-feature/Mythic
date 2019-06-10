@@ -15,22 +15,22 @@
 </div>
 <div id="searchResults">
     <div v-for="r in responses" style="resize: vertical; overflow:scroll" class="panel panel-info" :key="r.id">
-        <div class="panel-heading" >Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b>[[r.task.id]]</b></a>: [[r.task.command]] [[r.task.original_params]]
+        <div class="panel-heading" >Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b>[[r.task.id]]</b></a>:<br> [[r.task.command]] [[r.task.original_params]]
         <div v-if="r.task.params != r.task.original_params">Modified params: [[r.task.params]]</div>
         </div>
         <div class="well">
             <span style="white-space: pre-wrap">
-                <span class="timestamp">([[toLocalTime(r.timestamp)]])</span>&nbsp;&nbsp;<span class="response">[[r.response]]</span>
+                <span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response">[[r.response]]</span>
             </span>
         </div>
     </div>
 </div>
 <div id="searchTasksResults">
     <div v-for="t in tasks" style="resize: vertical; overflow:scroll" class="panel panel-info" :key="t.id">
-        <div class="panel-heading" >Task <a :href="[[t.share_task]]" target="_blank"><b>[[t.id]]</b></a> on callback [[t.callback]] - [[t.operator]]'s task: [[t.command]] [[t.original_params]]
+        <div class="panel-heading" >Task <a :href="[[t.share_task]]" target="_blank"><b>[[t.id]]</b></a> on callback [[t.callback]] - [[t.operator]]'s task:<br> [[t.command]] [[t.original_params]]
         <div v-if="t.params != t.original_params">Modified params: [[t.params]]</div></div>
         <div class="well">
-            <span v-for="r in t.responses" style="white-space: pre-wrap"><span class="timestamp">([[toLocalTime(r.timestamp)]])</span>&nbsp;&nbsp;<span class="response">[[r.response.replace(/\\n|\r/g, '\n')]]</span></span>
+            <span v-for="r in t.responses" style="white-space: pre-wrap"><span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response">[[r.response.replace(/\\n|\r/g, '\n')]]</span></span>
         </div>
     </span>
     </div>

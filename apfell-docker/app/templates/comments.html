@@ -17,11 +17,12 @@
                 <template v-if="task.comment != ''">
                     <button class="btn btn-danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<hr>
                 </template>
-                (<span class="operator">[[task.operator]]</span>'s task: <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + task.id" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn btn-sm" @click="add_comment(task)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button>)&nbsp;<span class="display">[[c.user]]@[[c.host]]([[c.pid]])#&nbsp;</span>&nbsp;&nbsp;[[task.command]]&nbsp;[[task.original_params]]
+                (<span class="operator">[[task.operator]]</span>'s task: <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + task.id" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn btn-sm" @click="add_comment(task)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button>)&nbsp;<span class="display">[[c.user]]@[[c.host]]([[c.pid]])#&nbsp;</span><br>
+                [[task.command]]&nbsp;[[task.original_params]]
                 <div v-if="task.params != task.original_params">
                     <button class="accordion" :id="'toggle_task' + task.id" @click="toggle_show_params(task.id)">Show transformed params</button><span class="response" style="display:none">[[task.params]]</span>
                 </div>
-                <span v-for="rsp in task.responses" :key="rsp.id" style="white-space: pre-wrap"><br><span class="timestamp">([[toLocalTime(rsp.timestamp)]])&nbsp;&nbsp;</span><span class="response">[[rsp.response]]</span>
+                <span v-for="rsp in task.responses" :key="rsp.id" style="white-space: pre-wrap"><br><span class="timestamp">([[toLocalTime(rsp.timestamp)]])<br></span><span class="response">[[rsp.response]]</span>
                 </span>
             </div>
     </div>
@@ -37,12 +38,12 @@
                     <template v-if="task.comment != ''">
                        <button class="btn btn-danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<hr>
                     </template>
-                    (<span class="operator">[[task.operator]]</span>'s task: <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + task.id" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn btn-sm" @click="add_comment(task)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button>)&nbsp;<span class="display">[[c.user]]@[[c.host]]([[c.pid]])#&nbsp;</span>&nbsp;&nbsp;[[task.command]]&nbsp;[[task.original_params]]
+                    (<span class="operator">[[task.operator]]</span>'s task: <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + task.id" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn btn-sm" @click="add_comment(task)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button>)&nbsp;<span class="display">[[c.user]]@[[c.host]]([[c.pid]])#&nbsp;</span><br>[[task.command]]&nbsp;[[task.original_params]]
 
                     <div v-if="task.params != task.original_params">
                         <button class="accordion" :id="'toggle_task' + task.id" @click="toggle_show_params(task.id)">Show transformed params</button><span class="response" style="display:none">[[task.params]]</span>
                     </div>
-                    <span v-for="rsp in task.responses" :key="rsp.id" style="white-space: pre-wrap"><br><span class="timestamp">([[toLocalTime(rsp.timestamp)]])&nbsp;&nbsp;</span><span class="response">[[rsp.response]]</span>
+                    <span v-for="rsp in task.responses" :key="rsp.id" style="white-space: pre-wrap"><br><span class="timestamp">([[toLocalTime(rsp.timestamp)]])<br></span><span class="response">[[rsp.response.replace(/\\n|\r/g, '\n')]]</span>
                     </span>
                 </div>
             </div>

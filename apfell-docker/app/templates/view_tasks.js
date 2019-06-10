@@ -44,6 +44,9 @@ var tasks_div = new Vue({
         },
         remove_comment: function(id){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, update_callback_comment_callback, "DELETE", null);
+        },
+        load_tasks: function(callback){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback.id , get_callback_tasks_callback, "GET", null);
         }
     },
     delimiters: ['[[', ']]']
@@ -70,7 +73,7 @@ function startwebsocket_callbacks(){
             data['tasks'] = [];
             tasks_div.callbacks.push(data); // just add the new callback info to the list
             // now request that callback's tasks and we can update it
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['id'] , get_callback_tasks_callback, "GET", null);
+            //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['id'] , get_callback_tasks_callback, "GET", null);
         }
     };
 }; startwebsocket_callbacks();

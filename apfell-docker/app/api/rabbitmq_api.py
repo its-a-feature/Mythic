@@ -153,6 +153,10 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 payload_type.container_running = True
                 payload_type.last_heartbeat = datetime.datetime.utcnow()
                 await db_objects.update(payload_type)
+                # now send updated PT code to everybody
+                transform_code = open("./app/api/transforms/utils.py", 'rb').read()
+                await send_pt_rabbitmq_message("*", "load_transform_code",
+                                               base64.b64encode(transform_code).decode('utf-8'))
         except Exception as e:
             print("Exception in rabbit_heartbeat_callback: {}, {}".format(pieces, str(e)))
 

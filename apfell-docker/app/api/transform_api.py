@@ -164,7 +164,7 @@ async def view_transform_code(request, user):
 @apfell.route(apfell.config['API_BASE'] + "/transforms/code/upload", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def upload_c2_profile_payload_type_code(request, user):
+async def upload_transform_code(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # upload a new transforms file to our server and reload the transforms code
@@ -201,12 +201,17 @@ async def upload_c2_profile_payload_type_code(request, user):
         except Exception as e:
             print(e)
         from app.api.transforms.utils import CommandTransformOperation, TransformOperation
-        transform_code = open("./app/api/transforms/utils.py", 'rb').read()
-        await send_pt_rabbitmq_message("*", "load_transform_code", base64.b64encode(transform_code).decode('utf-8'))
-        return json({'status': 'success'})
+        status = await update_all_pt_transform_code()
+        return json(status)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to reload the transform modules'})
+
+
+async def update_all_pt_transform_code():
+    transform_code = open("./app/api/transforms/utils.py", 'rb').read()
+    status = await send_pt_rabbitmq_message("*", "load_transform_code", base64.b64encode(transform_code).decode('utf-8'))
+    return status
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/<id:int>", methods=['PUT'])

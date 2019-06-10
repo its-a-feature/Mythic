@@ -649,16 +649,7 @@ function startwebsocket_callbacks(){
         if (event.data != ""){
 
             cb = JSON.parse(event.data);
-            if (cb.hasOwnProperty('operator')){
-                if (cb['operator'] == "null"){
-                    delete cb.operator;
-                }
-                else{
-                    op = cb['operator'].slice(0);
-                    delete cb.operator;
-                    cb['operator'] = op;
-                }
-            }
+
             var color = generate_background_color();
             cb['real_time'] = "0:0:0:0";
             cb['bg_color'] = color;
@@ -1019,13 +1010,6 @@ function shadeBlend(p,c0,c1) {
         var f=w(c0.slice(1),16),t=w((c1?c1:p<0?"#000000":"#FFFFFF").slice(1),16),R1=f>>16,G1=f>>8&0x00FF,B1=f&0x0000FF;
         return "#"+(0x1000000+(u(((t>>16)-R1)*n)+R1)*0x10000+(u(((t>>8&0x00FF)-G1)*n)+G1)*0x100+(u(((t&0x0000FF)-B1)*n)+B1)).toString(16).slice(1)
     }
-}
-function alertMiddle(type, string){
-    document.getElementById("middle-alert").style = "";
-    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\" style=\"white-space: pre-wrap\">" +
-    string +
-    "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
-    $( '#middle-alert' ).html(html);
 }
 
 startwebsocket_callbacks();
