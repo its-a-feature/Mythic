@@ -243,7 +243,6 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                         operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.callback_query()
                         callback = await db_objects.get(query, operation=operation, id=cid)
-                        await ws.send(js.dumps(callback.to_json()))
                         await ws.send("")
                         # now pull off any new callbacks we got queued up while processing the old data
                         while True:
@@ -251,22 +250,31 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
+                                # only get updates for the callback we specified
                                 if msg.channel == "updatedcallback":
+                                    if str(id) != str(callback.id):
+                                        continue
                                     query = await db_model.callback_query()
                                     obj = await db_objects.get(query, id=id, operation=operation)
                                 elif "task" in msg.channel:
                                     query = await db_model.task_query()
-                                    obj = await db_objects.get(query, id=id, callback=callback)
+                                    obj = await db_objects.get(query, id=id)
+                                    if obj.callback.id != callback.id:
+                                        continue
                                 else:
                                     query = await db_model.response_query()
                                     obj = await db_objects.get(query, id=id)
-                                await ws.send(js.dumps(obj.to_json()))
+                                    if obj.task.callback.id != callback.id:
+                                        continue
+                                message = {**obj.to_json(), "channel": msg.channel}
+                                await ws.send(js.dumps(message))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(0.5)
                                 await ws.send("") # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                print(msg)
+                                print(str(sys.exc_info()[-1].tb_lineno) + str(e))
                                 continue
     finally:
         pool.close()

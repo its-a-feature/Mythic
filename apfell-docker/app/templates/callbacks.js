@@ -116,7 +116,10 @@ var callback_table = new Vue({
                     this.callbacks[i]['selected'] = false;
                 }
             }
-        }
+        },
+        split_callback: function(callback){
+            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/" + callback.id, '_blank').focus();
+        },
     },
     computed:{
         sorted_callbacks:function() {
@@ -475,7 +478,8 @@ var task_data = new Vue({
         },
         remove_comment: function(id){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, remove_comment_callback, "DELETE", null);
-        }
+        },
+
     },
     computed: {
         hasTransformsSet: function(){

@@ -88,6 +88,7 @@ async def callback(message: aio_pika.IncomingMessage):
         elif command == "load_transform_code":
             # pt.task.PAYLOAD_TYPE.load_transform_code with body of "base64 code"
             try:
+                os.makedirs("/Apfell/apfell/", exist_ok=True)
                 file = open("/Apfell/apfell/transforms.py", 'wb')
                 file.write(base64.b64decode(message.body.decode('utf-8')))
                 file.close()

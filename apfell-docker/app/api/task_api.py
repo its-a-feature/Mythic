@@ -227,10 +227,11 @@ async def add_task_to_callback_func(data, cid, user):
         # first see if the operator and callback exists
         query = await db_model.operator_query()
         op = await db_objects.get(query, username=user['username'])
-        query = await db_model.callback_query()
-        cb = await db_objects.get(query, id=cid)
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.callback_query()
+        cb = await db_objects.get(query, id=cid, operation=operation)
+
         original_params = None
         task = None
         # now check the task and add it if it's valid and valid for this callback's payload type
@@ -256,7 +257,7 @@ async def add_task_to_callback_func(data, cid, user):
                     return {'status': 'success', **task.to_json(), 'command': 'tasks'}
                 else:
                     return {'status': 'error', 'error': 'failed to get tasks', 'cmd': data['command'],
-                            'params': data['params']}
+                            'params': data['params'], "callback": cid}
             elif data['command'] == "clear":
                 # this means we're going to be clearing out some tasks depending on our access levels
                 task = await db_objects.create(Task, callback=cb, operator=op, params="clear " + data['params'],
@@ -271,10 +272,10 @@ async def add_task_to_callback_func(data, cid, user):
                 else:
                     await db_objects.create(Response, task=task, response=raw_rsp['error'])
                     return {'status': 'error', 'error': raw_rsp['error'], 'cmd': data['command'],
-                            'params': data['params']}
+                            'params': data['params'], 'callback': cid}
             # it's not tasks/clear, so return an error
             return {'status': 'error', 'error': data['command'] + ' is not a registered command', 'cmd': data['command'],
-                    'params': data['params']}
+                    'params': data['params'], "callback": cid}
         file_meta = ""
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the agent
         if cmd.cmd == "upload":
@@ -297,7 +298,7 @@ async def add_task_to_callback_func(data, cid, user):
                 data['params'] = js.dumps({'remote_path': upload_config['remote_path'], 'file_id': file_meta.id})
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                return {'status': 'error', 'error': 'failed to get file info from the database: ' + str(e), 'cmd': data['command'], 'params': data['params']}
+                return {'status': 'error', 'error': 'failed to get file info from the database: ' + str(e), 'cmd': data['command'], 'params': data['params'], "callback": cid}
         elif cmd.cmd == "download":
             if '"' in data['params']:
                 data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
@@ -312,7 +313,7 @@ async def add_task_to_callback_func(data, cid, user):
                     if not cb.registered_payload.payload_type.container_running:
                         return {"status": "error",
                                 'error': 'build container not running, so cannot task to do load transforms',
-                                'cmd': data['command'], 'params': data['params']}
+                                'cmd': data['command'], 'params': data['params'], 'callback': cid}
                     if cb.registered_payload.payload_type.last_heartbeat < datetime.utcnow() + timedelta(seconds=-30):
                         query = await db_model.payloadtype_query()
                         payload_type = await db_objects.get(query, ptype=cb.registered_payload.payload_type.ptype)
@@ -323,10 +324,10 @@ async def add_task_to_callback_func(data, cid, user):
                                                    original_params=data['params'], status="preprocessing")
                     status = await perform_load_transforms(data, cb, operation, op, task)
                     if status['status'] == "error":
-                        return {'status': 'error', 'error': status['error'], 'cmd': data['command'], 'params': data['params']}
+                        return {'status': 'error', 'error': status['error'], 'cmd': data['command'], 'params': data['params'], 'callback': cid}
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params']}
+                return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params'], 'callback': cid}
         # now actually run through all of the command transforms
         original_params = data['params']
         cmd_transforms = await get_commandtransforms_func(cmd.id, operation.name)
@@ -396,7 +397,7 @@ async def add_task_to_callback_func(data, cid, user):
             else:
                 return {"status": "error",
                         'error': 'payload\'s container not running, no heartbeat in over 30 seconds, so it cannot be tasked to do transforms or tests',
-                        "cmd": cmd.cmd, "params": data['params']}
+                        "cmd": cmd.cmd, "params": data['params'], 'callback': cid}
 
         for update_file in data['file_updates_with_task']:
             # now we can associate the task with the filemeta object
@@ -410,7 +411,7 @@ async def add_task_to_callback_func(data, cid, user):
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         print("failed to get something in add_task_to_callback_func " + str(e))
-        return {'status': 'error', 'error': 'Failed to create task: ' + str(e), 'cmd': data['command'], 'params': data['params']}
+        return {'status': 'error', 'error': 'Failed to create task: ' + str(e), 'cmd': data['command'], 'params': data['params'], 'callback': cid}
 
 
 async def perform_load_transforms(data, cb, operation, op, task):
@@ -505,7 +506,7 @@ async def perform_load_transforms(data, cb, operation, op, task):
             return result
         else:
             return {'status': 'error', 'error': 'failed to get transforms for this payload type', 'cmd': data['command'],
-                    'params': data['params']}
+                    'params': data['params'], 'callback': cb.id}
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         raise e

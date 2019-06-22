@@ -40,7 +40,7 @@
                       <ul class="dropdown-menu">
                           <li><a @click="show_keylogs(callback)" href="#">Keystrokes</a></li>
                           <li><a @click="show_screencaptures(callback)" href="#">Screencaptures</a></li>
-                          <li hidden><a @click="spawn_menu(callback)" href="#">spawn menu</a></li>
+                          <li><a @click="split_callback(callback)" href="#">Split Callback</a></li>
                           <li><a @click="edit_description(callback)" href="#">Edit Description</a></li>
                           <li><a @click="view_loaded_commands(callback)" href="#">View Loaded Commands</a></li>
                           <li role="separator" class="divider"></li>
@@ -340,7 +340,7 @@ body{
     color:{{ config['text-color'] }}
 }
 .panel-body{
-    background:{{ config['background-color'] }}
+    background:{{ config['background-color'] }};
 }
 .panel-info{
     background:{{ config['background-color'] }}
@@ -440,14 +440,14 @@ body{
     color: {{ config['text-color'] }}
 }
 .tab-content{
-    background:{{ config['background-color'] }}
+    background:{{ config['background-color'] }};
 }
 .accordion{
     background-color: {{ config['background-color'] }};
     color: {{ config['text-color'] }}
 }
 .well{
-    background:{{ config['well-bg'] }}
+    background:{{ config['well-bg'] }};
 }
 span{
     color: {{ config['text-color'] }};
