@@ -1159,18 +1159,20 @@ async def ws_payload_type_status_messages(request, ws, user):
 
 # CHECK ORIGIN HEADERS FOR WEBSOCKETS
 async def valid_origin_header(request):
-    if 'origin' not in request.headers:
-        return False
-    if use_ssl and listen_port == '443':
-        if request.headers['origin'] != "https://{}".format(server_ip):
-            return False
-    elif use_ssl:
-        if request.headers['origin'] != "https://{}:{}".format(server_ip, listen_port):
-            return False
-    elif listen_port == '80':
-        if request.headers['origin'] != "http://{}".format(server_ip):
-            return False
+    if 'origin' in request.headers:
+        if use_ssl and listen_port == '443':
+            if request.headers['origin'] == "https://{}".format(server_ip):
+                return True
+        elif use_ssl:
+            if request.headers['origin'] == "https://{}:{}".format(server_ip, listen_port):
+                return True
+        elif listen_port == '80':
+            if request.headers['origin'] == "http://{}".format(server_ip):
+                return True
+        else:
+            if request.headers['origin'] == "http://{}:{}".format(server_ip, listen_port):
+                return True
+    elif 'apitoken' in request.headers:
+        return True
     else:
-        if request.headers['origin'] != "http://{}:{}".format(server_ip, listen_port):
-            return False
-    return True
+        return False

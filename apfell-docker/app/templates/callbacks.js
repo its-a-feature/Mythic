@@ -240,9 +240,6 @@ var task_data = new Vue({
                         }
                         else if(params.length == 0){
                             alertTop("info", "Usage: help {command_name}", 2);
-                            //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                            //      $("#middle-alert").slideUp(500);
-                            //});
                             return;
                         }
                     }
@@ -265,24 +262,15 @@ var task_data = new Vue({
                                 }
                                 if(rdata['status'] == 'success'){
                                     alertTop("success", "Successfully modified current callback's metadata", 1);
-                                    //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                    //      $("#middle-alert").slideUp(500);
-                                    //});
                                     task_data.input_field = "";
                                 }
                                 else{
                                     alertTop("danger", "Failed to set current callback's metadata: " + rdata['error']);
-                                    //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                    //      $("#middle-alert").slideUp(500);
-                                    //});
                                 }
                             }, "PUT", set_data);
                         }
                         else{
                             alertTop("danger", "Wrong number of params for set. Should be set {field} {value}");
-                            //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                            //      $("#middle-alert").slideUp(500);
-                            //});
                             return;
                         }
                         return;
@@ -311,9 +299,6 @@ var task_data = new Vue({
                             }
                             else{
                                 alertTop("danger", credentials['error']);
-                                //$("#middle-alert").fadeTo(2000, 500).slideUp(500, function(){
-                                //      $("#middle-alert").slideUp(500);
-                                //});
                                 return;
                             }
                             $( '#paramsModal' ).modal('show');

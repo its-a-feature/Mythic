@@ -219,6 +219,10 @@ async def add_task_to_callback(request, cid, user):
         data['params'] = js.dumps(params)
     data['operator'] = user['username']
     data['file_updates_with_task'] = file_updates_with_task
+    if 'test_command' not in data:
+        data['test_command'] = False
+    if 'transform_status' not in data:
+        data['transform_status'] = []
     return json(await add_task_to_callback_func(data, cid, user))
 
 
@@ -409,9 +413,8 @@ async def add_task_to_callback_func(data, cid, user):
 
         return {**result, **task_json}
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        print("failed to get something in add_task_to_callback_func " + str(e))
-        return {'status': 'error', 'error': 'Failed to create task: ' + str(e), 'cmd': data['command'], 'params': data['params'], 'callback': cid}
+        print("failed to get something in add_task_to_callback_func " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return {'status': 'error', 'error': 'Failed to create task: ' +str(sys.exc_info()[-1].tb_lineno) + " " + str(e), 'cmd': data['command'], 'params': data['params'], 'callback': cid}
 
 
 async def perform_load_transforms(data, cb, operation, op, task):
