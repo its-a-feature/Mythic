@@ -126,34 +126,12 @@ base64_encode = function(data){
     var encoded = ns_data.base64EncodedStringWithOptions(0).js;
     return encoded;
 };
-    var commands_string = `
-        exports.exit = function(task, command, params){
-        $.NSApplication.sharedApplication.terminate(this);
-        };
-        exports.load = function(task, command, params){
-            //base64 decode the params and pass it to the default_load command
-            //  params should be {"cmd": "cmd_name", "code": "base64 encoded JXA code"}
-            try{
-                params = params.replace(/\\'/g, "\\"");
-                parsed_params = JSON.parse(params);
-                new_dict = default_load(base64_decode(parsed_params['code']));
-                commands_dict = Object.assign({}, commands_dict, new_dict);
-                return "Loaded " + parsed_params['cmd'];
-            }
-            catch(error){
-                return error.toString();
-            }
-
-        };
-    `;
-    commands_string = commands_string + `
-//-------------COMMANDS_HERE -----------------------
-`;
+    exports = {};  // get stuff ready for initial command listing
+    //-------------COMMANDS_HERE -----------------------
+    //console.log("about to load commands");
+    var commands_dict = exports;
     var jsimports = "";
 
-    //console.log("about to load commands");
-    var commands_dict = default_load(commands_string);
-    //console.log("loaded commands");
 //-------------GET IP AND CHECKIN ----------------------------------
 for(var i=0; i < apfell.ip.length; i++){
 	ip = apfell.ip[i];

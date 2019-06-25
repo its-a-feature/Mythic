@@ -13,25 +13,25 @@ exports.list_apps = function(task, command, params){
         var names = [];
         for (var i = 0; i < procs.length; i++){
             var info = "Name: " + procs[i].name() +
-            "\\npid: " + procs[i].id() +
-            "\\ndisplayedName: " + procs[i].displayedName() +
-            "\\nshortName: " + procs[i].shortName() +
-            "\\nfile: " + procs[i].file().typeIdentifier();
+            "\npid: " + procs[i].id() +
+            "\ndisplayedName: " + procs[i].displayedName() +
+            "\nshortName: " + procs[i].shortName() +
+            "\nfile: " + procs[i].file().typeIdentifier();
             if(params){
                 info += "HighLevelEvents: " + procs[i].acceptsHighLevelEvents() +
-                "\\nRemoteEvents: " + procs[i].acceptsRemoteEvents() +
-                "\\nArchitecture: " + procs[i].architecture() +
-                "\\nBackgroundOnly: " + procs[i].backgroundOnly() +
-                "\\nBundleIdentifer: " + procs[i].bundleIdentifier() +
-                "\\nclassic: " + procs[i].classic() +
-                "\\ncreatorType: " + procs[i].creatorType() +
-                "\\nfileType: " + procs[i].fileType() +
-                "\\nfrontmost: " + procs[i].frontmost() +
-                "\\nScriptable: " + procs[i].hasScriptingTerminology() +
-                "\\npartitionSpaceUsed: " + procs[i].partitionSpaceUsed() +
-                "\\ntotalPartitionSize: " + procs[i].totalPartitionSize() +
-                "\\nunixId: " + procs[i].unixId() +
-                "\\nvisible: " + procs[i].visible();
+                "\nRemoteEvents: " + procs[i].acceptsRemoteEvents() +
+                "\nArchitecture: " + procs[i].architecture() +
+                "\nBackgroundOnly: " + procs[i].backgroundOnly() +
+                "\nBundleIdentifer: " + procs[i].bundleIdentifier() +
+                "\nclassic: " + procs[i].classic() +
+                "\ncreatorType: " + procs[i].creatorType() +
+                "\nfileType: " + procs[i].fileType() +
+                "\nfrontmost: " + procs[i].frontmost() +
+                "\nScriptable: " + procs[i].hasScriptingTerminology() +
+                "\npartitionSpaceUsed: " + procs[i].partitionSpaceUsed() +
+                "\ntotalPartitionSize: " + procs[i].totalPartitionSize() +
+                "\nunixId: " + procs[i].unixId() +
+                "\nvisible: " + procs[i].visible();
             };
             names.push(info);
         }
@@ -67,7 +67,7 @@ exports.list_apps = function(task, command, params){
                 names[info['pid']] = info;
             }
             else{
-                output += "\\n" + procs[i].processIdentifier + "\t" + procs[i].localizedName.js;
+                output += "\n" + procs[i].processIdentifier + "\t" + procs[i].localizedName.js;
             }
         }
         if(verbose){

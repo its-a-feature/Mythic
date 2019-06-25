@@ -133,7 +133,7 @@ class Operator(p.Model):
                 elif k != 'password' and 'default' not in k:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
         if 'last_login' in r and r['last_login'] is not None:
             r['last_login'] = r['last_login'].strftime('%m/%d/%Y %H:%M:%S')
@@ -168,6 +168,7 @@ class PayloadType(p.Model):
     command_template = p.TextField(null=False, default="")
     supported_os = p.TextField(null=False, default="")  # indicate which OS/versions this payload works for
     execute_help = p.TextField(null=False, default="")  # helpful options on how to run
+    # external indicates if this is an externally created payload
     external = p.BooleanField(default=False, null=False)
     # information about getting information to/from another container or machine for building/loading/transforming
     last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
@@ -188,7 +189,7 @@ class PayloadType(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
         r['last_heartbeat'] = r['last_heartbeat'].strftime('%m/%d/%Y %H:%M:%S')
         return r
@@ -220,7 +221,7 @@ class Transform(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -260,7 +261,7 @@ class Command(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -296,7 +297,7 @@ class CommandParameters(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -325,7 +326,7 @@ class Operation(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -354,7 +355,7 @@ class OperatorOperation(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -370,8 +371,10 @@ class C2Profile(p.Model):
     operator = p.ForeignKeyField(Operator, null=False)  # keep track of who created/registered this profile
     # This has information about supported payload types, but that information is in a separate join table
     creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # (indicates "when")
+    # indicates if the c2 profile is running
     running = p.BooleanField(null=False, default=False)
     last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    # indicates if the c2 profile container is up and able to receive tasking
     container_running = p.BooleanField(null=False, default=False)
 
     class Meta:
@@ -386,7 +389,7 @@ class C2Profile(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
         r['last_heartbeat'] = r['last_heartbeat'].strftime('%m/%d/%Y %H:%M:%S')
         return r
@@ -420,7 +423,7 @@ class PayloadTypeC2Profile(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -473,7 +476,7 @@ class Payload(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -506,7 +509,7 @@ class PayloadCommand(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -535,7 +538,7 @@ class C2ProfileParameters(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -568,7 +571,7 @@ class C2ProfileParametersInstance(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -618,7 +621,7 @@ class Callback(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['init_callback'] = r['init_callback'].strftime('%m/%d/%Y %H:%M:%S')
         r['last_checkin'] = r['last_checkin'].strftime('%m/%d/%Y %H:%M:%S')
         return r
@@ -653,7 +656,7 @@ class LoadedCommands(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -699,7 +702,7 @@ class Task(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -724,7 +727,7 @@ class Response(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -760,7 +763,7 @@ class FileMeta(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -784,7 +787,7 @@ class ATTACK(p.Model):
             try:
                 r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -811,7 +814,7 @@ class ATTACKCommand(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -839,7 +842,7 @@ class ATTACKTask(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -877,7 +880,7 @@ class Credential(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -908,7 +911,7 @@ class Keylog(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -948,7 +951,7 @@ class CommandTransform(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -971,7 +974,7 @@ class Artifact(p.Model):
             try:
                 r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -1009,7 +1012,7 @@ class ArtifactTemplate(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -1043,7 +1046,7 @@ class TaskArtifact(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
@@ -1066,7 +1069,7 @@ class StagingInfo(p.Model):
             try:
                 r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -1093,7 +1096,7 @@ class APITokens(p.Model):
                 else:
                     r[k] = getattr(self, k)
             except:
-                r[k] = json.dumps(getattr(self, k))
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 

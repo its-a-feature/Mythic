@@ -14,11 +14,6 @@
     "load_transforms":[
       {
         "parameter":"",
-        "name":"removeSlashes",
-        "order":3
-      },
-      {
-        "parameter":"",
         "name":"convertBytesToString",
         "order":2
       },

@@ -1,6 +1,6 @@
 exports.jsimport_call = function(task, command, params){
     try{
-        var output = ObjC.deepUnwrap(eval(jsimport + "\\n " + params));
+        var output = ObjC.deepUnwrap(eval(jsimport + "\n " + params));
         if(output == "" || output === undefined){
             return "No command output";
         }

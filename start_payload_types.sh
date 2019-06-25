@@ -2,10 +2,10 @@
 
 if [ $# -eq 0 ]
 then
-	# if no arguments supplied, try to build and start all c2 profiles
+	# if no arguments supplied, try to build and start all payload types
 	payloads=(./Payload_Types/*)
 else
-	# if any arguments supplied, try to build and start only the specified c2 profiles
+	# if any arguments supplied, try to build and start only the specified payload types
 	payloads=( "$@" )
 	payloads=("${payloads[@]/#/.\/Payload_Types\/}")
 fi

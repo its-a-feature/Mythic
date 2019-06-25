@@ -42,9 +42,9 @@ exports.add_user = function(task, command, params){
         currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
         cmd = "dscl . create /Users/" + username + " PrimaryGroupID " + primarygroupid;
         currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
-        cmd = "dscl . create /Users/" + username + " NFSHomeDirectory \\"" + homedir + "\\"";
+        cmd = "dscl . create /Users/" + username + " NFSHomeDirectory \"" + homedir + "\"";
         currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
-        cmd = "dscl . create /Users/" + username + " RealName \\"" + realname + "\\"";
+        cmd = "dscl . create /Users/" + username + " RealName \"" + realname + "\"";
         currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
         cmd = "dscl . create /Users/" + username + " UserShell " + usershell;
         currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
@@ -52,14 +52,14 @@ exports.add_user = function(task, command, params){
             cmd = "dseditgroup -o edit -a " + username + " -t user admin";
             currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
         }
-        cmd = "dscl . passwd /Users/" + username + " \\"" + password + "\\"";
+        cmd = "dscl . passwd /Users/" + username + " \"" + password + "\"";
         currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
         if(createprofile){
-            cmd = "mkdir \\"" + homedir + "\\"";
+            cmd = "mkdir \"" + homedir + "\"";
             currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
-            cmd = "cp -R \\"/System/Library/User Template/English.lproj/\\" \\"" + homedir + "\\"";
+            cmd = "cp -R \"/System/Library/User Template/English.lproj/\" \"" + homedir + "\"";
             currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
-            cmd = "chown -R " + username + ":staff \\"" + homedir + "\\"";
+            cmd = "chown -R " + username + ":staff \"" + homedir + "\"";
             currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
         }
         return "Successfully ran the commands to create the user";
