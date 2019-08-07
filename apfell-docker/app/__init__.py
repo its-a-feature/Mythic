@@ -10,7 +10,7 @@ from ipaddress import ip_network
 db_name = 'apfell_db'
 db_user = 'apfell_user'
 db_pass = 'super_secret_apfell_user_password'
-server_ip = '192.168.205.151'  # this will be used by the browser to callback here
+server_ip = '127.0.0.1'  # this will be used by the browser to callback here
 listen_port = '80'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
