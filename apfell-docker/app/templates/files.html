@@ -1,25 +1,76 @@
 {% extends "base.html" %}
 {% block body %}
 
-<h2>Operation <font color="{{config['operation-color']}}">{{current_operation}}</font>'s Files (Uploaded and Downloaded)</h2>
-
-<div id="files_div">
-    <div v-for="(data, host, i) in hosts.downloads" style="resize: vertical; overflow:scroll" class="panel panel-success" v-if="host.length > 0">
-        <div class="panel-heading" ><b>[[host]] Downloads</b></div>
-            <div v-for="(file,i) in data" :key="file.id">
-                <div v-if="file.complete" style=" width: 100%">
-                    <a :href='file.remote_path' target="_blank"><font size="4"><span class="operator"><b>[[file.operator]]</b></span>'s download ([[file.id]]) at <span class="timestamp">[[toLocalTime(file.timestamp)]]</span>: <span class="display"><b>[[file.params]]</b></span></font></a>
-                </div>
-                <div v-else style="background-color: #ffd8d8;color: #444;border: 2px solid #ADD8E6">
-                    <a href="#" style="color:black;"><font size="4"><span class="operator"><b>[[file.operator]]</b></span>'s download ([[file.id]]): [[file.params]]. Parts [[file.chunks_received]] of [[file.total_chunks]] received so far.</font></a>
-                </div>
-            </div>
-    </div>
-    <div v-for="(data, host, i) in hosts.uploads" style="resize: vertical; overflow:scroll" class="panel panel-warning" v-if="host.length > 0">
-        <div class="panel-heading" ><b>[[host]] Uploads</b></div>
-            <div v-for="(file,i) in data" :key="file.id" style="width:100%">
-                <a :href='file.remote_path' target="_blank"><font size="4"><span class="operator"><b>[[file.operator]]</b></span>'s upload from <span class="display"><b>[[file.path]]</b></span>([[file.id]]) to <span class="display"><b>[[file.upload.remote_path]]</b></span></font></a>
-            </div>
+<div id="files_div" style="overflow:scroll;height:100%">
+    <div style="resize: vertical; overflow:scroll" class="card bg-card-body border border-dark shadow" >
+        <div class="card-header bg-header text-white border border-dark shadow" ><span class="timestamp"><h2>Downloads</h2></span></div>
+        <div class="card-body bg-card-body border border-dark shadow" style="padding:0">
+            <table class="table table-striped table-hover {{config['table-color']}}">
+                <tr>
+                    <th style="width:4rem">Delete</th>
+                    <th onclick="sort_table(this)" style="width:9rem">File Num</th>
+                    <th onclick="sort_table(this)">Task</th>
+                    <th onclick="sort_table(this)" style="width:20rem">Host</th>
+                    <th onclick="sort_table(this)" style="width:15rem">Time</th>
+                    <th onclick="sort_table(this)" style="width:20rem">Operator</th>
+                    <th onclick="sort_table(this)">Remote File</th>
+                    <th style="width:6rem">Download</th>
+                </tr>
+                <tr v-for="(file,i) in hosts.downloads" :key="file.id" >
+                    <template v-if="file.complete">
+                        <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-2x" @click="delete_file(file.id)" ></i></button></td>
+                        <td>[[file.id]]</td>
+                        <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + file.task" target="_blank">[[file.task]]</a></td>
+                        <td>[[file.host]]</td>
+                        <td>[[toLocalTime(file.timestamp)]]</td>
+                        <td>[[file.operator]]</td>
+                        <td>[[file.params]]</td>
+                        <td><a class="btn btn-md" :href='file.remote_path' target="_blank" style="color:green"><i class="fas fa-download fa-2x"></i></a></td>
+                    </template>
+                    <template v-else>
+                        <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-2x" @click="delete_file(file.id)" ></i></button></td>
+                        <td>[[file.id]]</td>
+                        <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + file.task" target="_blank">[[file.task]]</a></td>
+                        <td>[[file.host]]</td>
+                        <td>[[toLocalTime(file.timestamp)]]</td>
+                        <td>[[file.operator]]</td>
+                        <td>[[file.params]]: <span class="display">Parts [[file.chunks_received]] of [[file.total_chunks]] received so far</span></td>
+                        <td><a class="btn btn-md" style="color:red"><i class="fas fa-ban fa-2x"></i></a></td>
+                    </template>
+                </tr>
+            </table>
+        </div>
+    </div><br>
+    <div style="resize: vertical; overflow:scroll" class="card bg-card-body border border-dark shadow">
+        <div class="card-header bg-header border border-dark shadow" ><span class="operator"><h2>Uploads</h2></span></div>
+        <div class="card-body bg-card-body border border-dark shadow" style="padding:0">
+            <table class="table table-striped table-hover {{config['table-color']}} border border-dark shadow">
+                <tr>
+                    <th style="width:4rem">Delete</th>
+                    <th onclick="sort_table(this)" style="width:9rem">File Num</th>
+                    <th onclick="sort_table(this)">Task</th>
+                    <th onclick="sort_table(this)" style="width:20rem">Host</th>
+                    <th onclick="sort_table(this)" style="width:15rem">Time</th>
+                    <th onclick="sort_table(this)" style="width:20rem">Operator</th>
+                    <th onclick="sort_table(this)" style="width:20rem">Source</th>
+                    <th onclick="sort_table(this)" >Destination</th>
+                    <th style="width:6rem">Download</th>
+                </tr>
+                <tr v-for="(file,i) in hosts.uploads" :key="file.id" >
+                    <template v-if="file.host != 'MANUAL FILE UPLOAD'">
+                        <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-2x" @click="delete_file(file.id)" ></i></button></td>
+                        <td>[[file.id]]</td>
+                        <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + file.task" target="_blank">[[file.task]]</a></td>
+                        <td>[[file.host]]</td>
+                        <td>[[toLocalTime(file.timestamp)]]</td>
+                        <td>[[file.operator]]</td>
+                        <td>[[file.path]]</td>
+                        <td>[[file.upload.remote_path]]</td>
+                        <td><a class="btn btn-md" :href='file.remote_path' target="_blank" style="color:green"><i class="fas fa-download fa-2x"></i></a></td>
+                    </template>
+                </tr>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -29,221 +80,4 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['well-bg'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['well-bg'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-a:link{
-    color: {{ config['text-color']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
-
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
 {% endblock %}

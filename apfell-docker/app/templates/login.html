@@ -1,7 +1,4 @@
 {% extends "base.html" %}
-{% block body_config %}
-
-{% endblock %}
 {% block body %}
 <img src="/static/apfell-white.png" style="opacity:0.05; position:absolute; top:8%; left:20%">
 <div style="position:absolute; top:30%; left:40%">
@@ -37,4 +34,15 @@
 {% endblock %}
 
 {% block scripts %}
+{% endblock %}
+
+{% block body_config %}
+tr:nth-child(odd) {
+  background-color: transparent;
+  color: #ECEDF0;
+}
+body{
+    background-color: #2D2E31;
+    color: #ECEDF0;
+}
 {% endblock %}

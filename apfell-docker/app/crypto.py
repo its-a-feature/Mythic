@@ -24,7 +24,7 @@ async def decrypt_AES256(data: bytes, key: bytes):
     decryption_cipher = AES.new(key, AES.MODE_CBC, iv=iv)
     decrypted_message = decryption_cipher.decrypt(message)
     # print(decrypted_message)
-    # now to remove any padding tha was added on to make it the right block size of 16
+    # now to remove any padding that was added on to make it the right block size of 16
     return unpad(decrypted_message, 16)
 
 

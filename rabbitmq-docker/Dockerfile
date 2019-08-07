@@ -1,4 +1,4 @@
-FROM rabbitmq:3.6.6-management
+FROM rabbitmq:3.7.6-management
 
 ADD init.sh /
 ADD config_rabbit.sh /

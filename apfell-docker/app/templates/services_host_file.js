@@ -47,9 +47,6 @@ function create_directory_callback(response){
     }
     if(data['status'] == 'success'){
         getServices();
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
     }else{
         alertTop("danger", data['error']);
     }
@@ -63,9 +60,6 @@ function stop_button_callback(response){
     }
     if(data['status'] == 'success'){
         getServices();
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
     }else{
         alertTop("danger", data['error']);
     }
@@ -79,9 +73,6 @@ function start_button_callback(response){
     }
     if(data['status'] == 'success'){
         getServices();
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
     }else{
         alertTop("danger", data['error']);
     }
@@ -112,7 +103,7 @@ function create_file_button(){
     $( '#manualFileSubmit').unbind('click').click(function(){
         var data = {'local_file': manualFileModal.local_file};
         if(manualFileModal.local_file){
-            data['path'] = manualFileModal.path;
+            data['path'] = manualFileModal.path.trim();
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/manual/",
             manual_file_upload, "POST", data);
         }else{
@@ -137,9 +128,6 @@ function manual_file_upload(response){
         alertTop("danger", data['error']);
         return;
     }
-    $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-          $("#top-alert").slideUp(500);
-    });
 }
 getServices();
 var manual_file_table = new Vue({

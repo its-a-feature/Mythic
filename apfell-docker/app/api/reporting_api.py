@@ -5,6 +5,7 @@ from sanic_jwt.decorators import scoped, inject_user
 from fpdf import FPDF, HTMLMixin
 import sys
 from sanic.exceptions import abort
+import os
 
 
 # ------- REPORTING-BASED API FUNCTION -----------------
@@ -47,10 +48,18 @@ async def reporting_full_timeline_api(request, user):
                     data['strict'] = config['strict']
             pdf, status = await get_all_data(operation, pdf, data)
             if status['status'] == 'success':
-                pdf.output("./app/files/{}/full_timeline.pdf".format(user['current_operation']), dest='F')
+                save_path = "./app/files/{}/full_timeline.pdf".format(user['current_operation'])
+                count = 1
+                while os.path.exists(save_path):
+                    save_path = "./app/files/{}/full_timeline{}.pdf".format(user['current_operation'], str(count))
+                    count += 1
+                query = await operator_query()
+                operator = await db_objects.get(query, username=user['username'])
+                filemeta = await db_objects.create(FileMeta, total_chunks=1, operation=operation, path=save_path, operator=operator, complete=True)
+                pdf.output(save_path, dest='F')
             else:
                 return json({'status': 'error', 'error': status['error']})
-            return json({'status': 'success'})
+            return json({'status': 'success', **filemeta.to_json()})
         except Exception as e:
             print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             error = "Error in creating report: " + str(e)
@@ -159,16 +168,13 @@ class PDF(FPDF, HTMLMixin):
         # Logo
         title = "Apfell - Timeline"
         # image location, top-left x, top-left y, width (height auto calculated to keep proportions)
-        self.image('./app/static/apfell_cropped.png', 10, 8, 20)
+        self.image('./app/static/apfell-transparent.png', 10, 8, 20)
         # Arial bold 15
         self.set_font('Arial', 'B', 15)
         # Calculate width of title and position
         w = self.get_string_width(title) + 6
         self.set_x((210 - w) / 2)
         # Colors of frame, background and text
-        #self.set_draw_color(0, 80, 180)
-        #self.set_fill_color(230, 230, 0)
-        #self.set_text_color(220, 50, 50)
         # Thickness of frame (1 mm)
         self.set_line_width(1)
         # Title

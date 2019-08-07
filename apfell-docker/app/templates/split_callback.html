@@ -1,35 +1,56 @@
 {% extends "base.html" %}
 
 {% block body %}
+<br>
 <div style="resize: both; overflow:auto; display:block" id="callback_table">
-    <button type="button" class="btn btn-sm btn-success" @click="add_callback_to_table()">Add Callback</button><select id="callback_options_select"><option v-for="c in callback_options" :key="c.id" :value="c.id">[[c.id]]: [[c.user]]@[[c.host]] ([[c.pid]]) - [[c.description]]</option></select><br>
+    <button type="button" class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_callback_to_table()">View Callback</button><select id="callback_options_select"><option v-for="c in callback_options" :key="c.id" :value="c.id">[[c.id]]: [[c.user]]@[[c.host]] ([[c.pid]]) - [[c.description]]</option></select><br>
     <template v-for="callback in callbacks">
-        <div class="panel panel-primary" :style="'display: inline-block;padding:2px;width:' + (100/Object.keys(callbacks).length) + '%'">
-            <div class="panel-heading">
-            <button v-if="Object.keys(callbacks).length > 1" @click="remove_callback(callback)" class="btn btn-sm btn-danger" style="margin:0">X</button> Callback [[callback.id]]: [[callback.user]]@[[callback.host]] ([[callback.pid]])<br>
+        <div class="card border border-dark shadow bg-card-body" :style="'display: inline-block;padding:2px;width:' + (100/Object.keys(callbacks).length) + '%'">
+            <div class="card-header bg-header border border-dark shadow text-white">
+            <button v-if="Object.keys(callbacks).length > 1" @click="remove_callback(callback)" class="btn btn-sm btn{{config['outline-buttons']}}danger" style="margin:0">X</button> Callback [[callback.id]]: [[callback.user]]@[[callback.host]] ([[callback.pid]])<br>
             Type: [[callback.payload_type]], C2: [[callback.c2_profile]], Initial Check-in: [[ toLocalTime(callback.init_callback) ]]<br>
             Last Checkin: [[ callback.real_time  ]]<br>
-            Description: [[callback.description]]
-        </div>
+                Description: <span class="display"> <b>[[callback.description]]</b></span>
+                <template v-if="callback.locked">
+                    <br><i class="fas fa-user-lock"></i> Locked by <span class="operator">[[callback.locked_operator]]</span>
+                </template>
+            </div>
 
-        <div class="panel panel-body" style="overflow:scroll;height:800px;margin:0" :id="'callbackoutput' + callback.id">
+        <div class="card bg-card-body-l2" style="overflow:scroll;height:900px;margin:0" :id="'callbackoutput' + callback.id">
             <template id="'taskview' + callback.id">
-                <div class="well well-sm" v-for="task in callback.tasks" :key="task.id" :id="'task' + task.id" style="word-wrap: break-word;margin:5px">
-                    <template v-if="task.comment != ''">
-                        <button class="btn btn-danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<br><hr>
-                    </template>
-                    (<span class="operator">[[task.operator]]</span>'s task: <a :href="task.href" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn-sm" @click="add_comment(task)" style="margin:0px;padding:0px 1px;line-height:18px;background-color:{{config['well-bg']}}"><img src="/add_comment.png" width="20px" height="20px"></button> - [[task.status]] at <span class="timestamp">[[toLocalTime(task.timestamp)]]</span>)
-                    <span class="display">[[callback_table.callbacks[task.callback].user]]@[[callback_table.callbacks[task.callback].host]]([[callback_table.callbacks[task.callback].pid]])#&nbsp;</span><br>
-                    [[task.command]]&nbsp;[[task.original_params]]
-                    <div v-if="task.params != task.original_params">
-                        <button class="accordion" :id="'toggle_task' + task.id" @click="toggle_show_params(task.id)">Show transformed params</button><span class="response" style="display:none">&nbsp;&nbsp;[[task.params]]</span>
+                <div class="card bg-card-body-l2 border border-dark shadow" v-for="task in callback.tasks" :key="task.id" :id="'task' + task.id" style="word-wrap: break-word;margin:5px">
+                    <div :class="task.status + ' card-header shadow'" style="position:-webkit-sticky;position:sticky;top:0">
+                        <template v-if="task.comment != ''">
+                            <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<br><hr>
+                        </template>
+                        <template v-if="task.status == 'processed'">
+                            <button disabled class="btn btn{{config['outline-buttons']}}success btn-sm" style="filter:brightness(120%)">[[task.status]]</button>
+                        </template>
+                        <template v-else-if="task.status == 'processing'">
+                            <button disabled class="btn btn{{config['outline-buttons']}}warning btn-sm" style="box-shadow: 0 0 5px yellow;">[[task.status]]</button>
+                        </template>
+                        <template v-else>
+                            <button disabled class="btn btn{{config['outline-buttons']}}info btn-sm" style="filter:brightness(120%); box-shadow: 0 0 10px blue;">[[task.status]]</button>
+                        </template>
+                        &nbsp;<span class="operator">[[task.operator]]</span>'s task: <a :href="task.href" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn-sm" @click="add_comment(task)" style="margin:0px;padding:0px 1px;line-height:18px"><img src="/add_comment.png" width="20px" height="20px" data-toggle="tooltip" title="Add a comment to this task for all operators to see and search by"></button> <label class="switch" style="width:40px; height:20px" data-toggle="tooltip" title="Toggle browser scripts if available and applied for this command's output"><input type="checkbox" :checked="task.use_scripted" v-model="task.use_scripted" ><span class="script-slider round"></span></label> - at <span class="timestamp">[[toLocalTime(task.timestamp)]]</span>: <a class="btn btn-link" type="button" data-toggle="collapse" :data-target="'#cardbody' + task.id" aria-expanded="false" :aria-controls="'cardbody' + task.id" @click="toggle_arrow(task.id)"><img :id="'color-arrow' + task.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(0deg)" > <b>[[task.command]]</b>&nbsp;[[task.original_params]]</a><button class="btn btn-sm" style="color:{{config['text-color']}}" data-toggle="tooltip" title="Copy command to clipboard" @click="copyStringToClipboard(task.command + ' ' + task.original_params)" ><i class="far fa-copy" ></i></button>
                     </div>
-                    <span v-for="rsp in task.responses" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap"><br><span class="timestamp">([[toLocalTime(rsp.timestamp)]])</span><br><span class="response">[[rsp.response]]</span>
-                    </span>
+                    <div class="collapse" :id="'cardbody' + task.id" style="width:100%">
+                        <div class="card-body response-background border border-dark shadow">
+                            <div v-if="task.params != task.original_params">
+                                <button class="accordion" :id="'toggle_task' + task.id" @click="toggle_show_params(task.id)">Show transformed params</button><span class="response" style="display:none">&nbsp;&nbsp;[[task.params]]</span>
+                            </div>
+                            <template v-if="task.hasOwnProperty('scripted') && task.use_scripted">
+                                <span v-html="task.scripted"></span>
+                            </template>
+                            <template v-else>
+                                <span v-for="rsp in task.responses" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap"><span class="timestamp">([[toLocalTime(rsp.timestamp)]])</span><br><span class="response"><pre>[[rsp.response]]</pre></span></span>
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </template>
         </div>
-        <div class="panel-footer"  >
+        <div class="card-footer border border-dark">
             <div class="input-group mb-3">
 
                 <input :id="'commandline:' + callback.payload_type + ':' + callback.id" type="text" class="form-control" v-model="callback.input_field"
@@ -37,40 +58,53 @@
                        @keyup.enter="task_button(callback)" @keyup.up="cmd_history_up(callback)" @keyup.down="cmd_history_down(callback)"
                        style="position:relative;display:inline-block"
                 >
-                <span class="input-group-btn" style="position:relative">
-                    <button type="button" class="btn btn-danger" @click="task_button(callback)">Submit Task</button>
-                    <a data-toggle="popover" tabindex="0" data-placement="top" @click="toggle_popover(callback.id)" type="button" data-html="true" href="#" :id="'editCommandSwitches' + callback.id" :class="hasTransformsSet(callback.id) ? 'btn btn-warning' : 'btn btn-success'" style="margin: 1; padding: 0; position: relative;"><img src="/gear_med.png" width="30px" height="32px"></a>
+                <span class="btn-group" style="position:relative">
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger" @click="task_button(callback)">Submit Task</button>
+                    <a data-toggle="modal" :data-target="'#editCommandSwitches' + callback.id" type="button" href="#"  :class="hasTransformsSet(callback.id) ? 'btn btn{{config['outline-buttons']}}warning' : 'btn btn{{config['outline-buttons']}}success'" style="margin: 1; padding: 0; position: relative;"><font :color="hasTransformsSet(callback.id) ? 'bg-warning' : 'green'"><i class="fas fa-cogs fa-2x"></i></font></a>
                 </span>
             </div>
         </div>
         <!-- START POPOVER FOR EDITING RUNNING COMMAND TRANSFORMS -->
-        <div :id="'popover-content-editCommandSwitches' + callback.id" class="hide" style="position:relative;" >
-            Changes are temporary unless you persist them across the operation.
-            <table>
-                <tr>
-                    <th>Order</th>
-                    <th>Transform</th>
-                    <th>Active?</th>
-                </tr>
-                <template v-if="ptype_cmd_params[get_payload_type(callback.id)] != undefined && get_cmd_index(callback.id) != -1 ">
-                    <tr v-for="(t, i) in ptype_cmd_params[get_payload_type(callback.id)][get_cmd_index(callback.id)]['transforms']" :key="t.order">
-                        <td>[[t.order]]</td>
-                        <td>[[t.name]]&nbsp;</td>
-                        <td><label class="switch"><input type="checkbox" :checked="t.active" v-model="t.active"><span class="slider round"></span></label></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <button type="button" class="btn btn-success" @click="persist_transform_active_status(get_payload_type(callback.id), get_cmd_index(callback.id))">Persist</button>
-                        </td>
-                        <td style="padding: 10px">
-                            <p>Test command?</p>
-                        </td>
-                        <td>
-                            <label class="switch"><input type="checkbox" :checked="callback.test_command" v-model="callback.test_command"><span class="slider round"></span></label>
-                        </td>
-                    </tr>
-                </template>
-            </table>
+        <div :id="'editCommandSwitches' + callback.id" class="modal fade" role="dialog" >
+            <div class="modal-dialog modal-md" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-dark text-white">
+                        <h3>Command Transforms</h3>
+                        <button type="button" class="close" data-dismiss="modal">×</button>
+                    </div>
+                    <div class="modal-body">
+                    Changes are temporary unless you persist them across the operation.
+                    <table class="table table-striped table-hover {{config['table-color']}}">
+                        <tr>
+                            <th>Order</th>
+                            <th>Transform</th>
+                            <th>Active?</th>
+                        </tr>
+                        <template v-if="ptype_cmd_params[get_payload_type(callback.id)] != undefined && get_cmd_index(callback.id) != -1 ">
+                            <tr v-for="(t, i) in ptype_cmd_params[get_payload_type(callback.id)][get_cmd_index(callback.id)]['transforms']" :key="t.order">
+                                <td>[[t.order]]</td>
+                                <td>[[t.name]]&nbsp;</td>
+                                <td><label class="switch"><input type="checkbox" :checked="t.active" v-model="t.active"><span class="slider round"></span></label></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <button type="button" class="btn btn{{config['outline-buttons']}}success" @click="persist_transform_active_status(get_payload_type(callback.id), get_cmd_index(callback.id))">Persist</button>
+                                </td>
+                                <td style="padding: 10px">
+                                    <p>Test command?</p>
+                                </td>
+                                <td>
+                                    <label class="switch"><input type="checkbox" :checked="callback.test_command" v-model="callback.test_command"><span class="slider round"></span></label>
+                                </td>
+                            </tr>
+                        </template>
+                    </table>
+                </div>
+                    <div class="modal-footer">
+                    <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" aria-hidden="true">Close</button>
+                </div>
+                </div>
+            </div>
         </div>
         <!-- END POPOVER FOR EDITING RUNNING COMMAND TRANSFORMS -->
         </div>
@@ -80,31 +114,33 @@
 <div class="modal fade bs-example-modal-md" id="addCommentModal" role="dialog" >
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-dark text-white">
                 <button type="button" class="close" data-dismiss="modal">×</button>
                 <h3>Add / Edit Comment</h3>
             </div>
               <div class="modal-body">
-                <textarea rows="5" cols="35" id="addCommentTextArea"></textarea>
+                <textarea rows="5" cols="50" id="addCommentTextArea"></textarea>
               </div>
               <div class="modal-footer">
-                <button class="btn btn-success" data-dismiss="modal" id="addCommentSubmit" aria-hidden="true">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" id="addCommentSubmit" aria-hidden="true">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR ADDING A COMMENT -->
 <!-- THIS IS OUR MODEL FOR PROMPTING FOR COMMAND PARAMETERS -->
-<div class="modal fade bs-example-modal-md" id="paramsModal" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade bs-example-modal-lg" id="paramsModal" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
+
                 <h3 id="paramsModalHeader">Command Parameters</h3>
-                <p>A * indicates a required parameter</p>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+
             </div>
               <div class="modal-body" id="paramsBody">
-                <table id="paramsTable">
+                  <p>A * indicates a required parameter</p>
+                <table id="paramsTable" class="table table-striped table-hover {{config['table-color']}}">
                     <tr v-for="param in command_params" :key="param.id">
                         <td>
                             [[param.name]]<span v-if="param.required">&nbsp;<b>*</b></span>&nbsp;
@@ -141,10 +177,12 @@
                             </span>
                             <span v-else-if="param.type == 'Array'">
                                 <div v-for="(arg, index) in param.array_value" :key="index">
-                                    <button class="btn btn-danger btn-sm" @click="command_params_remove_array_element(param, index)">X</button>
-                                    <input type="text" v-model="param.array_value[index]" size="20"><br>
+                                    <span class="input-group">
+                                        <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="command_params_remove_array_element(param, index)"><i class="fas fa-trash-alt" ></i></button>
+                                        <textarea v-model="param.array_value[index]" rows="1" cols="60" @input="split_input_params(param, index)"></textarea>
+                                    </span>
                                 </div>
-                                <button class="btn btn-success btn-sm" @click="command_params_add_array_element(param);">Add Element</button>
+                                <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="command_params_add_array_element(param);">Add Element</button>
                             </span>
                             <span v-else-if="param.type == 'File'">
                                 <input type="file" :id="'fileparam' + param.name">
@@ -154,8 +192,8 @@
                 </table>
               </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="paramsSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="paramsSubmit">Submit</button>
               </div>
         </div>
     </div>
@@ -165,7 +203,7 @@
 <div class="modal fade bs-example-modal-md" id="editDescriptionModal" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-dark text-white">
                 <button type="button" class="close" data-dismiss="modal">×</button>
                 <h3>Edit Description</h3>
             </div>
@@ -173,8 +211,8 @@
                   <input class="text" size="60" id="editDescriptionText">
               </div>
             <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="editDescriptionSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="editDescriptionSubmit">Submit</button>
               </div>
         </div>
     </div>
@@ -187,308 +225,5 @@
 {% endblock %}
 
 {% block body_config %}
-hr {
-  display: block;
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-  margin-left: auto;
-  margin-right: auto;
-  border-style: inset;
-  border-width: 1px;
-}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }};
-    padding-bottom: 0em;
-    padding-top: 0em;
-    padding-left: 0em;
-    padding-right: 0em;
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.accordion{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
 
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
-
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['autocomplete']}};
-  border-bottom: 1px solid {{config['text-color']}};
-  white-space:nowrap;
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-  color: {{config['highlight-text']}}
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-input:checked + .slider {
-  background-color: #2196F3;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
-}
-
-input:checked + .slider:before {
-  -webkit-transform: translateX(26px);
-  -ms-transform: translateX(26px);
-  transform: translateX(26px);
-}
-
-/* Rounded sliders */
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-.popover-title{
-    background: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.popover-content{
-    background:{{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
-textarea {
-    background: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
 {% endblock %}

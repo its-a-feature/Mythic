@@ -69,6 +69,7 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
             return raw(b"", status=404)
         return raw(encrypted_message_string, status=200)
     except Exception as e:
+        print(sys.exc_info()[-1].tb_lineno)
         print(str(e))
         pass
     try:
@@ -95,6 +96,7 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
         return raw(encrypted_response_string, status=200)
     except Exception as e:
         # we failed to find staging info for the given uuid
+        print(sys.exc_info()[-1].tb_lineno)
         print(str(e))
         return raw(b"", status=404)
 
@@ -241,13 +243,6 @@ async def AESPSK_Create_Callback(request, uuid):
         print("failed to find payload")
         print(str(e))
         return raw(b"")
-
-
-@apfell.route(apfell.config['API_BASE'] + "/list_crypto_options", methods=['GET'])
-@inject_user()
-@scoped(['auth:user', 'auth:apitoken_c2', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def list_crypto_options(request):
-    return json({'types': ['AES256']})
 
 
 """ Implements Diffie-Hellman as a standalone pythong file. Taken from Empire

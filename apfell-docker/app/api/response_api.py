@@ -4,12 +4,14 @@ from app.database_models.model import Task, Response, Callback, Keylog, TaskArti
 import base64
 from sanic_jwt.decorators import scoped, inject_user
 from app.api.file_api import create_filemeta_in_database_func, download_file_to_disk_func
+from app.api.credential_api import create_credential_func
 import json as js
 import datetime
 import app.crypto as crypt
 import app.database_models.model as db_model
 import sys
 from sanic.exceptions import abort
+from math import ceil
 
 
 # This gets all responses in the database
@@ -92,18 +94,37 @@ async def search_responses(request, user):
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
     query = await db_model.response_query()
-    responses = await db_objects.execute(query.where(Response.response.contains(data['search'])).switch(Task).where(Callback.operation == operation).order_by(Response.id))
-    return json({'status': 'success', 'output': [r.to_json() for r in responses]})
+    count = await db_objects.count(query.where(Response.response.regexp(data['search'])).switch(Task).where(Callback.operation == operation))
+    if 'page' not in data:
+        # allow a blanket search to still be performed
+        responses = await db_objects.execute(query.where(Response.response.regexp(data['search'])).switch(Task).where(Callback.operation == operation).order_by(Response.id))
+        data['page'] = 1
+        data['size'] = count
+    else:
+        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+        data['size'] = int(data['size'])
+        data['page'] = int(data['page'])
+        if data['page'] * data['size'] > count:
+            data['page'] = ceil(count / data['size'])
+            if data['page'] == 0:
+                data['page'] = 1
+        responses = await db_objects.execute(
+            query.where(
+                Response.response.regexp(data['search'])).switch(Task).where(
+                Callback.operation == operation).order_by(Response.id).paginate(data['page'], data['size'])
+        )
+    return json({'status': 'success', 'output': [r.to_json() for r in responses], 'total_count': count, 'page': data['page'], 'size': data['size']})
 
 
 # implant calling back to update with base64 encoded response from executing a task
 # We don't add @protected or @injected_user here because the callback needs to be able to post here for responses
-@apfell.route(apfell.config['API_BASE'] + "/responses/<id:int>", methods=['POST'])
+@apfell.route(apfell.config['API_BASE'] + "/responses/<id:string>", methods=['POST'])
 async def update_task_for_callback(request, id):
     data = None
     try:
         query = await db_model.task_query()
-        task = await db_objects.prefetch(query.where(Task.id == id), Command.select())
+        task = await db_objects.prefetch(query.where(Task.agent_task_id == id), Command.select())
         task = list(task)[0]
         query = await db_model.callback_query()
         callback = await db_objects.get(query, id=task.callback.id)
@@ -149,12 +170,14 @@ async def update_task_for_callback(request, id):
                 if rsp['status'] == "success":
                     # update the response to indicate we've created the file meta data
                     rsp.pop('status', None)  # remove the status key from the dictionary
-                    final_output += "Recieved meta data: \n" + js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
+                    final_output += js.dumps(rsp, sort_keys=True, indent=2, separators=(',', ': '))
                     resp = await db_objects.create(Response, task=task, response=final_output)
                     task.status = "processed"
+                    if "full_path" in json_response:
+                        task.params = json_response['full_path']
                     task.timestamp = datetime.datetime.utcnow()
                     await db_objects.update(task)
-                    json_return_info = {**json_return_info, 'file_id': rsp['id']}
+                    json_return_info = {**json_return_info, 'file_id': rsp['agent_file_id']}
                 else:
                     final_output = rsp['error']
                     json_return_info = {**json_return_info, 'status': 'error'}
@@ -168,11 +191,6 @@ async def update_task_for_callback(request, id):
                 else:
                     # we successfully got a chunk and updated the FileMeta object, so just move along
                     json_return_info = {**json_return_info, 'status': 'success'}
-            if "status" in parsed_response:
-                # this is just a message saying that the background task has started or stopped
-                # we don't want to flood the operator view with useless "got keystroke" messages if we can avoid it
-                final_output += parsed_response['status']
-                json_return_info = {**json_return_info, 'status': 'success'}
             if "window_title" in parsed_response and "user" in parsed_response and "keystrokes" in parsed_response:
                 if "window_title" not in parsed_response or parsed_response['window_title'] is None:
                     parsed_response['window_title'] = "UNKNOWN"
@@ -189,37 +207,32 @@ async def update_task_for_callback(request, id):
                 # now handle the case where the agent is reporting back artifact information
                 for artifact in parsed_response['artifacts']:
                     try:
-                        # each command can have 1 generic ArtifactTemplate auto added per Artifact type
                         try:
                             query = await db_model.artifact_query()
                             base_artifact = await db_objects.get(query, name=artifact['base_artifact'])
                         except Exception as e:
                             base_artifact = await db_objects.create(Artifact, name=artifact['base_artifact'])
-                        try:
-                            query = await db_model.artifacttemplate_query()
-                            base_artifact_template = await db_objects.get(query,
-                                                                          command=task.command,
-                                                                          artifact=base_artifact,
-                                                                          artifact_string="*",
-                                                                          replace_string="*")
-                        except Exception as e:
-                            base_artifact_template = await db_objects.create(ArtifactTemplate,
-                                                                             command=task.command,
-                                                                             artifact=base_artifact,
-                                                                             artifact_string="*",
-                                                                             replace_string="*")
-
                         # you can report back multiple artifacts at once, no reason to make separate C2 requests
-                        await db_objects.create(TaskArtifact, task=task, artifact_template=base_artifact_template,
-                                                artifact_instance=str(artifact['artifact']))
+                        await db_objects.create(TaskArtifact, task=task, artifact_instance=str(artifact['artifact']),
+                                                artifact=base_artifact)
                         final_output += "Added artifact"
-                        json_return_info = {**json_return_info, "status": "success"}
+                        json_return_info = {"status": "success"}
                     except Exception as e:
                         final_output += "\nFailed to work with artifact: " + str(artifact) + " due to: " + str(e)
                         json_return_info = {**json_return_info, 'status': 'error', 'error': final_output}
+            if 'credentials' in parsed_response:
+                for cred in parsed_response['credentials']:
+                    cred['task'] = task.id
+                    new_cred_status = await create_credential_func(task.operator, callback.operation, cred)
+                    if new_cred_status['status'] == "success":
+                        final_output += "\nAdded credential for {}".format(cred['user'])
+                    else:
+                        final_output += "\nFailed to add credential for {}. {}".format(cred['user'], new_cred_status['error'])
+                json_return_info = {**json_return_info, 'status': 'success'}
         except Exception as e:
             print(sys.exc_info()[-1].tb_lineno)
-            final_output = "Failed to process a JSON-based response with error: " + str(e)
+            final_output += "Failed to process a JSON-based response with error: " + str(e) + " on " + str(sys.exc_info()[-1].tb_lineno) + "\nOriginal Output:\n"
+            final_output += decoded
             json_return_info = {**json_return_info, 'status': 'error', 'error': str(e)}
     except Exception as e:
         #response is not json, so just process it as normal
@@ -233,6 +246,8 @@ async def update_task_for_callback(request, id):
             # if we got here, we got JSON back, but without any keywords
             resp = await db_objects.create(Response, task=task, response=decoded)
         task.status = "processed"
+        if task.status_timestamp_processed is not None and task.status_timestamp_processed != "null":
+            task.status_timestamp_processed = datetime.datetime.utcnow()
         task.timestamp = datetime.datetime.utcnow()
         await db_objects.update(task)
     # handle the final reply back if it needs to be encrypted or not

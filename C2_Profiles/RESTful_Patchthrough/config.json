@@ -2,40 +2,67 @@
   "instances": [
     {
       "GET": {
-        "getNextTask": "/admin.php\\?q=(\\d+)",
-        "getFile": "/download.php\\?file=(\\d+)&ID=(\\d+)"
+        "getNextTask": {
+          "url": "/admin.php",
+          "parameters": {
+            "cid": "q"
+          }
+        },
+        "getFile": {
+          "url": "/download.php",
+          "parameters": {
+            "fid": "file",
+            "cid": "ID"
+          }
+        }
       },
       "POST": {
-        "postResponse": "/upload.php\\?page=(\\d+)",
-        "postNewCallback": "/login",
-        "postNewCallbackAESPSK": "/register.php\\?SessionID=([\\w-]+)\\b",
-        "postNewCallbackEKE": "/signup.php\\?SessionID=([\\w-]+)\\b",
-        "postNewCallbackDHEKE": "/recover_account.php\\?SessionID=([\\w-]+)\\b"
+        "postResponse": {
+          "url": "/upload.php",
+          "parameters": {
+            "tid": "page"
+          }
+        },
+        "postNewCallback": {
+          "url": "/login",
+          "parameters": {
+
+          }
+        },
+        "postNewCallbackAESPSK": {
+          "url": "/register.php",
+          "parameters": {
+            "uuid": "SessionID"
+          }
+        },
+        "postNewCallbackEKE": {
+          "url": "/signup.php",
+          "parameters": {
+            "uuid": "SessionID"
+          }
+        },
+        "postNewCallbackDHEKE": {
+          "url": "/recover_account.php",
+          "parameters": {
+            "uuid": "SessionID"
+          }
+        }
       },
       "port": 9000,
       "host": "0.0.0.0",
       "key_path": "",
-      "cert_path": ""
-    },
-    {
-      "GET": {
-        "getNextTask": "/admin2.php\\?q=(\\d+)",
-        "getFile": "/download2.php\\?file=(\\d+)&ID=(\\d+)"
-      },
-      "POST": {
-        "postResponse": "/upload2.php\\?page=(\\d+)",
-        "postNewCallback": "/login2",
-        "postNewCallbackAESPSK": "/register2.php\\?SessionID=([\\w-]+)\\b",
-        "postNewCallbackEKE": "/signup2.php\\?SessionID=([\\w-]+)\\b",
-        "postNewCallbackDHEKE": "/recover_account2.php\\?SessionID=([\\w-]+)\\b"
-      },
-      "port": 9001,
-      "host": "0.0.0.0",
-      "key_path": "",
-      "cert_path": ""
+      "cert_path": "",
+      "debug": "False",
+      "server_header": "nginx 1.2",
+      "no_match": {
+        "action": "",
+        "redirect": "http://example.com",
+        "proxy_get": "https://www.google.com",
+        "proxy_post": "http://example.com"
+      }
     }
   ],
-  "apfellBase": "http://localhost/api/v1.2/",
+  "apfellBase": "https://localhost/api/v1.3/",
   "apfellNextTask": "tasks/callback/{}/nextTask",
   "apfellGetFile": "files/{}/callbacks/{}",
   "apfellPostResponse": "responses/{}",

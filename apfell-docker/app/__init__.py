@@ -10,19 +10,20 @@ from ipaddress import ip_network
 db_name = 'apfell_db'
 db_user = 'apfell_user'
 db_pass = 'super_secret_apfell_user_password'
-server_ip = '127.0.0.1'  # this will be used by the browser to callback here
+server_ip = '192.168.205.151'  # this will be used by the browser to callback here
 listen_port = '80'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
 ssl_key_path = './app/ssl/apfell-ssl.key'
 whitelisted_ip_blocks = ['0.0.0.0/0']  # only allow connections from these IPs to the /login and /register pages
 use_ssl = False
+server_header = "nginx 1.2"
 # --------------------------------------------
 # --------------------------------------------
 # --------------------------------------------
 # custom loop to pass to db manager
 dbloop = uvloop.new_event_loop()
-apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=50)
+apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=100)
 apfell_db.connect_async(loop=dbloop)
 db_objects = Manager(apfell_db, loop=dbloop)
 
@@ -34,7 +35,7 @@ apfell.config['DB_USER'] = db_user
 apfell.config['DB_PASS'] = db_pass
 apfell.config['DB_NAME'] = db_name
 apfell.config['DB_POOL_CONNECT_STRING'] = "dbname='{}' user='{}' password='{}' host='127.0.0.1'".format(apfell.config['DB_NAME'], apfell.config['DB_USER'], apfell.config['DB_PASS'])
-apfell.config['API_VERSION'] = "1.2"
+apfell.config['API_VERSION'] = "1.3"
 apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
 apfell.config['REQUEST_MAX_SIZE'] = 1000000000
 apfell.config['REQUEST_TIMEOUT'] = 600

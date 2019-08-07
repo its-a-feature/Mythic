@@ -1,3 +1,15 @@
+try{
+    var support_scripts = { {{support_scripts}} };
+}catch(error){
+    alertTop("danger", "Support Scripting error: " + error.toString());
+}
+try{
+    var browser_scripts = { {{browser_scripts}} };
+}catch(error){
+    alertTop("danger", "Browser Scripting error: " + error.toString());
+}
+
+
 var task_info = new Vue({
     el: '#task_info',
     data: {
@@ -23,6 +35,9 @@ var task_info = new Vue({
         },
         remove_comment: function(id){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, comment_callback, "DELETE", null);
+        },
+        update_view: function(){
+            this.$forceUpdate();
         }
     },
     delimiters: ['[[',']]']
@@ -39,12 +54,13 @@ function set_info(response){
         return;
     }
     else{
-        //console.log(data);
         task_info.callback = data['callback'];
         task_info.task = data['task'];
+        task_info.task['use_scripted'] = false;
         task_info.responses = data['responses'];
-        for(var i = 0; i < task_info.responses.length; i++){
-            task_info.responses[i]['response'] = task_info.responses[i]['response'].replace(/\\n|\r/g, '\n');
+        if(browser_scripts.hasOwnProperty(data['task']['command_id'])){
+            task_info.task.scripted = browser_scripts[data['task']['command_id']](data['task'], data['responses']);
+            task_info.task['use_scripted'] = true;
         }
     }
 }

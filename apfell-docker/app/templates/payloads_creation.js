@@ -1,12 +1,79 @@
-var c2_profile_parameters = []; //all c2 profile parameter data
-var payload_parameters = []; //all payload parameter data
 var all_c2_data = {};
 var username = "{{name}}";
 var profile_parameters_table = new Vue({
     el: '#payloadCreation',
     data: {
-        c2_profile_parameters,
-        payload_parameters
+        c2_profile_parameters: [],
+        payload_parameters: [],
+        c2_instance_values: {}
+    },
+    methods: {
+        move_to_payloads: function(){
+            if($('#c2_profile').val() != "Select One...")
+            {
+                $('#payload-card-body').collapse('show');
+                $('#commands-card-body').collapse('hide');
+                $('#c2-card-body').collapse('hide');
+            }else{
+                alertTop("warning", "Select a C2 Profile first", 1);
+            }
+        },
+        move_from_payloads: function(){
+            $('#commands-card-body').collapse('hide');
+            $('#payload-card-body').collapse('hide');
+            $('#c2-card-body').collapse('show');
+        },
+        move_to_commands: function(){
+            if( $('#payload_type').val() != "Select One..." ){
+                $('#payload-card-body').collapse('hide');
+                $('#c2-card-body').collapse('hide');
+                $('#commands-card-body').collapse('show');
+            }else{
+                alertTop("warning", "Select a Payload Type first", 1);
+            }
+        },
+        move_from_commands: function(){
+            $('#c2-card-body').collapse('hide');
+            $('#commands-card-body').collapse('hide');
+            $('#payload-card-body').collapse('show');
+            $('#payloadSubmit').prop('hidden', true);
+            this.unlock_everything();
+        },
+        move_to_submit: function(){
+            $('#c2-card-body').collapse('show');
+            $('#commands-card-body').collapse('show');
+            $('#payload-card-body').collapse('show');
+            $('#payloadSubmit').prop('hidden', false);
+            this.lock_everything_for_submit();
+        },
+        lock_everything_for_submit: function(){
+            $('#payload_commands').attr("disabled", true);
+            $('#c2_profile').attr("disabled", true);
+            $('#payload_type').attr("disabled", true);
+            $('#c2_instance').attr("disabled", true);
+            $('#c2_param_table').find('textarea').attr('disabled', true);
+            $('#payloadParameterTable').find('textarea').attr('disabled', true);
+            $('#location').attr('disabled', true);
+            $('#default_tag').attr('disabled', true);
+            $('#move_to_payloads_button').attr('disabled', true);
+            $('#move_to_commands_button').attr('disabled', true);
+            $('#move_to_submit_button').attr('disabled', true);
+            $('#move_from_payloads_button').attr('disabled', true);
+        },
+        unlock_everything: function(){
+            $('#payload_commands').attr("disabled", false);
+            $('#c2_profile').attr("disabled", false);
+            $('#payload_type').attr("disabled", false);
+            $('#c2_instance').attr("disabled", false);
+            $('#c2_param_table').find('textarea').attr('disabled', false);
+            $('#payloadParameterTable').find('textarea').attr('disabled', false);
+            $('#location').attr('disabled', false);
+            $('#default_tag').attr('disabled', false);
+            $('#move_to_payloads_button').attr('disabled', false);
+            $('#move_to_commands_button').attr('disabled', false);
+            $('#move_to_submit_button').attr('disabled', false);
+            $('#move_from_payloads_button').attr('disabled', false);
+        },
     },
     delimiters: ['[[',']]']
 });
@@ -15,6 +82,7 @@ $( document ).unbind('ready').ready(function(){
      httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles", c2_profile_callback, "GET", null);
      //this gets a lot of information, including the payload types that are associated with each c2profile, so save that all off so we can update appropriately
 });
+
 $( '#c2_profile' ).change(function(){
     if( $('#c2_profile').val() != "Select One..."){
         //make a request out to the c2 profile parameters api to get the parameters
@@ -22,11 +90,37 @@ $( '#c2_profile' ).change(function(){
         //now potentially update the payload options section
     }
     else{
-        Vue.set(profile_parameters_table.c2_profile_parameters, []);
-        Vue.set(profile_parameters_table.payload_parameters, []);
+        profile_parameters_table.c2_profile_parameters = [];
+        profile_parameters_table.payload_parameters = [];
+        profile_parameters_table.c2_instance_values = {};
         $( '#payload_type' ).html('<option value="Select One">Select One...</option>');
         $( '#payload_commands' ).html("");
         $('#payloadWrapperRow').prop("hidden", true);
+        $('#c2_instance').prop("hidden", true);
+        profile_parameters_table.$forceUpdate();
+    }
+});
+$( '#c2_instance').change(function(){
+    if( $('#c2_instance').val() != "Select One..."){
+        profile_parameters_table.c2_instance_values[$('#c2_instance').val()].forEach(function(x){
+            //populate the boxes based on the parameter instance
+            //console.log(x);
+            profile_parameters_table.c2_profile_parameters.forEach(function(y){
+            //console.log(y);
+                if(x.c2_profile_key == y.key){
+                    y.hint = x.value;
+                    //console.log("just set: " + JSON.stringify(y));
+                }
+            });
+            profile_parameters_table.$forceUpdate();
+        });
+    }else{
+        profile_parameters_table.c2_profile_parameters.forEach(function(x){
+            //clear the text boxes for all the parameters so they auto fill with the hints again
+            x.hint = '';
+            //$('#' + x.key).val('');
+        });
+
     }
 });
 function c2_profile_callback(response){
@@ -68,25 +162,69 @@ function c2_profile_parameters_callback(response){
             '">' + all_c2_data[c2_profile_val]['ptype'][i] + '</option>';
         }
         $( '#payload_type').html(payload_type_options);
+        //check to see if there are any c2 instances associated with this c2 profile
+        $( '#c2_instance' ).prop('hidden', true);
+        profile_parameters_table.c2_instance_values = {};
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + $('#c2_profile').val() + "/parameter_instances/", c2_instances_callback, "GET", null);
     }
     else{
         alertTop("danger", data['error']);
     }
 };
+function c2_instances_callback(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'success'){
+        if(Object.keys(data['instances']).length != 0){
+            Object.keys(data['instances']).forEach(function(k){
+                Vue.set(profile_parameters_table.c2_instance_values, k, data['instances'][k]);
+            });
+            //profile_parameters_table.c2_instance_values = data['instances'];
+            $('#c2_instance').prop('hidden', false);
+        }
+    }
+}
 $( '#payload_type' ).change(function(){
     // when this changes we need to get the available parameters and commands for this payload type
     //do a request to get the commands which will asynchronously populate the '#payload_commands' select multiple field
     if( $('#payload_type').val() != "Select One..."){
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + $('#payload_type').val() + "/commands", commands_callback, "GET", null);
+        // potentially get the create transforms for the payload type
+        profile_parameters_table.payload_parameters = [];
+        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bytype/" + $('#payload_type').val(), payload_type_create_transforms_callback, "GET", null);
     }
     else{
         //clear all the data
         $('#payloadWrapperRow').prop("hidden", true);
         $( '#payload_commands' ).html("");
+        profile_parameters_table.payload_parameters = [];
     }
     //do a request to get all the parameters for the payload_type which will populate the 'payload_parameters' variable here
 
 });
+function payload_type_create_transforms_callback(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == "success"){
+        //console.log(data['transforms']);
+        for(i in data['transforms']){
+            if(data['transforms'][i]['t_type'] == "create"){
+                profile_parameters_table.payload_parameters.push(data['transforms'][i]);
+            }
+        }
+        profile_parameters_table.payload_parameters.sort((a,b) =>(b.order > a.order) ? -1 : ((a.order > b.order) ? 1 : 0));
+    }else{
+        alertTop("danger", data['error']);
+    }
+}
 function commands_callback(response){
     try{
         data = JSON.parse(response);
@@ -191,17 +329,15 @@ function submit_payload(){
     }
     // now get the c2 profile values into a dictionary
     var c2_profile_parameters_dict = {};
-    for(var i = 0; i < profile_parameters_table.c2_profile_parameters.length; i++){
+    for( i = 0; i < profile_parameters_table.c2_profile_parameters.length; i++){
         var value = $('#' + profile_parameters_table.c2_profile_parameters[i]['key']).val();
-        if (value == ""){
-            value = profile_parameters_table.c2_profile_parameters[i]['hint'];
-        }
         c2_profile_parameters_dict[profile_parameters_table.c2_profile_parameters[i]['name']] = value;
     }
     data['c2_profile_parameters'] = c2_profile_parameters_dict;
     //console.log(data);
     data['commands'] = $('#payload_commands').val();
     data['wrapped_payload'] = $('#wrappedPayload option:selected').attr("name");
+    data['transforms'] = profile_parameters_table.payload_parameters;
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
     alertTop("info", "Submitted creation request...");
 }

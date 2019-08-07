@@ -12,14 +12,13 @@ services:
         rabbitmq:
                 build: ./rabbitmq-docker
                 container_name: apfell_rabbitmq
-                hostname: "rabbitmq"
                 network_mode: host
                 volumes:
                  - rabbitmq-data-volume:/var/lib/rabbitmq
                 labels:
                         NAME: "apfell_rabbitmq"
                 restart: on-failure
-                mem_limit: 512M
+                #mem_limit: 512M
         apfell:
                 build: ./apfell-docker
                 network_mode: host
@@ -33,6 +32,7 @@ services:
                 depends_on:
                  - postgres
                  - rabbitmq
+                restart: on-failure
                 command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Apfell/server.py"]
         
 

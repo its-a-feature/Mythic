@@ -1,9 +1,10 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Artifact, Task, Callback
+from app.database_models.model import Artifact, Task, Callback, TaskArtifact
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+from math import ceil
 
 
 @apfell.route(apfell.config['API_BASE'] + "/artifacts", methods=['GET'])
@@ -71,6 +72,10 @@ async def update_artifact(request, user, id):
         return json({'status': 'error', 'error': 'Could not find artifact'})
     try:
         artifact_json = artifact.to_json()
+        query = await db_model.taskartifact_query()
+        task_artifacts = await db_objects.execute(query.where(TaskArtifact.artifact == artifact))
+        for t in task_artifacts:
+            await db_objects.delete(t)
         await db_objects.delete(artifact, recursive=True)
     except Exception as e:
         return json({'status': 'error', 'error': 'Failed to delete artifact: {}'.format(str(e))})
@@ -87,14 +92,89 @@ async def get_all_artifact_tasks(request, user):
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
-    except:
+    except Exception as e:
         return json({'status': 'error', 'error': "failed to get current operation"})
     query = await db_model.callback_query()
     callbacks = query.where(Callback.operation == operation).select(Callback.id)
     task_query = await db_model.taskartifact_query()
-    artifact_tasks = await db_objects.execute(task_query.where(Task.callback.in_(callbacks)))
+    tasks = await db_objects.execute(task_query.where( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ))
+    return json({'status': 'success', 'tasks': [a.to_json() for a in tasks]})
 
-    return json({'status': 'success', 'tasks': [a.to_json() for a in artifact_tasks]})
+
+@apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/<page:int>/<size:int>", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_pageinate_artifact_tasks(request, user, page, size):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    # get all of the artifact tasks for the current operation
+    if page <= 0 or size <= 0:
+        return json({'status': 'error', 'error': 'page or size must be greater than 0'})
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': "failed to get current operation"})
+    query = await db_model.callback_query()
+    callbacks = query.where(Callback.operation == operation).select(Callback.id)
+    task_query = await db_model.taskartifact_query()
+    count = await db_objects.count(
+        task_query.where((Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation)))
+    if page * size > count:
+        page = ceil(count / size)
+        if page == 0:
+            page = 1
+    tasks = await db_objects.execute(
+        task_query.where((Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation)).order_by(-TaskArtifact.timestamp).paginate(page, size))
+    return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': page, 'size': size})
+
+
+# Get a single response
+@apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/search", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def search_artifact_tasks(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        data = request.json
+        if 'search' not in data:
+            return json({'status': 'error', 'error': 'must supply a search term'})
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Cannot find operation'})
+    query = await db_model.callback_query()
+    callbacks = query.where(Callback.operation == operation).select(Callback.id)
+    task_query = await db_model.taskartifact_query()
+    count = await db_objects.count(
+            task_query.where(
+                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+                TaskArtifact.artifact_instance.regexp(data['search']))
+    )
+    if 'page' not in data:
+        tasks = await db_objects.execute(
+            task_query.where(
+                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+            TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp)
+        )
+        data['page'] = 1
+        data['size'] = count
+    else:
+        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+        data['size'] = int(data['size'])
+        data['page'] = int(data['page'])
+        if data['page'] * data['size'] > count:
+            data['page'] = ceil(count / data['size'])
+            if data['page'] == 0:
+                data['page'] = 1
+        tasks = await db_objects.execute(
+            task_query.where(
+                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+            TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp).paginate(data['page'], data['size'])
+        )
+    return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': data['page'], 'size': data['size']})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/<aid:int>", methods=['DELETE'])
@@ -106,7 +186,7 @@ async def remove_artifact_tasks(request, user, aid):
     try:
         query = await db_model.taskartifact_query()
         artifact_task = await db_objects.get(query, id=aid)
-    except:
+    except Exception as e:
         return json({'status': 'error', 'error': 'failed to find that artifact task'})
     try:
         artifact_task_json = artifact_task.to_json()
@@ -114,3 +194,43 @@ async def remove_artifact_tasks(request, user, aid):
         return json({'status': 'success', **artifact_task_json})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to delete that task: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/artifact_tasks", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def create_artifact_task_manually(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    # get all of the artifact tasks for the current operation
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        data = request.json
+    except Exception as e:
+        return json({'status': 'error', 'error': "failed to get current operation"})
+    if "task_id" in data:
+        try:
+            query = await db_model.task_query()
+            task = await db_objects.get(query, id=data['task_id'])
+            # make sure this task belongs to a callback in the current operation
+            query = await db_model.callback_query()
+            callback = await db_objects.get(query, operation=operation, id=task.callback.id)
+        except Exception as e:
+            return json({'status': 'error', 'error': 'task isn\'t in the current operation'})
+    else:
+        task = None
+    if 'artifact_instance' not in data:
+        return json({'status': 'error', 'error': 'must supply an artifact_instance value'})
+    if 'artifact' not in data:
+        return json({'status': 'error', 'error': 'must supply a base artifact to associate with the instance'})
+    else:
+        try:
+            query = await db_model.artifact_query()
+            artifact = await db_objects.get(query, name=data['artifact'])
+        except Exception as e:
+            return json({'status': 'error', 'error': 'failed to find the artifact'})
+    task_artifact = await db_objects.create(TaskArtifact, task=task, artifact_instance=data['artifact_instance'],
+                                            artifact=artifact, operation=operation)
+    return json({'status': 'success', **task_artifact.to_json()})
+

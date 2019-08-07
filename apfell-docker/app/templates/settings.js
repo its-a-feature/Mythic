@@ -112,8 +112,8 @@ var operator_config = new Vue({
                 }
             }
         },
-        get_default_config: function(){
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/config/default", get_static_config_button_callback, "GET", null);
+        get_light_config: function(){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/config/light", get_static_config_button_callback, "GET", null);
         },
         get_dark_config: function(){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/config/dark", get_static_config_button_callback, "GET", null);
@@ -146,6 +146,7 @@ function startwebsocket_operators(){
 		if(event.data != ""){
 			odata = JSON.parse(event.data);
 			operators.push(odata);
+			operators.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
 
 		}
 	}

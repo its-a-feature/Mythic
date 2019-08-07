@@ -2,34 +2,34 @@
 
 {% block body %}
 
-<h1>
-    Web Hosting
-</h1>
-<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="hosting_table">
-    <div class="panel-heading">Current Directory Hostings</div>
-    <div class="panel-body">
+<br>
+<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="hosting_table">
+    <div class="card-header bg-header border border-dark shadow text-white">
+        <h2><span class="operator">Directory</span> Hosting</h2>
+    </div>
+    <div class="card-body bg-card-body border border-dark shadow">
         These are subprocesses run with "python3 -m http.server" with the specified directory and port. They are meant for simple downloads, mainly for testing. You can see these across all operations.
     </div>
-        <table class="table table-condensed" >
+        <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
             <tr>
                 <th><b>Delete</b></th>
                 <th><b>Start</b></th>
                 <th><b>Stop</b></th>
-                <th><b>Port</b></th>
-                <th><b>Directory</b></th>
-                <th><b>Status</b></th>
-                <th><b>Creator</b></th>
+                <th onclick="sort_table(this)"><b>Port</b></th>
+                <th onclick="sort_table(this)"><b>Directory</b></th>
+                <th onclick="sort_table(this)"><b>Status</b></th>
+                <th onclick="sort_table(this)"><b>Creator</b></th>
             </tr>
         <!-- Repeat this for each web service -->
             <tr v-for="host in services" :key="host.port">
                 <td>
-                    <button type="button" class="btn btn-danger btn-sm" @click="delete_button(host)">Delete</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(host)"><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-success btn-sm" @click="start_button(host)" :disabled="host.status == 'running'">Start</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="start_button(host)" :disabled="host.status == 'running'">Start</button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-warning btn-sm" @click="stop_button(host)" :disabled="host.status == 'stopped'">Stop</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="stop_button(host)" :disabled="host.status == 'stopped'">Stop</button>
                 </td>
                 <td>[[ host.port ]]</td>
                 <td>[[ host.directory ]]</td>
@@ -39,72 +39,77 @@
         <!-- End of the repeating -->
         </table>
 </div>
-<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="manualFileTable">
-    <div class="panel-heading">Current Manual File Uploads</div>
-    <div class="panel-body">
+<button type="button" class="btn btn{{config['outline-buttons']}}primary btn-md" onclick="create_directory_button()"><i class="fas fa-plus"></i> Directory</button><br><br>
+<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="manualFileTable">
+    <div class="card-header bg-header border border-dark shadow text-white">
+        <h2>Current <span class="operator">Manual File</span> Uploads</h2>
+    </div>
+    <div class="card-body bg-card-body shadow border border-dark">
         These files can be downloaded via the download button or by hitting {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/# .
     </div>
-        <table class="table table-condensed" >
+        <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
             <tr>
                 <th><b>Delete</b></th>
                 <th><b>Download</b></th>
-                <th><b>Time</b></th>
-                <th><b>File</b></th>
-                <th><b>File Number</b></th>
-                <th><b>Uploader</b></th>
+                <th onclick="sort_table(this)"><b>Time</b></th>
+                <th onclick="sort_table(this)"><b>File</b></th>
+                <th onclick="sort_table(this)"><b>File ID</b></th>
+                <th onclick="sort_table(this)"><b>Download Number</b></th>
+                <th onclick="sort_table(this)"><b>Uploader</b></th>
             </tr>
         <!-- Repeat this for each web service -->
             <tr v-for="file in files" :key="file.id">
                 <td>
-                    <button type="button" class="btn btn-danger btn-sm" @click="delete_button(file.id)">Delete</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(file.id)"><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-success btn-sm" @click="download_button(file.id)">Download</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_button(file.id)"><i class="fas fa-download"></i></button>
                 </td>
                 <td>[[ toLocalTime(file.timestamp) ]]</td>
                 <td>[[ file.path.split("/").slice(-1)[0] ]]</td>
                 <td>[[ file.id ]]</td>
+                <td>[[ file.agent_file_id ]]</td>
                 <td>[[ file.operator ]]</td>
             </tr>
         <!-- End of the repeating -->
         </table>
 </div>
-<button type="button" class="btn btn-primary btn-md" onclick="create_directory_button()">Host New Directory</button>
-<button type="button" class="btn btn-primary btn-md" onclick="create_file_button()">Host New File</button>
+
+<button type="button" class="btn btn{{config['outline-buttons']}}primary btn-md" onclick="create_file_button()"><i class="fas fa-plus"></i> File</button>
 <!-- THIS IS OUR MODAL FOR NEW HOSTED DIRECTORY MENU -->
-<div class="modal fade bs-example-modal-md" id="servicesModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade" id="servicesModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3 id="modalLabel">New Host Menu</h3>
-                Opens up a simple python web server in the specified directory and port
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body" id="servicesBody">
+                  Opens up a simple python web server in the specified directory and port
                   <h4>Which port:</h4>
                   <input type="number" id="servicePort" min="1" max="65535">
                   <h4>Which directory:</h4>
                   <input type="text" id="serviceDirectory" size="60">
               </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="servicesSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="servicesSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR NEW HOSTED DIRECTORY MENU -->
 <!-- THIS IS OUR MODAL FOR NEW MANUAL FILE MENU -->
-<div class="modal fade bs-example-modal-md" id="manualFileModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade" id="manualFileModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Manually Host File</h3>
-                Manually register a file into the database for use with agents with either a local file or uploading one.
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body">
-                <table>
+                  Manually register a file into the database for use with agents with either a local file or uploading one.
+                <table class="table table-striped table-hover {{config['table-color']}}">
                     <tr>
                         <td>
                             Local File?&nbsp;
@@ -132,8 +137,8 @@
                 </table>
               </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="manualFileSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="manualFileSubmit">Submit</button>
               </div>
         </div>
     </div>
@@ -146,218 +151,5 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
 
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
 {% endblock %}

@@ -7,7 +7,7 @@ var artifacts_table = new Vue({
     methods: {
         delete_button: function(index){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/artifacts/" + this.artifacts[index].id,
-        delete_button_callback, "DELETE", null);
+                delete_button_callback, "DELETE", null);
         },
         edit_button: function(index){
             $( '#editArtifactName').val(this.artifacts[index].name);
@@ -18,7 +18,7 @@ var artifacts_table = new Vue({
                 var description = $( '#editArtifactDescription' ).val();
                 //should have all the data we need, submit the POST request
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/artifacts/" + artifacts_table.artifacts[index].id,
-                edit_button_callback, "PUT", {'name': name, 'description': description});
+                    edit_button_callback, "PUT", {'name': name, 'description': description});
             });
         }
     }

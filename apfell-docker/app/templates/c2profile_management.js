@@ -136,10 +136,74 @@ var payloads_table = new Vue({
                     }
                 }
             });
-	    }
+	    },
+	    create_new_parameter_instance_button: function(p){
+            // first clear the current profileEditParametersTable
+	        instances_table.current_parameters = [];
+            instances_table.current_name = "";
+            // then see if there are any parameters already created for this profile
+            values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters");
+            values = JSON.parse(values);
+            if(values['status'] == "success"){
+                for(var i = 0; i < values['c2profileparameters'].length; i++){
+                    instances_table.current_parameters.push(values['c2profileparameters'][i]);
+                }
+            }
+            else{
+                alertTop("danger", "failed to get parameters");
+                return;
+            }
+
+            // for each one we get back, create a new row
+            //    this will be in the form of a Vue object we modify
+            $( '#profileCreateInstanceModal').modal('show');
+            $( '#profileCreateInstanceSubmit').unbind('click').click(function(){
+                // We now have a mix of old, new, modified, and deleted parameters
+                data = {'instance_name': instances_table.current_name};
+                for(var i = 0; i < instances_table.current_parameters.length; i ++){
+                    data[instances_table.current_parameters[i]['name']] = instances_table.current_parameters[i]['hint'];
+                }
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameter_instances", create_new_parameter_instance_callback, "POST", data);
+            });
+	    },
     },
     delimiters: ['[[',']]']
 });
+function create_new_parameter_instance_callback(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
+    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/parameter_instances", get_parameter_instance_callback, "GET", null);
+}
+function get_parameter_instance_callback(response){
+    try{
+        data = JSON.parse(response);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
+        return;
+    }
+    if(data['status'] == 'error'){
+        alertTop("danger", data['error']);
+    }
+    instances_table.instances = [];
+    var i = 0;
+    Object.keys(data['instances']).forEach(function(k){
+        data['instances'][k].forEach(function(e){
+            e['show_all'] = false;
+        });
+        instances_table.instances.push({"instance_name": k,
+                                        "c2_profile": data['instances'][k][0]['c2_profile'],
+                                        "values": data['instances'][k],
+                                        "id":i});
+        i++;
+    });
+}
 function check_status_callback(response){
     try{
         data = JSON.parse(response);
@@ -377,7 +441,19 @@ function startwebsocket_c2profiles(){
 			}
 			pdata['payload_types'] = [];
 			payloads_table.profiles.push(pdata);
-			//clearAlertTop();
+			payloads_table.profiles.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
+			Vue.nextTick(function(){
+                $('#c2profilecardbody' + pdata['id']).on('hide.bs.collapse', function(){
+                    //body is now hidden from user
+                    self_id = this.id.split("body")[1];
+                    document.getElementById('dropdownarrow' + self_id).style.transform = "rotate(0deg)";
+                });
+                $('#c2profilecardbody' + pdata['id']).on('show.bs.collapse', function(){
+                    //body is now shown to the user
+                    self_id = this.id.split("body")[1];
+                    document.getElementById('dropdownarrow' + self_id).style.transform = "rotate(180deg)";
+                })
+			});
 		}
 		else{
 		    if(finished_profiles == false){
@@ -435,7 +511,7 @@ function startwebsocket_rabbitmqresponses(){
 			if(rdata['status'] == "success"){
 			    if(pieces[4] == "listfiles"){
 			        data = JSON.parse(rdata['body']);
-			        alertTop("success", "Received file list from container", 2);
+			        alertTop("success", "Received file list from container", 1);
 			        profile_files_modal.got_list_from_container = true;
 			        //console.log(JSON.stringify(rdata, null, 2));
 			        for(var i = 0; i < data.length; i++){
@@ -460,7 +536,11 @@ function startwebsocket_rabbitmqresponses(){
 			        download_from_memory(data['filename'], data['data']);
 			    }
 			    else{
-			        alertTop("success", "<b>Received Message</b>: " + rdata['body'], 0);
+			        delay = 4;
+			        if(pieces[4] == "status"){delay = 0;}
+			        $('#stdoutStderrModal').modal('show');
+			        $('#stdoutStderrBody').html("<b>Received Message</b>:<br> <span style='white-space:pre-wrap'>" + rdata['body'] + "</span>")
+			        //alertTop("success", , delay);
 			    }
 
 			}else{
@@ -622,3 +702,29 @@ function container_heartbeat_check(){
     }
 }
 setInterval(container_heartbeat_check, 500);
+var instances_table = new Vue({
+    el: '#instances_table',
+    data: {
+        instances: [],
+        current_parameters: [],  // for creating a new instance
+        current_name: ""  // for creating a new instance
+    },
+    methods: {
+        delete_instance: function(i){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/parameter_instances/" + i['instance_name'], create_new_parameter_instance_callback, "DELETE", null);
+        },
+        toggle_show_all: function(e){
+            e['show_all'] = !e['show_all'];
+        },
+        toggle_arrow: function(instid){
+            $('#cardbody' + instid).on('shown.bs.collapse', function(){
+                $('#color-arrow' + instid).css("transform", "rotate(180deg)");
+            });
+            $('#cardbody' + instid).on('hidden.bs.collapse', function(){
+                $('#color-arrow' + instid).css("transform", "rotate(0deg)");
+            });
+        }
+    },
+    delimiters: ['[[', ']]'],
+});
+httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/parameter_instances", get_parameter_instance_callback, "GET", null);

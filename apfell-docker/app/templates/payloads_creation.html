@@ -1,90 +1,114 @@
 {% extends "base.html" %}
 {% block body %}
 
+<br>
 <div id="payloadCreation">
-        <table>
-            <tr>
-                <td width="500"><h2>C2 Profile Information</h2></td>
-                <td width="500"><h2>Payload Type Information</h2></td>
-                <td><h2>Select Commands</h2></td>
-            </tr>
-            <tr>
-                <td valign="top">
-                    <!-- This will house all of the C2 profile specific data -->
+    <div class="card-deck">
+        <div class="card border-0">
+            <div class="card-header bg-header border border-dark shadow text-white">
+                C2 Profile Information
+            </div>
+            <div class="collapse show" id="c2-card-body">
+                <div class="card-body border border-dark shadow bg-card-body">
+                    Select the overall C2 Profile you want to use. If you have saved profile instances, you can use these to auto-populate the fields here.<br>
                     <select id="c2_profile">
-                        <!-- This selection will dynamically update the form fields-->
-                        <!-- If this is updated to something that the payload-type doesn't have a match for, the payload-type will be cleared -->
                         <option value="Select One">Select One...</option>
                     </select>
-                </td>
-                <td valign="top">
-                    <select id="payload_type">
-                        <!-- This selection will dynamically update the payload form fields and commands options-->
-                        <!-- The options here will be based on the c2_profile that's selected -->
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <td valign="top">
+                    <select id="c2_instance" hidden>
+                        <option value="Select One...">Select One...</option>
+                        <option v-for="(value, k, s) in c2_instance_values" :value="k">[[k]]</option>
+                    </select><br>
                     <div id="c2ParameterFormFields">
-                        <table class="table table-condensed">
-                            <tr>
-                                <th><b>Parameter Name</b></th>
-                                <th><b>Parameter Value</b></th>
-                            </tr>
-                            <tr v-for="(value, index) in c2_profile_parameters" :key="index">
-                                <td>
-                                   [[value.name]]
-                                </td>
-                                <td>
-                                    <input type="text" size="40" :id="[[value.key]]" :placeholder="[[value.hint]]" :value="value.hint">
-                                </td>
-                            </tr>
-                        </table>
+                        <template v-if="c2_profile_parameters.length != 0">
+                            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" id="c2_param_table" style=";word-wrap: break-word;width:100%">
+                                <tr>
+                                    <th><b>Parameter Name</b></th>
+                                    <th><b>Parameter Value</b></th>
+                                </tr>
+                                <tr v-for="(value, index) in c2_profile_parameters" :key="index" style="width:100%">
+                                    <td  style="width:15rem">
+                                       [[value.name]]
+                                    </td>
+                                    <td >
+                                        <textarea oninput="adjust_size(this)" :id="[[value.key]]" :placeholder="[[value.hint]]" v-model="value.hint" cols="40"></textarea>
+                                    </td>
+                                </tr>
+                            </table>
+                        </template>
                     </div>
-                </td>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <button class="btn btn{{config['outline-buttons']}}success" id="move_to_payloads_button" @click="move_to_payloads()">Next</button>
+                </div>
+            </div>
 
-                <td valign="top">
-                    <!-- This will house all of the payload specific data-->
+        </div>
+        <div class="card border-0">
+            <div class="card-header bg-header border border-dark shadow text-white">
+                Payload Type Information
+            </div>
+            <div class="collapse" id="payload-card-body">
+                <div class="card-body border shadow border-dark bg-card-body">
+                    Select a payload type that supports the C2 Profile you just selected.<br>
+                    <select id="payload_type">
+
+                    </select><br>
                     <div id="payloadParameterFormFields">
-                        <table class="table table-condensed">
-                            <tr>
-                                <th><b>Parameter Name</b></th>
-                                <th><b>Parameter Value</b></th>
-                            </tr>
-                            <tr hidden id="payloadWrapperRow">
-                                <td>Select Payload to Wrap: </td>
-                                <td>
-                                    <select id="wrappedPayload"></select>
-                                </td>
+                        <template v-if="payload_parameters.length != 0">
+                            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" id="payloadParameterTable">
+                                <tr>
+                                    <th><b>Parameter Name</b></th>
+                                    <th><b>Parameter Value</b></th>
+                                </tr>
+                                <tr hidden id="payloadWrapperRow">
+                                    <td>Select Payload to Wrap: </td>
+                                    <td>
+                                        <select id="wrappedPayload"></select>
+                                    </td>
 
-                            </tr>
-                            <tr v-for="(value, index) in payload_parameters" :key="index">
-                                <td>
-                                    [[value.name]]
-                                </td>
-                                <td>
-                                    <input type="text" size="50" :id="[[value.key]]" :placeholder="[[value.hint]]">
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
+                                </tr>
+                                <tr v-for="(value, index) in payload_parameters" :key="index">
+                                    <td>
+                                        [[value.name]]
+                                    </td>
+                                    <td>
+                                        <textarea type="text" cols="45" :placeholder="[[value.parameter]]" v-model="value.parameter"></textarea>
+                                    </td>
+                                </tr>
+                            </table>
+                        </template>
+
+                    </div><br>
                     <input type="text" size="50" placeholder="File Name" id="location"><br>
                     <input type="text" size="50" placeholder="Default Tag" id="default_tag">
+                </div>
+                <div class="card-footer border shadow border-dark">
+                    <button class="btn btn{{config['outline-buttons']}}warning" id="move_from_payloads_button" @click="move_from_payloads()">Back</button>
+                    <button class="btn btn{{config['outline-buttons']}}success" id="move_to_commands_button" @click="move_to_commands()">Next</button>
+                </div>
+            </div>
 
-
-                </td>
-                <td valign="top">
+        </div>
+        <div class="card border-0">
+            <div class="card-header bg-header border border-dark shadow text-white">
+                Select Commands
+            </div>
+            <div class="collapse" id="commands-card-body">
+                <div class="card-body border shadow border-dark bg-card-body">
+                    Select the command functionality you want inserted into your initial payload. Commands can be loaded in later as well. Minimizing the number of commands in initial payloads can safeguard capabilities from defenders.<br>
                     <select multiple id="payload_commands" size="30">
 
                     </select>
-                </td>
-            </tr>
-            <tr>
-                <td><button class="btn btn-success" id="payloadSubmit" @click="submit_payload()">Submit</button></td>
-                <td></td>
-            </tr>
-        </table>
+                </div>
+                <div class="card-footer border shadow border-dark">
+                    <button class="btn btn{{config['outline-buttons']}}warning" id="move_from_commands_button" @click="move_from_commands()">Back</button>
+                    <button class="btn btn{{config['outline-buttons']}}success" id="move_to_submit_button" @click="move_to_submit()">Next</button>
+                </div>
+            </div>
+
+        </div>
+        <button class="btn btn{{config['outline-buttons']}}success" hidden id="payloadSubmit" @click="submit_payload()" style="height:4rem">Submit</button>
+    </div>
 </div>
 
 {% endblock %}
@@ -94,218 +118,5 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
 
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
 {% endblock %}

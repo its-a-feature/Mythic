@@ -2,7 +2,7 @@ from app import apfell, db_objects, server_ip, listen_port, use_ssl
 import aiopg
 import json as js
 import asyncio
-from app.database_models.model import Callback, Payload, PayloadType, C2Profile, Credential, FileMeta, Task, Command, Keylog
+from app.database_models.model import Callback, Payload, PayloadType, C2Profile, Credential, FileMeta, Task, Command, TaskArtifact
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 import aio_pika
@@ -174,6 +174,7 @@ async def ws_responses_current_operation(request, ws, user):
                                     if msg[0] == "a":
                                         viewing_callbacks.add(int(msg[1:]))
                                     elif msg[0] == "r":
+                                        # throws an error if we try to remove what's not there, but that's fine
                                         viewing_callbacks.remove(int(msg[1:]))
                             except Exception as e:
                                 print("exception while updating the viewing section in /ws/responses/current_operation: " + str(e))
@@ -217,7 +218,7 @@ async def ws_callbacks_current_operation(request, ws, user):
                                 await ws.send("") # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                print("exception in callbacks/current_operation: {}".format(str(e)))
                                 continue
     finally:
         pool.close()
@@ -230,6 +231,7 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
     if not await valid_origin_header(request):
         return
     try:
+        print("opened socket on webserver for " + str(cid))
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
@@ -277,6 +279,7 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                                 print(str(sys.exc_info()[-1].tb_lineno) + str(e))
                                 continue
     finally:
+        print("closed socket on webserver for " + str(cid))
         pool.close()
 
 
@@ -874,14 +877,16 @@ async def ws_files_current_operation(request, ws, user):
                             if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                 # this means it's an upload, so supply additional information as well
                                 # two kinds of uploads: via task or manual
-                                if f.task is not None:  # this is an upload via agent tasking
-                                    query = await db_model.callback_query()
-                                    callback = await db_objects.get(query, id=f.task.callback)
-                                    await ws.send(js.dumps(
-                                        {**f.to_json(), 'host': callback.host, "upload": f.task.params}))
-                                else:  # this is a manual upload
-                                    await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
-                                                            "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
+                                # if load- is in the path, it's a load command that hasn't been pulled down yet
+                                if '/operations/{}/load-'.format(operation.name) not in f.path:
+                                    if f.task is not None:  # this is an upload via agent tasking
+                                        query = await db_model.callback_query()
+                                        callback = await db_objects.get(query, id=f.task.callback)
+                                        await ws.send(js.dumps(
+                                            {**f.to_json(), 'host': callback.host, "upload": f.task.params}))
+                                    else:  # this is a manual upload
+                                        await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
+                                                                "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
                             else:
                                 query = await db_model.callback_query()
                                 callback = await db_objects.get(query, id=f.task.callback)
@@ -902,8 +907,9 @@ async def ws_files_current_operation(request, ws, user):
                                         if f.task is not None:  # this is an upload via gent tasking
                                             query = await db_model.task_query()
                                             task = await db_objects.get(query, id=f.task)
-                                            await ws.send(js.dumps(
-                                                {**f.to_json(), 'host': task.callback.host, "upload": task.params}))
+                                            if '/operations/{}/load-'.format(operation.name) not in f.path:
+                                                await ws.send(js.dumps(
+                                                    {**f.to_json(), 'host': task.callback.host, "upload": task.params}))
                                         else: # this is a manual upload
                                             await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
                                                                     "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
@@ -947,7 +953,7 @@ async def ws_updated_files(request, ws, user):
                             msg = conn.notifies.get_nowait()
                             id = (msg.payload)
                             query = await db_model.filemeta_query()
-                            f = await db_objects.get(query, id=id, operation=operation, deleted=False)
+                            f = await db_objects.get(query, id=id, operation=operation)
                             if "/screenshots" not in f.path:
                                 try:
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
@@ -1157,21 +1163,126 @@ async def ws_payload_type_status_messages(request, ws, user):
         await ws.send(js.dumps({"status": "error", "error": "Failed to connect to rabbitmq, {}".format(str(e))}))
 
 
+# ============= BROWSER SCRIPTING WEBSOCKETS ===============
+@apfell.websocket('/ws/browser_scripts')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_tasks(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newbrowserscript";')
+                    await cur.execute('LISTEN "updatedbrowserscript";')
+                    # before we start getting new things, update with all of the old data
+                    try:
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(query, name=user['current_operation'])
+                        query = await db_model.operator_query()
+                        operator = await db_objects.get(query, username=user['username'])
+                        query = await db_model.browserscript_query()
+                        all_scripts = await db_objects.execute(query.where((db_model.BrowserScript.operator == operator) | (db_model.BrowserScript.operation == operation)
+                                                                           | ( (db_model.BrowserScript.command == None) & (db_model.BrowserScript.active == True))))
+                        for s in all_scripts:
+                            await ws.send(js.dumps(s.to_json()))
+                        await ws.send("")
+                    except Exception as e:
+                        return;
+                    # now pull off any new tasks we got queued up while processing the old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (msg.payload)
+                            query = await db_model.browserscript_query()
+                            s = await db_objects.get(query, id=id)
+                            # only send off updates for scripts related to the current operation or the current user
+                            if (s.operation is not None and s.operation.name == operation.name) or (s.operator.username == operator.username) or (s.command is None and s.active):
+                                await ws.send(js.dumps(s.to_json()))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        # print("closed /ws/tasks")
+        pool.close()
+
+
+# ============= ARTIFACT WEBSOCKETS ===============
+@apfell.websocket('/ws/artifacts')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_tasks(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newartifact";')
+                    await cur.execute('LISTEN "newtaskartifact";')
+                    # before we start getting new things, update with all of the old data
+                    query = await db_model.artifact_query()
+                    base_artifacts = await db_objects.execute(query)
+                    for b in base_artifacts:
+                        await ws.send(js.dumps({**b.to_json(), "channel": "artifact"}))
+                    query = await db_model.operation_query()
+                    operation = await db_objects.get(query, name=user['current_operation'])
+
+                    query = await db_model.callback_query()
+                    callbacks = query.where(Callback.operation == operation).select(Callback.id)
+                    task_query = await db_model.taskartifact_query()
+                    artifact_tasks = await db_objects.execute(task_query.where(Task.callback.in_(callbacks)))
+                    manual_tasks = await db_objects.execute(task_query.where(TaskArtifact.operation == operation))
+                    for a in artifact_tasks:
+                        await ws.send(js.dumps({**a.to_json(), "channel": "taskartifact"}))
+                    for m in manual_tasks:
+                        await ws.send(js.dumps({**m.to_json(), "channel": "taskartifact"}))
+                    await ws.send("")
+
+                    # now pull off any new tasks we got queued up while processing the old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (msg.payload)
+                            if msg.channel == "newartifact":
+                                query = await db_model.artifact_query()
+                                artifact = await db_objects.get(query, id=id)
+                                await ws.send(js.dumps({**artifact.to_json(), "channel": "artifact"}))
+                            elif msg.channel == "newtaskartifact":
+                                query = await db_model.taskartifact_query()
+                                artifact = await db_objects.get(query, id=id)
+                                if artifact.operation == operation or (artifact.task is not None and artifact.task.callback.operation == operation):
+                                    await ws.send(js.dumps({**artifact.to_json(), "channel": "taskartifact"}))
+                            await ws.send("")
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        # print("closed /ws/tasks")
+        pool.close()
+
+
 # CHECK ORIGIN HEADERS FOR WEBSOCKETS
 async def valid_origin_header(request):
     if 'origin' in request.headers:
-        if use_ssl and listen_port == '443':
-            if request.headers['origin'] == "https://{}".format(server_ip):
-                return True
-        elif use_ssl:
-            if request.headers['origin'] == "https://{}:{}".format(server_ip, listen_port):
-                return True
-        elif listen_port == '80':
-            if request.headers['origin'] == "http://{}".format(server_ip):
+        if use_ssl:
+            if request.headers['origin'] == "https://{}".format(request.headers['host']):
                 return True
         else:
-            if request.headers['origin'] == "http://{}:{}".format(server_ip, listen_port):
+            if request.headers['origin'] == "http://{}".format(request.headers['host']):
                 return True
+        return False
     elif 'apitoken' in request.headers:
         return True
     else:

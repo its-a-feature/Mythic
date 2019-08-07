@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 {% block body %}
 
-
+<br>
 <div id="page_heading">
-    <h1 v-if="current_operator.admin == true">Admin Settings</h1>
-    <h1 v-if="current_operator.admin == false">User Settings</h1>
-    <div style="resize: vertical; overflow:visible" class="panel panel-primary" v-if="current_operator.admin == false">
-        <div class="panel-heading">Operator Information</div>
-            <table class="table table-condensed" >
+    <div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" v-if="!current_operator.admin">
+        <div class="card-header bg-header border border-dark shadow text-white">
+            <h2 ><span class="operator">User</span> Settings</h2>
+        </div>
+            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
                 <tr>
                     <th>Delete Account</th>
                     <th>Change Password</th>
                     <th>Change Username</th>
-                    <th>Change Config</th>
-                    <th>Last Login</th>
-                    <th>Account Creation Date</th>
-                    <th>Admin Status</th>
+                    <th>Change UI Colors</th>
+                    <th onclick="sort_table(this)">Last Login</th>
+                    <th onclick="sort_table(this)">Account Creation Date</th>
+                    <th onclick="sort_table(this)">Admin Status</th>
                 </tr>
                 <tr>
-                    <td><button type="button" class="btn btn-danger btn-sm" onclick="delete_button(current_operator)" >Delete</button></td>
-                    <td><button type="button" class="btn btn-warning btn-sm" onclick="password_button(current_operator)" >Change</button></td>
-                    <td><button type="button" class="btn btn-warning btn-sm" onclick="username_button(current_operator)" >Change</button></td>
-                    <td><button type="button" class="btn btn-warning btn-sm" onclick="config_button(current_operator)">Change</button></td>
+                    <td><button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" onclick="delete_button(current_operator)" ><i class="fas fa-trash-alt"></i></button></td>
+                    <td><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="password_button(current_operator)" ><i class="fas fa-user-edit"></i></button></td>
+                    <td><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="username_button(current_operator)" ><i class="fas fa-user-edit"></i></button></td>
+                    <td><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="config_button(current_operator)">Change</button></td>
                     <td>[[ current_operator.last_login ]]</td>
                     <td>[[ current_operator.creation_time ]]</td>
                     <td>[[ current_operator.admin ]]</td>
@@ -29,37 +29,39 @@
             </table>
     </div>
 </div>
-<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="operators_table" v-if="current_operator.admin">
-    <div class="panel-heading">Operator Information</div>
-        <table class="table table-condensed" >
+<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="operators_table" v-if="current_operator.admin">
+    <div class="card-header bg-header border border-dark shadow text-white">
+        <h2><span class="operator">Admin</span> Settings</h2>
+    </div>
+        <table class="table table-condensed table-striped table-hover {{config['table-color']}} border border-dark shadow" >
             <tr>
                 <th><b>Delete</b></th>
 		        <th><b>Change Password</b></th>
                 <th><b>Change Username</b></th>
-                <th><b>Change Config</b></th>
-                <th><b>Toggle Admin</b></th>
-                <th><b>Operator</b></th>
-                <th><b>Last Login</b></th>
-                <th><b>Creation Date</b></th>
-                <th><b>Admin</b></th>
-                <th><b>Active?</b></th>
+                <th><b>Change UI Colors</b></th>
+                <th onclick="sort_table(this)"><b>Toggle Admin</b></th>
+                <th onclick="sort_table(this)"><b>Operator</b></th>
+                <th onclick="sort_table(this)"><b>Last Login</b></th>
+                <th onclick="sort_table(this)"><b>Creation Date</b></th>
+                <th onclick="sort_table(this)"><b>Admin</b></th>
+                <th onclick="sort_table(this)"><b>Active?</b></th>
             </tr>
         <!-- Repeat this for each operator -->
             <tr v-for="o in operators" :key="o.creation_time">
                 <td>
-                    <button type="button" class="btn btn-danger btn-sm" v-if="o.username != 'apfell_admin'" @click="delete_operator_button(o)" >Delete</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" v-if="o.username != 'apfell_admin'" @click="delete_operator_button(o)" ><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-warning btn-sm" @click="set_password_button(o)">Change Password</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="set_password_button(o)">Change Password</button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-warning btn-sm" v-if="o.username != 'apfell_admin'" @click="change_username_button(o)">Change Username</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" v-if="o.username != 'apfell_admin'" @click="change_username_button(o)">Change Username</button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-warning btn-sm" @click="change_config_button(o)">Change Config</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="change_config_button(o)"><i class="fas fa-user-edit"></i></button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-warning btn-sm" @click="change_admin_button(o)" v-if="o.username != 'apfell_admin'">Toggle Admin</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="change_admin_button(o)" v-if="o.username != 'apfell_admin'">Toggle Admin</button>
                 </td>
                 <td>[[ o.username ]]</td>
                 <td>[[ o.last_login ]]</td>
@@ -67,37 +69,42 @@
                 <td>[[ o.admin ]]</td>
                 <td>
                     <div v-if="o.active">
-                        <button type="button" class="btn btn-danger btn-sm" v-if="o.username != 'apfell_admin'" @click="change_active_button(o)">Deactivate</button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" v-if="o.username != 'apfell_admin'" @click="change_active_button(o)">Deactivate</button>
                     </div>
                     <div v-else>
-                        <button type="button" class="btn btn-success btn-sm" @click="change_active_button(o)">Activate</button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="change_active_button(o)">Activate</button>
                     </div>
                 </td>
             </tr>
         <!-- End of the repeating -->
         </table>
 </div>
-<div style="resize: vertical; overflow:visible" class="panel panel-primary" id="apitokens_table">
-    <div class="panel-heading">API Tokens</div>
-        <table class="table table-condensed" style="width:100%;table-layout:fixed;word-wrap: break-word">
+<div v-if="current_operator.admin">
+    <br><button type="button" class="btn btn{{config['outline-buttons']}}danger btn-md" onclick="disable_registration_button()">Disable New Registrations</button>
+</div><br><br>
+<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="apitokens_table">
+    <div class="card-header bg-header border border-dark shadow text-white">
+        <h2><span class="operator">API</span> Tokens</h2>
+    </div>
+        <table class="table table-condensed table-striped table-hover {{config['table-color']}}" style="width:100%;table-layout:fixed;word-wrap: break-word">
             <tr>
                 <th style="width:7em"><b>Delete</b></th>
-                <th style="width:7em"><b>Active?</b></th>
-                <th style="width:10em"><b>Token Type</b></th>
-                <th><b>Token Value</b></th>
-                <th style="align:right;width:10em"><b>Creation time</b></th>
-                <th style="align:right;width:10em"><b>Operator</b></th>
+                <th onclick="sort_table(this)" style="width:7em"><b>Active?</b></th>
+                <th onclick="sort_table(this)" style="width:10em"><b>Token Type</b></th>
+                <th onclick="sort_table(this)"><b>Token Value</b></th>
+                <th onclick="sort_table(this)" style="align:right;width:10em"><b>Creation time</b></th>
+                <th onclick="sort_table(this)" style="align:right;width:10em"><b>Operator</b></th>
             </tr>
             <tr v-for="token in tokens" :key="token.id">
                 <td>
-                    <button type="button" class="btn btn-danger btn-sm" @click="delete_apitoken_button(token)">Delete</button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_apitoken_button(token)"><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td>
                     <template v-if="token.active">
-                        <button type="button" class="btn btn-warning btn-sm" @click="toggle_active_button(token)">Deactivate</button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="toggle_active_button(token)">Deactivate</button>
                     </template>
                     <template v-else>
-                        <button type="button" class="btn btn-success btn-sm" @click="toggle_active_button(token)">Reactivate</button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="toggle_active_button(token)">Reactivate</button>
                     </template>
                 </td>
                 <td>
@@ -113,35 +120,21 @@
                     [[token.operator]]
                 </td>
             </tr>
-            <tr>
-                <td>
-                    <button type="button" class="btn btn-success btn-md" @click="create_apitoken_button()">Create Token</button>
-                </td>
-                <td>
-
-                </td>
-                <td>
-
-                </td>
-                <td>
-
-                </td>
-                <td></td>
-            </tr>
         </table>
+    <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="create_apitoken_button()" style="width:10%"><i class="fas fa-plus"></i> Token</button>
 </div>
 <!-- THIS IS OUR MODAL FOR CREATING APITOKEN -->
-<div class="modal fade bs-example-modal-sm" id="apitokenCreateModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade" id="apitokenCreateModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Create an API Token</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+            <div class="modal-body">
                 Be careful using leaving API Tokens unattended, but they can be revoked. <br>
                 C2 API tokens have VERY limited scope in their capabilities. <br>
                 User API tokens grant full user access.
-            </div>
-            <div class="modal-body">
                 <table style="width:100%">
                     <tr>
                         <td>
@@ -157,41 +150,41 @@
                 </table>
             </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-success" data-dismiss="modal" id="apitokenCreateSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" id="apitokenCreateSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR CREATING APITOKEN -->
-<div v-if="current_operator.admin">
-    <button type="button" class="btn btn-success btn-sm" onclick="disable_registration_button()">Disable New Registrations</button>
-</div>
+
 <!-- THIS IS OUR MODAL FOR DELETING OPERATOR -->
-<div class="modal fade bs-example-modal-sm" id="operatorDeleteModal" role="dialog">
+<div class="modal fade" id="operatorDeleteModal" role="dialog">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Are you sure? This could have implications elsewhere.</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-danger" data-dismiss="modal" id="operatorDeleteSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}danger" data-dismiss="modal" id="operatorDeleteSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR DELETING OPERATOR -->
 <!-- THIS IS OUR MODAL FOR CHANGING OPERATOR PASSWORD-->
-<div class="modal fade bs-example-modal-md" id="operatorPasswordModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade" id="operatorPasswordModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-dark text-white">
+
+                <h3>Are you sure? This could have implications elsewhere.</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
-                <h3>Are you sure? This could have implications elsewhere. If you're admin, you can leave the old password field blank.</h3>
             </div>
             <div class="modal-body" id="operatorUpdatePasswordBody">
+                If you're admin, you can leave the old password field blank.
                 <table cellpadding="10" style="width:100%">
                     <tr>
                         <td style="width:150px">Old Password</td>
@@ -208,47 +201,50 @@
                 </table>
             </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="operatorPasswordSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operatorPasswordSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR CHANGING OPERATOR PASSWORD-->
 <!-- THIS IS OUR MODAL FOR CHANGING OPERATOR USERNAME-->
-<div class="modal fade bs-example-modal-md" id="operatorUsernameModal" role="dialog">
+<div class="modal fade" id="operatorUsernameModal" role="dialog">
     <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Are you sure? This could have implications elsewhere. Your username must be unique.</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             <div class="modal-body" id="operatorUpdateUsernameBody">
                 <table cellpadding="10" style="width:100%">
                     <tr>
                         <td style="width:150px">New Username</td>
-                        <td><input type="text" id="operatorNewUsername" size="64"></td>
+                        <td><input type="text" id="operatorNewUsername" size="32"></td>
                     </tr>
                 </table>
             </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="operatorUsernameSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operatorUsernameSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR CHANGING OPERATOR USERNAME-->
 <!-- THIS IS OUR MODAL FOR CHANGING OPERATOR CONFIG-->
-<div class="modal fade bs-example-modal-md" id="operatorConfigModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade" id="operatorConfigModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Change the config for UI</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             Changes will not be pushed to the server until you confirm the changes.
+
             <div class="modal-body" id="operatorUpdateConfigBody">
+                <button class="btn btn{{config['outline-buttons']}}info btn-sm" @click="get_light_config()" style="display:inline">Get Light Config</button>
+            <button class="btn btn{{config['outline-buttons']}}info btn-sm" @click="get_dark_config()" style="display:inline">Get Dark Config</button>
                 <table cellpadding="10" style="width:100%">
                     <tr>
                         <th></th>
@@ -257,19 +253,18 @@
                     </tr>
                     <template v-for="entry in config">
                         <tr>
-                            <td><button class="btn btn-danger" @click="remove_key_config(entry.key)">X</button></td>
-                            <td><input class="text" v-model="entry.key" :value="entry.key" size="40"></td>
-                            <td><input class="text" v-model="entry.value" :valye="entry.value"></td>
+                            <td><button class="btn btn{{config['outline-buttons']}}danger" @click="remove_key_config(entry.key)"><i class="fas fa-trash-alt"></i></button></td>
+                            <td><input type="text" v-model="entry.key" :value="entry.key" size="40"></td>
+                            <td><input type="text" v-model="entry.value" :valye="entry.value"></td>
                         </tr>
                     </template>
                 </table>
-                <button class="btn btn-success" @click="add_key_config()">Add Key</button>
-                <button class="btn btn-info" @click="get_default_config()">Get Default Config</button>
-                <button class="btn btn-info" @click="get_dark_config()">Get Dark Config</button>
+                <button class="btn btn{{config['outline-buttons']}}success" @click="add_key_config()"><i class="fas fa-plus"></i> Key</button>
+
             </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="operatorConfigSubmit">Confirm Change</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operatorConfigSubmit">Confirm Change</button>
               </div>
         </div>
     </div>
@@ -282,218 +277,5 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
 
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
 {% endblock %}

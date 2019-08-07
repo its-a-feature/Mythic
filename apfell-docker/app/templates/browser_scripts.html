@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block body %}
+<br>
+
+<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="browser_scripts_table">
+    <div class="card-header bg-header text-white">
+        <h2>User and Operation <span class="operator">Browser Scripts</span></h2>
+    </div>
+        <table class="table table-striped {{config['table-color']}} table-hover border border-dark shadow" >
+            <tr>
+                <th align="left" width="5em"><b>Delete</b></th>
+                <th onclick="sort_table(this)"><b>Active Status</b></th>
+                <th onclick="sort_table(this)"><b>Payload Type </b></th>
+                <th onclick="sort_table(this)"><b>Command </b></th>
+                <th><b>Snippet</b></th>
+                <th onclick="sort_table(this)"><b>Author</b></th>
+                <th onclick="sort_table(this)"><b>Registration Time</span></b></th>
+                <th onclick="sort_table(this)"><b>In Effect</b></th>
+                <th onclick="sort_table(this)"><b>Assign to Operation </b></th>
+                <th><b>Edit</b></th>
+            </tr>
+
+            <tr v-for="(s, i) in bscripts" :key="i">
+                <td>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(s, i)" :disabled="s.operator != user"><i class="fas fa-trash-alt"></i></button>
+                </td>
+                <td>
+                    <template v-if="s.active">
+                        <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="toggle_active(s)" :disabled="s.operator != user">Deactivate</button>
+                    </template>
+                    <template v-else>
+                        <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="toggle_active(s)" :disabled="s.operator != user">Activate</button>
+                    </template>
+                </td>
+                <td>[[s.payload_type]]</td>
+                <td>[[s.command]]</td>
+                <td>
+                    <template v-if="s.script.length > 80">
+                        [[s.script.substring(0,80) + '...']]
+                    </template>
+                    <template v-else>
+                        [[s.script]]
+                    </template>
+
+                </td>
+                <td>[[s.operator]]</td>
+                <td>[[toLocalTime(s.creation_time)]]</td>
+                <td>
+                    [[in_effect(s)]]
+                </td>
+                <td>
+                    <template v-if="s.operation != 'null'">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="toggle_operation(s)" :disabled="s.operator != user">Remove</button>
+                    </template>
+                    <template v-else>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="toggle_operation(s)" :disabled="s.operator != user">Apply</button>
+                    </template>
+
+                </td>
+                <td>
+                    <template v-if="s.operator != user">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="view_code(s)">View Script</button>
+                    </template>
+                    <template v-else>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_button(s)"><i class="fas fa-edit"></i></button>
+                    </template>
+
+                </td>
+            </tr>
+        </table>
+    <div class="card-footer bg-card-footer border border-dark shadow">
+        <button class="btn btn-md btn{{config['outline-buttons']}}success" @click="new_script()"><i class="fas fa-plus"></i> New Script</button>
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="import_scripts()" data-toggle="tooltip" title="Import new browser scripts from JSON"><i class="fas fa-file-import"></i></button>
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_scripts()" data-toggle="tooltip" title="Export all browser scripts as JSON"><i class="fa fa-file-export"></i></button>
+    </div>
+</div>
+<div id="modal_vues">
+    <!-- THIS IS OUR MODAL FOR CREATING A BROWSER SCRIPT -->
+    <div class="modal fade" id="createBrowserScriptModal" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h3>Register a Browser Script</h3>
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                </div>
+                  <div class="modal-body">
+                      Register a new script to process and react to the output of a specific command. Can be tied to an operator or operation overall.
+                      <table class="table-striped {{config['table-color']}} table-hover">
+                          <tr>
+                              <td>Payload Type:</td>
+                              <td>
+                                  <select v-model="current_payload_type"><option v-for="ptype in payload_types" :value="ptype">[[ptype]]</option></select>
+                              </td>
+                              <td></td>
+                              <td></td>
+                          </tr>
+                          <tr>
+                              <td>Command:</td>
+                              <td>
+                                  <select v-model="current_command"><option value="-1">Support Script</option><option v-for="cmd in commands[current_payload_type]" :value="cmd.id">[[cmd.cmd]]</option></select>
+                              </td>
+                              <template v-if="current_command == -1">
+                                  <td>Support Script Name: </td>
+                                  <td align="left"><input placeholder="Function Name Here" v-model="name" size="45"></td>
+                              </template>
+                              <template v-else>
+                                  <td></td>
+                                  <td></td>
+                              </template>
+                          </tr>
+                          <tr>
+                              <td style="vertical-align:top">Script:</td>
+                              <td colspan="4" style="width:100%;">
+                                  Theme: <select v-model="theme"><option v-for="t in theme_options" :value="t">[[t]]</option></select>
+                                  <ace-editor v-model="script" min-lines="3" max-lines="50" :theme="theme" wrap="true"></ace-editor>
+                              </td>
+                          </tr>
+                      </table>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                    <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="createBrowserScriptSubmit">Submit</button>
+                  </div>
+            </div>
+        </div>
+    </div>
+    <!-- END MODAL FOR CREATING BROWSER SCRIPT -->
+    <!-- THIS IS OUR MODAL FOR VIEWING A BROWSER SCRIPT -->
+    <div class="modal fade" id="viewBrowserScriptModal" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h3>Viewing a Browser Script</h3>
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                </div>
+                  <div class="modal-body">
+                      <table class="table-striped {{config['table-color']}} table-hover">
+                          <tr>
+                              <td style="vertical-align:top">Script:</td>
+                              <td style="width:100%">
+                                  <ace-editor v-model="script" min-lines="3" max-lines="30"></ace-editor>
+                              </td>
+                          </tr>
+                      </table>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Close</button>
+                  </div>
+            </div>
+        </div>
+    </div>
+    <!-- END MODAL FOR VIEWING BROWSER SCRIPT -->
+</div>
+<!-- THIS IS OUR MODAL FOR IMPORTING COMMAND -->
+<div class="modal fade" id="scriptImportModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Import a JSON file containing the scripts and associated information</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <div class="modal-body" id="commandImportBody">
+                  <input type="file" id="scriptImportFile">
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="scriptImportSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR IMPORTING COMMAND -->
+
+{% endblock %}
+{% block scripts %}
+{% include "browser_scripts.js" %}
+
+{% endblock %}
+
+{% block body_config %}
+
+{% endblock %}

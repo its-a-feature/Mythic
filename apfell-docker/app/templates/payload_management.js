@@ -18,11 +18,30 @@ var payloads_table = new Vue({
                 }
             });
         },
-        show_uuid_button: function(p){
-            alertTop("info", p.uuid);
+        new_hosting_path_button: function(p){
+            $( '#payloadNewHostName' ).val(p.location.split("/").slice(-1)[0]);
+            $( '#payloadNewHostModal' ).modal('show');
+            $( '#payloadNewHostSubmit' ).unbind('click').click(function(){
+                data = {"host": true, "name": $( '#payloadNewHostName' ).val(), 'uuid': p.uuid};
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/host_payload/", function(response){
+                    //console.log(response);
+                }, "POST", data);
+            });
+        },
+        edit_hosting_path_button: function(p){
+            $( '#payloadEditHostName' ).val(p.hosted_path.split("/").slice(-1)[0]);
+            $( '#payloadEditHostHost' ).prop("checked", true);
+            $( '#payloadEditHostModal' ).modal('show');
+            $( '#payloadEditHostSubmit' ).unbind('click').click(function(){
+                data = {"host": $( '#payloadEditHostHost' ).is(":checked"), "name": $( '#payloadEditHostName' ).val(), 'uuid': p.uuid};
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/host_payload/", function(response){
+                    //console.log(response);
+                }, "POST", data);
+            });
         },
         show_parameters_button: function(p){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/" + p.uuid, get_config_callback, "GET", null);
+             Vue.set(payload_config_vue.config, "uuid", p.uuid);
             $( '#payloadConfigModal' ).modal('show');
         },
         download_payload_button: function(p){
@@ -157,10 +176,32 @@ startwebsocket_payloads();
 // #################### PAYLOADTYPE AND COMMAND SECTION ###############################
 var payloadtypes = [];
 var payloadtypeCreateWrapperSelected = false;
+var edit_command_template_vue = new Vue({
+    el: '#edit_command_template',
+    data:{
+        command_template: "",
+        language: "javascript",
+        theme: "{{config['code-theme']}}",
+        language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
+        theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"]
+    },
+    delimiters: ['[[', ']]']
+});
+var add_command_template_vue = new Vue({
+    el: '#add_command_template',
+    data:{
+        command_template: "",
+        language: "javascript",
+        theme: "{{config['code-theme']}}",
+        language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
+        theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"]
+    },
+    delimiters: ['[[', ']]']
+});
 var payloadtypes_table = new Vue({
     el: '#payloadtypes_table',
     data:{
-        payloadtypes,
+        payloadtypes
     },
     methods: {
         delete_payloadtype_button: function(p){
@@ -199,7 +240,8 @@ var payloadtypes_table = new Vue({
                     $('#payloadtypeEditWrappedPayloadTypeRow').attr("hidden", true);
                 }
             });
-            $('#payloadtypeEditCommandTemplate').val(p.command_template);
+            edit_command_template_vue.command_template = p.command_template;
+            //$('#payloadtypeEditCommandTemplate').val(p.command_template);
             $('#payloadtypeEditSupportedOS').val(p.supported_os.split(","));
             $('#payloadtypeEditExecuteHelp').val(p.execute_help);
             // send a request to get the uploaded files
@@ -210,7 +252,8 @@ var payloadtypes_table = new Vue({
             $( '#payloadtypeEditSubmit' ).unbind('click').click(function(){
                 var data = {"file_extension": $( '#payloadtypeEditFileExtension').val()};
                 data["wrapper"]= $('#payloadtypeEditWrapper').is(":checked");
-                data['command_template'] = $('#payloadtypeEditCommandTemplate').val();
+                //data['command_template'] = $('#payloadtypeEditCommandTemplate').val();
+                data['command_template'] = edit_command_template_vue.command_template;
                 data['supported_os'] = $('#payloadtypeEditSupportedOS').val();
                 data['execute_help'] = $('#payloadtypeEditExecuteHelp').val();
                 data['external'] = $('#payloadtypeEditExternal').is(":checked");
@@ -235,7 +278,8 @@ var payloadtypes_table = new Vue({
             });
         },
         add_commands_button: function(p){
-            $( '#commandAddCode').val(p.command_template);
+            add_command_code_vue.code = p.command_template;
+            //$( '#commandAddCode').val(p.command_template);
             $( '#commandAddVersion').val(1);
             $( '#commandAddVersion').prop('disabled', true);
             $( '#commandAddModal' ).modal('show');
@@ -254,8 +298,9 @@ var payloadtypes_table = new Vue({
                     file.value = file.defaultValue;
                 }
                 else{
-                    code = btoa( $( '#commandAddCode' ).val() );
-                    data['code'] = code;
+                    data['code'] = btoa(add_command_code_vue.code);
+                    //code = btoa( $( '#commandAddCode' ).val() );
+                    //data['code'] = code;
                     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/", add_command_callback, "POST", data);
                 }
                 // now clear all the boxes
@@ -263,7 +308,8 @@ var payloadtypes_table = new Vue({
                 $('#commandAddHelpCmd').val("");
                 $('#commandAddNeedsAdmin').prop('checked', false);
                 $('#commandAddIsExit').prop('checked', false);
-                $('#commandAddCode').val("");
+                //$('#commandAddCode').val("");
+                add_command_code_vue.code = "";
                 $('#commandAddCmd').val("");
                 $('#commandAddVersion').val(1);
                 //add_command_parameters_table.add_command_parameters = [];
@@ -277,7 +323,8 @@ var payloadtypes_table = new Vue({
                 $('#commandAddHelpCmd').val("");
                 $('#commandAddNeedsAdmin').prop('checked', false);
                 $('#commandAddIsExit').prop('checked', false);
-                $('#commandAddCode').val("");
+                //$('#commandAddCode').val("");
+                add_command_code_vue.code = "";
                 $('#commandAddCmd').val("");
                 add_command_parameters_table.add_command_parameters = [];
                 add_command_transforms_table.add_command_transforms = [];
@@ -286,44 +333,24 @@ var payloadtypes_table = new Vue({
             });
             $( '#commandAddCheckCmd' ).unbind('click').click(function(){
                 // make a request out to see if the command exists already or if the file exists (and command was deleted)?
-                var data = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + $('#commandAddCmd').val());
-                data_json = JSON.parse(data);
-                if(data_json.hasOwnProperty("cmd")){
-                    $('#commandAddDescription').val(data_json['description']);
-                    $('#commandAddDescription').prop('disabled', true);
-                    $('#commandAddHelpCmd').val(data_json['help_cmd']);
-                    $('#commandAddHelpCmd').prop('disabled', true);
-                    $('#commandAddNeedsAdmin').prop('checked', data['needs_admin']);
-                    $('#commandAddNeedsAdmin').prop('disabled', true);
-                    $('#commandAddIsExit').prop('checked', data['is_exit']);
-                    $('#commandAddIsExit').prop('disabled', true);
-                    $('#commandAddVersion').val(data['version']);
+                if($('#commandAddCmd').val() != ""){
+                    var data = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + $('#commandAddCmd').val());
+                }else{
+                    $('#commandExists').prop('hidden', true);
+                    $('#commandDoesNotExist').prop('hidden', false);
+                    return;
                 }
-                else{
-                    //be sure to make everything editable and clear it all
-                    $('#commandAddDescription').val("");
-                    $('#commandAddDescription').prop('disabled', false);
-                    $('#commandAddHelpCmd').val("");
-                    $('#commandAddHelpCmd').prop('disabled', false);
-                    $('#commandAddNeedsAdmin').prop('checked', false);
-                    $('#commandAddNeedsAdmin').prop('disabled', false);
-                    $('#commandAddIsExit').prop('checked', false);
-                    $('#commandAddIsExit').prop('disabled', false);
-                    $('#commandAddVersion').val(1);
+                try{
+                    data_json = JSON.parse(data);
+                }catch(error){
+                    alertTop("danger", "Failed to query database");
                 }
-                if(data_json.hasOwnProperty("code")){
-                    $('#commandAddCode').val(atob(data_json['code']));
-                    //$('#commandAddCode').attr('disabled', true);
-                }
-                else{
-                    $('#commandAddCode').val(p.command_template);
-                    $('#commandAddCode').attr('disabled', false);
-                }
-                if(data_json.hasOwnProperty("params")){
-                    add_command_parameters_table.add_command_parameters = data_json['params'];
-                }
-                else{
-                    add_command_parameters_table.add_command_parameters = [];
+                if(data_json['status'] == 'success'){
+                    $('#commandExists').prop('hidden', false);
+                    $('#commandDoesNotExist').prop('hidden', true);
+                }else{
+                    $('#commandExists').prop('hidden', true);
+                    $('#commandDoesNotExist').prop('hidden', false);
                 }
             });
 
@@ -361,11 +388,10 @@ var payloadtypes_table = new Vue({
                             }
                             else{
                                 // only add the 'code' field if we actually changed something in the code
-                                if( $( '#commandEditCode' ).val() !=  $( '#commandEditOldCode' ).val()){
-                                    code = btoa( $( '#commandEditCode' ).val() );
-                                    data['code'] = code;
+                                if( edit_command_code_vue.code != edit_command_code_vue.old_code){
+                                    data['code'] = btoa(edit_command_code_vue.code);
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, command_edit_callback, "PUT", data);
                                 }
-                                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, command_edit_callback, "PUT", data);
                             }
                             //Now handle sending updates for the command parameters at the bottom
                             for(var j = 0; j < command_parameters_table.command_parameters.length; j++){
@@ -491,7 +517,31 @@ var payloadtypes_table = new Vue({
                     }
                 }
             });
-        }
+        },
+    },
+    delimiters: ['[[', ']]']
+});
+var add_command_code_vue = new Vue({
+    el: '#add_command_code',
+    // http://ajaxorg.github.io/ace-builds/kitchen-sink.html
+    data:{
+        code: "",
+        language: "javascript",
+        theme: "{{config['code-theme']}}",
+        language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
+        theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"]
+    },
+    delimiters: ['[[', ']]']
+});
+var edit_command_code_vue = new Vue({
+    el: '#edit_command_code',
+    data:{
+        code: "",
+        old_code: "",
+        language: "javascript",
+        theme: "{{config['code-theme']}}",
+        language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
+        theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"]
     },
     delimiters: ['[[', ']]']
 });
@@ -502,7 +552,12 @@ function create_or_edit_command_artifacts_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    console.log(data);
+    if(data['status'] == "success"){
+        alertTop("success", "Command artifacts successfully edited");
+    }
+    else{
+        alertTop("danger", data['error']);
+    }
 }
 function set_files_edit_payloadtype_callback(response){
     try{
@@ -527,19 +582,7 @@ function command_edit_callback(response){
         return;
     }
     if(data['status'] == "success"){
-        // now update our in-mem copy of the command
-        if(data.hasOwnProperty('version')) { var version = data['version']; var cmd_id = data['id'];}
-        else if(data.hasOwnProperty('new_cmd_version')) { var version = data['new_cmd_version']; var cmd_id = data['command'];}
-
-        if(version){
-            payloadtypes_table.payloadtypes.forEach(function(ptype){
-                ptype['commands_set'].forEach(function(cmd){
-                    if(cmd_id == cmd.id){
-                        return;
-                    }
-                });
-            });
-        }
+        alertTop("success", "Successfully updated command");
     }
     else{
         alertTop("danger", data['error']);
@@ -742,10 +785,15 @@ function remove_create_transform_options_callback(response){
 }
 function set_edit_code_callback(response){
     try{
-        $( '#commandEditCode' ).val(atob(response));
-        $( '#commandEditOldCode').val(atob(response));
+        //$( '#commandEditCode' ).val(atob(response));
+        //$( '#commandEditOldCode').val(atob(response));
+        edit_command_code_vue.code = atob(response);
+        edit_command_code_vue.old_code = atob(response);
     }catch(error){
-        $( '#commandEditCode' ).val("");
+        //$( '#commandEditCode' ).val("");
+        edit_command_code_vue.code = "";
+        edit_command_code_vue.old_code = "";
+        console.log("error trying to base64 decode the code for editing");
     }
 }
 function set_edit_command_info_callback(response){
@@ -888,7 +936,7 @@ var add_command_parameters_table = new Vue({
     },
     methods: {
         remove_parameter_button: function(i, p){
-            add_command_parameters_table.add_command_parameters.splice(i, 1);
+            add_command_parameters_table.add_command_parameters.splice(p, 1);
         },
         add_parameter_button: function(){
             this.add_command_parameters.push({"name": "", "choices": "", "type": "Select One...", "hint": "", "required": false});
@@ -1137,7 +1185,20 @@ function startwebsocket_payloadtypes(){
 			// if we get here, then we have a new payload type entry
 			pdata['create'] = [];
 			pdata['load'] = [];
+			pdata['commands'] = [];
 			payloadtypes_table.payloadtypes.push(pdata);
+			Vue.nextTick(function(){
+                $('#payloadtypecardbody' + pdata['id']).on('hide.bs.collapse', function(){
+                    //body is now hidden from user
+                    self_id = this.id.split("body")[1];
+                    document.getElementById('dropdownarrow' + self_id).style.transform = "rotate(0deg)";
+                });
+                $('#payloadtypecardbody' + pdata['id']).on('show.bs.collapse', function(){
+                    //body is now shown to the user
+                    self_id = this.id.split("body")[1];
+                    document.getElementById('dropdownarrow' + self_id).style.transform = "rotate(180deg)";
+                })
+			});
 			httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bytype/" + pdata['ptype'], display_transforms_callback, "GET", null);
 		}
 		else{
@@ -1232,7 +1293,8 @@ function create_payloadtype_callback(response){
 function create_payloadtype_button(){
     $( '#payloadtypeCreatePtype' ).val('');
     $( '#payloadtypeCreateFileExtension' ).val('');
-    $('#payloadtypeCreateCommandTemplate').val('');
+    //$('#payloadtypeCreateCommandTemplate').val('');
+    add_command_template_vue.command_template = "\n";
     $('#payloadtypeCreateExecuteHelp').val('');
     if( $('#payloadtypeCreateWrapper').is(":checked")){
         $( '#payloadtypeCreateWrapper' ).click();
@@ -1254,7 +1316,8 @@ function create_payloadtype_button(){
         var data = {"ptype": $( '#payloadtypeCreatePtype' ).val(),
         "file_extension": $( '#payloadtypeCreateFileExtension').val()};
         data["wrapper"]= $('#payloadtypeCreateWrapper').is(":checked");
-        data['command_template'] = $('#payloadtypeCreateCommandTemplate').val();
+        //data['command_template'] = $('#payloadtypeCreateCommandTemplate').val();
+        data['command_template'] = add_command_template_vue.command_template;
         data['supported_os'] = $('#payloadtypeCreateSupportedOS').val();
         data['execute_help'] = $('#payloadtypeCreateExecuteHelp').val();
         data['external'] = $('#payloadtypeCreateExternal');
@@ -1456,6 +1519,7 @@ function command_artifacts_options_callback(response){
         alertTop("danger", data['error']);
     }
 }
+
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/", set_wrapped_payload_type_options, "GET", null);
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/options", set_transform_options, "GET", null);
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/options", command_transforms_options_callback, "GET", null);
@@ -1538,3 +1602,216 @@ function startwebsocket_rabbitmq(){
 	}
 };
 startwebsocket_rabbitmq();
+//ACE specific code from http://cwestblog.com/2018/08/04/ace-editor-vue-component/
+/* START: <ace-editor> Vue component */
+(function () {
+  var PROPS = {
+    selectionStyle: {},
+    highlightActiveLine: { f: toBool },
+    highlightSelectedWord: { f: toBool },
+    readOnly: { f: toBool },
+    cursorStyle: {},
+    mergeUndoDeltas: { f: toBool },
+    behavioursEnabled: { f: toBool },
+    wrapBehavioursEnabled: { f: toBool },
+    autoScrollEditorIntoView: { f: toBool, v: false },
+    copyWithEmptySelection: { f: toBool },
+    useSoftTabs: { f: toBool, v: false },
+    navigateWithinSoftTabs: { f: toBool, v: false },
+    hScrollBarAlwaysVisible: { f: toBool },
+    vScrollBarAlwaysVisible: { f: toBool },
+    highlightGutterLine: { f: toBool },
+    animatedScroll: { f: toBool },
+    showInvisibles: { f: toBool },
+    showPrintMargin: { f: toBool },
+    printMarginColumn: { f: toNum, v: 80 },
+    // shortcut for showPrintMargin and printMarginColumn
+    printMargin: { f: function (x) { return toBool(x, true) && toNum(x); } }, // false|number
+    fadeFoldWidgets: { f: toBool },
+    showFoldWidgets: { f: toBool, v: true },
+    showLineNumbers: { f: toBool, v: true },
+    showGutter: { f: toBool, v: true },
+    displayIndentGuides: { f: toBool, v: true },
+    fontSize: {},
+    fontFamily: {},
+    minLines: { f: toNum },
+    maxLines: { f: toNum },
+    scrollPastEnd: { f: toBoolOrNum },
+    fixedWidthGutter: { f: toBool, v: false },
+    theme: { v: 'monokai' },
+    scrollSpeed: { f: toNum },
+    dragDelay: { f: toNum },
+    dragEnabled: { f: toBool, v: true },
+    focusTimeout: { f: toNum },
+    tooltipFollowsMouse: { f: toBool },
+    firstLineNumber: { f: toNum, v: 1 },
+    overwrite: { f: toBool },
+    newLineMode: {},
+    useWorker: { f: toBool },
+    tabSize: { f: toNum, v: 2 },
+    wrap: { f: toBoolOrNum },
+    foldStyle: { v: 'markbegin' },
+    mode: { v: 'javascript' },
+    value: {},
+  };
+
+  var EDITOR_EVENTS = ['blur', 'change', 'changeSelectionStyle', 'changeSession', 'copy', 'focus', 'paste'];
+
+  var INPUT_EVENTS = ['keydown', 'keypress', 'keyup'];
+
+  function toBool(value, opt_ignoreNum) {
+    var result = value;
+    if (result != null) {
+      (value + '').replace(
+        /^(?:|0|false|no|off|(1|true|yes|on))$/,
+        function(m, isTrue) {
+          result = (/01/.test(m) && opt_ignoreNum) ? result : !!isTrue;
+        }
+      );
+    }
+    return result;
+  }
+
+  function toNum(value) {
+    return (value == null || isNaN(+value)) ? value : +value;
+  }
+
+  function toBoolOrNum(value) {
+    var result = toBool(value, true);
+    return 'boolean' === typeof result ? result : toNum(value);
+  }
+
+  function emit(component, name, event) {
+    component.$emit(name.toLowerCase(), event);
+    if (name !== name.toLowerCase()) {
+      component.$emit(
+        name.replace(/[A-Z]+/g, function(m) { return ('-' + m).toLowerCase(); }),
+        event
+      );
+    }
+  }
+
+  // Defined for IE11 compatibility
+  function entries(obj) {
+    return Object.keys(obj).map(function(key) { return [key, obj[key]]; });
+  }
+
+  Vue.component('aceEditor', {
+    template: '<div ref="root"></div>',
+    props: Object.keys(PROPS),
+    data: function() {
+      return {
+        editor: null,
+        isShowingError: false,
+        isShowingWarning: false,
+        allowInputEvent: true,
+        // NOTE:  "lastValue" is needed to prevent cursor from always going to
+        // the end after typing
+        lastValue: ''
+      };
+    },
+    methods: {
+      setOption: function(key, value) {
+        var func = PROPS[key].f;
+
+        value = /^(theme|mode)$/.test(key)
+          ? 'ace/' + key + '/' + value
+          : func
+            ? func(value)
+            : value;
+
+        this.editor.setOption(key, value);
+      }
+    },
+    watch: (function () {
+      var watch = {
+        value: function(value) {
+          if (this.lastValue !== value) {
+            this.allowInputEvent = false;
+            this.editor.setValue(value);
+            this.allowInputEvent = true;
+          }
+        }
+      };
+
+      return entries(PROPS).reduce(
+        function(watch, propPair) {
+          var propName = propPair[0];
+          if (propName !== 'value') {
+            watch[propName] = function (newValue) {
+              this.setOption(propName, newValue);
+            };
+          }
+          return watch;
+        },
+        watch
+      );
+    })(),
+    mounted: function() {
+      var self = this;
+
+      self.editor = window.ace.edit(self.$refs.root, { value: self.value });
+
+      entries(PROPS).forEach(
+        function(propPair) {
+          var propName = propPair[0],
+              prop = propPair[1],
+              value = self.$props[propName];
+          if (value !== undefined || prop.hasOwnProperty('v')) {
+            self.setOption(propName, value === undefined ? prop.v : value);
+          }
+        }
+      );
+
+      self.editor.on('change', function(e) {
+        self.lastValue = self.editor.getValue();
+        if (self.allowInputEvent) {
+          emit(self, 'input', self.lastValue);
+        }
+      });
+
+      INPUT_EVENTS.forEach(
+        function(eName) {
+          self.editor.textInput.getElement().addEventListener(
+            eName, function(e) { emit(self, eName, e); }
+          );
+        }
+      );
+
+      EDITOR_EVENTS.forEach(function(eName) {
+        self.editor.on(eName, function(e) { emit(self, eName, e); });
+      });
+
+      var session = self.editor.getSession();
+      session.on('changeAnnotation', function() {
+        var annotations = session.getAnnotations(),
+            errors = annotations.filter(function(a) { return a.type === 'error'; }),
+            warnings = annotations.filter(function(a) { return a.type === 'warning'; });
+
+        emit(self, 'changeAnnotation', {
+          type: 'changeAnnotation',
+          annotations: annotations,
+          errors: errors,
+          warnings: warnings
+        });
+
+        if (errors.length) {
+          emit(self, 'error', { type: 'error', annotations: errors });
+        }
+        else if (self.isShowingError) {
+          emit(self, 'errorsRemoved', { type: 'errorsRemoved' });
+        }
+        self.isShowingError = !!errors.length;
+
+        if (warnings.length) {
+          emit(self, 'warning', { type: 'warning', annotations: warnings });
+        }
+        else if (self.isShowingWarning) {
+          emit(self, 'warningsRemoved', { type: 'warningsRemoved' });
+        }
+        self.isShowingWarning = !!warnings.length;
+      });
+    }
+  });
+})();
+/* END: <ace-editor> Vue component */

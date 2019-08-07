@@ -10,9 +10,9 @@ if __name__ == "__main__":
         if use_ssl:
             context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
             context.load_cert_chain(ssl_cert_path, keyfile=ssl_key_path)
-            server = apfell.create_server(host=listen_ip, port=listen_port, ssl=context, debug=False, return_asyncio_server=True)
+            server = apfell.create_server(host=listen_ip, port=listen_port, ssl=context, debug=False, return_asyncio_server=True, access_log=True)
         else:
-            server = apfell.create_server(host=listen_ip, port=listen_port, debug=False, return_asyncio_server=True)
+            server = apfell.create_server(host=listen_ip, port=listen_port, debug=False, return_asyncio_server=True, access_log=True)
         loop = asyncio.get_event_loop()
         task = asyncio.ensure_future(server, loop=dbloop)
         task2 = asyncio.ensure_future(start_listening(), loop=dbloop)

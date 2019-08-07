@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from sanic_jwt.decorators import scoped, inject_user
 from app.api.transform_api import get_transforms_func, get_commandtransforms_func
 import json as js
-import importlib, sys
+import sys
 import shutil, os, glob
 from app.api.payloads_api import generate_uuid, write_c2
 import app.crypto as crypt
@@ -13,6 +13,7 @@ import base64
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
 from sanic.exceptions import abort
+from math import ceil
 
 
 # This gets all tasks in the database
@@ -51,15 +52,35 @@ async def search_tasks(request, user):
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
     query = await db_model.task_query()
-    tasks = await db_objects.prefetch(query
-                                     .where((Task.params.contains(data['search'])) | (Task.original_params.contains(data['search'])))
+    count = await db_objects.count(query
+                                     .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
                                      .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+    if 'page' not in data:
+        data['page'] = 1
+        data['size'] = count
+        tasks = await db_objects.prefetch(query
+                                     .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                     .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+    else:
+        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+        data['size'] = int(data['size'])
+        data['page'] = int(data['page'])
+        if data['page'] * data['size'] > count:
+            data['page'] = ceil(count / data['size'])
+            if data['page'] == 0:
+                data['page'] = 1
+        tasks = await db_objects.prefetch(query
+                                          .where(
+            (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                          .switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),
+                                          Command.select())
     output = []
     for t in tasks:
         query = await db_model.response_query()
         responses = await db_objects.execute(query.where(Response.task == t))
         output.append({**t.to_json(), "responses": [r.to_json() for r in responses]})
-    return json({'status': 'success', 'output': output})
+    return json({'status': 'success', 'output': output, "total_count": count, 'page': data['page'], 'size': data['size']})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['GET'])
@@ -121,15 +142,15 @@ async def get_all_tasks_by_callback_in_current_operation(request, user):
 
 
 # We don't put @protected or @inject_user here since the callback needs to be able to call this function
-@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>/nextTask", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:string>/nextTask", methods=['GET'])
 async def get_next_task(request, cid):
     # gets the next task by time for the callback to do
     try:
         query = await db_model.callback_query()
-        callback = await db_objects.get(query, id=cid)
+        callback = await db_objects.get(query, agent_callback_id=cid)
     except Exception as e:
-        print("Callback did not exist, returning blank message")
-        return json({})
+        print("Callback did not exist, returning 404")
+        return abort(404)
     command_string = ""
     params_string = ""
     task_id = -1
@@ -147,21 +168,26 @@ async def get_next_task(request, cid):
             if len(tasks) != 0:
                 tasks = tasks[0]
                 tasks.status = "processing"
+                tasks.status_timestamp_processing = datetime.utcnow()
                 tasks.timestamp = datetime.utcnow()
                 await db_objects.update(tasks)
                 command_string = tasks.command.cmd
                 params_string = tasks.params
-                task_id = tasks.id
+                task_id = tasks.agent_task_id
             else:
                 command_string = "none"
-                #return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
         else:
             # operation is complete, just return blank for now, potentially an exit command later
-            #return json({})
-            print("Got a request from an opeation that's done")
+            try:
+                query = await db_model.command_query()
+                exit_command = await db_objects.get(query, is_exit=True, payload_type=callback.registered_payload.payload_type)
+                command_string = exit_command.cmd
+            except Exception as e:
+                command_string = "none"
+                #return json({})
+                print("Got a request from an operation that's done")
     except Exception as e:
-        print(e)
-        #return json({'command': 'none'})  # return empty if there are no tasks that meet the criteria
+        print("no command: {}".format(str(e)))
         command_string = "none"
     if callback.encryption_type != "" and callback.encryption_type is not None:
         # encrypt the message before returning it
@@ -195,10 +221,38 @@ async def add_task_to_callback(request, cid, user):
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': "failed to get the current operation"})
+    try:
+        query = await db_model.callback_query()
+        cb = await db_objects.get(query, id=cid, operation=operation)
+    except Exception as e:
+        return json({'status': 'error', 'error': "failed to get callback"})
+
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
         data = request.json
+    if cb.locked:
+        if cb.locked_operator != operator:
+            return json({'status': 'error', 'error': 'Callback is locked by another user - Cannot task',
+                         'cmd': data['command'], 'params': data['params'], "callback": cid})
+    query = await db_model.operatoroperation_query()
+    operatoroperation = await db_objects.get(query, operator=operator, operation=operation)
+    query = await db_model.callback_query()
+    cb = await db_objects.get(query, id=cid, operation=operation)
+    if operatoroperation.base_disabled_commands is not None:
+        query = await db_model.command_query()
+        if data['command'] not in ['tasks', 'clear']:
+            cmd = await db_objects.get(query, cmd=data['command'], payload_type=cb.registered_payload.payload_type)
+            try:
+                query = await db_model.disabledcommandsprofile_query()
+                disabled_command = await db_objects.get(query, name=operatoroperation.base_disabled_commands.name,
+                                                        command=cmd)
+                return json({'status': 'error', 'error': "Not authorized to execute that command",
+                             'cmd': data['command'],
+                             'params': data['params'], 'callback': cid
+                             })
+            except Exception as e:
+                pass
     file_updates_with_task = []  # if we create new files throughout this process, be sure to tag them with the right task at the end
     if request.files:
         # this means we got files as part of our task, so handle those first
@@ -214,7 +268,7 @@ async def add_task_to_callback(request, cid, user):
                 code_file.close()
                 new_file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
                                                   path=path, operation=operation, operator=operator)
-                params[k] = new_file_meta.id
+                params[k] = new_file_meta.agent_file_id
                 file_updates_with_task.append(new_file_meta)
         data['params'] = js.dumps(params)
     data['operator'] = user['username']
@@ -223,18 +277,12 @@ async def add_task_to_callback(request, cid, user):
         data['test_command'] = False
     if 'transform_status' not in data:
         data['transform_status'] = []
-    return json(await add_task_to_callback_func(data, cid, user))
+    return json(await add_task_to_callback_func(data, cid, user, operator, operation, cb))
 
 
-async def add_task_to_callback_func(data, cid, user):
+async def add_task_to_callback_func(data, cid, user, op, operation, cb):
     try:
         # first see if the operator and callback exists
-        query = await db_model.operator_query()
-        op = await db_objects.get(query, username=user['username'])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user['current_operation'])
-        query = await db_model.callback_query()
-        cb = await db_objects.get(query, id=cid, operation=operation)
 
         original_params = None
         task = None
@@ -287,8 +335,28 @@ async def add_task_to_callback_func(data, cid, user):
             # we need to get the file into the database before we can signal for the callback to pull it down
             try:
                 # see if we actually submitted "file_id /remote/path/here"
-                if 'file_id' in upload_config and upload_config['file_id'] > 0:
-                    f = await db_objects.get(FileMeta, id=upload_config['file_id'])
+                if 'file_id' in upload_config and ('file' not in upload_config or upload_config['file'] == "FILEUPLOAD"):
+                    if isinstance(upload_config['file_id'], str):
+                        try:
+                            f = await db_objects.get(FileMeta, agent_file_id=upload_config['file_id'])
+                        except Exception as e:
+                            return {'status': 'error', 'error': "cannot find specified file_id",
+                                         'cmd': data['command'],
+                                         'params': data['params'], "callback": cid
+                                         }
+                    elif isinstance(upload_config['file_id'], int) and upload_config['file_id'] > 0:
+                        try:
+                            f = await db_objects.get(FileMeta, id=upload_config['file_id'])
+                        except Exception as e:
+                            return {'status': 'error', 'error': "cannot find specified file_id",
+                                         'cmd': data['command'],
+                                         'params': data['params'], "callback": cid
+                                         }
+                    else:
+                        return {'status': 'error', 'error': "cannot find specified file_id",
+                                'cmd': data['command'],
+                                'params': data['params'], "callback": cid
+                                }
                     # we don't want to lose our tracking on this file, so we'll create a new database entry
                     file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
                                                         complete=f.complete, path=f.path, operation=f.operation, operator=op)
@@ -297,9 +365,9 @@ async def add_task_to_callback_func(data, cid, user):
                     # we just made the file for this instance, so just use it as the file_meta
                     # in this case it's already added to data['file_updates_with_task']
                     query = await db_model.filemeta_query()
-                    file_meta = await db_objects.get(query, id=upload_config['file'])
+                    file_meta = await db_objects.get(query, agent_file_id=upload_config['file'])
                 # now normalize the data for the agent since it doesn't care if it was an old or new file_id to upload
-                data['params'] = js.dumps({'remote_path': upload_config['remote_path'], 'file_id': file_meta.id})
+                data['params'] = js.dumps({'remote_path': upload_config['remote_path'], 'file_id': file_meta.agent_file_id})
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 return {'status': 'error', 'error': 'failed to get file info from the database: ' + str(e), 'cmd': data['command'], 'params': data['params'], "callback": cid}
@@ -325,7 +393,8 @@ async def add_task_to_callback_func(data, cid, user):
                         await db_objects.update(payload_type)
                         return {"status": "error", 'error': 'build container not running, no heartbeat in over 30 seconds'}
                     task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
-                                                   original_params=data['params'], status="preprocessing")
+                                                   original_params=data['params'])
+                    await db_objects.update(task)
                     status = await perform_load_transforms(data, cb, operation, op, task)
                     if status['status'] == "error":
                         return {'status': 'error', 'error': status['error'], 'cmd': data['command'], 'params': data['params'], 'callback': cid}
@@ -387,6 +456,8 @@ async def add_task_to_callback_func(data, cid, user):
             # only create the task if there are no cmd_transforms, or there are and the container is up
             if len(cmd_transforms['transforms']) == 0 or len(["a" for v in data['transform_status'].values() if v]) == 0 and not data['test_command']:
                 task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'], original_params=original_params, status="submitted")
+                task.status_timestamp_submitted = task.timestamp
+                await db_objects.update(task)
                 await add_command_attack_to_task(task, cmd)
             elif payload_type.container_running:
                 # by default tasks are created in a preprocessing state so an agent won't get them as they're tasked to the corresponding build-servers for potential modifications
@@ -738,7 +809,7 @@ async def get_comments_by_operator_in_current_operation(request, user):
         callbacks = {}
         for t in tasks:
             query = await db_model.response_query()
-            responses = await db_objects.execute(query.where(Response.task == t))
+            responses = await db_objects.execute(query.where(Response.task == t).order_by(Response.id))
             if t.callback.id not in callbacks:
                 query = await db_model.callback_query()
                 cback = await db_objects.get(query.where(Callback.id == t.callback))
@@ -768,7 +839,7 @@ async def get_comments_by_callback_in_current_operation(request, user):
     callbacks = {}
     for t in tasks:
         query = await db_model.response_query()
-        responses = await db_objects.execute(query.where(Response.task == t))
+        responses = await db_objects.execute(query.where(Response.task == t).order_by(Response.id))
         if t.callback.id not in callbacks:
             query = await db_model.callback_query()
             cback = await db_objects.get(query.where(Callback.id == t.callback))
@@ -795,7 +866,7 @@ async def search_comments_by_callback_in_current_operation(request, user):
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find operator or operation: ' + str(e)})
     query = await db_model.task_query()
-    tasks = await db_objects.prefetch(query.where(Task.comment.contains(data['search'])).where(Callback.operation == operation).order_by(Task.id), Command.select())
+    tasks = await db_objects.prefetch(query.where(Task.comment.regexp(data['search'])).where(Callback.operation == operation).order_by(Task.id), Command.select())
     callbacks = {}
     for t in tasks:
         query = await db_model.response_query()

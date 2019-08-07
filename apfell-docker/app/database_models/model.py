@@ -3,62 +3,15 @@ import datetime
 from app import apfell_db
 import app.crypto as crypto
 import json
+from uuid import uuid4
+
+
+def gen_uuid():
+    return str(uuid4())
 
 
 class Operator(p.Model):
-    default_dark_config = json.dumps({
-        "background-color": "#303030",
-        "text-color": "#66b3ff",
-        "hover": "#b3b3b3",
-        "highlight": "#b3b3b3",
-        "autocomplete": "#303030",
-        "highlight-text": "black",
-        "timestamp": "#b3ffff",
-        "operator": "#ffb3b3",
-        "display": "#d9b3ff",
-        "new-callback-color": "dark",
-        "new-callback-hue": "purple",
-        "well-bg": "#000000",
-        "primary-pane": "#001f4d",
-        "primary-pane-text-color": "#ccffff",
-        "primary-button": "#001f4d",
-        "primary-button-text-color": "white",
-        "primary-button-hover": "#0000cc",
-        "primary-button-hover-text-color": "white",
-        "info-pane": "#330066",
-        "info-pane-text-color": "#e6ccff",
-        "info-button": "#330066",
-        "info-button-text-color": "#f3e6ff",
-        "info-button-hover": "#5900b3",
-        "info-button-hover-text-color": "#f3e6ff",
-        "success-pane": "#003300",
-        "success-pane-text-color": "#b3ffb3",
-        "success-button": "#004d00",
-        "success-button-text-color": "white",
-        "success-button-hover": "#006600",
-        "success-button-hover-text-color": "white",
-        "danger-pane": "#800000",
-        "danger-pane-text-color": "white",
-        "danger-button": "#4d0000",
-        "danger-button-text-color": "white",
-        "danger-button-hover": "#800000",
-        "danger-button-hover-text-color": "white",
-        "warning-pane": "#330000",
-        "warning-pane-text-color": "#e6ccff",
-        "warning-button": "#804300",
-        "warning-button-text-color": "white",
-        "warning-button-hover": "#b35900",
-        "warning-button-hover-text-color": "white",
-        "table-headers": "#000000",
-        "operation-color": "white",
-        "interact-button-color": "#330066",
-        "interact-button-text": "#FFFFFF",
-        "interact-button-dropdown": "#6666FF",
-        "success_highlight": "#303030",
-        "failure_highlight": "#660000",
-        "top-caret": "white"
-    })
-    default_config = json.dumps({
+    light_config = json.dumps({
         "background-color": "#f4f4f4",
         "text-color": "#000000",
         "hover": "#cce6ff",
@@ -70,45 +23,57 @@ class Operator(p.Model):
         "display": "red",
         "new-callback-color": "light",
         "new-callback-hue": "",
-        "well-bg": "#E5E5E5",
-        "primary-pane": "",
-        "primary-pane-text-color": "",
-        "primary-button": "",
-        "primary-button-text-color": "",
-        "primary-button-hover": "",
-        "primary-button-hover-text-color": "",
-        "info-pane": "",
-        "info-pane-text-color": "",
-        "info-button": "",
-        "info-button-text-color": "",
-        "info-button-hover": "",
-        "info-button-hover-text-color": "",
-        "success-pane": "",
-        "success-pane-text-color": "",
-        "success-button": "",
-        "success-button-text-color": "",
-        "success-button-hover": "",
-        "success-button-hover-text-color": "",
-        "danger-pane": "",
-        "danger-pane-text-color": "",
-        "danger-button": "",
-        "danger-button-text-color": "",
-        "danger-button-hover": "",
-        "danger-button-hover-text-color": "",
-        "warning-pane": "",
-        "warning-pane-text-color": "",
-        "warning-button": "",
-        "warning-button-text-color": "",
-        "warning-button-hover": "",
-        "warning-button-hover-text-color": "",
         "table-headers": "#F1F1F1",
         "operation-color": "green",
-        "interact-button-color": "",
-        "interact-button-text": "",
-        "interact-button-dropdown": "",
         "success_highlight": "#d5fdd5",
         "failure_highlight": "#f68d8d",
-        "top-caret": "white"
+        "top-caret": "white",
+        "code-theme": "monokai",
+        "table-color": "",
+        "processing": "#fffade",
+        "processed": "#f0fff0",
+        "response-background": "#E5E5E5",
+        "outline-buttons": "-",
+        "bg-header": "",
+        "bg-header-dark": "",
+        "bg-card-body": "",
+        "bg-card-body-l1": "",
+        "bg-card-bddy-l2": "",
+        "bg-card-footer": "",
+        "bg-body": "",
+        "th": ""
+    })
+    dark_config = json.dumps({
+        "background-color": "hsl(225, 6%, 14%)",
+        "text-color": "#ECEDF0",
+        "hover": "hsl(225, 6%, 12%)",
+        "highlight": "hsl(225, 6%, 12%)",
+        "autocomplete": "#e6f3ff",
+        "highlight-text": "#b366ff",
+        "timestamp": "#24E0FF",
+        "operator": "#b366ff",
+        "display": "#FF4D4D",
+        "new-callback-color": "dark",
+        "new-callback-hue": "",
+        "table-headers": "#F1F1F1",
+        "operation-color": "#b366ff",
+        "success_highlight": "#340080",
+        "failure_highlight": "#f68d8d",
+        "top-caret": "white",
+        "code-theme": "monokai",
+        "table-color": 'table-dark',
+        "response-background": "hsl(225, 6%, 23%)",
+        "processing": "hsl(225, 6%, 14%)",
+        "processed": "hsl(225, 6%, 14%)",
+        "outline-buttons": "-outline-",
+        "bg-header": "hsl(225, 6%, 18%)",
+        "bg-header-dark": " hsl(225, 6%, 13%)",
+        "bg-card-body": "hsl(225, 6%, 22%)",
+        "bg-card-body-l1": "hsl(225, 6%, 23%)",
+        "bg-card-body-l2": "hsl(225, 6%, 27%)",
+        "bg-card-footer": "hsl(225, 6%, 23%)",
+        "bg-body": "hsl(225, 6%, 18%)",
+        "th": "hsl(225, 6%, 20%)"
     })
     username = p.TextField(unique=True, null=False)
     password = p.TextField(null=False)
@@ -118,7 +83,7 @@ class Operator(p.Model):
     # option to simply de-activate an account instead of delete it so you keep all your relational data intact
     active = p.BooleanField(null=False, default=True)
     current_operation = p.ForeignKeyField(p.DeferredRelation('Operation'), null=True)
-    ui_config = p.TextField(null=False, default=default_config)
+    ui_config = p.TextField(null=False, default=dark_config)
 
     class Meta:
         ordering = ['-id', ]
@@ -174,6 +139,7 @@ class PayloadType(p.Model):
     last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     container_running = p.BooleanField(null=False, default=False)
     service = p.TextField(null=False, default="rabbitmq")
+    icon = p.TextField(null=True)
 
     class Meta:
         database = apfell_db
@@ -333,12 +299,72 @@ class Operation(p.Model):
         return str(self.to_json())
 
 
+class DisabledCommandsProfile(p.Model):
+    # A set of commands that are disabled for an operation due to OPSEC concerns
+    # only the lead of an operation will be able to set this for other operators on that operation
+    name = p.TextField(null=False)  # name to group a bunch of disabled commands together for an operator
+    command = p.ForeignKeyField(Command, null=False)
+
+    class Meta:
+        indexes = ( (('command', 'name'), True), )
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'command':
+                    r[k] = getattr(self, k).cmd
+                    r['command_id'] = getattr(self, k).id
+                    r['payload_type'] = getattr(self, k).payload_type.ptype
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
+class DisabledCommands(p.Model):
+    command = p.ForeignKeyField(Command, null=False)
+    operator = p.ForeignKeyField(Operator, null=False)
+    operation = p.ForeignKeyField(Operation, null=False)
+
+    class Meta:
+        indexes = ( (('command', 'operator', 'operation'), True), )
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'command':
+                    r[k] = getattr(self, k).cmd
+                    r['command_id'] = getattr(self, k).id
+                    r['payload_type'] = getattr(self, k).payload_type.ptype
+                elif k == "operator":
+                    r[k] = getattr(self, k).username
+                elif k == "operation":
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 # because operators and operations are a many-to-many relationship, we need a join table to facilitate
 #   this means operator class doesn't mention operation, and operation doesn't mention operator - odd, I know
 class OperatorOperation(p.Model):
     operator = p.ForeignKeyField(Operator)
     operation = p.ForeignKeyField(Operation)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    base_disabled_commands = p.ForeignKeyField(DisabledCommandsProfile, null=True)
 
     class Meta:
         indexes = ( (('operator', 'operation'), True), )
@@ -351,6 +377,8 @@ class OperatorOperation(p.Model):
                 if k == 'operator':
                     r[k] = getattr(self, k).username
                 elif k == 'operation':
+                    r[k] = getattr(self, k).name
+                elif k == 'base_disabled_commands':
                     r[k] = getattr(self, k).name
                 else:
                     r[k] = getattr(self, k)
@@ -376,6 +404,8 @@ class C2Profile(p.Model):
     last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     # indicates if the c2 profile container is up and able to receive tasking
     container_running = p.BooleanField(null=False, default=False)
+    # icon information
+    icon = p.TextField(null=True)
 
     class Meta:
         database = apfell_db
@@ -450,8 +480,10 @@ class Payload(p.Model):
     wrapped_payload = p.ForeignKeyField(p.DeferredRelation('Payload'), null=True)
     deleted = p.BooleanField(null=False, default=False)
     # if the payload is in the build process: building, success, error
+    build_container = p.TextField(null=False)
     build_phase = p.TextField(null=False, default="building")
     build_message = p.TextField(null=False, default="")  # capture error or any other info
+    hosted_path = p.TextField(null=False, default="")  # current hosting path if we want a unique hosted path
 
     class Meta:
         database = apfell_db
@@ -552,10 +584,12 @@ class C2ProfileParameters(p.Model):
 class C2ProfileParametersInstance(p.Model):
     c2_profile_parameters = p.ForeignKeyField(C2ProfileParameters)
     value = p.TextField(null=False)  # this is what we will stamp in instead
-    payload = p.ForeignKeyField(Payload)  # the specific payload instance these values apply to
+    payload = p.ForeignKeyField(Payload, null=True)  # the specific payload instance these values apply to
+    instance_name = p.TextField(null=True)  # name the group of parameter instances if we want to save off values for later
+    operation = p.ForeignKeyField(Operation, null=True)  # tie this instance to an operation if there's no payload
 
     class Meta:
-        indexes = ((('c2_profile_parameters', 'value', 'payload'), True), )
+        indexes = ((('c2_profile_parameters', 'value', 'payload'), True), (('c2_profile_parameters','instance_name', 'operation'),True))
         database = apfell_db
 
     def to_json(self):
@@ -568,6 +602,8 @@ class C2ProfileParametersInstance(p.Model):
                     r['c2_profile_key'] = getattr(self, k).key
                 elif k == 'payload':
                     r[k] = getattr(self, k).uuid
+                elif k == 'operation' and getattr(self, k) is not None:
+                    r[k] = getattr(self, k).name
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -579,6 +615,7 @@ class C2ProfileParametersInstance(p.Model):
 
 
 class Callback(p.Model):
+    agent_callback_id = p.TextField(unique=True, null=False, default=gen_uuid)
     init_callback = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     last_checkin = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     user = p.CharField(null=False)
@@ -591,7 +628,10 @@ class Callback(p.Model):
     # keep track of the parent callback from this one
     pcallback = p.ForeignKeyField(p.DeferredRelation('Callback'), null=True)
     registered_payload = p.ForeignKeyField(Payload, null=False)  # what payload is associated with this callback
-    integrity_level = p.IntegerField(null=True, default=2)  # keep track of a callback's integrity level, check default integrity level numbers though and what they correspond to. Might be different for windows/mac/linuxl
+    integrity_level = p.IntegerField(null=True, default=2)
+    # an operator can lock a callback to themselves so that other users cannot issue commands as well
+    locked = p.BooleanField(default=False)
+    locked_operator = p.ForeignKeyField(Operator, null=True, related_name="locked_operator")
     operation = p.ForeignKeyField(Operation, null=False)
     # the following information comes from the c2 profile if it wants to provide some form of encryption
     encryption_type = p.CharField(null=True)  # the kind of encryption on this callback (aes, xor, rc4, etc)
@@ -616,6 +656,8 @@ class Callback(p.Model):
                     r['payload_description'] = getattr(self, k).tag
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'locked_operator' and getattr(self, k) is not None and getattr(self, k) != "null":
+                    r[k] = getattr(self, k).username
                 elif k == 'encryption_key' or k == 'decryption_key' or k == 'encryption_type':
                     pass  # we don't need to include these things all over the place, explicitly ask for them for more control
                 else:
@@ -665,9 +707,15 @@ class LoadedCommands(p.Model):
 
 
 class Task(p.Model):
+    agent_task_id = p.TextField(unique=True, null=False, default=gen_uuid)
     command = p.ForeignKeyField(Command, null=True)  # could be added via task/clear or scripting by bot
     params = p.TextField(null=True)  # this will have the instance specific params (ex: id)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
+    status_timestamp_preprocessing = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    status_timestamp_submitted = p.DateTimeField(null=True)
+    status_timestamp_processing = p.DateTimeField(null=True)
+    status_timestamp_processed = p.DateTimeField(null=True)
+    # this is the last timestamp that something happened
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     # every task is associated with a specific callback that executes the task
     callback = p.ForeignKeyField(Callback, null=False)
@@ -678,7 +726,8 @@ class Task(p.Model):
     original_params = p.TextField(null=True)
     # people can add a comment to the task
     comment = p.TextField(null=False, default="")
-    comment_operator = p.ForeignKeyField(Operator, related_name="comment_operator", null=True)  # the user that added the above comment
+    # the user that added the above comment
+    comment_operator = p.ForeignKeyField(Operator, related_name="comment_operator", null=True)
 
     class Meta:
         database = apfell_db
@@ -694,6 +743,7 @@ class Task(p.Model):
                 elif k == 'command':
                     if getattr(self, k) and getattr(self, k) != "null":
                         r[k] = getattr(self, k).cmd
+                        r['command_id'] = getattr(self, k).id
                 elif k == 'comment_operator':
                     if getattr(self, k) and getattr(self, k) != "null":
                         r[k] = getattr(self, k).username
@@ -704,6 +754,14 @@ class Task(p.Model):
             except:
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        if r['status_timestamp_preprocessing'] is not None:
+            r['status_timestamp_preprocessing'] = r['status_timestamp_preprocessing'].strftime('%m/%d/%Y %H:%M:%S')
+        if 'status_timestamp_submitted' in r and r['status_timestamp_submitted'] is not None:
+            r['status_timestamp_submitted'] = r['status_timestamp_submitted'].strftime('%m/%d/%Y %H:%M:%S')
+        if 'status_timestamp_processing' in r and  r['status_timestamp_processing'] is not None:
+            r['status_timestamp_processing'] = r['status_timestamp_processing'].strftime('%m/%d/%Y %H:%M:%S')
+        if 'status_timestamp_processed' in r and r['status_timestamp_processed'] is not None:
+            r['status_timestamp_processed'] = r['status_timestamp_processed'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
     def __str__(self):
@@ -736,6 +794,7 @@ class Response(p.Model):
 
 
 class FileMeta(p.Model):
+    agent_file_id = p.TextField(unique=True, null=False, default=gen_uuid)
     total_chunks = p.IntegerField(null=False)  # how many total chunks will there be
     chunks_received = p.IntegerField(null=False, default=0)  # how many we've received so far
     task = p.ForeignKeyField(Task, null=True)  # what task caused this file to exist in the database
@@ -906,6 +965,7 @@ class Keylog(p.Model):
             try:
                 if k == 'task' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).id
+                    r['callback'] = getattr(self, k).callback.id
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
                 else:
@@ -1020,10 +1080,13 @@ class ArtifactTemplate(p.Model):
 
 
 class TaskArtifact(p.Model):
-    task = p.ForeignKeyField(Task)
+    task = p.ForeignKeyField(Task, null=True)
     artifact_template = p.ForeignKeyField(ArtifactTemplate, null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     artifact_instance = p.TextField(null=False, default="")
+    # if this is a manual entry (no task), still specify the corresponding artifact
+    artifact = p.ForeignKeyField(Artifact, null=True)
+    operation = p.ForeignKeyField(Operation, null=True)
 
     class Meta:
         database = apfell_db
@@ -1034,15 +1097,28 @@ class TaskArtifact(p.Model):
             try:
                 if k == "artifact_template":
                     if getattr(self, k) is not None and getattr(self, k) != "null":
-                        #r[k] = getattr(self, k).command.cmd
-                        r["artifact_name"] = getattr(self, k).artifact.name
+                        r[k] = getattr(self, k).artifact.name
                     else:
                         r[k] = "null"
-                        r['artifact_name'] = "null"
                 elif k == 'task':
-                    r["task_id"] = getattr(self, k).id
-                    r["task"] = getattr(self, k).params
-                    r['artifact_template'] = getattr(self, k).command.cmd
+                    if getattr(self, k) is not None and getattr(self, k) != "null":
+                        r["task_id"] = getattr(self, k).id
+                        r["task"] = getattr(self, k).params
+                        r['command'] = getattr(self, k).command.cmd
+                    else:
+                        r[k] = ""
+                        r["task_id"] = -1
+                        r['command'] = "Manual Entry"
+                elif k == 'artifact':
+                    if getattr(self, k) is not None and getattr(self, k) != "null":
+                        r['artifact_template'] = getattr(self, k).name
+                    else:
+                        r[k] = "null"
+                elif k == 'operation':
+                    if getattr(self, k) is not None and getattr(self, k) != "null":
+                        r[k] = getattr(self, k).name
+                    else:
+                        r[k] = "null"
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -1104,6 +1180,44 @@ class APITokens(p.Model):
         return str(self.to_json())
 
 
+class BrowserScript(p.Model):
+    operator = p.ForeignKeyField(Operator)  # who does this script belong to
+    operation = p.ForeignKeyField(Operation, null=True)  # does this script belong to a specific operation?
+    script = p.TextField(null=False, default="")  # the actual script contents
+    command = p.ForeignKeyField(Command, null=True)  # if this is null, it is a support function
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    active = p.BooleanField(default=True)
+    # if command is None, we're a support function, use this to define a name for the function
+    name = p.TextField(null=True)
+
+    class Meta:
+        indexes = ((('command', 'operator'), True),
+                   (('operation', 'command'), True))
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == "operator":
+                    r[k] = getattr(self, k).username
+                elif k == "operation":
+                    r[k] = getattr(self, k).name
+                elif k == "command" and getattr(self, k) is not None:
+                    r[k] = getattr(self, k).cmd
+                    r['payload_type'] = getattr(self, k).payload_type.ptype
+                    r['command_id'] = getattr(self, k).id
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return str(self.to_json())
+
+
 # -------------- TABLE SPECIFIC ASYNC JOIN QUERIES -----------
 async def operator_query():
     return Operator.select(Operator, Operation)\
@@ -1140,9 +1254,10 @@ async def operation_query():
 
 async def operatoroperation_query():
     current_op = Operation.alias()
-    return OperatorOperation.select(OperatorOperation, Operator, Operation, current_op)\
-        .join(Operator).join(current_op, p.JOIN.LEFT_OUTER).switch(OperatorOperation)\
-        .join(Operation).switch(OperatorOperation)
+    return OperatorOperation.select(OperatorOperation, Operator, Operation, current_op, DisabledCommandsProfile)\
+        .join(Operator).join(current_op, p.JOIN.LEFT_OUTER, on=(Operator.current_operation == current_op.id)).switch(OperatorOperation)\
+        .join(Operation).switch(OperatorOperation)\
+        .join(DisabledCommandsProfile, p.JOIN.LEFT_OUTER).switch(OperatorOperation)
 
 
 async def c2profile_query():
@@ -1181,18 +1296,21 @@ async def c2profileparameters_query():
 
 
 async def c2profileparametersinstance_query():
-    return C2ProfileParametersInstance.select(C2ProfileParametersInstance, C2ProfileParameters, C2Profile, Payload)\
+    return C2ProfileParametersInstance.select(C2ProfileParametersInstance, C2ProfileParameters, C2Profile, Payload, Operation)\
         .join(C2ProfileParameters).join(C2Profile).switch(C2ProfileParametersInstance)\
-        .join(Payload).switch(C2ProfileParametersInstance)
+        .join(Payload, p.JOIN.LEFT_OUTER).switch(C2ProfileParametersInstance)\
+        .join(Operation, p.JOIN.LEFT_OUTER).switch(C2ProfileParametersInstance)
 
 
 async def callback_query():
     calias = Callback.alias()
-    return Callback.select(Callback, Operator, Payload, Operation, PayloadType, C2Profile, calias)\
+    loperator = Operator.alias()
+    return Callback.select(Callback, Operator, Payload, Operation, PayloadType, C2Profile, calias, loperator)\
         .join(Operator).switch(Callback)\
         .join(Payload).join(PayloadType).switch(Payload).join(C2Profile).switch(Payload).switch(Callback)\
         .join(Operation).switch(Callback)\
-        .join(calias, p.JOIN.LEFT_OUTER, on=(Callback.pcallback).alias('pcallback')).switch(Callback)
+        .join(calias, p.JOIN.LEFT_OUTER, on=(Callback.pcallback).alias('pcallback')).switch(Callback)\
+        .join(loperator, p.JOIN_LEFT_OUTER, on=(Callback.locked_operator).alias('locked_operator')).switch(Callback)
 
 
 async def loadedcommands_query():
@@ -1202,13 +1320,26 @@ async def loadedcommands_query():
         .join(Operator).switch(LoadedCommands)
 
 
+async def disabledcommandsprofile_query():
+    return DisabledCommandsProfile.select(DisabledCommandsProfile, Command, PayloadType)\
+        .join(Command).join(PayloadType).switch(DisabledCommandsProfile)
+
+
+async def disabledcommands_query():
+    return DisabledCommands.select(DisabledCommands, Command, PayloadType, Operation, Operator)\
+        .join(Command).join(PayloadType).switch(DisabledCommands)\
+        .join(Operation).switch(DisabledCommands)\
+        .join(Operator).switch(DisabledCommands)
+
+
 async def task_query():
     comment_operator = Operator.alias()
-    return Task.select(Task, Callback, Operator, comment_operator, Operation)\
+    return Task.select(Task, Callback, Operator, comment_operator, Operation, Command)\
         .join(Callback)\
             .join(Operation).switch(Callback).switch(Task)\
         .join(Operator).switch(Task)\
-        .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Task)
+        .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Task)\
+        .join(Command, p.JOIN.LEFT_OUTER).switch(Task)
 
 
 async def response_query():
@@ -1280,9 +1411,11 @@ async def artifacttemplate_query():
 
 
 async def taskartifact_query():
-    return TaskArtifact.select(TaskArtifact, Task, Callback, ArtifactTemplate, Command, Artifact)\
-        .join(Task).join(Callback).switch(Task).join(Command).switch(TaskArtifact)\
-        .join(ArtifactTemplate, p.JOIN.LEFT_OUTER).join(Artifact).switch(TaskArtifact)
+    return TaskArtifact.select(TaskArtifact, Task, ArtifactTemplate, Command, Artifact, Operation)\
+        .join(Task, p.JOIN.LEFT_OUTER).join(Command, p.JOIN.LEFT_OUTER).switch(TaskArtifact)\
+        .join(ArtifactTemplate, p.JOIN.LEFT_OUTER).switch(TaskArtifact)\
+        .join(Artifact, p.JOIN.LEFT_OUTER).switch(TaskArtifact)\
+        .join(Operation, p.JOIN.LEFT_OUTER).switch(TaskArtifact)
 
 
 async def staginginfo_query():
@@ -1294,13 +1427,21 @@ async def apitokens_query():
         .join(Operator).switch(APITokens)
 
 
+async def browserscript_query():
+    return BrowserScript.select(BrowserScript, Operator, Operation, Command)\
+        .join(Operator, p.JOIN.LEFT_OUTER).switch(BrowserScript)\
+        .join(Operation, p.JOIN.LEFT_OUTER).switch(BrowserScript)\
+        .join(Command, p.JOIN.LEFT_OUTER).join(PayloadType, p.JOIN.LEFT_OUTER).switch(BrowserScript)
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'response', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate',
-               'taskartifact', 'staginginfo', 'apitokens']
+               'taskartifact', 'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile',
+               'disabledcommands']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -1321,7 +1462,7 @@ def pg_register_updates():
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate', 'taskartifact',
-               'staginginfo', 'apitokens']
+               'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile', 'disabledcommands']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -1338,7 +1479,7 @@ def pg_register_updates():
 
 
 def pg_register_deletes():
-    updates = ['command', 'commandparameters', 'commandtransform']
+    updates = ['command', 'commandparameters', 'commandtransform', 'disabledcommands']
     for table in updates:
         create_function_on_deletes = "DROP FUNCTION IF EXISTS notify_deleted" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_deleted" + table + \
@@ -1360,6 +1501,8 @@ PayloadType.create_table(True)
 Command.create_table(True)
 CommandParameters.create_table(True)
 Operation.create_table(True)
+DisabledCommandsProfile.create_table(True)
+DisabledCommands.create_table(True)
 OperatorOperation.create_table(True)
 C2Profile.create_table(True)
 PayloadTypeC2Profile.create_table(True)
@@ -1384,6 +1527,8 @@ ArtifactTemplate.create_table(True)
 TaskArtifact.create_table(True)
 StagingInfo.create_table(True)
 APITokens.create_table(True)
+BrowserScript.create_table(True)
+
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()

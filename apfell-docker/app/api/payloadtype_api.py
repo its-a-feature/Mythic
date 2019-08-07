@@ -71,6 +71,7 @@ async def create_payloadtype(request, user):
             data['external'] = False
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
+        data['ptype'] = data['ptype'].replace(" ", "_")
         if data['wrapper']:
             if "wrapped_payload_type" not in data:
                 return json({'status': 'error', 'error': '"wrapped_payload_type" is required for a wraper type payload'})
@@ -473,10 +474,11 @@ async def export_command_list(request, user, ptype):
         del payloadtype_json['operator']
         del payloadtype_json['creation_time']
         payloadtype_json['files'] = []
-        for file in glob.iglob("./app/payloads/{}/payload/*".format(payload_type)):
-            payload_file = open(file, 'rb')
-            file_dict = {file.split("/")[-1]: base64.b64encode(payload_file.read()).decode('utf-8')}
-            payloadtype_json['files'].append(file_dict)
+        if not payload_type.external:
+            for file in glob.iglob("./app/payloads/{}/payload/*".format(payload_type)):
+                payload_file = open(file, 'rb')
+                file_dict = {file.split("/")[-1]: base64.b64encode(payload_file.read()).decode('utf-8')}
+                payloadtype_json['files'].append(file_dict)
         query = await db_model.command_query()
         commands = await db_objects.execute(query.where(Command.payload_type == payload_ptype))
         for c in commands:
@@ -515,8 +517,11 @@ async def export_command_list(request, user, ptype):
                           "artifact_string": a.artifact_string, "replace_string": a.replace_string}
                 artifact_list.append(a_json)
             cmd_json['artifacts'] = artifact_list
-            cmd_file = open("./app/payloads/{}/commands/{}".format(payload_type, c.cmd), 'rb')
-            cmd_json['file'] = base64.b64encode(cmd_file.read()).decode('utf-8')
+            try:
+                cmd_file = open("./app/payloads/{}/commands/{}".format(payload_type, c.cmd), 'rb')
+                cmd_json['file'] = base64.b64encode(cmd_file.read()).decode('utf-8')
+            except Exception as e:
+                pass
             cmdlist.append(cmd_json)
         # get all the c2 profiles we can that match up with this payload type for the current operation
         query = await db_model.payloadtypec2profile_query()
@@ -524,11 +529,12 @@ async def export_command_list(request, user, ptype):
         profiles_dict = {}
         for p in profiles:
             files = []
-            for profile_file in glob.iglob("./app/c2_profiles/{}/{}/*".format(p.c2_profile.name, payload_type)):
-                file_contents = open(profile_file, 'rb')
-                file_dict = {profile_file.split("/")[-1]: base64.b64encode(file_contents.read()).decode('utf-8')}
-                files.append(file_dict)
-            profiles_dict[p.c2_profile.name] = files
+            if not payload_type.external:
+                for profile_file in glob.iglob("./app/c2_profiles/{}/{}/*".format(p.c2_profile.name, payload_type)):
+                    file_contents = open(profile_file, 'rb')
+                    file_dict = {profile_file.split("/")[-1]: base64.b64encode(file_contents.read()).decode('utf-8')}
+                    files.append(file_dict)
+                profiles_dict[p.c2_profile.name] = files
         payloadtype_json['c2_profiles'] = profiles_dict
         # get all of the module load transformations
         query = await db_model.transform_query()

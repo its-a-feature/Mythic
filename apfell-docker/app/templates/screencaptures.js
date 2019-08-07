@@ -8,20 +8,27 @@ var screencapture_div = new Vue({
     },
     methods: {
         toggle_image: function(image){
-            if (image['complete']){
-                var img = document.getElementById("image" + image.id).nextElementSibling;
-                if (img.style.display === "") {
-                    img.style.display = "none";
-                    img.src = '#';
-                } else {
-                    img.style.display = "";
-                    img.src = image['remote_path'];
+            var img = document.getElementById("image" + image.id).nextElementSibling;
+            if (img.style.display === "") {
+                //hide image
+                img.style.display = "none";
+                img.src = '#';
+            } else {
+                //display image
+                if (!image['complete']){
+                    alertTop("warning", "Image not done downloading from host. Apfell has " + image.chunks_received + " out of " + image.total_chunks + " total chunks.", 2);
                 }
+                img.style.display = "";
+                img.src = image['remote_path'];
             }
-            else {
-                    alertTop("warning", "Image not done downloading from host. We have " + image.chunks_received + " out of " + image.total_chunks + " total chunks.");
-                }
-
+        }
+    },
+    computed: {
+        screenshots_exist: function(){
+            for(i in this.callbacks){
+                if(this.callbacks[i]['screencaptures'].length > 0){return true;}
+            }
+            return false;
         }
     },
     delimiters: ['[[',']]']

@@ -14,8 +14,11 @@ exports.ls = function(task, command, params){
     }
     var attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path), error));
     if(attributes != undefined){
+        attributes['type'] = "";
+        attributes['files'] = [];
         if(attributes.hasOwnProperty('NSFileType') && attributes['NSFileType'] == "NSFileTypeDirectory"){
             var error = Ref();
+            attributes['type'] = "D";
             var files = fileManager.contentsOfDirectoryAtPathError($(path), error);
             if(error[0].js == $().js){
                 var files_data = [];
@@ -25,18 +28,24 @@ exports.ls = function(task, command, params){
                 }
                 for(var i = 0; i < sub_files.length; i++){
                     var attr = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path + sub_files[i]), error));
-                    var file_add = sub_files[i];
+                    var file_add = {};
+                    file_add['name'] = sub_files[i];
                     if(attr['NSFileType'] ==  "NSFileTypeDirectory"){
-                        file_add = file_add + "/";
+                        file_add['type'] = "D";
+                    }else{
+                        file_add['type'] = "";
                     }
-                    file_add = file_add + " (" + attr['NSFileSize'] + " Bytes)";
+                    file_add['size'] = attr['NSFileSize'];
                     var nsposix = attr['NSFilePosixPermissions'];
                     // we need to fix this mess to actually be real permission bits that make sense
                     var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
-                    file_add = file_add + " - " + posix + " - " + attr['NSFileOwnerAccountName'] + "(" + attr['NSFileOwnerAccountID'] +
-                        "):" + attr['NSFileGroupOwnerAccountName'] + "(" + attr['NSFileGroupOwnerAccountID'] + ")";
+                    file_add['permissions'] = posix;
+                    file_add['owner'] = attr['NSFileOwnerAccountName'] + "(" + attr['NSFileOwnerAccountID'] + ")";
+                    file_add['group'] = attr['NSFileGroupOwnerAccountName'] + "(" + attr['NSFileGroupOwnerAccountID'] + ")";
                     if(attr['NSFileExtensionHidden']){
-                        file_add = file_add + " File Extension Hidden";
+                        file_add['hidden'] = "Y";
+                    }else{
+                        file_add['hidden'] = "";
                     }
                     //files_data[file_add] = attr['NSFileExtendedAttributes'];
                     files_data.push(file_add);
@@ -51,10 +60,16 @@ exports.ls = function(task, command, params){
         // we need to fix this mess to actually be real permission bits that make sense
         var posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
         delete attributes['NSFilePosixPermissions'];
-        attributes['Short_Info'] = path + " (" + attributes['NSFileSize'] + " Bytes) - " + posix + " - " + attributes['NSFileOwnerAccountName'] + "(" + attributes['NSFileOwnerAccountID'] +
-                        "):" + attributes['NSFileGroupOwnerAccountName'] + "(" + attributes['NSFileGroupOwnerAccountID'] + ")";
+        attributes['name'] = path;
+        attributes['size'] = attributes['NSFileSize'];
+        attributes['permissions'] = posix;
+        attributes['owner'] = attributes['NSFileOwnerAccountName'] + "(" + attributes['NSFileOwnerAccountID'] + ")";
+        attributes['group'] = attributes['NSFileGroupOwnerAccountName'] + "(" + attributes['NSFileGroupOwnerAccountID'] + ")";
         if(attributes['NSFileExtensionHidden']){
-            attributes['Short_Info'] = attributes['Short_Info'] + " File Extension Hidden";
+            attributes['hidden'] = "Y";
+        }
+        else{
+            attributes['hidden'] = "";
         }
         delete attributes['NSFileSize'];
         delete attributes['NSFileOwnerAccountName'];

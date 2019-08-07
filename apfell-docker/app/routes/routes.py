@@ -1,7 +1,7 @@
-from app import apfell, db_objects, links, use_ssl
+from app import apfell, db_objects, links, use_ssl, server_header
 from sanic.response import json
 from sanic import response
-from sanic.exceptions import NotFound, Unauthorized
+from sanic.exceptions import NotFound, Unauthorized, MethodNotSupported
 from jinja2 import Environment, PackageLoader
 from app.database_models.model import Operator, Operation, OperatorOperation, ATTACK, Artifact
 from app.forms.loginform import LoginForm, RegistrationForm
@@ -21,12 +21,33 @@ import app.database_models.model as db_model
 env = Environment(loader=PackageLoader('app', 'templates'))
 
 
+async def respect_pivot(my_links, request):
+    # given the links dictionary, update the server_ip and server_port to match what was received
+    # this will allow people using pivots (127.0.0.1:8888) to still access things going through to IP:other_port
+    updated_links = my_links
+    host_field = request.host.split(":")
+    if len(host_field) == 1:
+        server_ip = host_field[0]
+        if request.scheme == "https":
+            server_port = 443
+        else:
+            server_port = 80
+    else:
+        server_ip = host_field[0]
+        server_port = host_field[1]
+    updated_links['server_ip'] = server_ip
+    updated_links['server_port'] = server_port
+    updated_links['login'] = "{}://{}/login".format(request.scheme, request.host)
+    updated_links['register'] = "{}://{}/register".format(request.scheme, request.host)
+    return updated_links
+
+
 @apfell.route("/")
 @inject_user()
 @scoped('auth:user')
 async def index(request, user):
     template = env.get_template('main_page.html')
-    content = template.render(name=user['username'], links=links, current_operation=user['current_operation'], config=user['ui_config'])
+    content = template.render(name=user['username'], links=await respect_pivot(links, request), current_operation=user['current_operation'], config=user['ui_config'])
     return response.html(content)
 
 
@@ -37,7 +58,7 @@ class Login(BaseEndpoint):
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('login.html')
-        content = template.render(links=links, form=form, errors=errors)
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
         return response.html(content)
 
     async def post(self, request):
@@ -66,7 +87,7 @@ class Login(BaseEndpoint):
                                 self.config.refresh_token_name(): refresh_token
                             })
                             template = env.get_template('login.html')
-                            content = template.render(links=links, form=form, errors=errors, access_token=access_token, refresh_token=refresh_token)
+                            content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, access_token=access_token, refresh_token=refresh_token, config={})
                             resp = response.html(content)
                             # resp = response.redirect("/")
                             resp.cookies[self.config.cookie_access_token_name()] = access_token
@@ -84,7 +105,7 @@ class Login(BaseEndpoint):
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('login.html')
-        content = template.render(links=links, form=form, errors=errors)
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
         return response.html(content)
 
 
@@ -93,7 +114,7 @@ class Register(BaseEndpoint):
         errors = {}
         form = RegistrationForm(request)
         template = env.get_template('register.html')
-        content = template.render(links=links, form=form, errors=errors)
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
         return response.html(content)
 
     async def post(self, request, *args, **kwargs):
@@ -119,8 +140,8 @@ class Register(BaseEndpoint):
                 })
                 # we want to make sure to store access/refresh token in JS before moving into the rest of the app
                 template = env.get_template('register.html')
-                content = template.render(links=links, form=form, errors=errors, access_token=access_token,
-                                          refresh_token=refresh_token)
+                content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, access_token=access_token,
+                                          refresh_token=refresh_token, config={})
                 resp = response.html(content)
                 resp.cookies[self.config.cookie_access_token_name()] = access_token
                 resp.cookies[self.config.cookie_access_token_name()]['httponly'] = True
@@ -134,7 +155,7 @@ class Register(BaseEndpoint):
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('register.html')
-        content = template.render(links=links, form=form, errors=errors)
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
         return response.html(content)
 
 
@@ -185,10 +206,10 @@ async def settings(request, user):
         op_json = operator.to_json()
         del op_json['ui_config']
         if use_ssl:
-            content = template.render(links=links, name=user['username'], http="https", ws="wss",
+            content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss",
                                       op=op_json, config=user['ui_config'])
         else:
-            content = template.render(links=links, name=user['username'], http="http", ws="ws",
+            content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws",
                                       op=op_json, config=user['ui_config'])
         return response.html(content)
     except Exception as e:
@@ -203,10 +224,10 @@ async def search(request, user):
     template = env.get_template('search.html')
     try:
         if use_ssl:
-            content = template.render(links=links, name=user['username'], http="https", ws="wss",
+            content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss",
                                       config=user['ui_config'])
         else:
-            content = template.render(links=links, name=user['username'], http="http", ws="ws",
+            content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws",
                                       config=user['ui_config'])
         return response.html(content)
     except Exception as e:
@@ -242,7 +263,14 @@ async def logout(request, user):
 
 @apfell.exception(NotFound)
 async def handler_404(request, exception):
-    return json({'error': 'Not Found'}, status=404)
+    print(exception)
+    return json({'status': 'error', 'error': 'Not Found'})
+
+
+@apfell.exception(MethodNotSupported)
+async def handler_405(request, exception):
+    print(exception)
+    return json({'status': 'error', 'error': 'Session Expired, refresh'})
 
 
 @apfell.exception(Unauthorized)
@@ -260,16 +288,9 @@ async def check_ips(request):
         return json({'error': 'Not Found'}, status=404)
 
 
-@apfell.middleware('request')
-async def reroute_to_login(request):
-    if 'access_token' not in request.cookies and 'Authorization' not in request.headers and 'apitoken' not in request.headers:
-        if "/login" not in request.path and "/register" not in request.path and "/auth" not in request.path and "/static" not in request.path and "favicon" not in request.path:
-            if apfell.config['API_BASE'] not in request.path:
-                return response.redirect("/login")
-
-
 @apfell.middleware('response')
 async def reroute_to_refresh(request, resp):
+    resp.headers['Server'] = server_header
     # if you browse somewhere and get greeted with response.json.get('reasons')[0] and "Signature has expired"
     if resp and (resp.status == 403 or resp.status == 401) and resp.content_type == "application/json":
         output = js.loads(resp.body)
@@ -343,24 +364,16 @@ async def initial_setup():
     await register_default_profile_operation(admin)
     print("Successfully finished initial setup")
 
-
-apfell.static('/static/apfell-dark.png', './app/static/apfell_cropped_dark.png', name='apfell-dark')
-apfell.static('/favicon.ico', './app/static/favicon.png', name='favicon')
-apfell.static('/static/apfell-white.png', './app/static/apfell_cropped.png', name='apfell-white')
+# /static serves out static images and files
+apfell.static('/static', './app/static')
+apfell.static('/favicon.ico', './app/static/favicon.ico')
+# / serves out the payloads we wish to host, make user supply a path they want to use, or just use file name
+apfell.static('/', './app/payloads/operations/_hosting_dir')
 apfell.static('/strict_time.png', './app/static/strict_time.png', name='strict_time')
 apfell.static('/grouped_output.png', './app/static/grouped_output.png', name='grouped_output')
 apfell.static('/no_cmd_output.png', './app/static/no_cmd_output.png', name='no_cmd_output')
-apfell.static('/gear_med.png', './app/static/Gear-icon_med.png', name='gear_md')
+apfell.static('/gear_med.png', './app/static/gear_med.png', name='gear_md')
 apfell.static('/add_comment.png', './app/static/add_comment.png', name='add_comment')
-apfell.static('/static/bootstrap.3.3.7.min.css', './app/static/bootstrap.3.3.7.min.css', name='bootstrap-css')
-apfell.static('/static/static_js.js', './app/static/static_js.js', name='static_js')
-apfell.static('/static/check-mark.png', './app/static/check-mark.png', name='check-mark')
-apfell.static('/static/danger.png', './app/static/danger.png', name='danger')
-apfell.static('/static/refresh.png', './app/static/refresh.png', name='refresh')
-apfell.static('/static/download.png', './app/static/download.png', name='download')
-apfell.static('/static/delete.png', './app/static/delete.png', name='delete')
-apfell.static('/static/view.png', './app/static/view.png', name='view')
-apfell.static('/static/edit.png', './app/static/edit.png', name='edit')
 
 # add links to the routes in this file at the bottom
 links['index'] = apfell.url_for('index')

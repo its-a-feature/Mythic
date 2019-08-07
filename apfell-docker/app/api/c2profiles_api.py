@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json, file
-from app.database_models.model import C2Profile, PayloadTypeC2Profile, PayloadType, C2ProfileParameters, FileMeta
+from app.database_models.model import C2Profile, PayloadTypeC2Profile, PayloadType, C2ProfileParameters, FileMeta, C2ProfileParametersInstance
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import scoped, inject_user
 import shutil
@@ -116,31 +116,31 @@ async def register_new_c2profile(request, user):
         print(e)
         return json({'status': 'error', 'error': 'operator could not be found'})
     try:
-        if user['current_operation'] != "":
-            profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op)
-            # make the right directory structure
-            os.makedirs("./app/c2_profiles/{}".format(data['name']), exist_ok=True)
-            # now create the payloadtypec2profile entries
-            for t in data['payload_types']:
-                try:
-                    query = await db_model.payloadtype_query()
-                    payload_type = await db_objects.get(query, ptype=t.strip())
-                except Exception as e:
-                    print(e)
-                    return json({'status': 'error', 'error': 'failed to find payload type: ' + t})
+        status = {'status': 'success'}
+        profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op)
+        # make the right directory structure
+        os.makedirs("./app/c2_profiles/{}".format(data['name']), exist_ok=True)
+        # now create the payloadtypec2profile entries
+        for t in data['payload_types']:
+            try:
+                query = await db_model.payloadtype_query()
+                payload_type = await db_objects.get(query, ptype=t.strip())
                 await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
                 os.makedirs("./app/c2_profiles/{}/{}".format(data['name'], payload_type.ptype), exist_ok=True)
-            # now create the c2profileparameters entries so we can generate the right form to fill out
-            if 'c2profileparameters' in data:
-                for params in data['c2profileparameters']:
-                    if not 'hint' in params:
-                        params['hint'] = ""
-                    await db_objects.create(C2ProfileParameters, c2_profile=profile, key=params['key'], name=params['name'], hint=params['hint'])
-            profile_json = profile.to_json()
-            status = {'status': 'success'}
-            return json({**status, **profile_json})
-        else:
-            return json({'status': 'error', 'error': 'must be part of an active operation'})
+            except Exception as e:
+                print('failed to find payload type: ' + t)
+                status['status'] = 'error'
+                status['error'] = status['error'] + 'failed to find payload type: ' + t if 'error' in status else 'failed to find payload type: ' + t
+                continue
+
+        # now create the c2profileparameters entries so we can generate the right form to fill out
+        if 'c2profileparameters' in data:
+            for params in data['c2profileparameters']:
+                if not 'hint' in params:
+                    params['hint'] = ""
+                await db_objects.create(C2ProfileParameters, c2_profile=profile, key=params['key'], name=params['name'], hint=params['hint'])
+        profile_json = profile.to_json()
+        return json({**status, **profile_json})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'Profile name already taken'})
@@ -627,7 +627,7 @@ async def delete_c2profile_parameter(request, info, id, user):
         print(e)
         return json({'status': 'error', 'error': str(e)})
 
-
+# ---------- CREATE INSTANCE OF C2 PROFILE CODE ---------------
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/create_instance/", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -679,7 +679,111 @@ async def create_c2profile_instance_replace_values(request, user):
                                         operator=operator, path=save_path)
     return json({'status': 'success', **file_meta.to_json()})
 
+# ------------- SAVE C2 PROFILE PARAMETER INSTANCES FUNCTIONS -------------------
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameter_instances/", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def save_c2profile_parameter_value_instance(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    name = unquote_plus(info)  # name of the c2 profile
+    data = request.json  # all of the name,value pairs instances we want to save
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get the c2 profile'})
+    if 'instance_name' not in data or data['instance_name'] == "":
+        return json({'status': 'error', 'error': 'must supply an instance name for these values'})
+    query = await db_model.c2profileparameters_query()
+    params = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
+    created_params = []
+    for p in params:
+        try:
+            created = await db_objects.create(C2ProfileParametersInstance, c2_profile_parameters=p,
+                                              instance_name=data['instance_name'],
+                                              value=data[p.name],
+                                              operation=operation)
+            created_params.append(created)
+        except Exception as e:
+            for c in created_params:
+                await db_objects.delete(c)
+            return json({'status': 'error', 'error': 'failed to create a parameter value: ' + str(e)})
+    return json({'status': 'success'})
 
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/parameter_instances/", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_all_c2profile_parameter_value_instances(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get the current operation'})
+    query = await db_model.c2profileparametersinstance_query()
+    params = await db_objects.execute(query.where(C2ProfileParametersInstance.operation == operation))
+    instances = {}
+    for p in params:
+        if p.instance_name not in instances:
+            instances[p.instance_name] = []
+        instances[p.instance_name].append(p.to_json())
+    return json({'status': 'success', 'instances': instances})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameter_instances/", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_specific_c2profile_parameter_value_instances(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    name = unquote_plus(info)  # name of the c2 profile
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get the c2 profile'})
+    query = await db_model.c2profileparametersinstance_query()
+    params = await db_objects.execute(query.where(C2ProfileParametersInstance.operation == operation))
+    instances = {}
+    for p in params:
+        if p.c2_profile_parameters.c2_profile.name == name:
+            if p.instance_name not in instances:
+                instances[p.instance_name] = []
+            instances[p.instance_name].append(p.to_json())
+    return json({'status': 'success', 'instances': instances})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/parameter_instances/<instance_name:string>", methods=['DELETE'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def delete_c2profile_parameter_value_instance(request, instance_name, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    name = unquote_plus(instance_name)
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.c2profileparametersinstance_query()
+        params = await db_objects.execute(query.where( (C2ProfileParametersInstance.instance_name ==name) &
+                                                       (C2ProfileParametersInstance.operation == operation) &
+                                                       (C2ProfileParametersInstance.payload == None)))
+        for p in params:
+            await db_objects.delete(p)
+        return json({'status': 'success'})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get the c2 profile'})
+
+
+# ------------- EXPORT C2 PROFILE FUNCTION --------------------
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/export/<info:string>", methods=['GET'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -706,7 +810,7 @@ async def export_c2_profile(request, user, info):
         c2_profile['payload_types'].append(m.payload_type.ptype)
     return json(c2_profile)
 
-
+# ----------- IMPORT C2 PROFILE FUNCTION ------------------------
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/import", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok

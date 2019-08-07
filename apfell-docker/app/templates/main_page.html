@@ -1,140 +1,202 @@
 {% extends "base.html" %}
 {% block body %}
 
-<div class="block1">
-    <h1>Welcome to Apfell, where nothing is a bug and everything is a feature</h1>
-    <p>
-        Apfell is meant to be a post-exploit, collaborative, red teaming framework. <br>
-        Check out <a href="https://its-a-feature.github.io">my GitHub website</a> or my <a href="https://github.com/its-a-feature">GitHub Repos</a> for more information on the process of creating Apfell, code repos, and blog posts on updates.<br>
-    </p>
-    <h4> Be sure to go to "Manage Operations"->"Operations Management" and make an operation your "current operation"</h4><br>
+<br>
+<div class="card border border-dark shadow">
+    <div class="card-header bg-header border border-dark text-light">
+        <h1>Welcome to <span class="operator"> Apfell </span></h1>
+    </div>
+    <div class="card-body border border-dark bg-card-body shadow">
+        <p>
+            Check out <a href="https://its-a-feature.github.io">GitHub Pages</a> or <a href="https://github.com/its-a-feature">GitHub Repos</a> for more information on the process of creating Apfell, code repos, and blog posts on updates.<br>
+        </p>
+        <div class="alert bg-card-body-l2 border border-dark shadow">
+            <b>Remember: </b> You must set your current operation in "Manage Operations" -> "Operations Management" before you can use most of the features in Apfell.
+        </div>
+    </div>
+</div><br>
 
-    <h4>What is this Apfell framework?</h4>
-    <p>
-        Apfell is meant to be an extendable user interface that allows operators to create/adjust/control agents in an easier fashion than starting from scratch.<br>
-        For information on agent specific commands, check out: API -> Payload Type Command Help<br>
-        For information on the available RESTful endpoints, check out: API -> RESTful API<br>
-        For information on how to create a new agent or leverage some internal features, check out: API -> C2 Documentation<br>
-    </p>
-
-    <h4>How can I quickly start using this framework?</h4>
-    <ol>
-        <li>Select an operation to be your current operation (this affects what payloads, callbacks, and tasking you see)<ul>
-            <li>
-                Manage Operations -> Operations Management
-            </li>
-            <li>
-                Select an operation to "Make Current". You'll see this reflected in the top navigation bar
-            </li>
-        </ul></li>
-        <li>
-            If you want to use a C2 profile other than the default one, you need to start it<ul>
-            <li>
-                Manage Operations -> C2 Profiles Management
-            </li>
-            <li>
-                Potentially update the configuration for the profile via "Edit Files", download, modify, and re-upload
-            </li>
-            <li>
-                Click "Start"
-            </li>
+<div class="card border border-dark shadow">
+    <div class="card-header bg-header border border-dark shadow">
+        <h3>What is this <span class="operator"> Apfell </span> framework?</h3>
+    </div>
+    <div class="card-body border border-dark bg-card-body">
+        <ul class="list-group">
+            <li class="list-group-item bg-card-body-l2 text-light">Apfell is meant to be an extendable user interface that allows operators to create/adjust/control agents in an easier fashion than starting from scratch.</li>
+            <li class="list-group-item bg-card-body-l2 text-light">For information on agent specific commands, check out: API -> Payload Type Command Help</li>
+            <li class="list-group-item bg-card-body-l2 text-light">For information on the available RESTful endpoints, check out: API -> RESTful API</li>
+            <li class="list-group-item bg-card-body-l2 text-light">For information on how to create a new agent or leverage some internal features, check out: API -> C2 Documentation</li>
         </ul>
-        </li>
-        <li>
-            Create your payload<ul>
-            <li>
-                Create Components -> Create Base Payload
-            </li>
-            <li>
-                Select your C2 Profile
-            </li>
-            <li>
-                Fill in any required parameters (some may be auto-populated with hints or default values)
-            </li>
-            <li>
-                Select a payload type that supports this profile
-            </li>
-            <li>
-                Supply a name for your payload
-            </li>
-            <li>
-                Supply a tag for your payload. This tag will auto-populate for the description of any callbacks based on this payload.
-            </li>
-            <li>
-                Select any/all commands you want to be initially available in this payload. Depending on the payload type, you can load more commands after you get a callback.
-            </li>
-            <li>
-                Click "Submit". This will either submit the tasking to the corresponding container or, if it's an external payload type, then it just registers the payload and data in the database.
-            </li>
-        </ul>
-        </li>
-        <li>
-            View/Download/host the payload<ul>
-            <li>
-                Manage Operations -> Payload Management<ul>
-                <li>
-                    Click "Download" to download the payload to your system
-                </li>
-                <li>
-                    Click "Config" to view the metadata about your payload
-                </li>
-                <li>
-                    Click "UUID" to view the unique identifier for the payload
-                </li>
-            </ul>
-            </li>
-            <li>
-                To host the payload for execution:<ul>
-                <li>
-                    Services -> Host Files
-                </li>
-                <li>
-                    Click "Host New File"
-                </li>
-                <li>
-                    You can either upload a file to host or, since the payload is already on the Apfell server, check "Local File"<ul>
-                    <li>
-                        Paste in the payload's UUID and the system will automatically pull all the info for it
-                    </li>
-                </ul>
-                </li>
-            </ul>
-            </li>
-        </ul>
-        </li>
-        <li>
-            Execute your payload
-        </li>
-        <li>
-            You'll get a new callback in Operational Views -> Active Callbacks
-        </li>
-        <li>
-            Click "Interact" on a callback and start typing commands to use your new agent
-        </li>
-    </ol>
-    <table>
-        <tr>
-            <td>
-                <h3>
-                    Future Updates
-                </h3>
-                <ul>
-                    <li>More Agents</li>
-                    <li>More C2 profiles</li>
-                    <li>More Analytics</li>
-                    <li>Scripting Engine</li>
-                    <li>More Services</li>
-                    <li>More Reporting Templates</li>
-                    <li>More Artifact Tracking</li>
-                    <li>Operator Situational Awareness Dashboard</li>
-                    <li>Operator Assist/timeout</li>
-                    <li>Built-in Keylogging capability in apfell-jxa payload</li>
-                </ul>
-            </td>
-        </tr>
-    </table>
+    </div>
+</div><br>
+<div class="card border border-dark shadow">
+    <div class="card-header bg-header border border-dark text-white">
+        <h4>How can I <span class="operator">quickly start</span> using this framework as an operator?</h4>
+    </div>
+    <div class="card-body border border-dark bg-card-body shadow">
+        <div class="accordion border border-dark shadow">
+            <div class="card">
+                <div class="card-header">
+                    <button class="btn btn-link stretched-link" type="button" data-toggle="collapse" data-target="#step1" aria-expanded="false" aria-controls="step1">1. Select an operation to be your current operation (this affects what payloads, callbacks, and tasking you see)</button>
+                </div>
+                <div class="collapse" id="step1">
+                    <div class="card-body bg-card-body-l1">
+                        <ul>
+                            <li>
+                                Manage Operations -> Operations Management
+                            </li>
+                            <li>
+                                Select an operation to "Make Current". You'll see this reflected in the top navigation bar
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <button class="btn btn-link stretched-link" type="button" data-toggle="collapse" data-target="#step2" aria-expanded="false" aria-controls="step2">2. If you want to use a C2 profile other than the default one, you need to start it</button>
+                </div>
+                <div class="collapse" id="step2">
+                    <div class="card-body bg-card-body-l1">
+                        <ul>
+                            <li>
+                                Manage Operations -> C2 Profiles Management
+                            </li>
+                            <li>
+                                Potentially update the configuration for the profile via "Edit Files", download, modify, and re-upload
+                            </li>
+                            <li>
+                                Click "Start"
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header ">
+                    <button class="btn btn-link stretched-link" type="button" data-toggle="collapse" data-target="#step3" aria-expanded="false" aria-controls="step3">3. Create your payload</button>
+                </div>
+                <div class="collapse" id="step3">
+                    <div class="card-body bg-card-body-l1">
+                        <ul>
+                            <li>
+                                Create Components -> Create Base Payload
+                            </li>
+                            <li>
+                                Select your C2 Profile
+                            </li>
+                            <li>
+                                Fill in any required parameters (some may be auto-populated with hints or default values)
+                            </li>
+                            <li>
+                                Select a payload type that supports this profile
+                            </li>
+                            <li>
+                                Supply a name for your payload
+                            </li>
+                            <li>
+                                Supply a tag for your payload. This tag will auto-populate for the description of any callbacks based on this payload.
+                            </li>
+                            <li>
+                                Select any/all commands you want to be initially available in this payload. Depending on the payload type, you can load more commands after you get a callback.
+                            </li>
+                            <li>
+                                Click "Submit". This will either submit the tasking to the corresponding container or, if it's an external payload type, then it just registers the payload and data in the database.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header ">
+                    <button class="btn btn-link stretched-link" type="button" data-toggle="collapse" data-target="#step4" aria-expanded="false" aria-controls="step4">4. View/Download/host the payload</button>
+                </div>
+                <div class="collapse" id="step4">
+                    <div class="card-body bg-card-body-l1">
+                        <ul>
+                            <li>
+                                Manage Operations -> Payload Management<ul>
+                                <li>
+                                    Click "Download" to download the payload to your system
+                                </li>
+                                <li>
+                                    Click "Config" to view the metadata about your payload
+                                </li>
+                                <li>
+                                    Click "UUID" to view the unique identifier for the payload
+                                </li>
+                            </ul>
+                            </li>
+                            <li>
+                                To host the payload for execution:<ul>
+                                <li>
+                                    Services -> Host Files
+                                </li>
+                                <li>
+                                    Click "Host New File"
+                                </li>
+                                <li>
+                                    You can either upload a file to host or, since the payload is already on the Apfell server, check "Local File"<ul>
+                                    <li>
+                                        Paste in the payload's UUID and the system will automatically pull all the info for it
+                                    </li>
+                                </ul>
+                                </li>
+                            </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header ">
+                    <button class="btn btn-link stretched-link" type="button" data-toggle="collapse" data-target="#step5" aria-expanded="false" aria-controls="step5">5. Execute your payload</button>
+                </div>
+                <div class="collapse" id="step5">
+                    <div class="card-body bg-card-body-l1">
+                        <ul>
+                            <li>There are many ways to do this, and they are very specific to the payload type. When creating the payload, you'll be presented with the "execution help" provided by the author of the payload type</li>
+                            <li>At any point, when you click the "config" for a payload on the "Payload Management" page, you'll be able to see the execution help there as well</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header ">
+                    <button class="btn btn-link stretched-link" type="button" data-toggle="collapse" data-target="#step6" aria-expanded="false" aria-controls="step6">6. You'll get a new callback in Operational Views -> Active Callbacks</button>
+                </div>
+                <div class="collapse" id="step6">
+                    <div class="card-body bg-card-body-l1">
+                        <ul>
+                            <li>
+                                Click "Interact" and start issuing commands
+                            </li>
+                            <li>
+                                Be sure to check out the following:
+                                <ul>
+                                    <li>
+                                        Split Callbacks
+                                    </li>
+                                    <li>
+                                        Click the green + sign to add comments
+                                    </li>
+                                    <li>
+                                        Add scripting capabilities to automatically process your output via the "Browser Script Management" page
+                                    </li>
+                                    <li>
+                                        Search (via all output or all command parameters)
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </div>
+
 
 {% endblock %}
 
@@ -142,187 +204,4 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['text-color'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-pane'] }};
-    color: {{ config['primary-pane-text-color'] }};
-}
-.btn-success{
-    background-color: {{config['success-pane'] }};
-    color: {{ config['success-pane-text-color'] }}
-}
-.btn-danger{
-    background-color: {{config['danger-pane'] }};
-    color: {{ config['danger-pane-text-color'] }}
-}
-.btn-info{
-    background-color: {{config['info-pane'] }};
-    color: {{ config['info-pane-text-color'] }}
-}
-.btn-warning{
-    background-color: {{config['warning-pane'] }};
-    color: {{ config['warning-pane-text-color'] }}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
-
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
 {% endblock %}

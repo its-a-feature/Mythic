@@ -182,17 +182,21 @@ async def register_new_payload_func(data, user):
             file_extension = "." + file_extension
         location = "./app/payloads/operations/{}/{}{}".format(user['current_operation'], uuid, file_extension)
     # Register payload
+    if 'build_container' not in data:
+        data['build_container'] = payload_type.ptype
     if not payload_type.wrapper:
         create = False
         try:
             query = await db_model.payload_query()
             payload = await db_objects.get(query, operator=operator, payload_type=payload_type,
                                                              tag=tag, location=location, c2_profile=c2_profile,
-                                                             uuid=uuid, operation=operation)
+                                                             uuid=uuid, operation=operation,
+                                                             build_container=data['build_container'])
         except Exception as e:
             payload = await db_objects.create(Payload, operator=operator, payload_type=payload_type,
                                                              tag=tag, location=location, c2_profile=c2_profile,
-                                                             uuid=uuid, operation=operation)
+                                                             uuid=uuid, operation=operation,
+                                                             build_container=data['build_container'])
             create = True
         if create:
             for cmd in db_commands:
@@ -239,7 +243,7 @@ async def generate_uuid():
     return str(uuid.uuid4())
 
 
-async def write_payload(uuid, user):
+async def write_payload(uuid, user, data):
     # for projects that need compiling, we should copy all of the necessary files to a temp location
     #  do our stamping and compiling, save off the one final file to the rightful destination
     #  then delete the temp files. They will be in a temp folder identified by the payload's UUID which should be unique
@@ -390,9 +394,13 @@ async def write_payload(uuid, user):
             await write_c2(base_c2_new, base_c2, payload)
             base_c2.close()
             base_c2_new.close()
+
     transform_request = await get_transforms_func(payload.payload_type.ptype, "create")
     if transform_request['status'] == "success":
-        transform_list = transform_request['transforms']
+        if 'transforms' in data:
+            transform_list = data['transforms']
+        else:
+            transform_list = transform_request['transforms']
         # now we have a temporary location with everything we need
         # zip it all up and save it
         if not payload.payload_type.container_running:
@@ -438,17 +446,26 @@ async def create_payload(request, user):
         query = await db_model.payload_query()
         payload = await db_objects.get(query, uuid=rsp['uuid'])
         if payload.payload_type.external is False:
-            create_rsp = await write_payload(payload.uuid, user)
+            create_rsp = await write_payload(payload.uuid, user, data)
             if create_rsp['status'] == "success":
                 return json({'status': 'success',
                              'uuid': rsp['uuid']})
             else:
                 await db_objects.delete(payload, recursive=True)
                 return json({'status': 'error', 'error': create_rsp['error']})
+        elif payload.payload_type.external:
+            payload.build_phase = "success"
+            payload.build_message = payload.build_message + ". Created externally, not hosted in Apfell"
+            await db_objects.update(payload)
+            return json({'status': 'success', 'uuid': rsp['uuid']})
         else:
             # if this is created externally, just put the necessary information onto the queue
             transform_request = await get_transforms_func(payload.payload_type.ptype, "create")
             if transform_request['status'] == "success":
+                if 'transforms' in data:
+                    transform_list = data['transforms']
+                else:
+                    transform_list = transform_request['transforms']
                 query = await db_model.payloadcommand_query()
                 payloadcommands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
                 commands = [{"cmd": c.command.cmd} for c in payloadcommands]
@@ -457,7 +474,7 @@ async def create_payload(request, user):
                 c2_profile_params = await db_objects.execute(
                     query.where(C2ProfileParametersInstance.payload == payload))
                 params = [p.to_json() for p in c2_profile_params]
-                message_json = {"transforms": transform_request['transforms'],
+                message_json = {"transforms": transform_list,
                                 "commands": commands,
                                 "c2_profile_parameters_instance": params,
                                 }

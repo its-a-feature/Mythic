@@ -2,7 +2,7 @@ exports.load = function(task, command, params){
     //base64 decode the params and pass it to the default_load command
     //  params should be {"cmds": ["cmd_name1", "cmd_name2"], "file_id": #}
     try{
-        var params = params.replace(/\'/g, "\"");
+        //var params = params.replace(/\'/g, "\"");
         var parsed_params = JSON.parse(params);
         var code = C2.upload(task, parsed_params['file_id']);
         if(typeof code == "string"){

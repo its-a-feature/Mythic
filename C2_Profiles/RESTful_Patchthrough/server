@@ -1,153 +1,212 @@
 #!/usr/bin/env python3
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import urllib.request
-import re
+
+from sanic import Sanic
+from sanic.response import raw, html
+import sys
+import asyncio
 import ssl
 from pathlib import Path
-import asyncio
-import threading
 import json
-import sys
+import requests
 
 
-def MakeHandlerClassWithConfig(get_paths, post_paths):
-    class CustomHandler(BaseHTTPRequestHandler):
-        get_paths = {}
-        post_paths = {}
-
-        def __init__(self, *args, **kwargs):
-            self.get_paths = get_paths
-            self.post_paths = post_paths
-            super(CustomHandler, self).__init__(*args, **kwargs)
-            # this is where I can customize things for my own customized version of a BaseHTTPRequestHandler
-
-        def do_HEAD(self):
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-
-        def do_GET(self):
-            found_path = False
-            #print(self.path)
-            for path in self.get_paths:
-                regex = re.compile(path)
-                route = regex.match(self.path)
-                if route is not None:
-                    #print(path)
-                    #print(str(len(route.groups())))
-                    if len(route.groups()) >= 2:
-                        self.respond(self.get_paths[path], route.group(1), route.group(2))
-                    else:
-                        self.respond(self.get_paths[path], route.group(1), None)
-                    found_path = True
-            if not found_path:
-                self.send_response(404)
-                self.end_headers()
-
-        def respond(self, data, tid, cid):
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            # pass through here
-            if cid is not None:
-                url = data['url'].format(str(tid), str(cid))
-            else:
-                url = data['url'].format(str(tid))
-            with urllib.request.urlopen(url, context=ssl._create_unverified_context()) as response:
-                content = response.read()
-            self.wfile.write(content)
-
-        def do_POST(self):
-            found_path = False
-            #print(self.path)
-            for path in self.post_paths:
-                route = re.match(path, self.path)
-                if route is not None:
-                    found_path = True
-                    #print(path)
-                    if len(route.groups()) >= 1:
-                        self.respond_post(self.post_paths[path], route.group(1))
-                    else:
-                        self.respond_post(self.post_paths[path], None)
-            if not found_path:
-                self.send_response(404)
-                self.end_headers()
-
-        def respond_post(self, data, tid):
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            content_length = int(self.headers.get('Content-Length'), 0)
-            post_body = self.rfile.read(content_length)
-            url = data['url'].format(str(tid)) if tid else data['url']
-            with urllib.request.urlopen(url, data=post_body, context=ssl._create_unverified_context()) as response:
-                content = response.read()
-            self.wfile.write(content)
-
-        def log_message(self, format, *args):
-            return  # I don't want to fill up memory with these messages
-    return CustomHandler
+async def print_flush(message):
+    print(message)
+    sys.stdout.flush()
 
 
-class MyServer:
-    config = {}
-
-    def __init__(self, *args, **kwargs):
-        for key, value in kwargs.items():
-            if key == "config":
-                self.config = value
-        #return None
-
-    async def start(self):
-        handler = MakeHandlerClassWithConfig(get_paths=self.config['get_paths'], post_paths=self.config['post_paths'])
-        httpd = HTTPServer((self.config['host'], self.config['port']), handler)
-        keyfile = Path(self.config['key_path'])
-        certfile = Path(self.config['cert_path'])
-        # optionally server this up via SSL if the key.pem and cert.pem files exist in the same folder
-        if keyfile.is_file() and certfile.is_file():
-            httpd.socket = ssl.wrap_socket(httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
-        try:
-            t = threading.Thread(target=httpd.serve_forever)
-            t.setDaemon(True) # don't hang on exit
-            t.start()
-            print('Server loop running in thread:', t.getName())
-            sys.stdout.flush()
-            #httpd.serve_forever()
-        except KeyboardInterrupt:
-            pass
-            httpd.server_close()
+async def getNextTask(request):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("getNextTask request from: {}".format(request.url))
+    if config[request.app.name]['getNextTask']['cid'] in request.raw_args:
+        url = config['getNextTask'].format(request.raw_args[config[request.app.name]['getNextTask']['cid']])
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(url))
+        response = requests.get(url, verify=False)
+        return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
+    else:
+        if config[request.app.name]['debug']:
+            await print_flush("getNextTask failed to provide required parameter")
+    return html("", status=404, headers={"Server": config[request.app.name]['server_header']})
 
 
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
+async def getFile(request):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("getFile request from: {}".format(request.url))
+    if config[request.app.name]['getFile']['fid'] in request.raw_args and config[request.app.name]['getFile']['cid'] in request.raw_args:
+
+        url = config['getFile'].format(request.raw_args[config[request.app.name]['getFile']['fid']],
+                                       request.raw_args[config[request.app.name]['getFile']['cid']])
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(url))
+        response = requests.get(url, verify=False)
+        return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
+    else:
+        if config[request.app.name]['debug']:
+            await print_flush("getFile failed to provide required parameters")
+    return html("", status=404, headers={"Server": config[request.app.name]['server_header']})
+
+
+async def postResponse(request):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("postResponse request from: {}".format(request.url))
+    if config[request.app.name]['postResponse']['tid'] in request.raw_args:
+
+        url = config['postResponse'].format(request.raw_args[config[request.app.name]['postResponse']['tid']])
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(url))
+        response = requests.post(url, data=request.body, verify=False)
+        return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
+    else:
+        if config[request.app.name]['debug']:
+            await print_flush("postResponse failed to provide required parameters")
+    return html("", status=404, headers={"Server": config[request.app.name]['server_header']})
+
+
+async def postNewCallback(request):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("postNewCallback request from: {}".format(request.url))
     try:
-        config_file = open("config.json", 'r')
-        main_config = json.loads(config_file.read())
-        print("Opening config and starting instances...")
-        sys.stdout.flush()
-        for inst in main_config['instances']:
-            # clean this up a little and then pass it through to the MyServer() creation
-            specific_config = {}
-            specific_config['get_paths'] = {
-                inst['GET']['getNextTask']: {'url': main_config['apfellBase'] + main_config['apfellNextTask']},
-                inst['GET']['getFile']: {'url': main_config['apfellBase'] + main_config['apfellGetFile']}
-                }
-            specific_config['post_paths'] = {
-                inst['POST']['postResponse']: {'url': main_config['apfellBase'] + main_config['apfellPostResponse']},
-                inst['POST']['postNewCallback']: {'url': main_config['apfellBase'] + main_config['apfellNewCallback']},
-                inst['POST']['postNewCallbackAESPSK']: {'url': main_config['apfellBase'] + main_config['apfellNewCallbackAESPSK']},
-                inst['POST']['postNewCallbackEKE']: {'url': main_config['apfellBase'] + main_config['apfellNewCallbackEKE']},
-                inst['POST']['postNewCallbackDHEKE']: {'url': main_config['apfellBase'] + main_config['apfellNewCallbackDHEKE']}
-                }
-            specific_config['port'] = inst['port']
-            specific_config['host'] = inst['host']
-            specific_config['key_path'] = inst['key_path']
-            specific_config['cert_path'] = inst['cert_path']
-            specific_server = MyServer(config=specific_config)
-            asyncio.ensure_future(specific_server.start())
-
+        url = config['postNewCallback']
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(url))
+        response = requests.post(url, data=request.body, verify=False)
+        return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
     except Exception as e:
-        print("Failed to open config")
-        print(str(e))
-        exit(1)
-    loop.run_forever()
+        return html("", status=404, headers={"Server": config[request.app.name]['server_header']})
+
+
+async def postNewCallbackAESPSK(request):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("postNewCallbackAESPSK request from: {}".format(request.url))
+    if config[request.app.name]['postNewCallbackAESPSK']['uuid'] in request.raw_args:
+
+        url = config['postNewCallbackAESPSK'].format(request.raw_args[config[request.app.name]['postNewCallbackAESPSK']['uuid']])
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(url))
+        response = requests.post(url, data=request.body, verify=False)
+        return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
+    else:
+        if config[request.app.name]['debug']:
+            await print_flush("postNewCallbackAESPSK failed to provide required parameters")
+    return html("", status=404, headers={"Server": config[request.app.name]['server_header']})
+
+
+async def postNewCallbackEKE(request):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("postNewCallbackEKE request from: {}".format(request.url))
+    if config[request.app.name]['postNewCallbackEKE']['uuid'] in request.raw_args:
+
+        url = config['postNewCallbackEKE'].format(request.raw_args[config[request.app.name]['postNewCallbackEKE']['uuid']])
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(url))
+        response = requests.post(url, data=request.body, verify=False)
+        return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
+    else:
+        if config[request.app.name]['debug']:
+            await print_flush("postNewCallbackEKE failed to provide required parameters")
+    return html("", status=404, headers={"Server": config[request.app.name]['server_header']})
+
+
+async def postNewCallbackDHEKE(request):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("postNewCallbackDHEKE request from: {}".format(request.url))
+    if config[request.app.name]['postNewCallbackDHEKE']['uuid'] in request.raw_args:
+
+        url = config['postNewCallbackDHEKE'].format(request.raw_args[config[request.app.name]['postNewCallbackDHEKE']['uuid']])
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(url))
+        response = requests.post(url, data=request.body, verify=False)
+        return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
+    else:
+        if config[request.app.name]['debug']:
+            await print_flush("postNewCallbackDHEKE failed to provide required parameters")
+    return html("", status=404, headers={"Server": config[request.app.name]['server_header']})
+
+
+if __name__ == "__main__":
+    global config
+    config = {}
+    config_file = open("config.json", 'r')
+    main_config = json.loads(config_file.read())
+    print("Opening config and starting instances...")
+    sys.stdout.flush()
+
+    config['getNextTask'] =  main_config['apfellBase'] + main_config['apfellNextTask']
+    config['getFile'] = main_config['apfellBase'] + main_config['apfellGetFile']
+    config['postResponse'] =  main_config['apfellBase'] + main_config['apfellPostResponse']
+    config['postNewCallback'] =  main_config['apfellBase'] + main_config['apfellNewCallback']
+    config['postNewCallbackAESPSK'] = main_config['apfellBase'] + main_config['apfellNewCallbackAESPSK']
+    config['postNewCallbackEKE'] = main_config['apfellBase'] + main_config['apfellNewCallbackEKE']
+    config['postNewCallbackDHEKE'] = main_config['apfellBase'] + main_config['apfellNewCallbackDHEKE']
+    for inst in main_config['instances']:
+        config[str(inst['port'])] = {'debug': inst['debug'],
+                                     'no_match': inst['no_match'],
+                                     'server_header': inst['server_header']}
+        app = Sanic(str(inst['port']))
+        app.config['REQUEST_MAX_SIZE'] = 1000000000
+        app.config['REQUEST_TIMEOUT'] = 600
+        app.config['RESPONSE_TIMEOUT'] = 600
+
+        app.add_route(getNextTask, inst['GET']['getNextTask']['url'], methods=['GET'])
+        config[str(inst['port'])]['getNextTask'] = {}
+        config[str(inst['port'])]['getNextTask']['cid'] = inst['GET']['getNextTask']['parameters']['cid']
+
+        app.add_route(getFile, inst['GET']['getFile']['url'], methods=['GET'])
+        config[str(inst['port'])]['getFile'] = {}
+        config[str(inst['port'])]['getFile']['fid'] = inst['GET']['getFile']['parameters']['fid']
+        config[str(inst['port'])]['getFile']['cid'] = inst['GET']['getFile']['parameters']['cid']
+
+        app.add_route(postResponse, inst['POST']['postResponse']['url'], methods=['POST'])
+        config[str(inst['port'])]['postResponse'] = {}
+        config[str(inst['port'])]['postResponse']['tid'] = inst['POST']['postResponse']['parameters']['tid']
+
+        app.add_route(postNewCallback, inst['POST']['postNewCallback']['url'], methods=['POST'])
+        config[str(inst['port'])]['postNewCallback'] = {}
+
+        app.add_route(postNewCallbackAESPSK, inst['POST']['postNewCallbackAESPSK']['url'], methods=['POST'])
+        config[str(inst['port'])]['postNewCallbackAESPSK'] = {}
+        config[str(inst['port'])]['postNewCallbackAESPSK']['uuid'] = inst['POST']['postNewCallbackAESPSK']['parameters']['uuid']
+
+        app.add_route(postNewCallbackEKE, inst['POST']['postNewCallbackEKE']['url'], methods=['POST'])
+        config[str(inst['port'])]['postNewCallbackEKE'] = {}
+        config[str(inst['port'])]['postNewCallbackEKE']['uuid'] = inst['POST']['postNewCallbackEKE']['parameters']['uuid']
+
+        app.add_route(postNewCallbackDHEKE, inst['POST']['postNewCallbackDHEKE']['url'], methods=['POST'])
+        config[str(inst['port'])]['postNewCallbackDHEKE'] = {}
+        config[str(inst['port'])]['postNewCallbackDHEKE']['uuid'] = inst['POST']['postNewCallbackDHEKE']['parameters']['uuid']
+
+        keyfile = Path(inst['key_path'])
+        certfile = Path(inst['cert_path'])
+        if keyfile.is_file() and certfile.is_file():
+            context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+            context.load_cert_chain(inst['cert_path'], keyfile=inst['key_path'])
+            if inst['debug']:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], ssl=context, debug=False, return_asyncio_server=True, access_log=True)
+            else:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], ssl=context, debug=False, return_asyncio_server=True, access_log=False)
+            if inst['debug']:
+                print("using SSL for port {}".format(inst['port']))
+                sys.stdout.flush()
+        else:
+            if inst['debug']:
+                print("not using SSL for port {}".format(inst['port']))
+                sys.stdout.flush()
+            if inst['debug']:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], debug=False, return_asyncio_server=True, access_log=True)
+            else:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], debug=False, return_asyncio_server=True, access_log=False)
+        task = asyncio.ensure_future(server)
+
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_forever()
+    except:
+        loop.stop()

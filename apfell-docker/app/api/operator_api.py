@@ -74,10 +74,10 @@ async def get_one_config_item(request, name, user):
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(name)
     try:
-        if name == "default":
-            return json({'status': 'success', 'config': Operator.default_config})
+        if name == "light":
+            return json({'status': 'success', 'config': Operator.light_config})
         elif name == "dark":
-            return json({'status': 'success', 'config': Operator.default_dark_config})
+            return json({'status': 'success', 'config': Operator.dark_config})
         else:
             return json({'status': 'error', 'error': 'config not found'})
     except Exception as e:
@@ -116,8 +116,13 @@ async def update_operator(request, name, user):
                 op.ui_config = op.default_specter_config
             else:
                 op.ui_config = data['ui_config']
-        await db_objects.update(op)
-        success = {'status': 'success'}
+        if 'username' in data:
+            op.username = data['username']
+        try:
+            await db_objects.update(op)
+            success = {'status': 'success'}
+        except Exception as e:
+            return json({'status': 'error', 'error': "failed to update operator: " + str(e)})
         updated_operator = op.to_json()
         return json({**success, **updated_operator})
     except:

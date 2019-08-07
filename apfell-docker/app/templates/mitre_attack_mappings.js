@@ -222,15 +222,16 @@ var regexVue = new Vue({
     el: '#regexGroup',
     data: {
         options: [],
-        test: false,
+        finalize: false,
         regex: "",
         selected: ""
     },
     methods: {
         submit_search: function(){
-            var data = {"regex": this.regex, "apply": !this.test, "attack": this.selected};
+            var data = {"regex": this.regex, "apply": this.finalize, "attack": this.selected};
             regexOutput.tasks = [];
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mitreattack/regex", submit_regex_callback, "POST", data);
+            this.finalize = false;
         }
     },
     delimiters: ['[[',']]']
@@ -246,15 +247,13 @@ function submit_regex_callback(response){
         if(data.hasOwnProperty('matches')){
             for(var i = 0; i < data['matches'].length; i++){
                 data['matches'][i]['href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['matches'][i]['id'];
+                data['matches'][i]['attack'] = data['matches'][i]['attack'].sort((a,b) =>(b.t_num > a.t_num) ? -1 : ((a.t_num > b.t_num) ? 1 : 0));
             }
             regexOutput.tasks = data['matches'];
         }else{
             regexOutput.tasks = [];
+            alertTop("success", "Successfully updated matches", 1);
         }
-        alertTop("success", "success");
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
 
         return;
     }else{

@@ -1,10 +1,14 @@
-exports.proc_api = function(task, command, params){
+exports.run = function(task, command, params){
 	//launch a program and args via ObjC bridge without doShellScript and return response
-	var response = "";
-	var pieces = JSON.parse(params);
-	var path = pieces['path'];
-	//console.log(path);
-	var args = pieces['args'];
+	try{
+        var response = "";
+        var pieces = JSON.parse(params);
+        var path = pieces['path'];
+        //console.log(path);
+        var args = pieces['args'];
+    }catch(error){
+        return error.toString();
+    }
 	try{
 		var pipe = $.NSPipe.pipe;
 		var file = pipe.fileHandleForReading;  // NSFileHandle

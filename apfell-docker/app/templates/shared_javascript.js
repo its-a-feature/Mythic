@@ -128,18 +128,39 @@ function pythonToJSJson(string){
     updated = updated.replace(/False/g, "false");
     return updated;
 }
-
 function alertTop(type, string, delay=4){
-    //document.getElementById("top-alert").style = "";
-    //var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\" style=\"white-space: pre-wrap\">" +
-    //string +
-    //"<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
-    //if($('#top-alert').html() === undefined){
-    //    $( '#top-alert' ).html($( '#alert-top' ).html() + html);
-    //}
-    //else{
-    //    $( '#top-alert' ).html(html);
-    //}
+    delay = delay * 1000;
+    if( type == "danger" && delay == 4000){
+        delay = 0;
+    }
+    toastr.options.timeOut = delay.toString();
+    toastr.options.extendedTimeOut = delay.toString();
+    if(type == "success"){
+        toastr.success(string).css("width","100%");
+    }else if(type == "danger"){
+        toastr.error(string).css("width","100%");
+    }else if(type == "info"){
+        toastr.info(string).css("width","100%");
+    }else{
+        toastr.warning(string).css("width","100%");
+    }
+}
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": true,
+  "progressBar": true,
+  "positionClass": "toast-top-right",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut",
+  "tapToDismiss": false,
+  "toastClass" : 'toastr'
+}
+function alertTop2(type, string, delay=4){
     delay = delay * 1000;
     if( type == "danger" && delay == 4000){
         delay = 0;
@@ -173,7 +194,7 @@ function alertTop(type, string, delay=4){
 	onClose: null,
 	onClosed: null,
 	icon_type: 'class',
-	template: '<div data-notify="container" class="alert alert-{0}" role="alert">' +
+	template: '<div data-notify="container" class="alert alert-{0}" role="alert" style="overflow:scroll;max-height:50%">' +
 		'<button type="button" aria-hidden="true" class="close" data-notify="dismiss">×</button>' +
 		'<span data-notify="icon"></span> ' +
 		'<span data-notify="title">{1}</span> ' +
@@ -187,27 +208,64 @@ function alertTop(type, string, delay=4){
 
 
 }
-function alertBottom(type, string){
-    document.getElementById("bottom-alert").style = "";
-    var html = "<div class=\"alert alert-" + type + " alert-dismissible fade in\" role=\"alert\" style=\"white-space: pre-wrap\">" +
-    string +
-    "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button></div>";
-    $( '#bottom-alert' ).append(html);
-}
 function clearAlertTop(){
-    $("#top-alert").fadeTo(20, 50).slideUp(500, function(){
-          $("#top-alert").slideUp(500);
-    });
     $.notifyClose();
 }
-function clearAlertBottom(){
-    $( '#bottom-alert' ).html("");
-}
+
 function toLocalTime(date){
     var init_date = new Date(date + " UTC");
     return init_date.toDateString() + " " + init_date.toTimeString().substring(0,8);
 }
-
+function sort_table(th){
+    //sort the table
+    const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+    const comparer = (idx, asc) => (a, b) => ((v1, v2) =>
+        v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+        )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+    var tr = th.parentElement;
+    var table = th.parentElement.parentElement;
+    Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
+            .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
+            .forEach(tr => table.appendChild(tr) );
+    // deal with carets and the right directions
+    imgs_to_remove = th.parentElement.querySelectorAll("img");
+    for(i = 0; i < imgs_to_remove.length; i++){
+        imgs_to_remove[i].remove();
+    }
+    var el = document.createElement('img');
+    el.src = "/static/color-arrow.png";
+    el.width = "32";
+    el.height = "32";
+    if(this.asc){
+        el.style.transform = 'rotate(0deg)';
+    }else{
+        el.style.transform = 'rotate(180deg)';
+    }
+    th.appendChild(el);
+}
+function adjust_size(ta){
+    scroll_box = $('#' + ta.id);
+    scroll_box.css('height', '2rem');
+    height = scroll_box.get(0).scrollHeight + 12;
+    if(height > 800){height = 800;}
+    scroll_box.css('height', height + "px");
+}
+function copyStringToClipboard(str) {
+  // Create new element
+  var el = document.createElement('textarea');
+  // Set value (string to be copied)
+  el.value = str;
+  // Set non-editable to avoid focus and move outside of view
+  el.setAttribute('readonly', '');
+  el.style = {position: 'absolute', left: '-9999px'};
+  document.body.appendChild(el);
+  // Select text inside element
+  el.select();
+  // Copy text to clipboard
+  document.execCommand('copy');
+  // Remove temporary element
+  document.body.removeChild(el);
+}
 // Set our access token and referesh token in the session storage when we first log in
 // this will be manually added to all GET/POST requests made to API calls
 {% if access_token is defined %}

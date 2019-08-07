@@ -25,6 +25,9 @@ function clear_tasks(){
 function clear_responses(){
     show_modal_and_clear("responses", "This will remove all of the responses from the database");
 }
+function clear_artifacts(){
+    show_modal_and_clear("artfacts", "This will remove all of the artifacts from the database");
+}
 var clearVue = new Vue({
     el: '#clearModal',
     data: {
@@ -47,7 +50,7 @@ function clear_callback(response){
 	    alertTop("danger", "Session expired, please refresh or login again");
 	   }
 	if(data['status'] == 'success'){
-		alertTop("success", "Successfully cleared " + data['dbnumber'] + " database objects");
+		alertTop("success", "Successfully cleared " + data['stats']['dbnumber'] + " database objects");
 	}
 	else{
 		alertTop("danger", "Failed to clear: " + data['error']);

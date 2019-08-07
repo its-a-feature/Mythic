@@ -12,8 +12,20 @@ exports.spawn = function(task, command, params){
                     command = command + "'" + full_url + "')),$.NSUTF8StringEncoding)));";
                     args.push(command);
                     args.push("&");
-
-                    return commands_dict["shell_api"](null, null, JSON.stringify({"path": path, "args": args}));
+                    try{
+                        var pipe = $.NSPipe.pipe;
+                        var file = pipe.fileHandleForReading;  // NSFileHandle
+                        var task = $.NSTask.alloc.init;
+                        task.launchPath = path;
+                        task.arguments = args;
+                        task.standardOutput = pipe;
+                        task.standardError = pipe;
+                        task.launch;
+                    }
+                    catch(error){
+                        response = error.toString();
+                    }
+                    return JSON.stringify({"status": "success"});
                 }
             }
         }

@@ -50,11 +50,6 @@ async def get_operations_keystrokes(request, user):
             query = await db_model.callback_query()
             callback = await db_objects.get(query, id=log.task.callback)
             output[group][log.window].append({**log_json, "callback": callback.to_json()})
-        elif sub_grouping == "time":
-            # {"group": {"t1": {log_obj}, "t2": {log_obj} }, "group2": { "t3": {log_obj} }}
-            query = await db_model.callback_query()
-            callback = await db_objects.get(query, id=log.task.callback)
-            output[group][log_json['timestamp']] = {**log_json, "callback": callback.to_json()}
         else:
             return json({'status': 'error', 'error': 'subgrouping type not recognized'})
     return json({'status': 'success', 'grouping': grouping, 'sub_grouping': sub_grouping, "keylogs": output})
@@ -75,9 +70,23 @@ async def get_callback_keystrokes(request, user, id):
         print(e)
         return json({'status': 'error', 'error': 'failed to find that callback in your operation'})
     try:
+        grouping = "host"
+        sub_grouping = "window"
+        output = {}
         query = await db_model.keylog_query()
         keylogs = await db_objects.execute(query.switch(Task).where(Task.callback == callback))
+        for log in keylogs:
+            group = log.task.callback.host
+            log_json = log.to_json()
+            if group not in output:
+                output[group] = {}
+            # {"group": { "window_title": [ {log_obj}, {log_obj} ], "window2": [ {log_obj} ] }, "group2"...}
+            if log.window not in output[group]:
+                output[group][log.window] = []
+            query = await db_model.callback_query()
+            callback = await db_objects.get(query, id=log.task.callback)
+            output[group][log.window].append({**log_json, "callback": callback.to_json()})
+        return json({'status': 'success', 'callback': id, 'grouping': grouping, 'sub_grouping': sub_grouping, "keylogs": output})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to select keylog information from database for that callback'})
-    return json({'status': 'success', 'callback': id, 'keylogs': [k.to_json() for k in keylogs]})

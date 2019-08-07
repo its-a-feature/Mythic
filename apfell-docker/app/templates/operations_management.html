@@ -1,44 +1,57 @@
 {% extends "base.html" %}
 {% block body %}
 
-<h1>
-    Operations Management
-</h1>
-<div style="resize: vertical; overflow:scroll" class="panel panel-primary" id="operations_table" >
-    <div class="panel-heading">Operations Information</div>
-        <table class="table table-condensed well-sm" >
+<br>
+<div style="resize: vertical; overflow:scroll" class="card border border-dark shadow" id="operations_table" >
+    <div class="card-header bg-header border border-dark shadow text-white"><h2><span class="operator">Operations</span> Management</h2></div>
+        <table class="table table-striped {{config['table-color']}} table-hover" >
             <tr>
                 <th><b>Delete</b></th>
                 <th><b>Modify</b></th>
-                <th><b>Completed</b></th>
-                <th><b>Name</b></th>
-                <th><b>Admin</b></th>
-                <th><b>Members</b></th>
+                <th onclick="sort_table(this)"><b>Completed</b></th>
+                <th><b>Access Controls</b></th>
+                <th onclick="sort_table(this)"><b>Name</b></th>
+                <th onclick="sort_table(this)"><b>Admin</b></th>
+                <th onclick="sort_table(this)"><b>Members</b></th>
                 <th><b>Current Operation</b></th>
             </tr>
         <!-- Repeat this for each operation -->
             <tr v-for="o in operations" :key="o.name">
                 <td>
-                    <button v-show="o.admin == username || admin" type="button" class="btn btn-danger btn-sm" @click="delete_button(o)" >Delete</button>
+                    <button v-show="o.admin == username || admin" type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(o)" ><i class="fa fa-trash-alt"></i></button>
                 </td>
                 <td>
-			        <button v-show="o.admin == username || admin" type="button" class="btn btn-info btn-sm" @click="modify_button(o)">Modify</button>
+			        <button v-show="o.admin == username || admin" type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="modify_button(o)"><i class="fas fa-edit"></i></button>
 		        </td>
                 <td>
-                     <div v-if="o.complete">Completed</div>
-                     <div v-else-if="o.admin == username || admin">
-                        <button type="button" class="btn btn-warning btn-sm" @click="complete_button(o)">Complete Operation</button>
+                     <div v-if="o.complete">
+                         <div v-if="o.admin == username || admin">
+                            <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="complete_button(o)">Resume Operation</button>
+                         </div>
+                         <div v-else>
+                             Completed
+                         </div>
                      </div>
-                     <div v-else>Ongoing</div>
+                     <div v-else>
+                         <div v-if="o.admin == username || admin">
+                            <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="complete_button(o)">Complete Operation</button>
+                         </div>
+                         <div v-else>
+                             Ongoing
+                         </div>
+                     </div>
 
                 </td>
+                <td>
+			        <button v-show="o.admin == username || admin" type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="modify_acls_button(o)"><i class="fas fa-edit"></i></button>
+		        </td>
                 <td>[[ o.name ]]</td>
                 <td>[[ o.admin ]]</td>
-                <td>[[ o.members.join(", ") ]]</td>
+                <td><span v-for="m in o.members">[[m.username]]<br></span></td>
                 <td>
                     <div v-if="current_operation == o.name">Yes</div>
                     <div v-else>
-                        <button type="button" class="btn btn-info btn-sm" @click="current_operation_button(o)">Make Current</button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="current_operation_button(o)">Make Current</button>
                     </div>
                 </td>
             </tr>
@@ -46,50 +59,57 @@
         </table>
 </div>
 <!-- THIS IS OUR MODAL FOR DELETING OPERATION -->
-<div class="modal fade bs-example-modal-sm" id="operationDeleteModal" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
+<div class="modal fade" id="operationDeleteModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3 id="modalLabel">Are you sure? This could have implications elsewhere.</h3>
-                Remove the specified operation from the database. If you want to still access the data for reporting later on, you should just complete the operation instead.
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="operationDeleteSubmit">Submit</button>
+                  <div class="modal-body">
+                      Remove the specified operation from the database.<br> If you want to still access the data for reporting later on, you should just complete the operation instead.
+                  </div>
+
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operationDeleteSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR DELETING OPERATION -->
 <!-- THIS IS OUR MODAL FOR COMPLETING OPERATION -->
-<div class="modal fade bs-example-modal-sm" id="operationCompleteModal" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
+<div class="modal fade" id="operationCompleteModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Are you sure? This could have implications elsewhere.</h3>
-                This completes the operation. You can no longer change anything about the operation and all callbacks will be tasked to exit when they check in.
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
+            <div class="modal-body">
+                 This completes or resumes the operation. <br>
+                 If a new callback checks in while complete, it will be tasked to exit if there is an associated 'exit' command.
+            </div>
+
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="operationCompleteSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operationCompleteSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR COMPLETING OPERATION -->
 <!-- THIS IS OUR MODAL FOR MODIFYING OPERATION -->
-<div class="modal fade bs-example-modal-md" id="operationModifyModal" role="dialog">
+<div class="modal fade" id="operationModifyModal" role="dialog">
     <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Modify Operation</h3>
-                You can modify aspects of an operation here.
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             <div class="modal-body" id="operationModifyBody">
-                <table cellpadding="10" style="width:100%">
+                You can modify aspects of an operation here.
+                <table cellpadding="10" style="width:100%" class="table table-striped {{config['table-color']}} table-hover">
                     <tr>
                         <td style="width:150px">Name</td>
                         <td><input disabled type="text" id="operationModifyName" size="25"></td>
@@ -100,29 +120,29 @@
                     </tr>
                     <tr>
                         <td>Operators</td>
-                        <td><select multiple id="operationModifyMembers" size="10"></td>
+                        <td><select multiple id="operationModifyMembers" size="10"></select></td>
                     </tr>
                 </table>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-              <button class="btn btn-primary" data-dismiss="modal" id="operationModifySubmit">Submit</button>
+              <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operationModifySubmit">Submit</button>
             </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR MODIFYING OPERATION -->
 <!-- THIS IS OUR MODAL FOR CREATING OPERATION -->
-<div class="modal fade bs-example-modal-lg" id="operationNewModal" role="dialog">
+<div class="modal fade" id="operationNewModal" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-dark text-white">
                 <h3>Create a new Operation</h3>
-                You can modify aspects of an operation here. The name must be unique, and list operators separated by ",".
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             <div class="modal-body" id="operationNewBody">
-                <table cellpadding="10" style="width:100%">
+                You can modify aspects of an operation here. The name must be unique, and list operators separated by ",".
+                <table cellpadding="10" style="width:100%" class="table table-striped table-hover {{config['table-color']}}">
                     <tr>
                         <td style="width:150px">Name</td>
                         <td><input type="text" id="operationNewName" size="50"></td>
@@ -138,15 +158,118 @@
                 </table>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-              <button class="btn btn-primary" data-dismiss="modal" id="operationNewSubmit">Submit</button>
+              <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operationNewSubmit">Submit</button>
             </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR CREATING OPERATION -->
-<button type="button" class="btn btn-info btn-md" onclick="new_operation_button()">New Operation</button>
-
+<!-- THIS IS OUR MODAL FOR MODIFYING OPERATION ACLS-->
+<div class="modal fade" id="operationModifyACLsModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Modify Access Controls</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+            <div class="modal-body" id="operationModifyACLsBody">
+                You can restrict operator's access to commands here.
+                <table cellpadding="10" style="width:100%" class="table table-striped {{config['table-color']}} table-hover">
+                    <tr>
+                        <th><b>Operator</b></th>
+                        <th><b>Applied List of Denied Commands</b></th>
+                    </tr>
+                    <tr v-for="m in members">
+                        <td>[[m.username]]</td>
+                        <td><select v-model="m.base_disabled_commands"><option value="None">None</option><option v-for="p in denied_command_profiles" :value="p">[[p]]</option></select></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operationModifyACLsSubmit">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR MODIFYING OPERATION ACLS -->
+<!-- THIS IS OUR MODAL FOR CREATING OPERATION ACLS-->
+<div class="modal fade" id="operationCreateACLsModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Create a Disabled Commands List</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+            <div class="modal-body">
+                Create a template for disabling certain commands that can be applied to an operator.<br>
+                Profile Name: <input type="text" v-model="name" size="40rem">
+                <div v-for="(data, key, i) in selected_commands" style="max-height:20em;overflow:scroll">
+                    <h3><span class="operator">[[key]]</span></h3>
+                    <table cellpadding="10" style="width:100%;" class="table table-striped {{config['table-color']}} table-hover" >
+                        <tr>
+                            <th class="sticky-top">
+                                <b>Disabled?</b>
+                            </th>
+                            <th class="sticky-top" onclick="sort_table(this)">
+                                <b>Needs Admin</b>
+                            </th>
+                            <th class="sticky-top" onclick="sort_table(this)">
+                                <b>Command Name</b>
+                            </th>
+                        </tr>
+                        <tr v-for="command in data">
+                            <td>
+                                <label class="switch"><input type="checkbox" :checked="command['disabled']" v-model="command['disabled']"><span class="slider round"></span></label>
+                            </td>
+                            <td>[[command.needs_admin]]</td>
+                            <td>[[command.cmd]]</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+              <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operationCreateACLsSubmit">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR CREATING OPERATION ACLS -->
+<button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="new_operation_button()"><i class="fas fa-plus"></i> Operation</button>
+<br><br>
+<div class="card border border-dark bg-card-body" id="view_acls">
+    <div class="card-header bg-header text-white border border-dark shadow">
+        <h2><span class="operator">Command Block</span> Lists</h2>
+    </div>
+    <div class="card-body border-0 shadow bg-card-body">
+        <div v-for="i in disabled_profiles" class="card align-top bg-card-body-l1 border-0" style="display:inline-block;min-width:30rem;padding:8px;">
+          <div class="card shadow border border-dark">
+              <div class="card-header border border-dark shadow" :id="'cardheader' + i.id">
+                  <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_instance(i)"><i class="fas fa-trash-alt"></i></button> <a class="btn btn-link" style="word-wrap: break-word" type="button" data-toggle="collapse" :data-target="'#cardbody' + i.id" aria-expanded="false" :aria-controls="'cardbody' + i.id" @click="toggle_arrow(i.id)"><font size="4"><b>Disabled List: </b> [[i.name]] </font><img :id="'color-arrow' + i.id" src="/static/color-arrow.png" style="width:32px;height32px;transform:rotate(0deg);vertical-align:center"></a>
+              </div>
+              <div class="collapse" :id="'cardbody' + i.id">
+                  <div class="card-body border border-dark shadow">
+                      <div v-for="(data, ptype, i) in i.values">
+                          <span class="operator"><b>[[ptype]]</b></span>
+                          <table class="table table-striped table-hover {{config['table-color']}}">
+                              <tr>
+                                  <th><b>Command</b></th>
+                              </tr>
+                              <tr v-for="row in data">
+                                  <td>[[row.command]]</td>
+                              </tr>
+                          </table>
+                      </div>
+                  </div>
+              </div>
+              <div class="card-footer border border-dark shadow"><button class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_profile(i)"><i class="fas fa-edit"></i></button></div>
+          </div>
+        </div>
+    </div>
+</div>
+<button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="new_acl_button()"><i class="fas fa-plus"></i> Command List</button>
 {% endblock %}
 
 {% block scripts %}
@@ -154,218 +277,4 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
-
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
 {% endblock %}

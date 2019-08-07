@@ -141,10 +141,10 @@
     },
     {
       "needs_admin":false,
-      "help_cmd":"From the GUI: proc_api. From the cmd-line: proc_api {\"path\":\"\/bin\/ps\",\"args\":[\"-ax\"]}",
+      "help_cmd":"From the GUI: run. From the cmd-line: run {\"path\":\"\/bin\/ps\",\"args\":[\"-ax\"]}",
       "version":1,
       "description":"The command uses the ObjectiveC bridge to spawn that process with those arguments on the computer and get your output back. It is not interactive and does not go through a shell.",
-      "cmd":"proc_api",
+      "cmd":"run",
       "parameters":[
       {
       "type":"String",

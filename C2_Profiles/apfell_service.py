@@ -27,6 +27,7 @@ def deal_with_stdout():
                 output += line.decode('utf-8')
         except Exception as e:
             print("Exiting thread due to: {}\n".format(str(e)))
+            sys.stdout.flush()
             break
 
 
@@ -36,6 +37,7 @@ def send_status(message="", routing_key=""):
         channel2.basic_publish(exchange='apfell_traffic', routing_key=routing_key, body=message)
     except Exception as e:
         print("Exception in send_status: {}".format(str(e)))
+        sys.stdout.flush()
 
 
 def callback(ch, method, properties, body):
@@ -78,10 +80,10 @@ def callback(ch, method, properties, body):
             except Exception as e:
                 pass
             running = False
-            send_status(message="Process killed...\nOutput: {}".format(output), routing_key="c2.status.{}.stopped.stop".format(hostname))
+            send_status(message="Process killed...\nOld Output: {}".format(output), routing_key="c2.status.{}.stopped.stop".format(hostname))
             output = ""
         else:
-            send_status(message="Process not running...\nOutput: {}".format(output), routing_key="c2.status.{}.stopped.stop".format(hostname))
+            send_status(message="Process not running...\nOld Output: {}".format(output), routing_key="c2.status.{}.stopped.stop".format(hostname))
             output = ""
         # make sure to stop the /Apfell/server in the background
     elif command == "status":
@@ -135,6 +137,7 @@ def callback(ch, method, properties, body):
                     routing_key="c2.status.{}.{}.removefile".format(hostname, "running" if running else "stopped"))
     else:
         print("Unknown command: {}".format(command))
+        sys.stdout.flush()
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
@@ -157,6 +160,7 @@ def apfell_service():
             channel.queue_bind(exchange='apfell_traffic', queue=queue_name, routing_key="c2.modify.{}.#".format(hostname))
             channel.basic_consume(queue=queue_name, on_message_callback=callback)
             print("Listening for c2.modify.{}.#".format(hostname))
+            sys.stdout.flush()
             channel.start_consuming()
         except Exception as e:
             print(str(e))

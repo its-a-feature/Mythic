@@ -1,26 +1,68 @@
 {% extends "base.html" %}
 {% block body %}
-<h2>Basic Analytics Dashboard</h2>
-<h4>Current Callback Tree:</h4>
-<div id="callbacktree" style="white-space: pre-wrap">[[callback_tree_data]]</div>
-<!--<button type="button" class="btn btn-info btn-md" onclick="show_removed_button()">Toggle Removed</button>-->
-<button type="button" class="btn btn-info btn-md" onclick="show_removed_strike_button()">Toggle Strikethrough</button>
-<button type="button" class="btn btn-warning btn-md" onclick="adjust_callback_relationship_button()">Adjust Callback Relationship</button>
-<br>
-<h4>Payload, C2Profile, Callback Relationship:</h4>
-<p>Which payloads are being used by which callbacks.</p>
-<div id="payloadtree" style="white-space: pre-wrap">[[pload_tree]]</div>
-<button type="button" class="btn btn-info btn-md" onclick="show_removed_payload_button()">Toggle Removed</button>
-<button type="button" class="btn btn-info btn-md" onclick="show_removed_payload_strike_button()">Toggle Strikethrough</button>
+<div class="card border border-dark">
+    <div class="card-header border border-dark bg-header text-white">
+        <h2>Current <span class="operator">Callback Tree</span></h2>
+    </div>
+    <div class="card-body bg-card-body border border-dark shadow">
+        <div id="callbacktree" style="white-space: pre-wrap" v-html="callback_tree_data"></div>
+    </div>
+</div>
 
+<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_button()">Toggle Removed</button>
+<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_strike_button()">Toggle Strikethrough</button>
+<button type="button" class="btn btn{{config['outline-buttons']}}warning btn-md" onclick="adjust_callback_relationship_button()">Adjust Callback Relationship</button>
+<br><br>
+<div class="card border border-dark">
+    <div class="card-header border border-dark bg-header text-white">
+        <h2>Payload, C2Profile, Callback <span class="operator">Relationships</span></h2>
+    </div>
+    <div class="card-body bg-card-body border border-dark shadow">
+        <p>This analytic displays which callbacks were created from which payloads.</p>
+        <div id="payloadtree" style="white-space: pre-wrap" v-html="payload_tree_data"></div>
+    </div>
+</div>
 
+<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_payload_button()">Toggle Removed</button>
+<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_payload_strike_button()">Toggle Strikethrough</button>
+
+<br><br>
+<div class="card border border-dark shadow-sm" id="commandFrequencies">
+    <div class="card-header border border-dark bg-header text-white">
+        <h2>Command Usage <span class="operator">Frequencies</span></h2>
+    </div>
+    <div class="card-body bg-card-body">
+        <div class="card border-0 bg-transparent" v-for="(v, k, i) in frequencies" style="display:inline-block;padding:8px;vertical-align:top">
+            <div class="card-header shadow border border-dark bg-info text-white"><h5>[[k]]'s command usage</h5></div>
+            <div class="card-body bg-card-body-l1 shadow border border-dark" style="padding:0">
+                <table v-for="(v2, k2, i2) in v" style="display: inline-block;vertical-align:top;word-wrap: break-word" class="border border-dark shadow bg-card-body-l2 table-striped {{config['table-color']}} table-hover">
+                    <tr>
+                        <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">[[k2]]'s Commands </font></th>
+                        <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Count </font></th>
+                    </tr>
+                    <tr v-for="(v3, k3, i3) in v2" v-if="k3 != 'total_count'">
+                            <td style="padding: 0px 20px 0px 20px">[[k3]]</td>
+                            <td style="padding: 0px 0px 0px 20px">[[v3]]</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0px 20px 0px 20px">Total Commands</td>
+                        <td style="padding: 0px 0px 0px 20px">[[ v2['total_count'] ]]</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="card-footer border border-dark shadow">
+                <b>Total Commands: [[ total_counts[k] ]]</b>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- THIS IS OUR MODAL FOR ADJUSTING RELATIONSHIP -->
-<div class="modal fade bs-example-modal-md" id="adjustCallbackRelationshipModal" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-md" role="document">
+<div class="modal fade" id="adjustCallbackRelationshipModal" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">×</button>
+            <div class="modal-header bg-header text-white">
                 <h3>Adjust Callback Relationship</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body">
                   <h4>Select Parent Callback:</h4>
@@ -34,14 +76,153 @@
                   </select>
               </div>
               <div class="modal-footer">
-                <button class="btn btn-warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn-primary" data-dismiss="modal" id="adjustCallbackRelationshipSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="adjustCallbackRelationshipSubmit">Submit</button>
               </div>
         </div>
     </div>
 </div>
 <!-- END MODAL FOR ADJUSTING RELATIONSHIP -->
+<br>
+<div class="card border border-dark shadow" id="artifactAnalysis">
+    <div class="card-header border border-dark bg-header text-white shadow">
+        <h2>Artifact Creation <span class="operator">Overview</span></h2>
+    </div>
+    <div class="card-body bg-card-body shadow">
+        <div class="card-columns" style="column-count:2">
 
+            <div class="card border-0 bg-transparent" v-for="(v, k, i) in artifacts" style="display:inline-block;padding:8px;vertical-align:top;">
+                <div class="card-header shadow border border-dark bg-info text-white"><h4>[[k]]</h4></div>
+                <div class="card-body bg-card-body shadow border border-dark" style="padding:0">
+                    <table v-for="(v2, k2, i2) in v" style="word-wrap:break-word;table-layout:fixed;width:100%;padding:30px" v-if="k2 != 'total_count'" class="table-striped {{config['table-color']}} table-hover">
+                        <tr style="height:20px;">
+                            <th onclick="sort_table(this)" style="width:20%;padding: 0px 20px 0px 20px"><font size="4">[[k2]] </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Artifact Template </font></th>
+                        </tr>
+                        <tr v-for="(v3, k3, i3) in v2">
+                                <td style="padding: 0px 20px 0px 20px">[[k3]]</td>
+                                <td style="padding: 0px 0px 0px 20px"><span v-for="v4 in v3">[[v4.artifact_string]]<br></span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0px 20px 0px 20px"><b>Total Commands</b></td>
+                            <td style="padding: 0px 0px 0px 20px"><b>[[ Object.keys(v2).length ]]</b></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <b>Total Artifacts: [[ v['total_count'] ]]</b>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+<div class="card border border-dark" id="callbackAnalysis">
+    <div class="card-header border border-dark bg-header text-white">
+        <h2> <span class="operator">Callbacks</span> Overview</h2>
+    </div>
+    <div class="card-body bg-card-body">
+        <div class="card-columns" style="column-count:2">
+
+            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
+                <div class="card-header shadow border border-dark bg-info text-white"><h5>Callbacks by Host</h5></div>
+                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px" >
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table-striped {{config['table-color']}} table-hover">
+                        <tr style="height:20px">
+                            <th onclick="sort_table(this)" style="width:40%;padding:0px 20px 0px 20px"><font size="4">Host </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Callbacks </font></th>
+                        </tr>
+                        <tr v-for="(cb, host, i) in callbacks['host']">
+                            <td style="width:40%;padding:0px 20px 0px 20px">[[host]] ([[cb.length]])</td>
+                            <td style="padding: 0px 20px 0px 20px"><span v-for="instance in cb">ID <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + instance.id">[[instance.id]]</a> : [[instance.user]]( [[instance.pid]] ) at [[instance.init_callback]] UTC<br></span></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <b>Total Callbacks: [[ callbacks['total_count'] ]]</b>
+                </div>
+            </div>
+            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
+                <div class="card-header shadow border border-dark bg-info text-white"><h5>Callbacks by UTC Date</h5></div>
+                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px">
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table-striped {{config['table-color']}} table-hover">
+                        <tr style="height:20px">
+                            <th onclick="sort_table(this)" style="width:30%;padding: 0px 20px 0px 20px"><font size="4">Date </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Callbacks </font></th>
+                        </tr>
+                        <tr v-for="(cb, date, i) in callbacks['date']">
+                            <td style="width:30%;padding: 0px 20px 0px 20px">[[date]] ([[cb.length]])</td>
+                            <td style="padding: 0px 20px 0px 20px"><span v-for="instance in cb">ID <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + instance.id">[[instance.id]]</a> : [[instance.user]]( [[instance.pid]] ) on [[instance.host]]<br></span></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <b>Total Callbacks: [[ callbacks['total_count'] ]]</b>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+<div class="card border border-dark" id="artifactOverview">
+    <div class="card-header border border-dark bg-header text-white">
+        <h2><span class="operator">Artifacts</span> Operational Overview</h2>
+    </div>
+    <div class="card-body bg-card-body">
+        <div class="card-columns" style="column-count:2">
+
+            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
+                <div class="card-header shadow border border-dark bg-info text-white"><h5>Artifact Statistics</h5></div>
+                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px">
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table-striped {{config['table-color']}} table-hover">
+                        <tr style="height:20px">
+                            <th onclick="sort_table(this)" style="width:40%;padding: 0px 20px 0px 20px"><font size="4">Artifact </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Automatic </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Manual </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Total </font></th>
+                        </tr>
+                        <tr v-for="(v, artifact, i) in artifacts['artifact_counts']" v-if="artifact != 'total_count'">
+                            <td style="padding: 0px 20px 0px 20px">[[artifact]]</td>
+                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['automatic'] ]]</td>
+                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['manual'] ]]</td>
+                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['automatic'] + v['manual'] ]]</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <b>Total Created Artifacts: [[ artifacts.artifact_counts['total_count'] ]]</b>
+                </div>
+            </div>
+            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
+                <div class="card-header shadow border border-dark bg-info text-white"><h5>File Statistics</h5></div>
+                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px">
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%;" class="table-striped {{config['table-color']}} table-hover">
+                        <tr style="height:20px">
+                            <th onclick="sort_table(this)" style="width:30%;padding: 0px 20px 0px 20px"><font size="4">Type </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Total </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Operator Breakdown </font></th>
+                        </tr>
+                        <tr v-for="(data, category, i) in artifacts['files']">
+                            <td style="padding: 0px 20px 0px 20px">[[category]]</td>
+                            <template v-if="category != 'staged_files'">
+                                <td style="padding: 0px 20px 0px 20px">[[ data['total_count'] ]]</td>
+                                <td style="padding: 0px 20px 0px 20px"><span v-for="(num, operator, i) in data['operators']">[[operator]]: [[num]]<br></span></td>
+                            </template>
+                            <template v-else>
+                                <td style="padding: 0px 20px 0px 20px">[[data]]</td>
+                                <td></td>
+                            </template>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <b>Total Files: [[ artifacts.files.staged_files + artifacts.files.manual_uploads.total_count + artifacts.files.download_files.total_count + artifacts.files.upload_files.total_count]]</b>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
 {% endblock %}
 
 {% block scripts %}
@@ -49,218 +230,5 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
 
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
 {% endblock %}

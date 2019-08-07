@@ -1,14 +1,22 @@
 #include "utils.h"
 #include "errors.h"
 #include "default_commands.h"
+#include "time.h"
+#include "unistd.h"
 
 void* periodic_callback(){
 	/* this function waits callback_interval + some jitter, then gets tasking
 	 *   This is the producer thread that puts tasking into the global tasks array*/
 	while(1){
 		//loop forever until the main function ends
+        clock_t t = clock();
+        //usleep(global_info->callback_interval * 1000);
 		sleep(global_info->callback_interval);
+
 		get_tasking();
+        t = clock() - t;
+        double time_taken = ((double)t*10000)/CLOCKS_PER_SEC;
+        printf("time to do one loop in periodic_callback with sleep of %d: %lf seconds\n", global_info->callback_interval, time_taken );
 		//print_global_info();
 	}
 }
@@ -17,7 +25,7 @@ void* perform_tasking(){
 	 *   if there is one, pass it off to the correct module and function*/
 	cJSON* task;
 	while(1){
-		sleep(0.5);
+		sleep(1);
 		task = pop_tasking();
 		if(task != NULL){
 			m_function *func = get_tasking_func(task);

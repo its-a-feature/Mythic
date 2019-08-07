@@ -1,40 +1,92 @@
 {% extends "base.html" %}
 {% block body %}
+<br>
 
-<div id="searches" class="input-group mb-3" style="width:50%">
-    <input type="text" class="form-control" style="position:relative;display:inline-block" id="searchTextField" size="20" placeholder="Search... wildcards both sides automatically" height="7" @keyup.enter="search_button()">
-    <span class="input-group-addon">
-        <select id="searchOption" v-model="option" :value="option">
-            <option value="output">Command Output</option>
-            <option value="params">Command Parameters</option>
-        </select>
-    </span>
-    <span class="input-group-btn" style="position:relative">
-        <button class="btn btn-md btn-primary" @click="search_button()">Search</button>
-    </span>
-</div>
-<div id="searchResults">
-    <div v-for="r in responses" style="resize: vertical; overflow:scroll" class="panel panel-info" :key="r.id">
-        <div class="panel-heading" >Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b>[[r.task.id]]</b></a>:<br> [[r.task.command]] [[r.task.original_params]]
-        <div v-if="r.task.params != r.task.original_params">Modified params: [[r.task.params]]</div>
+<div style="resize: vertical" class="card border-0" id="searches">
+    <div class="card-header bg-header border border-dark text-white">
+        <span style="display:inline-block">
+            <h2 style="display:inline-block"><span class="operator">Search</span> the Operation...</h2>
+        </span>
+        <span style="display:inline-block; float:right">
+            <span class="input-group">
+                <input type="text" v-model="search_field" class="form-control" style="position:relative;display:inline-block" id="searchTextField" size="50" placeholder="Search with regex" height="7" @keyup.enter="search_button()">
+                <select id="searchOption" v-model="option" :value="option" style="position:relative;display:inline-block">
+                    <option value="output">Command Output</option>
+                    <option value="params">Command Parameters</option>
+                </select>
+                <span class="input-group-btn input-group-append" style="position:relative;display:inline-block">
+                    <button class="btn btn-md btn{{config['outline-buttons']}}primary" @click="search_button()"><i class="fa fa-search"></i></button>
+                </span>
+            </span>
+        </span>
+    </div>
+    <div style="resize:vertical;overflow:scroll;height:950px;padding:0px;" class="card-body bg-card-body border border-dark shadow">
+        <div id="searchTasksResults">
+            <div v-for="t in tasks" style="padding:0px 0px 15px 0px" class="card border-0 bg-card-body-l1" :key="t.id">
+                <div class="card-header bg-header-dark text-white border border-dark shadow" style="position:-webkit-sticky;position:sticky;top:0px">
+                    Task <a :href="[[t.share_task]]" target="_blank"><b><span class="operator">[[t.id]]</span></b></a> on callback [[t.callback]] - [[t.operator]]'s task with status [[t.status]]:<br> [[t.command]] [[t.original_params]]
+                </div>
+                <div class="card-body response-background border border-dark shadow">
+                    <div v-if="t.params != t.original_params">Modified params: [[t.params]]</div>
+                    <span v-for="r in t.responses" style="white-space: pre-wrap"><span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response"><pre>[[r.response]]</pre></span></span>
+                </div>
+            </div>
         </div>
-        <div class="well">
-            <span style="white-space: pre-wrap">
-                <span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response">[[r.response]]</span>
+        <div id="searchResults">
+            <div v-for="r in responses" style="padding: 0px 0px 15px 0px;" class="card border-0 bg-card-body-l1" :key="r.id" >
+                <div class="card-header bg-header-dark border border-dark text-white shadow" style="position:-webkit-sticky;position:sticky;top:0px">
+                    Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
+                </div>
+                <div class="card-body response-background border border-dark shadow">
+                    <div v-if="r.task.params != r.task.original_params">Modified params: [[r.task.params]]</div>
+                    <span style="white-space: pre-wrap">
+                        <span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response"><pre>[[r.response]]</pre></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-card-footer">
+        <div style="display:inline-block">
+            <button type="button" :class="current_page <= 1 ? 'disabled btn btn-light' : 'btn btn-light'" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><<</button>&nbsp;
+            <template v-if="current_page > 1">
+                <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to first page" @click="get_page(1)">1</button>
+            </template>
+            <template v-if="current_page > 2">&nbsp;<font size="5" class="text-white">...</font>&nbsp;</template>
+            <template v-if="current_page -2 > 1">
+                <button type="button" class="btn btn-light" @click="get_page(current_page -2)">[[current_page - 2]]</button>
+            </template>
+            <template v-if="current_page -1 > 1">
+                <button type="button" class="btn btn-light" @click="get_page(current_page -1)">[[current_page - 1]]</button>
+            </template>
+            <button type="button" class="disabled btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
+            <template v-if="current_page + 1 < Math.ceil(total_count/page_size)">
+                <button type="button" class="btn btn-light" @click="get_page(current_page + 1)">[[current_page + 1]]</button>
+            </template>
+            <template v-if="current_page + 2 < Math.ceil(total_count/page_size)">
+                <button type="button" class="btn btn-light" @click="get_page(current_page +2)">[[current_page + 2]]</button>
+            </template>
+            <template v-if="current_page < Math.ceil(total_count/page_size) -1">
+                &nbsp;<font size="5" class="text-white">...</font>&nbsp;
+            </template>
+            <template v-if="current_page != Math.ceil(total_count/page_size) && total_count > 0">
+                <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to last page" @click="get_page(Math.ceil(total_count/page_size))">[[Math.ceil(total_count/page_size)]]</button>
+            </template>
+
+            <button type="button" :class="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0? 'disabled btn btn-light': 'btn btn-light'" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)">>></button>
+            &nbsp;<font size="4" class="text-white">Total Count: [[total_count]]</font>
+        </div>
+
+        <div style="display:inline-block; float:right">
+            <span class="input-group">
+                <input type="number" size="10rem" :placeholder="page_size" id="page_size" @keyup.enter="get_new_page_size()">
+                <div class="input-group-append input-group-btn" ><button  type="button" class="btn btn{{config['outline-buttons']}}success" @click="get_new_page_size()">Edit page size</button></div>
             </span>
         </div>
+
     </div>
 </div>
-<div id="searchTasksResults">
-    <div v-for="t in tasks" style="resize: vertical; overflow:scroll" class="panel panel-info" :key="t.id">
-        <div class="panel-heading" >Task <a :href="[[t.share_task]]" target="_blank"><b>[[t.id]]</b></a> on callback [[t.callback]] - [[t.operator]]'s task:<br> [[t.command]] [[t.original_params]]
-        <div v-if="t.params != t.original_params">Modified params: [[t.params]]</div></div>
-        <div class="well">
-            <span v-for="r in t.responses" style="white-space: pre-wrap"><span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response">[[r.response.replace(/\\n|\r/g, '\n')]]</span></span>
-        </div>
-    </span>
-    </div>
-</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -42,226 +94,5 @@
 {% endblock %}
 
 {% block body_config %}
-body{
-    background-color:{{ config['background-color'] }};
-    color:{{ config['text-color'] }}
-}
-.panel-body{
-    background:{{ config['background-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-primary{
-    background:{{ config['background-color'] }}
-}
-.panel-primary > .panel-heading{
-    background-image: none;
-    background-color:{{ config['primary-pane'] }};
-    color: {{config['primary-pane-text-color']}}
-}
-.panel-success{
-    background:{{ config['background-color'] }}
-}
-.panel-success > .panel-heading{
-    background-image: none;
-    background-color:{{ config['success-pane'] }};
-    color:{{ config['success-pane-text-color'] }}
-}
-.panel-warning{
-    background:{{ config['background-color'] }}
-}
-.panel-warning > .panel-heading{
-    background-image: none;
-    background-color:{{ config['warning-pane'] }};
-    color: {{config['warning-pane-text-color'] }}
-}
-.panel-info{
-    background:{{ config['background-color'] }}
-}
-.panel-info > .panel-heading{
-    background-image: none;
-    background-color:{{ config['info-pane'] }};
-    color:{{config['info-pane-text-color'] }}
-}
-.panel-footer{
-    background:{{ config['background-color'] }}
-}
-.btn{
-    background-color: {{ config['general-button'] }};
-    color: {{ config['general-button-text-color'] }};
-    border: {{ config['general-button'] }}
-}
-.btn-primary{
-    background-color: {{ config['primary-button'] }};
-    color: {{ config['primary-button-text-color'] }};
-    border: {{ config['primary-button'] }}
-}
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active:focus{
-    background-color: {{ config['primary-button-hover'] }};
-    color: {{ config['primary-button-hover-text-color'] }};
-    border: {{ config['primary-button-hover'] }}
-}
-.btn-success{
-    background-color: {{config['success-button'] }};
-    color: {{ config['success-button-text-color'] }};
-    border: {{config['success-button']}}
-}
-.btn-success:hover, .btn-success:focus, .btn-success:active:focus{
-    background-color: {{config['success-button-hover'] }};
-    color: {{ config['success-button-hover-text-color'] }};
-    border: {{config['success-button-hover']}}
-}
-.btn-danger{
-    background-color: {{config['danger-button'] }};
-    color: {{ config['danger-button-text-color'] }};
-    border: {{config['danger-button']}}
-}
-.btn-danger:hover, .btn-danger:focus, .btn-danger:active:focus{
-    background-color: {{config['danger-button-hover'] }};
-    color: {{ config['danger-button-hover-text-color'] }};
-    border: {{config['danger-button-hover']}}
-}
-.btn-info{
-    background-color: {{config['info-button'] }};
-    color: {{ config['info-button-text-color'] }};
-    border: {{ config['info-button'] }}
-}
-.btn-info:focus, .btn-info:hover, .btn-info:active:focus{
-    background-color: {{config['info-button-hover'] }};
-    color: {{ config['info-button-hover-text-color'] }};
-    border: {{ config['info-button-hover'] }};
-}
-.btn-warning{
-    background-color: {{config['warning-button'] }};
-    color: {{ config['warning-button-text-color'] }};
-    border: {{config['warning-button']}}
-}
-.btn-warning:hover, .btn-warning:focus, .btn-warning:active:focus{
-    background-color: {{config['warning-button-hover'] }};
-    color: {{ config['warning-button-hover-text-color'] }};
-    border: {{config['warning-button-hover']}}
-}
-.form-control{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.tab-content{
-    background:{{ config['background-color'] }}
-}
-.well{
-    background:{{ config['well-bg'] }}
-}
-span{
-    color: {{ config['text-color'] }};
-}
-span.timestamp{
-    color: {{ config['timestamp'] }};
-}
-span.response{
-    color: {{ config['text-color'] }}
-}
-span.operator{
-    color: {{ config['operator'] }}
-}
-span.display{
-    color: {{ config['display'] }}
-}
-span.input-group-addon{
-    background-color:{{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-table{
-    background-color: {{config['background-color']}};
-}
-th{
-    background-color: {{config['table-headers']}};
-    color: {{config['text-color']}}
-}
-.autocomplete-items {
-  position: absolute;
-  border-bottom: none;
-  border-top: none;
-  z-index: 99;
-  /*position the autocomplete items to be the same width as the container:*/
-  bottom: 100%;
-  left: 0;
-  right: 0;
-}
 
-.autocomplete-items div {
-  padding: 10px;
-  cursor: pointer;
-  background-color: {{config['background-color']}};
-  border-bottom: 1px solid {{config['text-color']}};
-}
-
-/*when hovering an item:*/
-.autocomplete-items div:hover {
-  background-color: {{config['hover']}};
-}
-.autocomplete-active {
-  /*when navigating through the items using the arrow keys:*/
-  background-color: {{config['highlight']}} !important;
-  color: {{config['highlight-text']}};
-}
-.dropdown-menu {
-    background-color: {{ config['background-color'] }};
-}
-
-.nav-tabs > li> a:link{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:visited{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:hover{
-    color: {{ config['text-color'] }};
-}
-.nav-tabs > li> a:active{
-    color: {{ config['text-color'] }};
-}
-.dropdown-menu > li > a{
-    background-color: {{ config['background-color'] }};
-    color: {{ config['text-color'] }}
-}
-.dropdown-menu > li > a:hover{
-    background-color: {{ config['highlight'] }};
-    color: {{ config['highlight-color'] }}
-}
-.modal-header {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-body {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-.modal-content {
-    background-color: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
-select {
-    background-color: {{config['background-color']}};
-}
-input {
-    background-color: {{config['background-color']}};
-}
-span.operation {
-    color: {{ config['operation-color'] }}
-}
-.dropdown > .btn-primary {
-    background-color: {{ config['interact-button-color']}};
-    color: {{ config['interact-button-text']}}
-}
-.dropdown > .btn-info {
-    background-color: {{ config['interact-button-dropdown'] }}
-}
-.navbar-nav > .dropdown > .dropdown-toggle > .caret{
-    color: {{ config['top-caret'] }};
-}
-textarea {
-    background: {{config['background-color']}};
-    color: {{config['text-color']}};
-}
 {% endblock %}

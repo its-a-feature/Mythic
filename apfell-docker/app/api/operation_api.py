@@ -1,6 +1,6 @@
 from app import apfell, db_objects
 from sanic.response import json
-from app.database_models.model import Operation, OperatorOperation
+from app.database_models.model import Operation, OperatorOperation, DisabledCommandsProfile
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import scoped, inject_user
 from sanic.exceptions import abort
@@ -29,13 +29,15 @@ async def get_all_operations(request, user):
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=op)
         data = operation.to_json()
-        data['members'] = [data['admin']]
+        data['members'] = []
+        added_users = []
         query = await db_model.operatoroperation_query()
         operationmap = await db_objects.execute(query.where(OperatorOperation.operation == operation))
         for map in operationmap:
             o = map.operator
-            if o.username not in data['members']:
-                data['members'].append(o.username)
+            if o.username not in added_users:
+                data['members'].append({**o.to_json(), 'base_disabled_commands': map.base_disabled_commands.name if map.base_disabled_commands is not None else map.base_disabled_commands})
+                added_users.append(o.username)
         output.append(data)
     return json(output)
 
@@ -169,16 +171,34 @@ async def update_operation(request, user, op):
                     except Exception as e:
                         print("got exception: " + str(e))
                         return json({'status': 'error', 'error': 'failed to remove: ' + old_member + "\nAdded: " + str(data['add_users'])})
+            if 'add_disabled_commands' in data:
+                for user in data['add_disabled_commands']:
+                    query = await db_model.operator_query()
+                    operator = await db_objects.get(query, username=user['username'])
+                    query = await db_model.operatoroperation_query()
+                    operatoroperation = await db_objects.get(query, operator=operator, operation=operation)
+                    query = await db_model.disabledcommandsprofile_query()
+                    try:
+                        disabled_profile = await db_objects.get(query, name=user['base_disabled_commands'])
+                        operatoroperation.base_disabled_commands = disabled_profile
+                    except Exception as e:
+                        print("failed to find disabled commands profile")
+                        operatoroperation.base_disabled_commands = None
+                    await db_objects.update(operatoroperation)
             all_users = []
             query = await db_model.operatoroperation_query()
             current_members = await db_objects.execute(query.where(OperatorOperation.operation == operation))
             for mem in current_members:
                 member = mem.operator
-                all_users.append(member.username)
+                all_users.append(member.to_json())
             if 'complete' in data:
                 operation.complete = data['complete']
                 await db_objects.update(operation)
             return json({'status': 'success', 'members': all_users, **operation.to_json()})
+        elif 'complete' in data and data['complete'] is False:
+            operation.complete = False
+            await db_objects.update(operation)
+            return json({'status': 'success', **operation.to_json()})
         else:
             return json({'status': 'error', 'error': 'operation is complete and cannot be modified'})
     else:
@@ -215,3 +235,119 @@ async def delete_operation(request, user, op):
             print(e)
             return json({'status': 'error', 'error': 'failed to delete operation'})
     return json({'status': 'error', 'error': 'Not authorized to delete the operation'})
+
+
+# ######## deal with operation ACLS for operators and track which commands they can or cannot do #################
+
+@apfell.route(apfell.config['API_BASE'] + "/operations/disabled_commands_profiles", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_all_disabled_commands_profiles(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    # only the admin of an operation or an overall admin can delete an operation
+    try:
+        query = await db_model.disabledcommandsprofile_query()
+        disabled_command_profiles = await db_objects.execute(query)
+        command_groupings = {}
+        for dcp in disabled_command_profiles:
+            if dcp.name not in command_groupings:
+                command_groupings[dcp.name] = {}
+            if dcp.command.payload_type.ptype not in command_groupings[dcp.name]:
+                command_groupings[dcp.name][dcp.command.payload_type.ptype] = []
+            command_groupings[dcp.name][dcp.command.payload_type.ptype].append(dcp.to_json())
+        return json({'status': 'success', "disabled_command_profiles": command_groupings})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get disabled command profiles'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/operations/disabled_commands_profile", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def create_disabled_commands_profile(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    # only the admin of an operation or an overall admin can delete an operation
+    try:
+        if not user['admin']:
+            return json({"status": 'error', 'error': 'Must be an Apfell admin to create disabled command profiles'})
+        data = request.json
+        added_acl = []
+        # {"profile_name": {"payload type": [command name, command name 2], "Payload type 2": [] }
+        for name in data:
+            for ptype in data[name]:
+                query = await db_model.payloadtype_query()
+                payload_type = await db_objects.get(query, ptype=ptype)
+                for cmd in data[name][ptype]:
+                    query = await db_model.command_query()
+                    command = await db_objects.get(query, cmd=cmd, payload_type=payload_type)
+                    profile = await db_objects.create(DisabledCommandsProfile, name=name, command=command)
+                    added_acl.append(profile.to_json())
+        return json({'status': 'success', 'disabled_command_profile': added_acl })
+
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to create disabled command profile'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/operations/disabled_commands_profiles/<profile:string>", methods=['DELETE'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def delete_disabled_commands_profile(request, user, profile):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    # only the admin of an operation or an overall admin can delete an operation
+    try:
+        profile = unquote_plus(profile)
+        if not user['admin']:
+            return json({'status': 'error', 'error': 'Must be an Apfell admin to delete command profiles'})
+        query = await db_model.disabledcommandsprofile_query()
+        commands_profile = await db_objects.execute(query.where(DisabledCommandsProfile.name == profile))
+        for c in commands_profile:
+            await db_objects.delete(c)
+        return json({"status": 'success', "name": profile})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to delete disabled command profile'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/operations/disabled_commands_profile", methods=['PUT'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def update_disabled_commands_profile(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    # only the admin of an operation or an overall admin can delete an operation
+    try:
+        if not user['admin']:
+            return json({"status": 'error', 'error': 'Must be an Apfell admin to create disabled command profiles'})
+        data = request.json
+        added_acl = []
+        # {"profile_name": {"payload type": [command name, command name 2], "Payload type 2": [] }
+        disabled_profile_query = await db_model.disabledcommandsprofile_query()
+        for name in data:
+            for ptype in data[name]:
+                query = await db_model.payloadtype_query()
+                payload_type = await db_objects.get(query, ptype=ptype)
+                for cmd in data[name][ptype]:
+                    query = await db_model.command_query()
+                    command = await db_objects.get(query, cmd=cmd['cmd'], payload_type=payload_type)
+                    if cmd['disabled']:
+                        # its set to be disabled, try to get it, if it doesn't exist, create it
+                        try:
+                            profile = await db_objects.get(disabled_profile_query, name=name, command=command)
+                        except Exception as e:
+                            profile = await db_objects.create(DisabledCommandsProfile, name=name, command=command)
+                        added_acl.append(profile.to_json())
+                    else:
+                        # this is set to be true, so check if it exists. if it does, we need to delete it
+                        try:
+                            profile = await db_objects.get(disabled_profile_query, name=name, command=command)
+                            await db_objects.delete(profile)
+                        except Exception as e:
+                            pass
+        return json({'status': 'success', 'disabled_command_profile': added_acl })
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to create disabled command profile'})

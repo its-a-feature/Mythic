@@ -1,6 +1,6 @@
 def jobs_kill(apfell, c2, params="", task_id=-1):
     try:
-        apfell.kill_job(int(params))
+        apfell.kill_job(params)
         c2.post_response(response="Job Tasked to be removed", task_id=task_id)
     except Exception as e:
         c2.post_response(response="Failed to stop job: {}".format(str(e)), task_id=task_id)

@@ -1,9 +1,16 @@
-
+try{
+    var support_scripts = { {{support_scripts}} };
+}catch(error){
+    alertTop("danger", "Support Scripting error: " + error.toString());
+}
+try{
+    var browser_scripts = { {{browser_scripts}} };
+}catch(error){
+    alertTop("danger", "Browser Scripting error: " + error.toString());
+}
 // Get the initial set of data about our callback and already known commands/responses
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/{{cid}}/all_tasking",get_all_tasking_callback,"GET",null);
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/",get_callback_options_callback,"GET",null);
-//httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/4/all_tasking",get_all_tasking_callback,"GET",null);
-//httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/11/all_tasking",get_all_tasking_callback,"GET",null);
 // Vue that we'll use to display everything
 var callback_table = new Vue({
     el: '#callback_table',
@@ -93,6 +100,8 @@ var callback_table = new Vue({
                                 for(var j = 0; j < this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length; j++){
                                     var blank_vals = {"string_value": "", "credential_value":"", "credential_id": 0, "number_value": -1, "choice_value": "", "choicemultiple_value": [], "boolean_value": false, "array_value": []}
                                     var param = Object.assign({}, blank_vals, this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]);
+                                    if(param.choices.length > 0){param.choice_value = param.choices.split("\n")[0];}
+                                    param.string_value = param.hint;
                                     params_table.command_params.push(param);
                                 }
                                 $( '#paramsModalHeader' ).text(command + "'s Parameters");
@@ -122,13 +131,12 @@ var callback_table = new Vue({
                                             param_data[param_name] = "FILEUPLOAD";
                                         }
                                     }
-
                                     //if it is a test command we can go ahead and send it down (since it would be skipped by the above)
                                     uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['id'], post_task_callback_func, file_data,
-                                    {"command":command,"params": JSON.stringify(param_data), "test_command": this.callbacks[data['id']].test_command, "transform_status": transform_status});
+                                    {"command":command,"params": JSON.stringify(param_data), "test_command": callback_table.callbacks[data['id']].test_command, "transform_status": transform_status});
 
                                     //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
-                                    this.callbacks[data['id']].input_field = "";
+                                    callback_table.callbacks[data['id']].input_field = "";
                                 });
 
                             }
@@ -188,6 +196,14 @@ var callback_table = new Vue({
                 img.style.display = "";
             }
         },
+        toggle_arrow: function(taskid){
+            $('#cardbody' + taskid).on('shown.bs.collapse', function(){
+                $('#color-arrow' + taskid).css("transform", "rotate(180deg)");
+            });
+            $('#cardbody' + taskid).on('hidden.bs.collapse', function(){
+                $('#color-arrow' + taskid).css("transform", "rotate(0deg)");
+            });
+        },
         add_comment: function(task){
             $( '#addCommentTextArea' ).val(task.comment);
             $( '#addCommentModal' ).modal('show');
@@ -197,6 +213,22 @@ var callback_table = new Vue({
         },
         remove_comment: function(id){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, remove_comment_callback, "DELETE", null);
+        },
+        copyStringToClipboard: function (str) {
+          // Create new element
+          var el = document.createElement('textarea');
+          // Set value (string to be copied)
+          el.value = str;
+          // Set non-editable to avoid focus and move outside of view
+          el.setAttribute('readonly', '');
+          el.style = {position: 'absolute', left: '-9999px'};
+          document.body.appendChild(el);
+          // Select text inside element
+          el.select();
+          // Copy text to clipboard
+          document.execCommand('copy');
+          // Remove temporary element
+          document.body.removeChild(el);
         },
         hasTransformsSet: function(callback_id){
             //returns true or false if the command has transforms set as active
@@ -223,9 +255,6 @@ var callback_table = new Vue({
             if(cmd != ""){
                 for(var i = 0; i < this.ptype_cmd_params[this.callbacks[callback_id]['payload_type']].length; i++){
                     if(cmd == this.ptype_cmd_params[this.callbacks[callback_id]['payload_type']][i]['cmd']){
-                        if($('#popover-content-editCommandSwitches' + callback_id).hasClass('show') ){
-                            //$('#editCommandSwitches' + callback_id).popover('show');
-                        }
                         return i;
                     }
                 }
@@ -235,18 +264,6 @@ var callback_table = new Vue({
         get_payload_type: function(callback_id){
             return this.callbacks[callback_id]['payload_type'];
         },
-        toggle_popover: function(id){
-            $('#editCommandSwitches' + id).popover({
-              html: true,
-              content: $('#popover-content-editCommandSwitches' +id),
-              title: "Command Transforms",
-              container: '#editCommandSwitches' +id,
-            }).on('show.bs.popover', function() {
-                $('#popover-content-editCommandSwitches' +id).addClass('show')
-             }).on('hide.bs.popover', function() {
-                $('#popover-content-editCommandSwitches' + id).addClass('hide')
-            });
-        },
         add_callback_to_table: function(){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + $('#callback_options_select').val() + "/all_tasking",get_all_tasking_callback,"GET",null);
         },
@@ -255,33 +272,24 @@ var callback_table = new Vue({
         },
     },
     delimiters: ['[[',']]'],
-    updated: function(){
-        this.$nextTick(function(){
-            //this is called after the DOM is updated via VUE
-            for(id in callback_table.callbacks){
-                if( $('#popover-content-editCommandSwitches' + id).hasClass('show') ){
-                    //the popover is visible but something changed, redraw it
-                    $('#editCommandSwitches' + id).popover('show');
-
-                }
-            }
-
-        });
-    }
 });
 function get_callback_options_callback(response){
     try{
         data = JSON.parse(response);
     }catch(error){
         alertTop("danger", "session expired, refresh please");
+        return;
     }
     callback_table.callback_options = data;
+    callback_table.callback_options.sort((a,b) =>(b.id > a.id) ? 1 : ((a.id > b.id) ? -1 : 0));
+
 }
 function get_all_tasking_callback(response){
     try{
         data = JSON.parse(response);
     }catch(error){
         alertTop("danger", "session expired, refresh please");
+        return;
     }
 
     if(data['status'] == 'success'){
@@ -305,6 +313,8 @@ function get_all_tasking_callback(response){
         temp['operator'] = data['operator'];
         temp['test_command'] = false;
         temp['id'] = data['id'];
+        temp['locked'] = data['locked'];
+        temp['locked_operator'] = data['locked_operator'];
         Vue.set(callback_table.callbacks, data['id'], temp);
         //this has [callback_info, "tasks": [ {task_info, "responses": [ {response_info} ] } ] ]
         //console.log(data);
@@ -312,34 +322,18 @@ function get_all_tasking_callback(response){
             if(data.hasOwnProperty('tasks')){
                 for(var i = 0; i < data['tasks'].length; i++){
                     add_new_task(data['tasks'][i]);
-                    data['tasks'][i]['responses'].forEach(function(x){
-                        add_new_response(x);
-                    });
+                    if(data['tasks'][i].hasOwnProperty('responses')){
+                        data['tasks'][i]['responses'].forEach(function(x){
+                            add_new_response(x, false);
+                        });
+                    }
                 }
-                //Vue.nextTick().then(function(){
-                //    $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
-                //});
             }
         });
 
         Vue.nextTick().then(function(){
-
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + data['payload_type'] + "/commands", register_new_command_info, "GET", null);
-
-            //register the popover with the appropriate dom elements
-            //callback_table.toggle_popover(data['id']);
-            $('#editCommandSwitches' + data['id']).popover({
-              html: true,
-              content: $('#popover-content-editCommandSwitches' +data['id']),
-              title: "Command Transforms",
-              container: '#editCommandSwitches' +data['id'],
-            }).on('show.bs.popover', function() {
-                $('#popover-content-editCommandSwitches' +data['id']).addClass('show')
-             }).on('hide.bs.popover', function() {
-                $('#popover-content-editCommandSwitches' + data['id']).addClass('hide')
-            });
-            callback_table.callbacks[data['id']]['ws'] = startwebsocket_callback(data['id']);
-            $('#callbackoutput' + data['id']).scrollTop($('#callbackoutput' + data['id'])[0].scrollHeight);
+            startwebsocket_callback(data['id']);
         });
     }
     else{
@@ -388,27 +382,25 @@ function add_new_task(tsk){
             tsk.href = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + tsk.id;
             var tmp = Object.assign({}, tsk);
             delete tmp['responses'];
-            if($('#callbackoutput' + tsk['callback']).scrollTop() + $('#callbackoutput' + tsk['callback']).height() == $('#callbackoutput' + tsk['callback'])[0].scrollHeight){
-                scroll_down = true;
-            }else{
-                scroll_down = false;
-            }
+
             Vue.set(callback_table.callbacks[tsk['callback']]['tasks'], tsk['id'], tmp);
             callback_table.callbacks[tsk['callback']]['history'].push(tsk['command'] + " " + tsk['original_params']); // set up our cmd history
             callback_table.callbacks[tsk['callback']]['history_index'] = callback_table.callbacks[tsk['callback']]['history'].length;
-            Vue.nextTick(function(){
-                if(scroll_down){
-                    //if we're looking at the bottom of the content, scroll
-                    $('#callbackoutput' + tsk['callback']).scrollTop($('#callbackoutput' + tsk['callback'])[0].scrollHeight);
-                }
-            });
+            if( Math.abs(Math.floor($('#callbackoutput' + tsk['callback']).scrollTop() + $('#callbackoutput' + tsk['callback']).height() - $('#callbackoutput' + tsk['callback'])[0].scrollHeight)) < 40){
+                setTimeout(() => {
+                    Vue.nextTick(function(){
+                        //if we're looking at the bottom of the content, scroll
+                        $('#callbackoutput' + tsk['callback']).scrollTop($('#callbackoutput' + tsk['callback'])[0].scrollHeight);
+                    });
+                }, 0);
+            }
         }
      }catch(e){
         console.log(e);
         console.log(e.toString());
      }
 }
-function add_new_response(rsp){
+function add_new_response(rsp, from_websocket){
     try{
         if(rsp['task']['id'] in callback_table.callbacks[rsp['task']['callback']]['tasks']){
 
@@ -418,26 +410,31 @@ function add_new_response(rsp){
                 callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['responses'] = {};
             }
             //console.log(all_tasks[ rsp['task']['callback']['id']] [rsp['task']['id']]);
-            var updated_response = rsp['response'].replace(/\\n|\r/g, '\n');
-            // all_tasks->callback->task->response->id = timestamp, responsevalue
-            console.log($('#callbackoutput' + rsp['task']['callback']).scrollTop());
-            console.log($('#callbackoutput' + rsp['task']['callback']).height());
-            console.log($('#callbackoutput' + rsp['task']['callback'])[0].scrollHeight);
-            if($('#callbackoutput' + rsp['task']['callback']).scrollTop() + $('#callbackoutput' + rsp['task']['callback']).height() == $('#callbackoutput' + rsp['task']['callback'])[0].scrollHeight){
-                scroll_down = true;
-            }else{
-                scroll_down = false;
-            }
-            console.log(scroll_down);
+            var updated_response = rsp['response'];//.replace(/\\n|\r/g, '\n');
             Vue.set(callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['responses'], rsp['id'], {'timestamp': rsp['timestamp'], 'response': updated_response});
-            Vue.nextTick(function(){
-                if(scroll_down){
-                    $('#callbackoutput' + rsp['task']['callback']).scrollTop($('#callbackoutput' + rsp['task']['callback'])[0].scrollHeight);
+            callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = false;
+            if(browser_scripts.hasOwnProperty(rsp['task']['command_id'])){
+                callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = true;
+                callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['scripted'] = browser_scripts[rsp['task']['command_id']](rsp['task'],  Object.values(callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['responses']));
+            }
+            if(from_websocket){
+                //we want to make sure we have this expanded by default
+                $('#cardbody' + rsp['task']['id']).collapse('show');
+                if( Math.abs(Math.floor($('#callbackoutput' + rsp['task']['callback']).scrollTop() + $('#callbackoutput' + rsp['task']['callback']).height() - $('#callbackoutput' + rsp['task']['callback'])[0].scrollHeight)) < 40){
+                    setTimeout(() => {
+                        Vue.nextTick(function(){
+                            //if we're looking at the bottom of the content, scroll
+                            $('#cardbody' + rsp['task']['id']).on('shown.bs.collapse', function(){
+                                 $('#callbackoutput' + rsp['task']['callback']).scrollTop($('#callbackoutput' + rsp['task']['callback'])[0].scrollHeight);
+                            });
+                        });
+                    }, 0);
                 }
-            });
+            }
         }
     }catch(error){
         console.log("error in add_new_response");
+        console.log(error.stack);
         console.log(error.toString());
     }
 }
@@ -453,12 +450,18 @@ function startwebsocket_callback(cid){
             }else if(data['channel'].includes("task")){
                 add_new_task(data);
             }else if(data['channel'].includes("response")){
-                add_new_response(data);
+                add_new_response(data, true);
             }else{
                 console.log("Unknown message from server: " + event.data);
             }
         }
     };
+    ws.onclose = function(event){
+        alertTop("danger", "Socket for callback " + cid +  " closed", 2);
+    }
+    ws.onerror = function(event){
+        alertTop("danger", "Socket for callback " + cid +  " closed", 2);
+    }
 };
 function add_comment_callback(response){
     try{
@@ -514,7 +517,15 @@ var params_table = new Vue({
                     param.credential = options;
                 }
             }
-
+        },
+        split_input_params: function(param, index){
+            if(param.array_value[index].includes("\n")){
+                pieces = param.array_value[index].split("\n");
+                for(i = 1; i < pieces.length; i++){
+                    param.array_value.push(pieces[i]);
+                }
+                param.array_value[index] = pieces[0];
+            }
         }
     },
     delimiters: ['[[',']]']
@@ -575,10 +586,6 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/al
                         if(data['notify'] == "newcommandtransform"){
                             // we got a new transform, so just push it
                             task_data.ptype_cmd_params[data['payload_type']][i]['transforms'].push(data);
-                            if( $('#popover-content-editCommandSwitches').hasClass('show') ){
-                                //the popover is visible but something changed, redraw it
-                                $('#editCommandSwitches').popover('show');
-                            }
                             return;
                         }
                         for(var j = 0; j < task_data.ptype_cmd_params[data['payload_type']][i]['transforms'].length; j++){
@@ -592,10 +599,6 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/al
                                     Vue.set(task_data.ptype_cmd_params[data['payload_type']][i]['transforms'], j, data);
                                 }
                             }
-                        }
-                        if( $('#popover-content-editCommandSwitches').hasClass('show') ){
-                            //the popover is visible but something changed, redraw it
-                            $('#editCommandSwitches').popover('show');
                         }
                         return;
                     }
@@ -639,7 +642,7 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/al
         alertTop("danger", "Socket errored. Please reload the page");
     }
 };
-
+startwebsocket_commands();
 function updateClocks(){
     date = new Date();
     now = date.getTime() + date.getTimezoneOffset() * 60000;
@@ -729,7 +732,7 @@ function autocomplete(inp, arr) {
           });
           a.appendChild(b);
         }
-        a.style.width = longest + "em";
+        a.style.width = longest + 1 + "em";
       }
     }
     function autocomplete_keyup_EventListener_function(e){

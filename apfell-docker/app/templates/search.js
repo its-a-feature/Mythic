@@ -1,44 +1,56 @@
-var searches_Vue = new Vue({
+var searches = new Vue({
     el: '#searches',
     data:{
-        option: "output"
+        option: "output",
+        search_field: "",
+        tasks: [],
+        responses: [],
+        page_size: 30,
+        current_page: 1,
+        total_count: 0
+
     },
     methods:{
         search_button: function(){
+            if(this.search_field == ""){
+                alertTop("warning", "Need to actually type something to search for...", 1);
+                return;
+            }
             if(this.option == "output"){
-                search_task_output();
+                this.responses = [];
+                this.tasks = [];
+                this.get_page(1);
             }
             else{
-                search_task_params();
+                this.responses = [];
+                this.tasks = [];
+                this.get_page(1);
             }
+        },
+        get_page: function(page_num){
+            if(this.option == "output"){
+                this.responses = [];
+                this.tasks = [];
+                alertTop("info", "Searching...", 1);
+                data = {"search": this.search_field, "page": page_num, "size": this.page_size};
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/responses/search", get_search_callback, "POST", data);
+            }
+            else{
+                this.responses = [];
+                this.tasks = [];
+                alertTop("info", "Searching...", 1);
+                data = {"search": this.search_field, "page": page_num, "size": this.page_size};
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/search", get_search_tasks_callback, "POST", data);
+            }
+        },
+        get_new_page_size: function(){
+            this.page_size = $('#page_size').val();
+            this.get_page(1);
         }
     },
     delimiters: ['[[', ']]']
 })
-var search_results = new Vue({
-    el: '#searchResults',
-    data:{
-        responses: []
-    },
-    delimiters: ['[[', ']]']
-});
-function search_task_output(){
-    var search = $( '#searchTextField' ).val();
-    if(search != ""){
-        search_results.responses = [];
-        search_task_results.tasks = [];
-        setTimeout(() => { // setTimeout to put this into event queue
-                // executed after render
-                // show loading data until we load all of our data in, then it will be automatically cleared
-                alertTop("success", "Loading data");
-            }, 0);
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/responses/search", get_search_callback, "POST", {"search": search});
-    }
-    else{
-        alertTop("warning", "Need to actually type something to search for...");
-    }
 
-}
 function get_search_callback(response){
     try{
         var data = JSON.parse(response);
@@ -49,41 +61,18 @@ function get_search_callback(response){
     if(data['status'] == 'success'){
         for(var i = 0; i < data['output'].length; i++){
             data['output'][i]['share_task'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['output'][i]['task']['id'];
-            data['output'][i]['response'] = data['output'][i]['response'].replace(/\\n|\r/g, '\n');
         }
-        search_results.responses = data['output'];
-        setTimeout(() => { // setTimeout to put this into event queue
-            // executed after render
-            clearAlertTop();
-        }, 0);
+        searches.responses = data['output'];
+        searches.page_size = data['size'];
+        searches.total_count = data['total_count'];
+        searches.current_page = data['page'];
+        alertTop("success", "Finished", 1);
     }
     else{
         alertTop("danger", data['error']);
     }
 }
-var search_task_results = new Vue({
-    el: '#searchTasksResults',
-    data:{
-        tasks: []
-    },
-    delimiters: ['[[', ']]']
-});
-function search_task_params(){
-    var search = $( '#searchTextField' ).val();
-    if(search != ""){
-        search_results.responses = [];
-        search_task_results.tasks = [];
-        setTimeout(() => { // setTimeout to put this into event queue
-                // executed after render
-                // show loading data until we load all of our data in, then it will be automatically cleared
-                alertTop("success", "Loading data");
-            }, 0);
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/search", get_search_tasks_callback, "POST", {"search": search});
-    }
-    else{
-        alertTop("warning", "Need to actually type something to search for...");
-    }
-}
+
 function get_search_tasks_callback(response){
     try{
         var data = JSON.parse(response);
@@ -95,11 +84,11 @@ function get_search_tasks_callback(response){
         for(var i = 0; i < data['output'].length; i++){
             data['output'][i]['share_task'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['output'][i]['id'];
         }
-        search_task_results.tasks = data['output'];
-        setTimeout(() => { // setTimeout to put this into event queue
-            // executed after render
-            clearAlertTop();
-        }, 0);
+        searches.tasks = data['output'];
+        searches.page_size = data['size'];
+        searches.total_count = data['total_count'];
+        searches.current_page = data['page'];
+        alertTop("success", "Finished", 1);
     }
     else{
         alertTop("danger", data['error']);

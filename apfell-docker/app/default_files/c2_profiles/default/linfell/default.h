@@ -22,10 +22,10 @@ extern unsigned int CALLBACK_PORT;
 extern unsigned int CALLBACK_INTERVAL;
 extern unsigned int CALLBACK_JITTER;
 /* api format strings */
-#define API_REGISTER_CALLBACK "\"callback_host:callback_port/api/v1.2/callbacks/\"" //potentially replace this when compiling
-#define API_GET_NEXT_TASK_FORMAT "\"callback_host:callback_port/api/v1.2/tasks/callback/%d/nextTask\""
-#define API_POST_RESPONSE "\"callback_host:callback_port/api/v1.2/responses/%d\""
-#define API_GET_FILE "\"callback_host:callback_port/api/v1.2/files/%d/callbacks/%d\""
+#define API_REGISTER_CALLBACK "\"callback_host:callback_port/api/v1.3/callbacks/\"" //potentially replace this when compiling
+#define API_GET_NEXT_TASK_FORMAT "\"callback_host:callback_port/api/v1.3/tasks/callback/%d/nextTask\""
+#define API_POST_RESPONSE "\"callback_host:callback_port/api/v1.3/responses/%d\""
+#define API_GET_FILE "\"callback_host:callback_port/api/v1.3/files/%d/callbacks/%d\""
 #define HTTP_POST "POST %s HTTP/1.1\r\n"
 #define HTTP_GET "GET %s HTTP/1.1\r\n"
 #define HOST_HEADER "domain_front"

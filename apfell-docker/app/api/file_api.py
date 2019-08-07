@@ -10,6 +10,7 @@ import app.crypto as crypt
 import sys
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+import shutil
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -45,13 +46,13 @@ async def get_current_operations_files_meta(request, user):
         return json({"status": 'error', 'error': 'must be part of an active operation'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/<fid:int>/callbacks/<cid:int>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/files/<fid:string>/callbacks/<cid:string>", methods=['GET'])
 async def get_one_file(request, fid, cid):
     try:
         query = await db_model.filemeta_query()
-        file_meta = await db_objects.get(query, id=fid)
+        file_meta = await db_objects.get(query, agent_file_id=fid)
         query = await db_model.callback_query()
-        callback = await db_objects.get(query, id=cid)
+        callback = await db_objects.get(query, agent_callback_id=cid)
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({'status': 'error', 'error': 'file not found'})
@@ -77,11 +78,11 @@ async def get_one_file(request, fid, cid):
         return json({'status': 'error', 'error': 'file not done downloading'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/download/<id:int>", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/files/download/<id:string>", methods=['GET'])
 async def download_file(request, id):
     try:
         query = await db_model.filemeta_query()
-        file_meta = await db_objects.get(query, id=id)
+        file_meta = await db_objects.get(query, agent_file_id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file not found'})
@@ -103,7 +104,7 @@ async def download_file(request, id):
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['DELETE'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def create_filemeta_in_database(request, user, id):
+async def delete_filemeta_in_database(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
@@ -152,13 +153,13 @@ async def create_filemeta_in_database_func(data):
         return {'status': 'error', 'error': 'corresponding task id required'}
     try:
         query = await db_model.task_query()
-        task = await db_objects.prefetch(query.where(Task.id == data['task']), Command.select())
+        task = await db_objects.prefetch(query.where(Task.agent_task_id == data['task']), Command.select())
         task = list(task)[0]
         query = await db_model.callback_query()
         callback = await db_objects.get(query.where(Callback.id == task.callback))
         operation = callback.operation
     except Exception as e:
-        print(sys.exc_info()[-1].tb_lineno + " " + e)
+        print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
         return {'status': 'error', 'error': "failed to find task"}
     try:
         filename = os.path.split(task.params)[1].strip()
@@ -184,13 +185,14 @@ async def create_filemeta_in_database_func(data):
         save_path = tmp_path
         if not os.path.exists(os.path.split(save_path)[0]):
             os.makedirs(os.path.split(save_path)[0])
+        open(save_path, 'a').close()
         filemeta = await db_objects.create(FileMeta, total_chunks=data['total_chunks'], task=task, operation=operation,
                                            path=save_path, operator=task.operator)
         if data['total_chunks'] == 0:
             filemeta.complete = True
             await db_objects.update(filemeta)
     except Exception as e:
-        print(sys.exc_info()[-1].tb_lineno + " " + e)
+        print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
         return {'status': 'error', 'error': "failed to create file"}
     status = {'status': 'success'}
     return {**status, **filemeta.to_json()}
@@ -255,6 +257,8 @@ async def create_filemeta_in_database_manual_func(data, user):
             try:
                 query = await db_model.payload_query()
                 payload = await db_objects.get(query, uuid=data['path'], operation=operation)
+                if payload.payload_type.external:
+                    return {'status': 'error', 'error': 'cannot host payloads that were created externally by UUID. Must upload the file.'}
                 data['path'] = payload.location
             except Exception as e:
                 return {'status': 'error', 'error': 'failed to find that payload in your operation'}
@@ -283,26 +287,30 @@ async def download_file_to_disk_func(data):
         return {'status': 'error', 'error': 'missing chunk data'}
     try:
         query = await db_model.filemeta_query()
-        file_meta = await db_objects.get(query, id=data['file_id'])
+        file_meta = await db_objects.get(query, agent_file_id=data['file_id'])
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get File info'}
     try:
+        # print("trying to base64 decode chunk_data")
         chunk_data = base64.b64decode(data['chunk_data'])
         f = open(file_meta.path, 'ab')
         f.write(chunk_data)
         f.close()
-        file_meta.chunks_received = file_meta.chunks_received + 1
-        if file_meta.chunks_received == file_meta.total_chunks:
-            file_meta.complete = True
+        async with db_objects.atomic():
+            file_meta = await db_objects.get(query, agent_file_id=data['file_id'])
+            file_meta.chunks_received = file_meta.chunks_received + 1
+            # print("received chunk num {}".format(data['chunk_num']))
+            if file_meta.chunks_received == file_meta.total_chunks:
+                file_meta.complete = True
+            await db_objects.update(file_meta)
             # if we ended up downloading a file from mac's screencapture utility, we need to fix it a bit
-            f = open(file_meta.path, 'rb').read(8)
-            if f == b"'PNGf'($":
-                f = open(file_meta.path, 'rb').read()
-                new_file = open(file_meta.path, 'wb')
-                new_file.write(unhexlify(f[8:-2]))
-                new_file.close()
-        await db_objects.update(file_meta)
+        f = open(file_meta.path, 'rb').read(8)
+        if f == b"'PNGf'($":
+            f = open(file_meta.path, 'rb').read()
+            new_file = open(file_meta.path, 'wb')
+            new_file.write(unhexlify(f[8:-2]))
+            new_file.close()
     except Exception as e:
         print("Failed to save chunk to disk: " + str(e))
         return {'status': 'error', 'error': 'failed to store chunk: ' + str(e)}
@@ -369,3 +377,82 @@ async def get_screencapture(request, user, id):
         return await file(file_meta.path, filename=file_meta.path.split("/")[-1])
     else:
         return json({"status": 'error', 'error': 'must be part of that callback\'s operation to see its screenshot'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/screencaptures/<id:string>", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_screencapture(request, user, id):
+    #if user['auth'] not in ['access_token', 'apitoken']:
+    #    abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.filemeta_query()
+        file_meta = await db_objects.get(query, agent_file_id=id)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find callback'})
+    if file_meta.operation.name in user['operations']:
+        return await file(file_meta.path, filename=file_meta.path.split("/")[-1])
+    else:
+        return json({"status": 'error', 'error': 'must be part of that callback\'s operation to see its screenshot'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/host_payload", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def host_payload_file_manually_by_name(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    data = request.json
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+    except Exception as e:
+        return json({'status': 'error', 'error': "not registered in a current operation"})
+    if 'uuid' not in data:
+        return json({'status': 'error', 'error': 'Payload UUID must be specified'})
+    if 'host' not in data:
+        return json({'status': 'error', 'error': 'must use "host" to specify to host or unhost the payload'})
+    try:
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=data['uuid'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find payload: ' + data['uuid']})
+    if not data['host']:
+        try:
+            os.remove(payload.hosted_path)
+        except Exception as e:
+            pass
+        payload.hosted_path = ""
+        await db_objects.update(payload)
+        return json({'status': 'success', **payload.to_json()})
+    else:
+        if payload.hosted_path != "":
+            try:
+                os.remove(payload.hosted_path)
+            except Exception as e:
+                pass
+            payload.hosted_path = ""
+    if 'name' not in data:
+        data['name'] = payload.location.split("/")[-1]
+
+    path = os.path.abspath('./app/payloads/operations/_hosting_dir/{}'.format(data['name']))
+    if os.path.abspath('./app/payloads/operations/_hosting_dir/') not in path:
+        return json({'status': 'error', 'error': 'final path not in the right directory'})
+    if os.path.exists(path):
+        save_path = path
+        extension = save_path.split(".")[-1] if "." in path else ""
+        save_path = ".".join(save_path.split(".")[:-1]) if "." in path else save_path
+        count = 1
+        tmp_path = save_path + "." + str(extension) if "." in save_path else save_path
+        while os.path.exists(tmp_path):
+            tmp_path = save_path + str(count) + "." + str(extension) if "." in path else save_path + str(count)
+            count += 1
+        path = tmp_path
+    try:
+        shutil.copyfile(payload.location, path)
+        payload.hosted_path = path
+        await db_objects.update(payload)
+        return json({'status': 'success', **payload.to_json()})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to copy file: ' + str(e)})

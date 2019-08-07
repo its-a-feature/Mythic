@@ -55,6 +55,7 @@ async def check_command(request, user, ptype, cmd):
                   "artifacts": [a.to_json() for a in artifacts], 'transforms': [t.to_json() for t in transforms]}
     except Exception as e:
         # the command doesn't exist yet, which is good
+        status = {"status": "error"}
         pass
     # now check to see if the file exists
     try:
@@ -104,6 +105,8 @@ async def get_command_code(request, user, id, resp_type):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get command'})
+    if command.payload_type.external:
+        return text("")
     try:
         if resp_type == "file":
             return file("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
@@ -157,14 +160,14 @@ async def update_command(request, user, id):
         except Exception as e:
             # one doesn't exist, so let this one be set
             print(str(e))
-    if request.files:
+    if request.files and not command.payload_type.external:
         updated_command = True
         cmd_code = request.files['upload_file'][0].body
         cmd_file = open("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
-    elif "code" in data:
+    elif "code" in data and not command.payload_type.external:
         updated_command = True
         cmd_file = open("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd), "wb")
         cmd_code = base64.b64decode(data['code'])
@@ -246,10 +249,11 @@ async def create_command_func(data, user):
         command = await db_objects.create(Command, needs_admin=data['needs_admin'], help_cmd=data['help_cmd'],
                                           description=data['description'], cmd=data['cmd'],
                                           payload_type=payload_type, operator=operator, is_exit=data['is_exit'])
-        cmd_file = open("./app/payloads/{}/commands/{}".format(payload_type.ptype, command.cmd), "wb")
-        cmd_code = base64.b64decode(data['code'])
-        cmd_file.write(cmd_code)
-        cmd_file.close()
+        if not payload_type.external:
+            cmd_file = open("./app/payloads/{}/commands/{}".format(payload_type.ptype, command.cmd), "wb")
+            cmd_code = base64.b64decode(data['code'])
+            cmd_file.write(cmd_code)
+            cmd_file.close()
         status = {'status': 'success'}
         cmd_json = command.to_json()
         return {**status, **cmd_json}
