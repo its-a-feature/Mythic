@@ -163,11 +163,13 @@ async def update_operation(request, user, op):
                         operator = await db_objects.get(query, username=old_member)
                         query = await db_model.operatoroperation_query()
                         operatoroperation = await db_objects.get(query, operator=operator, operation=operation)
-                        # if this operation is set as that user's current_operation, nullify it
-                        if operator.current_operation == operation:
-                            operator.current_operation = None
-                            await db_objects.update(operator)
-                        await db_objects.delete(operatoroperation)
+                        # don't remove the admin of an operation
+                        if operation.admin.username != operator.username:
+                            # if this operation is set as that user's current_operation, nullify it
+                            if operator.current_operation == operation:
+                                operator.current_operation = None
+                                await db_objects.update(operator)
+                            await db_objects.delete(operatoroperation)
                     except Exception as e:
                         print("got exception: " + str(e))
                         return json({'status': 'error', 'error': 'failed to remove: ' + old_member + "\nAdded: " + str(data['add_users'])})
