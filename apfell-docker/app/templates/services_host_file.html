@@ -45,7 +45,7 @@
         <h2>Current <span class="operator">Manual File</span> Uploads</h2>
     </div>
     <div class="card-body bg-card-body shadow border border-dark">
-        These files can be downloaded via the download button or by hitting {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/# .
+        These files can be downloaded via the download button or by hitting {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/[download UUID] .
     </div>
         <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
             <tr>
@@ -54,7 +54,7 @@
                 <th onclick="sort_table(this)"><b>Time</b></th>
                 <th onclick="sort_table(this)"><b>File</b></th>
                 <th onclick="sort_table(this)"><b>File ID</b></th>
-                <th onclick="sort_table(this)"><b>Download Number</b></th>
+                <th onclick="sort_table(this)"><b>Download UUID</b></th>
                 <th onclick="sort_table(this)"><b>Uploader</b></th>
             </tr>
         <!-- Repeat this for each web service -->
