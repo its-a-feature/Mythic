@@ -63,7 +63,7 @@
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(file.id)"><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_button(file.id)"><i class="fas fa-download"></i></button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_button(file.agent_file_id)"><i class="fas fa-download"></i></button>
                 </td>
                 <td>[[ toLocalTime(file.timestamp) ]]</td>
                 <td>[[ file.path.split("/").slice(-1)[0] ]]</td>
