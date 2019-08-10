@@ -335,7 +335,8 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             # we need to get the file into the database before we can signal for the callback to pull it down
             try:
                 # see if we actually submitted "file_id /remote/path/here"
-                if 'file_id' in upload_config and ('file' not in upload_config or upload_config['file'] == "FILEUPLOAD"):
+                # if upload_config['file'] is still FILEUPLOAD, then we didn't swap it out with an actual file_id
+                if 'file_id' in upload_config and upload_config['file'] == "FILEUPLOAD":
                     if isinstance(upload_config['file_id'], str):
                         try:
                             f = await db_objects.get(FileMeta, agent_file_id=upload_config['file_id'])
@@ -375,7 +376,8 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             if '"' in data['params']:
                 data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
         elif cmd.cmd == "screencapture":
-            data['params'] = datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S') + ".png"
+            if data['params'] == "" or data['params'] is None:
+                data['params'] = datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S') + ".png"
         elif cmd.cmd == "load":
             try:
                 if cb.registered_payload.payload_type.external:
@@ -560,7 +562,11 @@ async def perform_load_transforms(data, cb, operation, op, task):
                     except Exception as e:
                         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 else:
-                    print("Command code not found")
+                    shutil.rmtree(working_path)
+                    await db_objects.create(Response, task=task, response="failed to find command: {}. Aborting load".format(p))
+                    return {'status': 'error', 'error': 'failed to find command: {}'.format(p),
+                            'cmd': data['command'],
+                            'params': data['params'], 'callback': cb.id}
             # zip up all of the code and send it off to rabbitmq and the corresponding container for transforms
             load_uuid = await generate_uuid()
             shutil.make_archive("./app/payloads/operations/{}/{}".format(operation.name,load_uuid), 'zip', working_path)

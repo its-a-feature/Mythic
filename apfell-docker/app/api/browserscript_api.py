@@ -95,7 +95,7 @@ async def modify_browserscript(request, user, bid):
         if browserscript.operator.username != operator.username:
             return json({'status': 'error', 'error': 'you can only modify your scripts'})
         if 'operation' in data:
-            if data['operation'] in user['admin_operations'] or user['admin']:
+            if data['operation'] in user['admin_operations'] or user['admin'] and data['operation'] != "":
                 query = await db_model.operation_query()
                 operation = await db_objects.get(query, name=data['operation'])
                 browserscript.operation = operation

@@ -99,6 +99,13 @@ var callback_table = new Vue({
         remove_callback: function(callback){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
             stop_getting_callback_updates(callback.id);
+            // also do the above for any additionally selected callbacks
+            for(i in this.callbacks){
+                if(this.callbacks[i]['selected']){
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + this.callbacks[i]['id'],null,"PUT", {"active":"false"});
+                    stop_getting_callback_updates(this.callbacks[i]['id']);
+                }
+            }
         },
         show_screencaptures: function(callback){
             Vue.set(meta[callback.id], 'screencaptures', true);
@@ -152,7 +159,8 @@ function toggle_lock_callback(response){
         alertTop("danger", "session expired, refresh please");
     }
     if(data['status'] == 'success'){
-        console.log(data);
+        //console.log(data);
+        alertTop("success", "Successfully updated", 1);
     }else{
         alertTop("danger", data['error']);
     }
@@ -209,9 +217,15 @@ function view_loaded_commands_callback(response){
 }
 function stop_getting_callback_updates(id){
     //make sure we stop getting updates from the websockets
-    remove_callback_from_view(id);
-    websockets[id].close();
-    delete websockets[id];
+    try{
+        remove_callback_from_view(id);
+        if(websockets.hasOwnProperty('id')){
+            websockets[id].close();
+            delete websockets[id];
+        }
+    }catch(error){
+        console.log(error.toString());
+    }
 }
 function edit_description_callback(response){
     try{

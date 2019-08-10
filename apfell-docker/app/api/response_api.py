@@ -191,12 +191,13 @@ async def update_task_for_callback(request, id):
                 else:
                     # we successfully got a chunk and updated the FileMeta object, so just move along
                     json_return_info = {**json_return_info, 'status': 'success'}
+
             if "window_title" in parsed_response and "user" in parsed_response and "keystrokes" in parsed_response:
-                if "window_title" not in parsed_response or parsed_response['window_title'] is None:
+                if parsed_response['window_title'] is None or parsed_response['window_title'] == "":
                     parsed_response['window_title'] = "UNKNOWN"
-                if "user" not in parsed_response or parsed_response['user'] is None:
-                    parsed_response['user'] = "UNKONWN"
-                if "keystrokes" not in parsed_response or parsed_response['keystrokes'] is None:
+                if parsed_response['user'] is None or parsed_response['user'] == "":
+                    parsed_response['user'] = "UNKNOWN"
+                if parsed_response['keystrokes'] is None or parsed_response['keystrokes'] == "":
                     json_return_info = {'status': 'error', 'error': 'keylogging response has no keystrokes'}
                 else:
                     resp = await db_objects.create(Keylog, task=task, window=parsed_response['window_title'],
