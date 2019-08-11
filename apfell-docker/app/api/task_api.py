@@ -153,7 +153,7 @@ async def get_next_task(request, cid):
         return abort(404)
     command_string = ""
     params_string = ""
-    task_id = -1
+    task_id = ""
     try:
         callback.last_checkin = datetime.utcnow()
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active

@@ -35,8 +35,8 @@
     <div class="card-body bg-card-body">
         <div class="card border-0 bg-transparent" v-for="(v, k, i) in frequencies" style="display:inline-block;padding:8px;vertical-align:top">
             <div class="card-header shadow border border-dark bg-info text-white"><h5>[[k]]'s command usage</h5></div>
-            <div class="card-body bg-card-body-l1 shadow border border-dark" style="padding:0">
-                <table v-for="(v2, k2, i2) in v" style="display: inline-block;vertical-align:top;word-wrap: break-word" class="border border-dark shadow bg-card-body-l2 table-striped {{config['table-color']}} table-hover">
+            <div class="card-body shadow border border-dark" style="padding:0">
+                <table v-for="(v2, k2, i2) in v" style="display: inline-block;vertical-align:top;word-wrap: break-word" class="border border-dark shadow table-striped {{config['table-color']}} table-hover">
                     <tr>
                         <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">[[k2]]'s Commands </font></th>
                         <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Count </font></th>

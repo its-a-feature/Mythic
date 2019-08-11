@@ -60,7 +60,7 @@
                 >
                 <span class="btn-group" style="position:relative">
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger" @click="task_button(callback)">Submit Task</button>
-                    <a data-toggle="modal" :data-target="'#editCommandSwitches' + callback.id" type="button" href="#"  :class="hasTransformsSet(callback.id) ? 'btn btn{{config['outline-buttons']}}warning' : 'btn btn{{config['outline-buttons']}}success'" style="margin: 1; padding: 0; position: relative;"><font :color="hasTransformsSet(callback.id) ? 'bg-warning' : 'green'"><i class="fas fa-cogs fa-2x"></i></font></a>
+                    <a data-toggle="modal" :data-target="'#editCommandSwitches' + callback.id" type="button" href="#"  :class="hasTransformsSet(callback.id) ? 'btn btn{{config['outline-buttons']}}warning' : 'btn btn{{config['outline-buttons']}}success'" style="margin: 1; padding: 0; position: relative;"><font :color="hasTransformsSet(callback.id) ? '#ffc107' : '#008000'"><i class="fas fa-cogs fa-2x"></i></font></a>
                 </span>
             </div>
         </div>

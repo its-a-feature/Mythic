@@ -136,13 +136,13 @@ function alertTop(type, string, delay=4){
     toastr.options.timeOut = delay.toString();
     toastr.options.extendedTimeOut = delay.toString();
     if(type == "success"){
-        toastr.success(string).css("width","100%");
+        toastr.success(string).css({"width": "100%", "min-width": "300px"});
     }else if(type == "danger"){
-        toastr.error(string).css("width","100%");
+        toastr.error(string).css({"width": "100%", "min-width": "300px"});
     }else if(type == "info"){
-        toastr.info(string).css("width","100%");
+        toastr.info(string).css({"width": "100%", "min-width": "300px"});
     }else{
-        toastr.warning(string).css("width","100%");
+        toastr.warning(string).css({"width": "100%", "min-width": "300px"});
     }
 }
 toastr.options = {
@@ -151,7 +151,7 @@ toastr.options = {
   "newestOnTop": true,
   "progressBar": true,
   "positionClass": "toast-top-right",
-  "preventDuplicates": false,
+  "preventDuplicates": true,
   "onclick": null,
   "showEasing": "swing",
   "hideEasing": "linear",
@@ -160,60 +160,10 @@ toastr.options = {
   "tapToDismiss": false,
   "toastClass" : 'toastr'
 }
-function alertTop2(type, string, delay=4){
-    delay = delay * 1000;
-    if( type == "danger" && delay == 4000){
-        delay = 0;
-    }
-    $.notify({
-	// options
-	message: string,
-    },{
-	// settings
-	element: 'body',
-	position: null,
-	type: type,
-	allow_dismiss: true,
-	newest_on_top: false,
-	showProgressbar: false,
-	placement: {
-		from: "top",
-		align: "right"
-	},
-	offset: 20,
-	spacing: 10,
-	z_index: 1031,
-	delay: delay,
-	timer: 1000,
-	animate: {
-		enter: 'animated fadeInDown',
-		exit: 'animated fadeOutUp'
-	},
-	onShow: null,
-	onShown: null,
-	onClose: null,
-	onClosed: null,
-	icon_type: 'class',
-	template: '<div data-notify="container" class="alert alert-{0}" role="alert" style="overflow:scroll;max-height:50%">' +
-		'<button type="button" aria-hidden="true" class="close" data-notify="dismiss">×</button>' +
-		'<span data-notify="icon"></span> ' +
-		'<span data-notify="title">{1}</span> ' +
-		'<span data-notify="message">{2}&nbsp;&nbsp;&nbsp;&nbsp;</span>' +
-		'<div class="progress" data-notify="progressbar">' +
-			'<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>' +
-		'</div>' +
-		'<a href="{3}" target="{4}" data-notify="url"></a>' +
-	'</div>'
-});
-
-
-}
-function clearAlertTop(){
-    $.notifyClose();
-}
 
 function toLocalTime(date){
     var init_date = new Date(date + " UTC");
+    if("{{view_utc_time}}" == "True"){return date + " UTC";}
     return init_date.toDateString() + " " + init_date.toTimeString().substring(0,8);
 }
 function sort_table(th){
