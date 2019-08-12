@@ -103,10 +103,10 @@
             </template>
         </li>
         <li class="nav-item" v-for="metadata in meta" v-if="metadata.screencaptures" role="button">
-            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'nav-link' " :href="'#screencaptures' + metadata.id" :aria-controls="'screencaptures' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:black;background-color:' + shadeBlend(0.2, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures <span class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="screencaptures_tab_close(metadata)">X</span></a>
+            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'nav-link' " :href="'#screencaptures' + metadata.id" :aria-controls="'screencaptures' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:black;background-color:' + shadeBlend(0.2, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures (Callback: [[metadata.id]])<span class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="screencaptures_tab_close(metadata)">X</span></a>
         </li>
         <li class="nav-item" v-for="metadata in meta" v-if="metadata.keylogs" role="button">
-            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'nav-link' " :href="'#keylogs' + metadata.id" :aria-controls="'keylogs' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:black;background-color:' + shadeBlend(0.2, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Keylogs <span class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="keylog_tab_close(metadata)">X</span></a>
+            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'nav-link' " :href="'#keylogs' + metadata.id" :aria-controls="'keylogs' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:black;background-color:' + shadeBlend(0.2, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Keylogs (Callback: [[metadata.id]])<span class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="keylog_tab_close(metadata)">X</span></a>
         </li>
         {% else %}
         <li class="nav-item" v-for="metadata in meta" v-if="metadata.tasks" role="button" key="metadata.id">
@@ -118,10 +118,10 @@
             </template>
         </li>
         <li class="nav-item" v-for="metadata in meta" v-if="metadata.screencaptures" role="button">
-            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'font-outline nav-link' " :href="'#screencaptures' + metadata.id" :aria-controls="'screencaptures' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:white;background-color:' + shadeBlend(0.5, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures<span class="font-outline btn-sm btn{{config['outline-buttons']}}danger" @click="screencaptures_tab_close(metadata)">X</span></a>
+            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'font-outline nav-link' " :href="'#screencaptures' + metadata.id" :aria-controls="'screencaptures' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:white;background-color:' + shadeBlend(0.5, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)">Screencaptures (Callback: [[metadata.id]])<span class="font-outline btn-sm btn{{config['outline-buttons']}}danger" @click="screencaptures_tab_close(metadata)">X</span></a>
         </li>
         <li class="nav-item" v-for="metadata in meta" v-if="metadata.keylogs" role="button">
-            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'font-outline nav-link' " :href="'#keylogs' + metadata.id" :aria-controls="'keylogs' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:white;background-color:' + shadeBlend(0.5, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)"> Keylogs<span class="font-outline btn-sm btn{{config['outline-buttons']}}danger" @click="keylog_tab_close(metadata)">X</span></a>
+            <a :class="!metadata.selected ? 'nav-link bg-secondary text-white' : 'font-outline nav-link' " :href="'#keylogs' + metadata.id" :aria-controls="'keylogs' + metadata.id" :style="!metadata.selected ? '' : 'font-weight:bold;color:white;background-color:' + shadeBlend(0.5, metadata.bg_color)" role="button" data-toggle="tab" @click="select_tab(metadata)"> Keylogs (Callback: [[metadata.id]])<span class="font-outline btn-sm btn{{config['outline-buttons']}}danger" @click="keylog_tab_close(metadata)">X</span></a>
         </li>
         {% endif %}
     </ul>
@@ -207,7 +207,7 @@
             >
             <span class="btn-group" style="position:relative">
                 <button type="button" class="btn btn{{config['outline-buttons']}}danger" @click="task_button(input_field_placeholder)" >Submit Task</button>
-                <a data-toggle="modal" data-target="#editCommandSwitches" type="button" href="#" :class="hasTransformsSet ? 'btn btn{{config['outline-buttons']}}warning' : 'btn btn{{config['outline-buttons']}}success'" :style="!taskable ? 'pointer-events: none;margin: 1; padding: 0; position: relative;' : 'margin: 1; padding: 0; position: relative;'" ><font :color="hasTransformsSet ? 'bg-warning' : ''"><i class="fas fa-cogs fa-2x"></i></font></a>
+                <a data-toggle="modal" data-target="#editCommandSwitches" type="button" href="#" :class="hasTransformsSet ? 'btn btn{{config['outline-buttons']}}warning' : 'btn btn{{config['outline-buttons']}}success'" :style="!taskable ? 'pointer-events: none;margin: 1; padding: 0; position: relative;' : 'margin: 1; padding: 0; position: relative;'" ><font :color="hasTransformsSet ? '#ffc107' : '#008000'"><i class="fas fa-cogs fa-2x"></i></font></a>
             </span>
         </div>
     </div>
