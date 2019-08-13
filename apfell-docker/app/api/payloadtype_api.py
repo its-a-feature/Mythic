@@ -474,7 +474,7 @@ async def export_command_list(request, user, ptype):
         del payloadtype_json['operator']
         del payloadtype_json['creation_time']
         payloadtype_json['files'] = []
-        if not payload_type.external:
+        if not payload_ptype.external:
             for file in glob.iglob("./app/payloads/{}/payload/*".format(payload_type)):
                 payload_file = open(file, 'rb')
                 file_dict = {file.split("/")[-1]: base64.b64encode(payload_file.read()).decode('utf-8')}
@@ -529,7 +529,7 @@ async def export_command_list(request, user, ptype):
         profiles_dict = {}
         for p in profiles:
             files = []
-            if not payload_type.external:
+            if not payload_ptype.external:
                 for profile_file in glob.iglob("./app/c2_profiles/{}/{}/*".format(p.c2_profile.name, payload_type)):
                     file_contents = open(profile_file, 'rb')
                     file_dict = {profile_file.split("/")[-1]: base64.b64encode(file_contents.read()).decode('utf-8')}
