@@ -30,7 +30,7 @@ function create_timeline(response){
         return;
     }
     else{
-        alertTop("success", "Successfully created! Download here: <a href=\"{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + data['id'] + "\" target=\"_blank\">Full Report</a>", 0);
+        alertTop("success", "Successfully created! Download here: <a href=\"{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + data['agent_file_id'] + "\" target=\"_blank\">Full Report</a>", 0);
         alertTop("success", "Can also be downloaded from the Uploads/Downloads page under Manual uploads", 0);
     }
 }
