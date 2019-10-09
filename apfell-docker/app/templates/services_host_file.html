@@ -3,43 +3,7 @@
 {% block body %}
 
 <br>
-<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="hosting_table">
-    <div class="card-header bg-header border border-dark shadow text-white">
-        <h2><span class="operator">Directory</span> Hosting</h2>
-    </div>
-    <div class="card-body bg-card-body border border-dark shadow">
-        These are subprocesses run with "python3 -m http.server" with the specified directory and port. They are meant for simple downloads, mainly for testing. You can see these across all operations.
-    </div>
-        <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
-            <tr>
-                <th><b>Delete</b></th>
-                <th><b>Start</b></th>
-                <th><b>Stop</b></th>
-                <th onclick="sort_table(this)"><b>Port</b></th>
-                <th onclick="sort_table(this)"><b>Directory</b></th>
-                <th onclick="sort_table(this)"><b>Status</b></th>
-                <th onclick="sort_table(this)"><b>Creator</b></th>
-            </tr>
-        <!-- Repeat this for each web service -->
-            <tr v-for="host in services" :key="host.port">
-                <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(host)"><i class="fas fa-trash-alt"></i></button>
-                </td>
-                <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="start_button(host)" :disabled="host.status == 'running'">Start</button>
-                </td>
-                <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="stop_button(host)" :disabled="host.status == 'stopped'">Stop</button>
-                </td>
-                <td>[[ host.port ]]</td>
-                <td>[[ host.directory ]]</td>
-                <td>[[ host.status ]]</td>
-                <td>[[ host.creator]]</td>
-            </tr>
-        <!-- End of the repeating -->
-        </table>
-</div>
-<button type="button" class="btn btn{{config['outline-buttons']}}primary btn-md" onclick="create_directory_button()"><i class="fas fa-plus"></i> Directory</button><br><br>
+
 <div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="manualFileTable">
     <div class="card-header bg-header border border-dark shadow text-white">
         <h2>Current <span class="operator">Manual File</span> Uploads</h2>
@@ -49,13 +13,14 @@
     </div>
         <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
             <tr>
-                <th><b>Delete</b></th>
-                <th><b>Download</b></th>
-                <th onclick="sort_table(this)"><b>Time</b></th>
+                <th style="width:4rem"><b>Delete</b></th>
+                <th style="width:5rem"><b>Download</b></th>
+                <th style="width:15rem" onclick="sort_table(this)"><b>Time</b></th>
+                <th style="width:6rem" onclick="sort_table(this)"><b>File ID</b></th>
+                <th style="width:25rem" onclick="sort_table(this)"><b>Download UUID</b></th>
+                <th style="width:20rem" onclick="sort_table(this)"><b>Uploader</b></th>
                 <th onclick="sort_table(this)"><b>File</b></th>
-                <th onclick="sort_table(this)"><b>File ID</b></th>
-                <th onclick="sort_table(this)"><b>Download UUID</b></th>
-                <th onclick="sort_table(this)"><b>Uploader</b></th>
+                <th style="width:30rem"><b>Hashes</b></th>
             </tr>
         <!-- Repeat this for each web service -->
             <tr v-for="file in files" :key="file.id">
@@ -66,10 +31,14 @@
                     <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_button(file.agent_file_id)"><i class="fas fa-download"></i></button>
                 </td>
                 <td>[[ toLocalTime(file.timestamp) ]]</td>
-                <td>[[ file.path.split("/").slice(-1)[0] ]]</td>
                 <td>[[ file.id ]]</td>
                 <td>[[ file.agent_file_id ]]</td>
                 <td>[[ file.operator ]]</td>
+                <td>[[ file.path.split("/").slice(-1)[0] ]]</td>
+                <td>
+                    MD5: [[file.md5]]<br>
+                    SHA1: [[file.sha1]]
+                </td>
             </tr>
         <!-- End of the repeating -->
         </table>
@@ -115,7 +84,7 @@
                             Local File?&nbsp;
                         </td>
                         <td>
-                            <input type="checkbox" v-model="local_file">
+                            <span class="material-switch pull-right"><input type="checkbox" v-model="local_file" id="local_file"><label for="local_file" class="btn-info"></label></span>
                         </td>
                     </tr>
                     <tr v-if="local_file">

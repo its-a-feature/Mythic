@@ -28,6 +28,19 @@ var payloads_table = new Vue({
                 }, "POST", data);
             });
         },
+        update_callback_alert: function(p){
+            console.log("called update_callback_alert");
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/" + p.uuid, function(response){
+                    try{
+                        data = JSON.parse(response);
+                    }catch(error){
+                        alertTop("danger", "Session expired, refresh");
+                    }
+                    if(data['status'] !== 'success'){
+                        alertTop("danger", data['error']);
+                    }
+                }, "PUT", {"callback_alert": p.callback_alert});
+        },
         edit_hosting_path_button: function(p){
             $( '#payloadEditHostName' ).val(p.hosted_path.split("/").slice(-1)[0]);
             $( '#payloadEditHostHost' ).prop("checked", true);
@@ -43,10 +56,6 @@ var payloads_table = new Vue({
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/" + p.uuid, get_config_callback, "GET", null);
              Vue.set(payload_config_vue.config, "uuid", p.uuid);
             $( '#payloadConfigModal' ).modal('show');
-        },
-        download_payload_button: function(p){
-            payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + p.uuid);
-            download_from_memory(p.location.split("/").slice(-1)[0], btoa(payload));
         }
     },
     delimiters: ['[[',']]']
@@ -81,13 +90,13 @@ function delete_selected_callback(response){
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", "<b>Error</b>: " + JSON.stringify(data['error'], null, 2));
     }
     payloads_to_delete = Object.keys(data['successes']);
     for(var i = 0; i < payloads_to_delete.length; i++){
         for(var j = 0; j < payloads_table.payloads.length; j++){
-            if(payloads_table.payloads[j]['uuid'] == payloads_to_delete[i]){
+            if(payloads_table.payloads[j]['uuid'] === payloads_to_delete[i]){
                 payloads_table.payloads.splice(j, 1);
             }
         }
@@ -102,10 +111,10 @@ function delete_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-	if(data['status'] == 'success'){
+	if(data['status'] === 'success'){
 		var i = 0;
 		for( i = 0; i < payloads_table.payloads.length; i++){
-		    if(payloads_table.payloads[i].uuid == data['uuid']){
+		    if(payloads_table.payloads[i].uuid === data['uuid']){
 		        break;
 		    }
 		}
@@ -115,7 +124,7 @@ function delete_callback(response){
 		//there was an error, so we should tell the user
 		alertTop("danger", "Error: " + data['error']);
 	}
-};
+}
 var payload_config_vue = new Vue({
     el: '#payloadConfigModal',
     data: {
@@ -130,7 +139,7 @@ function get_config_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         Vue.set(payload_config_vue.config, "commands", data['commands']);
         Vue.set(payload_config_vue.config, "c2_profile_parameters_instance", data['c2_profile_parameters_instance']);
         Vue.set(payload_config_vue.config, "build_message", data['build_message']);
@@ -138,15 +147,15 @@ function get_config_callback(response){
     else{
         alertTop("danger", data['error']);
     }
-};
+}
 function startwebsocket_payloads(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
 	ws.onmessage = function(event){
-		if(event.data != ""){
-			pdata = JSON.parse(event.data);
-			if(pdata['deleted'] == false){
+		if(event.data !== ""){
+			let pdata = JSON.parse(event.data);
+			if(pdata['deleted'] === false){
 			    for(var i = 0; i < payloads_table.payloads.length; i++){
-                    if(pdata['id'] == payloads_table.payloads[i]['id']){
+                    if(pdata['id'] === payloads_table.payloads[i]['id']){
                         //just update the data
                         Vue.set(payloads_table.payloads, i, Object.assign({}, payloads_table.payloads[i], pdata));
                         return;
@@ -157,15 +166,15 @@ function startwebsocket_payloads(){
             }
 			
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
 		alertTop("danger", "Socket closed, please refresh");
-	}
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Socket errored, please refresh");
-	}
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
@@ -195,6 +204,157 @@ var add_command_template_vue = new Vue({
         theme: "{{config['code-theme']}}",
         language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
         theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"]
+    },
+    delimiters: ['[[', ']]']
+});
+var commandEdit_table = new Vue({
+    el: '#commandEditTable',
+    data: {
+        version: 1,
+        is_file_browse: false,
+        file_browse_parameters: "",
+        is_process_list: false,
+        process_list_parameters: "",
+        is_download_file: false,
+        download_file_parameters: "",
+        is_remove_file: false,
+        remove_file_parameters: "",
+        is_exit: false,
+        help_cmd: "",
+        description:"",
+        needs_admin: false,
+        code: "",
+        language: "javascript",
+        theme: "{{config['code-theme']}}",
+        language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
+        theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"],
+        filename: "",
+        folder: "",
+        folders: [],
+        commands: [],
+        selected_command: {}
+    },
+    methods: {
+        delete_file_button: function(folder, file){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/delete", (response) =>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'error'){
+                        alertTop("warning", data['error']);
+                    }else{
+                        for(let i = 0; i < folder.filenames.length; i++){
+                            if(file === folder.filenames[i]){
+                                folder.filenames.splice(i, 1);
+                                return;
+                            }
+                        }
+                    }
+                }catch(error){
+                    alertTop("danger", "session expired, please refresh");
+                }
+
+            }, "POST", {"folder": folder.folder, "file": file});
+        },
+        download_file_button: function(folder, file){
+            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download?folder=" + folder + "&file=" + file, "_blank");
+            //let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download?folder=" + folder + "&file=" + file);
+            //download_from_memory(file, btoa(payload));
+        },
+        add_sub_folder: function(folder){
+            $( '#payloadtypeEditFilesAddFolder' ).modal('show');
+            $( '#payloadtypeEditFilesAddFolderSubmit' ).unbind('click').click(function(){
+                let subfolder = $('#payloadtypeEditFilesAddFolderName').val();
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + commandEdit_table.selected_command['id'] + "/files/add_folder", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("warning", data['error']);
+                        }else{
+                            //this means the folder was successfully created, so update the UI to match
+                            commandEdit_table.folders.push({"folder":data['folder'], "filenames":[], "dirnames": []});
+                            Vue.nextTick(function(){
+                                commandEdit_table.$forceUpdate();
+                            });
+                            hide_modal('payloadtypeEditFilesAddFolder');
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "POST", {"folder": folder.folder, "sub_folder": subfolder});
+            });
+        },
+        remove_folder: function(folder, index) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + commandEdit_table.selected_command['id'] + "/files/remove_folder", (response) => {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] === 'error') {
+                        alertTop("warning", data['error']);
+                    } else {
+                        //this means the folder was successfully created, so update the UI to match
+                        commandEdit_table.folders.splice(index, 1);
+                    }
+                } catch (error) {
+                    alertTop("danger", "Session expired, please refresh");
+                }
+            }, "POST", {"folder": folder.folder});
+        },
+        upload_agent_file: function(folder){
+            $( '#payloadtypeEditFilesAddFile' ).modal('show');
+            $( '#payloadtypeEditFilesAddFileSubmit' ).unbind('click').click(function(){
+                let file = document.getElementById('payloadtypeEditFilesUploadFile');
+                let filedata = file.files;
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + commandEdit_table.selected_command['id'] + "/upload", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("warning", data['error']);
+                        }else{
+                            //this means the file was successfully created, so update the UI to match
+                            //console.log(data['files']);
+                            for(let i in data['files']){
+                                folder.filenames.push(data['files'][i]);
+                            }
+                            hide_modal('payloadtypeEditFilesAddFile');
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, filedata, {"folder": folder.folder}, "POST");
+                file.value = file.defaultValue;
+            });
+        },
+        send_to_edit: function(folder, file){
+            let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download?folder=" + folder + "&file=" + file + "&base64=1");
+            try{
+                this.code = atob(payload);
+                this.filename = file;
+                this.folder = folder.folder;
+            }catch(error){
+                alertTop("warning", "Failed to base64 decode contents");
+            }
+        },
+        save_changes: function(){
+            if(this.filename !== "") {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + commandEdit_table.selected_command['id'] + "/upload", (response) => {
+                    try {
+                        let data = JSON.parse(response);
+                        if (data['status'] === 'error') {
+                            alertTop("warning", data['error']);
+                        } else {
+                            //this means the folder was successfully created, so update the UI to match
+                            alertTop("success", "Successfully updated");
+                            commandEdit_table.version +=1;
+                        }
+                    } catch (error) {
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "POST", {"file": this.filename, "folder": this.folder, "code": btoa(commandEdit_table.code)});
+            }else{
+                alertTop("warning", "Select a file to edit first");
+            }
+        }
     },
     delimiters: ['[[', ']]']
 });
@@ -250,7 +410,7 @@ var payloadtypes_table = new Vue({
 
             $('#payloadtypeEditModal').modal('show');
             $( '#payloadtypeEditSubmit' ).unbind('click').click(function(){
-                var data = {"file_extension": $( '#payloadtypeEditFileExtension').val()};
+                let data = {"file_extension": $( '#payloadtypeEditFileExtension').val()};
                 data["wrapper"]= $('#payloadtypeEditWrapper').is(":checked");
                 //data['command_template'] = $('#payloadtypeEditCommandTemplate').val();
                 data['command_template'] = edit_command_template_vue.command_template;
@@ -260,21 +420,7 @@ var payloadtypes_table = new Vue({
                 if($('#payloadtypeEditWrapper').is(":checked")){
                     data["wrapped_payload_type"]= $('#payloadtypeEditWrappedPayloadType').val();
                 }
-                var file = document.getElementById('payloadtypeEditUploadFiles');
-                if(file.files.length > 0){
-                    var filedata = file.files;
-                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p['ptype'], edit_payloadtype_callback, filedata, data, "PUT");
-                    file.value = file.defaultValue;
-                }
-                else{
-                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p['ptype'], edit_payloadtype_callback, "PUT", data);
-                }
-                var file = document.getElementById('payloadtypeEditUploadContainerFiles');
-                if(file.files.length > 0){
-                    var filedata = file.files;
-                    uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p['ptype'] + "/container_upload", null, filedata);
-                    file.value = file.defaultValue;
-                }
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p['ptype'], edit_payloadtype_callback, "PUT", data);
             });
         },
         add_commands_button: function(p){
@@ -283,6 +429,46 @@ var payloadtypes_table = new Vue({
             $( '#commandAddVersion').val(1);
             $( '#commandAddVersion').prop('disabled', true);
             $( '#commandAddModal' ).modal('show');
+            $('#commandAddIsFileBrowse').prop("checked", false);
+             $('#commandAddIsFileBrowseSelected').prop("hidden", true);
+            $('#commandAddIsProcessList').prop("checked", false);
+             $('#commandAddIsProcessListSelected').prop("hidden", true);
+            $('#commandAddIsDownloadFile').prop("checked", false);
+             $('#commandAddIsDownloadFileSelected').prop("hidden", true);
+             $('#commandAddIsRemoveFile').prop("checked", false);
+              $('#commandAddIsRemoveFileSelected').prop("hidden", true);
+            $( '#commandAddIsFileBrowse').unbind('click').click(function(){
+                if( $('#commandAddIsFileBrowse').is(":checked")){
+                    $('#commandAddIsFileBrowseSelected').prop("hidden", false);
+                }
+                else{
+                    $('#commandAddIsFileBrowseSelected').prop("hidden", true);
+                }
+            });
+            $( '#commandAddIsProcessList').unbind('click').click(function(){
+                if( $('#commandAddIsProcessList').is(":checked")){
+                    $('#commandAddIsProcessListSelected').prop("hidden", false);
+                }
+                else{
+                    $('#commandAddIsProcessListSelected').prop("hidden", true);
+                }
+            });
+            $( '#commandAddIsDownloadFile').unbind('click').click(function(){
+                if( $('#commandAddIsDownloadFile').is(":checked")){
+                    $('#commandAddIsDownloadFileSelected').prop("hidden", false);
+                }
+                else{
+                    $('#commandAddIsDownloadFileSelected').prop("hidden", true);
+                }
+            });
+            $( '#commandAddIsRemoveFile').unbind('click').click(function(){
+                if( $('#commandAddIsRemoveFile').is(":checked")){
+                    $('#commandAddIsRemoveFileSelected').prop("hidden", false);
+                }
+                else{
+                    $('#commandAddIsRemoveFileSelected').prop("hidden", true);
+                }
+            });
             $( '#commandAddSubmit' ).unbind('click').click(function(){
                 //base64 encode the code before submitting it or base64 encode the file
                 var file = document.getElementById('commandAddFile');
@@ -292,6 +478,27 @@ var payloadtypes_table = new Vue({
                 "is_exit": $('#commandAddIsExit').is(":checked")};
 
                 data['needs_admin'] = $('#commandAddNeedsAdmin').is(":checked");
+
+                if( $('#commandAddIsFileBrowse').is(":checked")){
+                    data['is_file_browse'] = true;
+                    data['file_browse_parameters'] = $('#commandAddFileBrowseParameters').val();
+                }else{data['is_file_browse'] = false;}
+
+                if( $('#commandAddIsProcessList').is(":checked")){
+                    data['is_process_list'] = true;
+                    data['process_list_parameters'] = $('#commandAddProcessListParameters').val();
+                }else{data['is_process_list'] = false;}
+
+                if( $('#commandAddIsDownloadFile').is(":checked")){
+                    data['is_download_file'] = true;
+                    data['download_file_parameters'] = $('#commandAddDownloadFileParameters').val();
+                }else{data['is_download_file'] = false;}
+
+                if( $('#commandAddIsRemoveFile').is(":checked")){
+                    data['is_remove_file'] = true;
+                    data['remove_file_parameters'] = $('#commandAddRemoveFileParameters').val();
+                }else{data['is_remove_file'] = false;}
+
                 if(file.files.length > 0){
                     var filedata = file.files;
                     uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/", add_command_callback, filedata, data, "POST");
@@ -356,111 +563,96 @@ var payloadtypes_table = new Vue({
 
         },
         edit_commands_button: function(p){
-            var types = "";
-            for(var i = 0; i < p.commands.length; i++){
-                types = types + '<option value="' + p.commands[i]['cmd'] + '">' + p.commands[i]['cmd'] + '</option>';
-            };
-            $( '#commandEditCmd' ).html(types);
-            //set_edit_command_params( $('#commandEditCmd').val(), p );
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + $('#commandEditCmd').val(), set_edit_command_info_callback, "GET", null);
-            $('#commandEditVersion').prop('disabled', true);
+            commandEdit_table.commands = p.commands;
+            commandEdit_table.selected_command = commandEdit_table.commands[0];
+            commandEdit_table.code = "";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + commandEdit_table.selected_command['cmd'], set_edit_command_info_callback, "GET", null);
             $( '#commandEditModal' ).modal('show');
             $( '#commandEditCmd' ).unbind('change').change(function(){
                 // Populate the various parts of the modal on select changes
-                cmd = $(this).find("option:selected").attr('value');
+                let cmd = commandEdit_table.selected_command['cmd'];
+                commandEdit_table.code = "";
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.ptype + "/check/" + cmd, set_edit_command_info_callback, "GET", null);
             });
             $( '#commandEditSubmit' ).unbind('click').click(function(){
                 //check for changes between what we have and what's in the fields, only submit those differences
                 //an uploaded file takes precidence over text in the text block
-                var cmd = $('#commandEditCmd').val();
-                data = {'help_cmd': $('#commandEditHelpCmd').val(), 'description': $('#commandEditDescription').val(),
-                'needs_admin': $('#commandEditNeedsAdmin').is(":checked"), "is_exit": $('#commandEditIsExit').is(":checked")};
-                for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-                    if(payloadtypes_table.payloadtypes[i]['ptype'] == p['ptype']){
-                        payloadtypes_table.payloadtypes[i]['commands_set'].forEach(function(command){
-                          if (command.cmd == cmd) {
-                            var file = document.getElementById('commandEditFile');
-                            if(file.files.length > 0){
-                                var filedata = file.files[0];
-                                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, command_edit_callback, filedata, data, "PUT");
-                                file.value = file.defaultValue;
-                            }
-                            else{
-                                // only add the 'code' field if we actually changed something in the code
-                                if( edit_command_code_vue.code != edit_command_code_vue.old_code){
-                                    data['code'] = btoa(edit_command_code_vue.code);
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, command_edit_callback, "PUT", data);
-                                }
-                            }
-                            //Now handle sending updates for the command parameters at the bottom
-                            for(var j = 0; j < command_parameters_table.command_parameters.length; j++){
-                                data = command_parameters_table.command_parameters[j];
-                                if(data.hasOwnProperty('id')){
-                                    //this means it's a parameter we had before, so send an update
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters/" + data['id'], null, "PUT", data);
-                                }
-                                else if(data['name'] != ""){
-                                    //make sure they entered something for the name, and send a POST to create the parameter
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters", null, "POST", data);
-                                }
-                            }
-                            //Now handle sending updates for the transforms on this command
-                            for(var j = 0; j < edit_command_transforms_table.add_command_transforms.length; j++){
-                                data = edit_command_transforms_table.add_command_transforms[j];
-                                if(data.hasOwnProperty('id')){
-                                    //we need to send an update for this one
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + data.id, null, "PUT", data);
-                                }
-                                else if(data['name'] != "select_one"){
-                                    //we need to create a new entry for this one
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + command.id, null, "POST", data);
-                                }
-                            }
-                            //Now handle sending updates for the att&ck techniques with this command
-                            for(var j = 0; j < edit_command_attack_table.add_attack_command.length; j++){
-                                data = edit_command_attack_table.add_attack_command[j];
-                                if(!data.hasOwnProperty('command_id')){
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/mitreattack/" + data['t_num'], null, "POST", data);
-                                }
-                                else{
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/mitreattack/" + data['t_num'], null, "PUT", data);
-                                }
-                            }
-                            //Now handle sending updates for the artifacts with this command
-                            for(var j = 0; j < edit_command_artifacts_table.add_command_artifact.length; j++){
-                                data = edit_command_artifacts_table.add_command_artifact[j];
-                                console.log(data);
-                                if(!data.hasOwnProperty("id")){
-                                    //we're creating a new artifact_template mapping
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates", create_or_edit_command_artifacts_callback, "POST", data);
-                                }else{
-                                    //we're updating an artifact in some way
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates/" + data['id'], create_or_edit_command_artifacts_callback, "PUT", data);
-                                }
-                            }
-                          }
-                        });
+                let command = commandEdit_table.selected_command;
+                commandEdit_table.code = "";
+                let data = {'help_cmd': commandEdit_table.help_cmd,
+                'description': commandEdit_table.description,
+                'needs_admin': commandEdit_table.needs_admin,
+                "is_exit": commandEdit_table.is_exit,
+                "is_file_browse": commandEdit_table.is_file_browse,
+                "file_browse_parameters": commandEdit_table.file_browse_parameters,
+                "is_process_list": commandEdit_table.is_process_list,
+                "process_list_parameters": commandEdit_table.process_list_parameters,
+                "is_download_file": commandEdit_table.is_download_file,
+                "download_file_parameters":commandEdit_table.download_file_parameters,
+                "is_remove_file": commandEdit_table.is_remove_file,
+                "remove_file_parameters":commandEdit_table.remove_file_parameters};
+                //console.log(data);
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id, command_edit_callback, "PUT", data);
+                //Now handle sending updates for the command parameters at the bottom
+                for(let j = 0; j < command_parameters_table.command_parameters.length; j++){
+                    data = command_parameters_table.command_parameters[j];
+                    if(data.hasOwnProperty('id')){
+                        //this means it's a parameter we had before, so send an update
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters/" + data['id'], null, "PUT", data);
+                    }
+                    else if(data['name'] !== ""){
+                        //make sure they entered something for the name, and send a POST to create the parameter
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/parameters", null, "POST", data);
+                    }
+                }
+                //Now handle sending updates for the transforms on this command
+                for(let j = 0; j < edit_command_transforms_table.add_command_transforms.length; j++){
+                    data = edit_command_transforms_table.add_command_transforms[j];
+                    if(data.hasOwnProperty('id')){
+                        //we need to send an update for this one
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + data.id, null, "PUT", data);
+                    }
+                    else if(data['name'] !== "select_one"){
+                        //we need to create a new entry for this one
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + command.id, null, "POST", data);
+                    }
+                }
+                //Now handle sending updates for the att&ck techniques with this command
+                for(let j = 0; j < edit_command_attack_table.add_attack_command.length; j++){
+                    data = edit_command_attack_table.add_attack_command[j];
+                    if(!data.hasOwnProperty('command_id')){
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/mitreattack/" + data['t_num'], null, "POST", data);
+                    }
+                    else{
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/mitreattack/" + data['t_num'], null, "PUT", data);
+                    }
+                }
+                //Now handle sending updates for the artifacts with this command
+                for(let j = 0; j < edit_command_artifacts_table.add_command_artifact.length; j++){
+                    data = edit_command_artifacts_table.add_command_artifact[j];
+                    //console.log(data);
+                    if(!data.hasOwnProperty("id")){
+                        //we're creating a new artifact_template mapping
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates", create_or_edit_command_artifacts_callback, "POST", data);
+                    }else{
+                        //we're updating an artifact in some way
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + command.id + "/artifact_templates/" + data['id'], create_or_edit_command_artifacts_callback, "PUT", data);
                     }
                 }
             });
-            $( '#commandEditCancel' ).unbind('click').click(function(){
-                var file = document.getElementById('commandEditFile');
-                file.value = file.defaultValue;
-            });
         },
         remove_commands_button: function(p){
-            var types = "";
-            for(var i = 0; i < p.commands.length; i++){
+            let types = "";
+            for(let i = 0; i < p.commands.length; i++){
                 types = types + '<option value="' + p.commands[i]['cmd'] + '">' + p.commands[i]['cmd'] + '</option>';
-            };
+            }
             $( '#commandRemoveList' ).html(types);
             $( '#commandRemoveModal' ).modal('show');
             $( '#commandRemoveSubmit' ).unbind('click').click(function(){
                 commands_to_remove = $( '#commandRemoveList' ).val();
-                for(var i = 0; i < commands_to_remove.length; i++){
-                    for(var j = 0; j < p.commands.length; j++){
-                        if(p.commands[j]['cmd'] == commands_to_remove[i]){
+                for(let i = 0; i < commands_to_remove.length; i++){
+                    for(let j = 0; j < p.commands.length; j++){
+                        if(p.commands[j]['cmd'] === commands_to_remove[i]){
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.commands[j]['id'], remove_commands_callback, "DELETE", null);
                         }
                     }
@@ -481,8 +673,8 @@ var payloadtypes_table = new Vue({
                 //Now go through to see what our final state looks like and submit put/post requests as necessary to update
                 //reverse the order of our table by the 'order' index and work backwards
                 payloadEditCreateTransforms_Table.createTransforms.sort((a,b) =>(b.order > a.order) ? 1 : ((a.order > b.order) ? -1 : 0));
-                for(i in payloadEditCreateTransforms_Table.createTransforms){
-                    if(payloadEditCreateTransforms_Table.createTransforms[i]['name'] != "select_one"){
+                for(let i in payloadEditCreateTransforms_Table.createTransforms){
+                    if(payloadEditCreateTransforms_Table.createTransforms[i]['name'] !== "select_one"){
                         if(payloadEditCreateTransforms_Table.createTransforms[i].hasOwnProperty('id')){
                             //This is something we've seen before, we just need to send an update request if it changed
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/" + payloadEditCreateTransforms_Table.createTransforms[i]['id'], update_create_transform_options_callback, "PUT", payloadEditCreateTransforms_Table.createTransforms[i]);
@@ -504,8 +696,8 @@ var payloadtypes_table = new Vue({
                 //Now go through to see what our final state looks like and submit put/post requests as necessary to update
                 //reverse the order of our table by the 'order' index and work backwards
                 payloadEditLoadTransforms_Table.loadTransforms.sort((a,b) =>(b.order > a.order) ? 1 : ((a.order > b.order) ? -1 : 0));
-                for(i in payloadEditLoadTransforms_Table.loadTransforms){
-                    if(payloadEditLoadTransforms_Table.loadTransforms[i]['name'] != "select_one"){
+                for(let i in payloadEditLoadTransforms_Table.loadTransforms){
+                    if(payloadEditLoadTransforms_Table.loadTransforms[i]['name'] !== "select_one"){
                         if(payloadEditLoadTransforms_Table.loadTransforms[i].hasOwnProperty('id')){
                             //This is something we've seen before, we just need to send an update request if it changed
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/" + payloadEditLoadTransforms_Table.loadTransforms[i]['id'], update_load_transform_options_callback, "PUT", payloadEditLoadTransforms_Table.loadTransforms[i]);
@@ -533,18 +725,7 @@ var add_command_code_vue = new Vue({
     },
     delimiters: ['[[', ']]']
 });
-var edit_command_code_vue = new Vue({
-    el: '#edit_command_code',
-    data:{
-        code: "",
-        old_code: "",
-        language: "javascript",
-        theme: "{{config['code-theme']}}",
-        language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
-        theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"]
-    },
-    delimiters: ['[[', ']]']
-});
+
 function create_or_edit_command_artifacts_callback(response){
     try{
         var data = JSON.parse(response);
@@ -552,7 +733,7 @@ function create_or_edit_command_artifacts_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         alertTop("success", "Command artifacts successfully edited");
     }
     else{
@@ -566,7 +747,7 @@ function set_files_edit_payloadtype_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         payloadtypeFiles.folders = data['files'];
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypeFiles.payloadtype_name + "/container_files", null, "GET", null);
     }else{
@@ -581,7 +762,7 @@ function command_edit_callback(response){
         alertTop("danger", "Failed to edit command, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         alertTop("success", "Successfully updated command");
     }
     else{
@@ -595,15 +776,15 @@ function update_load_transform_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", "Error updating transform for loading a module: " + data['error']);
     }
     else{
         //now update it in the UI
-        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
-                for(var j = 0; j < payloadtypes_table.payloadtypes[i]['load'].length; j++){
-                    if(data['id'] == payloadtypes_table.payloadtypes[i]['load'][j]['id']){
+        for(let i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['payload_type']){
+                for(let j = 0; j < payloadtypes_table.payloadtypes[i]['load'].length; j++){
+                    if(data['id'] === payloadtypes_table.payloadtypes[i]['load'][j]['id']){
                         payloadtypes_table.payloadtypes[i]['load'][j] = data;
                         payloadtypes_table.payloadtypes[i]['load'].sort((a,b) =>(a.order > b.order) ? 1 : ((b.order > a.order) ? -1 : 0));
                         return;
@@ -620,15 +801,15 @@ function update_create_transform_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", "Error updating a transform for creating a payload: " + data['error']);
     }
     else{
         //now update it in the UI
-        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
-                for(var j = 0; j < payloadtypes_table.payloadtypes[i]['create'].length; j++){
-                    if(data['id'] == payloadtypes_table.payloadtypes[i]['create'][j]['id']){
+        for(let i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['payload_type']){
+                for(let j = 0; j < payloadtypes_table.payloadtypes[i]['create'].length; j++){
+                    if(data['id'] === payloadtypes_table.payloadtypes[i]['create'][j]['id']){
                         payloadtypes_table.payloadtypes[i]['create'][j] = data;
                         payloadtypes_table.payloadtypes[i]['create'].sort((a,b) =>(a.order > b.order) ? 1 : ((b.order > a.order) ? -1 : 0));
                         return;
@@ -645,13 +826,13 @@ function add_new_load_transform_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", "Error adding a new transform for loading a module: " + data['error']);
     }
     else{
         //add our new data in and sort it by order again
         for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['payload_type']){
                 payloadtypes_table.payloadtypes[i]['load'].push(data);
                 payloadtypes_table.payloadtypes[i]['load'].sort((a,b) =>(a.order > b.order) ? 1 : ((b.order > a.order) ? -1 : 0));
                 return;
@@ -667,13 +848,13 @@ function add_new_create_transform_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", "Error adding a new transform for creating a payload: " + data['error']);
     }
     else{
         //add our new data in and sort it by order again
         for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['payload_type']){
                 payloadtypes_table.payloadtypes[i]['create'].push(data);
                 payloadtypes_table.payloadtypes[i]['create'].sort((a,b) =>(a.order > b.order) ? 1 : ((b.order > a.order) ? -1 : 0));
                 return;
@@ -742,15 +923,15 @@ function remove_load_transform_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", "Error removing a load module transform: " + data['error']);
     }
     else{
         //now remove it from the appropriate payloadtype's load array so it's updated in the UI
-        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
-                for(var j = 0; j < payloadtypes_table.payloadtypes[i]['load'].length; j++){
-                    if(data['id'] == payloadtypes_table.payloadtypes[i]['load'][j]['id']){
+        for(let i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['payload_type']){
+                for(let j = 0; j < payloadtypes_table.payloadtypes[i]['load'].length; j++){
+                    if(data['id'] === payloadtypes_table.payloadtypes[i]['load'][j]['id']){
                         payloadtypes_table.payloadtypes[i]['load'].splice(j, 1);
                         return;
                     }
@@ -766,34 +947,21 @@ function remove_create_transform_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", "Error remove a create payload transform: " + data['error']);
     }
     else{
         //now remove it from the appropriate payloadtype's load array so it's updated in the UI
-        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
-                for(var j = 0; j < payloadtypes_table.payloadtypes[i]['create'].length; j++){
-                    if(data['id'] == payloadtypes_table.payloadtypes[i]['create'][j]['id']){
+        for(let i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['payload_type']){
+                for(let j = 0; j < payloadtypes_table.payloadtypes[i]['create'].length; j++){
+                    if(data['id'] === payloadtypes_table.payloadtypes[i]['create'][j]['id']){
                         payloadtypes_table.payloadtypes[i]['create'].splice(j, 1);
                         return;
                     }
                 }
             }
         }
-    }
-}
-function set_edit_code_callback(response){
-    try{
-        //$( '#commandEditCode' ).val(atob(response));
-        //$( '#commandEditOldCode').val(atob(response));
-        edit_command_code_vue.code = atob(response);
-        edit_command_code_vue.old_code = atob(response);
-    }catch(error){
-        //$( '#commandEditCode' ).val("");
-        edit_command_code_vue.code = "";
-        edit_command_code_vue.old_code = "";
-        console.log("error trying to base64 decode the code for editing");
     }
 }
 function set_edit_command_info_callback(response){
@@ -803,34 +971,29 @@ function set_edit_command_info_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         //console.log(data);
-        set_edit_code_callback(data['code']);
+        commandEdit_table.description = data['description'];
+        commandEdit_table.help_cmd = data['help_cmd'];
+        commandEdit_table.version = data['version'];
+        commandEdit_table.needs_admin = data['needs_admin'];
+        commandEdit_table.is_exit = data['is_exit'];
+        commandEdit_table.is_file_browse = data['is_file_browse'];
+        commandEdit_table.file_browse_parameters = data['file_browse_parameters'];
+        commandEdit_table.is_download_file = data['is_download_file'];
+        commandEdit_table.download_file_parameters = data['file_browse_parameters'];
+        commandEdit_table.is_process_list = data['is_process_list'];
+        commandEdit_table.process_list_parameters = data['process_list_parameters'];
+        commandEdit_table.is_remove_file = data['is_remove_file'];
+        commandEdit_table.remove_file_parameters = data['remove_file_parameters'];
+        commandEdit_table.folders = data['files'];
+        commandEdit_table.filename = "";
+        commandEdit_table.folder = "";
         set_edit_command_parameters(JSON.stringify(data['params']));
         set_edit_command_transforms(JSON.stringify({'status':'success', 'transforms': data['transforms']}));
         set_edit_command_attack(JSON.stringify({'status': 'success', 'attack': data['attack']}));
         set_edit_command_artifact(JSON.stringify({'status': 'success', 'artifacts': data['artifacts']}));
-        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
-                payloadtypes_table.payloadtypes[i]['commands_set'].forEach(function(cmd){
-                  if (cmd.cmd == data['cmd']) {
-                    cmd.description = data['description'];
-                    cmd.help_cmd = data['help_cmd'];
-                    cmd.version = data['version'];
-                    cmd.needs_admin = data['needs_admin'];
-                    cmd.is_exit = data['is_exit'];
-                    $( '#commandEditDescription' ).val(cmd.description);
-                    $( '#commandEditHelpCmd' ).val(cmd.help_cmd);
-                    $( '#commandEditVersion').val(cmd.version);
-                    $( '#commandEditNeedsAdmin' ).prop('checked', cmd.needs_admin);
-                    $( '#commandEditIsExit' ).prop('checked', cmd.is_exit);
-
-                  }
-                 });
-             }
-        }
     }else{
-
         alertTop("danger", data['error']);
     }
 
@@ -873,7 +1036,7 @@ function set_edit_command_transforms(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         edit_command_transforms_table.add_command_transforms = data['transforms'];
     }
     else{
@@ -887,7 +1050,7 @@ function set_edit_command_attack(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         edit_command_attack_table.add_attack_command = data['attack'];
     }
     else{
@@ -901,7 +1064,7 @@ function set_edit_command_artifact(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         edit_command_artifacts_table.add_command_artifact = data['artifacts'];
     }
     else{
@@ -915,10 +1078,10 @@ function edit_remove_parameter(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         //now find the parameter and remove it from our array
-        for(var i = 0; i < command_parameters_table.command_parameters.length; i++){
-            if(command_parameters_table.command_parameters[i]['id'] == data['id']){
+        for(let i = 0; i < command_parameters_table.command_parameters.length; i++){
+            if(command_parameters_table.command_parameters[i]['id'] === data['id']){
                 command_parameters_table.command_parameters.splice(i,1);
                 $('#commandEditVersion').val(data['new_cmd_version']);
             }
@@ -951,33 +1114,33 @@ function add_command_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(cdata['status'] != "success"){
+    if(cdata['status'] !== "success"){
         alertTop("danger", "Error adding a command: " + cdata['error']);
     }
     //Now handle sending updates for the command parameters at the bottom
     for(var j = 0; j < add_command_parameters_table.add_command_parameters.length; j++){
         var data = add_command_parameters_table.add_command_parameters[j];
-        if(data['name'] != "" && data['type'] != "Select One..."){
+        if(data['name'] !== "" && data['type'] !== "Select One..."){
             //make sure they entered something for the name, and send a POST to create the parameter
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cdata['id'] + "/parameters", null, "POST", data);
         }
     }
     add_command_parameters_table.add_command_parameters = [];
     //Now handle sending updates for the command transforms at the bottom
-    for(var i = 0; i < add_command_transforms_table.add_command_transforms.length; i++){
+    for(let i = 0; i < add_command_transforms_table.add_command_transforms.length; i++){
         var data = add_command_transforms_table.add_command_transforms[i];
-        if(data['name'] != "select_one"){
+        if(data['name'] !== "select_one"){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + cdata['id'], null, "POST", data);
         }
     }
     add_command_transforms_table.add_command_transforms = [];
     //Now handle sending updates for the att&ck techniques with this command
-    for(var j = 0; j < add_command_attack_table.add_attack_command.length; j++){
+    for(let j = 0; j < add_command_attack_table.add_attack_command.length; j++){
         var data = add_command_attack_table.add_attack_command[j];
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cdata['id'] + "/mitreattack/" + data['t_num'], null, "POST", data);
     }
     //Now handle sending updates for the artifact techniques with this command
-    for(var j = 0; j < add_command_artifacts_table.add_command_artifact.length; j++){
+    for(let j = 0; j < add_command_artifacts_table.add_command_artifact.length; j++){
         var data = add_command_artifacts_table.add_command_artifact[j];
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + cdata['id'] + "/artifact_templates", null, "POST", data);
     }
@@ -991,12 +1154,12 @@ function remove_commands_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         // remove the command from the appropriate payload_type commands listing
-        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['payload_type']){
+        for(let i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['payload_type']){
                 payloadtypes_table.payloadtypes[i]['commands_set'].forEach(function(cmd){
-                  if (cmd.cmd == data['cmd']) {
+                  if (cmd.cmd === data['cmd']) {
                     payloadtypes_table.payloadtypes[i]['commands_set'].delete(cmd);
                     Vue.set(payloadtypes_table.payloadtypes[i], 'commands', Array.from(payloadtypes_table.payloadtypes[i]['commands_set']));
                   }
@@ -1008,7 +1171,7 @@ function remove_commands_callback(response){
     else{
         alertTop("danger", "Error removing a command: " + data['error']);
     }
-};
+}
 var add_command_transforms_table = new Vue({
     el: '#add_command_transforms_table',
     data: {
@@ -1055,10 +1218,10 @@ function edit_command_transforms_remove_transform_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         //it was successfully removed, so now we need to update the UI
-        for(var i = 0; i < edit_command_transforms_table.add_command_transforms.length; i++){
-            if(edit_command_transforms_table.add_command_transforms[i]['id'] == data['id']){
+        for(let i = 0; i < edit_command_transforms_table.add_command_transforms.length; i++){
+            if(edit_command_transforms_table.add_command_transforms[i]['id'] === data['id']){
                 edit_command_transforms_table.add_command_transforms.splice(i, 1);
                 return;
             }
@@ -1075,10 +1238,10 @@ function delete_payloadtype_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         // we need to remove the corresponding payload type from the UI
         for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['ptype']){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['ptype']){
                 payloadtypes_table.payloadtypes.splice(i, 1);
                 return;
             }
@@ -1095,10 +1258,11 @@ function edit_payloadtype_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
-        for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-            if(payloadtypes_table.payloadtypes[i]['ptype'] == data['ptype']){
+    if(data['status'] === "success"){
+        for(let i = 0; i < payloadtypes_table.payloadtypes.length; i++){
+            if(payloadtypes_table.payloadtypes[i]['ptype'] === data['ptype']){
                 Vue.set(payloadtypes_table.payloadtypes, i, Object.assign({}, payloadtypes_table.payloadtypes[i], data));
+                alertTop("success", "Successfully updated");
                 return;
             }
         }
@@ -1106,7 +1270,7 @@ function edit_payloadtype_callback(response){
     else{
         alertTop("danger", "Error editing a payload type: " + data['error']);
     }
-};
+}
 var payloadtypeFiles = new Vue({
     el: '#payloadtypeEditFiles',
     data: {
@@ -1127,14 +1291,124 @@ var payloadtypeFiles = new Vue({
                 alertTop("info", "Tasked download...");
             }
             else{
-                //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
-                payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download?folder=" + folder + "&file=" + file);
-                download_from_memory(file, btoa(payload));
+                window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
             }
+        },
+        add_sub_folder: function(folder){
+            $( '#payloadtypeEditFilesAddFolder' ).modal('show');
+            $( '#payloadtypeEditFilesAddFolderSubmit' ).unbind('click').click(function(){
+                let subfolder = $('#payloadtypeEditFilesAddFolderName').val();
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypeFiles.payloadtype_name + "/files/add_folder", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("danger", data['error']);
+                        }else{
+                            //this means the folder was successfully created, so update the UI to match
+                            payloadtypeFiles.folders.push({"folder":data['folder'], "filenames":[], "dirnames": []});
+                            Vue.nextTick(function(){
+                                payloadtypeFiles.$forceUpdate();
+                            });
+                            hide_modal('payloadtypeEditFilesAddFolder');
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "POST", {"folder": folder.folder, "sub_folder": subfolder});
+            });
+        },
+        remove_folder: function(folder, index) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypeFiles.payloadtype_name + "/files/remove_folder", (response) => {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] === 'error') {
+                        alertTop("danger", data['error']);
+                    } else {
+                        //this means the folder was successfully created, so update the UI to match
+                        payloadtypeFiles.folders.splice(index, 1);
+                    }
+                } catch (error) {
+                    alertTop("danger", "Session expired, please refresh");
+                }
+            }, "POST", {"folder": folder.folder});
+        },
+        upload_agent_file: function(folder){
+            $( '#payloadtypeEditFilesAddFile' ).modal('show');
+            $( '#payloadtypeEditFilesAddFileSubmit' ).unbind('click').click(function(){
+                let file = document.getElementById('payloadtypeEditFilesUploadFile');
+                let filedata = file.files;
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypeFiles.payloadtype_name + "/upload", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("danger", data['error']);
+                        }else{
+                            //this means the file was successfully created, so update the UI to match
+                            //console.log(data['files']);
+                            for(let i in data['files']){
+                                folder.filenames.push(data['files'][i]);
+                            }
+                            hide_modal('payloadtypeEditFilesAddFile');
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, filedata, {"folder": folder.folder}, "POST");
+                file.value = file.defaultValue;
+            });
+        },
+        upload_container_file: function(folder){
+            $( '#payloadtypeEditFilesAddFile' ).modal('show');
+            $( '#payloadtypeEditFilesAddFileSubmit' ).unbind('click').click(function(){
+                let file = document.getElementById('payloadtypeEditFilesUploadFile');
+                let filedata = file.files;
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypeFiles.payloadtype_name + "/container_upload", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("danger", data['error']);
+                        }else{
+                            //this means the file was successfully created, so update the UI to match
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypeFiles.payloadtype_name + "/container_files", null, "GET", null);
+                            alertTop("success", "files sent to container, refreshing");
+                            hide_modal('payloadtypeEditFilesAddFile');
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, filedata, null, "POST");
+                file.value = file.defaultValue;
+            });
         }
     },
     delimiters: ['[[',']]']
 });
+$('#payloadtypeEditFilesAddFolder').on('shown.bs.modal', function() {
+    $('#commandEditModal').css('z-index', 1030);
+    $('#payloadtypeEditModal').css('z-index', 1030);
+    $('#payloadtypeEditFilesAddFolder').css('z-index', 1041);
+});
+$('#payloadtypeEditFilesAddFolder').on('hidden.bs.modal', function() {
+    $('#commandEditModal').css('z-index', 1041);
+    $('#payloadtypeEditModal').css('z-index', 1041);
+    $('#payloadtypeEditFilesAddFolder').css('z-index', 1030);
+});
+$('#payloadtypeEditFilesAddFile').on('shown.bs.modal', function() {
+    $('#commandEditModal').css('z-index', 1030);
+    $('#payloadtypeEditModal').css('z-index', 1030);
+    $('#payloadtypeEditFilesAddFile').css('z-index', 1041);
+});
+$('#payloadtypeEditFilesAddFile').on('hidden.bs.modal', function() {
+    $('#commandEditModal').css('z-index', 1041);
+    $('#payloadtypeEditModal').css('z-index', 1041);
+    $('#payloadtypeEditFilesAddFile').css('z-index', 1030);
+});
+function hide_modal(modal_name){
+    $('#' + modal_name).modal('hide');
+}
 function delete_file_button_callback(response){
     try{
         var data = JSON.parse(response);
@@ -1142,11 +1416,11 @@ function delete_file_button_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
-        for(var i = 0; i < payloadtypeFiles.folders.length; i++){
-            if(payloadtypeFiles.folders[i].folder == data['folder']){
-                for(var j = 0; j < payloadtypeFiles.folders[i].filenames.length; j++){
-                    if(data['file'] == payloadtypeFiles.folders[i].filenames[j]){
+    if(data['status'] === 'success'){
+        for(let i = 0; i < payloadtypeFiles.folders.length; i++){
+            if(payloadtypeFiles.folders[i].folder === data['folder']){
+                for(let j = 0; j < payloadtypeFiles.folders[i].filenames.length; j++){
+                    if(data['file'] === payloadtypeFiles.folders[i].filenames[j]){
                         payloadtypeFiles.folders[i].filenames.splice(j, 1);
                         return;
                     }
@@ -1164,7 +1438,7 @@ function download_file_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
 }
@@ -1172,11 +1446,11 @@ var gotCommandData = false;
 function startwebsocket_payloadtypes(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloadtypes');
 	ws.onmessage = function(event){
-		if(event.data != ""){
-			pdata = JSON.parse(event.data);
+		if(event.data !== ""){
+			let pdata = JSON.parse(event.data);
 			//prep things for loading the transformation data
 			for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-			    if(payloadtypes_table.payloadtypes[i]['ptype'] == pdata['ptype']){
+			    if(payloadtypes_table.payloadtypes[i]['ptype'] === pdata['ptype']){
                     // just updating data
                     Vue.set(payloadtypes_table.payloadtypes, i, Object.assign({}, payloadtypes_table.payloadtypes[i], pdata));
                     return;
@@ -1207,19 +1481,19 @@ function startwebsocket_payloadtypes(){
 		        startwebsocket_commands();
 		    }
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
 		alertTop("danger", "Socket closed, please reload");
-	}
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Socket errored, please reload");
-	}
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
-};
+}
 startwebsocket_payloadtypes();
 function display_transforms_callback(response){
     try{
@@ -1228,17 +1502,17 @@ function display_transforms_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success" && data['transforms'].length > 0){
-        for(var j = 0; j < payloadtypes_table.payloadtypes.length; j++){
-            if(payloadtypes_table.payloadtypes[j]['ptype'] == data['transforms'][0]['payload_type']){
-                for(var i = 0; i < data['transforms'].length; i++){
-                    var type = data['transforms'][i]['t_type'];
+    if(data['status'] === "success" && data['transforms'].length > 0){
+        for(let j = 0; j < payloadtypes_table.payloadtypes.length; j++){
+            if(payloadtypes_table.payloadtypes[j]['ptype'] === data['transforms'][0]['payload_type']){
+                for(let i = 0; i < data['transforms'].length; i++){
+                    let type = data['transforms'][i]['t_type'];
                     payloadtypes_table.payloadtypes[j][type].push(data['transforms'][i]);
                 }
             }
         }
     }
-    else if(data['status'] == "error"){
+    else if(data['status'] === "error"){
         alertTop("danger", "Error displaying transform data: " + data['error']);
     }
 }
@@ -1246,11 +1520,11 @@ function display_transforms_callback(response){
 function startwebsocket_commands(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/commands');
 	ws.onmessage = function(event){
-		if(event.data != ""){
-			cdata = JSON.parse(event.data);
+		if(event.data !== ""){
+			let cdata = JSON.parse(event.data);
 			// now add the command data to the appropriate payload type
 			for(var i = 0; i < payloadtypes_table.payloadtypes.length; i++){
-			    if(payloadtypes_table.payloadtypes[i]['ptype'] == cdata['payload_type']){
+			    if(payloadtypes_table.payloadtypes[i]['ptype'] === cdata['payload_type']){
 			        // now that you have the right payloadtype, see if it has a commands set already created
 			        if(!payloadtypes_table.payloadtypes[i]['commands_set']){
 			            // it doesn't have a set yet, so create one
@@ -1265,19 +1539,19 @@ function startwebsocket_commands(){
 			}
 			//payloadtypes_table.payloadtypes.push(pdata);
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
 		alertTop("danger", "Socket closed, please reload");
-	}
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Socket errored, please reload");
-	}
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
-};
+}
 function create_payloadtype_callback(response){
     try{
         data = JSON.parse(response);
@@ -1285,7 +1559,7 @@ function create_payloadtype_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", "Error creating new payload type: " + data['error']);
     }
 }
@@ -1334,7 +1608,7 @@ function create_payloadtype_button(){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/", create_payloadtype_callback, "POST", data);
         }
     });
-};
+}
 function import_payload_button(p){
     $( '#commandImportModal' ).modal('show');
     $( '#commandImportSubmit' ).unbind('click').click(function(){
@@ -1344,10 +1618,11 @@ function import_payload_button(p){
     });
 }
 function import_payload_button_callback(response){
-    var new_window = window.open("", "_blank");
-    new_window.document.write(response);
-    new_window.focus();
-};
+    alertTop("info", response);
+    //var new_window = window.open("", "_blank");
+    //new_window.document.write(response);
+    //new_window.focus();
+}
 function set_wrapped_payload_type_options(response){
     try{
         var types = JSON.parse(response);
@@ -1361,7 +1636,7 @@ function set_wrapped_payload_type_options(response){
     }
     $('#payloadtypeCreateWrappedPayloadType').html(option_string);
     $('#payloadtypeEditWrappedPayloadType').html(option_string);
-};
+}
 function set_transform_options(response){
     try{
         var data = JSON.parse(response);
@@ -1404,9 +1679,9 @@ function edit_command_attack_remove_attack_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
-        for(var i = 0; i < edit_command_attack_table.add_attack_command.length; i++){
-            if(data['t_num'] == edit_command_attack_table.add_attack_command[i]['t_num']){
+    if(data['status'] === 'success'){
+        for(let i = 0; i < edit_command_attack_table.add_attack_command.length; i++){
+            if(data['t_num'] === edit_command_attack_table.add_attack_command[i]['t_num']){
                 edit_command_attack_table.add_attack_command.splice(i, 1);
                 return;
             }
@@ -1439,7 +1714,7 @@ function command_attack_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         data['attack'].sort((a,b) => (a.t_num > b.t_num) ? 1 : ((b.t_num > a.t_num) ? -1 : 0));
         edit_command_attack_table.attackOptions = data['attack'];
         add_command_attack_table.attackOptions = data['attack'];
@@ -1477,9 +1752,9 @@ function edit_command_artifact_remove_artifact_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         for(var i = 0; i < edit_command_artifacts_table.add_command_artifact.length; i++){
-            if(data['id'] == edit_command_artifacts_table.add_command_artifact[i]['id']){
+            if(data['id'] === edit_command_artifacts_table.add_command_artifact[i]['id']){
                 edit_command_artifacts_table.add_command_artifact.splice(i, 1);
                 return;
             }
@@ -1512,7 +1787,7 @@ function command_artifacts_options_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         edit_command_artifacts_table.baseArtifacts = data['artifacts'];
         add_command_artifacts_table.baseArtifacts = data['artifacts'];
     }else{
@@ -1527,15 +1802,15 @@ httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_ba
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/artifacts", command_artifacts_options_callback, "GET", null);
 
 function container_heartbeat_check(){
-    var date = new Date();
-    var now = date.getTime() + date.getTimezoneOffset() * 60000;;
-    for(var i = 0; i < payloadtypes_table.payloadtypes.length; i ++){
-        var heartbeat = new Date(payloadtypes_table.payloadtypes[i].last_heartbeat);
-        var difference =  (now - heartbeat.getTime() ) / 1000;
+    let date = new Date();
+    let now = date.getTime() + date.getTimezoneOffset() * 60000;
+    for(let i = 0; i < payloadtypes_table.payloadtypes.length; i ++){
+        let heartbeat = new Date(payloadtypes_table.payloadtypes[i].last_heartbeat);
+        let difference =  (now - heartbeat.getTime() ) / 1000;
         if(difference < 30){
             payloadtypes_table.payloadtypes[i]['container_running'] = true;
         }else{
-            if(payloadtypes_table.payloadtypes[i]['container_running'] == true){
+            if(payloadtypes_table.payloadtypes[i]['container_running'] === true){
                 // if it's currently set to running, let's change it in the db that it's down
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypes_table.payloadtypes[i]['ptype'], change_heartbeat_callback, "PUT", {"container_running": false});
             }
@@ -1550,7 +1825,7 @@ function change_heartbeat_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", data['error']);
     }
 }
@@ -1558,27 +1833,34 @@ setInterval(container_heartbeat_check, 500);
 function startwebsocket_rabbitmq(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/rabbitmq/pt_status');
 	ws.onmessage = function(event){
-		if(event.data != ""){
+		if(event.data !== ""){
 			cdata = JSON.parse(event.data);
 			//console.log(cdata);
 			routing_pieces = cdata['routing_key'].split(".");
-			if(routing_pieces[3] == "listfiles"){
-			    if(routing_pieces[4] == "success"){
+			if(routing_pieces[3] === "listfiles"){
+			    if(routing_pieces[4] === "success"){
 			        body = JSON.parse(cdata['body']);
-			        for(var i = 0; i < body.length; i++){
+			        for(let i = 0; i < payloadtypeFiles.folders.length;i++){
+			            if(payloadtypeFiles.folders[i].folder === '/Apfell/'){
+			                payloadtypeFiles.folders[i]['filenames'] = body[0]['filenames'];
+			                payloadtypeFiles.$forceUpdate();
+			                return;
+                        }
+                    }
+			        for(let i = 0; i < body.length; i++){
+			            console.log(body[i]);
 			            payloadtypeFiles.folders.push(body[i]);
                     }
 			    }
-			}else if(routing_pieces[3] == "getfile"){
+			}else if(routing_pieces[3] === "getfile"){
 			    data = JSON.parse(atob(cdata['body']));
-                clearAlertTop();
                 download_from_memory(data['filename'], data['data']);
-			}else if(routing_pieces[3] == "removefile"){
+			}else if(routing_pieces[3] === "removefile"){
 			    data = JSON.parse(cdata['body']);
-			    for(var i = 0; i < payloadtypeFiles.folders.length; i++){
-                    if(payloadtypeFiles.folders[i].folder == data['folder']){
-                        for(var j = 0; j < payloadtypeFiles.folders[i].filenames.length; j++){
-                            if(data['file'] == payloadtypeFiles.folders[i].filenames[j]){
+			    for(let i = 0; i < payloadtypeFiles.folders.length; i++){
+                    if(payloadtypeFiles.folders[i].folder === data['folder']){
+                        for(let j = 0; j < payloadtypeFiles.folders[i].filenames.length; j++){
+                            if(data['file'] === payloadtypeFiles.folders[i].filenames[j]){
                                 payloadtypeFiles.folders[i].filenames.splice(j, 1);
                                 return;
                             }
@@ -1588,19 +1870,19 @@ function startwebsocket_rabbitmq(){
 
 			}
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
 		alertTop("danger", "Socket closed, please reload");
-	}
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Socket errored, please reload");
-	}
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
-};
+}
 startwebsocket_rabbitmq();
 //ACE specific code from http://cwestblog.com/2018/08/04/ace-editor-vue-component/
 /* START: <ace-editor> Vue component */

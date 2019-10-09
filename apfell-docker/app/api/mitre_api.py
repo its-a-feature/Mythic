@@ -116,32 +116,36 @@ async def regex_against_tasks(request, user):
         attack = await db_objects.get(query, t_num=data['attack'])
     except Exception as e:
         return json({'status': 'error', 'error': 'Failed to find that T#. Make sure you specify "attack": "T1124" for example'})
-    query = await db_model.task_query()
-    matching_tasks = await db_objects.prefetch(query.switch(Callback).where(Callback.operation == operation).switch(Task).where(
-        (Task.params.regexp(data['regex'])) | (Task.original_params.regexp(data['regex']))).order_by(Task.id), Command.select())
-    if data['apply']:
-        # actually apply the specified att&ck id to the matched tasks
-        for t in matching_tasks:
-            # don't create duplicates
-            try:
+    try:
+        query = await db_model.task_query()
+        matching_tasks = await db_objects.prefetch(query.switch(Callback).where(Callback.operation == operation).switch(Task).where(
+            (Task.params.regexp(data['regex'])) | (Task.original_params.regexp(data['regex']))).order_by(Task.id), Command.select())
+        if data['apply']:
+            # actually apply the specified att&ck id to the matched tasks
+            for t in matching_tasks:
+                # don't create duplicates
+                try:
+                    query = await db_model.attacktask_query()
+                    attacktask = await db_objects.get(query, attack=attack, task=t)
+                except Exception as e:
+                    # we didn't find the specific attack-task mapping, so create a new one
+                    attacktask = await db_objects.create(ATTACKTask, attack=attack, task=t)
+            return json({'status': 'success'})
+        else:
+            # simply return which tasks would have matched
+            # for each matching task, also return which other ATT&CK IDs are associated
+            tasks = []
+            for t in matching_tasks:
+                sub_attacks = []
                 query = await db_model.attacktask_query()
-                attacktask = await db_objects.get(query, attack=attack, task=t)
-            except Exception as e:
-                # we didn't find the specific attack-task mapping, so create a new one
-                attacktask = await db_objects.create(ATTACKTask, attack=attack, task=t)
-        return json({'status': 'success'})
-    else:
-        # simply return which tasks would have matched
-        # for each matching task, also return which other ATT&CK IDs are associated
-        tasks = []
-        for t in matching_tasks:
-            sub_attacks = []
-            query = await db_model.attacktask_query()
-            matching_attacks = await db_objects.execute(query.where(ATTACKTask.task == t))
-            for ma in matching_attacks:
-                sub_attacks.append({'t_num': ma.attack.t_num, 'name': ma.attack.name})
-            tasks.append({**t.to_json(), "attack": sub_attacks})
-        return json({'status': 'success', 'matches': tasks})
+                matching_attacks = await db_objects.execute(query.where(ATTACKTask.task == t))
+                for ma in matching_attacks:
+                    sub_attacks.append({'t_num': ma.attack.t_num, 'name': ma.attack.name})
+                tasks.append({**t.to_json(), "attack": sub_attacks})
+            return json({'status': 'success', 'matches': tasks})
+    except Exception as e:
+        print(e)
+        return json({"status": "error", "error": str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/mitreattack/task/<tid:int>/attack/<tnum:string>", methods=['DELETE'])

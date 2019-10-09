@@ -117,7 +117,9 @@ async def register_new_c2profile(request, user):
         return json({'status': 'error', 'error': 'operator could not be found'})
     try:
         status = {'status': 'success'}
-        profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op)
+        if 'external' not in data:
+            data['external'] = False
+        profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op, external=data['external'], container_running=False)
         # make the right directory structure
         os.makedirs("./app/c2_profiles/{}".format(data['name']), exist_ok=True)
         # now create the payloadtypec2profile entries
@@ -232,6 +234,8 @@ async def update_c2profile(request, info, user):
             profile.description = data['description']
         if 'container_running' in data:
             profile.container_running = data['container_running']
+        if 'external' in data:
+            profile.external = data['external']
         await db_objects.update(profile)
         if 'payload_types' in data:
             # We need to update the mapping in PayloadTypeC2Profile accordingly
@@ -858,7 +862,7 @@ async def import_c2_profile_func(data, operator):
     for param in data['params']:
         try:
             query = await db_model.c2profileparameters_query()
-            c2_profile_param = await db_objects.get(query, name=param['name'], c2_profile=profile)
+            c2_profile_param = await db_objects.get(query, key=param['key'], c2_profile=profile)
             c2_profile_param.key = param['key']
             c2_profile_param.hint = param['hint']
             await db_objects.update(c2_profile_param)

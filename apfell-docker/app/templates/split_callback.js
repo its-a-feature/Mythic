@@ -169,7 +169,7 @@ var callback_table = new Vue({
                 callback['history_index'] = 0;
 
             }
-            var index = callback['history_index'];
+            let index = callback['history_index'];
             callback.input_field = callback['history'][index];
 
         },
@@ -178,11 +178,27 @@ var callback_table = new Vue({
             if( callback['history_index'] >= callback['history'].length){
                callback['history_index'] = callback['history'].length -1;
             }
-            var index =callback['history_index'];
+            let index = callback['history_index'];
             callback.input_field = callback['history'][index];
         },
+        download_raw_output: function(taskid){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + taskid + "/raw_output", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'success'){
+                        download_from_memory("task_" + taskid + ".txt", data['output']);
+                    }else{
+                        alertTop("warning", data['error']);
+                    }
+                }catch(error){
+                    alertTop("danger", "Session expired, please refresh");
+                    console.log(error.toString());
+                }
+            }, "GET", null);
+
+        },
         persist_transform_active_status: function(payload_type, cmd_index){
-            for(var i = 0; i < this.ptype_cmd_params[payload_type][cmd_index]['transforms'].length; i++){
+            for(let i = 0; i < this.ptype_cmd_params[payload_type][cmd_index]['transforms'].length; i++){
                 //console.log(JSON.stringify(this.ptype_cmd_params[payload_type][cmd_index]['transforms'][i]));
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/bycommand/" + this.ptype_cmd_params[payload_type][cmd_index]['transforms'][i]['id'],
                     persist_transform_active_status_callback, "PUT", this.ptype_cmd_params[payload_type][cmd_index]['transforms'][i]);

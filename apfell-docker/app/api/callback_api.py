@@ -5,6 +5,7 @@ from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from math import ceil
+import requests
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/", methods=['GET'])
@@ -29,13 +30,13 @@ async def get_all_callbacks(request, user):
 async def create_callback(request):
     try:
         data = request.json
-        return json(await create_callback_func(data))
+        return json(await create_callback_func(data, request))
     except Exception as e:
         print(request.body)
         return json({'status': 'error', 'error': 'failed to parse data'})
 
 
-async def create_callback_func(data):
+async def create_callback_func(data, request):
     if not data:
         return {'status': 'error', 'error': "Data is required for POST"}
     if 'user' not in data:
@@ -58,11 +59,23 @@ async def create_callback_func(data):
         return {}
     if 'integrity_level' not in data:
         data['integrity_level'] = 2  # default medium integrity level
+    if 'os' not in data:
+        data['os'] = None
+    if 'domain' not in data:
+        data['domain'] = None
+    if 'architecture' not in data:
+        data['architecture'] = None
+    if 'external_ip' not in data:
+        if 'X-Forwarded-For' in request.headers:
+            data['external_ip'] = request.headers['X-Forwarded-For'].split(",")[-1]
+        else:
+            data['external_ip'] = None
     try:
         cal = await db_objects.create(Callback, user=data['user'], host=data['host'], pid=data['pid'],
                                       ip=data['ip'], description=payload.tag, operator=payload.operator,
                                       registered_payload=payload, pcallback=pcallback, operation=payload.operation,
-                                      integrity_level=data['integrity_level'])
+                                      integrity_level=data['integrity_level'], os=data['os'], domain=data['domain'],
+                                      architecture=data['architecture'], external_ip=data['external_ip'])
         if 'encryption_type' in data:
             cal.encryption_type = data['encryption_type']
         if 'decryption_key' in data:
@@ -74,11 +87,72 @@ async def create_callback_func(data):
         payload_commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
         # now create a loaded command for each one since they are loaded by default
         for p in payload_commands:
-            await db_objects.create(LoadedCommands, command=p.command, version=p.version, callback=cal, operator=payload.operator)
+            await db_objects.create(LoadedCommands, command=p.command, version=p.version, callback=cal,
+                                    operator=payload.operator)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'Failed to create callback'}
     status = {'status': 'success'}
+    if cal.operation.webhook and cal.registered_payload.callback_alert:
+        # if we have a webhook, send a message about the new callback
+        try:
+            if cal.integrity_level >= 3:
+                int_level = "high"
+            elif cal.integrity_level == 2:
+                int_level = "medium"
+            else:
+                int_level = "low"
+            message = {"attachments": [ {
+                "color": "#b366ff",
+                "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "<!channel> You have a new Callback!"
+                            }
+                        },
+                        {
+                            "type": "divider"
+                        },
+                        {
+                            "type": "section",
+                            "fields": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Operation:*\n{}".format(cal.operation.name)
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*IP:*\n{}".format(cal.ip)
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Callback ID:*\n{}".format(cal.id)
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Type:*\n{}".format(cal.registered_payload.payload_type.ptype)
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Description:*\n\"{}\"".format(cal.description)
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Operator:*\n{}".format(cal.operator.username)
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Integrity Level*\n{}".format(int_level)
+                                }
+                            ]
+                        }
+                        ] } ] }
+            response = requests.post(cal.operation.webhook, json=message)
+            print("Slack webhook response: {}".format(str(response.content)))
+        except Exception as e:
+            print(str(e))
     return {**status, "id": cal.agent_callback_id}
 
 
@@ -115,7 +189,8 @@ async def get_loaded_commands_for_callback(request, id, user):
     loaded_commands = await db_objects.execute(query.where(LoadedCommands.callback == callback))
     return json({'status': 'success', 'loaded_commands': [{'command': lc.command.cmd,
                                                            'version': lc.version,
-                                                           'apfell_version': lc.command.version} for lc in loaded_commands]})
+                                                           'apfell_version': lc.command.version} for lc in
+                                                          loaded_commands]})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['PUT'])
@@ -150,7 +225,8 @@ async def update_callback(request, id, user):
         if 'locked' in data:
             if cal.locked and not data['locked']:
                 # currently locked and trying to unlock, must be admin, admin of that operation, or the user that did it
-                if user['admin'] or cal.operation.name in user['admin_operations'] or user['username'] == cal.locked_operator.username:
+                if user['admin'] or cal.operation.name in user['admin_operations'] or user[
+                    'username'] == cal.locked_operator.username:
                     cal.locked = False
                     cal.locked_operator = None
                 else:
@@ -158,7 +234,8 @@ async def update_callback(request, id, user):
                     return json({'status': 'error', 'error': 'Not authorized to unlock'})
             elif not cal.locked and data['locked']:
                 # currently unlocked and wanting to lock it
-                if user['admin'] or cal.operation.name in user['operations'] or cal.operation.name in user['admin_operations']:
+                if user['admin'] or cal.operation.name in user['operations'] or cal.operation.name in user[
+                    'admin_operations']:
                     cal.locked = True
                     query = await db_model.operator_query()
                     operator = await db_objects.get(query, username=user['username'])
@@ -204,7 +281,8 @@ async def remove_callback(request, id, user):
             deleted_cal = cal.to_json()
             return json({**success, **deleted_cal})
         else:
-            return json({'status': 'error', 'error': 'must be an admin or part of that operation to mark it as no longer active'})
+            return json({'status': 'error',
+                         'error': 'must be an admin or part of that operation to mark it as no longer active'})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': "failed to delete callback: " + str(e)})
@@ -227,9 +305,10 @@ async def callbacks_get_all_tasking(request, user, id):
         query = await db_model.task_query()
         tasks = await db_objects.prefetch(query.where(Task.callback == callback).order_by(Task.id), Command.select())
         for t in tasks:
-            query = await db_model.response_query()
-            responses = await db_objects.execute(query.where(Response.task == t).order_by(Response.id))
-            cb_json['tasks'].append({**t.to_json(), "responses": [r.to_json() for r in responses]})
+            #query = await db_model.response_query()
+            #responses = await db_objects.execute(query.where(Response.task == t).order_by(Response.id))
+            #cb_json['tasks'].append({**t.to_json(), "responses": [r.to_json() for r in responses]})
+            cb_json['tasks'].append({**t.to_json()})
         return json({'status': 'success', **cb_json})
     except Exception as e:
         print(e)
@@ -279,8 +358,9 @@ async def get_pageinate_callbacks(request, user, page, size):
         page = ceil(count / size)
         if page == 0:
             page = 1
-    cb = await db_objects.execute( callbacks_query.order_by(-Callback.id).paginate(page, size))
-    return json({'status': 'success', 'callbacks': [c.to_json() for c in cb], 'total_count': count, 'page': page, 'size': size})
+    cb = await db_objects.execute(callbacks_query.order_by(-Callback.id).paginate(page, size))
+    return json(
+        {'status': 'success', 'callbacks': [c.to_json() for c in cb], 'total_count': count, 'page': page, 'size': size})
 
 
 # Get a single response
@@ -298,23 +378,32 @@ async def search_callbacks_with_pageinate(request, user):
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot find operation'})
-    query = await db_model.callback_query()
-    count = await db_objects.count(query.where( (Callback.operation == operation) & (Callback.host.regexp(data['search'])) ))
+    try:
+        query = await db_model.callback_query()
+        count = await db_objects.count(
+            query.where((Callback.operation == operation) & (Callback.host.regexp(data['search']))))
 
-    if 'page' not in data:
-        cb = await db_objects.execute(query.where( (Callback.operation == operation) & (Callback.host.regexp(data['search'])) ).order_by(-Callback.id))
-        data['page'] = 1
-        data['size'] = count
-    else:
-        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
-            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
-        data['size'] = int(data['size'])
-        data['page'] = int(data['page'])
-        if data['page'] * data['size'] > count:
-            data['page'] = ceil(count / data['size'])
-            if data['page'] == 0:
-                data['page'] = 1
-        cb = await db_objects.execute(query.where(
-            (Callback.operation == operation) & (Callback.host.regexp(data['search']))
-        ).order_by(-Callback.id).paginate(data['page'], data['size']))
-    return json({'status': 'success', 'callbacks': [c.to_json() for c in cb], 'total_count': count, 'page': data['page'], 'size': data['size']})
+        if 'page' not in data:
+            cb = await db_objects.execute(
+                query.where((Callback.operation == operation) & (Callback.host.regexp(data['search']))).order_by(
+                    -Callback.id))
+            data['page'] = 1
+            data['size'] = count
+        else:
+            if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+                return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+            data['size'] = int(data['size'])
+            data['page'] = int(data['page'])
+            if data['page'] * data['size'] > count:
+                data['page'] = ceil(count / data['size'])
+                if data['page'] == 0:
+                    data['page'] = 1
+            cb = await db_objects.execute(query.where(
+                (Callback.operation == operation) & (Callback.host.regexp(data['search']))
+            ).order_by(-Callback.id).paginate(data['page'], data['size']))
+        return json(
+            {'status': 'success', 'callbacks': [c.to_json() for c in cb], 'total_count': count, 'page': data['page'],
+             'size': data['size']})
+    except Exception as e:
+        print(str(e))
+        return json({"status": 'error', 'error': str(e)})

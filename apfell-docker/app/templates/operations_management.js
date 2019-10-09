@@ -23,13 +23,14 @@ var operations_table = new Vue({
                 return;
             }
 
-            var members = "";
-            for(var i = 0; i < potential_operators.length; i++){
+            let members = "";
+            for(let i = 0; i < potential_operators.length; i++){
                 members = members + '<option value="' + potential_operators[i]['username'] + '">' + potential_operators[i]['username'] + '</option>';
             }
             $( '#operationModifyAdmin' ).html(members);
             $( '#operationModifyMembers' ).html(members);
             $( '#operationModifyName' ).val(o.name);
+            $( '#operationModifyWebhook').val(o.webhook);
             $( '#operationModifyAdmin' ).val(o.admin);
             selected_members = [];
             o.members.forEach(function(x){selected_members.push(x.username)});
@@ -43,6 +44,7 @@ var operations_table = new Vue({
 		        if($( '#operationModifyAdmin' ).val() != o.admin){
 		            data['admin'] = $( '#operationModifyAdmin' ).val();
 		        }
+		        data['webhook'] = $('#operationModifyWebhook').val();
 		        new_members = $( '#operationModifyMembers' ).val();
 		        add_members = [];
 		        remove_members = [];
@@ -96,7 +98,7 @@ function modify_acls_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         alertTop("success", "Successfully Updated", 1);
     }else{
         alertTop("danger", data['error']);
@@ -110,30 +112,33 @@ function modify_operation(response){
         return;
     }
 
-    if(data['status'] == "success"){
-        for (var i = 0; i < operations.length; i++){
-            console.log(data);
+    if(data['status'] === "success"){
+        for (let i = 0; i < operations.length; i++){
+            //console.log(data);
             if(data['old_name']){
-                if(operations[i]['name'] == data['old_name']){
+                if(operations[i]['name'] === data['old_name']){
                     operations_table.operations[i]['name'] = data['name'];
+                    operations_table.operations[i]['webhook'] = data['webhook'];
                     operations_table.operations[i].members = data['members'];
                     operations_table.operations[i].members.forEach(function(x){
-                        if(x['base_disabled_commands'] == undefined){x['base_disabled_commands'] = "None"};
+                        if(x['base_disabled_commands'] === undefined){x['base_disabled_commands'] = "None"};
                     });
                 }
             }
-            else if(operations[i]['name'] == data['name']){
+            else if(operations[i]['name'] === data['name']){
+                operations_table.operations[i]['webhook'] = data['webhook'];
                 operations_table.operations[i].members = data['members'];
                 operations_table.operations[i].members.forEach(function(x){
-                    if(x['base_disabled_commands'] == undefined){x['base_disabled_commands'] = "None"};
+                    if(x['base_disabled_commands'] === undefined){x['base_disabled_commands'] = "None"};
                 });
             }
         }
+        location.reload(true);
     }
     else{
         alertTop("danger", data['error']);
     }
-};
+}
 function delete_operation(response){
     try{
         var data = JSON.parse(response);
@@ -141,21 +146,21 @@ function delete_operation(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     else{
-        for(i = 0; i < operations.length; i++){
-            if(data['name'] == operations[i]['name']){
+        for(let i = 0; i < operations.length; i++){
+            if(data['name'] === operations[i]['name']){
                 operations_table.operations.splice(i, 1);
-                if(data['name'] == current_operation){
+                if(data['name'] === current_operation){
                     location.reload(true);
                 }
 
             }
         }
     }
-};
+}
 function create_operation(response){
     try{
         var data = JSON.parse(response);
@@ -163,13 +168,13 @@ function create_operation(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     else{
         operations_table.operations.push(data);
     }
-};
+}
 function complete_operation(response){
     try{
         var data = JSON.parse(response);
@@ -177,22 +182,22 @@ function complete_operation(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     else{
-        for (var i = 0; i < operations.length; i++){
-            if(operations[i]['name'] == data['name']){
+        for (let i = 0; i < operations.length; i++){
+            if(operations[i]['name'] === data['name']){
                 operations_table.operations[i].complete = data['complete'];
             }
         }
     }
-};
+}
 function get_operations(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/", get_operations_callback, "GET", null);
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/", get_commands_callback, "GET", null);
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/disabled_commands_profiles", get_disabled_commands_profiles_response, "GET", null);
-};
+}
 function get_operations_callback(response){
     try{
         var data = JSON.parse(response);
@@ -200,13 +205,13 @@ function get_operations_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    for(var i = 0; i < data.length; i++){
+    for(let i = 0; i < data.length; i++){
         data[i]['members'].forEach(function(x){
-            if(x['base_disabled_commands'] == undefined){x['base_disabled_commands'] = "None"};
+            if(x['base_disabled_commands'] === undefined){x['base_disabled_commands'] = "None"};
         });
         Vue.set(operations_table.operations, i, data[i]);
     }
-};
+}
 function get_disabled_commands_profiles_response(response){
     try{
         var data = JSON.parse(response);
@@ -214,9 +219,9 @@ function get_disabled_commands_profiles_response(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
-        profiles = [];
-        i = 0;
+    if(data['status'] === 'success'){
+        let profiles = [];
+        let i = 0;
         modify_user_acls.denied_command_profiles = [];
         Object.keys(data['disabled_command_profiles']).forEach(function(x){
             object_instance = {"name": x, "id": i, "values": data['disabled_command_profiles'][x]};
@@ -268,6 +273,7 @@ function new_operation_button(){
         data['name'] = $( '#operationNewName' ).val();
         data['admin'] = $( '#operationNewAdmin' ).val();
         data['members'] = $( '#operationNewMembers' ).val();
+        data['webhook'] = $('#OperationNewWebhook').val();
         if( data['members'] != null && data['members'].length == 0){
             delete data['members'];
         }

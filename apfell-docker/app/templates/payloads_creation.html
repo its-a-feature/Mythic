@@ -20,16 +20,16 @@
                     </select><br>
                     <div id="c2ParameterFormFields">
                         <template v-if="c2_profile_parameters.length != 0">
-                            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" id="c2_param_table" style=";word-wrap: break-word;width:100%">
+                            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" id="c2_param_table" style="word-wrap: break-word;width:100%">
                                 <tr>
                                     <th><b>Parameter Name</b></th>
                                     <th><b>Parameter Value</b></th>
                                 </tr>
-                                <tr v-for="(value, index) in c2_profile_parameters" :key="index" style="width:100%">
-                                    <td  style="width:15rem">
+                                <tr v-for="(value, index) in c2_profile_parameters" :key="value.name" >
+                                    <td  >
                                        [[value.name]]
                                     </td>
-                                    <td >
+                                    <td>
                                         <textarea oninput="adjust_size(this)" :id="[[value.key]]" :placeholder="[[value.hint]]" v-model="value.hint" cols="40"></textarea>
                                     </td>
                                 </tr>
@@ -55,7 +55,7 @@
                     </select><br>
                     <div id="payloadParameterFormFields">
                         <template v-if="payload_parameters.length != 0">
-                            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" id="payloadParameterTable">
+                            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" id="payloadParameterTable" style="word-wrap: break-word;width:100%">
                                 <tr>
                                     <th><b>Parameter Name</b></th>
                                     <th><b>Parameter Value</b></th>
@@ -67,12 +67,12 @@
                                     </td>
 
                                 </tr>
-                                <tr v-for="(value, index) in payload_parameters" :key="index">
-                                    <td>
+                                <tr v-for="(value, index) in payload_parameters" :key="value.name" >
+                                    <td >
                                         [[value.name]]
                                     </td>
                                     <td>
-                                        <textarea type="text" cols="45" :placeholder="[[value.parameter]]" v-model="value.parameter"></textarea>
+                                        <textarea type="text" cols="40" :placeholder="[[value.parameter]]" v-model="value.parameter"></textarea>
                                     </td>
                                 </tr>
                             </table>
@@ -107,7 +107,7 @@
             </div>
 
         </div>
-        <button class="btn btn{{config['outline-buttons']}}success" hidden id="payloadSubmit" @click="submit_payload()" style="height:4rem">Submit</button>
+        <button class="btn btn{{config['outline-buttons']}}success" hidden id="payloadSubmit" @click="submit_payload()" style="height:4rem; margin-right:5px">Submit</button>
     </div>
 </div>
 

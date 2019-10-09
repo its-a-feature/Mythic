@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 <br>
-<div class="card border border-dark">
+<div class="card border border-dark shadow">
     <div class="card-header border border-dark bg-header text-white">
         <h2>Current <span class="operator">Callback Tree</span></h2>
     </div>
@@ -14,8 +14,8 @@
 <button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_strike_button()">Toggle Strikethrough</button>
 <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-md" onclick="adjust_callback_relationship_button()">Adjust Callback Relationship</button>
 <br><br>
-<div class="card border border-dark">
-    <div class="card-header border border-dark bg-header text-white">
+<div class="card border border-dark shadow">
+    <div class="card-header border border-dark bg-header text-white shadow">
         <h2>Payload, C2Profile, Callback <span class="operator">Relationships</span></h2>
     </div>
     <div class="card-body bg-card-body border border-dark shadow">
@@ -28,14 +28,14 @@
 <button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_payload_strike_button()">Toggle Strikethrough</button>
 
 <br><br>
-<div class="card border border-dark shadow-sm" id="commandFrequencies">
-    <div class="card-header border border-dark bg-header text-white">
+<div class="card border border-dark shadow" id="commandFrequencies">
+    <div class="card-header border border-dark bg-header text-white shadow">
         <h2>Command Usage <span class="operator">Frequencies</span></h2>
     </div>
-    <div class="card-body bg-card-body">
+    <div class="card-body bg-card-body border border-dark shadow">
         <div class="card border-0 bg-transparent" v-for="(v, k, i) in frequencies" style="display:inline-block;padding:8px;vertical-align:top">
             <div class="card-header shadow border border-dark bg-info text-white"><h5>[[k]]'s command usage</h5></div>
-            <div class="card-body shadow border border-dark" style="padding:0">
+            <div class="card-body " style="padding:0">
                 <table v-for="(v2, k2, i2) in v" style="display: inline-block;vertical-align:top;word-wrap: break-word" class="border border-dark shadow table-striped {{config['table-color']}} table-hover">
                     <tr>
                         <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">[[k2]]'s Commands </font></th>
@@ -89,7 +89,7 @@
     <div class="card-header border border-dark bg-header text-white shadow">
         <h2>Artifact Creation <span class="operator">Overview</span></h2>
     </div>
-    <div class="card-body bg-card-body shadow">
+    <div class="card-body bg-card-body shadow border border-dark">
         <div class="card-columns" style="column-count:2">
 
             <div class="card border-0 bg-transparent" v-for="(v, k, i) in artifacts" style="display:inline-block;padding:8px;vertical-align:top;">
@@ -118,11 +118,11 @@
     </div>
 </div>
 <br>
-<div class="card border border-dark" id="callbackAnalysis">
+<div class="card border border-dark shadow" id="callbackAnalysis">
     <div class="card-header border border-dark bg-header text-white">
         <h2> <span class="operator">Callbacks</span> Overview</h2>
     </div>
-    <div class="card-body bg-card-body">
+    <div class="card-body bg-card-body border border-dark">
         <div class="card-columns" style="column-count:2">
 
             <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
@@ -165,11 +165,11 @@
     </div>
 </div>
 <br>
-<div class="card border border-dark" id="artifactOverview">
+<div class="card border border-dark shadow" id="artifactOverview">
     <div class="card-header border border-dark bg-header text-white">
         <h2><span class="operator">Artifacts</span> Operational Overview</h2>
     </div>
-    <div class="card-body bg-card-body">
+    <div class="card-body bg-card-body border border-dark shadow">
         <div class="card-columns" style="column-count:2">
 
             <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">

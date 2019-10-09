@@ -12,6 +12,7 @@ import app.database_models.model as db_model
 import sys
 from sanic.exceptions import abort
 from math import ceil
+from app.api.crypto_api import decrypt_agent_message, encrypt_agent_message
 
 
 # This gets all responses in the database
@@ -136,36 +137,77 @@ async def update_task_for_callback(request, id):
         return json({'status': 'error',
                      'error': 'Task does not exist or callback does not exist'})
     try:
-        if callback.encryption_type != "" and callback.encryption_type is not None:
-            if callback.encryption_type == "AES256":
-                # now handle the decryption
-                decrypted_message = await crypt.decrypt_AES256(data=base64.b64decode(request.body),
-                                                               key=base64.b64decode(callback.decryption_key))
-                data = js.loads(decrypted_message.decode('utf-8'))
+        data = await decrypt_agent_message(request, callback)
         if data is None:
-            data = request.json
+            return abort(404)
     except Exception as e:
         print("Failed to get data properly: " + str(e))
-        return json({'status': 'error', 'error': 'failed to get data'})
+        return abort(404)
     if 'response' not in data:
-        return json({'status': 'error', 'error': 'task response not in data'})
+        enc = await encrypt_agent_message(js.dumps({'status': 'error', 'error': 'task response not in data'}), callback)
+        if enc is None:
+            return abort(404)
+        else:
+            return raw(enc, status=200)
     try:
         decoded = base64.b64decode(data['response']).decode('utf-8')
     except Exception as e:
-        return json({'status': 'error', 'error': 'failed to decode response'})
+        print("Failed to decode response properly: {}".format(str(e)))
+        enc = await encrypt_agent_message(js.dumps({'status': 'error', 'error': 'failed to decode response'}), callback)
+        if enc is None:
+            return abort(404)
+        else:
+            return raw(enc, status=200)
     resp = None  # declare the variable now so we can tell if we already created a response later
     json_return_info = {'status': 'success'}
     final_output = decoded
+    json_response = None
+    parsed_response = None
     try:
         # print(decoded)
+        if task.command.is_process_list:
+            # save this data off as a process list object in addition to doing whatever normally
+            # this might be chunked, so see if one already exists for this task and just add to it, or create a new one
+            json_list = js.loads(decoded)
+            if 'user_output' in json_list:
+                actual_list = json_list['user_output']
+            else:
+                actual_list = decoded
+            try:
+                query = await db_model.processlist_query()
+                pl = await db_objects.get(query, task=task)
+                pl.process_list += actual_list
+                pl.timestamp = datetime.datetime.utcnow()
+                await db_objects.update(pl)
+            except Exception as e:
+                await db_objects.create(db_model.ProcessList, task=task, host=callback.host, process_list=actual_list, operation=callback.operation)
+        elif task.command.is_file_browse:
+            json_browse = js.loads(decoded)
+            if 'user_output' in json_browse:
+                actual_browse = json_browse['user_output']
+            else:
+                actual_browse = decoded
+            try:
+                query = await db_model.filebrowse_query()
+                fb = await db_objects.get(query, task=task)
+                fb.file_browse += actual_browse
+                fb.timestamp = datetime.datetime.utcnow()
+                await db_objects.update(fb)
+            except Exception as e:
+                await db_objects.create(db_model.FileBrowse, task=task, file_browse=actual_browse, operation=callback.operation)
         json_response = js.loads(decoded)
         final_output = ""  # we're resetting it since we're going to be doing some processing on the response
         try:
             parsed_response = json_response
+            if 'completed' in parsed_response and parsed_response['completed']:
+                task.completed = True
+                del parsed_response['completed']
             if 'user_output' in parsed_response:
-                final_output += parsed_response['user_output']
+                final_output += str(parsed_response['user_output'])
+                del parsed_response['user_output']
             if 'total_chunks' in parsed_response:
                 # we're about to create a record in the db for a file that's about to be send our way
+                parsed_response['task'] = task.id
                 rsp = await create_filemeta_in_database_func(parsed_response)
                 if rsp['status'] == "success":
                     # update the response to indicate we've created the file meta data
@@ -181,6 +223,9 @@ async def update_task_for_callback(request, id):
                 else:
                     final_output = rsp['error']
                     json_return_info = {**json_return_info, 'status': 'error'}
+                del parsed_response['total_chunks']
+                if 'full_path' in parsed_response:
+                    del parsed_response['full_path']
             if 'chunk_data' in parsed_response:
                 if 'file_id' not in parsed_response and 'file_id' in json_return_info:
                     # allow agents to post the initial chunk data with initial metadata
@@ -191,7 +236,9 @@ async def update_task_for_callback(request, id):
                 else:
                     # we successfully got a chunk and updated the FileMeta object, so just move along
                     json_return_info = {**json_return_info, 'status': 'success'}
-
+                del parsed_response['chunk_num']
+                del parsed_response['file_id']
+                del parsed_response['chunk_data']
             if "window_title" in parsed_response and "user" in parsed_response and "keystrokes" in parsed_response:
                 if parsed_response['window_title'] is None or parsed_response['window_title'] == "":
                     parsed_response['window_title'] = "UNKNOWN"
@@ -204,6 +251,9 @@ async def update_task_for_callback(request, id):
                                                    keystrokes=parsed_response['keystrokes'], operation=callback.operation,
                                                    user=parsed_response['user'])
                     json_return_info = {**json_return_info, 'status': 'success'}
+                del parsed_response['window_title']
+                del parsed_response['user']
+                del parsed_response['keystrokes']
             if 'artifacts' in parsed_response:
                 # now handle the case where the agent is reporting back artifact information
                 for artifact in parsed_response['artifacts']:
@@ -216,11 +266,12 @@ async def update_task_for_callback(request, id):
                         # you can report back multiple artifacts at once, no reason to make separate C2 requests
                         await db_objects.create(TaskArtifact, task=task, artifact_instance=str(artifact['artifact']),
                                                 artifact=base_artifact)
-                        final_output += "Added artifact"
+                        final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
                         json_return_info = {"status": "success"}
                     except Exception as e:
                         final_output += "\nFailed to work with artifact: " + str(artifact) + " due to: " + str(e)
                         json_return_info = {**json_return_info, 'status': 'error', 'error': final_output}
+                del parsed_response['artifacts']
             if 'credentials' in parsed_response:
                 for cred in parsed_response['credentials']:
                     cred['task'] = task.id
@@ -230,6 +281,11 @@ async def update_task_for_callback(request, id):
                     else:
                         final_output += "\nFailed to add credential for {}. {}".format(cred['user'], new_cred_status['error'])
                 json_return_info = {**json_return_info, 'status': 'success'}
+                del parsed_response['credentials']
+            if 'status' in parsed_response:
+                if parsed_response['status'] == 'error':
+                    task.status = "error"
+                del parsed_response['status']
         except Exception as e:
             print(sys.exc_info()[-1].tb_lineno)
             final_output += "Failed to process a JSON-based response with error: " + str(e) + " on " + str(sys.exc_info()[-1].tb_lineno) + "\nOriginal Output:\n"
@@ -243,21 +299,20 @@ async def update_task_for_callback(request, id):
         if final_output != "":
             # if we got here, then we did some sort of meta processing
             resp = await db_objects.create(Response, task=task, response=final_output)
-        else:
-            # if we got here, we got JSON back, but without any keywords
+        elif json_response is None:
+            # if we got here, we failed to parse the response as JSON
             resp = await db_objects.create(Response, task=task, response=decoded)
-        task.status = "processed"
-        if task.status_timestamp_processed is not None and task.status_timestamp_processed != "null":
-            task.status_timestamp_processed = datetime.datetime.utcnow()
-        task.timestamp = datetime.datetime.utcnow()
-        await db_objects.update(task)
-    # handle the final reply back if it needs to be encrypted or not
-    if callback.encryption_type != "" and callback.encryption_type is not None:
-        # encrypt the message before returning it
-        string_message = js.dumps(json_return_info)
-        if callback.encryption_type == "AES256":
-            raw_encrypted = await crypt.encrypt_AES256(data=string_message.encode(),
-                                                       key=base64.b64decode(callback.encryption_key))
-            return raw(base64.b64encode(raw_encrypted), status=200)
-
-    return json(json_return_info)
+        elif parsed_response != {}:
+            # if we got here, then we got a json response, took out the key word stuff, and still had some json left
+            resp = await db_objects.create(Response, task=task, response=js.dumps(parsed_response, sort_keys=True, indent=4))
+        if task.status != "error":
+            task.status = "processed"
+    if task.status_timestamp_processed is None:
+        task.status_timestamp_processed = datetime.datetime.utcnow()
+    task.timestamp = datetime.datetime.utcnow()
+    await db_objects.update(task)
+    enc = await encrypt_agent_message(js.dumps(json_return_info), callback)
+    if enc is None:
+        return abort(404)
+    else:
+        return raw(enc, status=200)

@@ -77,25 +77,20 @@ var scripts = new Vue({
         },
         in_effect: function(s){
             if(!s.active){return "NO"}
-            else if(s['command'].includes("support_scripts['")){
-                return "YES, Globally Accessible";
-            }
-            else if(s['operation'] != "null"){
+            else if(s['operation'] !== "null"){
                 return "YES, Operation Wide";
             }
             else{
                 //it is active, to find out if it is actually in effect or overridden
-                for(i = 0; i < this.bscripts.length; i++){
-                    if( (this.bscripts[i]['command_id'] == s['command_id']) && (this.bscripts[i]['id'] != s['id'])){
+                for(let i = 0; i < this.bscripts.length; i++){
+                    if( (this.bscripts[i]['command_id'] === s['command_id']) && (this.bscripts[i]['id'] !== s['id'])){
                         //there's one other script also tied to this command
-                        if(s['operation'] != "null"){
-                            return "YES, Operation Wide";
-                        }
-                        else if(s['operation'] == 'null' && !this.bscripts[i]['active']){
-                            return "YES, Personally";
-                        }
-                        else {
+                        //if that other script is assigned to an operation, it overrides
+                        if(this.bscripts[i]['operation'] !== "null"){
                             return "NO, Overridden";
+                        }
+                        else if(s['operation'] === 'null' && !this.bscripts[i]['active']){
+                            return "YES, Personally";
                         }
                     }
                 }
@@ -122,14 +117,14 @@ function import_script_button_callback(response){
     //new_window.document.write(response);
     //new_window.focus();
     alertTop("info", response, 0);
-};
+}
 function register_script_callback(response){
     try{
         data = JSON.parse(response);
        }catch(error){
         alertTop("danger", "Session expired, please refresh or login again");
        }
-    if(data['status'] != 'success'){
+    if(data['status'] !== 'success'){
         alertTop("danger", data['error']);
     }
 }
@@ -150,17 +145,18 @@ var commands = new Vue({
 });
 //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" ,callback, "DELETE", null);
 function startwebsocket_browserscripts(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/browser_scripts');
+	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/browser_scripts');
 	ws.onmessage = function(event){
-		if(event.data != ""){
-			data = JSON.parse(event.data);
+		if(event.data !== ""){
+			let data = JSON.parse(event.data);
 			data['script'] = atob(data['script']);
-			if(data['command'] == undefined){
+			//console.log(data);
+			if(data['command'] === null){
 			    data['payload_type'] = "Support Script";
 			    data['command'] = "support_scripts['" + data['name'] + "']";
 			}
-			for(i = 0; i < scripts.bscripts.length; i++){
-			    if(scripts.bscripts[i]['id'] == data['id']){
+			for(let i = 0; i < scripts.bscripts.length; i++){
+			    if(scripts.bscripts[i]['id'] === data['id']){
 			        Vue.set(scripts.bscripts, i, data);
 			        alertTop("success", "Successfully updated...", 1);
 			        return;
@@ -169,23 +165,23 @@ function startwebsocket_browserscripts(){
 			scripts.bscripts.push(data);
 			scripts.bscripts.sort((a,b) =>(b.id > a.id) ? -1 : ((a.id > b.id) ? 1 : 0));
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
-		alertTop("danger", "Session expired, please refresh");
-	}
+		//alertTop("danger", "Session expired, please refresh");
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Session expired, please refresh");
-	}
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
 }startwebsocket_browserscripts();
 function startwebsocket_commands(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/commands');
+	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/commands');
 	ws.onmessage = function(event){
-		if(event.data != ""){
+		if(event.data !== ""){
 			data = JSON.parse(event.data);
 			if(!commands.commands.hasOwnProperty(data['payload_type'])){
 			    commands.commands[data['payload_type']] = [];

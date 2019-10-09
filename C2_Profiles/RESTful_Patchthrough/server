@@ -148,7 +148,6 @@ if __name__ == "__main__":
     config['postNewCallbackDHEKE'] = main_config['apfellBase'] + main_config['apfellNewCallbackDHEKE']
     for inst in main_config['instances']:
         config[str(inst['port'])] = {'debug': inst['debug'],
-                                     'no_match': inst['no_match'],
                                      'server_header': inst['server_header']}
         app = Sanic(str(inst['port']))
         app.config['REQUEST_MAX_SIZE'] = 1000000000

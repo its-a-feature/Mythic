@@ -80,16 +80,16 @@ function initialize_attack(response){
     }
     //console.log('before');
     //console.log(JSON.stringify(data['attack']['privilege-escalation']));
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         //lets square out the matrix first before we push it to the UI
-        longest = 0;
-        for(key in data['attack']){
+        let longest = 0;
+        for(let key in data['attack']){
             if(data['attack'][key].length > longest){
                 longest = data['attack'][key].length;
             }
         }
         // now make sure each 'column' is 'longest' in length, fill with empty
-        for(key in data['attack']){
+        for(let key in data['attack']){
             while(data['attack'][key].length < longest){
                 data['attack'][key].push({'name': '', 't_num': '', 'mappings': []});
             }
@@ -98,7 +98,7 @@ function initialize_attack(response){
         //console.log(JSON.stringify(data['attack']['privilege-escalation']));
         attack_matrix.matrix = data['attack'];
     }else{
-        alertTop("danger", data['error']);
+        alertTop("warning", data['error']);
     }
 }
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mitreattack/listing", initialize_attack_options, "GET", null);
@@ -109,13 +109,12 @@ function initialize_attack_options(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         data['attack'].sort((a,b) => (a.t_num > b.t_num) ? 1 : ((b.t_num > a.t_num) ? -1 : 0));
         regexVue.options = data['attack'];
         regexVue.selected = regexVue.options[0].t_num;
-        return;
     }else{
-        alertTop("danger", data['error']);
+        alertTop("warning", data['error']);
     }
 }
 function get_command_by_attack(){
@@ -128,23 +127,23 @@ function attack_by_command(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         //lets square out the matrix first before we push it to the UI
-        longest = 0;
-        for(key in data['attack']){
+        let longest = 0;
+        for(let key in data['attack']){
             if(data['attack'][key].length > longest){
                 longest = data['attack'][key].length;
             }
         }
         // now make sure each 'column' is 'longest' in length, fill with empty
-        for(key in data['attack']){
+        for(let key in data['attack']){
             while(data['attack'][key].length < longest){
                 data['attack'][key].push({'name': '', 't_num': '', 'mappings': {}});
             }
         }
         attack_matrix.matrix = data['attack'];
     }else{
-        alertTop("danger", data['error']);
+        alertTop("warning", data['error']);
     }
 }
 function get_task_by_attack(){
@@ -157,23 +156,23 @@ function attack_by_task(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         //lets square out the matrix first before we push it to the UI
-        longest = 0;
-        for(key in data['attack']){
+        let longest = 0;
+        for(let key in data['attack']){
             if(data['attack'][key].length > longest){
                 longest = data['attack'][key].length;
             }
         }
         // now make sure each 'column' is 'longest' in length, fill with empty
-        for(key in data['attack']){
+        for(let key in data['attack']){
             while(data['attack'][key].length < longest){
                 data['attack'][key].push({'name': '', 't_num': '', 'mappings': {}});
             }
         }
         attack_matrix.matrix = data['attack'];
     }else{
-        alertTop("danger", data['error']);
+        alertTop("warning", data['error']);
     }
 }
 
@@ -198,12 +197,12 @@ function remove_task_mapping(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         for(const [key, value] of Object.entries(view_data_modal.cell_data['mappings'])){
-            for(var i = 0; i < view_data_modal.cell_data['mappings'][key].length; i++){
-                if(view_data_modal.cell_data['mappings'][key][i]['task'] == data['task_id']){
+            for(let i = 0; i < view_data_modal.cell_data['mappings'][key].length; i++){
+                if(view_data_modal.cell_data['mappings'][key][i]['task'] === data['task_id']){
                     view_data_modal.cell_data['mappings'][key].splice(i, 1);
-                    if(view_data_modal.cell_data['mappings'][key].length == 0){
+                    if(view_data_modal.cell_data['mappings'][key].length === 0){
                         //if there are no more tasks for that type, remove the type as well
                         delete view_data_modal.cell_data['mappings'][key];
                     }
@@ -213,9 +212,8 @@ function remove_task_mapping(response){
                 }
             }
         }
-        return;
     }else{
-        alertTop("danger", data['error']);
+        alertTop("warning", data['error']);
     }
 }
 var regexVue = new Vue({
@@ -228,7 +226,7 @@ var regexVue = new Vue({
     },
     methods: {
         submit_search: function(){
-            var data = {"regex": this.regex, "apply": this.finalize, "attack": this.selected};
+            let data = {"regex": this.regex, "apply": this.finalize, "attack": this.selected};
             regexOutput.tasks = [];
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mitreattack/regex", submit_regex_callback, "POST", data);
             this.finalize = false;
@@ -243,9 +241,9 @@ function submit_regex_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         if(data.hasOwnProperty('matches')){
-            for(var i = 0; i < data['matches'].length; i++){
+            for(let i = 0; i < data['matches'].length; i++){
                 data['matches'][i]['href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['matches'][i]['id'];
                 data['matches'][i]['attack'] = data['matches'][i]['attack'].sort((a,b) =>(b.t_num > a.t_num) ? -1 : ((a.t_num > b.t_num) ? 1 : 0));
             }
@@ -254,10 +252,8 @@ function submit_regex_callback(response){
             regexOutput.tasks = [];
             alertTop("success", "Successfully updated matches", 1);
         }
-
-        return;
     }else{
-        alertTop("danger", data['error']);
+        alertTop("warning", data['error']);
     }
 }
 var regexOutput = new Vue({
@@ -269,10 +265,10 @@ var regexOutput = new Vue({
 });
 
 function output_to_navigator(){
-    nav_list = []
+    let nav_list = []
     for(const [key, value] of Object.entries(attack_matrix.matrix)){
         //Key will be the tactic, and each one has a list of techniques (all same length)
-        for(var i = 0; i < value.length; i++){
+        for(let i = 0; i < value.length; i++){
             if(Object.keys(value[i]['mappings']).length > 0){
                 nav_list.push({"techniqueID": value[i].t_num,
                                 "tactic": key,
@@ -284,7 +280,7 @@ function output_to_navigator(){
         }
     }
     navigator_base['techniques'] = nav_list;
-    var wnd = window.open("about:blank", "", "_blank");
+    let wnd = window.open("about:blank", "", "_blank");
     wnd.document.write('<html><body><pre>' + JSON.stringify(navigator_base, null, 2) + '</pre></body></html>');
     wnd.focus();
     navigator_base['techniques'] = [];

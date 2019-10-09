@@ -4,7 +4,7 @@
 <br>
 <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="register_button()"><i class="fas fa-plus"></i> C2 Profile</button>
 <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-md" onclick="reset_default_profiles_button()">Reset Default Profiles</button>
-<button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" onclick="import_button()" data-toggle="tooltip" title="Import new C2 Profile"><i class="fa fa-file-import fa-2x"></i></button><br><br>
+<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="import_button()" data-toggle="tooltip" title="Import new C2 Profile"><i class="fa fa-file-import fa-lg"></i> Import</button><br><br>
 <div class="card border border-dark shadow" id="c2profiles_table">
     <div class="card-header border border-dark bg-header text-white shadow">
         <h2><span class="operator">Global C2 Profile</span> Docker Configurations</h2>
@@ -17,21 +17,19 @@
                     <template v-if="p.name == 'default' || p.container_running">
                         <div class="led-green" style="display:inline-block" data-toggle="tooltip" title="This indicates the Docker container is running"></div>
                     </template>
+                    <template v-else-if="p.external">
+                        <dif class="led-blue" style="display: inline-block" data-toggle="tooltip" title="This indicates there is no Docker container associated since it's an external c2"></dif>
+                    </template>
                     <template v-else>
                         <div class="led-red" style="display:inline-block" data-toggle="tooltip" title="No heartbeat from container in over 30 seconds"></div>
-                    </template>&nbsp;<a class="btn btn-link" type="button" data-toggle="collapse" :data-target="'#c2profilecardbody' + p.id" aria-expanded="false" :aria-controls="'c2profilecardbody' + p.id">&nbsp;<font size="6"><b>[[p.name]]</b>&nbsp;<img :id="'dropdownarrow' + p.id" src="/static/color-arrow.png" style="width:32px;height32px;transform:rotate(180deg);vertical-align:center"></font></a>
+                    </template>&nbsp;<a class="btn btn-link" type="button" data-toggle="collapse" :data-target="'#c2profilecardbody' + p.id" aria-expanded="false" :aria-controls="'c2profilecardbody' + p.id">&nbsp;<font size="6"><b>[[p.name]]</b>&nbsp;<img :id="'dropdownarrow' + p.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(180deg);vertical-align:center"></font></a>
 
                   </div>
                 <div class="collapse show" :id="'c2profilecardbody' + p.id">
-                  <div class="card-body border-top border-bottom border-dark shadow bg-card-body">
-                       <p class="card-text">
-                           <small class="text-muted">Docker container status: </small>
-                           <template v-if="p.container_running || p.name == 'default'"><small class="text-muted">Running</small></template>
-                           <template v-else><small class="text-muted">Stopped</small></template>
-                       </p>
+                  <div class="card-body border-top border-bottom border-dark shadow bg-card-body-l2">
                       <p class="card-text">[[p.description]]</p>
                       <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="create_new_parameter_instance_button(p)"><i class="fa fa-bookmark"></i> Save Instance</button>
-                      <p class="card-text"><small class="text-muted">Supported Payload Types: [[ p.payload_types.join(", ") ]]</small></p>
+                      <p class="card-text"><small >Supported Payload Types: [[ p.payload_types.join(", ") ]]</small></p>
                   </div>
                 </div>
                 <div class="card-footer border border-dark shadow bg-header-dark">
@@ -106,8 +104,8 @@
                 <template v-if="folders.length > 0" v-for="folder in folders">
                     <table class="table table-striped {{config['table-color']}} table-hover">
                         <tr>
-                            <th align="left" width="50"><b>Delete</b></th>
-                            <th align="left" width="50"><b>Download</b></th>
+                            <th align="left" style="width:5rem"><b>Delete</b></th>
+                            <th align="left" style="width:4rem"><b>Download</b></th>
                             <th align="left"><b>
                                 Agent Files in [[folder.folder.replace("./app/c2_profiles/" + profile_name + "/","")]] (Deletions are permanent)
                             </b></th>
@@ -115,7 +113,7 @@
                         <template v-for="file in folder.filenames">
                             <tr>
                                 <td><button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_file_button(folder.folder, file)"><i class="fas fa-trash-alt"></i></button></td>
-                                <td><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_file_button(folder.folder, file)">Download</button></td>
+                                <td><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_file_button(folder.folder, file)"><i class="fas fa-download"></i></button></td>
                                 <td>[[file]]</td>
                             </tr>
                         </template>
@@ -124,14 +122,14 @@
                 <template>
                     <table class="table table-striped {{config['table-color']}} table-hover">
                         <tr>
-                            <th align="left" width="50"><b>Delete</b></th>
-                            <th align="left" width="50"><b>Download</b></th>
-                            <th align="left"><b>Server files (Deletions are permanent)</b> <span v-if="!got_list_from_container && profile_name != 'default'"><img class="spinning" src="/static/refresh.png" style="width:25px; height:25px"></span></th>
+                            <th align="left" style="width:5rem"><b>Delete</b></th>
+                            <th align="left" style="width:5rem"><b>Download</b></th>
+                            <th align="left"><b>Server files (Deletions are permanent)</b> <span v-if="!got_list_from_container && profile_name != 'default'"><span class="spinner-border text-info" role="status"></span></span></th>
                         </tr>
                         <template v-for="file in server_folder">
                             <tr>
                                 <td><button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_file_button('/Apfell/', file)"><i class="fas fa-trash-alt"></i></button></td>
-                                <td><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_file_button('/Apfell/', file)">Download</button></td>
+                                <td><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_file_button('/Apfell/', file)"><i class="fas fa-download"></i></button></td>
                                 <td>[[file]]</td>
                             </tr>
                         </template>
@@ -170,6 +168,10 @@
                         <select multiple id="profileUpdatePayloads">
                         </select>
                     </td>
+                </tr>
+                <tr>
+                    <td>Externally hosted?</td>
+                    <td><span class="material-switch pull-right"><input type="checkbox" id="profileUpdateExternal"><label for="profileUpdateExternal" class="btn-info"></label></span></td>
                 </tr>
                 <tr>
                     <td>
@@ -220,6 +222,10 @@
                     </td>
                 </tr>
                 <tr>
+                    <td>Externally hosted?</td>
+                    <td><span class="material-switch pull-right"><input type="checkbox" id="profileCreateExternal"><label for="profileCreateExternal" class="btn-info"></label></span></td>
+                </tr>
+                <tr>
                     <td>
                         Server/Container Code:
                     </td>
@@ -262,7 +268,7 @@
                     </tr>
                     <tr v-for="(i,p) in parameters" :key="p">
                         <td>
-                            <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_parameter_button(p)">X</button>
+                            <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_parameter_button(p)"><i class="fas fa-trash-alt"></i></button>
                         </td>
                         <td>
                             <input type="text" size="31" :value="i.name" v-model="i.name">
@@ -275,7 +281,7 @@
                         </td>
                     </tr>
                 </table>
-                <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_parameter_button()">Add</button>
+                <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_parameter_button()"><i class="fas fa-plus"></i></button>
             </div>
         </div>
 	    <div class="modal-footer">
@@ -307,22 +313,25 @@
 </div>
 <!-- END MODAL FOR IMPORTING C2 PROFILE -->
 <br>
-<div class="card border border-dark shadow">
+<div class="card border border-dark shadow" id="instances_table">
     <div class="card-header border border-dark bg-header text-white shadow">
         <h2>Saved <span class="operator">Parameter Instances</span></h2>
     </div>
-    <div class="card-body border border-dark bg-card-body shadow" id="instances_table">
+    <div class="card-body border border-dark bg-card-body shadow" >
       <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:8px;" v-for="i in instances" :key="i.id">
-          <div class="card shadow">
+          <div class="card shadow border border-dark">
               <div class="card-header" :id="'cardheader' + i.id">
-                  <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_instance(i)"><i class="fas fa-trash-alt"></i></button> <a class="btn btn-link" style="word-wrap: break-word" type="button" data-toggle="collapse" :data-target="'#cardbody' + i.id" aria-expanded="false" :aria-controls="'cardbody' + i.id" @click="toggle_arrow(i.id)"><font size="4"><b>Instance: </b> [[i.instance_name]] </font><img :id="'color-arrow' + i.id" src="/static/color-arrow.png" style="width:32px;height32px;transform:rotate(0deg);vertical-align:center"></a>
+                  <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_instance(i)"><i class="fas fa-trash-alt"></i></button> <a class="btn btn-link" style="word-wrap: break-word" type="button" data-toggle="collapse" :data-target="'#cardbody' + i.id" aria-expanded="false" :aria-controls="'cardbody' + i.id" @click="toggle_arrow(i.id)"><font size="4"><b>Instance: </b> [[i.instance_name]] </font><img :id="'color-arrow' + i.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(0deg);vertical-align:center"></a>
               </div>
               <div class="collapse" :id="'cardbody' + i.id">
-                  <div class="card-body">
+                  <div class="card-body bg-card-body-l2">
                     <span class="card-text" v-for="e in i.values" style="display:block;white-space:pre-wrap"><b>[[e.c2_profile_key]]</b>: <template v-if="e.value.length > 100 && !e.show_all">[[e.value.substring(0,100)]]<button class="btn btn-secondary btn-sm" @click="toggle_show_all(e)">...</button> </template><template v-else-if="e.show_all">[[e.value]] <button class="btn btn-secondary btn-sm" @click="toggle_show_all(e)">hide</button></template><template v-else>[[e.value]] </template><br></span>
                   </div>
               </div>
-              <div class="card-footer">Associated Profile: <b>[[i.c2_profile]]</b></div>
+              <div class="card-footer">
+                  <button class="btn btn-sm btn{{config['outline-buttons']}}info" @click="download_instance(i)" data-toggle="tooltip" title="download configuration parameters"><i class="fas fa-download"></i></button>
+                  <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="duplicate_instance(i)" data-toggle="tooltip" title="duplicate instance for editing"><i class="fas fa-external-link-alt"></i></button>
+                  Associated Profile: <b>[[i.c2_profile]]</b></div>
           </div>
         </div>
         <!-- THIS IS OUR MODAL FOR EDITING A PROFILE'S PARAMETERS -->
@@ -351,7 +360,7 @@
                                     <input type="text" disabled size="31" :value="i.name" v-model="i.name">
                                 </td>
                                 <td>
-                                    <textarea oninput="adjust_size(this)" rows="1" cols="62" :value="i.hint" v-model="i.hint" :id="i.key"></textarea>
+                                    <textarea oninput="adjust_size(this)" rows="1" cols="62" :value="i.hint" v-model="i.hint" :id="i.key" style="overflow:scroll;white-space: nowrap"></textarea>
                                 </td>
                             </tr>
                         </table>
@@ -364,6 +373,9 @@
             </div>
         </div>
         <!-- END MODAL FOR EDITING A PROFILE'S PARAMETERS -->
+    </div>
+    <div class="card-footer border border-dark shadow">
+        <button class="btn btn-sm btn{{config['outline-buttons']}}info" @click="import_instance()"><i class="fas fa-file-import fa-lg"></i> Import</button>
     </div>
     <!-- THIS IS OUR MODAL FOR DELETING PROFILE -->
 <div class="modal fade" id="stdoutStderrModal" role="dialog">
@@ -383,6 +395,26 @@
     </div>
 </div>
 <!-- END MODAL FOR DELETING PROFILE -->
+    <!-- THIS IS OUR MODAL FOR IMPORTING C2 PROFILE -->
+<div class="modal fade" id="importInstanceModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Import JSON of parameter instance</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <div class="modal-body" id="importInstanceBody">
+                  Should be an export of a registered c2 profile instance
+                  <input type="file" id="importInstanceFile">
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="importInstanceSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR IMPORTING C2 PROFILE -->
 </div>
 
 {% endblock %}

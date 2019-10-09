@@ -41,6 +41,22 @@ var tasks_div = new Vue({
                 }
             }
         },
+        download_raw_output: function(taskid){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + taskid + "/raw_output", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'success'){
+                        download_from_memory("task_" + taskid + ".txt", data['output']);
+                    }else{
+                        alertTop("warning", data['error']);
+                    }
+                }catch(error){
+                    alertTop("danger", "Session expired, please refresh");
+                    console.log(error.toString());
+                }
+            }, "GET", null);
+
+        },
         copyStringToClipboard: function (str) {
           // Create new element
           var el = document.createElement('textarea');
@@ -83,6 +99,18 @@ var tasks_div = new Vue({
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, update_callback_comment_callback, "DELETE", null);
         },
         load_tasks: function(callback){
+            for(let i = 0; i < tasks_div.callbacks.length; i++){
+                if(tasks_div.callbacks[i]['id'] === callback.id){
+                    if(tasks_div.callbacks[i].hasOwnProperty('tasks')){
+                        delete tasks_div.callbacks[i]['tasks'];
+                        tasks_div.$forceUpdate();
+                        return;
+                    }
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback.id , get_callback_tasks_callback, "GET", null);
+                    alertTop("info", "Loading...", 1);
+                    return;
+                }
+            }
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback.id , get_callback_tasks_callback, "GET", null);
             alertTop("info", "Loading...", 1);
         },
@@ -155,11 +183,11 @@ function make_active_callback(response){
 };
 
 function get_callback_tasks_callback(response){
-    if(response != "" && response != undefined){
-        var data = JSON.parse(response);
+    if(response !== "" && response !== undefined){
+        let data = JSON.parse(response);
         if(data.length > 0){
-            for(var i = 0; i < tasks_div.callbacks.length; i++){
-                if(tasks_div.callbacks[i]['id'] == data[0]['callback']){
+            for(let i = 0; i < tasks_div.callbacks.length; i++){
+                if(tasks_div.callbacks[i]['id'] === data[0]['callback']){
                     data.forEach(function(x){
                         x['href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + x.id;
                     });

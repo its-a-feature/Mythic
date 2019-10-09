@@ -20,6 +20,11 @@
         "hint":"10"
       },
       {
+        "name": "callback jitter (in percent)",
+        "key": "callback_jitter",
+        "hint": "37"
+      },
+      {
         "name":"Host header (for domain fronting)",
         "key":"domain_front",
         "hint":""
@@ -35,7 +40,7 @@
         "hint": ""
       }
     ],
-    "payload_types": ["apfell-jxa", "linfell", "viper"]
+    "payload_types": ["apfell-jxa", "poseidon", "viper"]
   },
     {
     "name":"RESTful_Patchthrough",
@@ -55,6 +60,11 @@
         "name":"callback interval (in seconds)",
         "key":"callback_interval",
         "hint":"10"
+      },
+      {
+        "name": "callback jitter (in percent)",
+        "key": "callback_jitter",
+        "hint": "37"
       },
       {
         "name":"Get a File (for load/download) - Needs two instances of IDSTRING",
@@ -113,6 +123,23 @@
       }
     ],
     "payload_types": ["apfell-jxa", "viper"]
+    },
+    {
+      "name": "HTTP",
+      "description": "Manipulate HTTP(S) requests and responses",
+      "params": [
+        {
+          "name": "Base64 32byte AES Key",
+          "key": "AESPSK",
+          "hint": ""
+        },
+        {
+          "name": "Agent JSON Config",
+          "key": "raw_c2_config",
+          "hint": ""
+        }
+      ],
+      "payload_types": ["apfell-jxa", "viper"]
     }
   ]
 }

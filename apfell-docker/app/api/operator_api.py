@@ -118,6 +118,8 @@ async def update_operator(request, name, user):
                 op.ui_config = data['ui_config']
         if 'username' in data:
             op.username = data['username']
+        if 'view_utc_time' in data:
+            op.view_utc_time = data['view_utc_time']
         try:
             await db_objects.update(op)
             success = {'status': 'success'}

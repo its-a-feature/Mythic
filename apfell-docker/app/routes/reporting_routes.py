@@ -13,9 +13,11 @@ env = Environment(loader=PackageLoader('app', 'templates'))
 async def ui_full_timeline(request, user):
     template = env.get_template('reporting_full_timeline.html')
     if use_ssl:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
+                                  ws="wss", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     else:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http",
+                                  ws="ws", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     return response.html(content)
 
 
@@ -25,9 +27,11 @@ async def ui_full_timeline(request, user):
 async def attack_mappings(request, user):
     template = env.get_template('mitre_attack_mappings.html')
     if use_ssl:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
+                                  ws="wss", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     else:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http",
+                                  ws="ws", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     return response.html(content)
 
 

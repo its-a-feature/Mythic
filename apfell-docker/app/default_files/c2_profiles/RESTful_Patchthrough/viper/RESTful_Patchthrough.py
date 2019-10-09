@@ -17,7 +17,7 @@ class C2():
         self.id_field = "IDSTRING"
         self.id = -1
         self.interval = callback_interval
-        self.jitter = 20  # this is a percentage
+        self.jitter = callback_jitter  # this is a percentage
         self.timeout = 20  # used for doing timeouts for web connections
         self.EKE = True if "encrypted_exchange_check" == "T" else False
         self.aes_encryption_key = "AESPSK" if "AESPSK" != "" else ""

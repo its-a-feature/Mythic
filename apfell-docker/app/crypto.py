@@ -1,4 +1,4 @@
-from Crypto.Hash import SHA256, SHA512
+from Crypto.Hash import SHA256, SHA512, SHA1, MD5
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import unpad, pad
@@ -7,12 +7,34 @@ import base64
 
 
 async def hash_SHA512(data) -> str:
-    hash_digest = SHA512.new(data=str.encode(data))
+    if isinstance(data, str):
+        hash_digest = SHA512.new(data=str.encode(data))
+    else:
+        hash_digest = SHA512.new(data=data)
     return hash_digest.hexdigest()
 
 
 async def hash_SHA256(data) -> str:
-    hash_digest = SHA256.new(data=str.encode(data))
+    if isinstance(data, str):
+        hash_digest = SHA256.new(data=str.encode(data))
+    else:
+        hash_digest = SHA256.new(data=data)
+    return hash_digest.hexdigest()
+
+
+async def hash_SHA1(data) -> str:
+    if isinstance(data, str):
+        hash_digest = SHA1.new(data=str.encode(data))
+    else:
+        hash_digest = SHA1.new(data=data)
+    return hash_digest.hexdigest()
+
+
+async def hash_MD5(data) -> str:
+    if isinstance(data, str):
+        hash_digest = MD5.new(data=str.encode(data))
+    else:
+        hash_digest = MD5.new(data=data)
     return hash_digest.hexdigest()
 
 

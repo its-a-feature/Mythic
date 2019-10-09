@@ -48,13 +48,15 @@ var payloads_table = new Vue({
                 edit_payload_files.edit_payload_file_list = $('#profileUpdatePayloads').val();
             });
             $( '#profileUpdatePayloads').val(p.payload_types).change();
+            if( p.external){$( '#profileUpdateExternal' ).click();}
             $( '#profileUpdateModal' ).modal('show');
             $( '#profileUpdateSubmit' ).unbind('click').click(function(){
                 var data = {"name": p.name,
                         "description": $( '#profileUpdateDescription' ).val(),
-                        "payload_types": $( '#profileUpdatePayloads' ).val()
+                        "payload_types": $( '#profileUpdatePayloads' ).val(),
+                        "external": $( '#profileUpdateExternal' ).is(":checked")
                         };
-                 if(data['payload_types'] == undefined){
+                 if(data['payload_types'] === undefined){
                     data['payload_types'] = [];
                  }
                 // update the data about a profile
@@ -144,7 +146,7 @@ var payloads_table = new Vue({
             // then see if there are any parameters already created for this profile
             values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters");
             values = JSON.parse(values);
-            if(values['status'] == "success"){
+            if(values['status'] === "success"){
                 for(var i = 0; i < values['c2profileparameters'].length; i++){
                     instances_table.current_parameters.push(values['c2profileparameters'][i]);
                 }
@@ -176,7 +178,7 @@ function create_new_parameter_instance_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/parameter_instances", get_parameter_instance_callback, "GET", null);
@@ -188,7 +190,7 @@ function get_parameter_instance_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     instances_table.instances = [];
@@ -304,7 +306,7 @@ function add_parameter_callback(response){
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
-};
+}
 function edit_parameter_callback(response){
     try{
         data = JSON.parse(response);
@@ -315,7 +317,7 @@ function edit_parameter_callback(response){
     if(data['status'] == 'error'){
         alertTop("danger", data['error']);
     }
-};
+}
 function delete_parameter_callback(response){
     try{
         data = JSON.parse(response);
@@ -323,10 +325,10 @@ function delete_parameter_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "error"){
+    if(data['status'] === "error"){
         alertTop("danger", data['error']);
     }
-};
+}
 function update_profile(response){
 	try{
         data = JSON.parse(response);
@@ -334,16 +336,16 @@ function update_profile(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-	if(data['status'] == 'success'){
+	if(data['status'] === 'success'){
 		for( var i = 0; i < profiles.length; i++){
-		    if(payloads_table.profiles[i].id == data['id']){
+		    if(payloads_table.profiles[i].id === data['id']){
 		        payloads_table.profiles[i].name = data['name'];
 		        payloads_table.profiles[i].description = data['description'];
 		        payloads_table.profiles[i].payload_types = data['payload_types'];
 		        payloads_table.profiles[i].running = data['running'];
 		    }
 		}
-		if(edit_payload_files.edit_payload_file_list == undefined){
+		if(edit_payload_files.edit_payload_file_list === undefined){
             alertTop("success", "Successfully updated");
 		    return;
         }
@@ -381,7 +383,7 @@ function update_profile_files(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     else{
@@ -398,7 +400,7 @@ function update_profile_ptype_files(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     else{
@@ -412,10 +414,10 @@ function delete_profile(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-	if(data['status'] == 'success'){
+	if(data['status'] === 'success'){
         var i = 0;
 		for( i = 0; i < profiles.length; i++){
-		    if(payloads_table.profiles[i].name == data['name']){
+		    if(payloads_table.profiles[i].name === data['name']){
 		        break;
 		    }
 		}
@@ -429,11 +431,11 @@ function delete_profile(response){
 function startwebsocket_c2profiles(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/c2profiles/current_operation');
 	ws.onmessage = function(event){
-		if(event.data != ""){
+		if(event.data !== ""){
 			pdata = JSON.parse(event.data);
 			//console.log(pdata);
 			for(var i = 0; i < payloads_table.profiles.length; i++){
-			    if(payloads_table.profiles[i]['name'] == pdata['name']){
+			    if(payloads_table.profiles[i]['name'] === pdata['name']){
 			        Vue.set(payloads_table.profiles, i, Object.assign({}, payloads_table.profiles[i], pdata));
 			        //clearAlertTop()
 			        return;
@@ -456,20 +458,20 @@ function startwebsocket_c2profiles(){
 			});
 		}
 		else{
-		    if(finished_profiles == false){
+		    if(finished_profiles === false){
 		        finished_profiles = true;
 		        startwebsocket_payloadtypec2profile();
 		    }
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
 		alertTop("danger", "Session expired, please refresh");
-	}
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Session expired, please refresh");
-	}
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
@@ -477,26 +479,26 @@ function startwebsocket_c2profiles(){
 function startwebsocket_payloadtypec2profile(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloadtypec2profile');
 	ws.onmessage = function(event){
-		if(event.data != ""){
+		if(event.data !== ""){
 			pdata = JSON.parse(event.data);
 			//profiles.push(pdata);
             for(var i = 0; i < profiles.length; i++){
-                if(profiles[i]['id'] == pdata['c2_profile_id']){
+                if(profiles[i]['id'] === pdata['c2_profile_id']){
                     if( !profiles[i]['payload_types'].includes(pdata['payload_type'])){
                         profiles[i]['payload_types'].push(pdata['payload_type']);
                     }
                 }
             }
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
 		alertTop("danger", "Session expired, please refresh");
-	}
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Session expired, please refresh");
-	}
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}
@@ -504,12 +506,12 @@ function startwebsocket_payloadtypec2profile(){
 function startwebsocket_rabbitmqresponses(){
     var ws = new WebSocket("{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/rabbitmq/c2_status");
     ws.onmessage = function(event){
-		if(event.data != ""){
-		    rdata = JSON.parse(event.data);
-		    pieces = rdata['routing_key'].split(".");
+		if(event.data !== ""){
+		    let rdata = JSON.parse(event.data);
+		    let pieces = rdata['routing_key'].split(".");
             //{"status": "success", "body": "C2 is not running", "routing_key": "c2.status.RESTful Patchthrough.stopped"}
-			if(rdata['status'] == "success"){
-			    if(pieces[4] == "listfiles"){
+			if(rdata['status'] === "success"){
+			    if(pieces[4] === "listfiles"){
 			        data = JSON.parse(rdata['body']);
 			        alertTop("success", "Received file list from container", 1);
 			        profile_files_modal.got_list_from_container = true;
@@ -520,37 +522,40 @@ function startwebsocket_rabbitmqresponses(){
 			                profile_files_modal.server_folder.push(data[i]['filenames'][j]);
                         }
                     }
-			    }else if(pieces[4] == "removefile"){
+			    }else if(pieces[4] === "removefile"){
 			        //console.log(rdata);
 			        data = JSON.parse(rdata['body']);
 			        for(var i = 0; i < profile_files_modal.server_folder.length; i++){
-			            if(profile_files_modal.server_folder[i] == data['file']){
+			            if(profile_files_modal.server_folder[i] === data['file']){
 			                profile_files_modal.server_folder.splice(i, 1);
 			                return;
 			            }
 			        }
-			    }else if(pieces[4] == "getfile"){
+			    }else if(pieces[4] === "getfile"){
 			        //console.log(rdata['body']);
 			        data = JSON.parse(rdata['body']);
 			        //clearAlertTop();
-			        download_from_memory(data['filename'], data['data']);
+			        download_from_memory(data['filename'], btoa(data['data']));
 			    }
 			    else{
-			        delay = 4;
-			        if(pieces[4] == "status"){delay = 0;}
-			        $('#stdoutStderrModal').modal('show');
-			        $('#stdoutStderrBody').html("<b>Received Message</b>:<br> <span style='white-space:pre-wrap'>" + rdata['body'] + "</span>")
-			        //alertTop("success", , delay);
+			        let delay = 4;
+			        if(pieces[4] === "status"){delay = 0;}
+			        if(rdata['body'].length > 512000){
+                        download_from_memory("c2_status_output.txt", rdata['body']);
+                    }else{
+			            $('#stdoutStderrModal').modal('show');
+			            $('#stdoutStderrBody').html("<b>Received Message</b>:<br> <span style='white-space:pre-wrap'>" + rdata['body'] + "</span>")
+                    }
 			    }
 
 			}else{
 			    alertTop("danger", rdata['error']);
 			}
 			//console.log(event.data);
-			pieces = rdata['routing_key'].split(".");
-			for( var i = 0; i < profiles.length; i++){
-                if(payloads_table.profiles[i].name == pieces[2]){
-                    if(pieces[3] == "running"){
+            pieces = rdata['routing_key'].split(".");
+			for( let i = 0; i < profiles.length; i++){
+                if(payloads_table.profiles[i].name === pieces[2]){
+                    if(pieces[3] === "running"){
                         payloads_table.profiles[i].running = true;
                     }else{
                         payloads_table.profiles[i].running = false;
@@ -559,11 +564,11 @@ function startwebsocket_rabbitmqresponses(){
                 }
             }
 		}
-	}
+	};
 	ws.onclose = function(){
 		//console.log("payloads socket closed");
 		alertTop("danger", "Session expired, please refresh");
-	}
+	};
 	ws.onerror = function(){
 		//console.log("payloads socket errored");
 		alertTop("danger", "Session expired, please refresh");
@@ -590,9 +595,10 @@ function register_button(){
     });
 	$( '#profileCreateModal' ).modal('show');
     $( '#profileCreateSubmit' ).unbind('click').click(function(){
-        var data = {"name": $( '#profileCreateName' ).val(),
+        var data = {"name": $('#profileCreateName').val(),
                     "description": $( '#profileCreateDescription' ).val(),
-                    "payload_types": $( '#profileCreatePayloadTypes' ).val()};
+                    "payload_types": $( '#profileCreatePayloadTypes' ).val(),
+                    "external": $( '#profileCreateExternal' ).is(":checked")};
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile, "POST", data);
     });
 
@@ -604,7 +610,7 @@ function create_profile(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
         return;
     }
@@ -614,7 +620,7 @@ function create_profile(response){
         var file = document.getElementById('payload_file_list' + payload_files.payload_file_list[i]);
         if(file.files.length > 0){
             var filedata = file.files;
-            var json_data = {"payload_type":  payload_files.payload_file_list[i]}
+            var json_data = {"payload_type":  payload_files.payload_file_list[i]};
             uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + data['name'] + "/upload", upload_profile_file,filedata, json_data, "POST");
             //uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/, edit_payloadtype_callback, filedata);
             file.value = file.defaultValue;
@@ -628,7 +634,7 @@ function upload_profile_file(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != "success"){
+    if(data['status'] !== "success"){
         alertTop("danger", data['error']);
     }
     else{
@@ -661,7 +667,7 @@ function import_button_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         alertTop("success", "Successfully imported");
     }else{
         alertTop("danger", data['error']);
@@ -677,7 +683,7 @@ function reset_default_profiles_button_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         location.reload(true);
         alertTop("success", "Successfully reset default c2 profiles");
     }else{
@@ -686,14 +692,14 @@ function reset_default_profiles_button_callback(response){
 }
 function container_heartbeat_check(){
     var date = new Date();
-    var now = date.getTime() + date.getTimezoneOffset() * 60000;;
-    for(var i = 0; i < payloads_table.profiles.length; i ++){
+    var now = date.getTime() + date.getTimezoneOffset() * 60000;
+    for(let i = 0; i < payloads_table.profiles.length; i ++){
         var heartbeat = new Date(payloads_table.profiles[i].last_heartbeat);
         var difference =  (now - heartbeat.getTime() ) / 1000;
         if(difference < 30){
             payloads_table.profiles[i]['container_running'] = true;
         }else{
-            if(payloads_table.profiles[i]['container_running'] == true){
+            if(payloads_table.profiles[i]['container_running'] === true){
                 // if it's currently set to running, let's change it in the db that it's down
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + payloads_table.profiles[i]['name'], null, "PUT", {"container_running": false});
             }
@@ -722,6 +728,79 @@ var instances_table = new Vue({
             });
             $('#cardbody' + instid).on('hidden.bs.collapse', function(){
                 $('#color-arrow' + instid).css("transform", "rotate(0deg)");
+            });
+        },
+        download_instance: function(i){
+            let data = JSON.stringify(i);
+            download_from_memory(i.instance_name + ".json", btoa(data));
+        },
+        duplicate_instance: function(i){
+            // first clear the current profileEditParametersTable
+	        instances_table.current_parameters = [];
+            instances_table.current_name = i.instance_name + " copy";
+            i.values.forEach((x) => {
+                instances_table.current_parameters.push(
+                    {"key": x.c2_profile_key,
+                    "name": x.c2_profile_name,
+                    "hint": x.value});
+            });
+            // for each one we get back, create a new row
+            //    this will be in the form of a Vue object we modify
+            $( '#profileCreateInstanceModal').modal('show');
+            $('#profileCreateInstanceModal').on('shown.bs.modal', function () {
+                instances_table.current_parameters.forEach((x)=>{
+                   adjust_size( document.getElementById(x.key));
+                });
+            });
+            $( '#profileCreateInstanceSubmit').unbind('click').click(function(){
+                // We now have a mix of old, new, modified, and deleted parameters
+                let data = {'instance_name': instances_table.current_name};
+                for(let j = 0; j < instances_table.current_parameters.length; j ++){
+                    data[instances_table.current_parameters[j]['name']] = instances_table.current_parameters[j]['hint'];
+                }
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + i.c2_profile + "/parameter_instances", create_new_parameter_instance_callback, "POST", data);
+            });
+        },
+        import_instance: function(){
+            $('#importInstanceModal').modal('show');
+            $( '#importInstanceSubmit' ).unbind('click').click(function(){
+                let file = document.getElementById('importInstanceFile');
+                let filedata = file.files[0];
+                let fileReader = new FileReader();
+                  fileReader.onload = function(fileLoadedEvent){
+                      try {
+                          let i = JSON.parse(fileLoadedEvent.target.result);
+                          instances_table.current_parameters = [];
+                          instances_table.current_name = i.instance_name + " copy";
+                          i.values.forEach((x) => {
+                              instances_table.current_parameters.push({
+                                  "key": x.c2_profile_key,
+                                  "name": x.c2_profile_name,
+                                  "hint": x.value
+                              });
+                          });
+                          // for each one we get back, create a new row
+                          //    this will be in the form of a Vue object we modify
+                          $('#profileCreateInstanceModal').modal('show');
+                          $('#profileCreateInstanceModal').on('shown.bs.modal', function () {
+                                instances_table.current_parameters.forEach((x)=>{
+                                   adjust_size( document.getElementById(x.key));
+                                });
+                            });
+                          $('#profileCreateInstanceSubmit').unbind('click').click(function () {
+                              // We now have a mix of old, new, modified, and deleted parameters
+                              let data = {'instance_name': instances_table.current_name};
+                              for (let j = 0; j < instances_table.current_parameters.length; j++) {
+                                  data[instances_table.current_parameters[j]['name']] = instances_table.current_parameters[j]['hint'];
+                              }
+                              httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + i.c2_profile + "/parameter_instances", create_new_parameter_instance_callback, "POST", data);
+                          });
+                      }catch(error){
+                          alertTop("danger", "Failed to import file: " + error.toString());
+                      }
+                  };
+                  fileReader.readAsText(filedata, "UTF-8");
+                file.value = file.defaultValue;
             });
         }
     },

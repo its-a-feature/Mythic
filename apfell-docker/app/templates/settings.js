@@ -5,6 +5,11 @@ var operator = new Vue({
     data: {
         current_operator
     },
+    methods: {
+        change_time: function(o){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, update_operatorview_callback, "PUT", {"view_utc_time": o.view_utc_time});
+        },
+    },
     delimiters: ['[[', ']]']
 });
 var operators_table = new Vue({
@@ -39,14 +44,17 @@ var operators_table = new Vue({
         change_username_button: function(o){
             username_button(o);
         },
+        change_time: function(o){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, update_operatorview_callback, "PUT", {"view_utc_time": o.view_utc_time});
+        },
         change_active_button: function(o){
-        data = {};
-                if(o['active'] == false){
-                    data['active'] = true;
-                }
-                else{
-                    data['active'] = false;
-                }
+            data = {};
+            if(o['active'] == false){
+                data['active'] = true;
+            }
+            else{
+                data['active'] = false;
+            }
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, update_operatorview_callback, "PUT", data);
         },
         change_config_button: function(o){
@@ -69,7 +77,7 @@ function get_config_button_callback(response){
         alertTop("danger", "Session is expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         //operator_config.config = JSON.parse(data['ui_config']);
         config_data = JSON.parse(data['ui_config']);
         operator_config.config = [];
@@ -88,7 +96,7 @@ function get_set_config_button_callback(response){
         alertTop("danger", "Session is expired, please refresh");
         return;
     }
-    if(data['status'] == "success"){
+    if(data['status'] === "success"){
         //operator_config.config = JSON.parse(data['ui_config']);
         location.reload(true);
     }else{
@@ -106,8 +114,8 @@ var operator_config = new Vue({
             this.config.push({"key": "", "value": ""});
         },
         remove_key_config: function(key){
-            for(var i = 0; i < this.config.length; i++){
-                if(key == this.config[i]["key"]){
+            for(let i = 0; i < this.config.length; i++){
+                if(key === this.config[i]["key"]){
                     this.config.splice(i, 1);
                 }
             }
@@ -128,7 +136,7 @@ function get_static_config_button_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         delete data['status'];
         operator_config.config = [];
         config_data = JSON.parse(data['config']);
@@ -143,7 +151,7 @@ function get_static_config_button_callback(response){
 function startwebsocket_operators(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/operators');
 	ws.onmessage = function(event){
-		if(event.data != ""){
+		if(event.data !== ""){
 			odata = JSON.parse(event.data);
 			operators.push(odata);
 			operators.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
@@ -230,15 +238,15 @@ function delete_operator_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-	if(data['status'] == 'success'){
-        var i = 0;
-		for( i = 0; i < operators.length; i++){
-		    if(operators[i].username == data['username']){
+	if(data['status'] === 'success'){
+	    let i = 0;
+		for(i = 0; i < operators.length; i++){
+		    if(operators[i].username === data['username']){
 		        break;
 		    }
 		}
 		operators.splice(i, 1);
-		if(operators.length == 0){
+		if(operators.length === 0){
 		    //there's nobody left, so go to logout page
 		    window.location = "{{http}}://{{links.server_ip}}:{{links.server_port}}/logout";
 		}
@@ -255,11 +263,8 @@ function update_operator_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         alertTop("success", "Password successfully changed");
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
     }
     else{
         alertTop("danger", "Error: " + data['error']);
@@ -272,18 +277,16 @@ function update_operatorview_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         alertTop("success", "success");
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
+        location.reload(true);
     }
     else{
         alertTop("danger", "Error: " + data['error']);
     }
 }
 function disable_registration_button(){
-    var data = {'registration': false};
+    let data = {'registration': false};
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/settings", disable_registration_callback, "PUT", data);
 }
 function disable_registration_callback(response){
@@ -293,11 +296,8 @@ function disable_registration_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         alertTop("warning", "New operator registration is disabled until server restart.");
-        $("#top-alert").fadeTo(2000, 500).slideUp(500, function(){
-              $("#top-alert").slideUp(500);
-        });
     }
     else{
         alertTop("danger", data['error']);

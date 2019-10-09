@@ -18,7 +18,7 @@ class Operator(p.Model):
         "highlight": "grey",
         "autocomplete": "#e6f3ff",
         "highlight-text": "white",
-        "timestamp": "#24E0FF",
+        "timestamp": "#1A1A9A",
         "operator": "#b366ff",
         "display": "#FF4D4D",
         "new-callback-color": "light",
@@ -32,16 +32,16 @@ class Operator(p.Model):
         "table-color": "",
         "processing": "#fffade",
         "processed": "#f0fff0",
-        "response-background": "hsl(225, 6%, 23%)",
+        "response-background": "hsl(263, 6%, 100%)",
         "outline-buttons": "-",
         "bg-header": "hsl(263, 15%, 25%)",
-        "bg-header-dark": " hsl(225, 0%, 45%)",
-        "bg-card-body": "white",
-        "bg-card-body-l1": "hsl(225, 0%, 58%)",
-        "bg-card-bddy-l2": "hsl(225, 0%, 85%)",
+        "bg-header-dark": "hsl(225, 0%, 88%)",
+        "bg-card-body": "hsl(225, 0%, 95%)",
+        "bg-card-body-l1": "hsl(225, 0%, 100%)",
+        "bg-card-body-l2": "hsl(225, 0%, 105%)",
         "bg-card-footer": "hsl(225, 0%, 54%)",
         "bg-body": "hsl(225, 0%, 50%)",
-        "th": "hsl(255, 0%, 85%)"
+        "th": "hsl(255, 0%, 80%)"
     })
     dark_config = json.dumps({
         "background-color": "hsl(225, 6%, 14%)",
@@ -84,6 +84,7 @@ class Operator(p.Model):
     active = p.BooleanField(null=False, default=True)
     current_operation = p.ForeignKeyField(p.DeferredRelation('Operation'), null=True)
     ui_config = p.TextField(null=False, default=dark_config)
+    view_utc_time = p.BooleanField(null=False, default=False)
 
     class Meta:
         ordering = ['-id', ]
@@ -107,7 +108,7 @@ class Operator(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
     async def check_password(self, password):
         temp_pass = await crypto.hash_SHA512(password)
@@ -161,7 +162,7 @@ class PayloadType(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class Transform(p.Model):
@@ -192,7 +193,7 @@ class Transform(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # This has information about a specific command that can be executed by a PayloadType
@@ -211,6 +212,18 @@ class Command(p.Model):
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
     version = p.IntegerField(null=False, default=1)  # what version, so we can know if loaded commands are out of date
     is_exit = p.BooleanField(null=False, default=False)  # indicate if this command is the exit command for a payload type
+    # indicate if this is the command used for browsing files
+    is_file_browse = p.BooleanField(null=False, default=False)
+    file_browse_parameters = p.TextField(null=False, default="*")
+    # indicate if this is the command used for listing processes
+    is_process_list = p.BooleanField(null=False, default=False)
+    process_list_parameters = p.TextField(null=False, default="")
+    # indicate if this is the command used for downloading files
+    is_download_file = p.BooleanField(null=False, default=False)
+    download_file_parameters = p.TextField(null=False, default="*")
+    # indicate if this is the command used for removing files
+    is_remove_file = p.BooleanField(null=False, default=False)
+    remove_file_parameters = p.TextField(null=False, default="*")
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)
@@ -232,7 +245,7 @@ class Command(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # these parameters are used to create an easily parsible JSON 'params' field for the agent to utilize
@@ -267,7 +280,7 @@ class CommandParameters(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # users will be associated with operations
@@ -279,6 +292,7 @@ class Operation(p.Model):
     complete = p.BooleanField(null=False, default=False)
     # auto create an AES PSK key when the operation is created for things like PFS with EKE
     AESPSK = p.TextField(null=False, unique=True)
+    webhook = p.TextField(null=True)
 
     class Meta:
         database = apfell_db
@@ -296,7 +310,7 @@ class Operation(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class DisabledCommandsProfile(p.Model):
@@ -324,7 +338,7 @@ class DisabledCommandsProfile(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class DisabledCommands(p.Model):
@@ -355,7 +369,7 @@ class DisabledCommands(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # because operators and operations are a many-to-many relationship, we need a join table to facilitate
@@ -388,7 +402,7 @@ class OperatorOperation(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # an instance of a c2profile
@@ -401,11 +415,13 @@ class C2Profile(p.Model):
     creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # (indicates "when")
     # indicates if the c2 profile is running
     running = p.BooleanField(null=False, default=False)
-    last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    last_heartbeat = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
     # indicates if the c2 profile container is up and able to receive tasking
     container_running = p.BooleanField(null=False, default=False)
     # icon information
     icon = p.TextField(null=True)
+    # identify is a c2 profile lives external to Apfell
+    external = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -425,7 +441,7 @@ class C2Profile(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
     
 # this is a join table between the many to many relationship between payload_types and c2profiles
@@ -457,7 +473,7 @@ class PayloadTypeC2Profile(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # this is an instance of a payload
@@ -484,6 +500,8 @@ class Payload(p.Model):
     build_phase = p.TextField(null=False, default="building")
     build_message = p.TextField(null=False, default="")  # capture error or any other info
     hosted_path = p.TextField(null=False, default="")  # current hosting path if we want a unique hosted path
+    # if there is a slack webhook for the operation, decide if this payload should generate an alert or not
+    callback_alert = p.BooleanField(null=False, default=True)
 
     class Meta:
         database = apfell_db
@@ -513,7 +531,7 @@ class Payload(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # a specific payload instance has multiple commands associated with it, so we need to track that
@@ -546,7 +564,7 @@ class PayloadCommand(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 #  C2 profiles will have various parameters that need to be stamped in at payload creation time
@@ -574,7 +592,7 @@ class C2ProfileParameters(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 # c2 profiles will have various parameters that need to be stamped in when the payload is created
@@ -589,7 +607,7 @@ class C2ProfileParametersInstance(p.Model):
     operation = p.ForeignKeyField(Operation, null=True)  # tie this instance to an operation if there's no payload
 
     class Meta:
-        indexes = ((('c2_profile_parameters', 'value', 'payload'), True), (('c2_profile_parameters','instance_name', 'operation'),True))
+        indexes = ((('c2_profile_parameters', 'payload'), True), (('c2_profile_parameters','instance_name', 'operation'),True))
         database = apfell_db
 
     def to_json(self):
@@ -611,7 +629,7 @@ class C2ProfileParametersInstance(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class Callback(p.Model):
@@ -622,6 +640,7 @@ class Callback(p.Model):
     host = p.CharField(null=False)
     pid = p.IntegerField(null=False)
     ip = p.CharField(max_length=100, null=False)
+    external_ip = p.TextField(null=True)
     description = p.TextField(null=True)
     operator = p.ForeignKeyField(Operator, null=False)
     active = p.BooleanField(default=True, null=False)
@@ -637,6 +656,9 @@ class Callback(p.Model):
     encryption_type = p.CharField(null=True)  # the kind of encryption on this callback (aes, xor, rc4, etc)
     decryption_key = p.TextField(null=True)  # base64 of the key to use to decrypt traffic
     encryption_key = p.TextField(null=True)  # base64 of the key to use to encrypt traffic
+    os = p.TextField(null=True)
+    architecture = p.TextField(null=True)
+    domain = p.TextField(null=True)
 
     class Meta:
         database = apfell_db
@@ -658,8 +680,9 @@ class Callback(p.Model):
                     r[k] = getattr(self, k).name
                 elif k == 'locked_operator' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).username
+                # we don't need to include these things all over the place, explicitly ask for them for more control
                 elif k == 'encryption_key' or k == 'decryption_key' or k == 'encryption_type':
-                    pass  # we don't need to include these things all over the place, explicitly ask for them for more control
+                    pass
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -669,7 +692,7 @@ class Callback(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class LoadedCommands(p.Model):
@@ -703,7 +726,7 @@ class LoadedCommands(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class Task(p.Model):
@@ -728,6 +751,7 @@ class Task(p.Model):
     comment = p.TextField(null=False, default="")
     # the user that added the above comment
     comment_operator = p.ForeignKeyField(Operator, related_name="comment_operator", null=True)
+    completed = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -758,14 +782,14 @@ class Task(p.Model):
             r['status_timestamp_preprocessing'] = r['status_timestamp_preprocessing'].strftime('%m/%d/%Y %H:%M:%S')
         if 'status_timestamp_submitted' in r and r['status_timestamp_submitted'] is not None:
             r['status_timestamp_submitted'] = r['status_timestamp_submitted'].strftime('%m/%d/%Y %H:%M:%S')
-        if 'status_timestamp_processing' in r and  r['status_timestamp_processing'] is not None:
+        if 'status_timestamp_processing' in r and r['status_timestamp_processing'] is not None:
             r['status_timestamp_processing'] = r['status_timestamp_processing'].strftime('%m/%d/%Y %H:%M:%S')
         if 'status_timestamp_processed' in r and r['status_timestamp_processed'] is not None:
             r['status_timestamp_processed'] = r['status_timestamp_processed'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class Response(p.Model):
@@ -790,13 +814,14 @@ class Response(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class FileMeta(p.Model):
     agent_file_id = p.TextField(unique=True, null=False, default=gen_uuid)
     total_chunks = p.IntegerField(null=False)  # how many total chunks will there be
     chunks_received = p.IntegerField(null=False, default=0)  # how many we've received so far
+    chunk_size = p.IntegerField(null=False, default=0)
     task = p.ForeignKeyField(Task, null=True)  # what task caused this file to exist in the database
     complete = p.BooleanField(null=False, default=False)
     path = p.TextField(null=False)  # where the file is located on local disk
@@ -804,6 +829,8 @@ class FileMeta(p.Model):
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     deleted = p.BooleanField(null=False, default=False)
     operator = p.ForeignKeyField(Operator, null=True)  # specify this in case it was a manual registration
+    md5 = p.TextField(null=True)
+    sha1 = p.TextField(null=True)
 
     class Meta:
         database = apfell_db
@@ -827,7 +854,7 @@ class FileMeta(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class ATTACK(p.Model):
@@ -850,7 +877,7 @@ class ATTACK(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class ATTACKCommand(p.Model):
@@ -877,7 +904,7 @@ class ATTACKCommand(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class ATTACKTask(p.Model):
@@ -905,23 +932,23 @@ class ATTACKTask(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class Credential(p.Model):
-    type = p.CharField(null=False)  # what kind of credential is it? [hash, password, certificate, etc]
+    type = p.TextField(null=False)  # what kind of credential is it? [hash, password, certificate, etc]
     # if you know the task, you know who, what, where, when, etc that caused this thing to exist
     # task can be null though which means it was manually entered
     task = p.ForeignKeyField(Task, null=True)  # what task caused this credential to be here?
-    user = p.TextField(null=False)  # whose credential is this
-    domain = p.TextField()  # which domain does this credential apply?
+    account = p.TextField(null=False)  # whose credential is this
+    realm = p.TextField()  # which domain does this credential apply?
     operation = p.ForeignKeyField(Operation)  # which operation does this credential belong to?
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # when did we get it?
     credential = p.TextField(null=False)  # the actual credential we captured
     operator = p.ForeignKeyField(Operator, null=False)  # who got us this credential? Especially needed if manual entry
+    comment = p.TextField(null=True)
 
     class Meta:
-        indexes = ((('user', 'domain', 'credential', 'operation'), True),)
         database = apfell_db
 
     def to_json(self):
@@ -944,7 +971,7 @@ class Credential(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class Keylog(p.Model):
@@ -965,7 +992,8 @@ class Keylog(p.Model):
             try:
                 if k == 'task' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).id
-                    r['callback'] = getattr(self, k).callback.id
+                    r['host'] = getattr(self, k).callback.host
+                    r['callback'] = {"id": getattr(self, k).callback.id}
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
                 else:
@@ -976,7 +1004,7 @@ class Keylog(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class CommandTransform(p.Model):
@@ -1016,7 +1044,7 @@ class CommandTransform(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class Artifact(p.Model):
@@ -1038,7 +1066,7 @@ class Artifact(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class ArtifactTemplate(p.Model):
@@ -1076,7 +1104,7 @@ class ArtifactTemplate(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class TaskArtifact(p.Model):
@@ -1087,6 +1115,7 @@ class TaskArtifact(p.Model):
     # if this is a manual entry (no task), still specify the corresponding artifact
     artifact = p.ForeignKeyField(Artifact, null=True)
     operation = p.ForeignKeyField(Operation, null=True)
+    host = p.TextField(null=True)
 
     class Meta:
         database = apfell_db
@@ -1105,6 +1134,7 @@ class TaskArtifact(p.Model):
                         r["task_id"] = getattr(self, k).id
                         r["task"] = getattr(self, k).params
                         r['command'] = getattr(self, k).command.cmd
+                        r['host'] = getattr(self, k).callback.host
                     else:
                         r[k] = ""
                         r["task_id"] = -1
@@ -1119,6 +1149,9 @@ class TaskArtifact(p.Model):
                         r[k] = getattr(self, k).name
                     else:
                         r[k] = "null"
+                elif k == 'host':
+                    if k not in r:
+                        r[k] = getattr(self, k)
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -1127,7 +1160,7 @@ class TaskArtifact(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class StagingInfo(p.Model):
@@ -1149,7 +1182,7 @@ class StagingInfo(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class APITokens(p.Model):
@@ -1177,7 +1210,7 @@ class APITokens(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class BrowserScript(p.Model):
@@ -1215,7 +1248,71 @@ class BrowserScript(p.Model):
         return r
 
     def __str__(self):
-        return str(self.to_json())
+        return json.dumps(self.to_json())
+
+
+class ProcessList(p.Model):
+    # which task populated the data
+    task = p.ForeignKeyField(Task, null=False, unique=True)
+    # when did we get the data back
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    # this is a process list for which host
+    host = p.TextField(null=False)
+    # requires a specific format:
+    #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
+    process_list = p.TextField(null=False)
+    operation = p.ForeignKeyField(Operation, null=False)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'task':
+                    r[k] = getattr(self, k).id
+                    r['callback'] = getattr(self, k).callback.id
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class FileBrowse(p.Model):
+    task = p.ForeignKeyField(Task, null=False, unique=True)
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    operation = p.ForeignKeyField(Operation, null=False)
+    file_browse = p.TextField(null=False)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'task':
+                    r[k] = getattr(self, k).id
+                    r['callback'] = getattr(self, k).callback.id
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
 
 
 # -------------- TABLE SPECIFIC ASYNC JOIN QUERIES -----------
@@ -1434,6 +1531,18 @@ async def browserscript_query():
         .join(Command, p.JOIN.LEFT_OUTER).join(PayloadType, p.JOIN.LEFT_OUTER).switch(BrowserScript)
 
 
+async def processlist_query():
+    return ProcessList.select(ProcessList, Task, Callback, Operation)\
+        .join(Task).join(Callback).switch(ProcessList)\
+        .join(Operation).switch(ProcessList)
+
+
+async def filebrowse_query():
+    return FileBrowse.select(FileBrowse, Task, Callback, Operation)\
+        .join(Task).join(Callback).switch(FileBrowse)\
+        .join(Operation).switch(FileBrowse)
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
@@ -1441,7 +1550,7 @@ def pg_register_newinserts():
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'response', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate',
                'taskartifact', 'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile',
-               'disabledcommands']
+               'disabledcommands', 'processlist', 'filebrowse']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -1462,7 +1571,8 @@ def pg_register_updates():
                'command', 'operatoroperation', 'payloadtypec2profile', 'filemeta', 'payloadcommand',
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate', 'taskartifact',
-               'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile', 'disabledcommands']
+               'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile', 'disabledcommands',
+               'processlist', 'filebrowse']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -1528,7 +1638,8 @@ TaskArtifact.create_table(True)
 StagingInfo.create_table(True)
 APITokens.create_table(True)
 BrowserScript.create_table(True)
-
+ProcessList.create_table(True)
+FileBrowse.create_table(True)
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()

@@ -129,7 +129,6 @@ async def get_pageinate_artifact_tasks(request, user, page, size):
     return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': page, 'size': size})
 
 
-# Get a single response
 @apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/search", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -224,6 +223,8 @@ async def create_artifact_task_manually(request, user):
         return json({'status': 'error', 'error': 'must supply an artifact_instance value'})
     if 'artifact' not in data:
         return json({'status': 'error', 'error': 'must supply a base artifact to associate with the instance'})
+    if 'host' not in data:
+        data['host'] = ""
     else:
         try:
             query = await db_model.artifact_query()
@@ -231,6 +232,6 @@ async def create_artifact_task_manually(request, user):
         except Exception as e:
             return json({'status': 'error', 'error': 'failed to find the artifact'})
     task_artifact = await db_objects.create(TaskArtifact, task=task, artifact_instance=data['artifact_instance'],
-                                            artifact=artifact, operation=operation)
+                                            artifact=artifact, operation=operation, host=data['host'])
     return json({'status': 'success', **task_artifact.to_json()})
 

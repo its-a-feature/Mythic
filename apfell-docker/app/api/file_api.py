@@ -11,6 +11,8 @@ import sys
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 import shutil
+from app.api.crypto_api import decrypt_agent_message, encrypt_agent_message
+from app.crypto import hash_MD5, hash_SHA1
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -46,16 +48,27 @@ async def get_current_operations_files_meta(request, user):
         return json({"status": 'error', 'error': 'must be part of an active operation'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/<fid:string>/callbacks/<cid:string>", methods=['GET'])
-async def get_one_file(request, fid, cid):
+@apfell.route(apfell.config['API_BASE'] + "/files/callback/<cid:string>", methods=['POST'])
+async def get_one_file(request, cid):
     try:
-        query = await db_model.filemeta_query()
-        file_meta = await db_objects.get(query, agent_file_id=fid)
         query = await db_model.callback_query()
         callback = await db_objects.get(query, agent_callback_id=cid)
     except Exception as e:
+        print("callback not found in get_one_file")
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return json({'status': 'error', 'error': 'file not found'})
+        return abort(404)
+    data = await decrypt_agent_message(request, callback)
+    if data is None:
+        return abort(404)
+    try:
+        query = await db_model.filemeta_query()
+        file_meta = await db_objects.get(query, agent_file_id=data['file_id'])
+    except Exception as e:
+        enc = await encrypt_agent_message(js.dumps({'status': 'error', 'error': 'file not found'}), callback)
+        if enc is None:
+            return abort(404)
+        else:
+            return raw(enc, status=200)
     # now that we have the file metadata, get the file if it's done downloading
     if file_meta.complete and not file_meta.deleted:
         encoded_data = open(file_meta.path, 'rb').read()
@@ -73,9 +86,17 @@ async def get_one_file(request, fid, cid):
                 return raw(base64.b64encode(raw_encrypted), status=200)
         return raw(encoded_data)
     elif file_meta.deleted:
-        return json({'status': 'error', 'error': 'temporary file deleted'})
+        enc = await encrypt_agent_message(js.dumps({'status': 'error', 'error': 'temporary file deleted'}), callback)
+        if enc is None:
+            return abort(404)
+        else:
+            return raw(enc, status=200)
     else:
-        return json({'status': 'error', 'error': 'file not done downloading'})
+        enc = await encrypt_agent_message(js.dumps({'status': 'error', 'error': 'file not done downloading'}), callback)
+        if enc is None:
+            return abort(404)
+        else:
+            return raw(enc, status=200)
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/download/<id:string>", methods=['GET'])
@@ -149,11 +170,9 @@ async def create_filemeta_in_database_func(data):
     #  expects total_chunks, and task
     if 'total_chunks' not in data:
         return {'status': 'error', 'error': 'total_chunks required'}
-    if 'task' not in data:
-        return {'status': 'error', 'error': 'corresponding task id required'}
     try:
         query = await db_model.task_query()
-        task = await db_objects.prefetch(query.where(Task.agent_task_id == data['task']), Command.select())
+        task = await db_objects.prefetch(query.where(Task.id == data['task']), Command.select())
         task = list(task)[0]
         query = await db_model.callback_query()
         callback = await db_objects.get(query.where(Callback.id == task.callback))
@@ -190,6 +209,9 @@ async def create_filemeta_in_database_func(data):
                                            path=save_path, operator=task.operator)
         if data['total_chunks'] == 0:
             filemeta.complete = True
+            contents = open(filemeta.path, 'rb').read()
+            filemeta.md5 = await hash_MD5(contents)
+            filemeta.sha1 = await hash_SHA1(contents)
             await db_objects.update(filemeta)
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
@@ -262,12 +284,16 @@ async def create_filemeta_in_database_manual_func(data, user):
                 data['path'] = payload.location
             except Exception as e:
                 return {'status': 'error', 'error': 'failed to find that payload in your operation'}
-        filemeta = await db_objects.create(FileMeta, total_chunks=1, operation=operation, path=data['path'],
+        file_meta = await db_objects.create(FileMeta, total_chunks=1, operation=operation, path=data['path'],
                                            complete=True, chunks_received=1, operator=operator)
+        contents = open(file_meta.path, 'rb').read()
+        file_meta.md5 = await hash_MD5(contents)
+        file_meta.sha1 = await hash_SHA1(contents)
+        await db_objects.update(file_meta)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': str(e)}
-    return {'status': 'success', **filemeta.to_json()}
+    return {'status': 'success', **file_meta.to_json()}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['POST'])
@@ -293,6 +319,8 @@ async def download_file_to_disk_func(data):
         return {'status': 'error', 'error': 'failed to get File info'}
     try:
         # print("trying to base64 decode chunk_data")
+        if data['chunk_num'] <= file_meta.chunks_received:
+            return {'status': 'error', 'error': 'out of order or duplicate chunk'}
         chunk_data = base64.b64decode(data['chunk_data'])
         f = open(file_meta.path, 'ab')
         f.write(chunk_data)
@@ -303,6 +331,9 @@ async def download_file_to_disk_func(data):
             # print("received chunk num {}".format(data['chunk_num']))
             if file_meta.chunks_received == file_meta.total_chunks:
                 file_meta.complete = True
+                contents = open(file_meta.path, 'rb').read()
+                file_meta.md5 = await hash_MD5(contents)
+                file_meta.sha1 = await hash_SHA1(contents)
             await db_objects.update(file_meta)
             # if we ended up downloading a file from mac's screencapture utility, we need to fix it a bit
         f = open(file_meta.path, 'rb').read(8)

@@ -7,6 +7,7 @@ import json as js
 import base64
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+import os
 
 
 # commands aren't inherent to an operation, they're unique to a payloadtype
@@ -26,6 +27,179 @@ async def get_all_commands(request, user):
     return json(all_commands)
 
 
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/files/delete", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def remove_uploaded_files_for_command(request, user, cid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get command'})
+    try:
+        data = request.json
+        path = os.path.abspath("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
+        if data['folder'] == "" or data['folder'] is None:
+            data['folder'] = "."
+        attempted_path = os.path.abspath(path + "/" + data['folder'] + "/" + data['file'])
+        if path in attempted_path:
+            os.remove(attempted_path)
+            if data['folder'] == ".":
+                data['folder'] = ""
+            return json({'status': 'success', 'folder': data['folder'], 'file': data['file']})
+        return json({'status': 'error', 'error': 'failed to find file'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/files/download", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def download_files_for_command(request, user, cid):
+    try:
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get command'})
+    try:
+        data = {}
+        if 'file' not in request.raw_args:
+            return json({'status': 'error', 'error': 'failed to get file parameter'})
+        if 'folder' not in request.raw_args:
+            data['folder'] = "."
+        data['file'] = request.raw_args['file']
+        path = os.path.abspath("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
+        if data['folder'] == "" or data['folder'] is None:
+            data['folder'] = "."
+        attempted_path = os.path.abspath(path + "/" + data['folder'] + "/" + data['file'])
+        if path in attempted_path:
+            if 'base64' in request.raw_args and request.raw_args['base64'] == "1":
+                code = open(attempted_path, 'rb')
+                encoded = base64.b64encode(code.read()).decode("UTF-8")
+                return text(encoded)
+            return await file(attempted_path, filename=data['file'])
+        return json({'status': 'error', 'error': 'failed to read file'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/files/add_folder", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def add_folder_for_command(request, user, cid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+        data = request.json
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get command'})
+    try:
+        command_path = os.path.abspath("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
+        if data['folder'] == "" or data['folder'] is None:
+            data['folder'] = "."
+        path = command_path + "/" + data['folder'] + "/" + data['sub_folder']
+        path_abs = os.path.abspath(path)
+        if command_path in path_abs:
+            os.mkdir(path_abs)
+            return json({'status': 'success', 'folder': data['sub_folder']})
+        else:
+            return json({'status': 'error', 'error': 'trying to create a folder outside your payload type'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed creating folder: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/files/remove_folder", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def remove_folder_for_command(request, user, cid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+        data = request.json
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get command'})
+    try:
+        command_path = os.path.abspath("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
+        command_path = os.path.abspath(command_path)
+        path = command_path + "/" + data['folder']
+        path = os.path.abspath(path)
+        if command_path in path and command_path != path:
+            os.rmdir(path)
+            return json({'status': 'success', 'folder': path})
+        else:
+            return json({'status': 'error', 'error': 'trying to remove a folder outside your command or one that isn\'t empty'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to remove folder: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/upload", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def upload_file_for_command(request, user, cid):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.command_query()
+        command = await db_objects.get(query, id=cid)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to get command'})
+    base_path = os.path.abspath("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
+    if request.form:
+        data = js.loads(request.form.get('json'))
+    else:
+        data = request.json
+    try:
+        path = base_path + "/" + data['folder'] if 'folder' in data else base_path
+        path = os.path.abspath(path)
+        if base_path in path:
+            base_path = path
+    except Exception as e:
+        pass
+    uploaded_files = []
+    if request.files:
+        code = request.files['upload_file'][0].body
+        code_file = open(base_path + "/{}".format(request.files['upload_file'][0].name), "wb")
+        code_file.write(code)
+        code_file.close()
+        uploaded_files.append(request.files['upload_file'][0].name)
+        for i in range(1, int(request.form.get('file_length'))):
+            code = request.files['upload_file_' + str(i)][0].body
+            code_file = open(
+                base_path + "/{}".format(request.files['upload_file_' + str(i)][0].name), "wb")
+            code_file.write(code)
+            code_file.close()
+            uploaded_files.append(request.files['upload_file_' + str(i)][0].name)
+        async with db_objects.atomic():
+            query = await db_model.command_query()
+            command = await db_objects.get(query, id=cid)
+            command.version = command.version + 1
+            await db_objects.update(command)
+        return json({'status': 'success', 'files': uploaded_files})
+    elif 'code' in data and 'file' in data:
+        code_file = open(base_path + "/{}".format(data['file']), "wb")
+        code_file.write(base64.b64decode(data['code']))
+        code_file.close()
+        async with db_objects.atomic():
+            query = await db_model.command_query()
+            command = await db_objects.get(query, id=cid)
+            command.version = command.version + 1
+            await db_objects.update(command)
+        return json({'status': 'success'})
+    else:
+        return json({'status': 'error', 'error': 'nothing to upload...'})
+
+
 # Get information about a specific command, including its code, if it exists (used in checking before creating a new command)
 @apfell.route(apfell.config['API_BASE'] + "/commands/<ptype:string>/check/<cmd:string>", methods=['GET'])
 @inject_user()
@@ -34,6 +208,8 @@ async def check_command(request, user, ptype, cmd):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     status = {'status': 'success'}
+    ptype = unquote_plus(ptype)
+    cmd = unquote_plus(cmd)
     try:
         query = await db_model.payloadtype_query()
         payload_type = await db_objects.get(query, ptype=ptype)
@@ -51,7 +227,8 @@ async def check_command(request, user, ptype, cmd):
         artifacts = await db_objects.execute(query.where( (ArtifactTemplate.command == command) & (ArtifactTemplate.deleted == False)))
         query = await db_model.commandtransform_query()
         transforms = await db_objects.execute(query.where(CommandTransform.command == command))
-        status = {**status, **command.to_json(), "params": [p.to_json() for p in params], "attack": [a.to_json() for a in attacks],
+        status = {**status, **command.to_json(), "params": [p.to_json() for p in params],
+                  "attack": [a.to_json() for a in attacks],
                   "artifacts": [a.to_json() for a in artifacts], 'transforms': [t.to_json() for t in transforms]}
     except Exception as e:
         # the command doesn't exist yet, which is good
@@ -59,9 +236,11 @@ async def check_command(request, user, ptype, cmd):
         pass
     # now check to see if the file exists
     try:
-        file = open("./app/payloads/{}/commands/{}".format(payload_type.ptype, cmd), 'rb')
-        encoded = base64.b64encode(file.read()).decode("UTF-8")
-        status = {**status, 'code': encoded}
+        path = "./app/payloads/{}/commands/{}".format(ptype, cmd)
+        files = []
+        for (dirpath, dirnames, filenames) in os.walk(path):
+            files.append({"folder": dirpath.replace(path, ""), "dirnames": dirnames, "filenames": filenames})
+        status = {**status, 'files': files}
     except Exception as e:
         # file didn't exist so just continue on
         pass
@@ -92,33 +271,6 @@ async def remove_command(request, user, id):
         return json({'status': 'error', 'error': str(e)})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>/code/<resp_type:string>", methods=['GET'])
-@inject_user()
-@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def get_command_code(request, user, id, resp_type):
-    if user['auth'] not in ['access_token', 'apitoken']:
-        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
-    resp_type = unquote_plus(resp_type)
-    try:
-        query = await db_model.command_query()
-        command = await db_objects.get(query, id=id)
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to get command'})
-    if command.payload_type.external:
-        return text("")
-    try:
-        if resp_type == "file":
-            return file("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
-        else:
-            rsp_file = open("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd), 'rb').read()
-            encoded = base64.b64encode(rsp_file).decode("UTF-8")
-            return text(encoded)
-    except Exception as e:
-        print(e)
-        return text("")
-
-
 @apfell.route(apfell.config['API_BASE'] + "/commands/<id:int>", methods=['PUT'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -140,13 +292,10 @@ async def update_command(request, user, id):
         data = request.json
     if "description" in data and data['description'] != command.description:
         command.description = data['description']
-        updated_command = True
     if "needs_admin" in data and data['needs_admin'] != command.needs_admin:
         command.needs_admin = data['needs_admin']
-        updated_command = True
     if "help_cmd" in data and data['help_cmd'] != command.help_cmd:
         command.help_cmd = data['help_cmd']
-        updated_command = True
     if "is_exit" in data and data['is_exit'] is True:
         query = await db_model.command_query()
         try:
@@ -156,14 +305,98 @@ async def update_command(request, user, id):
             for e in exit_commands:
                 e.is_exit = False
                 await db_objects.update(e)
-            command.is_exit = data['is_exit']
+            command.is_exit = True
         except Exception as e:
             # one doesn't exist, so let this one be set
             print(str(e))
+    if 'is_file_browse' in data and data['is_file_browse'] is True:
+        if 'file_browse_parameters' not in data:
+            data['file_browse_parameters'] = "*"
+        query = await db_model.command_query()
+        try:
+            file_commands = await db_objects.execute(
+                query.where((Command.is_file_browse == True) & (Command.payload_type == command.payload_type)))
+            # one is already set, so set it to false
+            for e in file_commands:
+                e.is_file_browse = False
+                e.file_browse_parameters = ""
+                await db_objects.update(e)
+            command.is_file_browse = True
+            command.file_browse_parameters = data['file_browse_parameters']
+        except Exception as e:
+            # one doesn't exist, so let this one be set
+            print(str(e))
+    elif data['is_file_browse'] is False and command.is_file_browse:
+        command.is_file_browse = False
+        command.file_browse_parameters = ""
+        await db_objects.update(command)
+    if 'is_process_list' in data and data['is_process_list'] is True:
+        if 'process_list_parameters' not in data:
+            data['process_list_parameters'] = ""
+        query = await db_model.command_query()
+        try:
+            file_commands = await db_objects.execute(
+                query.where((Command.is_process_list == True) & (Command.payload_type == command.payload_type)))
+            # one is already set, so set it to false
+            for e in file_commands:
+                e.is_process_list = False
+                e.process_list_parameters = ""
+                await db_objects.update(e)
+            command.is_process_list = True
+            command.process_list_parameters = data['process_list_parameters']
+        except Exception as e:
+            # one doesn't exist, so let this one be set
+            print(str(e))
+    elif data['is_process_list'] is False and command.is_process_list:
+        command.is_process_list = False
+        command.process_list_parameters = ""
+        await db_objects.update(command)
+    if 'is_download_file' in data and data['is_download_file'] is True:
+        if 'download_file_parameters' not in data:
+            data['download_file_parameters'] = "*"
+        query = await db_model.command_query()
+        try:
+            file_commands = await db_objects.execute(
+                query.where((Command.is_download_file == True) & (Command.payload_type == command.payload_type)))
+            # one is already set, so set it to false
+            for e in file_commands:
+                e.is_download_file = False
+                e.download_file_parameters = ""
+                await db_objects.update(e)
+            command.is_download_file = True
+            command.download_file_parameters = data['download_file_parameters']
+        except Exception as e:
+            # one doesn't exist, so let this one be set
+            print(str(e))
+    elif data['is_download_file'] is False and command.is_download_file:
+        command.is_download_file = False
+        command.download_file_parameters = ""
+        await db_objects.update(command)
+    if 'is_remove_file' in data and data['is_remove_file'] is True:
+        if 'remove_file_parameters' not in data:
+            data['remove_file_parameters'] = "*"
+        query = await db_model.command_query()
+        try:
+            file_commands = await db_objects.execute(
+                query.where((Command.is_remove_file == True) & (Command.payload_type == command.payload_type)))
+            # one is already set, so set it to false
+            for e in file_commands:
+                e.is_remove_file = False
+                e.remove_file_parameters = ""
+                await db_objects.update(e)
+            command.is_remove_file = True
+            command.remove_file_parameters = data['remove_file_parameters']
+        except Exception as e:
+            # one doesn't exist, so let this one be set
+            print(str(e))
+    elif data['is_remove_file'] is False and command.is_remove_file:
+        command.is_remove_file = False
+        command.remove_file_parameters = ""
+        await db_objects.update(command)
     if request.files and not command.payload_type.external:
         updated_command = True
         cmd_code = request.files['upload_file'][0].body
-        cmd_file = open("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd), "wb")
+        cmd_file = open("./app/payloads/{}/commands/{}/{}".format(command.payload_type.ptype, command.cmd, request.files['upload_file'][0].name), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
@@ -196,9 +429,10 @@ async def create_command(request, user):
     else:
         data = request.json
     resp = await create_command_func(data, user)
+    os.makedirs("./app/payloads/{}/commands/{}".format(resp['payload_type'], resp['cmd']), exist_ok=True)
     if request.files and resp['status'] == "success":
         cmd_code = request.files['upload_file'][0].body
-        cmd_file = open("./app/payloads/{}/commands/{}".format(resp['payload_type'], resp['cmd']), "wb")
+        cmd_file = open("./app/payloads/{}/commands/{}/{}".format(resp['payload_type'], resp['cmd'], request.files['upload_file'][0].name), "wb")
         # cmd_code = base64.b64decode(data['code'])
         cmd_file.write(cmd_code)
         cmd_file.close()
@@ -226,8 +460,6 @@ async def create_command_func(data, user):
         return {'status': 'error', 'error': '"cmd" is a required field'}
     if "payload_type" not in data:
         return {'status': 'error', 'error': '"payload_type" is a required field'}
-    if "code" not in data:
-        return {'status': 'error', 'error': '"code" is a required field'}
     if "is_exit" not in data:
         return {'status': 'error', 'error': '"is_exit" is a required field'}
     # now we know all the fields exist
@@ -239,21 +471,87 @@ async def create_command_func(data, user):
         if data['is_exit'] is True:
             query = await db_model.command_query()
             try:
-                exit_command = await db_objects.get(query.where( (Command.is_exit == True) & (Command.payload_type == payload_type)))
+                exit_command = await db_objects.execute(query.where( (Command.is_exit == True) & (Command.payload_type == payload_type)))
                 # one is already set, so set it to false
-                exit_command.is_exit = False
-                await db_objects.update(exit_command)
+                for e in exit_command:
+                    e.is_exit = False
+                    await db_objects.update(e)
             except Exception as e:
                 # one doesn't exist, so let this one be set
                 pass
         command = await db_objects.create(Command, needs_admin=data['needs_admin'], help_cmd=data['help_cmd'],
                                           description=data['description'], cmd=data['cmd'],
                                           payload_type=payload_type, operator=operator, is_exit=data['is_exit'])
-        if not payload_type.external:
-            cmd_file = open("./app/payloads/{}/commands/{}".format(payload_type.ptype, command.cmd), "wb")
-            cmd_code = base64.b64decode(data['code'])
-            cmd_file.write(cmd_code)
-            cmd_file.close()
+        if 'is_file_browse' in data and data['is_file_browse'] is True:
+            query = await db_model.command_query()
+            try:
+                file_command = await db_objects.execute(query.where( (Command.is_file_browse == True) & (Command.payload_type == payload_type)))
+                # one is already set, so set it to false
+                for e in file_command:
+                    e.is_file_browse = False
+                    e.file_browse_parameters = ""
+                    await db_objects.update(e)
+            except Exception as e:
+                # one doesn't exist, so let this one be set
+                pass
+            command.is_file_browse = True
+            command.file_browse_parameters = data['file_browse_parameters'] if 'file_browse_parameters' in data else "*"
+            await db_objects.update(command)
+        if 'is_process_list' in data and data['is_process_list'] is True:
+            query = await db_model.command_query()
+            try:
+                list_command = await db_objects.execute(query.where( (Command.is_process_list == True) & (Command.payload_type == payload_type)))
+                # one is already set, so set it to false
+                for e in list_command:
+                    e.is_process_list = False
+                    e.process_list_parameters = ""
+                    await db_objects.update(e)
+            except Exception as e:
+                # one doesn't exist, so let this one be set
+                pass
+            command.is_process_list = True
+            command.process_list_parameters = data['process_list_parameters'] if 'process_list_parameters' in data else ""
+            await db_objects.update(command)
+        if 'is_download_file' in data and data['is_download_file'] is True:
+            query = await db_model.command_query()
+            try:
+                download_command = await db_objects.execute(query.where( (Command.is_download_file == True) & (Command.payload_type == payload_type)))
+                # one is already set, so set it to false
+                for e in download_command:
+                    e.is_download_file = False
+                    e.download_file_parameters = ""
+                    await db_objects.update(e)
+            except Exception as e:
+                # one doesn't exist, so let this one be set
+                pass
+            command.is_download_file = True
+            command.download_file_parameters = data['download_file_parameters'] if 'download_file_parameters' in data else "*"
+            await db_objects.update(command)
+        if 'is_remove_file' in data and data['is_remove_file'] is True:
+            query = await db_model.command_query()
+            try:
+                remove_commands = await db_objects.execute(query.where( (Command.is_remove_file == True) & (Command.payload_type == payload_type)))
+                # one is already set, so set it to false
+                for e in remove_commands:
+                    e.is_remove_file = False
+                    e.remove_file_parameters = ""
+                    await db_objects.update(e)
+            except Exception as e:
+                # one doesn't exist, so let this one be set
+                pass
+            command.is_remove_file = True
+            command.remove_file_parameters = data['remove_file_parameters'] if 'remove_file_parameters' in data else "*"
+            await db_objects.update(command)
+        if not payload_type.external and 'code' in data:
+            dir_path = os.path.abspath("./app/payloads/{}/commands/{}".format(payload_type.ptype,command.cmd))
+            base_path = os.path.abspath("./app/payloads/{}/commands/".format(payload_type.ptype))
+            if base_path in dir_path:
+                os.makedirs("./app/payloads/{}/commands/{}".format(payload_type.ptype,command.cmd), exist_ok=True)
+                cmd_file = open("./app/payloads/{}/commands/{}/{}.{}".format(
+                    payload_type.ptype, command.cmd, command.cmd, payload_type.file_extension), "wb")
+                cmd_code = base64.b64decode(data['code'])
+                cmd_file.write(cmd_code)
+                cmd_file.close()
         status = {'status': 'success'}
         cmd_json = command.to_json()
         return {**status, **cmd_json}

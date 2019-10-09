@@ -8,6 +8,7 @@ import os
 import shutil
 from app.crypto import create_key_AES256
 import app.database_models.model as db_model
+from app.api.browserscript_api import remove_admin_browserscripts
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
@@ -90,8 +91,12 @@ async def create_operation(request, user):
             return json({'status': 'error', 'error': 'admin operator does not exist'})
         try:
             AESPSK =await create_key_AES256()
-            operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator,
-                                                AESPSK=AESPSK)
+            if 'webhook' in data and data['webhook'] is not None and data['webhook'] != "":
+                operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator,
+                                                    AESPSK=AESPSK, webhook=data['webhook'])
+            else:
+                operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator,
+                                                    AESPSK=AESPSK)
         except Exception as e:
             return json({'status': 'error', 'error': 'failed to create operation, is the name unique?'})
         if 'members' not in data or data['members'] is None:
@@ -144,9 +149,11 @@ async def update_operation(request, user, op):
                 try:
                     query = await db_model.operator_query()
                     new_admin = await db_objects.get(query, username=data['admin'])
+                    await remove_admin_browserscripts(operation.admin, operation)
                     operation.admin = new_admin
                     await db_objects.update(operation)
                 except Exception as e:
+                    print(e)
                     return json({'status': 'error', 'error': 'failed to update the admin'})
             if 'add_members' in data:
                 for new_member in data['add_members']:
@@ -187,6 +194,12 @@ async def update_operation(request, user, op):
                         print("failed to find disabled commands profile")
                         operatoroperation.base_disabled_commands = None
                     await db_objects.update(operatoroperation)
+            if 'webhook' in data:
+                if data['webhook'] == "" or data['webhook'] is None:
+                    operation.webhook = None
+                else:
+                    operation.webhook = data['webhook']
+                await db_objects.update(operation)
             all_users = []
             query = await db_model.operatoroperation_query()
             current_members = await db_objects.execute(query.where(OperatorOperation.operation == operation))

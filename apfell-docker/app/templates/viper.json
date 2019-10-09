@@ -8,7 +8,7 @@
     "container_running":false,
     "service":"rabbitmq",
     "ptype":"viper",
-    "file_extension":".py",
+    "file_extension":"py",
     "wrapped_payload_type":"null",
     "files":[],
     "c2_profiles":{

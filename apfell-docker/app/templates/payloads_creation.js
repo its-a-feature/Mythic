@@ -9,7 +9,7 @@ var profile_parameters_table = new Vue({
     },
     methods: {
         move_to_payloads: function(){
-            if($('#c2_profile').val() != "Select One...")
+            if($('#c2_profile').val() !== "Select One...")
             {
                 $('#payload-card-body').collapse('show');
                 $('#commands-card-body').collapse('hide');
@@ -24,7 +24,7 @@ var profile_parameters_table = new Vue({
             $('#c2-card-body').collapse('show');
         },
         move_to_commands: function(){
-            if( $('#payload_type').val() != "Select One..." ){
+            if( $('#payload_type').val() !== "Select One..." ){
                 $('#payload-card-body').collapse('hide');
                 $('#c2-card-body').collapse('hide');
                 $('#commands-card-body').collapse('show');
@@ -84,7 +84,7 @@ $( document ).unbind('ready').ready(function(){
 });
 
 $( '#c2_profile' ).change(function(){
-    if( $('#c2_profile').val() != "Select One..."){
+    if( $('#c2_profile').val() !== "Select One..."){
         //make a request out to the c2 profile parameters api to get the parameters
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + $('#c2_profile').val() + "/parameters", c2_profile_parameters_callback, "GET", null);
         //now potentially update the payload options section
@@ -101,18 +101,23 @@ $( '#c2_profile' ).change(function(){
     }
 });
 $( '#c2_instance').change(function(){
-    if( $('#c2_instance').val() != "Select One..."){
+    if( $('#c2_instance').val() !== "Select One..."){
         profile_parameters_table.c2_instance_values[$('#c2_instance').val()].forEach(function(x){
             //populate the boxes based on the parameter instance
             //console.log(x);
             profile_parameters_table.c2_profile_parameters.forEach(function(y){
             //console.log(y);
-                if(x.c2_profile_key == y.key){
+                if(x.c2_profile_key === y.key){
                     y.hint = x.value;
+                    //console.log(y);
+                    profile_parameters_table.$forceUpdate();
+                    setTimeout(() => { // setTimeout to put this into event queue
+                        // executed after render
+                        adjust_size( document.getElementById(y.key) );
+                    }, 0);
                     //console.log("just set: " + JSON.stringify(y));
                 }
             });
-            profile_parameters_table.$forceUpdate();
         });
     }else{
         profile_parameters_table.c2_profile_parameters.forEach(function(x){
@@ -138,7 +143,7 @@ function c2_profile_callback(response){
         all_c2_data[data[i].name] = data[i];
     }
     $( '#c2_profile').html(c2_profile_options);
-};
+}
 function c2_profile_parameters_callback(response){
     //this is called when the c2_profile dropdown changes and we get results back from the GET request
     try{
@@ -147,11 +152,16 @@ function c2_profile_parameters_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         // populate the table values
         profile_parameters_table.c2_profile_parameters = []; //clear all the fields first
-        for(var i = 0; i < data['c2profileparameters'].length; i++){
+        for(let i = 0; i < data['c2profileparameters'].length; i++){
             profile_parameters_table.c2_profile_parameters.push(data['c2profileparameters'][i]);
+            profile_parameters_table.$forceUpdate();
+            setTimeout(() => { // setTimeout to put this into event queue
+                // executed after render
+                adjust_size( document.getElementById(data['c2profileparameters'][i].key) );
+            }, 0);
         }
         // we also need to populate the dropdown for the payload_type side
         profile_parameters_table.payload_parameters = [];
@@ -170,7 +180,7 @@ function c2_profile_parameters_callback(response){
     else{
         alertTop("danger", data['error']);
     }
-};
+}
 function c2_instances_callback(response){
     try{
         data = JSON.parse(response);
@@ -178,7 +188,7 @@ function c2_instances_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         if(Object.keys(data['instances']).length != 0){
             Object.keys(data['instances']).forEach(function(k){
                 Vue.set(profile_parameters_table.c2_instance_values, k, data['instances'][k]);
@@ -371,7 +381,7 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/pa
                     global_uuids[data['uuid']] = true;
                 }
                 else if(data['build_phase'] == "error"){
-                    alertTop("danger", "Uh oh, something went wrong.<br><b>Error message:</b> " + data['build_message']);
+                    alertTop("danger", "Uh oh, something went wrong.<br><b>Error message:</b><pre> " + data['build_message'] + "</pre>");
                     global_uuids[data['uuid']] = true;
                 }
 

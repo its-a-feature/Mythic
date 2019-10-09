@@ -101,7 +101,7 @@
 <!-- END MODAL FOR COMPLETING OPERATION -->
 <!-- THIS IS OUR MODAL FOR MODIFYING OPERATION -->
 <div class="modal fade" id="operationModifyModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h3>Modify Operation</h3>
@@ -112,11 +112,15 @@
                 <table cellpadding="10" style="width:100%" class="table table-striped {{config['table-color']}} table-hover">
                     <tr>
                         <td style="width:150px">Name</td>
-                        <td><input disabled type="text" id="operationModifyName" size="25"></td>
+                        <td><input disabled type="text" id="operationModifyName" size="60"></td>
                     </tr>
                     <tr>
                         <td>Admin</td>
                         <td> <select id="operationModifyAdmin"></select></td>
+                    </tr>
+                    <tr>
+                        <td>Slack WebHook</td>
+                        <td><input type="text" id="operationModifyWebhook" size="60"></td>
                     </tr>
                     <tr>
                         <td>Select the operators in the operation</td>
@@ -145,11 +149,15 @@
                 <table cellpadding="10" style="width:100%" class="table table-striped table-hover {{config['table-color']}}">
                     <tr>
                         <td style="width:150px">Name</td>
-                        <td><input type="text" id="operationNewName" size="50"></td>
+                        <td><input type="text" id="operationNewName" size="60"></td>
                     </tr>
                     <tr>
                         <td>Admin</td>
                         <td> <select id="operationNewAdmin"></select></td>
+                    </tr>
+                    <tr>
+                        <td>Slack WebHook</td>
+                        <td><input type="text" id="operationNewWebhook" size="60"></td>
                     </tr>
                     <tr>
                         <td>Operators</td>
@@ -221,7 +229,7 @@
                         </tr>
                         <tr v-for="command in data">
                             <td>
-                                <label class="switch"><input type="checkbox" :checked="command['disabled']" v-model="command['disabled']"><span class="slider round"></span></label>
+                                <span class="material-switch pull-right"><input type="checkbox" :checked="command['disabled']" v-model="command['disabled']" :id="'command' + command.id"><label :for="'command' + command.id" class="btn-danger"></label></span>
                             </td>
                             <td>[[command.needs_admin]]</td>
                             <td>[[command.cmd]]</td>

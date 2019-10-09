@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% block body %}
-<br>
 <div id="screencapture_div">
     <template v-if="!screenshots_exist">
         <div class="card border border-dark shadow">
-            <div class="card-header border border-dark bg-header shadow">
+            <div class="card-header border border-dark bg-header shadow text-white">
                 <h2><span class="operator">{{current_operation}}'s </span>Screencaptures</h2>
             </div>
             <div class="card-body bg-card-body border-dark border shadow">
@@ -18,14 +17,13 @@
             <div :id="'screencaptures' + callback.id">
                 <div v-for="(image,i) in callback.screencaptures" :key="image.id" class="border border-dark shadow">
                     <div v-if="image.complete">
-                        <button :id="'image' + image.id" class="accordion bg-card-body-l2 text-light" style="cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;" @click="toggle_image(image)"><span class="operator">[[image.operator]]</span>'s screencapture: [[image.path.split("/").slice(-1).toString()]]</button>
+                        <button :id="'image' + image.id" :class="'{{config['new-callback-color']}}' == 'light' ? 'bg-card-body-l1 text-dark' : 'bg-card-body-l1 text-white' " style="cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;" @click="toggle_image(image)"><span class="operator">[[image.operator]]</span>'s screencapture: [[image.path.split("/").slice(-1).toString()]]</button>
                         <img src='#' width="100%" height="100%" style="display:none">
                     </div>
                     <div v-else>
-                        <button :id="'image' + image.id" class="accordion bg-card-body-l2 text-light" style="cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s" @click="toggle_image(image)"><span class="operator">[[image.operator]]</span>'s screencapture: [[image.path.split("/").slice(-1).toString()]]. <span class="display">Parts [[image.chunks_received]] of [[image.total_chunks]] received so far.</span></button>
+                        <button :id="'image' + image.id" :class="'{{config['new-callback-color']}}' == 'light' ? 'bg-card-body-l1 text-dark' : 'bg-card-body-l1 text-white' " style="cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s" @click="toggle_image(image)"><span class="operator">[[image.operator]]</span>'s screencapture: [[image.path.split("/").slice(-1).toString()]]. <span class="display">Parts [[image.chunks_received]] of [[image.total_chunks]] received so far.</span></button>
                         <img src='#' width="100%" height="100%" style="display:none">
                     </div>
-
                 </div>
             </div>
     </div>

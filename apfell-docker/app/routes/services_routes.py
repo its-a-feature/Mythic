@@ -13,9 +13,11 @@ env = Environment(loader=PackageLoader('app', 'templates'))
 async def services_host_file(request, user):
     template = env.get_template('services_host_file.html')
     if use_ssl:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
+                                  ws="wss", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     else:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http",
+                                  ws="ws", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     return response.html(content)
 
 # add links to the routes in this file at the bottom

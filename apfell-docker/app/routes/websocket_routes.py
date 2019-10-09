@@ -1,4 +1,4 @@
-from app import apfell, db_objects, server_ip, listen_port, use_ssl
+from app import apfell, db_objects, use_ssl
 import aiopg
 import json as js
 import asyncio
@@ -7,6 +7,8 @@ from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 import aio_pika
 import sys
+import base64
+from app.api.processlist_api import get_process_tree
 
 
 # --------------- TASKS --------------------------
@@ -883,14 +885,14 @@ async def ws_files_current_operation(request, ws, user):
                                         query = await db_model.callback_query()
                                         callback = await db_objects.get(query, id=f.task.callback)
                                         await ws.send(js.dumps(
-                                            {**f.to_json(), 'host': callback.host, "upload": f.task.params}))
+                                            {**f.to_json(), 'comment': f.task.comment,'host': callback.host, "upload": f.task.params}))
                                     else:  # this is a manual upload
-                                        await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
+                                        await ws.send(js.dumps({**f.to_json(),'comment': '','host': 'MANUAL FILE UPLOAD',
                                                                 "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
                             else:
                                 query = await db_model.callback_query()
                                 callback = await db_objects.get(query, id=f.task.callback)
-                                await ws.send(js.dumps({**f.to_json(), 'host': callback.host, 'params': f.task.params}))
+                                await ws.send(js.dumps({**f.to_json(),'comment': f.task.comment, 'host': callback.host, 'params': f.task.params}))
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
@@ -909,14 +911,14 @@ async def ws_files_current_operation(request, ws, user):
                                             task = await db_objects.get(query, id=f.task)
                                             if '/operations/{}/load-'.format(operation.name) not in f.path:
                                                 await ws.send(js.dumps(
-                                                    {**f.to_json(), 'host': task.callback.host, "upload": task.params}))
+                                                    {**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, "upload": task.params}))
                                         else: # this is a manual upload
-                                            await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
+                                            await ws.send(js.dumps({**f.to_json(),'comment': '', 'host': 'MANUAL FILE UPLOAD',
                                                                     "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
                                     else:
                                         query = await db_model.task_query()
                                         task = await db_objects.get(query, id=f.task)
-                                        await ws.send(js.dumps({**f.to_json(), 'host': task.callback.host,
+                                        await ws.send(js.dumps({**f.to_json(),'comment': f.task.comment, 'host': task.callback.host,
                                                                 'params': task.params}))
                                 except Exception as e:
                                     pass  # we got a file that's just not part of our current operation, so move on
@@ -962,14 +964,14 @@ async def ws_updated_files(request, ws, user):
                                             query = await db_model.task_query()
                                             task = await db_objects.get(query, id=f.task)
                                             await ws.send(js.dumps(
-                                                {**f.to_json(), 'host': task.callback.host, "upload": task.params}))
+                                                {**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, "upload": task.params}))
                                         else:
-                                            await ws.send(js.dumps({**f.to_json(), 'host': 'MANUAL FILE UPLOAD',
+                                            await ws.send(js.dumps({**f.to_json(),'comment': '', 'host': 'MANUAL FILE UPLOAD',
                                                                     "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
                                     else:
                                         query = await db_model.task_query()
                                         task = await db_objects.get(query, id=f.task)
-                                        await ws.send(js.dumps({**f.to_json(), 'host': task.callback.host, 'params': task.params}))
+                                        await ws.send(js.dumps({**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, 'params': task.params}))
                                 except Exception as e:
                                     pass  # got an update for a file not in this operation
                         except asyncio.QueueEmpty as e:
@@ -1184,8 +1186,7 @@ async def ws_tasks(request, ws, user):
                         query = await db_model.operator_query()
                         operator = await db_objects.get(query, username=user['username'])
                         query = await db_model.browserscript_query()
-                        all_scripts = await db_objects.execute(query.where((db_model.BrowserScript.operator == operator) | (db_model.BrowserScript.operation == operation)
-                                                                           | ( (db_model.BrowserScript.command == None) & (db_model.BrowserScript.active == True))))
+                        all_scripts = await db_objects.execute(query.where((db_model.BrowserScript.operator == operator) | (db_model.BrowserScript.operation == operation)))
                         for s in all_scripts:
                             await ws.send(js.dumps(s.to_json()))
                         await ws.send("")
@@ -1199,7 +1200,7 @@ async def ws_tasks(request, ws, user):
                             query = await db_model.browserscript_query()
                             s = await db_objects.get(query, id=id)
                             # only send off updates for scripts related to the current operation or the current user
-                            if (s.operation is not None and s.operation.name == operation.name) or (s.operator.username == operator.username) or (s.command is None and s.active):
+                            if (s.operation is not None and s.operation.name == operation.name) or (s.operator.username == operator.username):
                                 await ws.send(js.dumps(s.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -1217,7 +1218,7 @@ async def ws_tasks(request, ws, user):
 @apfell.websocket('/ws/artifacts')
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def ws_tasks(request, ws, user):
+async def ws_artifacts(request, ws, user):
     if not await valid_origin_header(request):
         return
 
@@ -1261,6 +1262,47 @@ async def ws_tasks(request, ws, user):
                                 if artifact.operation == operation or (artifact.task is not None and artifact.task.callback.operation == operation):
                                     await ws.send(js.dumps({**artifact.to_json(), "channel": "taskartifact"}))
                             await ws.send("")
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        # print("closed /ws/tasks")
+        pool.close()
+
+
+# ============= PROCESS LIST WEBSOCKETS ===============
+@apfell.websocket('/ws/process_list/<cid:int>')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_process_list(request, ws, user, cid):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newprocesslist";')
+                    query = await db_model.operation_query()
+                    operation = await db_objects.get(query, name=user['current_operation'])
+                    query = await db_model.callback_query()
+                    callback = await db_objects.get(query, operation=operation, id=cid)
+                    # now pull off any new tasks we got queued up while processing the old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (msg.payload)
+                            process_list = await db_objects.get(db_model.ProcessList, id=id, operation=operation, host=callback.host)
+                            plist = process_list.to_json()
+                            try:
+                                tree = await get_process_tree(js.loads(plist['process_list']))
+                            except Exception as e:
+                                print(e)
+                                tree = {}
+                            await ws.send(js.dumps({'process_list': plist, 'tree_list': tree}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there

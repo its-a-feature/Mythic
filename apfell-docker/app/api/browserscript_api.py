@@ -95,7 +95,7 @@ async def modify_browserscript(request, user, bid):
         if browserscript.operator.username != operator.username:
             return json({'status': 'error', 'error': 'you can only modify your scripts'})
         if 'operation' in data:
-            if data['operation'] in user['admin_operations'] or user['admin'] and data['operation'] != "":
+            if data['operation'] in user['admin_operations']:
                 query = await db_model.operation_query()
                 operation = await db_objects.get(query, name=data['operation'])
                 browserscript.operation = operation
@@ -123,6 +123,14 @@ async def modify_browserscript(request, user, bid):
     except Exception as e:
         print(e)
         return json({"status": "error", 'error': 'failed to find or set information: ' + str(e)})
+
+
+async def remove_admin_browserscripts(operator, operation):
+    query = await db_model.browserscript_query()
+    scripts = await db_objects.execute(query.where( (db_model.BrowserScript.operation == operation) & (db_model.BrowserScript.operator == operator)))
+    for s in scripts:
+        s.operation = None
+        await db_objects.update(s)
 
 
 @apfell.route(apfell.config['API_BASE'] + "/browser_scripts/<bid:int>", methods=['DELETE'])

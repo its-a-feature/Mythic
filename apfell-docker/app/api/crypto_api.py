@@ -1,5 +1,5 @@
 from app import apfell, db_objects
-from sanic.response import raw, json
+from sanic.response import raw
 from app.database_models.model import StagingInfo
 import base64
 import app.crypto as crypt
@@ -7,7 +7,6 @@ import json as js
 from app.api.callback_api import create_callback_func
 import app.database_models.model as db_model
 import sys
-from sanic_jwt.decorators import inject_user, scoped
 
 
 # this is an unprotected API so that agents and c2 profiles can hit this when staging
@@ -35,7 +34,7 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
             encrypted_request = base64.b64decode(request.body)
             # print("about to decrypt")
             message = await crypt.decrypt_AES256(encrypted_request, AESPSK)
-            decrypted_message_json = js.loads(message.decode('utf-8'))
+            decrypted_message_json = js.loads(message)
             # print("decrypted message: " + str(decrypted_message_json))
         except Exception as e:
             print(str(e))
@@ -80,12 +79,12 @@ async def EKE_AESPSK_Create_Callback(request, uuid):
         encrypted_request = base64.b64decode(request.body)
         decrypted_message = await crypt.decrypt_AES256(data=encrypted_request,
                                                        key=base64.b64decode(staging_info.session_key))
-        decrypted_message_json = js.loads(decrypted_message.decode('utf-8'))
+        decrypted_message_json = js.loads(decrypted_message)
         # pass this information along to the /callbacks API
         decrypted_message_json['encryption_key'] = staging_info.session_key
         decrypted_message_json['decryption_key'] = staging_info.session_key
         decrypted_message_json['encryption_type'] = "AES256"
-        response = await create_callback_func(decrypted_message_json)
+        response = await create_callback_func(decrypted_message_json, request)
         # turn the json response to a string, encrypt it, and return it
         response_message = js.dumps(response)
         encrypted_response = await crypt.encrypt_AES256(response_message.encode(),
@@ -126,7 +125,7 @@ async def DHEKE_AESPSK_Create_Callback(request, uuid):
             encrypted_request = base64.b64decode(request.body)
             # print("about to decrypt")
             message = await crypt.decrypt_AES256(encrypted_request, AESPSK)
-            decrypted_message_json = js.loads(message.decode('utf-8'))
+            decrypted_message_json = js.loads(message)
             # print("decrypted message: " + str(decrypted_message_json))
         except Exception as e:
             print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
@@ -139,7 +138,7 @@ async def DHEKE_AESPSK_Create_Callback(request, uuid):
         dh = DiffieHellman()
         # print(dh.publicKey)
         dh.genKey(decrypted_message_json['PUB'])
-        session_key_encoded = base64.b64encode(dh.getKey()).decode('utf-8')
+        session_key_encoded = base64.b64encode(dh.getKey())
         # print(session_key_encoded)
         # print("created base64 encoded session key: " + session_key_encoded)
         # Save session_key and SESSIONID into database
@@ -176,12 +175,12 @@ async def DHEKE_AESPSK_Create_Callback(request, uuid):
         # print(staging_info.session_key)
         decrypted_message = await crypt.decrypt_AES256(data=encrypted_request,
                                                        key=base64.b64decode(staging_info.session_key))
-        decrypted_message_json = js.loads(decrypted_message.decode('utf-8'))
+        decrypted_message_json = js.loads(decrypted_message)
         # pass this information along to the /callbacks API
         decrypted_message_json['encryption_key'] = staging_info.session_key
         decrypted_message_json['decryption_key'] = staging_info.session_key
         decrypted_message_json['encryption_type'] = "AES256"
-        response = await create_callback_func(decrypted_message_json)
+        response = await create_callback_func(decrypted_message_json, request)
         # turn the json response to a string, encrypt it, and return it
         response_message = js.dumps(response)
         encrypted_response = await crypt.encrypt_AES256(response_message.encode(),
@@ -213,7 +212,7 @@ async def AESPSK_Create_Callback(request, uuid):
             # print("AESb64key: " + AESPSK_String )
         except Exception as e:
             print(str(e))
-            return raw(b"")
+            return raw(b"", status=404)
         # decrypt request.body with this AES_PSK
         try:
             AESPSK = base64.b64decode(AESPSK_String)
@@ -221,14 +220,14 @@ async def AESPSK_Create_Callback(request, uuid):
             encrypted_request = base64.b64decode(request.body)
             # print("about to decrypt\n")
             message = await crypt.decrypt_AES256(encrypted_request, AESPSK)
-            decrypted_message_json = js.loads(message.decode('utf-8'))
+            decrypted_message_json = js.loads(message)
             # print("decrypted message: " + str(decrypted_message_json))
             # pass this information along to the /callbacks API
             decrypted_message_json['encryption_key'] = AESPSK_String
             decrypted_message_json['decryption_key'] = AESPSK_String
             decrypted_message_json['encryption_type'] = "AES256"
             # print("calling create callback func")
-            response = await create_callback_func(decrypted_message_json)
+            response = await create_callback_func(decrypted_message_json, request)
             # turn the json response to a string, encrypt it, and return it
             response_message = js.dumps(response)
             # print("create callback response: " + response_message)
@@ -238,12 +237,41 @@ async def AESPSK_Create_Callback(request, uuid):
             return raw(encrypted_response_string, status=200)
         except Exception as e:
             print(str(e))
-            return raw(b"")
+            return raw(b"", status=404)
     except Exception as e:
         print("failed to find payload")
         print(str(e))
-        return raw(b"")
+        return raw(b"", status=404)
 
+
+async def decrypt_agent_message(request, callback):
+    try:
+        if callback.encryption_type != "" and callback.encryption_type is not None:
+            if callback.encryption_type == "AES256":
+                # now handle the decryption
+                decrypted_message = await crypt.decrypt_AES256(data=base64.b64decode(request.body),
+                                                               key=base64.b64decode(callback.decryption_key))
+                return js.loads(decrypted_message.decode('utf-8'))
+            return None
+        return request.json
+    except Exception as e:
+        print("Failed to decrypt in decrypt_agent_message: {}".format(str(e)))
+        return None
+
+
+async def encrypt_agent_message(message, callback):
+    try:
+        if callback.encryption_type != "" and callback.encryption_type is not None:
+            # encrypt the message before returning it
+            if callback.encryption_type == "AES256":
+                raw_encrypted = await crypt.encrypt_AES256(data=message.encode(),
+                                                           key=base64.b64decode(callback.encryption_key))
+                return base64.b64encode(raw_encrypted)
+            return None
+        return message.encode()
+    except Exception as e:
+        print("failed to encrypt in encrypt_agent_message: {}".format(str(e)))
+    return None
 
 """ Implements Diffie-Hellman as a standalone pythong file. Taken from Empire
 DH code from: https://github.com/lowazo/pyDHE """

@@ -53,13 +53,7 @@
       "key_path": "",
       "cert_path": "",
       "debug": "False",
-      "server_header": "nginx 1.2",
-      "no_match": {
-        "action": "",
-        "redirect": "http://example.com",
-        "proxy_get": "https://www.google.com",
-        "proxy_post": "http://example.com"
-      }
+      "server_header": "nginx 1.2"
     }
   ],
   "apfellBase": "https://localhost/api/v1.3/",

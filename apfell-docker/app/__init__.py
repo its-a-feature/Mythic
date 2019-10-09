@@ -7,10 +7,8 @@ from ipaddress import ip_network
 # -------------------------------------------
 # --------------------------------------------
 # -------- CONFIGURE SETTINGS HERE -----------
-db_name = 'apfell_db'
-db_user = 'apfell_user'
 db_pass = 'super_secret_apfell_user_password'
-server_ip = '127.0.0.1'  # this will be used by the browser to callback here
+server_ip = '192.168.205.151'  # this will be used by the browser to callback here
 listen_port = '80'
 listen_ip = '0.0.0.0'  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 ssl_cert_path = './app/ssl/apfell-cert.pem'
@@ -21,6 +19,8 @@ server_header = "nginx 1.2"
 # --------------------------------------------
 # --------------------------------------------
 # --------------------------------------------
+db_name = 'apfell_db'
+db_user = 'apfell_user'
 # custom loop to pass to db manager
 dbloop = uvloop.new_event_loop()
 apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=100)
@@ -38,8 +38,8 @@ apfell.config['DB_POOL_CONNECT_STRING'] = "dbname='{}' user='{}' password='{}' h
 apfell.config['API_VERSION'] = "1.3"
 apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
 apfell.config['REQUEST_MAX_SIZE'] = 1000000000
-apfell.config['REQUEST_TIMEOUT'] = 600
-apfell.config['RESPONSE_TIMEOUT'] = 600
+apfell.config['REQUEST_TIMEOUT'] = 60
+apfell.config['RESPONSE_TIMEOUT'] = 60
 apfell.config['WHITELISTED_IPS'] = [ip_network(ip) for ip in whitelisted_ip_blocks]
 
 links = {'server_ip': apfell.config['SERVER_IP_ADDRESS'],
@@ -88,7 +88,7 @@ Initialize(apfell,
            path_to_verify='/verify',
            path_to_refresh='/refresh',
            refresh_token_enabled=True,
-           expiration_delta=14400,  # initial token expiration time
+           expiration_delta=28800,  # initial token expiration time, 8hrs
            store_refresh_token=app.routes.authentication.store_refresh_token,
            retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token,
            login_redirect_url="/login")

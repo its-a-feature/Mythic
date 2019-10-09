@@ -47,7 +47,15 @@ async def respect_pivot(my_links, request):
 @scoped('auth:user')
 async def index(request, user):
     template = env.get_template('main_page.html')
-    content = template.render(name=user['username'], links=await respect_pivot(links, request), current_operation=user['current_operation'], config=user['ui_config'])
+    if use_ssl:
+        content = template.render(name=user['username'], links=await respect_pivot(links, request),
+                                  current_operation=user['current_operation'], config=user['ui_config'],
+                                  view_utc_time=user['view_utc_time'], http="https")
+    else:
+        content = template.render(name=user['username'], links=await respect_pivot(links, request),
+                                  current_operation=user['current_operation'], config=user['ui_config'],
+                                  view_utc_time=user['view_utc_time'], http="http")
+
     return response.html(content)
 
 
@@ -58,7 +66,8 @@ class Login(BaseEndpoint):
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('login.html')
-        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={},
+                                  view_utc_time=False)
         return response.html(content)
 
     async def post(self, request):
@@ -75,7 +84,7 @@ class Login(BaseEndpoint):
                         errors['validate_errors'] = "account is deactivated, cannot log in"
                     else:
                         try:
-                            user.last_login = datetime.datetime.now()
+                            user.last_login = datetime.datetime.utcnow()
                             await db_objects.update(user)  # update the last login time to be now
                             access_token, output = await self.responses.get_access_token_output(
                                 request,
@@ -87,7 +96,9 @@ class Login(BaseEndpoint):
                                 self.config.refresh_token_name(): refresh_token
                             })
                             template = env.get_template('login.html')
-                            content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, access_token=access_token, refresh_token=refresh_token, config={})
+                            content = template.render(links=await respect_pivot(links, request), form=form,
+                                                      errors=errors, access_token=access_token,
+                                                      refresh_token=refresh_token, config={}, view_utc_time=False)
                             resp = response.html(content)
                             # resp = response.redirect("/")
                             resp.cookies[self.config.cookie_access_token_name()] = access_token
@@ -105,7 +116,8 @@ class Login(BaseEndpoint):
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('login.html')
-        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors,
+                                  config={}, view_utc_time=False)
         return response.html(content)
 
 
@@ -114,7 +126,8 @@ class Register(BaseEndpoint):
         errors = {}
         form = RegistrationForm(request)
         template = env.get_template('register.html')
-        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors,
+                                  config={}, view_utc_time=False)
         return response.html(content)
 
     async def post(self, request, *args, **kwargs):
@@ -141,7 +154,7 @@ class Register(BaseEndpoint):
                 # we want to make sure to store access/refresh token in JS before moving into the rest of the app
                 template = env.get_template('register.html')
                 content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, access_token=access_token,
-                                          refresh_token=refresh_token, config={})
+                                          refresh_token=refresh_token, config={}, view_utc_time=False)
                 resp = response.html(content)
                 resp.cookies[self.config.cookie_access_token_name()] = access_token
                 resp.cookies[self.config.cookie_access_token_name()]['httponly'] = True
@@ -155,7 +168,8 @@ class Register(BaseEndpoint):
         errors['username_errors'] = '<br>'.join(form.username.errors)
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('register.html')
-        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={})
+        content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={},
+                                  view_utc_time=False)
         return response.html(content)
 
 
@@ -207,10 +221,10 @@ async def settings(request, user):
         del op_json['ui_config']
         if use_ssl:
             content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss",
-                                      op=op_json, config=user['ui_config'])
+                                      op=op_json, config=user['ui_config'], view_utc_time=user['view_utc_time'])
         else:
             content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws",
-                                      op=op_json, config=user['ui_config'])
+                                      op=op_json, config=user['ui_config'], view_utc_time=user['view_utc_time'])
         return response.html(content)
     except Exception as e:
         print(e)
@@ -225,10 +239,10 @@ async def search(request, user):
     try:
         if use_ssl:
             content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss",
-                                      config=user['ui_config'])
+                                      config=user['ui_config'], view_utc_time=user['view_utc_time'])
         else:
             content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws",
-                                      config=user['ui_config'])
+                                      config=user['ui_config'], view_utc_time=user['view_utc_time'])
         return response.html(content)
     except Exception as e:
         print(e)
@@ -264,13 +278,13 @@ async def logout(request, user):
 @apfell.exception(NotFound)
 async def handler_404(request, exception):
     print(exception)
-    return json({'status': 'error', 'error': 'Not Found'})
+    return json({'status': 'error', 'error': 'Not Found'}, status=404)
 
 
 @apfell.exception(MethodNotSupported)
 async def handler_405(request, exception):
     print(exception)
-    return json({'status': 'error', 'error': 'Session Expired, refresh'})
+    return json({'status': 'error', 'error': 'Session Expired, refresh'}, status=405)
 
 
 @apfell.exception(Unauthorized)
@@ -348,12 +362,6 @@ async def initial_setup():
         await import_payload_type_func(ptype, admin, operation)
     file.close()
     print("created Apfell-jxa payload")
-    file = open('./app/templates/linfell_c.json', 'r')
-    linfell_c = js.load(file)  # this is a lot of data and might take a hot second to load
-    for ptype in linfell_c['payload_types']:
-        await import_payload_type_func(ptype, admin, operation)
-    file.close()
-    print("created Linfell-c payload")
     file = open('./app/templates/viper.json', 'r')
     viper = js.load(file)  # this is a lot of data and might take a hot second to load
     print("parsed viper payload file")
@@ -361,6 +369,13 @@ async def initial_setup():
         await import_payload_type_func(ptype, admin, operation)
     file.close()
     print("created viper payload")
+    file = open('./app/templates/poseidon.json', 'r')
+    poseidon = js.load(file)  # this is a lot of data and might take a hot second to load
+    print("parsed poseidon payload file")
+    for ptype in poseidon['payload_types']:
+        await import_payload_type_func(ptype, admin, operation)
+    file.close()
+    print("created poseidon payload")
     await register_default_profile_operation(admin)
     print("Successfully finished initial setup")
 
@@ -372,7 +387,6 @@ apfell.static('/', './app/payloads/operations/_hosting_dir')
 apfell.static('/strict_time.png', './app/static/strict_time.png', name='strict_time')
 apfell.static('/grouped_output.png', './app/static/grouped_output.png', name='grouped_output')
 apfell.static('/no_cmd_output.png', './app/static/no_cmd_output.png', name='no_cmd_output')
-apfell.static('/gear_med.png', './app/static/gear_med.png', name='gear_md')
 apfell.static('/add_comment.png', './app/static/add_comment.png', name='add_comment')
 
 # add links to the routes in this file at the bottom

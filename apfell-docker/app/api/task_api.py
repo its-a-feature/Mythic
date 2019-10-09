@@ -14,6 +14,7 @@ import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
 from sanic.exceptions import abort
 from math import ceil
+from app.crypto import hash_MD5, hash_SHA1
 
 
 # This gets all tasks in the database
@@ -47,20 +48,57 @@ async def search_tasks(request, user):
         data = request.json
         if 'search' not in data:
             return json({'status': 'error', 'error': 'failed to find search term in request'})
+        if 'type' not in data:
+            data['type'] = "cmds"
+        if 'export' not in data:
+            data['export'] = False
+        if 'operator' in data:
+            query = await db_model.operator_query()
+            operator = await db_objects.get(query, username=data['operator'])
+            data['operator'] = operator
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
-    query = await db_model.task_query()
-    count = await db_objects.count(query
-                                     .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
-                                     .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+    if data['type'] == "params":
+        query = await db_model.task_query()
+        if 'operator' in data:
+            count = await db_objects.count(query.where(
+                ( (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])) ) & (Task.operator == data['operator'])
+            ).switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+        else:
+            count = await db_objects.count(query
+                                             .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                             .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+    else:
+        query = await db_model.task_query()
+        if 'operator' in data:
+            count = await db_objects.count(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),
+                                           Command.select())
+        else:
+            count = await db_objects.count(query.switch(Command)
+                                       .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
+                                       Command.select())
     if 'page' not in data:
         data['page'] = 1
         data['size'] = count
-        tasks = await db_objects.prefetch(query
-                                     .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
-                                     .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+        if data['type'] == "params":
+            if 'operator' in data:
+                tasks = await db_objects.prefetch(query.where(
+                    ( (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])) ) & (Task.operator == data['operator'])
+                ).switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+            else:
+                tasks = await db_objects.prefetch(query
+                                         .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                         .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+        else:
+            if 'operator' in data:
+                tasks = await db_objects.prefetch(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(
+                    Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),Command.select())
+            else:
+                tasks = await db_objects.prefetch(query.switch(Command)
+                                       .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
+                                       Command.select())
     else:
         if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
             return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
@@ -70,11 +108,25 @@ async def search_tasks(request, user):
             data['page'] = ceil(count / data['size'])
             if data['page'] == 0:
                 data['page'] = 1
-        tasks = await db_objects.prefetch(query
-                                          .where(
-            (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
-                                          .switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),
-                                          Command.select())
+        if data['type'] == "params":
+            if 'operator' in data:
+                tasks = await db_objects.prefetch(query.where(
+                    ((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search']))) & (Task.operator == data['operator'])
+                ).switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),Command.select())
+            else:
+                tasks = await db_objects.prefetch(query.where(
+                (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                              .switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),
+                                              Command.select())
+        else:
+            if 'operator' in data:
+                tasks = await db_objects.prefetch(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(
+                    Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),
+                                                  Command.select())
+            else:
+                tasks = await db_objects.prefetch(query.switch(Command)
+                                              .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
+                                              Command.select())
     output = []
     for t in tasks:
         query = await db_model.response_query()
@@ -268,10 +320,16 @@ async def add_task_to_callback(request, cid, user):
                 code_file.close()
                 new_file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
                                                   path=path, operation=operation, operator=operator)
+                contents = open(new_file_meta.path, 'rb').read()
+                new_file_meta.md5 = await hash_MD5(contents)
+                new_file_meta.sha1 = await hash_SHA1(contents)
+                await db_objects.update(new_file_meta)
                 params[k] = new_file_meta.agent_file_id
                 file_updates_with_task.append(new_file_meta)
+        # update data['params'] with new file data or just re-string the old data
         data['params'] = js.dumps(params)
     data['operator'] = user['username']
+    data['original_params'] = data['params']
     data['file_updates_with_task'] = file_updates_with_task
     if 'test_command' not in data:
         data['test_command'] = False
@@ -283,7 +341,6 @@ async def add_task_to_callback(request, cid, user):
 async def add_task_to_callback_func(data, cid, user, op, operation, cb):
     try:
         # first see if the operator and callback exists
-
         original_params = None
         task = None
         # now check the task and add it if it's valid and valid for this callback's payload type
@@ -295,7 +352,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             if data['command'] == "tasks":
                 # this means we're just listing out the not-completed tasks, so nothing actually goes to the agent
                 task = await db_objects.create(Task, callback=cb, operator=op, params=data['command'],
-                                               status="processed", original_params=data['command'])
+                                               status="processed", original_params=data['command'], completed=True)
                 raw_rsp = await get_all_not_completed_tasks_for_callback_func(cb.id, user)
                 if raw_rsp['status'] == 'success':
                     rsp = ""
@@ -313,7 +370,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             elif data['command'] == "clear":
                 # this means we're going to be clearing out some tasks depending on our access levels
                 task = await db_objects.create(Task, callback=cb, operator=op, params="clear " + data['params'],
-                                               status="processed", original_params="clear " + data['params'])
+                                               status="processed", original_params="clear " + data['params'], completed=True)
                 raw_rsp = await clear_tasks_for_callback_func({"task": data['params']}, cb.id, user)
                 if raw_rsp['status'] == 'success':
                     rsp = "Removed the following:"
@@ -336,7 +393,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             try:
                 # see if we actually submitted "file_id /remote/path/here"
                 # if upload_config['file'] is still FILEUPLOAD, then we didn't swap it out with an actual file_id
-                if 'file_id' in upload_config and upload_config['file'] == "FILEUPLOAD":
+                if 'file_id' in upload_config and upload_config['file_id'] > 0:
                     if isinstance(upload_config['file_id'], str):
                         try:
                             f = await db_objects.get(FileMeta, agent_file_id=upload_config['file_id'])
@@ -345,7 +402,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                                          'cmd': data['command'],
                                          'params': data['params'], "callback": cid
                                          }
-                    elif isinstance(upload_config['file_id'], int) and upload_config['file_id'] > 0:
+                    elif isinstance(upload_config['file_id'], int):
                         try:
                             f = await db_objects.get(FileMeta, id=upload_config['file_id'])
                         except Exception as e:
@@ -361,13 +418,52 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                     # we don't want to lose our tracking on this file, so we'll create a new database entry
                     file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
                                                         complete=f.complete, path=f.path, operation=f.operation, operator=op)
+                    if f.complete:
+                        contents = open(file_meta.path, 'rb').read()
+                        file_meta.md5 = await hash_MD5(contents)
+                        file_meta.sha1 = await hash_SHA1(contents)
+                        await db_objects.update(file_meta)
                     data['file_updates_with_task'].append(file_meta)
-                elif 'file' in upload_config:
+                elif 'file' in upload_config and len(data['file_updates_with_task']) == 0:
+                    # file value is specified, but we didn't create any new files yet
+                    # so we need to create a new fileMeta file to track this new tasking from just an up-arrow task
+                    if isinstance(upload_config['file'], str):
+                        try:
+                            f = await db_objects.get(FileMeta, agent_file_id=upload_config['file'])
+                        except Exception as e:
+                            return {'status': 'error', 'error': "cannot find specified file",
+                                         'cmd': data['command'],
+                                         'params': data['params'], "callback": cid
+                                         }
+                    elif isinstance(upload_config['file'], int):
+                        try:
+                            f = await db_objects.get(FileMeta, id=upload_config['file'])
+                        except Exception as e:
+                            return {'status': 'error', 'error': "cannot find specified file",
+                                         'cmd': data['command'],
+                                         'params': data['params'], "callback": cid
+                                         }
+                    else:
+                        return {'status': 'error', 'error': "cannot find specified file",
+                                'cmd': data['command'],
+                                'params': data['params'], "callback": cid
+                                }
+                    # we don't want to lose our tracking on this file, so we'll create a new database entry
+                    file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
+                                                        complete=f.complete, path=f.path, operation=f.operation, operator=op)
+                    if f.complete:
+                        contents = open(file_meta.path, 'rb').read()
+                        file_meta.md5 = await hash_MD5(contents)
+                        file_meta.sha1 = await hash_SHA1(contents)
+                        await db_objects.update(file_meta)
+                    data['file_updates_with_task'].append(file_meta)
+                else:
                     # we just made the file for this instance, so just use it as the file_meta
                     # in this case it's already added to data['file_updates_with_task']
                     query = await db_model.filemeta_query()
                     file_meta = await db_objects.get(query, agent_file_id=upload_config['file'])
                 # now normalize the data for the agent since it doesn't care if it was an old or new file_id to upload
+                data['original_params'] = data['params']
                 data['params'] = js.dumps({'remote_path': upload_config['remote_path'], 'file_id': file_meta.agent_file_id})
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
@@ -404,7 +500,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params'], 'callback': cid}
         # now actually run through all of the command transforms
-        original_params = data['params']
+        original_params = data['original_params']
         cmd_transforms = await get_commandtransforms_func(cmd.id, operation.name)
         if cmd_transforms['status'] == 'success':
             rabbit_message = {"transforms": cmd_transforms['transforms'], "params": data['params'],
@@ -455,14 +551,15 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
         if task is not None:
             await add_command_attack_to_task(task, cmd)
         if task is None:
-            # only create the task if there are no cmd_transforms, or there are and the container is up
-            if len(cmd_transforms['transforms']) == 0 or len(["a" for v in data['transform_status'].values() if v]) == 0 and not data['test_command']:
+            # if there are no active transforms and this is not a test command, just submit the task
+            if len(["a" for v in data['transform_status'].values() if v]) == 0 and not data['test_command']:
                 task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'], original_params=original_params, status="submitted")
                 task.status_timestamp_submitted = task.timestamp
                 await db_objects.update(task)
                 await add_command_attack_to_task(task, cmd)
             elif payload_type.container_running:
-                # by default tasks are created in a preprocessing state so an agent won't get them as they're tasked to the corresponding build-servers for potential modifications
+                # by default tasks are created in a preprocessing state,
+                # so an agent won't get them as they're tasked to the corresponding build-servers for modifications
                 task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
                                                original_params=original_params)
                 # we don't want to add ATT&CK and ArtifactTask yet since we need the final results to come back from rabbitmq first
@@ -607,16 +704,20 @@ async def add_command_attack_to_task(task, command):
         query = await db_model.artifacttemplate_query()
         artifacts = await db_objects.execute(query.where( (ArtifactTemplate.command == command) & (ArtifactTemplate.deleted == False)))
         for artifact in artifacts:
-            temp_string = artifact.artifact_string
-            if artifact.command_parameter is not None and artifact.command_parameter != 'null':
-                # we need to swap out temp_string's replace_string with task's param's command_parameter.name value
-                parameter_dict = js.loads(task.params)
-                temp_string = temp_string.replace(artifact.replace_string, str(parameter_dict[artifact.command_parameter.name]))
-            else:
-                # we need to swap out temp_string's replace_string with task's params value
-                if artifact.replace_string != "":
-                    temp_string = temp_string.replace(artifact.replace_string, str(task.params))
-            await db_objects.create(TaskArtifact, task=task, artifact_template=artifact, artifact_instance=temp_string)
+            try:
+                temp_string = artifact.artifact_string
+                if artifact.command_parameter is not None and artifact.command_parameter != 'null':
+                    # we need to swap out temp_string's replace_string with task's param's command_parameter.name value
+                    parameter_dict = js.loads(task.params)
+                    temp_string = temp_string.replace(artifact.replace_string, str(parameter_dict[artifact.command_parameter.name]))
+                else:
+                    # we need to swap out temp_string's replace_string with task's params value
+                    if artifact.replace_string != "":
+                        temp_string = temp_string.replace(artifact.replace_string, str(task.params))
+                await db_objects.create(TaskArtifact, task=task, artifact_template=artifact, artifact_instance=temp_string)
+            except Exception as e:
+                print(e)
+                pass
 
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
@@ -645,7 +746,7 @@ async def get_all_not_completed_tasks_for_callback_func(cid, user):
         # Get all tasks that have a status of submitted or processing
         query = await db_model.task_query()
         tasks = await db_objects.prefetch(query.where(
-            (Task.callback == callback) & (Task.status != "processed")).order_by(Task.timestamp), Command.select())
+            (Task.callback == callback) & (Task.completed != True)).order_by(Task.timestamp), Command.select())
         return {'status': 'success', 'tasks': [x.to_json() for x in tasks]}
     else:
         return {'status': 'error', 'error': 'You must be part of the operation to view this information'}
@@ -689,6 +790,9 @@ async def clear_tasks_for_callback_func(data, cid, user):
                     t_removed = t.to_json()
                     # don't actually delete it, just mark it as completed with a response of "CLEARED TASK"
                     t.status = "processed"
+                    t.status_processed_timestamp = datetime.utcnow()
+                    t.status_processing_timestamp = t.status_processed_timestamp
+                    t.completed = True
                     t.timestamp = datetime.utcnow()
                     await db_objects.update(t)
                     # we need to adjust all of the things associated with this task now since it didn't actually happen
@@ -735,6 +839,30 @@ async def get_one_task_and_responses(request, tid, user):
             query = await db_model.callback_query()
             callback = await db_objects.get(query.where(Callback.id == task.callback))
             return json({'status': "success", "callback": callback.to_json(), "task": task.to_json(), "responses": [r.to_json() for r in responses]})
+        else:
+            return json({'status': 'error', 'error': 'you don\'t have access to that task'})
+    except Exception as e:
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({'status': 'error', 'error': 'failed to find that task'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/tasks/<tid:int>/raw_output", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_one_task_and_responses_as_raw_output(request, tid, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.task_query()
+        task = await db_objects.prefetch(query.where(Task.id == tid), Command.select())
+        task = list(task)[0]
+        if task.callback.operation.name in user['operations']:
+            query = await db_model.response_query()
+            responses = await db_objects.execute(query.where(Response.task == task).order_by(Response.id))
+            query = await db_model.callback_query()
+            callback = await db_objects.get(query.where(Callback.id == task.callback))
+            output = ''.join([r.response for r in responses])
+            return json({'status': 'success', 'output': base64.b64encode(output.encode()).decode('utf-8')})
         else:
             return json({'status': 'error', 'error': 'you don\'t have access to that task'})
     except Exception as e:

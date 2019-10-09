@@ -6,6 +6,7 @@ import asyncio
 import base64
 import json
 import sys
+import os
 
 
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
@@ -61,14 +62,16 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     task = await db_objects.get(query, id=pieces[5])
                     if pieces[4] == "error":
                         # create a response that there was an error and set task to processed
-                        task.status = "processed"
+                        task.status = "error"
+                        task.completed = True
                         task.timestamp = datetime.datetime.utcnow()
                         task.status_timestamp_processed = task.timestamp
                         await db_objects.update(task)
                         await db_objects.create(db_model.Response, task=task, response=message.body.decode('utf-8'))
                     else:
                         message_body = json.loads(base64.b64decode(message.body).decode('utf-8'), strict=False)
-                        task.params = message_body['params']
+                        task.params = await resolve_shortnames_to_file_ids(message_body['params'], task)
+                        #task.params = message_body['params']
                         if not message_body['test_command']:
                             task.status = "submitted"
                             task.timestamp = datetime.datetime.utcnow()
@@ -76,6 +79,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             await add_command_attack_to_task(task, task.command)
                         else:
                             task.status = "processed"
+                            task.completed = True
                             task.timestamp = datetime.datetime.utcnow()
                             task.status_timestamp_processed = task.timestamp
                             await db_objects.create(db_model.Response, task=task, response="TEST COMMAND RESULTS:\n{}".format(message_body['step_output']))
@@ -84,7 +88,8 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     query = await db_model.task_query()
                     task = await db_objects.get(query, id=pieces[5])
                     if pieces[4] == "error":
-                        task.status = "processed"
+                        task.status = "error"
+                        task.completed = True
                         task.timestamp = datetime.datetime.now()
                         task.status_timestamp_processed = task.timestamp
                         await db_objects.update(task)
@@ -105,6 +110,28 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         await db_objects.update(task)
             except Exception as e:
                 print("Exception in rabbit_pt_callback: " + str(e))
+
+
+async def resolve_shortnames_to_file_ids(command, task):
+    try:
+        task_dict = json.loads(command)
+        if 'swap_shortnames' in task_dict and task_dict['swap_shortnames']:
+            del task_dict['swap_shortnames']
+            for key in task_dict:
+                if key.endswith("_id"):
+                    try:
+                        query = await db_model.filemeta_query()
+                        attempted_path = os.path.abspath("./app/files/{}/{}".format(task.callback.operation.name, task_dict[key]))
+                        file = await db_objects.get(query, operation=task.callback.operation, path=attempted_path)
+                        task_dict[key] = file.agent_file_id
+                    except Exception as e:
+                        print(e)
+                        pass  # move on to the next one and try it
+            return json.dumps(task_dict)
+        else:
+            return command
+    except Exception as e:
+        return command
 
 
 async def add_command_attack_to_task(task, command):

@@ -107,9 +107,17 @@ span.display{
     top:0;
     z-index:1;
 }
-table{
-    background-color: transparent;
+.sticky-bottom{
+    position:-webkit-sticky;
+    position:sticky;
+    bottom:0;
+    z-index:1;
 }
+.table{
+    background-color: transparent;
+    border-collapse: collapse;
+}
+
 .bg-header-dark{
     background-color: {{config['bg-header-dark']}};
 }
@@ -138,20 +146,12 @@ table{
 hr{
     border: 2px dashed {{config['bg-card-body-l2']}};
 }
-th{
+.table th{
     background-color:  {{config['th']}};
     color: {{config['text-color']}};
 }
-table th .caret {
-    display: inline-block;
-    width: 0;
-    height: 0;
-    margin-left: 2px;
-    vertical-align: middle;
-    border-top: 4px dashed;
-    border-top: 4px solid color: {{ config['text-color'] }};
-    border-right: 4px solid transparent;
-    border-left: 4px solid transparent;
+.table tr td{
+    padding: 1px 1px 1px 10px
 }
 .font-outline {
     text-shadow:
@@ -164,14 +164,18 @@ table th .caret {
     background-color: transparent;
     color: {{config['text-color']}};
 }
+.btn-mitre:hover {
+    color: {{config['highlight-text']}};
+    background-color: {{config['highlight']}};
+}
 /* unvisited link */
 a:link {
-  color: #b366ff;
+  color: {{ config['operator'] }};
 }
 
 /* visited link */
 a:visited {
-  color: green;
+  color: {{config['operator']}};
 }
 
 /* mouse over link */
@@ -211,13 +215,13 @@ a:active {
   color: {{config['highlight-text']}};
 }
 .dropdown-menu {
-    background-color: {{ config['background-color'] }};
+    background-color: {{ config['bg-card-body-l2'] }};
 }
 .dropdown-item {
-    background-color: {{ config['background-color'] }};
+    background-color: {{ config['bg-card-body-l2'] }};
 }
 .dropdown-menu > a{
-    background-color: {{ config['background-color'] }};
+    background-color: {{ config['bg-card-body-l2'] }};
     color: {{ config['text-color'] }}
 }
 .dropdown-menu > a:hover{
@@ -225,6 +229,8 @@ a:active {
     color: {{ config['highlight-color'] }}
 }
 .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
     background-color: {{config['background-color']}};
     color: {{config['text-color']}};
 }
@@ -393,67 +399,7 @@ span.operation {
     animation: spin 1s infinite linear;
     -webkit-animation: spin2 1s infinite linear;
 }
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
 
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-input:checked + .slider {
-  background-color: #2196F3;
-}
-input:hover + .slider {
-  box-shadow: 0 0 10px #2196F3;
-}
-input:focus + .slider {
-  box-shadow: 0 0 10px #2196F3;
-}
-
-input:checked + .slider:before {
-  -webkit-transform: translateX(26px);
-  -ms-transform: translateX(26px);
-  transform: translateX(26px);
-}
-
-/* Rounded sliders */
-.slider.round {
-  border-radius: 36px;
-}
-
-.slider.round:before {
-  border-radius: 100%;
-}
 .navbar-nav > .dropdown > .dropdown-toggle > .caret{
     color: {{ config['top-caret'] }};
 }
@@ -461,59 +407,60 @@ textarea {
     background: {{config['background-color']}};
     color: {{config['text-color']}};
 }
-.script-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0px;
-  left: 0;
-  right: 3px;
-  bottom: 1px;
-  background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
+li span.badge {
+    position: absolute;
+    top: -10px;
+    left: 8px;
+}
+.material-switch > input[type="checkbox"] {
+    display: none;
 }
 
-.script-slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: -3px;
-  bottom: 2px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+.material-switch > label {
+    cursor: pointer;
+    height: 0px;
+    position: relative;
+    width: 40px;
 }
 
-input:checked + .script-slider {
-  background-color: #2196F3;
+.material-switch > label::before {
+    background: #BABABA;
+    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    content: '';
+    height: 16px;
+    margin-top: -8px;
+    position:absolute;
+    opacity: 0.3;
+    transition: all 0.4s ease-in-out;
+    width: 40px;
 }
-input:hover + .script-slider {
-  box-shadow: 0 0 10px #2196F3;
+.material-switch > label::after {
+    background: #6E6E6E;
+    border-radius: 16px;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3);
+    content: '';
+    height: 20px;
+    left: -4px;
+    margin-top: -6px;
+    position: absolute;
+    top: -4px;
+    transition: all 0.3s ease-in-out;
+    width: 20px;
 }
-input:focus + .script-slider {
-  box-shadow: 0 0 10px #2196F3;
+.material-switch > input[type="checkbox"]:checked + label::before {
+    background: inherit;
+    opacity: 0.5;
 }
-
-input:checked + .script-slider:before {
-  -webkit-transform: translateX(25px);
-  -ms-transform: translateX(25px);
-  transform: translateX(25px);
-}
-
-/* Rounded sliders */
-.script-slider.round {
-  border-radius: 36px;
-}
-
-.script-slider.round:before {
-  border-radius: 100%;
+.material-switch > input[type="checkbox"]:checked + label::after {
+    background: inherit;
+    left: 20px;
 }
     {% block body_config %} {% endblock %}
 </style>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top shadow " style="position:relative; z-index:100; background-color: #202124">
-    <a class="navbar-brand" href="{{ links.index }}"><img src="/static/apfell-transparent.png" style="width:45px;height:50px"></a>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top shadow " style="position:relative; z-index:100; background-color: hsl(225, 6%, 8%)">
+    <a class="navbar-brand" href="{{ links.index }}"><img src="/static/apfell-transparent.png" style="width:45px;height:50px;margin-left:1rem"></a>
     <button style="position:relative" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
@@ -524,7 +471,7 @@ input:checked + .script-slider:before {
         <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           Manage Operations <span class="caret"></span>
         </a>
-        <div class="dropdown-menu">
+        <div class="dropdown-menu border border-dark shadow">
             <h6 class="dropdown-header">Operational Configuration</h6>
             <a class="dropdown-item" href="{{ links.analytics }}">Analytics Dashboard</a>
             <a class="dropdown-item" href="{{ links.manage_browser_scripts }}">Browser Script Management</a>
@@ -542,7 +489,7 @@ input:checked + .script-slider:before {
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                 Operational Views <span class="caret"></span>
             </a>
-            <div class="dropdown-menu">
+            <div class="dropdown-menu border border-dark shadow">
                 <a class="dropdown-item" href="{{ links.callbacks }}">Active Callbacks</a>
                 <a class="dropdown-item" href="{{ links.view_tasks }}">All Callbacks</a>
                 <a class="dropdown-item" href="{{ links.comments }}">Comments</a>
@@ -557,7 +504,7 @@ input:checked + .script-slider:before {
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                 Create Components <span class="caret"></span>
             </a>
-            <div class="dropdown-menu">
+            <div class="dropdown-menu border border-dark shadow">
                 <a class="dropdown-item" href="{{ links.payloads_creation }}">Create Payload</a>
                 <a class="dropdown-item" href="{{ links.instantiate_c2profile }}">Instantiate C2 Profile</a>
             </div>
@@ -566,43 +513,41 @@ input:checked + .script-slider:before {
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                 Services <span class="caret"></span>
             </a>
-            <div class="dropdown-menu">
+            <div class="dropdown-menu border border-dark shadow">
                 <a class="dropdown-item" href="{{ links.services_host_file }}">Host Files</a>
             </div>
         </li>
         <li class="nav-item active dropdown">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                API <span class="caret"></span>
+                <i class="far fa-question-circle fa-lg"></i> Help <span class="caret"></span>
             </a>
-            <div class="dropdown-menu">
-                <a hidden class="dropdown-item" href="{{ links.apiui_commandlines }}">RESTful API</a>
-                <a hidden class="dropdown-item" href="{{ links.apiui_documentation }}">C2 Documentation</a>
-                <a class="dropdown-item" href="{{ links.apiui_command_help }}">Payload Type Command Help</a>
+            <div class="dropdown-menu border border-dark shadow">
+                <a class="dropdown-item" href="{{ links.apiui_command_help }}">Command Help</a>
             </div>
         </li>
         <li class="nav-item active dropdown">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                 Reporting <span class="caret"></span>
             </a>
-            <div class="dropdown-menu">
+            <div class="dropdown-menu border border-dark shadow">
                 <a class="dropdown-item" href="{{links.attack_mapping}}">ATT&CK Mappings</a>
-                <a class="dropdown-item" href="{{links.full_timeline}}">Generate PDF</a>
+                <a class="dropdown-item" href="{{links.full_timeline}}">Generate Report</a>
                 <a class="dropdown-item" href="{{links.reporting_artifacts}}">Reporting Artifacts</a>
             </div>
         </li>
         {% if name %}
         <li class="nav-item active dropdown">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false"><span class="{{config['text-color']}}"><i class="fa fa-user"></i></span> ({{name}})<span class="caret"></span></a>
-            <div class="dropdown-menu">
+            <div class="dropdown-menu border border-dark shadow">
                 <a class="dropdown-item" href="{{ links.logout }}">Logout</a>
                 <a class="dropdown-item" href="{{ links.settings }}">Settings</a>
             </div>
         </li>
         <li>
             {% if links.current_operation != "" %}
-            <font size="6"><span class="operation">{{links.current_operation}}&nbsp;&nbsp;</span></font>
+            <font size="6">&nbsp;<span class="operation">{{links.current_operation}}&nbsp;&nbsp;</span></font>
             {% else %}
-                <font style="color:red" size="5">Select an operation!&nbsp;&nbsp;</font>
+                <font style="color:red" size="5">&nbsp;Select an operation!&nbsp;&nbsp;</font>
             {% endif %}
 
         </li>
