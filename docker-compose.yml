@@ -19,21 +19,21 @@ services:
                         NAME: "apfell_rabbitmq"
                 restart: on-failure
                 #mem_limit: 512M
-        #apfell:
-        #        build: ./apfell-docker
-        #        network_mode: host
-        #        container_name: apfell_apfell
-        #        volumes:
-        #         - apfell-file-data:/Apfell/app/files
-        #         - apfell-payload-data:/Apfell/app/payloads/operations
-        #         - apfell-c2-data:/Apfell/app/c2_profiles
-        #        labels:
-        #                NAME: "apfell_apfell"
-        #        depends_on:
-        #         - postgres
-        #         - rabbitmq
-        #        restart: on-failure
-        #        command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Apfell/server.py"]
+        apfell:
+                build: ./apfell-docker
+                network_mode: host
+                container_name: apfell_apfell
+                volumes:
+                 - apfell-file-data:/Apfell/app/files
+                 - apfell-payload-data:/Apfell/app/payloads/operations
+                 - apfell-c2-data:/Apfell/app/c2_profiles
+                labels:
+                        NAME: "apfell_apfell"
+                depends_on:
+                 - postgres
+                 - rabbitmq
+                restart: on-failure
+                command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Apfell/server.py"]
         
 
 volumes:
