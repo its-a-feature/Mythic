@@ -4,12 +4,12 @@
     <div class="card-header shadow border border-dark bg-header text-white"><h2>Operation <span class="operator">{{links.current_operation}}</span>'s Payload Information</h2></div>
         <table class="table table-condensed table-striped {{config['table-color']}} table-hover border border-dark shadow table-condensed" >
             <tr>
-                <th><input type="checkbox" id="selectAllForDelete">&nbsp;<b>Delete</b></th>
+                <th ><input type="checkbox" id="selectAllForDelete">&nbsp;<b>Delete</b></th>
                 <th onclick="sort_table(this)"><b>Hosting</b></th>
-                <th><b>Notify?</b></th>
+                <th ><b>Notify?</b></th>
                 <th onclick="sort_table(this)"><b>Config</b></th>
-                <th onclick="sort_table(this)"><b>Download</b></th>
-                <th onclick="sort_table(this)"><b>Build Status</b></th>
+                <th ><b>Download</b></th>
+                <th ><b>Build Status</b></th>
                 <th onclick="sort_table(this)"><b>Tag</b></th>
                 <th onclick="sort_table(this)"><b>Creator</b></th>
                 <th onclick="sort_table(this)"><b>Creation Time</b></th>
@@ -38,22 +38,27 @@
                     </template>
 		        </td>
                 <td>
-                    <span class="material-switch pull-right">
+                    <span class="material-switch pull-right" data-toggle="tooltip" title="Get notifications for new callbacks based on this payload via the operation's slack webhook">
                         <input type="checkbox" :checked="p.callback_alert" v-model="p.callback_alert" @change="update_callback_alert(p)" :id="'callback_alert' + p.id" >
                         <label :for="'callback_alert' + p.id" class="btn-info"></label></span>
                 </td>
                 <td>
                     <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="show_parameters_button(p)">Config</button>
                 </td>
-                <td>
-                    <a type="button" :disabled="p.external || p.deleted || p.build_phase == 'error'" class="btn btn{{config['outline-buttons']}}success btn-sm" :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/' + p.uuid"><font color="#28a745"><i class="fas fa-download"></i></font></a>
-                </td>
-                <td >
+                <td style="text-align:center">
+                    <template v-if="p.external || p.deleted || p.build_phase == 'error'">
+                        <font color="red"><i class="fas fa-ban fa-lg"></i></font>
+                    </template>
+                    <template v-else>
+                        <a style="color:green" :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/' + p.uuid" target="_blank"><font ><i class="fas fa-download fa-lg"></i></font></a>
+                    </template>
+                    </td>
+                <td style="text-align:center">
                     <div v-if="p.build_phase == 'success'">
-                        <i class="far fa-check-circle fa-2x" style="color:green"></i>
+                        <i class="fas fa-check-circle fa-lg" style="color:green"></i>
                     </div>
                     <div v-else-if="p.build_phase == 'error'">
-                        <i class="fas fa-exclamation-triangle fa-2x" style="color:red"></i>
+                        <i class="fas fa-exclamation-triangle fa-lg" style="color:red"></i>
                     </div>
                     <div v-else>
                         <div class="spinner-border text-info" role="status"></div>

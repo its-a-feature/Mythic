@@ -9,15 +9,15 @@
                 <tr>
                     <th style="width:4rem">Delete</th>
                     <th onclick="sort_table(this)" style="width:15rem">Time</th>
-                    <th onclick="sort_table(this)" style="width:5rem">Task</th>
+                    <th onclick="sort_table(this)" style="width:6rem">Task</th>
                     <th onclick="sort_table(this)" style="width:16rem">Host</th>
                     <th onclick="sort_table(this)" style="width:8rem">Operator</th>
                     <th onclick="sort_table(this)">File</th>
-                    <th style="width:15rem">Comment</th>
+                    <th onclick="sort_table(this)" style="width:15rem">Comment</th>
                     <th style="width:6rem">Download</th>
                     <th >Info</th>
                 </tr>
-                <tr v-for="(file,i) in hosts.downloads" :key="file.id" >
+                <tr v-for="(file,i) in hosts.downloads">
                     <template v-if="file.complete">
                         <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-lg" @click="delete_file(file.id)" ></i></button></td>
                         <td>[[toLocalTime(file.timestamp)]]</td>
@@ -54,12 +54,12 @@
                 <tr>
                     <th style="width:4rem">Delete</th>
                     <th onclick="sort_table(this)" style="width:15rem">Time</th>
-                    <th onclick="sort_table(this)" style="width:5rem">Task</th>
+                    <th onclick="sort_table(this)" style="width:6rem">Task</th>
                     <th onclick="sort_table(this)" style="width:16rem">Host</th>
                     <th onclick="sort_table(this)" style="width:8rem">Operator</th>
                     <th onclick="sort_table(this)" style="width:15rem">Source</th>
                     <th onclick="sort_table(this)" >Destination</th>
-                    <th style="width:15rem">Comment</th>
+                    <th onclick="sort_table(this)" style="width:15rem">Comment</th>
                     <th style="width:6rem">Download</th>
                     <th >Info</th>
                 </tr>
