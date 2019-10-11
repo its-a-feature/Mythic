@@ -122,7 +122,7 @@ async def resolve_shortnames_to_file_ids(command, task):
                     try:
                         query = await db_model.filemeta_query()
                         attempted_path = os.path.abspath("./app/files/{}/{}".format(task.callback.operation.name, task_dict[key]))
-                        file = await db_objects.get(query, operation=task.callback.operation, path=attempted_path)
+                        file = await db_objects.get(query, operation=task.callback.operation, path=attempted_path, deleted=False)
                         task_dict[key] = file.agent_file_id
                     except Exception as e:
                         print(e)
