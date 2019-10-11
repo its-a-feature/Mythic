@@ -248,6 +248,7 @@ async def create_filemeta_in_database_manual(request, user):
     else:
         return json({'status': 'error', 'error': 'specified remote file, but did not upload anything'})
     # now write the file
+    os.makedirs('./app/files/{}/'.format(operation.name), exist_ok=True)
     save_path = os.path.abspath('./app/files/{}/{}'.format(operation.name, filename))
     extension = save_path.split(".")[-1]
     save_path = ".".join(save_path.split(".")[:-1])
