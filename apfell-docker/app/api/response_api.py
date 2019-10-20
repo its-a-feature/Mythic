@@ -94,28 +94,34 @@ async def search_responses(request, user):
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         return json({'status': 'error', 'error': 'Cannot get that response'})
-    query = await db_model.response_query()
-    count = await db_objects.count(query.where(Response.response.regexp(data['search'])).switch(Task).where(Callback.operation == operation))
-    if 'page' not in data:
-        # allow a blanket search to still be performed
-        responses = await db_objects.execute(query.where(Response.response.regexp(data['search'])).switch(Task).where(Callback.operation == operation).order_by(Response.id))
-        data['page'] = 1
-        data['size'] = count
-    else:
-        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
-            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
-        data['size'] = int(data['size'])
-        data['page'] = int(data['page'])
-        if data['page'] * data['size'] > count:
-            data['page'] = ceil(count / data['size'])
-            if data['page'] == 0:
-                data['page'] = 1
-        responses = await db_objects.execute(
-            query.where(
-                Response.response.regexp(data['search'])).switch(Task).where(
-                Callback.operation == operation).order_by(Response.id).paginate(data['page'], data['size'])
-        )
-    return json({'status': 'success', 'output': [r.to_json() for r in responses], 'total_count': count, 'page': data['page'], 'size': data['size']})
+    try:
+        query = await db_model.response_query()
+        count = await db_objects.count(query.where(Response.response.regexp(data['search'])).switch(Task).where(Callback.operation == operation))
+        if 'page' not in data:
+            # allow a blanket search to still be performed
+            responses = await db_objects.execute(query.where(Response.response.regexp(data['search'])).switch(Task).where(Callback.operation == operation).order_by(Response.id))
+            data['page'] = 1
+            data['size'] = count
+        else:
+            if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+                return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+            data['size'] = int(data['size'])
+            data['page'] = int(data['page'])
+            if data['page'] * data['size'] > count:
+                data['page'] = ceil(count / data['size'])
+                if data['page'] == 0:
+                    data['page'] = 1
+            responses = await db_objects.execute(
+                query.where(
+                    Response.response.regexp(data['search'])).switch(Task).where(
+                    Callback.operation == operation).order_by(Response.id).paginate(data['page'], data['size'])
+            )
+        output = []
+        for r in responses:
+            output.append({**r.to_json(), 'host': r.task.callback.host})
+        return json({'status': 'success', 'output': output, 'total_count': count, 'page': data['page'], 'size': data['size']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'bad regex syntax'})
 
 
 # implant calling back to update with base64 encoded response from executing a task

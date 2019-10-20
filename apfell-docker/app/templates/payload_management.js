@@ -149,7 +149,7 @@ function get_config_callback(response){
     }
 }
 function startwebsocket_payloads(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
+	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
 			let pdata = JSON.parse(event.data);
@@ -168,16 +168,14 @@ function startwebsocket_payloads(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Socket closed, please refresh");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Socket errored, please refresh");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
-	}
+	};
 }
 startwebsocket_payloads();
 
@@ -1444,7 +1442,7 @@ function download_file_callback(response){
 }
 var gotCommandData = false;
 function startwebsocket_payloadtypes(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloadtypes');
+	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloadtypes');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
 			let pdata = JSON.parse(event.data);
@@ -1483,12 +1481,10 @@ function startwebsocket_payloadtypes(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Socket closed, please reload");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Socket errored, please reload");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
@@ -1518,7 +1514,7 @@ function display_transforms_callback(response){
 }
 
 function startwebsocket_commands(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/commands');
+	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/commands');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
 			let cdata = JSON.parse(event.data);
@@ -1541,16 +1537,14 @@ function startwebsocket_commands(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Socket closed, please reload");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Socket errored, please reload");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
-	}
+	};
 }
 function create_payloadtype_callback(response){
     try{
@@ -1831,7 +1825,7 @@ function change_heartbeat_callback(response){
 }
 setInterval(container_heartbeat_check, 500);
 function startwebsocket_rabbitmq(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/rabbitmq/pt_status');
+	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/rabbitmq/pt_status');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
 			cdata = JSON.parse(event.data);
@@ -1872,12 +1866,10 @@ function startwebsocket_rabbitmq(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Socket closed, please reload");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Socket errored, please reload");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");

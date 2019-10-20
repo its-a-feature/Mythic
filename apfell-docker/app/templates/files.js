@@ -61,16 +61,14 @@ function startwebsocket_files(){
         }
     };
     ws.onclose = function(){
-        //console.log("socket closed");
-        //alertTop("danger", "Socket closed. Please refresh");
-    };
-    ws.onerror = function(){
-        //console.log("websocket error");
-        alertTop("danger", "Socket errored, please refresh");
-    };
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
     ws.onopen = function(event){
         //console.debug("opened");
-    }
+    };
 }
 
 function startwebsocket_updatedfiles(){
@@ -110,13 +108,11 @@ function startwebsocket_updatedfiles(){
         }
     };
     ws.onclose = function(){
-        //console.log("socket closed");
-        //alertTop("danger", "Socket closed, please refresh");
-    };
-    ws.onerror = function(){
-        //console.log("websocket error");
-        alertTop("danger", "Socket errored, please refresh");
-    };
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
     ws.onopen = function(event){
         //console.debug("opened");
     }

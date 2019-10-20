@@ -146,34 +146,37 @@ async def search_artifact_tasks(request, user):
     query = await db_model.callback_query()
     callbacks = query.where(Callback.operation == operation).select(Callback.id)
     task_query = await db_model.taskartifact_query()
-    count = await db_objects.count(
-            task_query.where(
-                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
-                TaskArtifact.artifact_instance.regexp(data['search']))
-    )
-    if 'page' not in data:
-        tasks = await db_objects.execute(
-            task_query.where(
-                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
-            TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp)
+    try:
+        count = await db_objects.count(
+                task_query.where(
+                    ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+                    TaskArtifact.artifact_instance.regexp(data['search']))
         )
-        data['page'] = 1
-        data['size'] = count
-    else:
-        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
-            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
-        data['size'] = int(data['size'])
-        data['page'] = int(data['page'])
-        if data['page'] * data['size'] > count:
-            data['page'] = ceil(count / data['size'])
-            if data['page'] == 0:
-                data['page'] = 1
-        tasks = await db_objects.execute(
-            task_query.where(
-                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
-            TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp).paginate(data['page'], data['size'])
-        )
-    return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': data['page'], 'size': data['size']})
+        if 'page' not in data:
+            tasks = await db_objects.execute(
+                task_query.where(
+                    ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+                TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp)
+            )
+            data['page'] = 1
+            data['size'] = count
+        else:
+            if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+                return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+            data['size'] = int(data['size'])
+            data['page'] = int(data['page'])
+            if data['page'] * data['size'] > count:
+                data['page'] = ceil(count / data['size'])
+                if data['page'] == 0:
+                    data['page'] = 1
+            tasks = await db_objects.execute(
+                task_query.where(
+                    ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+                TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp).paginate(data['page'], data['size'])
+            )
+        return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': data['page'], 'size': data['size']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Bad regex'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/<aid:int>", methods=['DELETE'])

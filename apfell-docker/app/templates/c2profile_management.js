@@ -465,12 +465,10 @@ function startwebsocket_c2profiles(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Session expired, please refresh");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Session expired, please refresh");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
@@ -492,12 +490,10 @@ function startwebsocket_payloadtypec2profile(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Session expired, please refresh");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Session expired, please refresh");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
@@ -566,13 +562,11 @@ function startwebsocket_rabbitmqresponses(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Session expired, please refresh");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Session expired, please refresh");
-	}
+        wsonerror();
+	};
 }
 startwebsocket_rabbitmqresponses();
 function register_button(){

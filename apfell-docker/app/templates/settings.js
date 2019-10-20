@@ -157,7 +157,13 @@ function startwebsocket_operators(){
 			operators.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
 
 		}
-	}
+	};
+	ws.onclose = function(){
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 function startwebsocket_updatedoperators(){
     var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updatedoperators');
@@ -172,7 +178,13 @@ function startwebsocket_updatedoperators(){
             }
 
 		}
-	}
+	};
+	ws.onclose = function(){
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 if(current_operator['admin']){
     // only an admin can see all the registered users, everybody else just knows of themselves

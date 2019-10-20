@@ -83,10 +83,10 @@ function startwebsocket_manualFiles(){
 		}
 	};
 	ws.onclose = function(){
-		alertTop("danger", "Session expired, please refresh");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		alertTop("danger", "Session expired, please refresh");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");

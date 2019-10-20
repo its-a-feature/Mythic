@@ -59,80 +59,83 @@ async def search_tasks(request, user):
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
-        return json({'status': 'error', 'error': 'Cannot get that response'})
-    if data['type'] == "params":
-        query = await db_model.task_query()
-        if 'operator' in data:
-            count = await db_objects.count(query.where(
-                ( (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])) ) & (Task.operator == data['operator'])
-            ).switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
-        else:
-            count = await db_objects.count(query
-                                             .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
-                                             .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
-    else:
-        query = await db_model.task_query()
-        if 'operator' in data:
-            count = await db_objects.count(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),
-                                           Command.select())
-        else:
-            count = await db_objects.count(query.switch(Command)
-                                       .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
-                                       Command.select())
-    if 'page' not in data:
-        data['page'] = 1
-        data['size'] = count
+        return json({'status': 'error', 'error': 'Cannot get that operation'})
+    try:
         if data['type'] == "params":
+            query = await db_model.task_query()
             if 'operator' in data:
-                tasks = await db_objects.prefetch(query.where(
+                count = await db_objects.count(query.where(
                     ( (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])) ) & (Task.operator == data['operator'])
                 ).switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
             else:
-                tasks = await db_objects.prefetch(query
-                                         .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
-                                         .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+                count = await db_objects.count(query
+                                                 .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                                 .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
         else:
+            query = await db_model.task_query()
             if 'operator' in data:
-                tasks = await db_objects.prefetch(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(
-                    Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),Command.select())
+                count = await db_objects.count(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),
+                                               Command.select())
             else:
-                tasks = await db_objects.prefetch(query.switch(Command)
-                                       .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
-                                       Command.select())
-    else:
-        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
-            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
-        data['size'] = int(data['size'])
-        data['page'] = int(data['page'])
-        if data['page'] * data['size'] > count:
-            data['page'] = ceil(count / data['size'])
-            if data['page'] == 0:
-                data['page'] = 1
-        if data['type'] == "params":
-            if 'operator' in data:
-                tasks = await db_objects.prefetch(query.where(
-                    ((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search']))) & (Task.operator == data['operator'])
-                ).switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),Command.select())
+                count = await db_objects.count(query.switch(Command)
+                                           .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
+                                           Command.select())
+        if 'page' not in data:
+            data['page'] = 1
+            data['size'] = count
+            if data['type'] == "params":
+                if 'operator' in data:
+                    tasks = await db_objects.prefetch(query.where(
+                        ( (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])) ) & (Task.operator == data['operator'])
+                    ).switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
+                else:
+                    tasks = await db_objects.prefetch(query
+                                             .where((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                             .switch(Callback).where(Callback.operation == operation).order_by(Task.id), Command.select())
             else:
-                tasks = await db_objects.prefetch(query.where(
-                (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
-                                              .switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),
-                                              Command.select())
+                if 'operator' in data:
+                    tasks = await db_objects.prefetch(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(
+                        Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),Command.select())
+                else:
+                    tasks = await db_objects.prefetch(query.switch(Command)
+                                           .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
+                                           Command.select())
         else:
-            if 'operator' in data:
-                tasks = await db_objects.prefetch(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(
-                    Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),
+            if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+                return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+            data['size'] = int(data['size'])
+            data['page'] = int(data['page'])
+            if data['page'] * data['size'] > count:
+                data['page'] = ceil(count / data['size'])
+                if data['page'] == 0:
+                    data['page'] = 1
+            if data['type'] == "params":
+                if 'operator' in data:
+                    tasks = await db_objects.prefetch(query.where(
+                        ((Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search']))) & (Task.operator == data['operator'])
+                    ).switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),Command.select())
+                else:
+                    tasks = await db_objects.prefetch(query.where(
+                    (Task.params.regexp(data['search'])) | (Task.original_params.regexp(data['search'])))
+                                                  .switch(Callback).where(Callback.operation == operation).order_by(Task.id).paginate(data['page'], data['size']),
                                                   Command.select())
             else:
-                tasks = await db_objects.prefetch(query.switch(Command)
-                                              .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
-                                              Command.select())
-    output = []
-    for t in tasks:
-        query = await db_model.response_query()
-        responses = await db_objects.execute(query.where(Response.task == t))
-        output.append({**t.to_json(), "responses": [r.to_json() for r in responses]})
-    return json({'status': 'success', 'output': output, "total_count": count, 'page': data['page'], 'size': data['size']})
+                if 'operator' in data:
+                    tasks = await db_objects.prefetch(query.switch(Command).where(Command.cmd.regexp(data['search'])).switch(Callback).where(
+                        Callback.operation == operation).switch(Task).where(Task.operator == data['operator']).order_by(Task.id),
+                                                      Command.select())
+                else:
+                    tasks = await db_objects.prefetch(query.switch(Command)
+                                                  .where(Command.cmd.regexp(data['search'])).switch(Callback).where(Callback.operation == operation).order_by(Task.id),
+                                                  Command.select())
+        output = []
+        for t in tasks:
+            query = await db_model.response_query()
+            responses = await db_objects.execute(query.where(Response.task == t))
+            output.append({**t.to_json(), "responses": [r.to_json() for r in responses], 'host': t.callback.host})
+        return json({'status': 'success', 'output': output, "total_count": count, 'page': data['page'], 'size': data['size']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Bad regex'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['GET'])

@@ -1,21 +1,28 @@
 function httpGetAsync(theUrl, callback, method, data){
-    let xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() {
-        if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
+    let xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
             if (callback) { //post might not have a callback
-                callback(xmlHttp.responseText);
+                callback(xhr.responseText);
             }
         }
-        else if(xmlHttp.readyState === 4){
-            alertTop("danger", "Server Error: " + xmlHttp.statusMessage)
+        else if(xhr.readyState === 4 && (xhr.status === 302 || xhr.status === 405)){
+            // either got redirected or try to post/put to a bad path
+            console.log("httpGetAsync was redirected from url " + theUrl + " with method " + method );
+        }
+        else if(xhr.readyState === 4){
+            console.log("httpGetAsync Error to " + theUrl + " with data: " + data + " and  method: " + method);
+            if(callback){
+                callback(JSON.stringify({'status': 'error', 'error': 'Apfell encountered an error: ' + xhr.status + ": " + xhr.statusText}));
+            }
         }
     };
     //xmlHttp.withCredentials = true;
-    xmlHttp.open(method, theUrl, true); // true for asynchronous
-    xmlHttp.setRequestHeader("content-type", "application/json");
-    xmlHttp.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("access_token"));
-    xmlHttp.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
-    xmlHttp.send(JSON.stringify(data));
+    xhr.open(method, theUrl, true); // true for asynchronous
+    xhr.setRequestHeader("content-type", "application/json");
+    xhr.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("access_token"));
+    //xmlHttp.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
+    xhr.send(JSON.stringify(data));
 }
 function uploadFile(url, callback, file){
     let xhr = new XMLHttpRequest();
@@ -23,16 +30,22 @@ function uploadFile(url, callback, file){
     xhr.open("POST", url, true);
     //xhr.withCredentials = true;
     xhr.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("access_token"));
-    xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
+    //xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {
-            // Every thing ok, file uploaded
-            if (callback){ //post might not have a callback
+            if (callback) { //post might not have a callback
                 callback(xhr.responseText);
             }
         }
+        else if(xhr.readyState === 4 && (xhr.status === 302 || xhr.status === 405)){
+            // either got redirected or try to post/put to a bad path
+            console.log("httpGetAsync was redirected from url " + theUrl + " with method " + method );
+        }
         else if(xhr.readyState === 4){
-            alertTop("danger", "Server Error: " + xhr.statusMessage)
+            console.log("httpGetAsync Error to " + theUrl + " with data: " + data + " and  method: " + method);
+            if(callback){
+                callback(JSON.stringify({'status': 'error', 'error': 'Apfell encountered an error: ' + xhr.status + ": " + xhr.statusText}));
+            }
         }
     };
     fd.append("upload_file", file);
@@ -44,16 +57,22 @@ function uploadFiles(url, callback, file){
     xhr.open("POST", url, true);
     //xhr.withCredentials = true;
     xhr.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("access_token"));
-    xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
+    //xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {
-            // Every thing ok, file uploaded
-            if (callback){ //post might not have a callback
+            if (callback) { //post might not have a callback
                 callback(xhr.responseText);
             }
         }
+        else if(xhr.readyState === 4 && (xhr.status === 302 || xhr.status === 405)){
+            // either got redirected or try to post/put to a bad path
+            console.log("httpGetAsync was redirected from url " + theUrl + " with method " + method );
+        }
         else if(xhr.readyState === 4){
-            alertTop("danger", "Server Error: " + xhr.statusMessage)
+            console.log("httpGetAsync Error to " + theUrl + " with data: " + data + " and  method: " + method);
+            if(callback){
+                callback(JSON.stringify({'status': 'error', 'error': 'Apfell encountered an error: ' + xhr.status + ": " + xhr.statusText}));
+            }
         }
     };
     fd.append("file_length", file.length);
@@ -69,21 +88,27 @@ function uploadFileAndJSON(url, callback, file, data, method){
     xhr.open(method, url, true);
     //xhr.withCredentials = true;
     xhr.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("access_token"));
-    xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
+    //xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {
-            // Every thing ok, file uploaded
-            if (callback){ //post might not have a callback
+            if (callback) { //post might not have a callback
                 callback(xhr.responseText);
             }
         }
+        else if(xhr.readyState === 4 && (xhr.status === 302 || xhr.status === 405)){
+            // either got redirected or try to post/put to a bad path
+            console.log("httpGetAsync was redirected from url " + theUrl + " with method " + method );
+        }
         else if(xhr.readyState === 4){
-            alertTop("danger", "Server Error: " + xhr.statusMessage)
+            console.log("httpGetAsync Error to " + theUrl + " with data: " + data + " and  method: " + method);
+            if(callback){
+                callback(JSON.stringify({'status': 'error', 'error': 'Apfell encountered an error: ' + xhr.status + ": " + xhr.statusText}));
+            }
         }
     };
     fd.append("file_length", file.length);
     fd.append("upload_file", file[0]);
-    for(var i = 1; i < file.length; i++){
+    for(let i = 1; i < file.length; i++){
         fd.append("upload_file_" + i, file[i]);
     }
     fd.append("json", JSON.stringify(data));
@@ -96,23 +121,29 @@ function uploadCommandFilesAndJSON(url, callback, file_dict, data){
     xhr.open("POST", url, true);
     //xhr.withCredentials = true;
     xhr.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("access_token"));
-    xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
+    //xhr.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {
-            // Every thing ok, file uploaded
-            if (callback){ //post might not have a callback
+            if (callback) { //post might not have a callback
                 callback(xhr.responseText);
             }
         }
+        else if(xhr.readyState === 4 && (xhr.status === 302 || xhr.status === 405)){
+            // either got redirected or try to post/put to a bad path
+            console.log("httpGetAsync was redirected from url " + theUrl + " with method " + method );
+        }
         else if(xhr.readyState === 4){
-            alertTop("danger", "Server Error: " + xhr.statusMessage)
+            console.log("httpGetAsync Error to " + theUrl + " with data: " + data + " and  method: " + method);
+            if(callback){
+                callback(JSON.stringify({'status': 'error', 'error': 'Apfell encountered an error: ' + xhr.status + ": " + xhr.statusText}));
+            }
         }
     };
     // add in our normal JSON data
     fd.append("json", JSON.stringify(data));
     // now add in all of our files by their param names
     for(let key in file_dict){
-        fd.append("file" + key, file_dict[key])
+        fd.append("file" + key, file_dict[key]);
     }
     xhr.send(fd);
 }
@@ -131,7 +162,7 @@ function httpGetSync(theUrl){
     xmlHttp.open( "GET", theUrl, false); //false means synchronous
     xmlHttp.setRequestHeader("content-type", "application/json");
     xmlHttp.setRequestHeader("Authorization", "Bearer " + localStorage.getItem("access_token"));
-    xmlHttp.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
+    //xmlHttp.setRequestHeader("refresh_token", localStorage.getItem("refresh_token"));
     xmlHttp.send( null );
     return xmlHttp.responseText; // should just use this to get JSON data from RESTful APIs
 }
@@ -141,6 +172,12 @@ function pythonToJSJson(string){
     updated = updated.replace(/False/g, "false");
     return updated;
 }
+function wsonclose(){
+    alertTop("danger", "Websocket closed, please refresh to re-establish connections");
+}
+function wsonerror(){
+
+}
 function alertTop(type, string, delay=4){
     delay = delay * 1000;
     if( type === "danger" && delay === 4000){
@@ -148,14 +185,18 @@ function alertTop(type, string, delay=4){
     }
     toastr.options.timeOut = delay.toString();
     toastr.options.extendedTimeOut = delay.toString();
+    let msg;
     if(type === "success"){
-        toastr.success(string).css({"width": "100%", "min-width": "300px"});
+        msg = toastr.success(string);
     }else if(type === "danger"){
-        toastr.error(string).css({"width": "100%", "min-width": "300px"});
+        msg = toastr.error(string);
     }else if(type === "info"){
-        toastr.info(string).css({"width": "100%", "min-width": "300px"});
+        msg = toastr.info(string);
     }else{
-        toastr.warning(string).css({"width": "100%", "min-width": "300px"});
+        msg = toastr.warning(string);
+    }
+    if(msg !== undefined){
+        msg.css({"width": "100%", "min-width": "300px"});
     }
 }
 toastr.options = {
@@ -164,7 +205,7 @@ toastr.options = {
   "newestOnTop": true,
   "progressBar": true,
   "positionClass": "toast-top-right",
-  "preventDuplicates": false,
+  "preventDuplicates": true,
   "onclick": null,
   "showEasing": "swing",
   "hideEasing": "linear",
@@ -239,14 +280,16 @@ localStorage.setItem("refresh_token", "{{refresh_token}}");
 window.location = "/";
 {% endif %}
 
+let successful_refresh = true;
 function refresh_access_token(){
     let refresh_token = localStorage.getItem("refresh_token");
-    if(refresh_token !== null){
+    if(refresh_token !== null && successful_refresh){
          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/refresh" ,(response)=>{
              try{
                  let data = JSON.parse(response);
                  localStorage.setItem("access_token", data['access_token']);
              }catch(error){
+                 successful_refresh = false;
                  console.log("failed to update access token...");
                  //alertTop("warning", "Failed to refresh access token");
              }

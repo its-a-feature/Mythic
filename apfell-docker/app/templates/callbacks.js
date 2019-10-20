@@ -84,72 +84,22 @@ var callback_table = new Vue({
         },
         exit_callback: function(callback){
             //task the callback to exit on the host
-            let selected_list = [];
-            for(let i in this.callbacks){
-                if(this.callbacks[i]['selected']){
-                    selected_list.push(this.callbacks[i]['id']);
-                }
-            }
-            if(!selected_list.includes(callback.id)){
-                selected_list.push(callback.id);
-            }
-            if(selected_list.length > 1){
-                //pop an alert modal to see if that's actually what they want to do
-                 //for the given callback, find its payload type, that payload type's exit command, and issue that
-                group_modify.callbacks = selected_list;
-                $('#group_modify').modal('show');
-                $('#group_modify_submit').unbind('click').click(function() {
-                    for(let i in selected_list){
-                        for(let j = 0; j < task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']].length; j++){
-                           if(task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']][j]['is_exit']){
-                                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + selected_list[i], null, "POST", {"command":task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']][j].cmd,"params":"", 'transform_status':{}});
-                           }
-                        }
-                    }
-                    group_modify.callbacks = [];
-                })
-
-            }else{
-                 //for the given callback, find its payload type, that payload type's exit command, and issue that
-                group_modify.callbacks = [];
-                for(let i = 0; i < task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']].length; i++){
-                   if(task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i]['is_exit']){
-                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'], null, "POST", {"command":task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i].cmd,"params":"", 'transform_status':{}});
-                   }
+            for(let i = 0; i < task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']].length; i++) {
+                if (task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i]['is_exit']) {
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'], null, "POST", {
+                        "command": task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i].cmd,
+                        "params": "",
+                        'transform_status': {}
+                    });
                 }
             }
         },
         remove_callback: function(callback){
-            let selected_list = [];
-            for(let i in this.callbacks){
-                if(this.callbacks[i]['selected']){
-                    selected_list.push(this.callbacks[i]['id']);
-                }
+            if(meta[callback.id]['selected']){
+                move('left', true);
             }
-            if(!selected_list.includes(callback.id)){
-                selected_list.push(callback.id);
-            }
-            if(selected_list.length > 1){
-                //pop an alert modal to see if that's actually what they want to do
-                group_modify.callbacks = selected_list;
-                $('#group_modify').modal('show');
-                $('#group_modify_submit').unbind('click').click(function() {
-                    for(let i in selected_list){
-                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + selected_list[i],null,"PUT", {"active":"false"});
-                        stop_getting_callback_updates(selected_list[i], true);
-                    }
-                    group_modify.callbacks = [];
-                })
-
-            }else{
-                //it's just this one, so go ahead and remove it
-                group_modify.callbacks = [];
-                if(meta[callback.id]['selected']){
-                    move('left');
-                }
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
-                stop_getting_callback_updates(callback.id, true);
-            }
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],null,"PUT", {"active":"false"});
+            stop_getting_callback_updates(callback.id, true);
         },
         show_screencaptures: function(callback){
             Vue.set(meta[callback.id], 'screencaptures', true);
@@ -263,6 +213,43 @@ var callback_table = new Vue({
             }
             this.sort = column;
         },
+        hide_selected: function(){
+            let selected_list = [];
+            for(let i in this.callbacks){
+                if(this.callbacks[i]['selected']){
+                    selected_list.push(this.callbacks[i]['id']);
+                }
+            }
+            group_modify.callbacks = selected_list;
+            $('#group_modify').modal('show');
+            $('#group_modify_submit').unbind('click').click(function() {
+                for(let i in selected_list){
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + selected_list[i],null,"PUT", {"active":"false"});
+                    stop_getting_callback_updates(selected_list[i], true);
+                }
+                group_modify.callbacks = [];
+            });
+        },
+        exit_selected: function(){
+            let selected_list = [];
+            for(let i in this.callbacks){
+                if(this.callbacks[i]['selected']){
+                    selected_list.push(this.callbacks[i]['id']);
+                }
+            }
+            group_modify.callbacks = selected_list;
+            $('#group_modify').modal('show');
+            $('#group_modify_submit').unbind('click').click(function() {
+                for(let i in selected_list){
+                    for(let j = 0; j < task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']].length; j++){
+                       if(task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']][j]['is_exit']){
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + selected_list[i], null, "POST", {"command":task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']][j].cmd,"params":"", 'transform_status':{}});
+                       }
+                    }
+                }
+                group_modify.callbacks = [];
+            });
+        }
     },
     computed:{
         sorted_callbacks:function() {
@@ -272,7 +259,16 @@ var callback_table = new Vue({
               else if(a[this.sort] > b[this.sort]){ return 1 * modifier; }
               else {return 0;}
             });
-        }
+        },
+        multiple_selected:function(){
+            let multiple_selected = 0;
+            for(let i  in  this.callbacks){
+                if(this.callbacks[i]['selected']){
+                    multiple_selected++;
+                }
+            }
+            return multiple_selected > 1;
+        },
     },
     delimiters: ['[[',']]']
 });
@@ -547,23 +543,8 @@ var task_data = new Vue({
                                         param_data[param_name] = "FILEUPLOAD";
                                     }
                                 }
-                                let base_type = callback_table.callbacks[data['cid']].payload_type;
-                                for(let i in callback_table.callbacks ){
-                                    // loop through and submit the task for all of the callbacks that are selected that match the payload type of the current one we entered the command on
-                                    // also don't submit a test command to all of the agents
-                                    //console.log(i);
-                                    //console.log(callback_table.callbacks[i]);
-                                    if(callback_table.callbacks[i]['selected'] && (!task_data.test_command) && callback_table.callbacks[i]['payload_type'] === base_type){
-                                        uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + i,post_task_callback_func,file_data,
-                                                                    {"command":command,"params": JSON.stringify(param_data), "test_command": task_data.test_command, "transform_status": transform_status});
-                                    }
-                                }
-                                if(task_data.test_command){
-                                    //if it is a test command we can go ahead and send it down (since it would be skipped by the above)
-                                    uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func,file_data,
+                                uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func,file_data,
                                     {"command":command,"params": JSON.stringify(param_data), "test_command": task_data.test_command, "transform_status": transform_status});
-                                }
-
                                 //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
                                 task_data.input_field = "";
                             });
@@ -571,24 +552,8 @@ var task_data = new Vue({
                         }
                         else{
                             //somebody knows what they're doing or a command just doesn't have parameters, send it off
-                            let base_type = callback_table.callbacks[data['cid']].payload_type;
-                            for(let i in callback_table.callbacks ){
-                            //console.log(i);
-                            //console.log(callback_table.callbacks[i]);
-                                // loop through and submit the task for all of the callbacks that are selected that match the payload type of the current one we entered the command on
-                                // also don't submit a test command to all of the agents
-                                if(callback_table.callbacks[i]['selected'] && (!task_data.test_command) && callback_table.callbacks[i]['payload_type'] === base_type){
-                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + i,post_task_callback_func, "POST",
-                            {"command":command,"params":params, "test_command": task_data.test_command, "transform_status": transform_status});
-                                }
-                            }
-                            //console.log(base_type);
-                            //console.log(task_data.test_command);
-                            if(task_data.test_command){
-                                //if it is a test command we can go ahead and send it down (since it would be skipped by the above)
-                                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST",
-                            {"command":command,"params":params, "test_command": task_data.test_command, "transform_status": transform_status});
-                            }
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST",
+                        {"command":command,"params":params, "test_command": task_data.test_command, "transform_status": transform_status});
 
                             //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
                             task_data.input_field = "";
@@ -602,10 +567,12 @@ var task_data = new Vue({
                     alertTop("warning", "Unknown command: " + params, 2);
                 }
                 else{
-                    alertTop("warning", "Unknown command: " + command, 2);
+                    //don't bother alerting for them just accidentally hitting enter
+                    if(command !== ""){
+                        alertTop("warning", "Unknown command: " + command, 2);
+                    }
                 }
             }
-
         },
         select_tab: function(metadata){
             task_data.input_field_placeholder['data'] = metadata.display;
@@ -649,7 +616,7 @@ var task_data = new Vue({
         },
         console_tab_close: function(metadata){
             if(meta[metadata.id]['selected']){
-                move('left');
+                move('left', true);
             }
             setTimeout(()=>{
                 meta[metadata.id]['tasks'] = false;
@@ -661,7 +628,7 @@ var task_data = new Vue({
         },
         screencaptures_tab_close: function(metadata){
             if(meta[metadata.id]['selected']){
-                move('left');
+                move('left',true);
             }
             setTimeout(()=>{
                 meta[metadata.id]['screencaptures'] = false;
@@ -671,7 +638,7 @@ var task_data = new Vue({
         },
         keylog_tab_close: function(metadata){
             if(meta[metadata.id]['selected']){
-                move('left');
+                move('left', true);
             }
             setTimeout(()=> {
                 meta[metadata.id]['keylogs'] = false;
@@ -681,7 +648,7 @@ var task_data = new Vue({
         },
         process_list_tab_close: function(metadata){
             if(meta[metadata.id]['selected']){
-                move('left');
+                move('left', true);
             }
             setTimeout(()=> {
                 meta[metadata.id]['process_list'] = false;
@@ -1045,11 +1012,11 @@ function startwebsocket_processlist(cid){
         }
     };
     ws.onclose = function(){
-        //alertTop("danger", "Process List socket closed. Please reload the page");
-    };
-    ws.onerror = function(){
-        alertTop("danger", "Process List Socket errored. Please reload the page");
-    }
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 function add_comment_callback(response){
     try{
@@ -1182,11 +1149,11 @@ function startwebsocket_callbacks(){
         }
     };
     ws.onclose = function(){
-        //alertTop("danger", "New Callbacks Socked closed. Please reload the page");
-    };
-    ws.onerror = function(){
-        alertTop("danger", "New Callbacks Socket errored. Please reload the page");
-    }
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 function  remove_callback_from_view(id){
     // clear out the data from memory
@@ -1388,7 +1355,6 @@ function get_all_responses(taskid){
              alertTop("danger", "Session expired, please refresh");
          }
      }, "GET", null);
-
 }
 function startwebsocket_updatedcallbacks(){
 let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updatedcallbacks/current_operation');
@@ -1399,14 +1365,14 @@ let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/up
         }
     };
     ws.onclose = function(){
-        //alertTop("danger", "Socked closed. Please reload the page");
-    };
-    ws.onerror = function(){
-        alertTop("danger", "Socket errored. Please reload the page");
-    };
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 function startwebsocket_newkeylogs(){
-var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/keylogs/current_operation');
+let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/keylogs/current_operation');
     ws.onmessage = function(event){
         if (event.data !== ""){
             let rsp = JSON.parse(event.data);
@@ -1433,11 +1399,11 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/ke
         }
     };
     ws.onclose = function(){
-        //alertTop("danger", "Socked closed. Please reload the page");
-    };
-    ws.onerror = function(){
-        alertTop("danger", "Socket errored. Please reload the page");
-    };
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 startwebsocket_newkeylogs();
 function startwebsocket_commands(){
@@ -1577,11 +1543,11 @@ let got_all_commands = false;
         }
     };
     ws.onclose = function(){
-        //alertTop("danger", "Socked closed. Please reload the page");
-    };
-    ws.onerror = function(){
-        alertTop("danger", "Socket errored. Please reload the page");
-    };
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 
 
@@ -1609,14 +1575,12 @@ function startwebsocket_callback(cid){
             }
         }
     };
-    ws.onclose = function(event){
-        //console.log("closed socket " + cid);
-        //alertTop("danger", "Socket for callback " + cid +  " closed", 2);
-    };
-    ws.onerror = function(event){
-        //console.log("errored socket " + cid);
-        //alertTop("danger", "Socket for callback " + cid +  " closed", 2);
-    };
+    ws.onclose = function(){
+		//wsonclose();
+	};
+	ws.onerror = function(){
+        //wsonerror();
+	};
     return ws;
 }
 
@@ -1795,19 +1759,22 @@ document.onkeydown = function(e){
       move('left');
   }
 };
-function move(to) {
+function move(to, moveFromClose=false) {
     let current = $('#bottom-tabs .nav-item .active').parent()[0];
     // get the current index
     let index = -1;
     let all = $('#bottom-tabs .nav-item');
     let total = all.length;
     //console.log(current);
+    if(current === undefined && total > 0){
+        current = all[0];
+    }
     for(let i = 0; i < total; i++){
         if(current === all[i]){
             index = i;
         }
     }
-    if(index === -1){return;}
+    if(index === -1 && total === 0){return;}
     let add;
     switch (to) {
       case 'left':
@@ -1819,7 +1786,11 @@ function move(to) {
     }
     //task_data.select_tab();
     let new_index = (index+add)%total;
-    if(new_index === -1){new_index = total-1;}
+    if(moveFromClose && new_index  ===  -1){
+        //don't move  to the end, move back one instead
+        new_index = 1;
+    }
+    else if(new_index ===-1){new_index = total-1;}
     //console.log(new_index);
     let new_tab = all[new_index];
     //console.log(new_tab);
@@ -1828,6 +1799,7 @@ function move(to) {
     task_data.select_tab(meta[new_id]);
     setTimeout(() => { // setTimeout to put this into event queue
         // executed after render
+        new_tab.children[0].click();
         new_tab.children[0].click();
     }, 0);
 

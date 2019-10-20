@@ -783,10 +783,9 @@ async def ws_screenshots(request, ws, user):
                             if f.task:
                                 query = await db_model.task_query()
                                 task = await db_objects.get(query, id=f.task)
-                                await ws.send(js.dumps({**f.to_json(), 'callback_id': task.callback.id, 'operator': task.operator.username}))
+                                await ws.send(js.dumps({**task.callback.to_json(), **f.to_json(), 'callback_id': task.callback.id}))
                             else:
-                                await ws.send(js.dumps({**f.to_json(), 'callback_id': 0,
-                                                        'operator': "null"}))
+                                await ws.send(js.dumps({**f.to_json(), 'callback_id': 0}))
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
@@ -800,10 +799,9 @@ async def ws_screenshots(request, ws, user):
                                     query = await db_model.task_query()
                                     task = await db_objects.get(query, id=f.task)
                                     callback_id = task.callback.id
-                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': task.operator.username}))
+                                    await ws.send(js.dumps({**task.callback.to_json(), **f.to_json(), 'callback_id': callback_id}))
                                 else:
-                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': 0,
-                                                            'operator': "null"}))
+                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': 0}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there
@@ -840,10 +838,9 @@ async def ws_updated_screenshots(request, ws, user):
                                     query = await db_model.task_query()
                                     task = await db_objects.get(query, id=f.task)
                                     callback_id = task.callback.id
-                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': callback_id, 'operator': task.operator.username}))
+                                    await ws.send(js.dumps({**task.callback.to_json(), **f.to_json(), 'callback_id': callback_id}))
                                 else:
-                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': 0,
-                                                            'operator': "null"}))
+                                    await ws.send(js.dumps({**f.to_json(), 'callback_id': 0}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there

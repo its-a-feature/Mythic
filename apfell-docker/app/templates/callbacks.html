@@ -8,8 +8,12 @@
         <span><h4 style="display:inline-block">Current <span class="operator">Callbacks</span></h4></span>
         <span style="display:inline-block; float:right">
             <span class="input-group" >
-            <input type="text" size="50rem" placeholder="filter with 'property:value'" id="filter" v-model="filter">
-            <div class="input-group-append input-group-btn" ><button disabled type="button" class="btn btn{{config['outline-buttons']}}secondary"><i class="fa fa-filter"></i></button></div>
+                <template v-if="multiple_selected">
+                    <div class="input-group-prepend input-group-btn"><button type="button" @click="hide_selected()" class="btn btn{{config['outline-buttons']}}warning">Hide Selected</button> </div>
+                    <div class="input-group-append input-group-btn"><button type="button" @click="exit_selected()" class="btn btn{{config['outline-buttons']}}danger">Exit Selected</button> </div>
+                </template>
+                <div class="input-group-append "><input type="text" size="50rem" placeholder="filter with 'property:value'" id="filter" v-model="filter"></div>
+                <div class="input-group-append input-group-btn" ><button disabled type="button" class="btn btn{{config['outline-buttons']}}secondary"><i class="fa fa-filter"></i></button></div>
             </span>
         </span>
     </div>

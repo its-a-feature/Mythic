@@ -1,35 +1,56 @@
 {% extends "base.html" %}
 {% block body %}
 <div id="screencapture_div">
-    <template v-if="!screenshots_exist">
-        <div class="card border border-dark shadow">
-            <div class="card-header border border-dark bg-header shadow text-white">
-                <h2><span class="operator">{{current_operation}}'s </span>Screencaptures</h2>
-            </div>
-            <div class="card-body bg-card-body border-dark border shadow">
-                No screencaptures yet
-            </div>
+    <div class="card border border-dark shadow" style="resize: vertical; overflow:scroll;margin:30px;max-height:calc(90vh)">
+        <div  class="card-header bg-header border border-dark shadow text-white">
+            <h2><span class="operator">Screencaptures</span></h2>
         </div>
-    </template>
-
-    <div v-for="callback in callbacks" style="resize: vertical; overflow:scroll;margin:30px" class="card border border-dark shadow" :id="'callback'+callback.id" :key="callback.id" v-show="Object.keys(callback.screencaptures).length > 0">
-        <div class="card-header bg-header border border-dark shadow text-white" ><h2><span class="operator">[[callback.display]]</span>'s Screencaptures</h2></div>
-            <div :id="'screencaptures' + callback.id">
-                <div v-for="(image,i) in callback.screencaptures" :key="image.id" class="border border-dark shadow">
-                    <div v-if="image.complete">
-                        <button :id="'image' + image.id" :class="'{{config['new-callback-color']}}' == 'light' ? 'bg-card-body-l1 text-dark' : 'bg-card-body-l1 text-white' " style="cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s;" @click="toggle_image(image)"><span class="operator">[[image.operator]]</span>'s screencapture: [[image.path.split("/").slice(-1).toString()]]</button>
-                        <img src='#' width="100%" height="100%" style="display:none">
-                    </div>
-                    <div v-else>
-                        <button :id="'image' + image.id" :class="'{{config['new-callback-color']}}' == 'light' ? 'bg-card-body-l1 text-dark' : 'bg-card-body-l1 text-white' " style="cursor: pointer;padding: 18px;width: 100%;text-align: left;border: none; outline: none;transition: 0.4s" @click="toggle_image(image)"><span class="operator">[[image.operator]]</span>'s screencapture: [[image.path.split("/").slice(-1).toString()]]. <span class="display">Parts [[image.chunks_received]] of [[image.total_chunks]] received so far.</span></button>
-                        <img src='#' width="100%" height="100%" style="display:none">
-                    </div>
-                </div>
-            </div>
+        <table class="table table-striped table-hover {{config['table-color']}} border border-dark shadow">
+            <tr>
+                <th onclick="sort_table(this)">Task</th>
+                <th onclick="sort_table(this)">Host</th>
+                <th onclick="sort_table(this)">Operator</th>
+                <th>Timestamp</th>
+                <th onclick="sort_table(this)">Completed</th>
+                <th onclick="sort_table(this)">Callback</th>
+                <th>View</th>
+                <th>Download</th>
+            </tr>
+            <tr v-for="s in screencaptures">
+                <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + s.task" target="_blank"><b>[[s.task]]</b></a> </td>
+                <td>[[s.host]]</td>
+                <td>[[s.operator]]</td>
+                <td>[[toLocalTime(s.timestamp)]]</td>
+                <td>
+                    <template v-if="s.complete">
+                        True
+                    </template>
+                    <template v-else>
+                        <font color="red">No, [[s.chunks_received]] / [[s.total_chunks]] received</font>
+                    </template>
+                </td>
+                <td>
+                    [[s.user]]@[[s.host]] (<a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + s.callback_id" target="_blank"><b>[[s.callback_id]]</b></a>)
+                </td>
+                <td style="text-align:center"><a href="#" @click="toggle_image(s)" style="color:royalblue"><i class="fas fa-eye fa-lg"></i></a></td>
+                <td style="text-align:center"><a :href="[[s.remote_path]]" style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
+            </tr>
+        </table>
     </div>
 </div>
-
-
+<!-- THIS IS OUR MODAL FOR DISPLAYING SCREENCAPTURES -->
+<div class="modal fade" id="image_modal" role="dialog">
+    <div class="modal-dialog" role="document" style="max-width:100%">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Screencapture</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <img id="image_display" style="max-width:100%;max-height:100%">
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR DISPLAYING SCREENCAPTURES -->
 
 {% endblock %}
 {% block scripts %}

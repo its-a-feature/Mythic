@@ -167,12 +167,10 @@ function startwebsocket_browserscripts(){
 		}
 	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		//alertTop("danger", "Session expired, please refresh");
+		wsonclose();
 	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Session expired, please refresh");
+        wsonerror();
 	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
@@ -192,15 +190,13 @@ function startwebsocket_commands(){
 			commands.commands[data['payload_type']].push(data);
 			commands.commands[data['payload_type']].sort((a,b) =>(b.cmd > a.cmd) ? -1 : ((a.cmd > b.cmd) ? 1 : 0));
 		}
-	}
+	};
 	ws.onclose = function(){
-		//console.log("payloads socket closed");
-		alertTop("danger", "Session expired, please refresh");
-	}
+		wsonclose();
+	};
 	ws.onerror = function(){
-		//console.log("payloads socket errored");
-		alertTop("danger", "Session expired, please refresh");
-	}
+        wsonerror();
+	};
 	ws.onopen = function(){
 		//console.log("payloads socket opened");
 	}

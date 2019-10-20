@@ -153,10 +153,10 @@ let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/ke
         }
     };
     ws.onclose = function(){
-        alertTop("danger", "Socked closed. Please reload the page");
-    };
-    ws.onerror = function(){
-        alertTop("danger", "Socket errored. Please reload the page");
-    };
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
 }
 startwebsocket_newkeylogs();

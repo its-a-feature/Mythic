@@ -101,15 +101,13 @@ function startwebsocket_credentials(){
         }
     };
     ws.onclose = function(){
-        //console.log("socket closed");
-        alertTop("danger", "Session expired, please refresh");
-    };
-    ws.onerror = function(){
-        //console.log("websocket error");
-        alertTop("danger", "Session expired, please refresh");
-    };
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
     ws.onopen = function(event){
         //console.debug("opened");
-    }
+    };
 }
 startwebsocket_credentials();

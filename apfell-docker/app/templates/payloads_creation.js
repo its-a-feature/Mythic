@@ -369,18 +369,18 @@ function submit_payload_callback(response){
     }
 }
 function startwebsocket_rabbitmq_build_finished(){
-var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
+    let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloads/current_operation');
     ws.onmessage = function(event){
         // sometimes we get teh messages too quickly and so we get the same data twice when querying the db
-        if (event.data != ""){
+        if (event.data !== ""){
             //console.log(event.data);
             data = JSON.parse(event.data);
-            if(global_uuids[data['uuid']] == false){
-                if(data['build_phase'] == "success"){
+            if(global_uuids[data['uuid']] === false){
+                if(data['build_phase'] === "success"){
                     alertTop("success", "Success! Your agent, " + data['location'].split("/").pop() + ", was successfully built.<br><b>Execution help:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid'], 0);
                     global_uuids[data['uuid']] = true;
                 }
-                else if(data['build_phase'] == "error"){
+                else if(data['build_phase'] === "error"){
                     alertTop("danger", "Uh oh, something went wrong.<br><b>Error message:</b><pre> " + data['build_message'] + "</pre>");
                     global_uuids[data['uuid']] = true;
                 }
@@ -389,10 +389,10 @@ var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/pa
         }
     };
     ws.onclose = function(){
-        alertTop("danger", "Socked closed. Please reload the page");
-    }
-    ws.onerror = function(){
-        alertTop("danger", "Socket errored. Please reload the page");
-    }
-};
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
+}
 startwebsocket_rabbitmq_build_finished();

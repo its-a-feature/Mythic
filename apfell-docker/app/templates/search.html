@@ -29,7 +29,7 @@
         <div id="searchTasksResults">
             <div v-for="t in tasks" style="padding:0px 0px 15px 0px" class="card border-0 bg-card-body-l1" :key="t.id">
                 <div class="card-header bg-header-dark text-white border border-dark shadow" style="position:-webkit-sticky;position:sticky;top:0px">
-                    Task <a :href="[[t.share_task]]" target="_blank"><b><span class="operator">[[t.id]]</span></b></a> on callback [[t.callback]] - [[t.operator]]'s task with status [[t.status]]:<br> [[t.command]] [[t.original_params]]
+                    Task <a :href="[[t.share_task]]" target="_blank"><b><span class="operator">[[t.id]]</span></b></a> on callback [[t.callback]] ([[t.host]]) - [[t.operator]]'s task with status [[t.status]]:<br> [[t.command]] [[t.original_params]]
                 </div>
                 <div class="card-body response-background border border-dark shadow">
                     <div v-if="t.params != t.original_params">Modified params: [[t.params]]</div>
@@ -40,7 +40,7 @@
         <div id="searchResults">
             <div v-for="r in responses" style="padding: 0px 0px 15px 0px;" class="card border-0 bg-card-body-l1" :key="r.id" >
                 <div class="card-header bg-header-dark border border-dark text-white shadow" style="position:-webkit-sticky;position:sticky;top:0px">
-                    Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
+                    Response [[r.id]] on callback [[r.task.callback]] ([[r.host]]) - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
                 </div>
                 <div class="card-body response-background border border-dark shadow">
                     <div v-if="r.task.params != r.task.original_params">Modified params: [[r.task.params]]</div>
