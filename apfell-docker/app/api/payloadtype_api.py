@@ -6,6 +6,7 @@ from sanic_jwt.decorators import scoped, inject_user
 from urllib.parse import unquote_plus
 import os
 from shutil import rmtree
+import pathlib
 import json as js
 import glob
 import base64, datetime
@@ -97,9 +98,12 @@ async def create_payloadtype(request, user):
                                                   supported_os=",".join(data['supported_os']),
                                                   execute_help=data['execute_help'],
                                                   external=data['external'], container_running=False)
-        os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
-        os.mkdir("./app/payloads/{}/payload".format(payloadtype.ptype))  # make the directory structure
-        os.mkdir("./app/payloads/{}/commands".format(payloadtype.ptype))  # make the directory structure
+        pathlib.Path("./app/payloads/{}".format(payloadtype.ptype)).mkdir(parents=True, exist_ok=True)
+        #os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
+        pathlib.Path("./app/payloads/{}/payload".format(payloadtype.ptype)).mkdir(parents=True, exist_ok=True)
+        #os.mkdir("./app/payloads/{}/payload".format(payloadtype.ptype))  # make the directory structure
+        pathlib.Path("./app/payloads/{}/commands".format(payloadtype.ptype)).mkdir(parents=True, exist_ok=True)
+        #os.mkdir("./app/payloads/{}/commands".format(payloadtype.ptype))  # make the directory structure
         if request.files:
             code = request.files['upload_file'][0].body
             code_file = open(

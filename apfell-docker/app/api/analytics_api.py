@@ -1,10 +1,11 @@
 from app import apfell, db_objects
 from app.database_models.model import Callback, Payload, ArtifactTemplate, Task, TaskArtifact, FileMeta
-from sanic.response import json
+from sanic.response import json, file
 from anytree import Node, find_by_attr, RenderTree, DoubleStyle
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+import os
 
 
 # ------- ANALYTIC-BASED API FUNCTION -----------------
@@ -327,3 +328,51 @@ async def analytics_artifact_overview_api(request, user):
             output['files']['upload_files']['operators'][f.operator.username] += 1
             output['files']['upload_files']['total_count'] += 1
     return json({'status': 'success', 'output': output})
+
+
+# ------------------ endpoint for getting access or  debugging logs ------------------
+@apfell.route(apfell.config['API_BASE'] + "/apfell_logs/", methods=['GET', 'POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_access_log_data(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    entries = 1000
+    page = 1
+    output = []
+    total_entries = 0
+    try:
+        if request.method == "POST":
+            data = request.json
+            if 'entries' in data and int(data['entries']) > 0:
+                entries = int(data['entries'])
+            else:
+                return json({'status': 'error', 'error': 'missing required "entries" parameter or bad value'})
+            if 'page' in data:
+                page = data['page']
+        if os.path.exists("apfell_access.log"):
+            logs = open("apfell_access.log", 'r')
+            seek_lines = (entries * (page-1))  # the number of entries we need to skip
+            for line in logs:
+                total_entries += 1
+                if seek_lines > 0:  # if we still need to skip lines
+                    seek_lines -= 1
+                elif entries > 0:  # if we still have lines to capture
+                    output.insert(0, line)
+                    entries -= 1
+            logs.close()
+            return json({'status': 'success', 'output': output, 'total': total_entries, "page": page})
+        else:
+            return json({"status": 'error', 'error': "apfell_access.log doesn't exist"})
+    except Exception  as e:
+        return json({'status': 'error', 'error':  str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/apfell_logs/download", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def download_access_log_data(request, user):
+    if os.path.exists("apfell_access.log"):
+        return await file("apfell_access.log", filename="apfell_access.log")
+    else:
+        return json({'status': 'error', 'error': 'file does not exist'})

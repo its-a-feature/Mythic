@@ -1,8 +1,10 @@
-from sanic import Sanic
+from sanic import Sanic, log
 import uvloop
 from peewee_async import Manager, PooledPostgresqlDatabase
 from sanic_jwt import Initialize
 from ipaddress import ip_network
+from logging import Formatter
+import json
 
 # -------------------------------------------
 # --------------------------------------------
@@ -16,6 +18,8 @@ ssl_key_path = './app/ssl/apfell-ssl.key'
 whitelisted_ip_blocks = ['0.0.0.0/0']  # only allow connections from these IPs to the /login and /register pages
 use_ssl = False
 server_header = "nginx 1.2"
+log_size = 0  # grows indefinitely, or specify a max size in Bytes
+keep_logs = True  # set to false for speed improvement, but no logs will be kept
 # --------------------------------------------
 # --------------------------------------------
 # --------------------------------------------
@@ -23,11 +27,66 @@ db_name = 'apfell_db'
 db_user = 'apfell_user'
 # custom loop to pass to db manager
 dbloop = uvloop.new_event_loop()
-apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=100)
+apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=1000)
 apfell_db.connect_async(loop=dbloop)
 db_objects = Manager(apfell_db, loop=dbloop)
 
-apfell = Sanic(__name__, strict_slashes=False)
+apfell_logging = log.LOGGING_CONFIG_DEFAULTS
+
+
+class RootLogFormatter(Formatter):
+    def __init__(self, **kwargs):
+        Formatter.__init__(self, kwargs)
+
+    def format(self, record):
+        #print(record.__dict__)
+        jsondata = {'type': 'root_log', 'time': record.asctime,  'level': record.levelname, 'message': record.message, }
+        if record.stack_info:
+            jsondata['stack_info'] = record.stack_info
+        formattedjson = json.dumps(jsondata)
+        return formattedjson
+
+
+class AccessLogFormatter(Formatter):
+    def __init__(self, **kwargs):
+        Formatter.__init__(self, kwargs)
+
+    def format(self, record):
+        #print(record.__dict__)
+        jsondata = {'type': 'access_log', 'time': record.asctime, 'level': record.levelname, 'request': record.request, 'host': record.host, 'status': record.status, 'return_size': record.byte}
+        if record.stack_info:
+            jsondata['stack_info'] = record.stack_info
+        formattedjson = json.dumps(jsondata)
+        return formattedjson
+
+apfell_logging['handlers']['rotating_log'] = {
+    "class": "logging.handlers.RotatingFileHandler",
+    "formatter": "apfell_format",
+    "filename": "apfell_access.log",
+    "maxBytes": log_size,
+    "backupCount": 0
+}
+apfell_logging['formatters']['apfell_format'] = {
+    "()": AccessLogFormatter
+}
+
+apfell_logging['handlers']['rotating_root_log'] = {
+    "class": "logging.handlers.RotatingFileHandler",
+    "formatter": "apfell_root_format",
+    "filename": "apfell_access.log",
+    "maxBytes": log_size,
+    "backupCount": 0
+}
+apfell_logging['formatters']['apfell_root_format'] = {
+    "()": RootLogFormatter
+}
+apfell_logging['loggers']['sanic.access']['level'] = "INFO"
+apfell_logging['loggers']['sanic.root']['level'] = "INFO"
+apfell_logging['loggers']['sanic.access']['handlers'].append("rotating_log")
+apfell_logging['loggers']['sanic.error']['handlers'].append("rotating_log")
+apfell_logging['loggers']['sanic.root']['handlers'].append("rotating_root_log")
+
+apfell = Sanic(__name__, strict_slashes=False, log_config=apfell_logging)
 apfell.config['WTF_CSRF_SECRET_KEY'] = 'really secure super secret key here, and change me!'
 apfell.config['SERVER_IP_ADDRESS'] = server_ip
 apfell.config['SERVER_PORT'] = listen_port
@@ -66,8 +125,6 @@ session = {}
 @apfell.middleware('request')
 async def add_session(request):
   request['session'] = session
-
-
 
 Initialize(apfell,
            authentication_class=app.routes.authentication.MyAuthentication,

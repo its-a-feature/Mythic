@@ -339,6 +339,22 @@ async def transform_management(request, user):
     return response.html(content)
 
 
+@apfell.route("/web_log", methods=['GET'])
+@inject_user()
+@scoped('auth:user')
+async def web_log(request, user):
+    template = env.get_template('web_log.html')
+    if use_ssl:
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
+                                  ws="wss", admin=user['admin'], current_operation=user['current_operation'],
+                                  config=user['ui_config'], view_utc_time=user['view_utc_time'])
+    else:
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http",
+                                  ws="ws", admin=user['admin'], current_operation=user['current_operation'],
+                                  config=user['ui_config'], view_utc_time=user['view_utc_time'])
+    return response.html(content)
+
+
 @apfell.route("/artifacts_management", methods=['GET'])
 @inject_user()
 @scoped('auth:user')
@@ -448,4 +464,5 @@ links['artifacts_management'] = apfell.url_for('artifacts_management')
 links['reporting_artifacts'] = apfell.url_for('reporting_artifacts')
 links['comments'] = apfell.url_for('comments')
 links['manage_browser_scripts'] = apfell.url_for('manage_browser_scripts')
+links['web_log'] = apfell.url_for('web_log')
 

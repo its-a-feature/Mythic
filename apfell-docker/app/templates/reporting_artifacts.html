@@ -51,7 +51,7 @@
             <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="add_artifact()"><i class="fas fa-plus"></i> Artifact</button>&nbsp;
             <button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" @click="export_artifacts_page()" data-toggle="tooltip" title="Export current page"><i class="fas fa-download fa-lg"></i> Page</button>&nbsp;
             <button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" @click="export_artifacts_search()" data-toggle="tooltip" title="Export current search"><i class="fas fa-download fa-lg"></i> Search</button>&nbsp;
-            <button type="button" :class="current_page <= 1 ? 'disabled btn btn-light' : 'btn btn-light'" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
+            <button type="button" :disabled="current_page <= 1"  class="btn btn-light" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
             <template v-if="current_page > 1">
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to first page" @click="get_page(1)">1</button>
             </template>
@@ -62,7 +62,7 @@
             <template v-if="current_page -1 > 1">
                 <button type="button" class="btn btn-light" @click="get_page(current_page -1)">[[current_page - 1]]</button>
             </template>
-            <button type="button" class="disabled btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
+            <button type="button" disabled class=" btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
             <template v-if="current_page + 1 < Math.ceil(total_count/page_size)">
                 <button type="button" class="btn btn-light" @click="get_page(current_page + 1)">[[current_page + 1]]</button>
             </template>
@@ -76,7 +76,7 @@
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to last page" @click="get_page(Math.ceil(total_count/page_size))">[[Math.ceil(total_count/page_size)]]</button>
             </template>
 
-            <button type="button" :class="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0? 'disabled btn btn-light': 'btn btn-light'" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)"><i class="fas fa-forward"></i></button>
+            <button type="button" :disabled="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0" class="btn btn-light" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)"><i class="fas fa-forward"></i></button>
             &nbsp;<font size="4" class="text-white">Total Count: [[total_count]]</font>
         </div>
 

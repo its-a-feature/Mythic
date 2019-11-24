@@ -7,6 +7,7 @@ import base64
 import json
 import sys
 import os
+from sanic.log import logger
 
 
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
@@ -195,7 +196,7 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
 
 # just listen for c2 heartbeats and update the database as necessary
 async def start_listening():
-    print("starting to consume")
+    logger.debug("starting to consume")
     try:
         task = asyncio.ensure_future(connect_and_consume_c2())
         task2 = asyncio.ensure_future(connect_and_consume_heartbeats())

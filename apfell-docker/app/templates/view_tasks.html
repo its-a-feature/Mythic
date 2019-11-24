@@ -68,7 +68,7 @@
 
     <div class="card-footer bg-card-body">
         <div style="display:inline-block">
-            <button type="button" :class="current_page <= 1 ? 'disabled btn btn-light' : 'btn btn-light'" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
+            <button type="button" :disabled="current_page <= 1" class="btn btn-light" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
             <template v-if="current_page > 1">
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to first page" @click="get_page(1)">1</button>
             </template>
@@ -79,7 +79,7 @@
             <template v-if="current_page -1 > 1">
                 <button type="button" class="btn btn-light" @click="get_page(current_page -1)">[[current_page - 1]]</button>
             </template>
-            <button type="button" class="disabled btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
+            <button type="button" disabled class=" btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
             <template v-if="current_page + 1 < Math.ceil(total_count/page_size)">
                 <button type="button" class="btn btn-light" @click="get_page(current_page + 1)">[[current_page + 1]]</button>
             </template>
@@ -93,7 +93,7 @@
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to last page" @click="get_page(Math.ceil(total_count/page_size))">[[Math.ceil(total_count/page_size)]]</button>
             </template>
 
-            <button type="button" :class="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0? 'disabled btn btn-light': 'btn btn-light'" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)"><i class="fas fa-forward"></i></button>
+            <button type="button" class="btn btn-light" :disabled="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)"><i class="fas fa-forward"></i></button>
             &nbsp;<font size="4" class="text-white">Total Count: [[total_count]]</font>
         </div>
 

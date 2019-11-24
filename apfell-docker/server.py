@@ -1,7 +1,6 @@
-from app import apfell, dbloop, apfell_db, db_objects, use_ssl, listen_port, listen_ip, ssl_cert_path, ssl_key_path
+from app import apfell, dbloop, apfell_db, db_objects, use_ssl, listen_port, listen_ip, ssl_cert_path, ssl_key_path, keep_logs
 import asyncio
 import ssl
-import logging
 from app.api.rabbitmq_api import start_listening
 
 if __name__ == "__main__":
@@ -10,9 +9,9 @@ if __name__ == "__main__":
         if use_ssl:
             context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
             context.load_cert_chain(ssl_cert_path, keyfile=ssl_key_path)
-            server = apfell.create_server(host=listen_ip, port=listen_port, ssl=context, debug=False, return_asyncio_server=True, access_log=True)
+            server = apfell.create_server(host=listen_ip, port=listen_port, ssl=context, debug=False, return_asyncio_server=True, access_log=keep_logs)
         else:
-            server = apfell.create_server(host=listen_ip, port=listen_port, debug=False, return_asyncio_server=True, access_log=True)
+            server = apfell.create_server(host=listen_ip, port=listen_port, debug=False, return_asyncio_server=True, access_log=keep_logs)
         loop = asyncio.get_event_loop()
         task = asyncio.ensure_future(server, loop=dbloop)
         task2 = asyncio.ensure_future(start_listening(), loop=dbloop)

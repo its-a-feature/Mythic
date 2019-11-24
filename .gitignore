@@ -11,11 +11,12 @@ ENV/
 env.bak/
 venv.bak/
 # created payloads
-operations/
+operations/default
 # pycharm
 .idea/
 # ssl certs
 ssl/
 # downloaded files
 files/
-app/c2_profiles/
+apfell-docker/app/c2_profiles/
+apfell_access.log

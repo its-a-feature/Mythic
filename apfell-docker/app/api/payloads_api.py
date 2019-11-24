@@ -251,7 +251,8 @@ async def generate_uuid():
 
 async def local_copytree(src, dst):
     names = os.listdir(src)
-    os.makedirs(dst, exist_ok=True)
+    #os.makedirs(dst, exist_ok=True)
+    pathlib.Path(dst).mkdir(parents=True, exist_ok=True)
     errors = []
     for name in names:
         srcname = os.path.join(src, name)
@@ -267,9 +268,13 @@ async def local_copytree(src, dst):
         # continue with other files
         except Exception as err:
             errors.extend(err.args[0])
-        shutil.copystat(src, dst)
-    if errors:
+        try:
+            shutil.copystat(src, dst)
+        except Exception as e:
+            errors.append(e.args[0])
+    if len(errors):
         print(errors)
+        raise Exception(str(errors))
 
 
 async def write_payload(uuid, user, data):
@@ -291,9 +296,11 @@ async def write_payload(uuid, user, data):
             extension = ""
         working_path = "./app/payloads/operations/{}/{}".format(operation.name, payload.uuid)
         # copy the payload type's files there
-        copy_tree("./app/payloads/{}/payload/".format(payload.payload_type.ptype), working_path)
+        #copy_tree("./app/payloads/{}/payload/".format(payload.payload_type.ptype), working_path)
+        await local_copytree("./app/payloads/{}/payload/".format(payload.payload_type.ptype), working_path)
         # copy the c2 profile's files there
-        copy_tree('./app/c2_profiles/{}/{}/'.format(payload.c2_profile.name, payload.payload_type.ptype), working_path)
+        #copy_tree('./app/c2_profiles/{}/{}/'.format(payload.c2_profile.name, payload.payload_type.ptype), working_path)
+        await local_copytree('./app/c2_profiles/{}/{}/'.format(payload.c2_profile.name, payload.payload_type.ptype), working_path)
         # now we will work with the files from our temp directory
         # make sure the path and everything exists for where the final payload will go, create it if it doesn't exist
         payload_directory = os.path.dirname(payload.location)
@@ -315,7 +322,10 @@ async def write_payload(uuid, user, data):
 
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        shutil.rmtree(working_path)
+        try:
+            shutil.rmtree(working_path)
+        except Exception as err:
+            pass
         return {'status': 'error', 'error': 'failed to copy over all needed files. ' + str(e)}
     # if we didn't actually find C2PROFILEHERE in the main code, we are probably looking at a multi-file project that needs compilation
     #   in that case, keep track so that we can copy the file over to our temp directory, fill it out, and compile

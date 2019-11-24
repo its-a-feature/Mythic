@@ -227,7 +227,7 @@ class TransformOperation:
     async def strToByteArray(self, prior_output: str, parameter: None) -> bytearray:
         return bytearray(prior_output.encode('utf-8'))
 
-    async def outputAsZipFolder(self, prior_output: str, parameter: None) -> bytearray:
+    async def outputAsZipFolder(self, prior_output: str, parameter: None) -> bytes:
         try:
             # this does force .zip to output: ex: payload.location of test-payload becomes test-payload.zip on disk
             temp_uuid = str(uuid.uuid4())
@@ -238,7 +238,7 @@ class TransformOperation:
         except Exception as e:
             raise Exception(str(e))
 
-    async def outputPythonLoadsAsZipFolder(self, prior_output: Dict[str, str], parameter: None) -> bytearray:
+    async def outputPythonLoadsAsZipFolder(self, prior_output: Dict[str, str], parameter: None) -> bytes:
         try:
             # this does force .zip to output: ex: payload.location of test-payload becomes test-payload.zip on disk
             for n, v in prior_output.items():
