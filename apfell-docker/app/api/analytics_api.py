@@ -6,6 +6,7 @@ from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 import os
+from sanic.log import logger
 
 
 # ------- ANALYTIC-BASED API FUNCTION -----------------

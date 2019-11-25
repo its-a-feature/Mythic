@@ -13,6 +13,7 @@ import base64, datetime
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
 from sanic.exceptions import abort
+from sanic.log import logger
 
 
 # payloadtypes aren't inherent to an operation
@@ -82,7 +83,7 @@ async def create_payloadtype(request, user):
                 query = await db_model.payloadtype_query()
                 wrapped_payload_type = await db_objects.get(query, ptype=data['wrapped_payload_type'])
             except Exception as e:
-                print(e)
+                logger.exception("exception in create_payloadtype when creating a wrapper")
                 return json({'status': 'error', 'error': "failed to find that wrapped payload type"})
             payloadtype = await db_objects.create(PayloadType, ptype=data['ptype'], operator=operator,
                                                   file_extension=data['file_extension'],
@@ -118,7 +119,7 @@ async def create_payloadtype(request, user):
                 code_file.write(code)
                 code_file.close()
     except Exception as e:
-        print(e)
+        logger.exception("exception in create_payloadtype")
         return json({'status': 'error', 'error': 'failed to create new payload type: ' + str(e)})
     status = {'status': 'success'}
     ptype_json = payloadtype.to_json()
@@ -148,7 +149,7 @@ async def update_payloadtype(request, user, ptype):
         query = await db_model.payloadtype_query()
         payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
-        print(e)
+        logger.exception("exception in update_payloadtype")
         return json({'status': 'error', 'error': "failed to find that payload type"})
     query = await db_model.operator_query()
     operator = await db_objects.get(query, username=user['username'])
@@ -167,7 +168,7 @@ async def update_payloadtype(request, user, ptype):
                 query = await db_model.payloadtype_query()
                 wrapped_payload_type = await db_objects.get(query, ptype=data['wrapped_payload_type'])
             except Exception as e:
-                print(e)
+                logger.exception("exception in update_payloadtype")
                 return json({'status': 'error', 'error': "failed to find that wrapped payload type"})
             payloadtype.wrapped_payload_type = wrapped_payload_type
         if 'command_template' in data:
@@ -197,34 +198,37 @@ async def upload_payload_code(request, user, ptype):
         query = await db_model.payloadtype_query()
         payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
-        print(e)
+        logger.exception("exception in update_payload_code")
         return json({'status': 'error', 'error': 'failed to find payload'})
-    base_path = os.path.abspath("./app/payloads/{}/payload/".format(payloadtype.ptype))
+    base_path = "./app/payloads/{}/payload/".format(payloadtype.ptype)
     try:
         data = js.loads(request.form.get('json'))
         path = base_path + "/" + data['folder'] if 'folder' in data else base_path
-        path = os.path.abspath(path)
         if base_path in path:
             base_path = path
     except Exception as e:
         pass
     uploaded_files = []
-    if request.files:
-        code = request.files['upload_file'][0].body
-        code_file = open(base_path + "/{}".format(request.files['upload_file'][0].name), "wb")
-        code_file.write(code)
-        code_file.close()
-        uploaded_files.append(request.files['upload_file'][0].name)
-        for i in range(1, int(request.form.get('file_length'))):
-            code = request.files['upload_file_' + str(i)][0].body
-            code_file = open(
-                base_path + "/{}".format(request.files['upload_file_' + str(i)][0].name), "wb")
+    try:
+        if request.files:
+            code = request.files['upload_file'][0].body
+            code_file = open(base_path + "/{}".format(request.files['upload_file'][0].name), "wb")
             code_file.write(code)
             code_file.close()
-            uploaded_files.append(request.files['upload_file_' + str(i)][0].name)
-        return json({'status': 'success', 'files': uploaded_files})
-    else:
-        return json({'status': 'error', 'error': 'nothing to upload...'})
+            uploaded_files.append(request.files['upload_file'][0].name)
+            for i in range(1, int(request.form.get('file_length'))):
+                code = request.files['upload_file_' + str(i)][0].body
+                code_file = open(
+                    base_path + "/{}".format(request.files['upload_file_' + str(i)][0].name), "wb")
+                code_file.write(code)
+                code_file.close()
+                uploaded_files.append(request.files['upload_file_' + str(i)][0].name)
+            return json({'status': 'success', 'files': uploaded_files})
+        else:
+            return json({'status': 'error', 'error': 'nothing to upload...'})
+    except Exception as e:
+        logger.exception("exception in upload_payload_code")
+        return json({'status': 'error', 'error': str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/container_upload", methods=['POST'])
@@ -238,7 +242,7 @@ async def upload_payload_container_code(request, user, ptype):
         query = await db_model.payloadtype_query()
         payloadtype = await db_objects.get(query, ptype=payload_type)
     except Exception as e:
-        print(e)
+        logger.exception("exception in upload_payload_container_code")
         return json({'status': 'error', 'error': 'failed to find payload'})
     if request.files:
         code = request.files['upload_file'][0].body
@@ -257,7 +261,7 @@ async def upload_payload_container_code(request, user, ptype):
                                                                 0].name,
                                                              "data": base64.b64encode(code).decode('utf-8')}).encode()
                                                     ).decode('utf-8'))
-        return json({'status': 'success'})
+        return json(status)
     else:
         return json({'status': 'error', 'error': 'nothing to upload...'})
 
@@ -290,7 +294,7 @@ async def delete_one_payloadtype(request, user, ptype, fromDisk):
                     print("Directory didn't exist")
             return json({'status': 'success', **payloadtype_json})
         except Exception as e:
-            print(e)
+            logger.exception("exception in delete_one_payloadtype")
             return json({'status': 'error', 'error': 'failed to delete payloadtype. ' + str(e)})
     else:
         return json({'status': 'error', 'error': 'you must be admin or the creator of the payload type to delete it'})
@@ -344,6 +348,7 @@ async def list_uploaded_files_for_payloadtype(request, user, ptype):
             files.append({"folder": dirpath.replace(path, ""), "dirnames": dirnames, "filenames": filenames})
         return json({'status': 'success', 'files': files})
     except Exception as e:
+        logger.exception("exception in list_uploaded_files_for_payloadtype")
         return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
 
 
@@ -370,10 +375,12 @@ async def add_folder_for_payloadtype(request, user, ptype):
         path_abs = os.path.abspath(path)
         if payload_type_path in path_abs:
             os.mkdir(path_abs)
-            return json({'status': 'success', 'folder': data['sub_folder']})
+            added_path = path_abs[len(payload_type_path):]
+            return json({'status': 'success', 'folder': added_path})
         else:
             return json({'status': 'error', 'error': 'trying to create a folder outside your payload type'})
     except Exception as e:
+        logger.exception("exception in add_folder_for_payloadtype")
         return json({'status': 'error', 'error': 'failed creating folder: ' + str(e)})
 
 
@@ -403,6 +410,7 @@ async def remove_folder_for_payloadtype(request, user, ptype):
             return json({'status': 'error',
                          'error': 'trying to remove a folder outside your payload type or one that isn\'t empty'})
     except Exception as e:
+        logger.exception("exception in remove_folder_for_payloadtype")
         return json({'status': 'error', 'error': 'failed to remove folder: ' + str(e)})
 
 
@@ -424,6 +432,7 @@ async def list_uploaded_container_files_for_payloadtype(request, user, ptype):
         status = await send_pt_rabbitmq_message(payload_type, "listfiles", "")
         return json(status)
     except Exception as e:
+        logger.exception("exception in list_uploaded_contianer_files_for_payloadtype")
         return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
 
 
@@ -453,6 +462,7 @@ async def remove_uploaded_files_for_payloadtype(request, user, ptype):
             return json({'status': 'success', 'folder': data['folder'], 'file': data['file']})
         return json({'status': 'error', 'error': 'failed to find file'})
     except Exception as e:
+        logger.exception("exception in remove_uploaded_files_for_payloadtype")
         return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
 
 
@@ -479,6 +489,7 @@ async def remove_uploaded_container_files_for_payloadtype(request, user, ptype):
                                                 }).encode()).decode('utf-8'))
         return json(status)
     except Exception as e:
+        logger.exception("exception in remove_uploaded_container_files_for_payloadtype")
         return json({'status': 'error', 'error': 'failed sending message: ' + str(e)})
 
 
@@ -508,6 +519,7 @@ async def download_file_for_payloadtype(request, ptype, user):
             return await file(attempted_path, filename=data['file'])
         return json({'status': 'error', 'error': 'failed to read file'})
     except Exception as e:
+        logger.exception("exception in download_file_for_payloadtype")
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
 
 
@@ -531,6 +543,7 @@ async def download_container_file_for_payloadtype(request, ptype, user):
                                                 base64.b64encode(js.dumps(data).encode()).decode('utf-8'))
         return json(status)
     except Exception as e:
+        logger.exception("exception in download_container_file_for_payloadtype")
         return json({'status': 'error', 'error': 'failed sending the message: ' + str(e)})
 
 
@@ -615,6 +628,7 @@ async def export_command_list(request, user, ptype):
                     file_dict = {cmd_name: base64.b64encode(file_data.read()).decode('utf-8')}
                     cmd_json['files'].append(file_dict)
             except Exception as e:
+                logger.exception("exception in exporting a payload type's command's")
                 pass
             cmdlist.append(cmd_json)
         # get all the c2 profiles we can that match up with this payload type for the current operation
@@ -659,7 +673,7 @@ async def export_command_list(request, user, ptype):
             create_transforms_list.append(ct_json)
         payloadtype_json['create_transforms'] = create_transforms_list
     except Exception as e:
-        print(e)
+        logger.exception("exception in exporting a payload type")
         return json({'status': 'error', 'error': 'failed to get information for that payload type: ' + str(e)})
     return json({"payload_types": [{**payloadtype_json, "commands": cmdlist}]})
 
@@ -682,7 +696,7 @@ async def import_payloadtype_and_commands(request, user):
         try:
             data = request.json
         except Exception as e:
-            print(e)
+            logger.exception("exception in parsing JSON when importing payload type")
             return json({'status': 'error', 'error': 'failed to parse JSON'})
     try:
         query = await db_model.operator_query()
@@ -691,7 +705,7 @@ async def import_payloadtype_and_commands(request, user):
         operation = await db_objects.get(query, name=user['current_operation'])
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'failed to get operator information'})
+        return json({'status': 'error', 'error': 'failed to get operator or current_operation information'})
     if "payload_types" not in data:
         return json({'status': 'error', 'error': 'must start with "payload_types"'})
     error_list = []
@@ -743,232 +757,235 @@ async def import_payload_type_func(ptype, operator, operation):
                                                    file_extension=ptype['file_extension'],
                                                    execute_help=ptype['execute_help'],
                                                    external=ptype['external'])
-
-    payload_type.operator = operator
-    payload_type.creation_time = datetime.datetime.utcnow()
-    await db_objects.update(payload_type)
-    # now to process all of the files associated with the payload type
-    #    make all of the necessary folders for us first
-    os.makedirs("./app/payloads/{}".format(payload_type.ptype), exist_ok=True)  # make the directory structure
-    os.makedirs("./app/payloads/{}/payload".format(payload_type.ptype), exist_ok=True)  # make the directory structure
-    os.makedirs("./app/payloads/{}/commands".format(payload_type.ptype), exist_ok=True)  # make the directory structure
-    abs_payload_path = os.path.abspath("./app/payloads/{}/payload/".format(payload_type.ptype))
-    abs_command_path = os.path.abspath("./app/payloads/{}/commands/".format(payload_type.ptype))
-    for payload_file in ptype['files']:
-        for file_name in payload_file:  # {"filename.extension": "base64 blob"}
-            file_name_path = os.path.abspath("./app/payloads/{}/payload/{}".format(payload_type.ptype, file_name))
-            if abs_payload_path in file_name_path:
-                os.makedirs(os.path.dirname(file_name_path), exist_ok=True)  # make sure all  directories exist first
-                ptype_file = open(file_name_path, 'wb')
-                ptype_content = base64.b64decode(payload_file[file_name])
-                ptype_file.write(ptype_content)
-                ptype_file.close()
-    # now to process the transforms
-    for lt in ptype['load_transforms']:
-        try:
-            query = await db_model.transform_query()
-            cmd_lt = await db_objects.get(query, payload_type=payload_type, t_type="load",
-                                          order=lt['order'])
-            cmd_lt.name = lt['name']
-            cmd_lt.parameter = lt['parameter']
-            cmd_lt.operator = operator
-            await db_objects.update(cmd_lt)
-        except:
-            await db_objects.create(Transform, payload_type=payload_type, t_type="load", operator=operator, **lt)
-    for ct in ptype['create_transforms']:
-        try:
-            query = await db_model.transform_query()
-            cmd_ct = await db_objects.get(query, payload_type=payload_type, t_type="create",
-                                          order=ct['order'])
-            cmd_ct.name = ct['name']
-            cmd_ct.parameter = ct['parameter']
-            cmd_ct.operator = operator
-            await db_objects.update(cmd_ct)
-        except:
-            await db_objects.create(Transform, payload_type=payload_type, t_type="create", operator=operator,
-                                    **ct)
-    # now that we have the payload type, start processing the commands and their parts
-    for cmd in ptype['commands']:
-        if 'is_exit' not in cmd:
-            cmd['is_exit'] = False
-        elif cmd['is_exit'] is True:
-            # this is trying to say it is the exit command for this payload type
-            # there can only be one for a given payload type though, so check. if one exists, change it
-            query = await db_model.command_query()
-            try:
-                exit_command = await db_objects.get(
-                    query.where((Command.is_exit == True) & (Command.payload_type == payload_type)))
-                # one is already set, so set it to false
-                exit_command.is_exit = False
-                await db_objects.update(exit_command)
-            except Exception as e:
-                # one doesn't exist, so let this one be set
-                pass
-        if 'is_process_list' not in cmd:
-            cmd['is_process_list'] = False
-            cmd['process_list_parameters'] = ""
-        elif cmd['is_process_list'] is True:
-            query = await db_model.command_query()
-            try:
-                pl_command = await db_objects.get(
-                    query.where((Command.is_process_list == True) & (Command.payload_type == payload_type)))
-                # one is already set, so set it to false
-                pl_command.is_process_list = False
-                await db_objects.update(pl_command)
-            except Exception as e:
-                # one doesn't exist, so let this one be set
-                pass
-            cmd['process_list_parameters'] = cmd['process_list_parameters'] if 'process_list_parameters' in cmd else ""
-        if 'is_file_browse' not in cmd:
-            cmd['is_file_browse'] = False
-            cmd['file_browse_parameters'] = ""
-        elif cmd['is_file_browse'] is True:
-            query = await db_model.command_query()
-            try:
-                fb_command = await db_objects.get(
-                    query.where((Command.is_file_browse == True) & (Command.payload_type == payload_type)))
-                # one is already set, so set it to false
-                fb_command.is_file_browse = False
-                await db_objects.update(fb_command)
-            except Exception as e:
-                # one doesn't exist, so let this one be set
-                pass
-            cmd['file_browse_parameters'] = cmd['file_browse_parameters'] if 'file_browse_parameters' in cmd else "*"
-        if 'is_download_file' not in cmd:
-            cmd['is_download_file'] = False
-            cmd['download_file_parameters'] = ""
-        elif cmd['is_download_file'] is True:
-            query = await db_model.command_query()
-            try:
-                df_command = await db_objects.get(
-                    query.where((Command.is_download_file == True) & (Command.payload_type == payload_type)))
-                # one is already set, so set it to false
-                df_command.is_download_file = False
-                await db_objects.update(df_command)
-            except Exception as e:
-                # one doesn't exist, so let this one be set
-                pass
-            cmd['download_file_parameters'] = cmd[
-                'download_file_parameters'] if 'download_file_parameters' in cmd else "*"
-        if 'is_remove_file' not in cmd:
-            cmd['is_remove_file'] = False
-            cmd['remove_file_parameters'] = ""
-        elif cmd['is_remove_file'] is True:
-            query = await db_model.command_query()
-            try:
-                rf_command = await db_objects.get(
-                    query.where((Command.is_remove_file == True) & (Command.payload_type == payload_type)))
-                # one is already set, so set it to false
-                rf_command.is_remove_file = False
-                await db_objects.update(rf_command)
-            except Exception as e:
-                # one doesn't exist, so let this one be set
-                pass
-            cmd['remove_file_parameters'] = cmd['remove_file_parameters'] if 'remove_file_parameters' in cmd else "*"
-        try:
-            query = await db_model.command_query()
-            command = await db_objects.get(query, cmd=cmd['cmd'], payload_type=payload_type)
-            command.description = cmd['description']
-            command.needs_admin = cmd['needs_admin']
-            command.version = cmd['version']
-            command.help_cmd = cmd['help_cmd']
-            command.is_exit = cmd['is_exit']
-            command.is_process_list = cmd['is_process_list']
-            command.process_list_parameters = cmd['process_list_parameters']
-            command.is_file_browse = cmd['is_file_browse']
-            command.file_browse_parameters = cmd['file_browse_parameters']
-            command.is_download_file = cmd['is_download_file']
-            command.download_file_parameters = cmd['download_file_parameters']
-            command.is_remove_file = cmd['is_remove_file']
-            command.remove_file_parameters = cmd['remove_file_parameters']
-            command.operator = operator
-            await db_objects.update(command)
-        except Exception as e:  # this means that the command doesn't already exist
-            command = await db_objects.create(Command, cmd=cmd['cmd'], payload_type=payload_type,
-                                              description=cmd['description'], version=cmd['version'],
-                                              needs_admin=cmd['needs_admin'], help_cmd=cmd['help_cmd'],
-                                              operator=operator, is_exit=cmd['is_exit'],
-                                              is_process_list=cmd['is_process_list'],
-                                              process_list_parameters=cmd['process_list_parameters'],
-                                              is_file_browse=cmd['is_file_browse'],
-                                              file_browse_parameters=cmd['file_browse_parameters'],
-                                              is_download_file=cmd['is_download_file'],
-                                              download_file_parameters=cmd['download_file_parameters'],
-                                              is_remove_file=cmd['is_remove_file'],
-                                              remove_file_parameters=cmd['remove_file_parameters'])
-        # now to process the parameters
-        for param in cmd['parameters']:
-            try:
-                query = await db_model.commandparameters_query()
-                cmd_param = await db_objects.get(query, command=command, name=param['name'])
-                cmd_param.type = param['type']
-                cmd_param.hint = param['hint']
-                cmd_param.choices = param['choices']
-                cmd_param.required = param['required']
-                cmd_param.operator = operator
-                await db_objects.update(cmd_param)
-            except:  # param doesn't exist yet, so create it
-                await db_objects.create(CommandParameters, command=command, operator=operator, **param)
-
-        # now to process the att&cks
-        for attack in cmd['attack']:
-            query = await db_model.attack_query()
-            attck = await db_objects.get(query, t_num=attack['t_num'])
-            query = await db_model.attackcommand_query()
-            try:
-                await db_objects.get(query, command=command, attack=attck)
-            except Exception as e:
-                # we got here so it doesn't exist, so create it and move on
-                await db_objects.create(ATTACKCommand, command=command, attack=attck)
-        # now to process the artifacts
-        for at in cmd['artifacts']:
-            try:
-                query = await db_model.artifact_query()
-                artifact = await db_objects.get(query, name=at['artifact'])
-                artifact_template = await db_objects.create(ArtifactTemplate, command=command, artifact=artifact,
-                                                            artifact_string=at['artifact_string'],
-                                                            replace_string=at['replace_string'])
-                if at['command_parameter'] is not None and at['command_parameter'] != "null":
-                    query = await db_model.commandparameters_query()
-                    command_parameter = await db_objects.get(query, command=command, name=at['command_parameter'])
-                    artifact_template.command_parameter = command_parameter
-                    await db_objects.update(artifact_template)
-            except:
-                print("failed to import artifact template due to missing base artifact")
-        # now process the command file
-        if 'files' in cmd:
-            for cmd_entry in cmd['files']:
-                for file_name in cmd_entry: # {filename: base64 file}
-                    file_name_path = os.path.abspath("./app/payloads/{}/commands/{}/{}".format(payload_type.ptype, command.cmd, file_name))
-                    if abs_command_path in file_name_path:
-                        os.makedirs(os.path.dirname(file_name_path), exist_ok=True)  # make sure all  directories exist first
-                        cmd_file = open(file_name_path, 'wb')
-                        cmd_file_data = base64.b64decode(cmd_entry[file_name])
-                        cmd_file.write(cmd_file_data)
-                        cmd_file.close()
-        # now to process the c2 profiles
-    if len(ptype['c2_profiles']) > 0:
-        for c2_profile_name in ptype['c2_profiles']:  # {"default": [{"default.h": "base64"}, {"default.c": "base64"} ]}, {"RESTful Patchtrhough": []}
-            # make sure this c2 profile exists for this operation first
-            try:
-                query = await db_model.c2profile_query()
-                c2_profile = await db_objects.get(query, name=c2_profile_name)
-            except Exception as e:
-                continue  # just try to get the next c2_profile
-            # now deal with the files
-            for c2_file in ptype['c2_profiles'][c2_profile_name]:  # list of files
-                # associate the new payload type with this C2 profile and create directory as needed
-                query = await db_model.payloadtypec2profile_query()
-                try:
-                    await db_objects.get(query, payload_type=payload_type, c2_profile=c2_profile)
-                except Exception as e:
-                    # it doesn't exist, so we create it
-                    await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=c2_profile)
-                os.makedirs("./app/c2_profiles/{}/{}".format(c2_profile_name, ptype['ptype']), exist_ok=True)
-                for c2_file_name in c2_file:
-                    ptype_file = open(
-                        "./app/c2_profiles/{}/{}/{}".format(c2_profile_name, ptype['ptype'], c2_file_name), 'wb')
-                    ptype_content = base64.b64decode(c2_file[c2_file_name])
+    try:
+        payload_type.operator = operator
+        payload_type.creation_time = datetime.datetime.utcnow()
+        await db_objects.update(payload_type)
+        # now to process all of the files associated with the payload type
+        #    make all of the necessary folders for us first
+        os.makedirs("./app/payloads/{}".format(payload_type.ptype), exist_ok=True)  # make the directory structure
+        os.makedirs("./app/payloads/{}/payload".format(payload_type.ptype), exist_ok=True)  # make the directory structure
+        os.makedirs("./app/payloads/{}/commands".format(payload_type.ptype), exist_ok=True)  # make the directory structure
+        abs_payload_path = os.path.abspath("./app/payloads/{}/payload/".format(payload_type.ptype))
+        abs_command_path = os.path.abspath("./app/payloads/{}/commands/".format(payload_type.ptype))
+        for payload_file in ptype['files']:
+            for file_name in payload_file:  # {"filename.extension": "base64 blob"}
+                file_name_path = os.path.abspath("./app/payloads/{}/payload/{}".format(payload_type.ptype, file_name))
+                if abs_payload_path in file_name_path:
+                    os.makedirs(os.path.dirname(file_name_path), exist_ok=True)  # make sure all  directories exist first
+                    ptype_file = open(file_name_path, 'wb')
+                    ptype_content = base64.b64decode(payload_file[file_name])
                     ptype_file.write(ptype_content)
                     ptype_file.close()
-    return {ptype['ptype']: 'success'}
+        # now to process the transforms
+        for lt in ptype['load_transforms']:
+            try:
+                query = await db_model.transform_query()
+                cmd_lt = await db_objects.get(query, payload_type=payload_type, t_type="load",
+                                              order=lt['order'])
+                cmd_lt.name = lt['name']
+                cmd_lt.parameter = lt['parameter']
+                cmd_lt.operator = operator
+                await db_objects.update(cmd_lt)
+            except:
+                await db_objects.create(Transform, payload_type=payload_type, t_type="load", operator=operator, **lt)
+        for ct in ptype['create_transforms']:
+            try:
+                query = await db_model.transform_query()
+                cmd_ct = await db_objects.get(query, payload_type=payload_type, t_type="create",
+                                              order=ct['order'])
+                cmd_ct.name = ct['name']
+                cmd_ct.parameter = ct['parameter']
+                cmd_ct.operator = operator
+                await db_objects.update(cmd_ct)
+            except:
+                await db_objects.create(Transform, payload_type=payload_type, t_type="create", operator=operator,
+                                        **ct)
+        # now that we have the payload type, start processing the commands and their parts
+        for cmd in ptype['commands']:
+            if 'is_exit' not in cmd:
+                cmd['is_exit'] = False
+            elif cmd['is_exit'] is True:
+                # this is trying to say it is the exit command for this payload type
+                # there can only be one for a given payload type though, so check. if one exists, change it
+                query = await db_model.command_query()
+                try:
+                    exit_command = await db_objects.get(
+                        query.where((Command.is_exit == True) & (Command.payload_type == payload_type)))
+                    # one is already set, so set it to false
+                    exit_command.is_exit = False
+                    await db_objects.update(exit_command)
+                except Exception as e:
+                    # one doesn't exist, so let this one be set
+                    pass
+            if 'is_process_list' not in cmd:
+                cmd['is_process_list'] = False
+                cmd['process_list_parameters'] = ""
+            elif cmd['is_process_list'] is True:
+                query = await db_model.command_query()
+                try:
+                    pl_command = await db_objects.get(
+                        query.where((Command.is_process_list == True) & (Command.payload_type == payload_type)))
+                    # one is already set, so set it to false
+                    pl_command.is_process_list = False
+                    await db_objects.update(pl_command)
+                except Exception as e:
+                    # one doesn't exist, so let this one be set
+                    pass
+                cmd['process_list_parameters'] = cmd['process_list_parameters'] if 'process_list_parameters' in cmd else ""
+            if 'is_file_browse' not in cmd:
+                cmd['is_file_browse'] = False
+                cmd['file_browse_parameters'] = ""
+            elif cmd['is_file_browse'] is True:
+                query = await db_model.command_query()
+                try:
+                    fb_command = await db_objects.get(
+                        query.where((Command.is_file_browse == True) & (Command.payload_type == payload_type)))
+                    # one is already set, so set it to false
+                    fb_command.is_file_browse = False
+                    await db_objects.update(fb_command)
+                except Exception as e:
+                    # one doesn't exist, so let this one be set
+                    pass
+                cmd['file_browse_parameters'] = cmd['file_browse_parameters'] if 'file_browse_parameters' in cmd else "*"
+            if 'is_download_file' not in cmd:
+                cmd['is_download_file'] = False
+                cmd['download_file_parameters'] = ""
+            elif cmd['is_download_file'] is True:
+                query = await db_model.command_query()
+                try:
+                    df_command = await db_objects.get(
+                        query.where((Command.is_download_file == True) & (Command.payload_type == payload_type)))
+                    # one is already set, so set it to false
+                    df_command.is_download_file = False
+                    await db_objects.update(df_command)
+                except Exception as e:
+                    # one doesn't exist, so let this one be set
+                    pass
+                cmd['download_file_parameters'] = cmd[
+                    'download_file_parameters'] if 'download_file_parameters' in cmd else "*"
+            if 'is_remove_file' not in cmd:
+                cmd['is_remove_file'] = False
+                cmd['remove_file_parameters'] = ""
+            elif cmd['is_remove_file'] is True:
+                query = await db_model.command_query()
+                try:
+                    rf_command = await db_objects.get(
+                        query.where((Command.is_remove_file == True) & (Command.payload_type == payload_type)))
+                    # one is already set, so set it to false
+                    rf_command.is_remove_file = False
+                    await db_objects.update(rf_command)
+                except Exception as e:
+                    # one doesn't exist, so let this one be set
+                    pass
+                cmd['remove_file_parameters'] = cmd['remove_file_parameters'] if 'remove_file_parameters' in cmd else "*"
+            try:
+                query = await db_model.command_query()
+                command = await db_objects.get(query, cmd=cmd['cmd'], payload_type=payload_type)
+                command.description = cmd['description']
+                command.needs_admin = cmd['needs_admin']
+                command.version = cmd['version']
+                command.help_cmd = cmd['help_cmd']
+                command.is_exit = cmd['is_exit']
+                command.is_process_list = cmd['is_process_list']
+                command.process_list_parameters = cmd['process_list_parameters']
+                command.is_file_browse = cmd['is_file_browse']
+                command.file_browse_parameters = cmd['file_browse_parameters']
+                command.is_download_file = cmd['is_download_file']
+                command.download_file_parameters = cmd['download_file_parameters']
+                command.is_remove_file = cmd['is_remove_file']
+                command.remove_file_parameters = cmd['remove_file_parameters']
+                command.operator = operator
+                await db_objects.update(command)
+            except Exception as e:  # this means that the command doesn't already exist
+                command = await db_objects.create(Command, cmd=cmd['cmd'], payload_type=payload_type,
+                                                  description=cmd['description'], version=cmd['version'],
+                                                  needs_admin=cmd['needs_admin'], help_cmd=cmd['help_cmd'],
+                                                  operator=operator, is_exit=cmd['is_exit'],
+                                                  is_process_list=cmd['is_process_list'],
+                                                  process_list_parameters=cmd['process_list_parameters'],
+                                                  is_file_browse=cmd['is_file_browse'],
+                                                  file_browse_parameters=cmd['file_browse_parameters'],
+                                                  is_download_file=cmd['is_download_file'],
+                                                  download_file_parameters=cmd['download_file_parameters'],
+                                                  is_remove_file=cmd['is_remove_file'],
+                                                  remove_file_parameters=cmd['remove_file_parameters'])
+            # now to process the parameters
+            for param in cmd['parameters']:
+                try:
+                    query = await db_model.commandparameters_query()
+                    cmd_param = await db_objects.get(query, command=command, name=param['name'])
+                    cmd_param.type = param['type']
+                    cmd_param.hint = param['hint']
+                    cmd_param.choices = param['choices']
+                    cmd_param.required = param['required']
+                    cmd_param.operator = operator
+                    await db_objects.update(cmd_param)
+                except:  # param doesn't exist yet, so create it
+                    await db_objects.create(CommandParameters, command=command, operator=operator, **param)
+
+            # now to process the att&cks
+            for attack in cmd['attack']:
+                query = await db_model.attack_query()
+                attck = await db_objects.get(query, t_num=attack['t_num'])
+                query = await db_model.attackcommand_query()
+                try:
+                    await db_objects.get(query, command=command, attack=attck)
+                except Exception as e:
+                    # we got here so it doesn't exist, so create it and move on
+                    await db_objects.create(ATTACKCommand, command=command, attack=attck)
+            # now to process the artifacts
+            for at in cmd['artifacts']:
+                try:
+                    query = await db_model.artifact_query()
+                    artifact = await db_objects.get(query, name=at['artifact'])
+                    artifact_template = await db_objects.create(ArtifactTemplate, command=command, artifact=artifact,
+                                                                artifact_string=at['artifact_string'],
+                                                                replace_string=at['replace_string'])
+                    if at['command_parameter'] is not None and at['command_parameter'] != "null":
+                        query = await db_model.commandparameters_query()
+                        command_parameter = await db_objects.get(query, command=command, name=at['command_parameter'])
+                        artifact_template.command_parameter = command_parameter
+                        await db_objects.update(artifact_template)
+                except:
+                    print("failed to import artifact template due to missing base artifact")
+            # now process the command file
+            if 'files' in cmd:
+                for cmd_entry in cmd['files']:
+                    for file_name in cmd_entry: # {filename: base64 file}
+                        file_name_path = os.path.abspath("./app/payloads/{}/commands/{}/{}".format(payload_type.ptype, command.cmd, file_name))
+                        if abs_command_path in file_name_path:
+                            os.makedirs(os.path.dirname(file_name_path), exist_ok=True)  # make sure all  directories exist first
+                            cmd_file = open(file_name_path, 'wb')
+                            cmd_file_data = base64.b64decode(cmd_entry[file_name])
+                            cmd_file.write(cmd_file_data)
+                            cmd_file.close()
+            # now to process the c2 profiles
+        if len(ptype['c2_profiles']) > 0:
+            for c2_profile_name in ptype['c2_profiles']:  # {"default": [{"default.h": "base64"}, {"default.c": "base64"} ]}, {"RESTful Patchtrhough": []}
+                # make sure this c2 profile exists for this operation first
+                try:
+                    query = await db_model.c2profile_query()
+                    c2_profile = await db_objects.get(query, name=c2_profile_name)
+                except Exception as e:
+                    continue  # just try to get the next c2_profile
+                # now deal with the files
+                for c2_file in ptype['c2_profiles'][c2_profile_name]:  # list of files
+                    # associate the new payload type with this C2 profile and create directory as needed
+                    query = await db_model.payloadtypec2profile_query()
+                    try:
+                        await db_objects.get(query, payload_type=payload_type, c2_profile=c2_profile)
+                    except Exception as e:
+                        # it doesn't exist, so we create it
+                        await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=c2_profile)
+                    os.makedirs("./app/c2_profiles/{}/{}".format(c2_profile_name, ptype['ptype']), exist_ok=True)
+                    for c2_file_name in c2_file:
+                        ptype_file = open(
+                            "./app/c2_profiles/{}/{}/{}".format(c2_profile_name, ptype['ptype'], c2_file_name), 'wb')
+                        ptype_content = base64.b64decode(c2_file[c2_file_name])
+                        ptype_file.write(ptype_content)
+                        ptype_file.close()
+        return {ptype['ptype']: 'success'}
+    except Exception as e:
+        logger.exception("exception on importing payload type")
+        return {ptype['ptype']: 'error'}

@@ -1,4 +1,4 @@
-from app import apfell, db_objects
+from app import db_objects
 import datetime
 import app.database_models.model as db_model
 import aio_pika
@@ -13,10 +13,7 @@ from sanic.log import logger
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
-        print(" [x] %r:%r" % (
-            message.routing_key,
-            message.body
-        ))
+        # print(" [x] %r:%r" % (message.routing_key,message.body))
         if pieces[1] == "status":
             try:
                 query = await db_model.c2profile_query()
@@ -27,7 +24,8 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     profile.running = False
                 await db_objects.update(profile)
             except Exception as e:
-                print("Exception in rabbit_c2_callback (status): {}, {}".format(pieces, str(e)))
+                logger.exception("Exception in rabbit_c2_callback (status): {}, {}".format(pieces, str(e)))
+                # print("Exception in rabbit_c2_callback (status): {}, {}".format(pieces, str(e)))
 
 
 async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
@@ -110,7 +108,8 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         task.params = json.dumps({"cmds": task.params, "file_id": file_meta.agent_file_id})
                         await db_objects.update(task)
             except Exception as e:
-                print("Exception in rabbit_pt_callback: " + str(e))
+                logger.exception("Exception in rabbit_pt_callback: " + str(e))
+                # print("Exception in rabbit_pt_callback: " + str(e))
 
 
 async def resolve_shortnames_to_file_ids(command, task):
@@ -162,7 +161,8 @@ async def add_command_attack_to_task(task, command):
             await db_objects.create(db_model.TaskArtifact, task=task, artifact_template=artifact, artifact_instance=temp_string)
 
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        # print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         raise e
 
 
@@ -191,12 +191,13 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 await send_pt_rabbitmq_message("*", "load_transform_code",
                                                base64.b64encode(transform_code).decode('utf-8'))
         except Exception as e:
-            print("Exception in rabbit_heartbeat_callback: {}, {}".format(pieces, str(e)))
+            logger.exception("Exception in rabbit_heartbeat_callback: {}, {}".format(pieces, str(e)))
+            # print("Exception in rabbit_heartbeat_callback: {}, {}".format(pieces, str(e)))
 
 
 # just listen for c2 heartbeats and update the database as necessary
 async def start_listening():
-    logger.debug("starting to consume")
+    logger.debug("starting to consume rabbitmq messages")
     try:
         task = asyncio.ensure_future(connect_and_consume_c2())
         task2 = asyncio.ensure_future(connect_and_consume_heartbeats())
@@ -226,15 +227,17 @@ async def connect_and_consume_c2():
             await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.stopped.stop")
 
             await channel.set_qos(prefetch_count=50)
-            print(' [*] Waiting for messages in connect_and_consume_c2.')
+            logger.info(' [*] Waiting for messages in connect_and_consume_c2.')
             try:
                 task = queue.consume(rabbit_c2_callback)
                 result = await asyncio.wait_for(task, None)
             except Exception as e:
-                print("Exception in connect_and_consume .consume: {}".format(str(e)))
+                logger.exception("Exception in connect_and_consume .consume: {}".format(str(e)))
+                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
 
         except Exception as e:
-            print("Exception in connect_and_consume connect: {}".format(str(e)))
+            logger.exception("Exception in connect_and_consume connect: {}".format(str(e)))
+            # print("Exception in connect_and_consume connect: {}".format(str(e)))
         await asyncio.sleep(2)
 
 
@@ -258,14 +261,16 @@ async def connect_and_consume_pt():
             await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.command_transform.#")
             await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.load_transform_with_code.#")
             await channel.set_qos(prefetch_count=20)
-            print(' [*] Waiting for messages in connect_and_consume_pt.')
+            logger.info(' [*] Waiting for messages in connect_and_consume_pt.')
             try:
                 task = queue.consume(rabbit_pt_callback)
                 result = await asyncio.wait_for(task, None)
             except Exception as e:
-                print("Exception in connect_and_consume .consume: {}".format(str(e)))
+                logger.exception("Exception in connect_and_consume .consume: {}".format(str(e)))
+                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except Exception as e:
-            print("Exception in connect_and_consume connect: {}".format(str(e)))
+            logger.exception("Exception in connect_and_consume connect: {}".format(str(e)))
+            # print("Exception in connect_and_consume connect: {}".format(str(e)))
         await asyncio.sleep(2)
 
 
@@ -285,14 +290,16 @@ async def connect_and_consume_heartbeats():
             # bind the queue to the exchange so we can actually catch messages
             await queue.bind(exchange='apfell_traffic', routing_key="*.heartbeat.#")
             await channel.set_qos(prefetch_count=20)
-            print(' [*] Waiting for messages in connect_and_consume_heartbeats.')
+            logger.info(' [*] Waiting for messages in connect_and_consume_heartbeats.')
             try:
                 task = queue.consume(rabbit_heartbeat_callback)
                 result = await asyncio.wait_for(task, None)
             except Exception as e:
-                print("Exception in connect_and_consume .consume: {}".format(str(e)))
+                logger.exception("Exception in connect_and_consume .consume: {}".format(str(e)))
+                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except Exception as e:
-            print("Exception in connect_and_consume connect: {}".format(str(e)))
+            logger.exception("Exception in connect_and_consume connect: {}".format(str(e)))
+            # print("Exception in connect_and_consume connect: {}".format(str(e)))
         await asyncio.sleep(2)
 
 
@@ -316,7 +323,8 @@ async def send_c2_rabbitmq_message(name, command, message_body):
         await connection.close()
         return {"status": "success"}
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        # print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": 'error', 'error': "Failed to connect to rabbitmq, refresh"}
 
 
@@ -340,5 +348,6 @@ async def send_pt_rabbitmq_message(payload_type, command, message_body):
         await connection.close()
         return {"status": "success"}
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        # print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": 'error', 'error': "Failed to connect to rabbitmq, refresh"}

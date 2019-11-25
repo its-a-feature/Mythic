@@ -385,10 +385,10 @@
                       <template v-if="folders.length > 0" v-for="(folder, i) in folders">
                         <table class="table table-condensed table-striped {{config['table-color']}} table-hover" width="100%">
                             <tr>
-                                <th align="left" width="50"><b>Delete</b></th>
-                                <th align="left" width="50"><b>Download</b></th>
-                                <th align="left"><b>
-                                    <div v-if="folder.folder.includes('/Apfell/')">Server files</div>
+                                <th style="text-align:left" width="50"><b>Delete</b></th>
+                                <th style="text-align:left" width="50"><b>Download</b></th>
+                                <th style="text-align:left"><b>
+                                    <div v-if="folder.folder.includes('/Apfell/')">Server files: [[folder.folder.substring('/Apfell/'.length)]]</div>
                                     <div v-else>Agent Files: [[folder.folder]] </div>
                                     </b>
                                 </th>
