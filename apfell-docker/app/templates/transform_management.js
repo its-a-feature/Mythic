@@ -92,7 +92,7 @@ function update_code_callback(response){
     vScrollBarAlwaysVisible: { f: toBool },
     highlightGutterLine: { f: toBool },
     animatedScroll: { f: toBool },
-    showInvisibles: { f: toBool },
+    showInvisibles: { f: toBool , v: true},
     showPrintMargin: { f: toBool },
     printMarginColumn: { f: toNum, v: 800 },
     // shortcut for showPrintMargin and printMarginColumn
@@ -118,7 +118,7 @@ function update_code_callback(response){
     overwrite: { f: toBool },
     newLineMode: {},
     useWorker: { f: toBool },
-    tabSize: { f: toNum, v: 2 },
+    tabSize: { f: toNum, v: 4 },
     wrap: { f: toBoolOrNum },
     foldStyle: { v: 'markbegin' },
     mode: { v: 'python' },
