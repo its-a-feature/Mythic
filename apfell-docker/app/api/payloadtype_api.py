@@ -59,8 +59,8 @@ async def create_payloadtype(request, user):
             return json({'status': 'error', 'error': '"ptype" is a required field and must be unique'})
         if "file_extension" not in data:
             data["file_extension"] = ""
-        elif "." not in data['file_extension'] and data['file_extension'] != "":
-            data['file_extension'] = "." + data['file_extension']
+        elif "." in data['file_extension'] and data['file_extension'][0] == ".":
+            data['file_extension'] = data['file_extension'][1:]
         if 'wrapper' not in data:
             data['wrapper'] = False
         if "command_template" not in data:
@@ -124,9 +124,9 @@ async def create_payloadtype(request, user):
     ptype_json = payloadtype.to_json()
     # make sure a file exists in the right location with the right name
     if not os.path.exists(
-            "./app/payloads/{}/payload/{}{}".format(payloadtype.ptype, payloadtype.ptype, payloadtype.file_extension)):
+            "./app/payloads/{}/payload/{}.{}".format(payloadtype.ptype, payloadtype.ptype, payloadtype.file_extension)):
         file = open(
-            "./app/payloads/{}/payload/{}{}".format(payloadtype.ptype, payloadtype.ptype, payloadtype.file_extension),
+            "./app/payloads/{}/payload/{}.{}".format(payloadtype.ptype, payloadtype.ptype, payloadtype.file_extension),
             'wb')
         file.close()
     return json({**status, **ptype_json})

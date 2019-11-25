@@ -1581,20 +1581,20 @@ function create_payloadtype_button(){
     });
     $( '#payloadtypeCreateSupportedOS').val('');
     $( '#payloadtypeCreateSubmit' ).unbind('click').click(function(){
-        var data = {"ptype": $( '#payloadtypeCreatePtype' ).val(),
+        let data = {"ptype": $( '#payloadtypeCreatePtype' ).val(),
         "file_extension": $( '#payloadtypeCreateFileExtension').val()};
         data["wrapper"]= $('#payloadtypeCreateWrapper').is(":checked");
         //data['command_template'] = $('#payloadtypeCreateCommandTemplate').val();
         data['command_template'] = add_command_template_vue.command_template;
         data['supported_os'] = $('#payloadtypeCreateSupportedOS').val();
         data['execute_help'] = $('#payloadtypeCreateExecuteHelp').val();
-        data['external'] = $('#payloadtypeCreateExternal');
+        data['external'] = $('#payloadtypeCreateExternal').is(":checked");
         if($('#payloadtypeCreateWrapper').is(":checked")){
             data["wrapped_payload_type"]= $('#payloadtypeCreateWrappedPayloadType').val();
         }
-        var file = document.getElementById('payloadtypeCreateUploadFiles');
+        let file = document.getElementById('payloadtypeCreateUploadFiles');
         if(file.files.length > 0){
-            var filedata = file.files;
+            let filedata = file.files;
             uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/", null, filedata, data, "POST");
             file.value = file.defaultValue;
         }
@@ -1606,16 +1606,13 @@ function create_payloadtype_button(){
 function import_payload_button(p){
     $( '#commandImportModal' ).modal('show');
     $( '#commandImportSubmit' ).unbind('click').click(function(){
-        var file = document.getElementById('commandImportFile');
-        var filedata = file.files[0];
+        let file = document.getElementById('commandImportFile');
+        let filedata = file.files[0];
         uploadFile("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/import", import_payload_button_callback, filedata);
     });
 }
 function import_payload_button_callback(response){
     alertTop("info", response);
-    //var new_window = window.open("", "_blank");
-    //new_window.document.write(response);
-    //new_window.focus();
 }
 function set_wrapped_payload_type_options(response){
     try{
@@ -1638,10 +1635,14 @@ function set_transform_options(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    data['select_one'] = {"name": "select_one", "return": "", "prior_output": ""};
-    payloadEditLoadTransforms_Table.transformOptions = data;
-    payloadEditCreateTransforms_Table.transformOptions = data;
-
+    if(data['status'] === "success"){
+        let options = data['transforms'];
+        options['select_one'] = {"name": "select_one", "return": "", "prior_output": ""};
+        payloadEditLoadTransforms_Table.transformOptions = options;
+        payloadEditCreateTransforms_Table.transformOptions = options;
+    }else{
+        alertTop("warning", data['error']);
+    }
 }
 var edit_command_attack_table = new Vue({
     el: '#edit_command_attack_table',

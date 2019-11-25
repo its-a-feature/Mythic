@@ -50,12 +50,12 @@ async def get_transforms_options_func():
         import app.api.transforms.utils
         importlib.reload(sys.modules['app.api.transforms.utils'])
     except Exception as e:
-        print(e)
+        return {'status': 'error', 'error': 'Failed to get transform options due to error: \n' + str(e)}
     from app.api.transforms.utils import TransformOperation
     t = TransformOperation()
     method_list = {func: await get_type_hints(getattr(t, func).__annotations__) for func in dir(t) if
                    callable(getattr(t, func)) and not func.startswith("__")}
-    return method_list
+    return {'status': 'success', 'transforms': method_list}
 
 
 async def get_type_hints(func):
@@ -99,6 +99,10 @@ async def register_transform_for_ptype(request, user, ptype):
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload type'})
     possible_transforms = await get_transforms_options_func()
+    if possible_transforms['status'] == 'success':
+        possible_transforms = possible_transforms['transforms']
+    else:
+        return json(possible_transforms)
     data = request.json
     # check for right parameters
     if "name" not in data or data['name'] is None or data['name'] not in possible_transforms:
@@ -199,13 +203,13 @@ async def upload_transform_code(request, user):
             import app.api.transforms.utils
             importlib.reload(sys.modules['app.api.transforms.utils'])
         except Exception as e:
-            print(e)
+            return json({'status': 'error', 'error': 'Failed to load new transforms due to an error:\n' + str(e)})
         from app.api.transforms.utils import CommandTransformOperation, TransformOperation
         status = await update_all_pt_transform_code()
         return json(status)
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'failed to reload the transform modules'})
+        return json({'status': 'error', 'error': 'failed to reload the transform modules due to an error:\n' + str(e)})
 
 
 async def update_all_pt_transform_code():
