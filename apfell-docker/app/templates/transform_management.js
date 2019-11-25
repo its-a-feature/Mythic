@@ -15,7 +15,7 @@ function initialize_code(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         transform_code.code = atob(data['code']);
     }else{
         alertTop("danger", data['error']);
@@ -23,14 +23,17 @@ function initialize_code(response){
 }
 
 function download_code_button(){
-    window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/download", "_blank").focus();
+    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/download", (response)=>{
+        let data = btoa(response);
+        download_from_memory("transforms.py", data);
+    }, "GET", null);
 }
 function upload_code_button(){
     $( '#FileModal').modal('show');
     $( '#FileSubmit').unbind('click').click(function(){
         //uploadFileAndJSON(url, callback, file, data, method)
-        var file = document.getElementById('FileUpload');
-        var filedata = file.files;
+        let file = document.getElementById('FileUpload');
+        let filedata = file.files;
         uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/upload/",
         file_upload_callback, filedata, data, "POST");
         file.value = file.defaultValue;
@@ -44,7 +47,7 @@ function file_upload_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         alertTop("success", "Successfully uploaded");
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/view", initialize_code, "GET", null);
     }else{
@@ -52,7 +55,7 @@ function file_upload_callback(response){
     }
 }
 function update_code_button(){
-    var code = btoa(transform_code.code);
+    let code = btoa(transform_code.code);
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/upload", update_code_callback, "POST", {"code": code});
     alertTop("info", "Submitted updates...");
 }
@@ -63,7 +66,7 @@ function update_code_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] != 'success'){
+    if(data['status'] !== 'success'){
         alertTop("danger", data['error']);
     }else{
         alertTop("success", "Successfully updated");
