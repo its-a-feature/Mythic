@@ -234,6 +234,10 @@ async def update_transform_for_ptype(request, user, id):
         print(e)
         return json({'status': 'error', 'error': 'failed to find transform'})
     possible_transforms = await get_transforms_options_func()
+    if possible_transforms['status'] == 'success':
+        possible_transforms = possible_transforms['transforms']
+    else:
+        return json(possible_transforms)
     if "name" in data and data['name'] in possible_transforms:
         transform.name = data['name']
     if "t_type" in data:
