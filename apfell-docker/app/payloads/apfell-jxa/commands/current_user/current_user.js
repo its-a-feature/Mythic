@@ -3,11 +3,11 @@ exports.current_user = function(task, command, params){
         let method = "api";
         if(params.length > 0){
             let data = JSON.parse(params);
-            if(data.hasOwnProperty('method') && data['method'] != ""){
+            if(data.hasOwnProperty('method') && data['method'] !== ""){
                 method = data['method'];
             }
         }
-        if(method == "jxa"){
+        if(method === "jxa"){
             let user = Application("System Events").currentUser;
             let info = "Name: " + user.name() +
             "\nFullName: " + user.fullName() +
@@ -15,7 +15,7 @@ exports.current_user = function(task, command, params){
             "\npicturePath: " + user.picturePath();
             return JSON.stringify({"user_output":info, "completed": true});
         }
-        else if(method == "api"){
+        else if(method === "api"){
             let output = "\nUserName: " + $.NSUserName().js +
             "\nFull UserName: " + $.NSFullUserName().js +
             "\nHome Directory: " + $.NSHomeDirectory().js;

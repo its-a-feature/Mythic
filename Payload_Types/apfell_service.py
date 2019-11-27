@@ -150,7 +150,11 @@ async def callback(message: aio_pika.IncomingMessage):
                     foo = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(foo)
                 except Exception as e:
-                    print(e)
+                    await send_status('failed to load transforms.py file', 'load_transform_with_code',
+                                      'error.{}'.format(pieces[4]))
+                    shutil.rmtree(working_dir)
+                    os.remove(temp_zip)
+                    return
                 transform = foo.TransformOperation(working_dir=working_dir)
                 transform_output = message_json['loads']
                 # do step 0, prior_output = path of our newly written file

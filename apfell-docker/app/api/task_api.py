@@ -1,13 +1,13 @@
 from app import apfell, db_objects
 from sanic.response import json, raw
-from app.database_models.model import Callback, Task, FileMeta, Response, LoadedCommands, ATTACKCommand, ATTACKTask, TaskArtifact, ArtifactTemplate, OperatorOperation, Payload, Command
+from app.database_models.model import Callback, Task, FileMeta, Response, LoadedCommands, ATTACKCommand, ATTACKTask, TaskArtifact, ArtifactTemplate, OperatorOperation, Payload, Command, C2ProfileParametersInstance
 from datetime import datetime, timedelta
 from sanic_jwt.decorators import scoped, inject_user
 from app.api.transform_api import get_transforms_func, get_commandtransforms_func
 import json as js
 import sys
 import shutil, os, glob
-from app.api.payloads_api import generate_uuid, write_c2
+from app.api.payloads_api import generate_uuid, write_c2, local_copytree
 import app.crypto as crypt
 import base64
 import app.database_models.model as db_model
@@ -600,13 +600,27 @@ async def perform_load_transforms(data, cb, operation, op, task):
             uuid = await generate_uuid()
             working_path = "./app/payloads/operations/{}/{}".format(operation.name, uuid)
             # copy the payload type's files there
-            shutil.copytree("./app/payloads/{}/payload/".format(cb.registered_payload.payload_type.ptype), working_path)
+            await local_copytree("./app/payloads/{}/payload/".format(cb.registered_payload.payload_type.ptype), working_path)
+            await local_copytree("./app/c2_profiles/{}/{}".format(cb.registered_payload.c2_profile.name,
+                                                                      cb.registered_payload.payload_type.ptype), working_path)
             # now that we copied files here, do the same replacement we do for creating a payload
-            for base_file in glob.iglob(working_path + "/*", recursive=False):
+            param_dict = {}
+            query = await db_model.c2profileparametersinstance_query()
+            c2_param_instances = await db_objects.execute(query.where(C2ProfileParametersInstance.payload == cb.registered_payload))
+            for instance in c2_param_instances:
+                param = instance.c2_profile_parameters
+                param_dict[param.key] = instance.value
+            for base_file in glob.iglob(working_path + "/**", recursive=True):
+                if os.path.isdir(base_file):
+                    continue
                 base = open(base_file, 'r')
                 # write to the new file, then copy it over when we're done
                 custom = open(working_path + "/" + uuid, 'w')  # make sure our temp file won't exist
                 for line in base:
+                    # replace c2 parameter values if we see them
+                    for p in param_dict:
+                        if p in line:
+                            line = line.replace(p, param_dict[p])
                     if 'C2PROFILE_NAME_HERE' in line:
                         # optional directive to insert the name of the c2 profile
                         replaced_line = line.replace("C2PROFILE_NAME_HERE", cb.registered_payload.c2_profile.name)
@@ -620,20 +634,6 @@ async def perform_load_transforms(data, cb, operation, op, task):
                 custom.close()
                 os.remove(base_file)
                 os.rename(working_path + "/" + uuid, base_file)
-            # also copy over and handle the c2 profile files just in case they have header files or anything needed
-            for file in glob.glob(r'./app/c2_profiles/{}/{}/*'.format(cb.registered_payload.c2_profile.name,
-                                                                      cb.registered_payload.payload_type.ptype)):
-                # once we copy a file over, try to replace some c2 params in it
-                try:
-                    base_c2 = open(file, 'r')
-                    base_c2_new = open(working_path + "/{}".format(file.split("/")[-1]), 'w')
-                except Exception as e:
-                    shutil.rmtree(working_path)
-                    return {'status': 'error', 'error': 'failed to open c2 code'}
-                await write_c2(base_c2_new, base_c2, cb.registered_payload)
-                base_c2.close()
-                base_c2_new.close()
-            transform_output = {}
             # always start with a list of paths for all of the things we want to load
             # check if somebody submitted {'cmds':'shell,load, etc', 'file_id': 4} instead of list of commands
             try:
@@ -642,31 +642,35 @@ async def perform_load_transforms(data, cb, operation, op, task):
             except Exception as e:
                 funcs = data['params']
             data['params'] = funcs
+            # first make sure we can find all of the commands and put them in our working directory
             for p in data['params'].split(","):
-                # register this command as one that we're going to have loaded into the callback
                 if os.path.exists("./app/payloads/{}/commands/{}".format(cb.registered_payload.payload_type.ptype, p.strip())):
-                    transform_output[p.strip()] = base64.b64encode(open("./app/payloads/{}/commands/{}".format(cb.registered_payload.payload_type.ptype, p.strip()), 'rb').read()).decode('utf-8')
-                    try:
-                        query = await db_model.command_query()
-                        command = await db_objects.get(query, payload_type=cb.registered_payload.payload_type,
-                                                       cmd=p.strip())
-                        try:
-                            query = await db_model.loadedcommands_query()
-                            loaded_command = await db_objects.get(query, callback=cb, command=command)
-                            loaded_command.version = command.version
-                            await db_objects.update(loaded_command)
-                        except Exception as e:
-                            # we couldn't find it, so we need to create it since this is a new command, not an update
-                            loaded_command = await db_objects.create(LoadedCommands, callback=cb, command=command,
-                                                                    version=command.version, operator=op)
-                    except Exception as e:
-                        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    await local_copytree(
+                        "./app/payloads/{}/commands/{}".format(cb.registered_payload.payload_type.ptype, p.strip()),
+                        working_path + "/{}".format(p.strip()))
                 else:
                     shutil.rmtree(working_path)
                     await db_objects.create(Response, task=task, response="failed to find command: {}. Aborting load".format(p))
-                    return {'status': 'error', 'error': 'failed to find command: {}'.format(p),
+                    return {'status': 'error', 'error': 'failed to find command directory: {}'.format(p),
                             'cmd': data['command'],
                             'params': data['params'], 'callback': cb.id}
+            # then add them all to our loaded commands list
+            for p in data['params'].split(","):
+                try:
+                    query = await db_model.command_query()
+                    command = await db_objects.get(query, payload_type=cb.registered_payload.payload_type,
+                                                   cmd=p.strip())
+                    try:
+                        query = await db_model.loadedcommands_query()
+                        loaded_command = await db_objects.get(query, callback=cb, command=command)
+                        loaded_command.version = command.version
+                        await db_objects.update(loaded_command)
+                    except Exception as e:
+                        # we couldn't find it, so we need to create it since this is a new command, not an update
+                        loaded_command = await db_objects.create(LoadedCommands, callback=cb, command=command,
+                                                                 version=command.version, operator=op)
+                except Exception as e:
+                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             # zip up all of the code and send it off to rabbitmq and the corresponding container for transforms
             load_uuid = await generate_uuid()
             shutil.make_archive("./app/payloads/operations/{}/{}".format(operation.name,load_uuid), 'zip', working_path)
@@ -678,7 +682,7 @@ async def perform_load_transforms(data, cb, operation, op, task):
                                                             {"zip": base64.b64encode(file_data).decode('utf-8'),
                                                              "transforms": load_transforms['transforms'],
                                                              "extension": cb.registered_payload.payload_type.file_extension,
-                                                             "loads": transform_output}
+                                                             "loads": data['params'].split(",")}
                                                         ).encode()
                                                     ).decode('utf-8'))
             shutil.rmtree(working_path)

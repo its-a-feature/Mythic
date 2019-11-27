@@ -16,7 +16,7 @@ exports.persist_folderaction = function(task, command, params){
     	ObjC.import('OSAKit');
     	let mylang = "";
     	let myscript = "";
-    	if(code != ""){
+    	if(code !== ""){
     		mylang = $.OSALanguage.languageForName(lang);
     		myscript = $.OSAScript.alloc.initWithSourceLanguage($(code),mylang);
     	}else{
@@ -36,7 +36,7 @@ exports.persist_folderaction = function(task, command, params){
 		let fa = se.FolderAction({name: folder.split("/").pop(), path: folder});
 		// first check to see if there's a folder action for the path we're looking at
 		for(let i = 0; i < se.folderActions.length; i++){
-			if(se.folderActions[i].path() == folder){
+			if(se.folderActions[i].path() === folder){
 				// if our folder already has folder actions, just take the reference for later
 				fa = se.folderActions[i];
 				fa_exists = true;
@@ -45,18 +45,18 @@ exports.persist_folderaction = function(task, command, params){
 			}
 		}
 		// if the folder action doesn't exist, add it
-		if(fa_exists == false){
+		if(fa_exists === false){
 			se.folderActions.push(fa);
 		}
 		// Check to see if this script already exists on this folder
 		for(let i = 0; i < fa.scripts.length; i++){
-			if(fa.scripts[i].posixPath() ==  script_path){
+			if(fa.scripts[i].posixPath() ===  script_path){
 				script_exists = true;
 				output += "Script already assigned to this folder\n";
 				break;
 			}
 		}
-		if(script_exists == false){
+		if(script_exists === false){
 			fa.scripts.push(myScript);
 		}
 		output += "Folder Action established";

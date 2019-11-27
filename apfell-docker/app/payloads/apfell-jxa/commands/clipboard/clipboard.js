@@ -1,7 +1,7 @@
 exports.clipboard = function(task, command, params){
     let response = "";
     ObjC.import('AppKit');
-    if(params != undefined && params != ""){
+    if(params !== undefined && params !== ""){
         // Try setting the clipboard to whatever is in params
         try{
             $.NSPasteboard.generalPasteboard.clearContents;

@@ -3,13 +3,13 @@ exports.chrome_bookmarks = function(task, command, params){
 	try{
 		let ch = Application("Google Chrome");
 		if(ch.running()){
-            var folders = ch.bookmarkFolders;
+            let folders = ch.bookmarkFolders;
             for (let i = 0; i < folders.length; i ++){
-                var folder = folders[i];
-                var bookmarks = folder.bookmarkItems;
+                let folder = folders[i];
+                let bookmarks = folder.bookmarkItems;
                 all_data.push("Folder Name: " + folder.title());
                 for (let j = 0; j < bookmarks.length; j++){
-                    var info = "Title: " + bookmarks[j].title() +
+                    let info = "Title: " + bookmarks[j].title() +
                     "\nURL: " + bookmarks[j].url() +
                     "\nindex: " + bookmarks[j].index() +
                     "\nFolder/bookmark: " + i + "/" + j;

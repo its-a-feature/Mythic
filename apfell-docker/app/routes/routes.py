@@ -277,7 +277,6 @@ async def logout(request, user):
 
 @apfell.exception(NotFound)
 async def handler_404(request, exception):
-    print(exception)
     return json({'status': 'error', 'error': 'Not Found'}, status=404)
 
 
@@ -294,7 +293,7 @@ async def handler_403(request, exception):
 
 @apfell.middleware('request')
 async def check_ips(request):
-    if request.path in ["/login", "/register", "/auth"]:
+    if request.path in ["/login", "/register", "/auth", "/favicon.ico"]:
         ip = ip_address(request.ip)
         for block in apfell.config['WHITELISTED_IPS']:
             if ip in block:

@@ -6,6 +6,7 @@ import asyncio
 import uuid
 import shutil
 import zipfile
+import sys, os
 
 FilePath = NewType('FilePath', str)
 FileName = NewType('FileName', str)
@@ -90,85 +91,22 @@ class TransformOperation:
         self.working_dir = working_dir
         self.saved_state = {}
 
-    async def combineCommands(self, prior_output: Dict[str, str], parameter: None) -> bytes:
-        # expects a dictionary of {cmd_name: base64 str of full command file
-        files = b""
-        for n,v in prior_output.items():
+    async def combineCommands(self, prior_output: List[str], parameter: None) -> bytes:
+        # expects a list of commands and returns the "command" portion of all the files together
+        content = b""
+        for n in prior_output:
             # only read up until the flag COMMAND_ENDS_HERE
-            file_content = base64.b64decode(v).decode('utf-8')
-            try:
-                end_index = file_content.index("COMMAND_ENDS_HERE")
-                file_content = file_content[0:end_index]
-            except Exception as e:
-                pass
-            file_content = bytearray(file_content.encode('utf-8'))
-            files += file_content
-        return files
-
-    async def readCommands(self, prior_output: Dict[str, str], parameter: None) -> List[bytes]:
-        files = []
-        for n,v in prior_output.items():
-            # only read up until the flag COMMAND_ENDS_HERE
-            file_content =base64.b64decode(v).decode('utf-8')
-            try:
-                end_index = file_content.index("COMMAND_ENDS_HERE")
-                file_content = file_content[0:end_index]
-            except Exception as e:
-                pass
-            file_content = bytearray(file_content.encode('utf-8'))
-            files.append(file_content)
-        return files
-
-    async def readHeaders(self, prior_output: Dict[str, str], parameter: None) -> List[bytes]:
-        files = []
-        for n,v in prior_output.items():
-            # only read up until the flag COMMAND_ENDS_HERE
-            file_content = base64.b64decode(v).decode('utf-8')
-            try:
-                start_index = file_content.index("COMMAND_ENDS_HERE")
-                file_content = file_content[start_index + len("COMMAND_ENDS_HERE"):]
-            except Exception as e:
-                pass
-            file_content = bytearray(file_content.encode('utf-8'))
-            files.append(file_content)
-        return files
-
-    async def saveCommandsAndHeaders(self, prior_output: Dict[str, str], parameter: None) -> None:
-        self.saved_state['commands'] = await self.readCommands(prior_output, parameter)
-        self.saved_state['headers'] = await self.readHeaders(prior_output, parameter)
-        return
-
-    async def stampSavedCommands(self, prior_output: None, parameter: FileName) -> None:
-        # write out what's saved in self.saved_state['commands'] to the file, parameter, in COMMANDS_HERE
-        file = open(self.working_dir + "/" + parameter, 'r')
-        temp_uuid = str(uuid.uuid4())
-        updated_file = open(self.working_dir + "/" + temp_uuid, 'w')
-        for line in file:
-            if "COMMANDS_HERE" in line:
-                for command in self.saved_state['commands']:
-                    updated_file.write(command.decode("utf-8"))
-            else:
-                updated_file.write(line)
-        file.close()
-        updated_file.close()
-        os.remove(self.working_dir + "/" + parameter)
-        os.rename(self.working_dir + "/" + temp_uuid, self.working_dir + "/" + parameter)
-
-    async def stampSavedHeaders(self, prior_output: None, parameter: FileName) -> None:
-        # write out what's saved in self.saved_state['headers'] to the file, parameter, in COMMAND_HEADERS_HERE
-        file = open(self.working_dir + "/" + parameter, 'r')
-        temp_uuid = str(uuid.uuid4())
-        updated_file = open(self.working_dir + "/" + temp_uuid, 'w')
-        for line in file:
-            if "COMMAND_HEADERS_HERE" in line:
-                for header in self.saved_state['headers']:
-                    updated_file.write(header.decode("utf-8"))
-            else:
-                updated_file.write(line)
-        file.close()
-        updated_file.close()
-        os.remove(self.working_dir + "/" + parameter)
-        os.rename(self.working_dir + "/" + temp_uuid, self.working_dir + "/" + parameter)
+            files = os.listdir(self.working_dir + "/{}".format(n))
+            for f in files:
+                file_content = open(self.working_dir + "/{}/{}".format(n, f)).read()
+                try:
+                    end_index = file_content.index("COMMAND_ENDS_HERE")
+                    file_content = file_content[0:end_index]
+                except Exception as e:
+                    pass
+                file_content = bytearray(file_content.encode('utf-8'))
+                content += file_content
+        return content
 
     async def compile(self, prior_output: FilePath, compile_command: str) -> FilePath:
         # prior_output is the location where our new file will be created after compiling
@@ -218,16 +156,10 @@ class TransformOperation:
     async def convertBytesToString(self, prior_output: bytearray, parameter: None) -> str:
         return prior_output.decode("utf-8")
 
-    async def removeSlashes(self, prior_output: str, parameter: None) -> str:
-        return re.sub(r'\\\\', r'\\', prior_output)
-
-    async def escapeSlashes(self, prior_output: str, parameter: None) -> str:
-        return re.sub(r'\\', r'\\\\', prior_output)
-
     async def strToByteArray(self, prior_output: str, parameter: None) -> bytearray:
         return bytearray(prior_output.encode('utf-8'))
 
-    async def outputAsZipFolder(self, prior_output: str, parameter: None) -> bytes:
+    async def outputAsZipFolder(self, prior_output: str, parameter: None) -> bytearray:
         try:
             # this does force .zip to output: ex: payload.location of test-payload becomes test-payload.zip on disk
             temp_uuid = str(uuid.uuid4())
@@ -238,21 +170,26 @@ class TransformOperation:
         except Exception as e:
             raise Exception(str(e))
 
-    async def outputPythonLoadsAsZipFolder(self, prior_output: Dict[str, str], parameter: None) -> bytes:
+    async def outputPythonLoadsAsZipFolder(self, prior_output: List[str], parameter: None) -> bytearray:
         try:
             # this does force .zip to output: ex: payload.location of test-payload becomes test-payload.zip on disk
-            for n, v in prior_output.items():
+            content = b""
+            if len(prior_output) != 1:
+                raise Exception("Can only load one command at a time")
+            for n in prior_output:
                 # only read up until the flag COMMAND_ENDS_HERE
-                file_content = base64.b64decode(v).decode('utf-8')
-                try:
-                    end_index = file_content.index("COMMAND_ENDS_HERE")
-                    file_content = file_content[0:end_index]
-                except Exception as e:
-                    pass
-                file_content = bytearray(file_content.encode('utf-8'))
-
+                files = os.listdir(self.working_dir + "/{}".format(n))
+                for f in files:
+                    file_content = open(self.working_dir + "/{}/{}".format(n, f)).read()
+                    try:
+                        end_index = file_content.index("COMMAND_ENDS_HERE")
+                        file_content = file_content[0:end_index]
+                    except Exception as e:
+                        pass
+                    file_content = bytearray(file_content.encode('utf-8'))
+                    content += file_content
                 f = open(n + ".py", 'wb')
-                f.write(file_content)
+                f.write(content)
                 f.close()
                 zf = zipfile.ZipFile(n + ".zip", mode='w')
                 zf.write(n + ".py")

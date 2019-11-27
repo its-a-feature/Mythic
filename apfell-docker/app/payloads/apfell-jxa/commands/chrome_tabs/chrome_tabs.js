@@ -4,10 +4,10 @@ exports.chrome_tabs = function(task, command, params){
 		let ch = Application("Google Chrome");
 		if(ch.running()){
             for (let i = 0; i < ch.windows.length; i++){
-                var win = ch.windows[i];
+                let win = ch.windows[i];
                 for (let j = 0; j < win.tabs.length; j++){
-                    var tab = win.tabs[j];
-                    var info = "Title: " + tab.title() +
+                    let tab = win.tabs[j];
+                    let info = "Title: " + tab.title() +
                     "\nURL: " + tab.url() +
                     "\nWin/Tab: " + i + "/" + j;
                     tabs.push(info);
