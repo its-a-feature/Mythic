@@ -452,7 +452,7 @@ async def write_payload(uuid, user, data):
             # we likely got a binary file that can't be parsed like this, so move on
             custom.close()
             os.remove(base_file + payload.uuid)
-            print(e)
+            print("Tried to read lines of a binary file, moving to the next file: " + str(e))
     try:
         base_c2.close()
     except Exception as e:

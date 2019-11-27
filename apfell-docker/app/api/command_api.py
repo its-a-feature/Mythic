@@ -8,6 +8,7 @@ import base64
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 import os
+import shutil
 
 
 # commands aren't inherent to an operation, they're unique to a payloadtype
@@ -256,6 +257,7 @@ async def remove_command(request, user, id):
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
+        cmd_json = command.to_json()
         query = await db_model.commandparameters_query()
         params = await db_objects.execute(query.where(CommandParameters.command == command))
         for p in params:
@@ -265,7 +267,11 @@ async def remove_command(request, user, id):
         for t in transforms:
             await db_objects.delete(t, recursive=True)
         await db_objects.delete(command, recursive=True)
-        return json({'status': 'success', **command.to_json()})
+        try:
+            shutil.rmtree("./app/payloads/{}/commands/{}".format(cmd_json['payload_type'], cmd_json['cmd']))
+        except Exception as e:
+            pass
+        return json({'status': 'success', **cmd_json})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': str(e)})

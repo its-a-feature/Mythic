@@ -640,27 +640,60 @@ var payloadtypes_table = new Vue({
             });
         },
         remove_commands_button: function(p){
-            let types = "";
+            remove_commands_vue.commands = [];
             for(let i = 0; i < p.commands.length; i++){
-                types = types + '<option value="' + p.commands[i]['cmd'] + '">' + p.commands[i]['cmd'] + '</option>';
+                remove_commands_vue.commands.push(Object.assign({}, {'checked': false}, p.commands[i]));
             }
-            $( '#commandRemoveList' ).html(types);
             $( '#commandRemoveModal' ).modal('show');
             $( '#commandRemoveSubmit' ).unbind('click').click(function(){
-                commands_to_remove = $( '#commandRemoveList' ).val();
-                for(let i = 0; i < commands_to_remove.length; i++){
-                    for(let j = 0; j < p.commands.length; j++){
-                        if(p.commands[j]['cmd'] === commands_to_remove[i]){
-                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + p.commands[j]['id'], remove_commands_callback, "DELETE", null);
-                        }
+                for(let i = 0; i < remove_commands_vue.commands.length; i++){
+                    if(remove_commands_vue.commands[i]['checked']){
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + remove_commands_vue.commands[i]['id'], remove_commands_callback, "DELETE", null);
                     }
                 }
             });
         },
         export_commands_button: function(p){
+            export_commands_vue.commands = [];
+            for(let i = 0; i < p.commands.length; i++){
+                export_commands_vue.commands.push(Object.assign({}, {'checked': false}, p.commands[i]));
+            }
+            $( '#commandExportModal' ).modal('show');
+            $( '#commandExportSubmit' ).unbind('click').click(function(){
+                let commands_to_export = [];
+                for(let i = 0; i < export_commands_vue.commands.length; i++){
+                    if(export_commands_vue.commands[i]['checked']){
+                        commands_to_export.push(export_commands_vue.commands[i]['cmd']);
+                    }
+                }
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype +"/export/commands", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            delete data['status'];
+                            download_from_memory(p.ptype +  "_commands.json", btoa(JSON.stringify(data)));
+                        }else{
+                            alertTop("warning", data['error']);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "POST", {"commands": commands_to_export});
+            });
+        },
+        export_payload_type_button: function(p){
             //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype + "/export", '_blank').focus();
-            payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype + "/export");
+            let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + p.ptype + "/export");
             download_from_memory(p.ptype + ".json", btoa(payload));
+        },
+        import_commands_button: function(p){
+            $( '#commandImportModal' ).modal('show');
+            $( '#commandImportSubmit' ).unbind('click').click(function(){
+                let file = document.getElementById('commandImportFile');
+                let filedata = file.files[0];
+                uploadFile("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/import/commands", import_payload_button_callback, filedata);
+            });
         },
         edit_create_transforms_button: function(p, index){
             //I do this parse/unparse thing so that i can get a deep copy of the dictionary without holding onto vue's getters and setters
@@ -710,6 +743,20 @@ var payloadtypes_table = new Vue({
         },
     },
     delimiters: ['[[', ']]']
+});
+var export_commands_vue = new Vue({
+    el: '#commandExportModal',
+    delimiters: ['[[', ']]'],
+    data:{
+        commands: []
+    }
+});
+var remove_commands_vue = new Vue({
+    el: '#commandRemoveModal',
+    delimiters: ['[[', ']]'],
+    data:{
+        commands: []
+    }
 });
 var add_command_code_vue = new Vue({
     el: '#add_command_code',

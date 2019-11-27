@@ -74,6 +74,14 @@ var callback_table = new Vue({
         edit_description: function(callback){
             $( '#editDescriptionText' ).val(callback.description);
             $( '#editDescriptionModal' ).modal('show');
+            $('#editDescriptionModal').on('shown.bs.modal', function () {
+                $('#editDescriptionText').focus();
+                $("#editDescriptionText").unbind('keyup').on('keyup', function (e) {
+                    if (e.keyCode === 13) {
+                        $( '#editDescriptionSubmit' ).click();
+                    }
+                });
+            });
             $( '#editDescriptionSubmit' ).unbind('click').click(function(){
                 let newDescription = $( '#editDescriptionText' ).val();
                 if(newDescription !== callback.description){
@@ -1665,13 +1673,15 @@ function autocomplete(inp, arr) {
           if(currentFocus === -1){
               console.log(x);
               task_data.input_field = x[0].textContent;
+              e.preventDefault();
+              closeAllLists("");
+              e.stopImmediatePropagation();
           }else{
               task_data.input_field = x[currentFocus].textContent;
+              e.preventDefault();
+              closeAllLists("");
+              e.stopImmediatePropagation();
           }
-          e.preventDefault();
-          closeAllLists("");
-          e.stopImmediatePropagation();
-
       }
   });
   function addActive(x) {

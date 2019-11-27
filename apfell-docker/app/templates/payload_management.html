@@ -190,7 +190,7 @@
 <br><br>
 
 <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="create_payloadtype_button()"><i class="fas fa-plus"></i> PayloadType</button>
-<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="import_payload_button()" data-toggle="tooltip" title="Import new payload type"><i class="fas fa-file-import"></i></button>
+<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="import_payload_button()" data-toggle="tooltip" title="Import new payload type"><i class="fas fa-file-upload fa-lg"></i></button>
 <br>
 <!-- PAYLOAD TYPE AND COMMAND INFORMATION/MODIFICATION/CREATION HERE -->
 <div style="resize: vertical; overflow:visible; height:calc(40vh)" class="card border border-dark shadow bg-card-body" id="payloadtypes_table" >
@@ -220,11 +220,13 @@
                             <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_commands_button(p)"><i class="fas fa-plus"></i></button>
                             <button class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_commands_button(p)"><i class="fas fa-edit"></i> </button>
                             <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_commands_button(p)"><i class="fas fa-trash-alt"></i></button>
+                            <button class="btn btn{{config['outline-buttons']}}info btn-sm" @click="export_commands_button(p)"><i class="fas fa-file-export"></i></button>
+                            <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="import_commands_button(p)"><i class="fas fa-file-upload fa-lg"></i></button>
                           </div>
                     </div>
                     <div class="card-footer border border-dark shadow">
                         <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_payloadtype_button(p)" ><i class="fas fa-trash-alt"></i></button>
-                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="export_commands_button(p)" data-toggle="tooltip" title="Export payload type and commands"><i class="fas fa-file-export"></i></button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="export_payload_type_button(p)" data-toggle="tooltip" title="Export payload type and commands"><i class="fas fa-file-export"></i></button>
                         <div class="dropdown" style="display:inline-block">
                               <button class="btn btn{{config['outline-buttons']}}warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-edit"></i>
@@ -504,24 +506,21 @@
 <!-- END MODAL FOR IMPORTING COMMAND -->
 <!-- THIS IS OUR MODAL FOR REMOVING COMMANDS -->
 <div class="modal fade" id="commandRemoveModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h3>Remove commands from payload type</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body" id="commandRemoveBody">
-                <table class="table table-striped table-hover {{config['table-color']}}">
-                    <tr>
-                        <td>
-                            Select commands to remove:
-                        </td>
-                        <td>
-                            <select multiple id="commandRemoveList" size="20">
-                            </select>
-                        </td>
-                    </tr>
-                </table>
+                <div class="card-deck" >
+                        <div v-for="cmd in commands" class="card" style="min-width: 15rem">
+                            <span class="material-switch pull-right" style="display:inline-block">
+                                <input type="checkbox" :checked="cmd.checked" v-model="cmd.checked" :id="'removecommand' + cmd.id" >
+                                <label :for="'removecommand' + cmd.id" class="btn-danger"></label>&nbsp;[[cmd.cmd]]
+                            </span>
+                        </div>
+                    </div>
               </div>
               <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
@@ -531,6 +530,32 @@
     </div>
 </div>
 <!-- END MODAL FOR REMOVING COMMANDS -->
+<!-- THIS IS OUR MODAL FOR EXPORTING COMMANDS -->
+<div class="modal fade" id="commandExportModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Export commands from payload type</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <div class="modal-body" id="commandExportBody">
+                    <div class="card-deck" >
+                        <div v-for="cmd in commands" class="card" style="min-width: 15rem">
+                            <span class="material-switch pull-right" style="display:inline-block">
+                                <input type="checkbox" :checked="cmd.checked" v-model="cmd.checked" :id="'exportcommand' + cmd.id" >
+                                <label :for="'exportcommand' + cmd.id" class="btn-info"></label>&nbsp;[[cmd.cmd]]
+                            </span>
+                        </div>
+                    </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" id="commandExportSubmit">Export</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR EXPORTING COMMANDS -->
 <!-- THIS IS OUR MODAL FOR ADDING COMMANDS -->
 <div class="modal fade" id="commandAddModal" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
