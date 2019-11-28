@@ -64,7 +64,7 @@
                 <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="change_config_button(o)"><i class="fas fa-user-edit"></i></button>
                 </td>
-                <td style="text-align:center">
+                <td >
                     <span class="material-switch"><input type="checkbox" v-model="o.view_utc_time" @change="change_time(o)" :id="'view_utc' + o.id"> <label :for="'view_utc' + o.id" class="btn-info"></label>
                     </span>
                 </td>
