@@ -29,6 +29,14 @@ var task_info = new Vue({
         add_comment: function(task){
             $( '#addCommentTextArea' ).val(task.comment);
             $( '#addCommentModal' ).modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+                $("#addCommentTextArea").unbind('keyup').on('keyup', function (e) {
+                    if (e.keyCode === 13) {
+                        $( '#addCommentSubmit' ).click();
+                    }
+                });
+            });
             $( '#addCommentSubmit' ).unbind('click').click(function(){
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});
             });

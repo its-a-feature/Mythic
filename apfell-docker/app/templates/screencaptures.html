@@ -13,6 +13,7 @@
                 <th>Timestamp</th>
                 <th onclick="sort_table(this)">Completed</th>
                 <th onclick="sort_table(this)">Callback</th>
+                <th>Comment</th>
                 <th>View</th>
                 <th>Download</th>
             </tr>
@@ -32,6 +33,7 @@
                 <td>
                     [[s.user]]@[[s.host]] (<a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + s.callback_id" target="_blank"><b>[[s.callback_id]]</b></a>)
                 </td>
+                <td>[[s.comment]]</td>
                 <td style="text-align:center"><a href="#" @click="toggle_image(s)" style="color:royalblue"><i class="fas fa-eye fa-lg"></i></a></td>
                 <td style="text-align:center"><a :href="[[s.remote_path]]" style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
             </tr>

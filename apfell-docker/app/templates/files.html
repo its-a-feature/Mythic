@@ -7,18 +7,30 @@
         <div class="card-body bg-card-body border border-dark shadow" style="padding:0;margin:0">
             <table class="table table-striped table-hover {{config['table-color']}} border border-dark shadow">
                 <tr>
+                    <th style="width:3rem;text-align:left">
+                        <span class="material-switch pull-right">
+                            <input type="checkbox" id="fileselectedall" @change="toggle_all()">
+                            <label for="fileselectedall" class="btn-success"></label>
+                        </span>
+                    </th>
                     <th style="width:4rem">Delete</th>
                     <th onclick="sort_table(this)" style="width:15rem">Time</th>
                     <th onclick="sort_table(this)" style="width:6rem">Task</th>
                     <th onclick="sort_table(this)" style="width:16rem">Host</th>
                     <th onclick="sort_table(this)" style="width:8rem">Operator</th>
-                    <th onclick="sort_table(this)">File</th>
-                    <th onclick="sort_table(this)" style="width:15rem">Comment</th>
+                    <th onclick="sort_table(this)" style="text-align:left">File</th>
+                    <th onclick="sort_table(this)" style="width:15rem;text-align:left">Comment</th>
                     <th style="width:6rem">Download</th>
                     <th >Info</th>
                 </tr>
                 <tr v-for="(file,i) in hosts.downloads">
                     <template v-if="file.complete">
+                        <td>
+                            <span class="material-switch pull-right">
+                                <input type="checkbox" v-model="file.selected" :id="'fileselected' + file.id">
+                                <label :for="'fileselected' + file.id" class="btn-success"></label>
+                            </span>
+                        </td>
                         <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-lg" @click="delete_file(file.id)" ></i></button></td>
                         <td>[[toLocalTime(file.timestamp)]]</td>
                         <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + file.task" target="_blank"><b>[[file.task]]</b></a></td>
@@ -26,10 +38,11 @@
                         <td>[[file.operator]]</td>
                         <td>[[file.params]]</td>
                         <td>[[file.comment]]</td>
-                        <td><a class="btn btn-md" :href='file.remote_path' target="_blank" style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
-                        <td><a class="btn btn-md" @click="display_info(file)" style="color:royalblue;cursor:pointer"><i class="fas fa-info-circle fa-lg"></i></a></td>
+                        <td style="text-align:center"><a class="btn btn-md" :href='file.remote_path' style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
+                        <td style="text-align:center"><a class="btn btn-md" @click="display_info(file)" style="color:royalblue;cursor:pointer"><i class="fas fa-info-circle fa-lg"></i></a></td>
                     </template>
                     <template v-else>
+                        <td></td>
                         <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-2x" @click="delete_file(file.id)" ></i></button></td>
                         <td>[[toLocalTime(file.timestamp)]]</td>
                         <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + file.task" target="_blank"><b>[[file.task]]</b></a></td>
@@ -37,14 +50,15 @@
                         <td>[[file.operator]]</td>
                         <td>[[file.params]]: <span class="display">Parts [[file.chunks_received]] of [[file.total_chunks]] received so far</span></td>
                         <td>[[file.comment]]</td>
-                        <td><a class="btn btn-md" style="color:red"><i class="fas fa-ban fa-2x"></i></a></td>
-                        <td><a class="btn btn-md" @click="display_info(file)" style="color:royalblue;cursor:pointer"><i class="fas fa-info-circle fa-lg"></i></a></td>
+                        <td style="text-align:center"><a class="btn btn-md" style="color:red"><i class="fas fa-ban fa-2x"></i></a></td>
+                        <td style="text-align:center"><a class="btn btn-md" @click="display_info(file)" style="color:royalblue;cursor:pointer"><i class="fas fa-info-circle fa-lg"></i></a></td>
                     </template>
                 </tr>
             </table>
         </div>
         <div class="card-footer bg-card-body border border-dark shadow">
-            <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('downloads')"><i class="fas fa-file-export"></i> Export</button>
+            <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('downloads')"><i class="fas fa-file-export"></i> Export Metadata</button>
+            <button class="btn btn-md btn{{config['outline-buttons']}}success" @click="zip_selected_files()"><i class="fas fa-file-archive"></i> Zip & Download selected</button>
         </div>
     </div><br>
     <div style="resize: vertical; overflow:scroll;  max-height:calc(45vh)" class="card bg-card-body border border-dark shadow">
@@ -57,9 +71,9 @@
                     <th onclick="sort_table(this)" style="width:6rem">Task</th>
                     <th onclick="sort_table(this)" style="width:16rem">Host</th>
                     <th onclick="sort_table(this)" style="width:8rem">Operator</th>
-                    <th onclick="sort_table(this)" style="width:15rem">Source</th>
-                    <th onclick="sort_table(this)" >Destination</th>
-                    <th onclick="sort_table(this)" style="width:15rem">Comment</th>
+                    <th onclick="sort_table(this)" style="width:15rem;text-align:left">Source</th>
+                    <th onclick="sort_table(this)" style="text-align:left">Destination</th>
+                    <th onclick="sort_table(this)" style="width:15rem;text-align:left">Comment</th>
                     <th style="width:6rem">Download</th>
                     <th >Info</th>
                 </tr>
@@ -72,13 +86,13 @@
                     <td>[[file.path]]</td>
                     <td>[[file.upload.remote_path]]</td>
                     <td>[[file.comment]]</td>
-                    <td><a class="btn btn-md" :href='file.remote_path' target="_blank" style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
-                    <td><a class="btn btn-md" @click="display_info(file)" style="color:royalblue;cursor:pointer"><i class="fas fa-info-circle fa-lg"></i></a></td>
+                    <td style="text-align:center"><a class="btn btn-md" :href='file.remote_path' style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
+                    <td style="text-align:center"><a class="btn btn-md" @click="display_info(file)" style="color:royalblue;cursor:pointer"><i class="fas fa-info-circle fa-lg"></i></a></td>
                 </tr>
             </table>
         </div>
         <div class="card-footer bg-card-body border border-dark shadow">
-            <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('uploads')"><i class="fas fa-file-export"></i> Export</button>
+            <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('uploads')"><i class="fas fa-file-export"></i> Export Metadata</button>
         </div>
     </div>
 </div>

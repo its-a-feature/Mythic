@@ -13,6 +13,7 @@ from sanic.exceptions import abort
 import shutil
 from app.api.crypto_api import decrypt_agent_message, encrypt_agent_message
 from app.crypto import hash_MD5, hash_SHA1
+import uuid
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -488,3 +489,36 @@ async def host_payload_file_manually_by_name(request, user):
         return json({'status': 'success', **payload.to_json()})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to copy file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/download/bulk", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def download_ziped_files(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        data = request.json
+        if 'files' not in data:
+            return abort(404, "missing 'files' value")
+        # need to make aa temporary directory, copy all the files there, zip it, return that and clean up temp dir
+        temp_id = str(uuid.uuid4())
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        working_dir = "./app/payloads/operations/{}/{}/".format(operation.name, str(uuid.uuid4()))
+        os.makedirs(working_dir, exist_ok=True)
+        query = await db_model.filemeta_query()
+        for file_id in data['files']:
+            try:
+                cur_file = await db_objects.get(query, agent_file_id=file_id, operation=operation)
+                shutil.copy(cur_file.path, working_dir + os.path.basename(cur_file.path))
+            except Exception as e:
+                print(str(e))
+        shutil.make_archive("./app/payloads/operations/{}/{}".format(operation.name, temp_id), 'zip', working_dir)
+        zip_data = open("./app/payloads/operations/{}/{}.zip".format(operation.name, temp_id), 'rb').read()
+        os.remove("./app/payloads/operations/{}/{}.zip".format(operation.name, temp_id))
+        shutil.rmtree(working_dir)
+        return raw(base64.b64encode(zip_data))
+    except Exception as e:
+        print(str(e))
+        return json({'status': 'error', 'error': 'failed to process request'})

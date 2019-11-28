@@ -189,11 +189,7 @@ var callback_table = new Vue({
         },
         check_all_callbacks:function(){
             for(let i in this.callbacks){
-                if($('#all_callback_checkbox').is(":checked")){
-                    this.callbacks[i]['selected'] = true;
-                }else{
-                    this.callbacks[i]['selected'] = false;
-                }
+                this.callbacks[i]['selected'] = $('#all_callback_checkbox').is(":checked");
             }
         },
         split_callback: function(callback){
@@ -206,10 +202,7 @@ var callback_table = new Vue({
             if(this.filter.includes(":")){
                 let pieces = this.filter.split(":");
                 if(callback.hasOwnProperty(pieces[0])){
-                    if(callback[pieces[0]].toString().includes(pieces[1])){
-                        return true;
-                    }
-                    return false;
+                    return callback[pieces[0]].toString().includes(pieces[1]);
                 }
                 return callback.active;
             }

@@ -34,7 +34,8 @@ function startwebsocket_tasks() {
                 }
             }
             //adding a new task, sort it so that the newest is on top
-            live_feed.tasks.push(data);
+            live_feed.tasks.unshift(data);
+            //live_feed.tasks.push(data);
             live_feed.tasks.sort((a,b) =>(b.id > a.id) ? 1 : ((a.id > b.id) ? -1 : 0));
         }
     };

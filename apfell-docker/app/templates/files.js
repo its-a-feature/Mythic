@@ -16,6 +16,23 @@ var files_div = new Vue({
         display_info: function(file){
             file_info_div.file = file;
             $('#file_info_div').modal('show');
+        },
+        zip_selected_files: function(){
+            let selected_files = [];
+            for(let i = 0; i < files_div.hosts['downloads'].length; i++){
+                if(files_div.hosts['downloads'][i]['selected'] === true){
+                    selected_files.push(files_div.hosts['downloads'][i]['agent_file_id']);
+                }
+            }
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/bulk", (response)=>{
+                download_from_memory("apfell_downloads.zip", response);
+            }, "POST", {'files': selected_files});
+        },
+        toggle_all: function(){
+            let selected = $('#fileselectedall').is(":checked");
+            for(let i = 0; i < files_div.hosts['downloads'].length; i++){
+                files_div.hosts['downloads'][i]['selected'] = selected;
+            }
         }
     },
     delimiters: ['[[',']]']
@@ -28,6 +45,19 @@ function delete_file_callback(response){
    }
    if(data['status'] !== "success"){
         alertTop("danger", data['error']);
+   }else{
+       for(let i = 0; i < files_div.hosts['uploads'].length; i++){
+           if(files_div.hosts['uploads'][i]['id'] === data['id']){
+               files_div.hosts['uploads'].splice(i, 1);
+               return;
+           }
+       }
+       for(let i = 0; i < files_div.hosts['downloads'].length; i++){
+           if(files_div.hosts['downloads'][i]['id'] === data['id']){
+               files_div.hosts['downloads'].splice(i, 1);
+               return;
+           }
+       }
    }
 }
 function startwebsocket_files(){
@@ -37,11 +67,12 @@ function startwebsocket_files(){
         if (event.data !== ""){
             //console.log(event.data);
             let f = JSON.parse(event.data);
+            f['selected'] = false;
             if(f['deleted'] === true){return;}
             // will get file_meta data a host field and an operator field
             f['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + f['agent_file_id'];
             if(f.path.includes("/downloads/")){
-                files_div.hosts['downloads'].push(f);
+                files_div.hosts['downloads'].unshift(f);
             }
             else{
                 try{
@@ -50,7 +81,7 @@ function startwebsocket_files(){
                 }catch(e){
                     f.upload = {"remote_path": "agent load of " + f.upload};
                 }
-                files_div.hosts['uploads'].push(f);
+                files_div.hosts['uploads'].unshift(f);
             }
         }
         else{
