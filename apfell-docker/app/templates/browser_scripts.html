@@ -4,7 +4,7 @@
 
 <div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="browser_scripts_table">
     <div class="card-header bg-header text-white">
-        <h2>User and Operation <span class="operator">Browser Scripts</span></h2>
+        <h2>User's <span class="operator">Browser Scripts</span></h2>
     </div>
         <table class="table table-striped {{config['table-color']}} table-hover border border-dark shadow" >
             <tr>
@@ -16,20 +16,20 @@
                 <th onclick="sort_table(this)"><b>Author</b></th>
                 <th onclick="sort_table(this)"><b>Registration Time</span></b></th>
                 <th onclick="sort_table(this)"><b>In Effect</b></th>
-                <th onclick="sort_table(this)"><b>Assign to Operation </b></th>
+                <th onclick="sort_table(this)"><b>Apply to Operation </b></th>
                 <th><b>Edit</b></th>
             </tr>
 
             <tr v-for="(s, i) in bscripts" :key="i">
                 <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(s, i)" :disabled="s.operator != user"><i class="fas fa-trash-alt"></i></button>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(s, i)"><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td>
                     <template v-if="s.active">
-                        <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="toggle_active(s)" :disabled="s.operator != user">Deactivate</button>
+                        <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="toggle_active(s)">Deactivate</button>
                     </template>
                     <template v-else>
-                        <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="toggle_active(s)" :disabled="s.operator != user">Activate</button>
+                        <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="toggle_active(s)">Activate</button>
                     </template>
                 </td>
                 <td>[[s.payload_type]]</td>
@@ -49,29 +49,62 @@
                     [[in_effect(s)]]
                 </td>
                 <td>
-                    <template v-if="s.operation != 'null'">
-                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="toggle_operation(s)" :disabled="s.operator != user">Remove</button>
+                    <template v-if="is_in_operation(s)">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="toggle_operation(s)">Remove</button>
                     </template>
                     <template v-else>
-                        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="toggle_operation(s)" :disabled="s.operator != user">Apply</button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="toggle_operation(s)">Apply</button>
                     </template>
-
                 </td>
                 <td>
-                    <template v-if="s.operator != user">
-                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="view_code(s)">View Script</button>
-                    </template>
-                    <template v-else>
-                        <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_button(s)"><i class="fas fa-edit"></i></button>
-                    </template>
-
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_button(s)"><i class="fas fa-edit"></i></button>
                 </td>
             </tr>
         </table>
     <div class="card-footer bg-card-footer border border-dark shadow">
         <button class="btn btn-md btn{{config['outline-buttons']}}success" @click="new_script()"><i class="fas fa-plus"></i> New Script</button>
-        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="import_scripts()" data-toggle="tooltip" title="Import new browser scripts from JSON"><i class="fas fa-file-import"></i></button>
-        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_scripts()" data-toggle="tooltip" title="Export all browser scripts as JSON"><i class="fa fa-file-export"></i></button>
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="import_scripts()" data-toggle="tooltip" title="Import new browser scripts from JSON"><i class="fas fa-file-upload fa-lg"></i></button>
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_scripts()" data-toggle="tooltip" title="Export all personal browser scripts as JSON"><i class="fa fa-file-export fa-lg"></i></button>
+    </div>
+    <div class="card-header bg-header text-white">
+        <h2>Operation's <span class="operator">Browser Scripts</span></h2>
+    </div>
+        <table class="table table-striped {{config['table-color']}} table-hover border border-dark shadow" >
+            <tr>
+                <th style="text-align:left;width:5em" ><b>Remove</b></th>
+                <th onclick="sort_table(this)"><b>Payload Type </b></th>
+                <th onclick="sort_table(this)"><b>Command </b></th>
+                <th><b>Snippet</b></th>
+                <th onclick="sort_table(this)"><b>Author</b></th>
+                <th onclick="sort_table(this)"><b>Registration Time</span></b></th>
+                <th>View</th>
+            </tr>
+
+            <tr v-for="(s, i) in operation_scripts" :key="i">
+                <td>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_from_operation_button(s, i)"><i class="fas fa-trash-alt"></i></button>
+                </td>
+
+                <td>[[s.payload_type]]</td>
+                <td>[[s.command]]</td>
+                <td>
+                    <template v-if="s.script.length > 120">
+                        [[s.script.substring(0,120) + '...']]
+                    </template>
+                    <template v-else>
+                        [[s.script]]
+                    </template>
+
+                </td>
+                <td>[[s.operator]]</td>
+                <td>[[toLocalTime(s.creation_time)]]</td>
+                <td>
+                    <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="view_code(s)">View Script</button>
+                </td>
+            </tr>
+        </table>
+    <div class="card-footer bg-card-footer border border-dark shadow">
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_operation_scripts()" data-toggle="tooltip" title="Export all browser scripts for this operation as JSON"><i class="fa fa-file-export fa-lg"></i></button>
     </div>
 </div>
 <div id="modal_vues">
@@ -127,7 +160,7 @@
     <!-- END MODAL FOR CREATING BROWSER SCRIPT -->
     <!-- THIS IS OUR MODAL FOR VIEWING A BROWSER SCRIPT -->
     <div class="modal fade" id="viewBrowserScriptModal" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
                     <h3>Viewing a Browser Script</h3>
@@ -151,7 +184,7 @@
     </div>
     <!-- END MODAL FOR VIEWING BROWSER SCRIPT -->
 </div>
-<!-- THIS IS OUR MODAL FOR IMPORTING COMMAND -->
+<!-- THIS IS OUR MODAL FOR IMPORTING SCRIPTS -->
 <div class="modal fade" id="scriptImportModal" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -169,7 +202,7 @@
         </div>
     </div>
 </div>
-<!-- END MODAL FOR IMPORTING COMMAND -->
+<!-- END MODAL FOR IMPORTING SCRIPTS -->
 
 {% endblock %}
 {% block scripts %}

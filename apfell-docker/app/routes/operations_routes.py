@@ -7,13 +7,10 @@ import base64
 from app.routes.routes import respect_pivot
 
 
-@apfell.route("/callbacks")
-@inject_user()
-@scoped('auth:user')
-async def callbacks(request, user):
-    template = env.get_template('callbacks.html')
+async def get_scripts(user):
     scripts_to_add = {}
     browser_scripts = ""
+    support_scripts_to_add = {}
     final_support_scripts = ""
     query = await db_model.operator_query()
     operator = await db_objects.get(query, username=user['username'])
@@ -27,20 +24,33 @@ async def callbacks(request, user):
         if s.command is not None:
             scripts_to_add[s.command.id] = s.script
         else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+            support_scripts_to_add[s.name] = s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+            # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
     # get scripts assigned to the operation
+    operation_query = await db_model.browserscriptoperation_query()
     operation_scripts = await db_objects.execute(
-        query.where((db_model.BrowserScript.operation == operation) & (db_model.BrowserScript.active == True)))
+        operation_query.where(db_model.BrowserScriptOperation.operation == operation))
     for s in operation_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script  # will overwrite a user script if it existed, which is what we want
+        if s.browserscript.command is not None:
+            scripts_to_add[
+                s.browserscript.command.id] = s.browserscript.script  # will overwrite a user script if it existed, which is what we want
         else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+            support_scripts_to_add[s.browserscript.name] = s.browserscript.name + ":" + base64.b64decode(
+                s.browserscript.script).decode('utf-8') + ","
+            # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
     for s, v in scripts_to_add.items():
         browser_scripts += str(s) + ":" + base64.b64decode(v).decode('utf-8') + ","
-    #support_scripts = await db_objects.execute(query.where( (db_model.BrowserScript.command == None) & (db_model.BrowserScript.active == True)))
-    #for s in support_scripts:
-    #    final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+    for s, v in support_scripts_to_add.items():
+        final_support_scripts += v
+    return browser_scripts, final_support_scripts
+
+
+@apfell.route("/callbacks")
+@inject_user()
+@scoped('auth:user')
+async def callbacks(request, user):
+    template = env.get_template('callbacks.html')
+    browser_scripts, final_support_scripts = await get_scripts(user)
     if use_ssl:
         content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
                                   ws="wss", config=user['ui_config'], browser_scripts=browser_scripts,
@@ -195,33 +205,7 @@ async def credentials(request, user):
 @scoped('auth:user')
 async def view_tasks(request, user):
     template = env.get_template('view_tasks.html')
-    scripts_to_add = {}
-    browser_scripts = ""
-    final_support_scripts= ""
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, username=user['username'])
-    query = await db_model.operation_query()
-    operation = await db_objects.get(query, name=user['current_operation'])
-    query = await db_model.browserscript_query()
-    operator_scripts = await db_objects.execute(
-        query.where((db_model.BrowserScript.operator == operator) & (db_model.BrowserScript.active == True)))
-    for s in operator_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    operation_scripts = await db_objects.execute(
-        query.where((db_model.BrowserScript.operation == operation) & (db_model.BrowserScript.active == True)))
-    for s in operation_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script  # will overwrite a user script if it existed, which is what we want
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    for s, v in scripts_to_add.items():
-        browser_scripts += str(s) + ":" + base64.b64decode(v).decode('utf-8') + ","
-    #support_scripts = await db_objects.execute(query.where((db_model.BrowserScript.command == None) & (db_model.BrowserScript.active == True)))
-    #for s in support_scripts:
-    #    final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+    browser_scripts, final_support_scripts = await get_scripts(user)
     if use_ssl:
         content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
                                   ws="wss", admin=user['admin'], current_operation=user['current_operation'],
@@ -240,31 +224,7 @@ async def view_tasks(request, user):
 @scoped('auth:user')
 async def view_shared_task(request, user, tid):
     template = env.get_template('share_task.html')
-    scripts_to_add = {}
-    browser_scripts = ""
-    final_support_scripts = ""
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, username=user['username'])
-    query = await db_model.operation_query()
-    operation = await db_objects.get(query, name=user['current_operation'])
-    query = await db_model.browserscript_query()
-    operator_scripts = await db_objects.execute(query.where( (db_model.BrowserScript.operator == operator) & (db_model.BrowserScript.active == True)))
-    for s in operator_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    operation_scripts = await db_objects.execute(query.where( (db_model.BrowserScript.operation == operation) & (db_model.BrowserScript.active == True)))
-    for s in operation_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script  # will overwrite a user script if it existed, which is what we want
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    for s, v in scripts_to_add.items():
-        browser_scripts += str(s) + ":" + base64.b64decode(v).decode('utf-8') + ","
-    #support_scripts = await db_objects.execute(query.where((db_model.BrowserScript.command == None) & (db_model.BrowserScript.active == True)))
-    #for s in support_scripts:
-    #    final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+    browser_scripts, final_support_scripts = await get_scripts(user)
     if use_ssl:
         content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
                                   ws="wss", admin=user['admin'], current_operation=user['current_operation'],
@@ -283,33 +243,7 @@ async def view_shared_task(request, user, tid):
 @scoped('auth:user')
 async def view_split_callbacks(request, user, cid):
     template = env.get_template('split_callback.html')
-    scripts_to_add = {}
-    browser_scripts = ""
-    final_support_scripts = ""
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, username=user['username'])
-    query = await db_model.operation_query()
-    operation = await db_objects.get(query, name=user['current_operation'])
-    query = await db_model.browserscript_query()
-    operator_scripts = await db_objects.execute(
-        query.where((db_model.BrowserScript.operator == operator) & (db_model.BrowserScript.active == True)))
-    for s in operator_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    operation_scripts = await db_objects.execute(
-        query.where((db_model.BrowserScript.operation == operation) & (db_model.BrowserScript.active == True)))
-    for s in operation_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script  # will overwrite a user script if it existed, which is what we want
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    for s, v in scripts_to_add.items():
-        browser_scripts += str(s) + ":" + base64.b64decode(v).decode('utf-8') + ","
-    #support_scripts = await db_objects.execute(query.where((db_model.BrowserScript.command == None) & (db_model.BrowserScript.active == True)))
-    #for s in support_scripts:
-    #    final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+    browser_scripts, final_support_scripts = await get_scripts(user)
     if use_ssl:
         content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
                                   ws="wss", admin=user['admin'], current_operation=user['current_operation'],
@@ -392,33 +326,7 @@ async def reporting_artifacts(request, user):
 @scoped('auth:user')
 async def comments(request, user):
     template = env.get_template('comments.html')
-    scripts_to_add = {}
-    browser_scripts = ""
-    final_support_scripts = ""
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, username=user['username'])
-    query = await db_model.operation_query()
-    operation = await db_objects.get(query, name=user['current_operation'])
-    query = await db_model.browserscript_query()
-    operator_scripts = await db_objects.execute(
-        query.where((db_model.BrowserScript.operator == operator) & (db_model.BrowserScript.active == True)))
-    for s in operator_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    operation_scripts = await db_objects.execute(
-        query.where((db_model.BrowserScript.operation == operation) & (db_model.BrowserScript.active == True)))
-    for s in operation_scripts:
-        if s.command is not None:
-            scripts_to_add[s.command.id] = s.script  # will overwrite a user script if it existed, which is what we want
-        else:
-            final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
-    for s, v in scripts_to_add.items():
-        browser_scripts += str(s) + ":" + base64.b64decode(v).decode('utf-8') + ","
-    #support_scripts = await db_objects.execute(query.where((db_model.BrowserScript.command == None) & (db_model.BrowserScript.active == True)))
-    #for s in support_scripts:
-    #    final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+    browser_scripts, final_support_scripts = await get_scripts(user)
     if use_ssl:
         content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
                                   ws="wss", admin=user['admin'], current_operation=user['current_operation'],

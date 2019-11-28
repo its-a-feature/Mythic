@@ -1176,29 +1176,40 @@ async def ws_tasks(request, ws, user):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newbrowserscript";')
                     await cur.execute('LISTEN "updatedbrowserscript";')
+                    await cur.execute('LISTEN "newbrowserscriptoperation";')
+                    await cur.execute('LISTEN "updatedbrowserscriptoperation";')
+                    await cur.execute('LISTEN "deletedbrowserscriptoperation";')
                     # before we start getting new things, update with all of the old data
                     try:
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.operator_query()
                         operator = await db_objects.get(query, username=user['username'])
-                        query = await db_model.browserscript_query()
-                        all_scripts = await db_objects.execute(query.where((db_model.BrowserScript.operator == operator) | (db_model.BrowserScript.operation == operation)))
+                        script_query = await db_model.browserscript_query()
+                        all_scripts = await db_objects.execute(script_query.where(db_model.BrowserScript.operator == operator))
                         for s in all_scripts:
-                            await ws.send(js.dumps(s.to_json()))
+                            await ws.send(js.dumps({'type': 'browserscript', **s.to_json()}))
+                        scriptoperation_query = await db_model.browserscriptoperation_query()
+                        all_scripts = await db_objects.execute(scriptoperation_query.where(db_model.BrowserScriptOperation.operation == operation))
+                        for s in all_scripts:
+                            await ws.send(js.dumps({'type': 'browserscriptoperation', **s.to_json()}))
                         await ws.send("")
                     except Exception as e:
-                        return;
+                        return
                     # now pull off any new tasks we got queued up while processing the old data
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
                             id = (msg.payload)
-                            query = await db_model.browserscript_query()
-                            s = await db_objects.get(query, id=id)
-                            # only send off updates for scripts related to the current operation or the current user
-                            if (s.operation is not None and s.operation.name == operation.name) or (s.operator.username == operator.username):
-                                await ws.send(js.dumps(s.to_json()))
+                            if 'operation' in msg.channel:
+                                if 'deleted' in msg.channel:
+                                    await ws.send(js.dumps({'type': 'deletedbrowserscriptoperation', 'info':id}))
+                                else:
+                                    s = await db_objects.get(scriptoperation_query, id=id, operation=operation)
+                                    await ws.send(js.dumps({'type': 'browserscriptoperation', **s.to_json()}))
+                            else:
+                                s = await db_objects.get(script_query, id=id, operator=operator)
+                                await ws.send(js.dumps({'type': 'browserscript', **s.to_json()}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there

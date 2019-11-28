@@ -3,6 +3,7 @@ var scripts = new Vue({
     el: '#browser_scripts_table',
     data:{
         bscripts: [],
+        operation_scripts:[],
         user: "{{name}}"
     },
     methods: {
@@ -12,18 +13,17 @@ var scripts = new Vue({
             commands.script = "";
             $( '#createBrowserScriptModal' ).modal('show');
             $( '#createBrowserScriptSubmit' ).unbind('click').click(function(){
-                data = {"script": btoa(commands.script)};
-                if(commands.current_command != -1){
+                let data = {"script": btoa(commands.script)};
+                if(commands.current_command !== -1){
                     data['command'] = commands.current_command;
                 }else{
                     data['name'] = commands.name;
-
                 }
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" , register_script_callback, "POST", data);
             });
         },
         edit_button: function(s){
-            if(s.payload_type == "Support Script"){
+            if(s.payload_type === "Support Script"){
                 commands.current_command = -1;
                 commands.name = s.name;
             }else{
@@ -32,10 +32,9 @@ var scripts = new Vue({
             }
             commands.script = s.script;
             $( '#createBrowserScriptModal' ).modal('show');
-
             $( '#createBrowserScriptSubmit' ).unbind('click').click(function(){
-                data = {"script": btoa(commands.script)};
-                if(commands.current_command != -1){
+                let data = {"script": btoa(commands.script)};
+                if(commands.current_command !== -1){
                     data['command'] = commands.current_command;
                 }else{
                     data['name'] = commands.name;
@@ -55,7 +54,7 @@ var scripts = new Vue({
                    }catch(error){
                     alertTop("danger", "Session expired, please refresh or login again");
                    }
-                if(data['status'] == 'success'){
+                if(data['status'] === 'success'){
                     scripts.bscripts.splice(index, 1);
                 }
                 else{
@@ -68,7 +67,7 @@ var scripts = new Vue({
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s['id'], register_script_callback, "PUT", {"active": !s['active']});
         },
         toggle_operation: function(s){
-            if(s.operation == 'null'){
+            if(!this.is_in_operation(s)){
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s['id'], register_script_callback, "PUT", {"operation": "{{current_operation}}"});
             }
             else{
@@ -76,47 +75,76 @@ var scripts = new Vue({
             }
         },
         in_effect: function(s){
-            if(!s.active){return "NO"}
-            else if(s['operation'] !== "null"){
+            if(!s.active){return "NO, not active"}
+            else if(this.is_in_operation(s)){
                 return "YES, Operation Wide";
             }
             else{
                 //it is active, to find out if it is actually in effect or overridden
-                for(let i = 0; i < this.bscripts.length; i++){
-                    if( (this.bscripts[i]['command_id'] === s['command_id']) && (this.bscripts[i]['id'] !== s['id'])){
-                        //there's one other script also tied to this command
-                        //if that other script is assigned to an operation, it overrides
-                        if(this.bscripts[i]['operation'] !== "null"){
-                            return "NO, Overridden";
-                        }
-                        else if(s['operation'] === 'null' && !this.bscripts[i]['active']){
-                            return "YES, Personally";
-                        }
+                //console.log(s);
+                for(let i = 0; i < this.operation_scripts.length; i++){
+                    //check to see if operation script command matches this one
+                    if( (this.operation_scripts[i]['command_id'] === s['command_id'] && s['command_id'] !== undefined)){
+                        return "NO, Overridden";
+                    }else if(s['command_id'] === undefined && s['command'] === this.operation_scripts[i]['command']){
+                        return "NO, Overridden";
                     }
                 }
                 return "YES, Personally";
             }
         },
+        remove_from_operation_button: function(s, i){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s['id'], (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] !== 'success'){
+                        alertTop("warning", data['error']);
+                    }else{
+                        //scripts.operation_scripts.splice(i, 1);
+                        alertTop("info", "Operation script removed");
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Session expired, please refresh");
+                }
+            }, "PUT", {"operation": ""});
+        },
+        is_in_operation: function(s){
+            let in_operation = false;
+            this.operation_scripts.forEach((x)=>{
+               if(x['id'] === s['id']){
+                   in_operation = true;
+               }
+            });
+            return in_operation;
+        },
         import_scripts: function(){
             $( '#scriptImportModal' ).modal('show');
             $( '#scriptImportSubmit' ).unbind('click').click(function(){
-                var file = document.getElementById('scriptImportFile');
-                var filedata = file.files[0];
+                let file = document.getElementById('scriptImportFile');
+                let filedata = file.files[0];
                 uploadFile("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/import", import_script_button_callback, filedata);
             });
         },
         export_scripts: function(){
-            payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/export");
+            let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/export");
             download_from_memory("browser_scripts.json", btoa(payload));
         }
     },
     delimiters: ['[[', ']]']
 });
 function import_script_button_callback(response){
-    //var new_window = window.open("", "_blank");
-    //new_window.document.write(response);
-    //new_window.focus();
-    alertTop("info", response, 0);
+    try{
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            alertTop("success", "Successfully imported all scripts");
+        }else{
+            alertTop("warning", "Failed to download some scripts. Error log downloading");
+            download_from_memory("script_import.json", btoa(response));
+        }
+    }catch(error){
+        alertTop("error", "Session expired, please refresh");
+    }
 }
 function register_script_callback(response){
     try{
@@ -143,28 +171,68 @@ var commands = new Vue({
 
     delimiters: ['[[', ']]']
 });
-//httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" ,callback, "DELETE", null);
 function startwebsocket_browserscripts(){
 	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/browser_scripts');
+	let finished_bulk = false;
 	ws.onmessage = function(event){
 		if(event.data !== ""){
 			let data = JSON.parse(event.data);
-			data['script'] = atob(data['script']);
-			//console.log(data);
-			if(data['command'] === null){
-			    data['payload_type'] = "Support Script";
-			    data['command'] = "support_scripts['" + data['name'] + "']";
-			}
-			for(let i = 0; i < scripts.bscripts.length; i++){
-			    if(scripts.bscripts[i]['id'] === data['id']){
-			        Vue.set(scripts.bscripts, i, data);
-			        alertTop("success", "Successfully updated...", 1);
-			        return;
-			    }
-			}
-			scripts.bscripts.push(data);
-			scripts.bscripts.sort((a,b) =>(b.id > a.id) ? -1 : ((a.id > b.id) ? 1 : 0));
+			if(data['type'] === 'browserscript'){
+                data['script'] = atob(data['script']);
+                //console.log(data);
+                if(data['command'] === null){
+                    data['payload_type'] = "Support Script";
+                    data['command'] = "support_scripts['" + data['name'] + "']";
+                }
+                for(let i = 0; i < scripts.bscripts.length; i++){
+                    if(scripts.bscripts[i]['id'] === data['id']){
+                        Vue.set(scripts.bscripts, i, data);
+                        alertTop("success", "Script updated");
+                        return;
+                    }
+                }
+                // if we get here then it's a new browser script, so push it to the list and re-sort
+                scripts.bscripts.push(data);
+                scripts.bscripts.sort((a,b) =>(b.id > a.id) ? -1 : ((a.id > b.id) ? 1 : 0));
+                if(finished_bulk){alertTop("info", "Personal script added");}
+            }else{
+                //this is for operation browser scripts
+                //console.log(data);
+                if(data['type'] === 'deletedbrowserscriptoperation'){
+                    //have to find the script to remove
+                    let info = JSON.parse(data['info']);
+                    for(let i = 0; i < scripts.operation_scripts.length; i++){
+                        if(scripts.operation_scripts[i]['id'] === info['browserscript_id']){
+                            scripts.operation_scripts.splice(i, 1);
+                            alertTop("warning", "Operation script removed");
+                            return;
+                        }
+                    }
+                }else{
+                    let script_data = JSON.parse(data['browserscript']);
+                    script_data['script'] = atob(script_data['script']);
+                    if(script_data['command'] === null){
+                        script_data['payload_type'] = "Support Script";
+                        script_data['command'] = "support_scripts['" + script_data['name'] + "']";
+                    }
+                    for(let i = 0; i < scripts.operation_scripts.length; i++){
+                        if(scripts.operation_scripts[i]['id'] === script_data['id']){
+                            Vue.set(scripts.operation_scripts, i, script_data);
+                            alertTop("info", "Operation script updated");
+                            return;
+                        }
+                    }
+                    // if we get here then it's a new browser script, so push it to the list and re-sort
+                    scripts.operation_scripts.push(script_data);
+                    scripts.operation_scripts.sort((a,b) =>(b.id > a.id) ? -1 : ((a.id > b.id) ? 1 : 0));
+                    if(finished_bulk){alertTop("info", "Operation script added");}
+                }
+
+            }
 		}
+		else{
+		    finished_bulk = true;
+        }
 	};
 	ws.onclose = function(){
 		wsonclose();
@@ -221,7 +289,7 @@ function startwebsocket_commands(){
     vScrollBarAlwaysVisible: { f: toBool },
     highlightGutterLine: { f: toBool },
     animatedScroll: { f: toBool },
-    showInvisibles: { f: toBool },
+    showInvisibles: { f: toBool , v: true},
     showPrintMargin: { f: toBool },
     printMarginColumn: { f: toNum, v: 80 },
     // shortcut for showPrintMargin and printMarginColumn
@@ -247,7 +315,7 @@ function startwebsocket_commands(){
     overwrite: { f: toBool },
     newLineMode: {},
     useWorker: { f: toBool },
-    tabSize: { f: toNum, v: 2 },
+    tabSize: { f: toNum, v: 4 },
     wrap: { f: toBoolOrNum },
     foldStyle: { v: 'markbegin' },
     mode: { v: 'javascript' },

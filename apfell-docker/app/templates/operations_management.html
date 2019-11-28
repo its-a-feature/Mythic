@@ -17,13 +17,13 @@
             </tr>
         <!-- Repeat this for each operation -->
             <tr v-for="o in operations" :key="o.name">
-                <td>
+                <td style="text-align:center">
                     <button v-show="o.admin == username || admin" type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(o)" ><i class="fa fa-trash-alt"></i></button>
                 </td>
-                <td>
+                <td style="text-align:center">
 			        <button v-show="o.admin == username || admin" type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="modify_button(o)"><i class="fas fa-edit"></i></button>
 		        </td>
-                <td>
+                <td style="text-align:center">
                      <div v-if="o.complete">
                          <div v-if="o.admin == username || admin">
                             <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="complete_button(o)">Resume Operation</button>
@@ -42,13 +42,13 @@
                      </div>
 
                 </td>
-                <td>
+                <td style="text-align:center">
 			        <button v-show="o.admin == username || admin" type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="modify_acls_button(o)"><i class="fas fa-edit"></i></button>
 		        </td>
-                <td>[[ o.name ]]</td>
-                <td>[[ o.admin ]]</td>
-                <td><span v-for="m in o.members">[[m.username]]<br></span></td>
-                <td>
+                <td style="text-align:center">[[ o.name ]]</td>
+                <td style="text-align:center">[[ o.admin ]]</td>
+                <td style="text-align:center"><span v-for="m in o.members">[[m.username]]<br></span></td>
+                <td style="text-align:center">
                     <div v-if="current_operation == o.name">Yes</div>
                     <div v-else>
                         <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="current_operation_button(o)">Make Current</button>

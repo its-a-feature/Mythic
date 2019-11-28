@@ -1215,17 +1215,15 @@ class APITokens(p.Model):
 
 class BrowserScript(p.Model):
     operator = p.ForeignKeyField(Operator)  # who does this script belong to
-    operation = p.ForeignKeyField(Operation, null=True)  # does this script belong to a specific operation?
     script = p.TextField(null=False, default="")  # the actual script contents
     command = p.ForeignKeyField(Command, null=True)  # if this is null, it is a support function
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
-    active = p.BooleanField(default=True)
     # if command is None, we're a support function, use this to define a name for the function
     name = p.TextField(null=True)
+    active = p.BooleanField(default=True)
 
     class Meta:
-        indexes = ((('command', 'operator'), True),
-                   (('operation', 'command'), True))
+        indexes = ((('command', 'operator'), True),)
         database = apfell_db
 
     def to_json(self):
@@ -1234,8 +1232,6 @@ class BrowserScript(p.Model):
             try:
                 if k == "operator":
                     r[k] = getattr(self, k).username
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
                 elif k == "command" and getattr(self, k) is not None:
                     r[k] = getattr(self, k).cmd
                     r['payload_type'] = getattr(self, k).payload_type.ptype
@@ -1245,6 +1241,32 @@ class BrowserScript(p.Model):
             except:
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class BrowserScriptOperation(p.Model):
+    browserscript = p.ForeignKeyField(BrowserScript)  # the script in question
+    operation = p.ForeignKeyField(Operation)  # the operation in question
+
+    class Meta:
+        indexes = ((('browserscript', 'operation'), True),)  # can't assign 1 script to the same operation mult times
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == "browserscript":
+                    r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+                elif k == "operation":
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -1525,10 +1547,15 @@ async def apitokens_query():
 
 
 async def browserscript_query():
-    return BrowserScript.select(BrowserScript, Operator, Operation, Command)\
+    return BrowserScript.select(BrowserScript, Operator, Command)\
         .join(Operator, p.JOIN.LEFT_OUTER).switch(BrowserScript)\
-        .join(Operation, p.JOIN.LEFT_OUTER).switch(BrowserScript)\
         .join(Command, p.JOIN.LEFT_OUTER).join(PayloadType, p.JOIN.LEFT_OUTER).switch(BrowserScript)
+
+
+async def browserscriptoperation_query():
+    return BrowserScriptOperation.select(BrowserScriptOperation, BrowserScript, Operation)\
+        .join(BrowserScript).switch(BrowserScriptOperation)\
+        .join(Operation).switch(BrowserScriptOperation)
 
 
 async def processlist_query():
@@ -1550,7 +1577,7 @@ def pg_register_newinserts():
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'response', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate',
                'taskartifact', 'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile',
-               'disabledcommands', 'processlist', 'filebrowse']
+               'disabledcommands', 'processlist', 'filebrowse', 'browserscriptoperation']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -1572,7 +1599,7 @@ def pg_register_updates():
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate', 'taskartifact',
                'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile', 'disabledcommands',
-               'processlist', 'filebrowse']
+               'processlist', 'filebrowse', 'browserscriptoperation']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -1589,7 +1616,7 @@ def pg_register_updates():
 
 
 def pg_register_deletes():
-    updates = ['command', 'commandparameters', 'commandtransform', 'disabledcommands']
+    updates = ['command', 'commandparameters', 'commandtransform', 'disabledcommands', 'browserscriptoperation']
     for table in updates:
         create_function_on_deletes = "DROP FUNCTION IF EXISTS notify_deleted" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_deleted" + table + \
@@ -1638,6 +1665,7 @@ TaskArtifact.create_table(True)
 StagingInfo.create_table(True)
 APITokens.create_table(True)
 BrowserScript.create_table(True)
+BrowserScriptOperation.create_table(True)
 ProcessList.create_table(True)
 FileBrowse.create_table(True)
 # setup default admin user and c2 profile

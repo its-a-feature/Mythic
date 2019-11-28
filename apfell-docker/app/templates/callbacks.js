@@ -47,6 +47,7 @@ var callback_table = new Vue({
                 }
                 websockets[callback.id] = startwebsocket_callback(callback.id);
             }catch(error){
+                console.log(error);
                 alertTop("danger", "Network connections not established yet, please click \"Interact\" again", 2);
                 return;
             }
@@ -1522,29 +1523,49 @@ let got_all_commands = false;
                     if(current_tabs !== null){
                         current_tabs = JSON.parse(current_tabs);
                         for(let i in current_tabs){
-                            callback_table.interact_button(callback_table.callbacks[i]);
+                            if(callback_table.callbacks.hasOwnProperty(i)){
+                                callback_table.interact_button(callback_table.callbacks[i]);
+                            }else{
+                                delete current_tabs[i];
+                            }
                         }
+                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                     current_tabs = localStorage.getItem("screencaptures");
                     if(current_tabs !== null){
                         current_tabs = JSON.parse(current_tabs);
                         for(let i in current_tabs){
-                            callback_table.show_screencaptures(callback_table.callbacks[i]);
+                            if(callback_table.callbacks.hasOwnProperty(i)) {
+                                callback_table.show_screencaptures(callback_table.callbacks[i]);
+                            }else{
+                                delete current_tabs[i];
+                            }
                         }
+                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                     current_tabs = localStorage.getItem("keylogs");
                     if(current_tabs !== null){
                         current_tabs = JSON.parse(current_tabs);
                         for(let i in current_tabs){
-                            callback_table.show_keylogs(callback_table.callbacks[i]);
+                            if(callback_table.callbacks.hasOwnProperty(i)) {
+                                callback_table.show_keylogs(callback_table.callbacks[i]);
+                            }else{
+                                delete current_tabs[i];
+                            }
                         }
+                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                     current_tabs = localStorage.getItem("process_list");
                     if(current_tabs !== null){
                         current_tabs = JSON.parse(current_tabs);
                         for(let i in current_tabs){
-                            callback_table.show_process_list(callback_table.callbacks[i]);
+                            if(callback_table.callbacks.hasOwnProperty(i)) {
+                                callback_table.show_process_list(callback_table.callbacks[i]);
+                            }else{
+                                delete current_tabs[i];
+                            }
                         }
+                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                 }, 0);
             });
