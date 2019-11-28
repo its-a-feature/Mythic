@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block body %}
+<br>
+
+<div style="resize: vertical" class="card border-0 shadow" id="feed">
+    <div class="card-header bg-header border border-dark shadow text-white">
+        <h2 style="display:inline-block"><span class="operator">Live</span> Task Feed</h2>
+        <span style="display:inline-block; float:right">
+            <span class="input-group" >
+                <div class="input-group-append"><input type="text" size="50rem" placeholder="filter with 'column title:value'" id="filter" v-model="filter"></div>
+                <div class="input-group-append input-group-btn" ><button disabled type="button" class="btn btn{{config['outline-buttons']}}secondary"><i class="fa fa-filter"></i></button></div>
+            </span>
+        </span>
+    </div>
+    <div style="resize:vertical;overflow:scroll;height:calc(80vh);padding:0;" class="card-body bg-card-body border border-dark shadow" >
+        <table v-if="Object.keys(tasks).length > 0" class="table table-condensed table-striped table-hover {{config['table-color']}}" style="word-wrap: break-word;table-layout: fixed">
+            <tr>
+                <th style="width:15rem">Time</th>
+                <th>Task</th>
+                <th style="width:10rem">Operator</th>
+                <th style="width:8rem">User</th>
+                <th style="width:20rem">Host</th>
+                <th style="width:8rem">Status</th>
+                <th>Comment</th>
+            </tr>
+            <tr v-for="entry in tasks" :key="entry.id" v-if="apply_filter(entry)">
+                <td><pre>[[toLocalTime(entry.timestamp)]]</pre></td>
+                <td><a :href="entry.href" target="_blank">[[entry.id]]</a> - <b>[[entry.command]]</b>&nbsp;[[entry.original_params]]</td>
+                <td><pre>[[entry.operator]]</pre></td>
+                <td><pre>[[entry.user]]</pre></td>
+                <td><pre>[[entry.host]] (<a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + entry.callback" target="_blank">[[entry.callback]]</a>)</pre></td>
+                <td>
+                    <template v-if="entry.completed == true && entry.status != 'error'">
+                            <button disabled class="btn btn{{config['outline-buttons']}}success btn-sm" >completed</button>
+                        </template>
+                        <template v-else-if="entry.status == 'processed'">
+                            <button disabled class="btn btn{{config['outline-buttons']}}primary btn-sm" >[[entry.status]]</button>
+                        </template>
+                        <template v-else-if="entry.status == 'processing'">
+                            <button disabled class="btn btn{{config['outline-buttons']}}warning btn-sm" >[[entry.status]]</button>
+                        </template>
+                        <template v-else-if="entry.status == 'error'">
+                            <button disabled class="btn btn{{config['outline-buttons']}}danger btn-sm" >[[entry.status]]</button>
+                        </template>
+                        <template v-else>
+                            <button disabled class="btn btn{{config['outline-buttons']}}info btn-sm" >[[entry.status]]</button>
+                        </template>
+                </td>
+                <td>[[entry.comment]]</td>
+            </tr>
+        </table>
+    </div>
+    <div class="card-footer bg-card-footer">
+        <div style="display:inline-block">
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% include "live_feed.js" %}
+{% endblock %}
+
+{% block body_config %}
+
+{% endblock %}

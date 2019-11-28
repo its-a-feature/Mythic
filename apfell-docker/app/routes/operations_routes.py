@@ -355,6 +355,22 @@ async def manage_browser_scripts(request, user):
                                   config=user['ui_config'], view_utc_time=user['view_utc_time'])
     return response.html(content)
 
+
+@apfell.route("/live_task_feed", methods=['GET'])
+@inject_user()
+@scoped('auth:user')
+async def live_task_feed(request, user):
+    template = env.get_template('live_feed.html')
+    if use_ssl:
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
+                                  ws="wss", admin=user['admin'], current_operation=user['current_operation'],
+                                  config=user['ui_config'], view_utc_time=user['view_utc_time'])
+    else:
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http",
+                                  ws="ws", admin=user['admin'], current_operation=user['current_operation'],
+                                  config=user['ui_config'], view_utc_time=user['view_utc_time'])
+    return response.html(content)
+
 # add links to these routes at the bottom
 links['callbacks'] = apfell.url_for('callbacks')
 links['database_management'] = apfell.url_for('db_management')
@@ -373,4 +389,5 @@ links['reporting_artifacts'] = apfell.url_for('reporting_artifacts')
 links['comments'] = apfell.url_for('comments')
 links['manage_browser_scripts'] = apfell.url_for('manage_browser_scripts')
 links['web_log'] = apfell.url_for('web_log')
+links['live_feed'] = apfell.url_for('live_task_feed')
 

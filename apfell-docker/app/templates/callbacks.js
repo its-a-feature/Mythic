@@ -841,6 +841,14 @@ var task_data = new Vue({
         add_comment: function(task){
             $( '#addCommentTextArea' ).val(task.comment);
             $( '#addCommentModal' ).modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+                $("#addCommentTextArea").unbind('keyup').on('keyup', function (e) {
+                    if (e.keyCode === 13) {
+                        $( '#addCommentSubmit' ).click();
+                    }
+                });
+            });
             $( '#addCommentSubmit' ).unbind('click').click(function(){
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, add_comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});
             });
@@ -1529,7 +1537,7 @@ let got_all_commands = false;
                                 delete current_tabs[i];
                             }
                         }
-                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
+                        //localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                     current_tabs = localStorage.getItem("screencaptures");
                     if(current_tabs !== null){
@@ -1541,7 +1549,7 @@ let got_all_commands = false;
                                 delete current_tabs[i];
                             }
                         }
-                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
+                        //localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                     current_tabs = localStorage.getItem("keylogs");
                     if(current_tabs !== null){
@@ -1553,7 +1561,7 @@ let got_all_commands = false;
                                 delete current_tabs[i];
                             }
                         }
-                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
+                        //localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                     current_tabs = localStorage.getItem("process_list");
                     if(current_tabs !== null){
@@ -1565,7 +1573,7 @@ let got_all_commands = false;
                                 delete current_tabs[i];
                             }
                         }
-                        localStorage.setItem("tasks", JSON.stringify(current_tabs));
+                        //localStorage.setItem("tasks", JSON.stringify(current_tabs));
                     }
                 }, 0);
             });

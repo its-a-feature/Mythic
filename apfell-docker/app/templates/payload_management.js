@@ -698,7 +698,7 @@ var payloadtypes_table = new Vue({
         edit_create_transforms_button: function(p, index){
             //I do this parse/unparse thing so that i can get a deep copy of the dictionary without holding onto vue's getters and setters
             //  if you don't do this, then you'll get updates reflect in both places at the same time
-            payloadEditCreateTransforms_Table.createTransforms = JSON.parse(JSON.stringify( payloadtypes_table.payloadtypes[index]['create']));;
+            payloadEditCreateTransforms_Table.createTransforms = JSON.parse(JSON.stringify( payloadtypes_table.payloadtypes[index]['create']));
             $( '#payloadEditCreateTransformsModal' ).modal('show');
             $( '#payloadEditCreateTransformsSubmit' ).unbind('click').click(function(){
                 //Now go through to see what our final state looks like and submit put/post requests as necessary to update

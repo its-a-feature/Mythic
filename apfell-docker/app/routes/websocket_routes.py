@@ -57,8 +57,6 @@ async def ws_tasks(request, ws):
 async def ws_tasks_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-
-    viewing_callbacks = set()  # this is a list of callback IDs that the operator is viewing, so only update those
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
@@ -68,32 +66,25 @@ async def ws_tasks_current_operation(request, ws, user):
                     if user['current_operation'] != "":
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
+                        query = await db_model.task_query()
+                        initial_tasks = await db_objects.execute(query.where(Callback.operation == operation))
+                        for t in initial_tasks:
+                            await ws.send(js.dumps({**t.to_json(), 'host': t.callback.host, 'user': t.callback.user}))
+                        await ws.send("")
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = (msg.payload)
-                                query = await db_model.task_query()
-                                tsk = await db_objects.prefetch(query.where(Task.id == id), Command.select())
-                                tsk = list(tsk)[0].to_json()
-                                if tsk['callback'] in viewing_callbacks:
-                                    await ws.send(js.dumps(tsk))
+
+                                t = await db_objects.get(query, id=id)
+                                if t.callback.operation == operation:
+                                    await ws.send(js.dumps({**t.to_json(), 'host': t.callback.host, 'user': t.callback.user}))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(0.5)
                                 await ws.send("")  # this is our test to see if the client is still there
                             except Exception as e:
                                 print(e)
                                 continue
-                            try:
-                                msg = await ws.recv()
-                                if msg != "":
-                                    if msg[0] == "a":
-                                        viewing_callbacks.add(int(msg[1:]))
-                                    elif msg[0] == "r":
-                                        viewing_callbacks.remove(int(msg[1:]))
-                            except Exception as e:
-                                print(e)
-
-
     finally:
         # print("closed /ws/tasks")
         pool.close()
