@@ -291,6 +291,8 @@ async def create_disabled_commands_profile(request, user):
         added_acl = []
         # {"profile_name": {"payload type": [command name, command name 2], "Payload type 2": [] }
         for name in data:
+            if name == "":
+                return json({'status': 'error', 'error': 'name cannot be blank'})
             for ptype in data[name]:
                 query = await db_model.payloadtype_query()
                 payload_type = await db_objects.get(query, ptype=ptype)
@@ -319,12 +321,19 @@ async def delete_disabled_commands_profile(request, user, profile):
             return json({'status': 'error', 'error': 'Must be an Apfell admin to delete command profiles'})
         query = await db_model.disabledcommandsprofile_query()
         commands_profile = await db_objects.execute(query.where(DisabledCommandsProfile.name == profile))
+        # make sure that the mapping is gone from operatoroperation.base_disabled_commands
+        query = await db_model.operatoroperation_query()
+        operator_operation_mapping = await db_objects.execute(query.where(DisabledCommandsProfile.name == profile))
+        for o in operator_operation_mapping:
+            o.base_disabled_commands = None
+            await db_objects.update(o)
         for c in commands_profile:
             await db_objects.delete(c)
+
         return json({"status": 'success', "name": profile})
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'failed to delete disabled command profile'})
+        return json({'status': 'error', 'error': 'failed to delete disabled command profile: ' + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/disabled_commands_profile", methods=['PUT'])

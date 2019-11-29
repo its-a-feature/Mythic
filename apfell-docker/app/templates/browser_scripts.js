@@ -128,7 +128,31 @@ var scripts = new Vue({
         },
         export_scripts: function(){
             let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/export");
-            download_from_memory("browser_scripts.json", btoa(payload));
+            try{
+                let data = JSON.parse(payload);
+                if(data['status'] === 'success'){
+                    download_from_memory("browser_scripts.json", btoa(JSON.stringify(data['scripts'])));
+                }else{
+                    alertTop("warning", data['error']);
+                }
+            }catch(error){
+                console.log(error);
+                alertTop("danger", "session expired, please refresh");
+            }
+        },
+        export_operation_scripts: function(){
+            let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/export/current_operation");
+            try{
+                let data = JSON.parse(payload);
+                if(data['status'] === 'success'){
+                    download_from_memory("browser_operation_scripts.json", btoa(JSON.stringify(data['scripts'])));
+                }else{
+                    alertTop("warning", data['error']);
+                }
+            }catch(error){
+                console.log(error);
+                alertTop("danger", "session expired, please refresh");
+            }
         }
     },
     delimiters: ['[[', ']]']

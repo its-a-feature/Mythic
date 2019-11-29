@@ -376,6 +376,7 @@ var payloadtypes_table = new Vue({
             $('#payloadtypeEditPtype').val(p['ptype']);
             $('#payloadtypeEditPtype').prop("disabled", true); //don't want this to be edited
             $('#payloadtypeEditFileExtension').val(p['file_extension']);
+            $('#payloadtypeEditAuthor').val(p['author']);
             if(p['external']){
                 $('#payloadtypeEditExternal').prop('checked', true);
             }else{
@@ -413,6 +414,7 @@ var payloadtypes_table = new Vue({
                 //data['command_template'] = $('#payloadtypeEditCommandTemplate').val();
                 data['command_template'] = edit_command_template_vue.command_template;
                 data['supported_os'] = $('#payloadtypeEditSupportedOS').val();
+                data['author'] = $('#payloadtypeEditAuthor').val();
                 data['execute_help'] = $('#payloadtypeEditExecuteHelp').val();
                 data['external'] = $('#payloadtypeEditExternal').is(":checked");
                 if($('#payloadtypeEditWrapper').is(":checked")){
@@ -1890,7 +1892,7 @@ function startwebsocket_rabbitmq(){
                         }
                     }
 			        for(let i = 0; i < body.length; i++){
-			            console.log(body[i]);
+			            //console.log(body[i]);
 			            payloadtypeFiles.folders.push(body[i]);
                     }
 			    }

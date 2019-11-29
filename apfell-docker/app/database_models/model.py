@@ -141,6 +141,7 @@ class PayloadType(p.Model):
     container_running = p.BooleanField(null=False, default=False)
     service = p.TextField(null=False, default="rabbitmq")
     icon = p.TextField(null=True)
+    author = p.TextField(null=False, default="")  # who created the code for the payload type, not just who imported it
 
     class Meta:
         database = apfell_db
@@ -224,6 +225,7 @@ class Command(p.Model):
     # indicate if this is the command used for removing files
     is_remove_file = p.BooleanField(null=False, default=False)
     remove_file_parameters = p.TextField(null=False, default="*")
+    author = p.TextField(null=False, default="")
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)
@@ -422,6 +424,11 @@ class C2Profile(p.Model):
     icon = p.TextField(null=True)
     # identify is a c2 profile lives external to Apfell
     external = p.BooleanField(null=False, default=False)
+    author = p.TextField(null=False, default="")
+    # sample server side and client side configurations for operators to go off of
+    sampleServer = p.TextField(null=False, default="")
+    sampleClient = p.TextField(null=False, default="")
+    notes = p.TextField(null=False, default="")
 
     class Meta:
         database = apfell_db

@@ -72,6 +72,8 @@ async def create_payloadtype(request, user):
             data['execute_help'] = ""
         if 'external' not in data:
             data['external'] = False
+        if 'author' not in data:
+            data['author'] = user['username']
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
         data['ptype'] = data['ptype'].replace(" ", "_")
@@ -91,14 +93,16 @@ async def create_payloadtype(request, user):
                                                   wrapped_payload_type=wrapped_payload_type,
                                                   supported_os=",".join(data['supported_os']),
                                                   execute_help=data['execute_help'],
-                                                  external=data['external'], container_running=False)
+                                                  external=data['external'], container_running=False,
+                                                  author=data['author'])
         else:
             payloadtype = await db_objects.create(PayloadType, ptype=data['ptype'], operator=operator,
                                                   file_extension=data['file_extension'],
                                                   wrapper=data['wrapper'], command_template=data['command_template'],
                                                   supported_os=",".join(data['supported_os']),
                                                   execute_help=data['execute_help'],
-                                                  external=data['external'], container_running=False)
+                                                  external=data['external'], container_running=False,
+                                                  author=data['author'])
         pathlib.Path("./app/payloads/{}".format(payloadtype.ptype)).mkdir(parents=True, exist_ok=True)
         #os.mkdir("./app/payloads/{}".format(payloadtype.ptype))  # make the directory structure
         pathlib.Path("./app/payloads/{}/payload".format(payloadtype.ptype)).mkdir(parents=True, exist_ok=True)
@@ -181,6 +185,8 @@ async def update_payloadtype(request, user, ptype):
             payloadtype.external = data['external']
         if 'container_running' in data:
             payloadtype.container_running = data['container_running']
+        if 'author' in data:
+            payloadtype.author = data['author']
         await db_objects.update(payloadtype)
         return json({'status': 'success', **payloadtype.to_json()})
     else:
@@ -800,6 +806,8 @@ async def import_payloadtype_and_commands(request, user):
 
 
 async def import_payload_type_func(ptype, operator, operation):
+    if 'author' not in ptype:
+        ptype['author'] = operator.username
     if ptype['wrapper']:
         try:
             query = await db_model.payloadtype_query()
@@ -820,7 +828,8 @@ async def import_payload_type_func(ptype, operator, operation):
                                                    command_template=ptype['command_template'],
                                                    supported_os=ptype['supported_os'],
                                                    file_extension=ptype['file_extension'],
-                                                   execute_help=ptype['execute_help'], external=ptype['external'])
+                                                   execute_help=ptype['execute_help'], external=ptype['external'],
+                                                   author=ptype['author'])
 
     else:
         try:
@@ -835,7 +844,8 @@ async def import_payload_type_func(ptype, operator, operation):
                                                    supported_os=ptype['supported_os'],
                                                    file_extension=ptype['file_extension'],
                                                    execute_help=ptype['execute_help'],
-                                                   external=ptype['external'])
+                                                   external=ptype['external'],
+                                                   author=ptype['author'])
     try:
         payload_type.operator = operator
         payload_type.creation_time = datetime.datetime.utcnow()
@@ -910,6 +920,7 @@ async def import_payload_type_func(ptype, operator, operation):
     except Exception as e:
         logger.exception("exception on importing payload type")
         return {ptype['ptype']: 'error'}
+
 
 async def import_command_func(payload_type, operator, command_list):
     for cmd in command_list:

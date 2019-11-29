@@ -267,29 +267,50 @@ async def export_browserscript(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     scripts = []
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, username=user['username'])
-    query = await db_model.operation_query()
-    operation = await db_objects.get(query, name=user['current_operation'])
-    query = await db_model.browserscript_query()
-    operator_scripts = await db_objects.execute(query.where( (db_model.BrowserScript.operator == operator) &
-                                                             (db_model.BrowserScript.command != None)))
-    operation_scripts = await db_objects.execute(query.where( (db_model.BrowserScript.operation == operation) &
-                                                              (db_model.BrowserScript.command != None) &
-                                                              (db_model.BrowserScript.operator != operator)))
-    support_scripts = await db_objects.execute(query.where(db_model.BrowserScript.command == None))
-    for s in operator_scripts:
-        scripts.append({"operator": s.operator.username,
-                        "script": s.script,
-                        "command": s.command.cmd,
-                        "payload_type": s.command.payload_type.ptype})
-    for s in operation_scripts:
-        scripts.append({"operator": s.operator.username,
-                        "script": s.script,
-                        "command": s.command.cmd,
-                        "payload_type": s.command.payload_type.ptype})
-    for s in support_scripts:
-        scripts.append({"operator": s.operator.username,
-                        "script": s.script,
-                        "name": s.name})
-    return json(scripts)
+    try:
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        query = await db_model.browserscript_query()
+        operator_scripts = await db_objects.execute(query.where( (db_model.BrowserScript.operator == operator) &
+                                                                 (db_model.BrowserScript.command != None)))
+        support_scripts = await db_objects.execute(query.where( (db_model.BrowserScript.operator == operator) &
+                                                                 (db_model.BrowserScript.command == None)))
+        for s in operator_scripts:
+            scripts.append({"operator": s.operator.username,
+                            "script": s.script,
+                            "command": s.command.cmd,
+                            "payload_type": s.command.payload_type.ptype})
+        for s in support_scripts:
+            scripts.append({"operator": s.operator.username,
+                            "script": s.script,
+                            "name": s.name})
+        return json({'status': 'success', 'scripts': scripts})
+    except Exception as e:
+        return json({'status': 'error','error': str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/browser_scripts/export/current_operation", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def export_operation_browserscript(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    scripts = []
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.browserscriptoperation_query()
+        operator_scripts = await db_objects.execute(query.where(db_model.BrowserScriptOperation.operation == operation))
+        for s in operator_scripts:
+            if s.browserscript.command is None:
+                scripts.append({"operator": s.browserscript.operator.username,
+                                "script": s.browserscript.script,
+                                "name": s.browserscript.name})
+            else:
+                scripts.append({"operator": s.browserscript.operator.username,
+                                "script": s.browserscript.script,
+                                "command": s.browserscript.command.cmd,
+                                "payload_type": s.browserscript.command.payload_type.ptype})
+        return json({'status': 'success', 'scripts': scripts})
+    except Exception as e:
+        return json({'status': 'error','error': str(e)})

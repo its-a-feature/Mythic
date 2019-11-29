@@ -33,15 +33,19 @@ var payloads_table = new Vue({
             });
         },
 	    update_button: function(p){
-	        var possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
-            var types = "";
-            for(var i = 0; i < possiblePayloadTypes.length; i++){
+	        let possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
+            let types = "";
+            for(let i = 0; i < possiblePayloadTypes.length; i++){
                 types = types + '<option value="' + possiblePayloadTypes[i].ptype + '">'
                 + possiblePayloadTypes[i].ptype + '</option>';
             }
             $( '#profileUpdatePayloads' ).html(types);
             // before we show the fields, populate them with the current data
             $( '#profileUpdateName' ).val(p.name);
+            $( '#profileUpdateAuthor').val(p.author);
+            $( '#profileUpdateSampleServer').val(p.sampleServer);
+            $( '#profileUpdateSampleClient').val(p.sampleClient);
+            $( '#profileUpdateNotes').val(p.notes);
             $( '#profileUpdateDescription' ).val(p.description);
             edit_payload_files.edit_payload_file_list = [];
             $( '#profileUpdatePayloads' ).unbind('change').change(function(){
@@ -51,10 +55,14 @@ var payloads_table = new Vue({
             if( p.external){$( '#profileUpdateExternal' ).click();}
             $( '#profileUpdateModal' ).modal('show');
             $( '#profileUpdateSubmit' ).unbind('click').click(function(){
-                var data = {"name": p.name,
+                let data = {"name": p.name,
                         "description": $( '#profileUpdateDescription' ).val(),
                         "payload_types": $( '#profileUpdatePayloads' ).val(),
-                        "external": $( '#profileUpdateExternal' ).is(":checked")
+                        "external": $( '#profileUpdateExternal' ).is(":checked"),
+                        'notes': $('#profileUpdateNotes').val(),
+                        'sampleServer': $('#profileUpdateSampleServer').val(),
+                        'sampleClient': $('#profileUpdateSampleClient').val(),
+                        'author': $('#profileUpdateAuthor').val()
                         };
                  if(data['payload_types'] === undefined){
                     data['payload_types'] = [];
@@ -577,8 +585,8 @@ function register_button(){
         return;
     }
     //console.log(possiblePayloadTypes);
-    var types = "";
-    for(var i = 0; i < possiblePayloadTypes.length; i++){
+    let types = "";
+    for(let i = 0; i < possiblePayloadTypes.length; i++){
         types = types + '<option value="' + possiblePayloadTypes[i].ptype + '">'
         + possiblePayloadTypes[i].ptype + '</option>';
     }
@@ -589,10 +597,15 @@ function register_button(){
     });
 	$( '#profileCreateModal' ).modal('show');
     $( '#profileCreateSubmit' ).unbind('click').click(function(){
-        var data = {"name": $('#profileCreateName').val(),
+        let data = {"name": $('#profileCreateName').val(),
                     "description": $( '#profileCreateDescription' ).val(),
                     "payload_types": $( '#profileCreatePayloadTypes' ).val(),
-                    "external": $( '#profileCreateExternal' ).is(":checked")};
+                    "external": $( '#profileCreateExternal' ).is(":checked"),
+                    "author": $('#profileCreateAuthor').val(),
+                    "notes": $('#profileCreateNotes').val(),
+                    "sampleServer": $('#profileCreateSampleServer').val(),
+                    "sampleClient": $('#profileCreateSampleClient').val()
+        };
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile, "POST", data);
     });
 

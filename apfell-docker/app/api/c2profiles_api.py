@@ -94,13 +94,20 @@ async def register_new_c2profile(request, user):
         data = js.loads(request.form.get('json'))
     else:
         data = request.json
-    #print(data)
     # also takes in an array of 'name', 'key' values to aid in payload creation, not a requirement though
     data['operator'] = user['username']
     if 'name' not in data or data['name'] is "" or data['name'] is None:
         return json({'status': 'error', 'error': 'name is required'})
     if 'description' not in data:
         data['description'] = ""
+    if 'author' not in data:
+        data['author'] = user['username']
+    if 'sampleServer' not in data:
+        data['sampleServer'] = ""
+    if 'sampleClient' not in data:
+        data['sampleClient'] = ""
+    if 'notes' not in data:
+        data['notes'] = ""
     if 'payload_types' not in data or data['payload_types'] is None:
         return json({'status': 'error', 'error': 'must select some payload types'})
     # we need to 1. make sure these are all valid payload types, and 2. create payloadtypec2profile entries as well
@@ -119,7 +126,10 @@ async def register_new_c2profile(request, user):
         status = {'status': 'success'}
         if 'external' not in data:
             data['external'] = False
-        profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op, external=data['external'], container_running=False)
+        profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op,
+                                          external=data['external'], container_running=False, author=data['author'],
+                                          sampleServer=data['sampleServer'], sampleClient=data['sampleClient'],
+                                          notes=data['notes'])
         # make the right directory structure
         os.makedirs("./app/c2_profiles/{}".format(data['name']), exist_ok=True)
         # now create the payloadtypec2profile entries
@@ -138,14 +148,14 @@ async def register_new_c2profile(request, user):
         # now create the c2profileparameters entries so we can generate the right form to fill out
         if 'c2profileparameters' in data:
             for params in data['c2profileparameters']:
-                if not 'hint' in params:
+                if 'hint' not in params:
                     params['hint'] = ""
                 await db_objects.create(C2ProfileParameters, c2_profile=profile, key=params['key'], name=params['name'], hint=params['hint'])
         profile_json = profile.to_json()
         return json({**status, **profile_json})
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'Profile name already taken'})
+        return json({'status': 'error', 'error': 'Profile name already taken: ' + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/upload", methods=['POST'])
@@ -236,6 +246,14 @@ async def update_c2profile(request, info, user):
             profile.container_running = data['container_running']
         if 'external' in data:
             profile.external = data['external']
+        if 'author' in data:
+            profile.author = data['author']
+        if 'notes' in data:
+            profile.notes = data['notes']
+        if 'sampleServer' in data:
+            profile.sampleServer = data['sampleServer']
+        if 'sampleClient' in data:
+            profile.sampleClient = data['sampleClient']
         await db_objects.update(profile)
         if 'payload_types' in data:
             # We need to update the mapping in PayloadTypeC2Profile accordingly
@@ -844,15 +862,31 @@ async def import_c2_profile(request, user):
 
 async def import_c2_profile_func(data, operator):
     try:
+        if 'author' not in data:
+            data['author'] = operator.username
         query = await db_model.c2profile_query()
         profile = await db_objects.get(query, name=data['name'])
         profile.operator = operator
         profile.description = data['description']
+        profile.author = data['author']
+        if 'sampleServer' in data:
+            profile.sampleServer = data['sampleServer']
+        if 'sampleClient' in data:
+            profile.sampleClient = data['sampleClient']
+        if 'notes' in data:
+            profile.notes = data['notes']
         await db_objects.update(profile)
     except Exception as e:
         # this means the profile doesn't exit yet, so we need to create it
+        if 'sampleServer' not in data:
+            data['sampleServer'] = ""
+        if 'sampleClient' not in data:
+            data['sampleClient'] = ""
+        if 'notes' not in data:
+            data['notes'] = ""
         profile = await db_objects.create(C2Profile, name=data['name'], operator=operator,
-                                          description=data['description'])
+                                          description=data['description'], author=data['author'], notes=data['notes'],
+                                          sampleServer=data['sampleServer'], sampleClient=data['sampleClient'])
         print("Created new c2 profile: {}".format(data['name']))
     # now make sure the appropriate directories exist
     try:

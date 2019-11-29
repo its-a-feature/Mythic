@@ -215,6 +215,7 @@
                     <div class="collapse show" :id="'payloadtypecardbody' + p.id">
                         <div class="card-body border border-dark bg-card-body-l2 shadow">
                             <b>Supported OS:</b> [[p.supported_os]]<br>
+                            <b>Author:</b> [[p.author]]<br>
                             <b>Number of Commands:</b> [[p.commands.length]]<br>
                             <b>Commands:</b>
                             <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_commands_button(p)"><i class="fas fa-plus"></i></button>
@@ -263,6 +264,10 @@
                       <tr>
                           <td style="width:300px">Payload file extension</td>
                           <td><input type="text" id="payloadtypeCreateFileExtension" size="50"></td>
+                      </tr>
+                      <tr>
+                          <td>Author (twitter handle)</td>
+                          <td><input type="text" id="payloadtypeCreateAuthor" size="50"></td>
                       </tr>
                       <tr>
                           <td>Supported OS:</td>
@@ -340,6 +345,10 @@
                       <tr>
                           <td style="width:150px">Payload file extension</td>
                           <td><input type="text" id="payloadtypeEditFileExtension" size="50"></td>
+                      </tr>
+                      <tr>
+                          <td>Author (twitter handle)</td>
+                          <td><input type="text" id="payloadtypeEditAuthor" size="50"></td>
                       </tr>
                       <tr>
                           <td>Supported OS:</td>

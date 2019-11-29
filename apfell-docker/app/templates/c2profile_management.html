@@ -28,8 +28,9 @@
                 <div class="collapse show" :id="'c2profilecardbody' + p.id">
                   <div class="card-body border-top border-bottom border-dark shadow bg-card-body-l2">
                       <p class="card-text">[[p.description]]</p>
-                      <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="create_new_parameter_instance_button(p)"><i class="fa fa-bookmark"></i> Save Instance</button>
-                      <p class="card-text"><small >Supported Payload Types: [[ p.payload_types.join(", ") ]]</small></p>
+                      <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="create_new_parameter_instance_button(p)"><i class="fa fa-bookmark"></i> Save Parameters Instance</button>
+                      <div class="card-text" ><small >Author: [[ p.author ]]</small></div>
+                      <p class="card-text" ><small >Supported Payload Types: [[ p.payload_types.join(", ") ]]</small></p>
                   </div>
                 </div>
                 <div class="card-footer border border-dark shadow bg-header-dark">
@@ -60,7 +61,7 @@
                                 <i class="fas fa-edit"></i>
                               </button>
                               <div class="dropdown-menu" :id="p.name + 'edit_button'">
-                                  <button class="dropdown-item" @click="update_button(p)">Supported Payloads</button>
+                                  <button class="dropdown-item" @click="update_button(p)">Supported Payloads & Info</button>
                                   <button class="dropdown-item" @click="update_button(p)">Upload Listener Files</button>
                                   <button class="dropdown-item" @click="parameters_button(p)">Parameters</button>
                                   <button class="dropdown-item" @click="edit_files_button(p)">Download / Delete Listener Files</button>
@@ -145,7 +146,7 @@
 <!-- END MODAL FOR EDITING PROFILE FILES-->
 <!-- THIS IS OUR MODAL FOR UPDATING A PROFILE -->
 <div class="modal fade" id="profileUpdateModal" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
 	<div class="modal-content">
 	    <div class="modal-header bg-dark text-white">
 		<h3 id="updateLabel">Update the current C2 profile</h3>
@@ -155,12 +156,12 @@
             Update the current profile's description, and/or supported payload types. If the container is down, you won't be able to upload new files to the container.
             <table cellpadding="10" style="width:100%" class="table-striped {{config['table-color']}} table-hover">
                 <tr>
-                    <td style="width:150px">Name</td>
+                    <td style="width:300px">Name</td>
                     <td><input type="text" id="profileUpdateName" size="50" disabled></td>
                 </tr>
                 <tr>
                     <td>Description</td>
-                    <td> <input type="text" id="profileUpdateDescription" size="50"></td>
+                    <td> <textarea type="text" id="profileUpdateDescription" cols="100"></textarea></td>
                 </tr>
                 <tr>
                     <td>Supported Payloads</td>
@@ -170,6 +171,10 @@
                     </td>
                 </tr>
                 <tr>
+                    <td>Author (twitter handle)</td>
+                    <td><input type="text" id="profileUpdateAuthor" size="50"></td>
+                </tr>
+                <tr>
                     <td>Externally hosted?</td>
                     <td><span class="material-switch pull-right"><input type="checkbox" id="profileUpdateExternal"><label for="profileUpdateExternal" class="btn-info"></label></span></td>
                 </tr>
@@ -177,12 +182,30 @@
                     <td>
                         Server/Container Code:
                     </td>
-                    <td><input multiple type="file" id="profileEditServerFile"></td>
+                    <td><input multiple type="file" id="profileUpdateServerFile"></td>
                 </tr>
                 <tr v-for="p in edit_payload_file_list">
                     <td>[[p]]'s Code:</td>
                     <td>
                         <input multiple type="file" :id="'edit_payload_file_list' + [[p]]">
+                    </td>
+                </tr>
+                <tr>
+                    <td>Notes:</td>
+                    <td>
+                        <textarea type="text" id="profileUpdateNotes" cols="100" rows="10"></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Sample Server Config:</td>
+                    <td>
+                        <textarea type="text" id="profileUpdateSampleServer" cols="100" rows="20"></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Sample Client Config:</td>
+                    <td>
+                        <textarea type="text" id="profileUpdateSampleClient" cols="100" rows="20"></textarea>
                     </td>
                 </tr>
             </table>
@@ -197,7 +220,7 @@
 <!-- END MODAL FOR UPDATING A PROFILE -->
 <!-- THIS IS OUR MODAL FOR CREATING A PROFILE -->
 <div class="modal fade" id="profileCreateModal" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
 	<div class="modal-content">
 	    <div class="modal-header bg-dark text-white">
 		<h3 id="createLabel">Register C2 profile</h3>
@@ -207,12 +230,12 @@
             Register a new profile's description, name, and supported payload types. The name must be unique.
             <table cellpadding="10" style="width:100%" class="table-striped {{config['table-color']}} table-hover">
                 <tr>
-                    <td style="width:150px">Name</td>
+                    <td style="width:300px">Name</td>
                     <td><input type="text" id="profileCreateName" size="50"></td>
                 </tr>
                 <tr>
                     <td>Description</td>
-                    <td> <input type="text" id="profileCreateDescription" size="50"></td>
+                    <td> <textarea type="text" id="profileCreateDescription" cols="100"></textarea></td>
                 </tr>
                 <tr>
                     <td>Supported Payloads</td>
@@ -220,6 +243,10 @@
                         <select multiple id="profileCreatePayloadTypes">
                         </select>
                     </td>
+                </tr>
+                <tr>
+                    <td>Author (twitter handle)</td>
+                    <td><input type="text" id="profileCreateAuthor" size="50"></td>
                 </tr>
                 <tr>
                     <td>Externally hosted?</td>
@@ -235,6 +262,24 @@
                     <td>[[p]]'s Code:</td>
                     <td>
                         <input multiple type="file" :id="'payload_file_list' + [[p]]">
+                    </td>
+                </tr>
+                <tr>
+                    <td>Notes:</td>
+                    <td>
+                        <textarea type="text" id="profileCreateNotes" cols="100" rows="10"></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Sample Server Config:</td>
+                    <td>
+                        <textarea type="text" id="profileCreateSampleServer" cols="100" rows="20"></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Sample Client Config:</td>
+                    <td>
+                        <textarea type="text" id="profileCreateSampleClient" cols="100" rows="20"></textarea>
                     </td>
                 </tr>
             </table>

@@ -372,7 +372,7 @@ var view_acls = new Vue({
         }
     },
     delimiters: ['[[', ']]']
-})
+});
 function delete_acl_response(response){
     try{
         var data = JSON.parse(response);
@@ -380,12 +380,18 @@ function delete_acl_response(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }else{
-        for(i = 0; i < view_acls.disabled_profiles.length; i++){
-            if(data['name'] == view_acls.disabled_profiles[i]['name']){
+        for(let i = 0; i < view_acls.disabled_profiles.length; i++){
+            if(data['name'] === view_acls.disabled_profiles[i]['name']){
                 view_acls.disabled_profiles.splice(i, 1);
+                break;
+            }
+        }
+        for(let i = 0; i < modify_user_acls.denied_command_profiles.length; i++){
+            if(data['name'] === modify_user_acls.denied_command_profiles[i]){
+                modify_user_acls.denied_command_profiles.splice(i, 1);
                 return;
             }
         }
@@ -394,11 +400,11 @@ function delete_acl_response(response){
 function new_acl_button(){
      $( '#operationCreateACLsModal' ).modal('show');
      $( '#operationCreateACLsSubmit' ).unbind('click').click(function(){
-        data = {};
+        let data = {};
         data[create_acls.name] = {};
         for (const [key, value] of Object.entries(create_acls.selected_commands)) {
           // key will be a payload type
-          for(i = 0; i < value.length; i++){
+          for(let i = 0; i < value.length; i++){
                 if(value[i]['disabled']){
                     //found a thing we need to add
                     if(!data[create_acls.name].hasOwnProperty(key)){
@@ -418,7 +424,7 @@ function create_acl_response(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/disabled_commands_profiles", get_disabled_commands_profiles_response, "GET", null);
     }else{
         alertTop("danger", data['error']);

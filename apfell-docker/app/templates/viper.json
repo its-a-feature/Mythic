@@ -8,6 +8,7 @@
     "container_running":false,
     "service":"rabbitmq",
     "ptype":"viper",
+    "author": "@its_a_feature_",
     "file_extension":"py",
     "wrapped_payload_type":"null",
     "files":[],

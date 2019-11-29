@@ -190,7 +190,7 @@
                     </tr>
                     <tr v-for="m in members">
                         <td>[[m.username]]</td>
-                        <td><select v-model="m.base_disabled_commands"><option value="None">None</option><option v-for="p in denied_command_profiles" :value="p">[[p]]</option></select></td>
+                        <td style="text-align:center"><select v-model="m.base_disabled_commands"><option value="None">None</option><option v-for="p in denied_command_profiles" :value="p">[[p]]</option></select></td>
                     </tr>
                 </table>
             </div>

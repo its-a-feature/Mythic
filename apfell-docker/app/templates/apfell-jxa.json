@@ -11,6 +11,7 @@
     "external": false,
     "files":[],
     "c2_profiles":{},
+    "author": "@its_a_feature_",
     "load_transforms":[
       {
         "parameter":"",
