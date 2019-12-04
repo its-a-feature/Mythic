@@ -539,7 +539,7 @@ function startwebsocket_rabbitmqresponses(){
 			        //console.log(rdata['body']);
 			        data = JSON.parse(rdata['body']);
 			        //clearAlertTop();
-			        download_from_memory(data['filename'], btoa(data['data']));
+			        download_from_memory(data['filename'], (data['data']));
 			    }
 			    else{
 			        let delay = 4;
