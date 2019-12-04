@@ -35,13 +35,12 @@ async def getFile(request):
     global config
     if config[request.app.name]['debug']:
         await print_flush("getFile request from: {}".format(request.url))
-    if config[request.app.name]['getFile']['fid'] in request.raw_args and config[request.app.name]['getFile']['cid'] in request.raw_args:
+    if config[request.app.name]['getFile']['cid'] in request.raw_args:
 
-        url = config['getFile'].format(request.raw_args[config[request.app.name]['getFile']['fid']],
-                                       request.raw_args[config[request.app.name]['getFile']['cid']])
+        url = config['getFile'].format(request.raw_args[config[request.app.name]['getFile']['cid']])
         if config[request.app.name]['debug']:
             await print_flush("Forwarding along to: {}".format(url))
-        response = requests.get(url, verify=False)
+        response = requests.post(url, data=request.body, verify=False)
         return raw(response.content, status=200, headers={"Server": config[request.app.name]['server_header']})
     else:
         if config[request.app.name]['debug']:
@@ -158,9 +157,8 @@ if __name__ == "__main__":
         config[str(inst['port'])]['getNextTask'] = {}
         config[str(inst['port'])]['getNextTask']['cid'] = inst['GET']['getNextTask']['parameters']['cid']
 
-        app.add_route(getFile, inst['GET']['getFile']['url'], methods=['GET'])
+        app.add_route(getFile, inst['GET']['getFile']['url'], methods=['POST'])
         config[str(inst['port'])]['getFile'] = {}
-        config[str(inst['port'])]['getFile']['fid'] = inst['GET']['getFile']['parameters']['fid']
         config[str(inst['port'])]['getFile']['cid'] = inst['GET']['getFile']['parameters']['cid']
 
         app.add_route(postResponse, inst['POST']['postResponse']['url'], methods=['POST'])

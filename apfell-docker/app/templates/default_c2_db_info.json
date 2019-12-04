@@ -74,7 +74,7 @@
       {
         "name":"Get a File (for load/download) - Needs two instances of IDSTRING",
         "key":"GETFILE",
-        "hint":"\/download.php?file=*&ID=*"
+        "hint":"\/download.php?ID=*"
       },
       {
         "name":"Get next task",

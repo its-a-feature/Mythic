@@ -11,7 +11,6 @@
         "getFile": {
           "url": "/download.php",
           "parameters": {
-            "fid": "file",
             "cid": "ID"
           }
         }
@@ -56,9 +55,9 @@
       "server_header": "nginx 1.2"
     }
   ],
-  "apfellBase": "https://localhost/api/v1.3/",
+  "apfellBase": "http://localhost/api/v1.3/",
   "apfellNextTask": "tasks/callback/{}/nextTask",
-  "apfellGetFile": "files/{}/callbacks/{}",
+  "apfellGetFile": "files/callback/{}",
   "apfellPostResponse": "responses/{}",
   "apfellNewCallback": "callbacks/",
   "apfellNewCallbackAESPSK": "crypto/aes_psk/{}",

