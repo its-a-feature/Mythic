@@ -12,7 +12,6 @@
                 <th onclick="sort_table(this)"><b>Active Status</b></th>
                 <th onclick="sort_table(this)"><b>Payload Type </b></th>
                 <th onclick="sort_table(this)"><b>Command </b></th>
-                <th><b>Snippet</b></th>
                 <th onclick="sort_table(this)"><b>Author</b></th>
                 <th onclick="sort_table(this)"><b>Registration Time</span></b></th>
                 <th onclick="sort_table(this)"><b>In Effect</b></th>
@@ -34,15 +33,6 @@
                 </td>
                 <td>[[s.payload_type]]</td>
                 <td>[[s.command]]</td>
-                <td>
-                    <template v-if="s.script.length > 80">
-                        [[s.script.substring(0,80) + '...']]
-                    </template>
-                    <template v-else>
-                        [[s.script]]
-                    </template>
-
-                </td>
                 <td>[[s.operator]]</td>
                 <td>[[toLocalTime(s.creation_time)]]</td>
                 <td>
@@ -74,7 +64,6 @@
                 <th style="text-align:left;width:5em" ><b>Remove</b></th>
                 <th onclick="sort_table(this)"><b>Payload Type </b></th>
                 <th onclick="sort_table(this)"><b>Command </b></th>
-                <th><b>Snippet</b></th>
                 <th onclick="sort_table(this)"><b>Author</b></th>
                 <th onclick="sort_table(this)"><b>Registration Time</span></b></th>
                 <th>View</th>
@@ -87,15 +76,6 @@
 
                 <td>[[s.payload_type]]</td>
                 <td>[[s.command]]</td>
-                <td>
-                    <template v-if="s.script.length > 120">
-                        [[s.script.substring(0,120) + '...']]
-                    </template>
-                    <template v-else>
-                        [[s.script]]
-                    </template>
-
-                </td>
                 <td>[[s.operator]]</td>
                 <td>[[toLocalTime(s.creation_time)]]</td>
                 <td>
