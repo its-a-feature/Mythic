@@ -202,13 +202,13 @@ class C2():
                 print(e)
                 raise
 
-    def download(self, task_id=-1, data=""):
+    def download(self, task_id=-1, data="", path=""):
         # send data back to server as a download
         bdata = bytearray(data)
         chunks = (len(data) / self.chunk_size)
         if chunks == 0:
             chunks = 1
-        initial_response = self.post_response(response=self.json.dumps({"total_chunks": chunks}), task_id=task_id)
+        initial_response = self.post_response(response=self.json.dumps({"total_chunks": chunks, "full_path": path}), task_id=task_id)
         file_id = initial_response['file_id']
         for x in range(chunks):
             chunk = bdata[x*self.chunk_size:(x+1)*self.chunk_size]

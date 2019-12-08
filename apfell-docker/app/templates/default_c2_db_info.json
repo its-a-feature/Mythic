@@ -127,7 +127,7 @@
         "hint": "\/recover_account.php?SessionID=*"
       }
     ],
-      "payload_types": ["apfell-jxa", "viper"],
+      "payload_types": ["apfell-jxa", "viper", "poseidon"],
       "notes": "",
       "sampleServer": "",
       "sampleClient": ""
