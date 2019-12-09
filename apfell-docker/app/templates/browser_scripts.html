@@ -53,8 +53,8 @@
         </table>
     <div class="card-footer bg-card-footer border border-dark shadow">
         <button class="btn btn-md btn{{config['outline-buttons']}}success" @click="new_script()"><i class="fas fa-plus"></i> New Script</button>
-        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="import_scripts()" data-toggle="tooltip" title="Import new browser scripts from JSON"><i class="fas fa-file-upload fa-lg"></i></button>
-        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_scripts()" data-toggle="tooltip" title="Export all personal browser scripts as JSON"><i class="fa fa-file-export fa-lg"></i></button>
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="import_scripts()" data-toggle="tooltip" title="Import new browser scripts from JSON"><i class="fas fa-file-upload fa-lg"></i>&nbsp;Import</button>
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_scripts()" data-toggle="tooltip" title="Export all personal browser scripts as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>
     </div>
     <div class="card-header bg-header text-white">
         <h2>Operation's <span class="operator">Browser Scripts</span></h2>
@@ -84,7 +84,7 @@
             </tr>
         </table>
     <div class="card-footer bg-card-footer border border-dark shadow">
-        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_operation_scripts()" data-toggle="tooltip" title="Export all browser scripts for this operation as JSON"><i class="fa fa-file-export fa-lg"></i></button>
+        <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_operation_scripts()" data-toggle="tooltip" title="Export all browser scripts for this operation as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>
     </div>
 </div>
 <div id="modal_vues">
