@@ -66,13 +66,12 @@
                 <h3 id="modalLabel">Are you sure? This could have implications elsewhere.</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-              <div class="modal-footer">
-                  <div class="modal-body">
+            <div class="modal-body">
                       Remove the specified operation from the database.<br> If you want to still access the data for reporting later on, you should just complete the operation instead.
                   </div>
-
+              <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="operationDeleteSubmit">Submit</button>
+                <button class="btn btn{{config['outline-buttons']}}danger" data-dismiss="modal" id="operationDeleteSubmit">Delete</button>
               </div>
         </div>
     </div>
