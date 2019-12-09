@@ -16,8 +16,6 @@ exports.jsimport_call = function(task, command, params){
         return JSON.stringify({"user_output":output, "completed": true});
     }
     catch(error){
-        console.log(jsimport);
-        console.log(error.stack);
         return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
     }
 };
