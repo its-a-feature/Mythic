@@ -589,7 +589,7 @@
     "parameters":[
       {
         "type":"String",
-        "hint":"URL to the file",
+        "hint":"",
         "choices":"",
         "required":false,
         "name":"url"
