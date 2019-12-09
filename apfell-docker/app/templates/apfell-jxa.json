@@ -582,7 +582,7 @@
     },
     {
     "needs_admin":false,
-    "help_cmd":"jsimport {\"url\": \"https:\/\/domain.com\/file\/to\/import\"} or jsimport {\"file_id\": 5}",
+    "help_cmd":"jsimport {\"url\": \"https:\/\/domain.com\/file\/to\/import\"} or jsimport {\"file_id\": UUID}",
     "version":1,
     "description":"import a JS file into memory from a remote address. Only one can be imported at a time. You can upload a file on Services -> Host Files to get a file_id back to use",
     "cmd":"jsimport",
@@ -595,7 +595,7 @@
         "name":"url"
       },
       {
-        "type":"Number",
+        "type":"String",
         "hint":"",
         "choices":"",
         "required":false,
