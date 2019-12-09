@@ -1,6 +1,6 @@
 exports.jsimport = function(task,command,params){
+    let script = "";
     try{
-        let script = "";
         let config = JSON.parse(params);
         if(config.hasOwnProperty("url") && config['url'] !== ""){
             let script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(config['url'])),$.NSUTF8StringEncoding));
@@ -13,7 +13,7 @@ exports.jsimport = function(task,command,params){
             if(typeof script_data === "string"){
                 return JSON.stringify({"user_output":"Failed to get contents of file", "completed": true, "status": "error"});
             }
-            let script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding(script_data, $.NSUTF8StringEncoding));
+            script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding(script_data, $.NSUTF8StringEncoding));
         }
         else{
             return JSON.stringify({"user_output":"Need to supply a valid URL or a valid file ID", "completed": true, "status": "error"});
