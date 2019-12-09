@@ -320,11 +320,11 @@ function submit_payload(){
     data['wrapped_payload'] = $('#wrappedPayload option:selected').attr("name");
     data['transforms'] = profile_parameters_table.payload_parameters;
     if(data['commands'].length === 0){
-        console.log()
+        alertTop("warning", "No commands selected. Payload might not have ability to exit, load, or run commands");
     }else{
-        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
         alertTop("info", "Submitted creation request...");
     }
+    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
 }
 var global_uuids = {};
 function submit_payload_callback(response){

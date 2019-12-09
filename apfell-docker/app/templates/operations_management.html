@@ -122,9 +122,11 @@
                         <td>Slack WebHook</td>
                         <td><input type="text" id="operationModifyWebhook" size="60"></td>
                     </tr>
-                    <tr>
-                        <td>Select the operators in the operation</td>
-                        <td><select multiple id="operationModifyMembers" size="10"></select></td>
+                    <tr v-for="(mem, i) in operation_members">
+                        <td>[[mem.name]]</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" :id="'moduser' + i" v-model="mem.selected"><label :for="'moduser' + i" class="btn-info"></label></span>
+                        </td>
                     </tr>
                 </table>
             </div>
@@ -145,7 +147,7 @@
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             <div class="modal-body" id="operationNewBody">
-                You can modify aspects of an operation here. The name must be unique, and list operators separated by ",".
+                You can create a new operation here.
                 <table cellpadding="10" style="width:100%" class="table table-striped table-hover {{config['table-color']}}">
                     <tr>
                         <td style="width:150px">Name</td>
@@ -159,9 +161,11 @@
                         <td>Slack WebHook</td>
                         <td><input type="text" id="operationNewWebhook" size="60"></td>
                     </tr>
-                    <tr>
-                        <td>Operators</td>
-                        <td><select multiple id="operationNewMembers" size="10"></select></td>
+                    <tr v-for="(mem, i) in operation_members">
+                        <td>[[mem.name]]</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" :id="'newuser' + i" v-model="mem.selected"><label :for="'newuser' + i" class="btn-info"></label></span>
+                        </td>
                     </tr>
                 </table>
             </div>

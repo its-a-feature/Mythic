@@ -2,11 +2,25 @@ var operations = [];
 var username = "{{name}}";
 var admin = ("{{admin}}" === "True");
 var current_operation = "{{current_operation}}";
+var operators_vue = new Vue({
+    el: '#operationModifyModal',
+    data: {
+        operation_members: []
+    },
+    delimiters: ['[[', ']]']
+});
+var newoperators_vue = new Vue({
+    el: '#operationNewModal',
+    data: {
+        operation_members: []
+    },
+    delimiters: ['[[', ']]']
+});
 var operations_table = new Vue({
     el: '#operations_table',
     data: {
         operations,
-        current_operation
+        current_operation,
     },
     methods: {
         delete_button: function(o){
@@ -17,6 +31,7 @@ var operations_table = new Vue({
         },
         modify_button: function(o){
             try{
+                operators_vue.operation_members = [];
                 var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
             }catch(error){
                 alertTop("danger", "Session expired, please refresh");
@@ -25,41 +40,48 @@ var operations_table = new Vue({
 
             let members = "";
             for(let i = 0; i < potential_operators.length; i++){
+                let mem_add = {"name": potential_operators[i]['username'], "selected": false};
+                o.members.forEach((x)=>{
+                    if(x['username'] === mem_add['name']){
+                        mem_add['selected'] = true;
+                    }
+                });
+                operators_vue.operation_members.push(mem_add);
                 members = members + '<option value="' + potential_operators[i]['username'] + '">' + potential_operators[i]['username'] + '</option>';
             }
             $( '#operationModifyAdmin' ).html(members);
-            $( '#operationModifyMembers' ).html(members);
             $( '#operationModifyName' ).val(o.name);
             $( '#operationModifyWebhook').val(o.webhook);
             $( '#operationModifyAdmin' ).val(o.admin);
-            selected_members = [];
-            o.members.forEach(function(x){selected_members.push(x.username)});
-            $( '#operationModifyMembers' ).val(selected_members);
             $( '#operationModifyModal' ).modal('show');
 		    $( '#operationModifySubmit' ).unbind('click').click(function(){
-		        var data = {};
-		        if($( '#operationModifyName' ).val() != o.name){
-		            data['name'] = $( '#operationModifyName' ).val();
-		        }
-		        if($( '#operationModifyAdmin' ).val() != o.admin){
+		        let data = {};
+		        if($( '#operationModifyAdmin' ).val() !== o.admin){
 		            data['admin'] = $( '#operationModifyAdmin' ).val();
 		        }
 		        data['webhook'] = $('#operationModifyWebhook').val();
-		        new_members = $( '#operationModifyMembers' ).val();
-		        add_members = [];
-		        remove_members = [];
-		        for( var i = 0; i < new_members.length; i++){
-		            if(selected_members.indexOf(new_members[i]) == -1){
-		                add_members.push(new_members[i]);
-		            }
-		        }
+		        let add_members = [];
+		        let remove_members = [];
+		        for( let i = 0; i < operators_vue.operation_members.length; i++){
+		            let to_add = operators_vue.operation_members[i]['selected'];
+		            let to_remove = false;
+                    o.members.forEach((x)=>{
+                        if(x['username'] === operators_vue.operation_members[i]['name']){
+                            to_add = false; //they're already in the list, so it's either stay same or remove
+                            if(!operators_vue.operation_members[i]['selected']){
+                                // we were selected and now aren't
+                                to_remove = true;
+                            }
+                        }
+                    });
+                    if(to_remove){
+                        remove_members.push(operators_vue.operation_members[i]['name']);
+                    }else if(to_add) {
+                        add_members.push(operators_vue.operation_members[i]['name']);
+                    }
+                }
 		        if(add_members.length > 0){
 		            data['add_members'] = add_members;
-		        }
-		        for(var i = 0; i < selected_members.length; i++){
-		            if(new_members.indexOf(selected_members[i]) == -1){
-		                remove_members.push(selected_members[i]);
-		            }
 		        }
 		        if(remove_members.length > 0){
 		            data['remove_members'] = remove_members;
@@ -121,7 +143,7 @@ function modify_operation(response){
                     operations_table.operations[i]['webhook'] = data['webhook'];
                     operations_table.operations[i].members = data['members'];
                     operations_table.operations[i].members.forEach(function(x){
-                        if(x['base_disabled_commands'] === undefined){x['base_disabled_commands'] = "None"};
+                        if(x['base_disabled_commands'] === undefined){x['base_disabled_commands'] = "None";}
                     });
                 }
             }
@@ -129,7 +151,7 @@ function modify_operation(response){
                 operations_table.operations[i]['webhook'] = data['webhook'];
                 operations_table.operations[i].members = data['members'];
                 operations_table.operations[i].members.forEach(function(x){
-                    if(x['base_disabled_commands'] === undefined){x['base_disabled_commands'] = "None"};
+                    if(x['base_disabled_commands'] === undefined){x['base_disabled_commands'] = "None";}
                 });
             }
         }
@@ -252,29 +274,37 @@ function get_commands_callback(response){
         create_acls.command_options[x].sort((a,b) =>(b.cmd > a.cmd) ? -1 : ((a.cmd > b.cmd) ? 1 : 0));
     });
     create_acls.selected_commands = create_acls.command_options;
-};
+}
 function new_operation_button(){
     $( '#operationNewName' ).val("");
+    newoperators_vue.operation_members = [];
     try{
         var potential_operators = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/"));
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    var members = "";
-    for(var i = 0; i < potential_operators.length; i++){
+    let members = "";
+    for(let i = 0; i < potential_operators.length; i++){
+        newoperators_vue.operation_members.push({"name": potential_operators[i]['username'], "selected": false});
         members = members + '<option value="' + potential_operators[i]['username'] + '">' + potential_operators[i]['username'] + '</option>';
     }
     $( '#operationNewAdmin' ).html(members);
     $( '#operationNewMembers' ).html(members);
     $( '#operationNewModal' ).modal('show');
     $( '#operationNewSubmit' ).unbind('click').click(function(){
-        data = {};
+        let data = {};
         data['name'] = $( '#operationNewName' ).val();
         data['admin'] = $( '#operationNewAdmin' ).val();
+        data['members'] = [];
+        for(let i = 0; i < newoperators_vue.operation_members.length; i++){
+            if(newoperators_vue.operation_members[i]['selected']){
+                data['members'].push(newoperators_vue.operation_members[i]['name']);
+            }
+        }
         data['members'] = $( '#operationNewMembers' ).val();
         data['webhook'] = $('#OperationNewWebhook').val();
-        if( data['members'] != null && data['members'].length == 0){
+        if( data['members'] != null && data['members'].length === 0){
             delete data['members'];
         }
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operations/", create_operation, "POST", data);
@@ -288,14 +318,14 @@ function current_operation_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'success'){
+    if(data['status'] === 'success'){
         operations_table.current_operation = data['current_operation'];
         location.reload(true);
     }
     else{
         alertTop("danger", data['error']);
     }
-};
+}
 get_operations();
 var modify_user_acls = new Vue({
     el: '#operationModifyACLsModal',
