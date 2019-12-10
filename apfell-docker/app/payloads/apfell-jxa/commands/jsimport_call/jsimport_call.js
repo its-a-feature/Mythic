@@ -4,10 +4,10 @@ exports.jsimport_call = function(task, command, params){
         if(output === "" || output === undefined){
             return JSON.stringify({"user_output":"No command output", "completed": true});
         }
-        if(output == true){
+        if(output === true){
             return JSON.stringify({"user_output":"True", "completed": true});
         }
-        if(output == false){
+        if(output === false){
             return JSON.stringify({"user_output":"False", "completed": true});
         }
         if(typeof(output) != "string"){

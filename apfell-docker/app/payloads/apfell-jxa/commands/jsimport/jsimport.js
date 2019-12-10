@@ -1,9 +1,9 @@
 exports.jsimport = function(task,command,params){
-    script = "";
+    let script = "";
     try{
         let config = JSON.parse(params);
         if(config.hasOwnProperty("url") && config['url'] !== ""){
-            let script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(config['url'])),$.NSUTF8StringEncoding));
+            script = ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString(config['url'])),$.NSUTF8StringEncoding));
             if(script === ""){
                 return JSON.stringify({"user_output":"Failed to pull down code, got empty string", "completed": true, "status": "error"});
             }
