@@ -1,6 +1,6 @@
 exports.cat = function(task, command, params){
     try{
-        let contents = $.NSData.dataWithContentsOfFile($(params));
+        let contents = $.NSString.stringWithContentsOfFileEncodingError($(params), $.NSUTF8StringEncoding, $());
         if(contents === undefined || contents === ""){
             return JSON.stringify({"user_output": "No output from command", "completed": true});
         }
