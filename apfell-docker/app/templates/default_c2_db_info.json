@@ -72,7 +72,7 @@
         "hint": "37"
       },
       {
-        "name":"Get a File (for load/download) - Needs two instances of IDSTRING",
+        "name":"Get a File (for load/download)",
         "key":"GETFILE",
         "hint":"\/download.php?ID=*"
       },
