@@ -148,13 +148,14 @@ function uploadCommandFilesAndJSON(url, callback, file_dict, data){
     xhr.send(fd);
 }
 function download_from_memory(filename, text) {
-  let element = document.createElement('a');
-  element.setAttribute('href', 'data:octet/stream;charset=utf-8;base64,' + encodeURIComponent(text));
-  element.setAttribute('download', filename);
-  element.style.display = 'none';
+  let element = window.document.createElement('a');
+    element.href = window.URL.createObjectURL(new Blob([atob(text)], {type: 'text'}));
+    element.download = filename;
   document.body.appendChild(element);
   element.click();
-  document.body.removeChild(element);
+  setTimeout(() => {
+      document.body.removeChild(element);
+    }, 4000);
 }
 function httpGetSync(theUrl){
     let xmlHttp = new XMLHttpRequest();
