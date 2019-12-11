@@ -4,7 +4,7 @@ exports.list_users = function(task, command, params){
 	let gid = -1;
 	let groups = false;
 	if(params.length > 0){
-	    let = JSON.parse(params);
+	    let data = JSON.parse(params);
         if(data.hasOwnProperty('method') && data['method'] !== ""){
             method = data['method'];
         }
@@ -29,6 +29,7 @@ exports.list_users = function(task, command, params){
 	else if(method === "api"){
         ObjC.import('Collaboration');
         ObjC.import('CoreServices');
+        ObjC.bindFunction('CFMakeCollectable', ['id', ['void*']]);
         if(gid === -1){
             let defaultAuthority = $.CSGetLocalIdentityAuthority();
             let identityClass = 2;
@@ -43,6 +44,7 @@ exports.list_users = function(task, command, params){
             $.CSIdentityQueryExecute(query, 0, error);
             let results = $.CSIdentityQueryCopyResults(query);
             let numResults = parseInt($.CFArrayGetCount(results));
+            results = $.CFMakeCollectable(results);
             results = results.js;
             for(let i = 0; i < numResults; i++){
                 let identity = results[i];
@@ -52,14 +54,32 @@ exports.list_users = function(task, command, params){
                     all_users[idObj.posixGID] = [];
                     let members = idObj.memberIdentities.js;
                     for(let j = 0; j < members.length; j++){
-                        let info = "POSIXName(ID): " + members[j].posixName.js + "(" + members[j].posixUID + "), LocalAuthority: " +  members[j].authority.localizedName.js + ", fullName: " + members[j].fullName.js +
-                        "\nEmails: " + members[j].emailAddress.js + ", isHiddenAccount: " + members[j].isHidden + ", Enabled: " + members[j].isEnabled + ", Aliases: " + ObjC.deepUnwrap(members[j].aliases) + ", UUID: " + members[j].UUIDString.js + "\n";
+                        let info = {
+                            "POSIXName": members[j].posixName.js,
+                            "POSIXID":  members[j].posixUID,
+                            "LocalAuthority": members[j].authority.localizedName.js,
+                            "FullName": members[j].fullName.js,
+                            "Emails":  members[j].emailAddress.js,
+                            "isHiddenAccount": members[j].isHidden,
+                            "Enabled": members[j].isEnabled,
+                            "Aliases": ObjC.deepUnwrap(members[j].aliases),
+                            "UUID": members[j].UUIDString.js
+                        };
                         all_users[idObj.posixGID].push(info);
                     }
                 }
                 else{
-                    let info = "POSIXName(ID): " + idObj.posixName.js + "(" + idObj.posixUID + "), LocalAuthority: " +  idObj.authority.localizedName.js + ", fullName: " + idObj.fullName.js +
-                    "\nEmails: " + idObj.emailAddress.js + ", isHiddenAccount: " + idObj.isHidden + ", Enabled: " + idObj.isEnabled + ", Aliases: " + ObjC.deepUnwrap(idObj.aliases) + ", UUID: " + idObj.UUIDString.js + "\n";
+                    let info = {
+                            "POSIXName": idObj.posixName.js,
+                            "POSIXID":  idObj.posixUID,
+                            "LocalAuthority": idObj.authority.localizedName.js,
+                            "FullName": idObj.fullName.js,
+                            "Emails":  idObj.emailAddress.js,
+                            "isHiddenAccount": idObj.isHidden,
+                            "Enabled": idObj.isEnabled,
+                            "Aliases": ObjC.deepUnwrap(idObj.aliases),
+                            "UUID": idObj.UUIDString.js
+                        };
                     all_users.push(info);
                 }
             }
@@ -71,8 +91,17 @@ exports.list_users = function(task, command, params){
             let numResults = results.length;
             for(let i = 0; i < numResults; i++){
                 let idObj = results[i];
-                let info = "POSIXName(ID): " + idObj.posixName.js + "(" + idObj.posixUID + "), LocalAuthority: " +  idObj.authority.localizedName.js + ", fullName: " + idObj.fullName.js +
-                "\nEmails: " + idObj.emailAddress.js + ", isHiddenAccount: " + idObj.isHidden + ", Enabled: " + idObj.isEnabled + ", Aliases: " + ObjC.deepUnwrap(idObj.aliases) + ", UUID: " + idObj.UUIDString.js + "\n";
+                let info = {
+                            "POSIXName": idObj.posixName.js,
+                            "POSIXID":  idObj.posixUID,
+                            "LocalAuthority": idObj.authority.localizedName.js,
+                            "FullName": idObj.fullName.js,
+                            "Emails":  idObj.emailAddress.js,
+                            "isHiddenAccount": idObj.isHidden,
+                            "Enabled": idObj.isEnabled,
+                            "Aliases": ObjC.deepUnwrap(idObj.aliases),
+                            "UUID": idObj.UUIDString.js
+                        };
                 all_users.push(info);
             }
         }
