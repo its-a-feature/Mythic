@@ -1,7 +1,7 @@
 exports.run = function(task, command, params){
 	//launch a program and args via ObjC bridge without doShellScript and return response
+    let response = "";
 	try{
-        let response = "";
         let pieces = JSON.parse(params);
         let path = pieces['path'];
         //console.log(path);
@@ -16,12 +16,12 @@ exports.run = function(task, command, params){
 		//console.log("about to launch");
 		task.launch; // Run the command 'ps ax'
 		//console.log("launched");
-		if(args[args.length - 1] != "&"){
+		if(args[args.length - 1] !== "&"){
 		    //if we aren't tasking this to run in the background, then try to read the output from the program
 		    //  this will hang our main program though for now
             let data = file.readDataToEndOfFile;  // NSData, potential to hang here?
             file.closeFile;
-            response = data;
+            response = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
         }
         else{
             response = "launched program";
@@ -29,6 +29,6 @@ exports.run = function(task, command, params){
     }catch(error){
         return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
     }
-	return JSON.stringify({"user_output":response, "completed": true, "status": "error"});
+	return JSON.stringify({"user_output":response, "completed": true});
 };
 COMMAND_ENDS_HERE

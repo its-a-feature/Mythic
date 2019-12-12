@@ -14,37 +14,48 @@ exports.ls = function(task, command, params){
                 });
             }
         }
-        if (path[0] == '"') {
+        if (path[0] === '"') {
             path = path.substring(1, path.length - 1);
         }
+        if(path[0] === '~'){
+            path = $(path).stringByExpandingTildeInPath.js;
+        }
         let attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path), error));
-        if (attributes != undefined) {
+        if (attributes !== undefined) {
             attributes['type'] = "";
             attributes['files'] = [];
-            if (attributes.hasOwnProperty('NSFileType') && attributes['NSFileType'] == "NSFileTypeDirectory") {
+            if (attributes.hasOwnProperty('NSFileType') && attributes['NSFileType'] === "NSFileTypeDirectory") {
                 let error = Ref();
                 attributes['type'] = "D";
                 let files = fileManager.contentsOfDirectoryAtPathError($(path), error);
-                if (error[0].js == $().js) {
+                if (error[0].js === $().js) {
                     let files_data = [];
                     let sub_files = ObjC.deepUnwrap(files);
-                    if (path[path.length - 1] != "/") {
+                    if (path[path.length - 1] !== "/") {
                         path = path + "/";
                     }
                     for (let i = 0; i < sub_files.length; i++) {
                         let attr = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path + sub_files[i]), error));
                         let file_add = {};
                         file_add['name'] = sub_files[i];
-                        if (attr['NSFileType'] == "NSFileTypeDirectory") {
+                        if (attr['NSFileType'] === "NSFileTypeDirectory") {
                             file_add['type'] = "D";
                         } else {
                             file_add['type'] = "";
                         }
+                        let plistPerms = ObjC.unwrap(fileManager.attributesOfItemAtPathError($(path + sub_files[i]), $()));
+                        if(plistPerms['NSFileExtendedAttributes'] !== undefined){
+                            let extended = {};
+                            let perms = plistPerms['NSFileExtendedAttributes'].js;
+                            for(let j in perms){
+                                extended[j] = perms[j].base64EncodedStringWithOptions(0).js;
+                            }
+                            file_add['ExtendedAttributes'] = extended;
+                        }
                         file_add['size'] = attr['NSFileSize'];
                         let nsposix = attr['NSFilePosixPermissions'];
                         // we need to fix this mess to actually be real permission bits that make sense
-                        let posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
-                        file_add['permissions'] = posix;
+                        file_add['permissions'] = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
                         file_add['owner'] = attr['NSFileOwnerAccountName'] + "(" + attr['NSFileOwnerAccountID'] + ")";
                         file_add['group'] = attr['NSFileGroupOwnerAccountName'] + "(" + attr['NSFileGroupOwnerAccountID'] + ")";
                         if (attr['NSFileExtensionHidden']) {
@@ -52,7 +63,6 @@ exports.ls = function(task, command, params){
                         } else {
                             file_add['hidden'] = "";
                         }
-                        //files_data[file_add] = attr['NSFileExtendedAttributes'];
                         files_data.push(file_add);
                     }
                     attributes['files'] = files_data;
@@ -63,11 +73,10 @@ exports.ls = function(task, command, params){
             delete attributes['NSFileType'];
             let nsposix = attributes['NSFilePosixPermissions'];
             // we need to fix this mess to actually be real permission bits that make sense
-            let posix = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();
             delete attributes['NSFilePosixPermissions'];
             attributes['name'] = path;
             attributes['size'] = attributes['NSFileSize'];
-            attributes['permissions'] = posix;
+            attributes['permissions'] = ((nsposix >> 6) & 0x7).toString() + ((nsposix >> 3) & 0x7).toString() + (nsposix & 0x7).toString();;
             attributes['owner'] = attributes['NSFileOwnerAccountName'] + "(" + attributes['NSFileOwnerAccountID'] + ")";
             attributes['group'] = attributes['NSFileGroupOwnerAccountName'] + "(" + attributes['NSFileGroupOwnerAccountID'] + ")";
             if (attributes['NSFileExtensionHidden']) {
