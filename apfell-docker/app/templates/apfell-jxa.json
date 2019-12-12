@@ -343,11 +343,26 @@
     },
     {
       "needs_admin":false,
-      "help_cmd":"terminals_read [history] [contents]",
+      "help_cmd":"terminals_read {\"history\":false, \"contents\": false}",
       "version":1,
       "description":"This uses JXA to read information about open instances of Apple's Terminal.app. The contents flag allows you to see exactly what the user can see at that moment on the screen. The history flag allows you to see everything that's in that tab's scroll history. This can be a lot of information, so keep that in mind. This function will also give you the window\/tab information for each open session and a bunch of other information.\nEx: terminals_read history",
       "cmd":"terminals_read",
-      "parameters":[],
+      "parameters":[
+        {
+        "type":"Boolean",
+        "hint":"",
+        "choices":"",
+        "required":false,
+        "name":"history"
+      },
+        {
+        "type":"Boolean",
+        "hint":"",
+        "choices":"",
+        "required":false,
+        "name":"contents"
+      }
+      ],
       "attack":[
         {"t_num": "T1056", "attack_name": "Input Capture"},
         {"t_num": "T1139", "attack_name": "Bash History"}
@@ -356,11 +371,33 @@
     },
     {
       "needs_admin":false,
-      "help_cmd":"terminals_send {window ID number} {tab ID number} {command}",
+      "help_cmd":"terminals_send {'window': #, 'tab': #, 'command': 'command here to execute'}",
       "version":1,
       "description":"This uses JXA to inject the shell command, {command}, into the specified terminal shell as if the user typed it from the keyboard. This is pretty powerful. Consider the instance where the user is SSH-ed into another machine via terminal - with this you can inject commands to run on the remote host. Just remember, the user will be able to see the command, but you can always see what they see as well with the \"terminals_read contents\" command.",
       "cmd":"terminals_send",
-      "parameters":[],
+      "parameters":[
+        {
+        "type":"Number",
+        "hint":"",
+        "choices":"",
+        "required":true,
+        "name":"window"
+      },
+        {
+        "type":"Number",
+        "hint":"",
+        "choices":"",
+        "required":true,
+        "name":"tab"
+      },
+        {
+        "type":"String",
+        "hint":"command to execute",
+        "choices":"",
+        "required":false,
+        "name":"command"
+      }
+      ],
       "attack":[
         {"t_num": "T1059", "attack_name": "Command-Line Interface"},
         {"t_num": "T1184", "attack_name": "SSH Hijacking"}
