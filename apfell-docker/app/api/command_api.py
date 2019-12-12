@@ -56,7 +56,7 @@ async def remove_uploaded_files_for_command(request, user, cid):
         return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/files/download", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/commands/<cid:int>/files/download", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_files_for_command(request, user, cid):
@@ -67,22 +67,19 @@ async def download_files_for_command(request, user, cid):
         print(e)
         return json({'status': 'error', 'error': 'failed to get command'})
     try:
-        data = {}
-        if 'file' not in request.raw_args:
+        data = request.json
+        if 'file' not in data:
             return json({'status': 'error', 'error': 'failed to get file parameter'})
-        if 'folder' not in request.raw_args:
+        if 'folder' not in data:
             data['folder'] = "."
-        data['file'] = request.raw_args['file']
         path = os.path.abspath("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd))
         if data['folder'] == "" or data['folder'] is None:
             data['folder'] = "."
         attempted_path = os.path.abspath(path + "/" + data['folder'] + "/" + data['file'])
         if path in attempted_path:
-            if 'base64' in request.raw_args and request.raw_args['base64'] == "1":
-                code = open(attempted_path, 'rb')
-                encoded = base64.b64encode(code.read()).decode("UTF-8")
-                return text(encoded)
-            return await file(attempted_path, filename=data['file'])
+            code = open(attempted_path, 'rb')
+            encoded = base64.b64encode(code.read()).decode("UTF-8")
+            return json({"status": "success", "file": encoded})
         return json({'status': 'error', 'error': 'failed to read file'})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})

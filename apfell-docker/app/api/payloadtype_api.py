@@ -499,7 +499,7 @@ async def remove_uploaded_container_files_for_payloadtype(request, user, ptype):
         return json({'status': 'error', 'error': 'failed sending message: ' + str(e)})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/download", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/download", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_file_for_payloadtype(request, ptype, user):
@@ -511,25 +511,26 @@ async def download_file_for_payloadtype(request, ptype, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload type'})
     try:
-        data = {}
-        if 'file' not in request.raw_args:
+        data = request.json
+        if 'file' not in data:
             return json({'status': 'error', 'error': 'failed to get file parameter'})
-        if 'folder' not in request.raw_args:
+        if 'folder' not in data:
             data['folder'] = "."
-        data['file'] = request.raw_args['file']
         path = os.path.abspath("./app/payloads/{}/payload/".format(payload_type))
-        if data['folder'] == "" or data['folder'] is None:
+        if data['folder'] == "":
             data['folder'] = "."
         attempted_path = os.path.abspath(path + "/" + data['folder'] + "/" + data['file'])
         if path in attempted_path:
-            return await file(attempted_path, filename=data['file'])
+            code = open(attempted_path, 'rb')
+            encoded = base64.b64encode(code.read()).decode("UTF-8")
+            return json({"status": "success", "file": encoded})
         return json({'status': 'error', 'error': 'failed to read file'})
     except Exception as e:
         logger.exception("exception in download_file_for_payloadtype")
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/container_download", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/payloadtypes/<ptype:string>/files/container_download", methods=['POST'])
 @inject_user()
 @scoped('auth:user')
 async def download_container_file_for_payloadtype(request, ptype, user):
@@ -544,7 +545,7 @@ async def download_container_file_for_payloadtype(request, ptype, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload type'})
     try:
-        data = dict(folder=request.raw_args['folder'], file=request.raw_args['file'])
+        data = request.json
         status = await send_pt_rabbitmq_message(payload_type, "getfile",
                                                 base64.b64encode(js.dumps(data).encode()).decode('utf-8'))
         return json(status)

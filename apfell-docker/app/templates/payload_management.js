@@ -254,9 +254,19 @@ var commandEdit_table = new Vue({
             }, "POST", {"folder": folder.folder, "file": file});
         },
         download_file_button: function(folder, file){
-            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download?folder=" + folder + "&file=" + file, "_blank");
-            //let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download?folder=" + folder + "&file=" + file);
-            //download_from_memory(file, btoa(payload));
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download", (response)=>{
+                try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("warning", data['error']);
+                        }else{
+                            download_from_memory(file, data['file']);
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+            }, "POST", {"folder": folder, "file": file});
         },
         add_sub_folder: function(folder){
             $( '#payloadtypeEditFilesAddFolder' ).modal('show');
@@ -324,14 +334,21 @@ var commandEdit_table = new Vue({
             });
         },
         send_to_edit: function(folder, file){
-            let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download?folder=" + folder + "&file=" + file + "&base64=1");
-            try{
-                this.code = atob(payload);
-                this.filename = file;
-                this.folder = folder.folder;
-            }catch(error){
-                alertTop("warning", "Failed to base64 decode contents");
-            }
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/commands/" + this.selected_command['id'] + "/files/download", (response)=>{
+                try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("warning", data['error']);
+                        }else{
+                            this.code = atob(data['file']);
+                            this.filename = file;
+                            this.folder = folder.folder;
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+            }, "POST", {"folder": folder, "file": file});
         },
         save_changes: function(){
             if(this.filename !== "") {
@@ -1334,11 +1351,23 @@ var payloadtypeFiles = new Vue({
         },
         download_file_button: function(folder, file){
             if(folder.includes("/Apfell/")){
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/container_download?folder=" + folder + "&file=" + file, download_file_callback, "GET");
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/container_download", download_file_callback, "POST", {"folder": folder, "file": file});
                 alertTop("info", "Tasked download...");
             }
             else{
-                window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + this.payloadtype_name + "/files/download", (response)=>{
+                    try{
+                            let data = JSON.parse(response);
+                            if(data['status'] === 'error'){
+                                alertTop("warning", data['error']);
+                            }else{
+                                download_from_memory(file, data['file']);
+                            }
+                        }catch(error){
+                            console.log(error.toString());
+                            alertTop("danger", "Session expired, please refresh");
+                        }
+                }, "POST", {"folder": folder, "file": file});
             }
         },
         add_sub_folder: function(folder){
