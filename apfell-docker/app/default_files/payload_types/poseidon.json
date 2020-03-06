@@ -12,7 +12,7 @@
       "note": "This payload type uses golang to cross-compile into various platforms with the help of cgo and xgo\n\nThere are two options for file types when building a poseidon payload\n- The default option produces an executable for the selected operating system\n- The c-archive option produces an archive file that can be used with sharedlib-darwin-linux.c to compile a shared object file for Linux or dylib for macOS.\n\nBuilding a SO\/Dylib File\n- In the payload type information section of the payload creation page, please select the c-archive buildmode option.\n- The resulting payload file should be a zip archive. This contains the golang archive file and header for poseidon. Copy the sharedlib-darwin-linux.c file to the folder with the golang archive files. \n- Edit sharedlib-darwin-linux.c and change the include statement on line 7 to match the name of the golang archive header file.\n- Use clang to compile a dylib on macOS: clang -shared -framework Foundation -framework CoreGraphics -framework Security -fpic sharedlib-darwin-linux.c golangarchive.a -o payload.dylib\n- Note you may need to execute ranlib against the archive file before compiling.",
       "supports_dynamic_loading": false,
       "deleted": false,
-      "last_heartbeat": "03\/06\/2020 16:48:01",
+      "last_heartbeat": "03\/06\/2020 22:36:33",
       "ptype": "poseidon",
       "file_extension": "go",
       "wrapped_payload_type": "null",
@@ -25,19 +25,19 @@
           "pkg\/utils\/structs\/definitions.go": "cGFja2FnZSBzdHJ1Y3RzCgppbXBvcnQgKAoJImVuY29kaW5nL2pzb24iCgkibG9nIgoJInRpbWUiCikKCi8vIERlZmF1bHRjb25maWcgLSBDMiBQcm9maWxlIGNvbmZpZ3VyYXRpb24gZm9yIHRoZSBkZWZhdWx0IHByb2ZpbGUKdHlwZSBEZWZhdWx0Y29uZmlnIHN0cnVjdCB7CglLRVlYICAgICAgIHN0cmluZyAgIGBqc29uOiJrZXl4ImAKCUtleSAgICAgc3RyaW5nICAgYGpzb246ImtleSJgCglCYXNlVVJMICAgIHN0cmluZyAgIGBqc29uOiJiYXNldXJsImAKCVVzZXJBZ2VudCAgc3RyaW5nICAgYGpzb246InVzZXJhZ2VudCJgCglTbGVlcCAgICAgIGludCAgIGBqc29uOiJzbGVlcCJgCglIb3N0SGVhZGVyIHN0cmluZyAgIGBqc29uOiJob3N0aGVhZGVyImAKCUppdHRlciAgICAgaW50ICAgICAgYGpzb246ImppdHRlciJgCn0KCi8vIFdlYnNvY2tldGNvbmZpZyAtIEMyIFByb2ZpbGUgY29uZmlndXJhdGlvbiBmb3IgdGhlIHdlYnNvY2tldCBwcm9maWxlCnR5cGUgV2Vic29ja2V0Y29uZmlnIHN0cnVjdCB7CglLRVlYICAgICAgIHN0cmluZyAgIGBqc29uOiJrZXl4ImAKCUtleSAgICAgc3RyaW5nICAgYGpzb246ImtleSJgCglCYXNlVVJMICAgIHN0cmluZyAgIGBqc29uOiJiYXNldXJsImAKCVVzZXJBZ2VudCAgc3RyaW5nICAgYGpzb246InVzZXJhZ2VudCJgCglTbGVlcCAgICAgIGludCAgIGBqc29uOiJzbGVlcCJgCglIb3N0SGVhZGVyIHN0cmluZyAgIGBqc29uOiJob3N0aGVhZGVyImAKCUppdHRlciAgICAgaW50ICAgICAgYGpzb246ImppdHRlciJgCglFbmRwb2ludCAgIHN0cmluZyAgIGBqc29uOiJlbmRwb2ludCJgCn0KCi8vIFNsYWNrY29uZmlnIC0gQzIgUHJvZmlsZSBjb25maWd1cmF0aW9uIGZvciB0aGUgc2xhY2sgcHJvZmlsZQp0eXBlIFNsYWNrY29uZmlnIHN0cnVjdCB7CglLRVlYICAgICAgIHN0cmluZyAgIGBqc29uOiJrZXl4ImAKCUtleSAgICAgc3RyaW5nICAgYGpzb246ImtleSJgCglTbGVlcCAgICAgIGludCAgIGBqc29uOiJzbGVlcCJgCglKaXR0ZXIgICAgIGludCAgICAgIGBqc29uOiJqaXR0ZXIiYAoJQXBpS2V5CSAgc3RyaW5nIAlganNvbjoiYXBpa2V5ImAKCUNoYW5uZWxJRCBzdHJpbmcgCWBqc29uOiJjaGFubmVsaWQiYAp9CgovLyBTdHJ1Y3QgZGVmaW5pdGlvbiBmb3IgQ2hlY2tJbiBtZXNzYWdlcwp0eXBlIENoZWNrSW5NZXNzYWdlIHN0cnVjdCB7CglBY3Rpb24gICAgICAgICBzdHJpbmcgYGpzb246ImFjdGlvbiJgCglJUCAgICAgICAgICAgICBzdHJpbmcgYGpzb246ImlwImAKCU9TICAgICAgICAgICAgIHN0cmluZyBganNvbjoib3MiYAoJVXNlciAgICAgICAgICAgc3RyaW5nIGBqc29uOiJ1c2VyImAKCUhvc3QgICAgICAgICAgIHN0cmluZyBganNvbjoiaG9zdCJgCglQaWQgICAgICAgICAgICBpbnQgICAgYGpzb246InBpZCJgCglVVUlEICAgICAgICAgICBzdHJpbmcgYGpzb246InV1aWQiYAoJQXJjaGl0ZWN0dXJlICAgc3RyaW5nIGBqc29uOiJhcmNoaXRlY3R1cmUiYAoJRG9tYWluICAgICAgICAgc3RyaW5nIGBqc29uOiJkb21haW4iYAoJSW50ZWdyaXR5TGV2ZWwgaW50ICAgIGBqc29uOiJpbnRlZ3JpdHlfbGV2ZWwiYAoJRXh0ZXJuYWxJUCAgICAgc3RyaW5nIGBqc29uOiJleHRlcm5hbF9pcCJgCglFbmNyeXB0aW9uS2V5ICBzdHJpbmcgYGpzb246ImVuY3J5cHRpb25fa2V5ImAKCURlY3J5cHRpb25LZXkgIHN0cmluZyBganNvbjoiZGVjcnlwdGlvbl9rZXkiYAp9Cgp0eXBlIENoZWNrSW5NZXNzYWdlUmVzcG9uc2Ugc3RydWN0IHsKCUFjdGlvbiBzdHJpbmcgYGpzb246ImFjdGlvbiJgCglJRCAgICAgc3RyaW5nIGBqc29uOiJpZCJgCglTdGF0dXMgc3RyaW5nIGBqc29uOiJzdGF0dXMiYAp9CgovLyBTdHJ1Y3QgZGVmaW5pdGlvbnMgZm9yIEVLRS1SU0EgbWVzc2FnZXMKCnR5cGUgRWtlS2V5RXhjaGFuZ2VNZXNzYWdlIHN0cnVjdCB7CglBY3Rpb24gICAgc3RyaW5nIGBqc29uOiJhY3Rpb24iYAoJUHViS2V5ICAgIHN0cmluZyBganNvbjoicHViX2tleSJgCglTZXNzaW9uSUQgc3RyaW5nIGBqc29uOiJzZXNzaW9uX2lkImAKfQoKdHlwZSBFa2VLZXlFeGNoYW5nZU1lc3NhZ2VSZXNwb25zZSBzdHJ1Y3QgewoJQWN0aW9uICAgICBzdHJpbmcgYGpzb246ImFjdGlvbiJgCglVVUlEICAgICAgIHN0cmluZyBganNvbjoidXVpZCJgCglTZXNzaW9uS2V5IHN0cmluZyBganNvbjoic2Vzc2lvbl9rZXkiYAoJU2Vzc2lvbklkICBzdHJpbmcgYGpzb246InNlc3Npb25faWQiYAp9CgovLyBTdHJ1Y3QgZGVmaW5pdGlvbnMgZm9yIFRhc2tpbmcgcmVxdWVzdCBtZXNzYWdlcwoKdHlwZSBUYXNrUmVxdWVzdE1lc3NhZ2Ugc3RydWN0IHsKCUFjdGlvbiAgICAgIHN0cmluZyAgICAgICAgICAgICBganNvbjoiYWN0aW9uImAKCVRhc2tpbmdTaXplIGludCAgICAgICAgICAgICAgICBganNvbjoidGFza2luZ19zaXplImAKCURlbGVnYXRlcyAgIFtdKmpzb24uUmF3TWVzc2FnZSBganNvbjoiZGVsZWdhdGVzImAKfQoKdHlwZSBUYXNrUmVxdWVzdE1lc3NhZ2VSZXNwb25zZSBzdHJ1Y3QgewoJQWN0aW9uICAgIHN0cmluZyAgICAgICAgICAgICBganNvbjoiYWN0aW9uImAKCVRhc2tzICAgICBbXVRhc2sgICAgICAgICAgICAgYGpzb246InRhc2tzImAKCURlbGVnYXRlcyBbXSpqc29uLlJhd01lc3NhZ2UgYGpzb246ImRlbGVnYXRlcyJgCn0KCnR5cGUgVGFzayBzdHJ1Y3QgewoJQ29tbWFuZCAgIHN0cmluZyAgYGpzb246ImNvbW1hbmQiYAoJUGFyYW1zICAgIHN0cmluZyAgYGpzb246InBhcmFtZXRlcnMiYAoJVGltZXN0YW1wIGZsb2F0NjQgYGpzb246InRpbWVzdGFtcCJgCglUYXNrSUQgICAgc3RyaW5nICBganNvbjoiaWQiYAoJSm9iICAgICAgICpKb2IKfQoKdHlwZSBKb2Igc3RydWN0IHsKCUtpbGxDaGFubmVsIGNoYW4gKGludCkKCVN0b3AgICAgICAgICppbnQKCU1vbml0b3JpbmcgIGJvb2wKfQoKLy8gU3RydWN0IGRlZmluaXRpb25zIGZvciBUYXNrUmVzcG9uc2UgTWVzc2FnZXMKdHlwZSBUYXNrUmVzcG9uc2VNZXNzYWdlIHN0cnVjdCB7CglBY3Rpb24gICAgc3RyaW5nICAgICAgICAgICAgYGpzb246ImFjdGlvbiJgCglSZXNwb25zZXMgW11qc29uLlJhd01lc3NhZ2UgYGpzb246InJlc3BvbnNlcyJgCglEZWxlZ2F0ZXMgW11qc29uLlJhd01lc3NhZ2UgYGpzb246ImRlbGVnYXRlcyJgCn0KCnR5cGUgUmVzcG9uc2Ugc3RydWN0IHsKCVRhc2tJRCAgICAgc3RyaW5nIGBqc29uOiJ0YXNrX2lkImAKCVVzZXJPdXRwdXQgc3RyaW5nIGBqc29uOiJ1c2VyX291dHB1dCJgCglDb21wbGV0ZWQgIGJvb2wgICBganNvbjoiY29tcGxldGVkImAKCVN0YXR1cyAgICAgc3RyaW5nIGBqc29uOiJzdGF0dXMiYAp9Cgp0eXBlIFRhc2tSZXNwb25zZU1lc3NhZ2VSZXNwb25zZSBzdHJ1Y3QgewoJQWN0aW9uICAgIHN0cmluZyAgICAgICAgICAgIGBqc29uOiJhY3Rpb24iYAoJUmVzcG9uc2VzIFtdanNvbi5SYXdNZXNzYWdlIGBqc29uOiJyZXNwb25zZXMiYAoJRGVsZWdhdGVzIFtdanNvbi5SYXdNZXNzYWdlIGBqc29uOiJkZWxlZ2F0ZXMiYAp9Cgp0eXBlIFNlcnZlclJlc3BvbnNlIHN0cnVjdCB7CglUYXNrSUQgc3RyaW5nIGBqc29uOiJ1dWlkImAKCVN0YXR1cyBzdHJpbmcgYGpzb246InN0YXR1cyJgCglFcnJvciAgc3RyaW5nIGBqc29uOiJlcnJvciJgCn0KCnR5cGUgVXNlck91dHB1dCBzdHJ1Y3QgewoJT3V0cHV0IFtdYnl0ZSBganNvbjoidXNlcl9vdXRwdXQiYAp9CgovLyBTdHJ1Y3QgZGVmaW5pdGlvbnMgZm9yIGZpbGUgZG93bmxvYWRzIGFuZCB1cGxvYWRzCnR5cGUgRmlsZURvd25sb2FkSW5pdGlhbE1lc3NhZ2Ugc3RydWN0IHsKCU51bUNodW5rcyBpbnQgICAgYGpzb246InRvdGFsX2NodW5rcyJgCglUYXNrSUQgICAgc3RyaW5nIGBqc29uOiJ0YXNrX2lkImAKCUZ1bGxQYXRoICBzdHJpbmcgYGpzb246ImZ1bGxfcGF0aCJgCn0KCnR5cGUgRmlsZURvd25sb2FkSW5pdGlhbE1lc3NhZ2VSZXNwb25zZSBzdHJ1Y3QgewoJU3RhdHVzIHN0cmluZyBganNvbjoic3RhdHVzImAKCUZpbGVJRCBzdHJpbmcgYGpzb246ImZpbGVfaWQiYAp9Cgp0eXBlIEZpbGVEb3dubG9hZENodW5rTWVzc2FnZSBzdHJ1Y3QgewoJQ2h1bmtOdW0gIGludCAgICBganNvbjoiY2h1bmtfbnVtImAKCUZpbGVJRCAgICBzdHJpbmcgYGpzb246ImZpbGVfaWQiYAoJQ2h1bmtEYXRhIHN0cmluZyBganNvbjoiY2h1bmtfZGF0YSJgCglUYXNrSUQgICAgc3RyaW5nIGBqc29uOiJ0YXNrX2lkImAKfQoKdHlwZSBGaWxlVXBsb2FkQ2h1bmtNZXNzYWdlIHN0cnVjdCB7CglBY3Rpb24gICAgc3RyaW5nIGBqc29uOiJhY3Rpb24iYAoJQ2h1bmtTaXplIGludCAgICBganNvbjoiY2h1bmtfc2l6ZSJgCglGaWxlSUQgICAgc3RyaW5nIGBqc29uOiJmaWxlX2lkImAKCUNodW5rTnVtICBpbnQgICAgYGpzb246ImNodW5rX251bSJgCglGdWxsUGF0aCAgc3RyaW5nIGBqc29uOiJmdWxsX3BhdGgiYAoJVGFza0lEIHN0cmluZyBganNvbjoidGFza19pZCJgCn0KCnR5cGUgRmlsZVVwbG9hZENodW5rTWVzc2FnZVJlc3BvbnNlIHN0cnVjdCB7CglBY3Rpb24gICAgICBzdHJpbmcgYGpzb246ImFjdGlvbiJgCglUb3RhbENodW5rcyBpbnQgICAgYGpzb246InRvdGFsX2NodW5rcyJgCglDaHVua051bSAgICBpbnQgICAgYGpzb246ImNodW5rX251bSJgCglDaHVua0RhdGEgICBzdHJpbmcgYGpzb246ImNodW5rX2RhdGEiYAogICAgRmlsZUlEICAgIHN0cmluZyBganNvbjoiZmlsZV9pZCJgCn0KCi8vTWVzc2FnZSAtIHN0cnVjdCBkZWZpbml0aW9uIGZvciBleHRlcm5hbCBDMiBtZXNzYWdlcwp0eXBlIE1lc3NhZ2Ugc3RydWN0IHsKCVRhZyAgICBzdHJpbmcgYGpzb246InRhZyJgCglDbGllbnQgYm9vbCAgIGBqc29uOiJjbGllbnQiYAoJRGF0YSAgIHN0cmluZyBganNvbjoiZGF0YSJgCn0KCi8vVGhyZWFkTXNnIHVzZWQgdG8gc2VuZCB0YXNrIHJlc3VsdHMgYmFjayB0byB0aGUgcmVjZWl2aW5nIGNoYW5uZWwKdHlwZSBUaHJlYWRNc2cgc3RydWN0IHsKCVRhc2tJdGVtICAgVGFzawoJVGFza1Jlc3VsdCBbXWJ5dGUKCUVycm9yICAgICAgYm9vbAoJQ29tcGxldGVkICBib29sCn0KCi8vIFRhc2tTdHViIHRvIHBvc3QgbGlzdCBvZiBjdXJyZW50bHkgcHJvY2Vzc2luZyB0YXNrcy4KdHlwZSBUYXNrU3R1YiBzdHJ1Y3QgewoJQ29tbWFuZCBzdHJpbmcgYGpzb246ImNvbW1hbmQiYAoJUGFyYW1zICBzdHJpbmcgYGpzb246InBhcmFtcyJgCglJRCAgICAgIHN0cmluZyBganNvbjoiaWQiYAp9CgovLyBKb2Igc3RydWN0IHRoYXQgd2lsbCBsaXN0ZW4gZm9yIG1lc3NhZ2VzIG9uIHRoZSBraWxsIGNoYW5uZWwsCi8vIHNldCB0aGUgU3RvcCBwYXJhbSB0byBhbiBleGl0IGNvZGUsIGFuZCBjaGVja3MgaWYgaXQncyBpbiBhCi8vIG1vbml0b3Jpbmcgc3RhdGUuCgovL0ZpbGVSZWdpc3RlclJlc3BvbnNlIHVzZWQgZm9yIGhvbGRpbmcgdGhlIHJlc3BvbnNlIGFmdGVyIGZpbGUgcmVnaXN0cmF0aW9uCnR5cGUgRmlsZVJlZ2lzdGVyUmVzcG9uc2Ugc3RydWN0IHsKCVN0YXR1cyBzdHJpbmcgYGpzb246InN0YXR1cyJgCglGaWxlSUQgc3RyaW5nIGBqc29uOiJmaWxlX2lkImAKfQoKLy8gRmlsZVJlZ2lzdGVyUmVxdWVzdCB1c2VkIHRvIHJlZ2lzdGVyIGEgZmlsZSBkb3dubG9hZAp0eXBlIEZpbGVSZWdpc3RlclJlcXVlc3Qgc3RydWN0IHsKCUNodW5rcyBpbnQgICAgYGpzb246InRvdGFsX2NodW5rcyJgCglUYXNrICAgc3RyaW5nIGBqc29uOiJ0YXNrImAKfQoKLy8gTmVzdGVkQXBmZWxsVGFza1Jlc3BvbnNlIHVzZWQgdG8gaG9sZCB0aGUgdGFzayByZXNwb25zZSBmaWVsZAp0eXBlIE5lc3RlZEFwZmVsbFRhc2tSZXNwb25zZSBzdHJ1Y3QgewoJU3RhdHVzICAgIHN0cmluZyBganNvbjoic3RhdHVzImAKCVRpbWVzdGFtcCBzdHJpbmcgYGpzb246InRpbWVzdGFtcCJgCglDb21tYW5kICAgc3RyaW5nIGBqc29uOiJjb21tYW5kImAKCVBhcmFtcyAgICBzdHJpbmcgYGpzb246InBhcmFtcyJgCglBdHRhY2tJRCAgaW50ICAgIGBqc29uOiJhdHRhY2tfaWQiYAoJQ2FsbGJhY2sgIGludCAgICBganNvbjoiY2FsbGJhY2siYAoJT3BlcmF0b3IgIHN0cmluZyBganNvbjoib3BlcmF0b3IiYAp9CgovLyBGaWxlQ2h1bmsgdXNlZCB0byBzZW5kIGEgZmlsZSBkb3dubG9hZCBjaHVuayB0byBhcGZlbGwKdHlwZSBGaWxlQ2h1bmsgc3RydWN0IHsKCUNodW5rTnVtYmVyIGludCAgICBganNvbjoiY2h1bmtfbnVtImAKCUNodW5rRGF0YSAgIHN0cmluZyBganNvbjoiY2h1bmtfZGF0YSJgCglGaWxlSUQgICAgICBzdHJpbmcgYGpzb246ImZpbGVfaWQiYAp9CgovLyBGaWxlQ2h1bmtSZXNwb25zZSB1c2VkIHRvIGhhbmRsZSB0aGUgRmlsZUNodW5rIHJlc3BvbnNlIGZyb20gQXBmZWxsCnR5cGUgRmlsZUNodW5rUmVzcG9uc2Ugc3RydWN0IHsKCVN0YXR1cyBzdHJpbmcgYGpzb246InN0YXR1cyJgCn0KCi8vRmlsZVVwbG9hZFBhcmFtcyAtIGhhbmRsZSBwYXJhbWV0ZXJzIGZvciB0aGUgZmlsZSB1cGxvYWQgcmVzcG9uc2UKdHlwZSBGaWxlVXBsb2FkUGFyYW1zIHN0cnVjdCB7CglGaWxlSUQgICAgIHN0cmluZyBganNvbjoiZmlsZV9pZCJgCglSZW1vdGVQYXRoIHN0cmluZyBganNvbjoicmVtb3RlX3BhdGgiYAp9CgovLyBDaGVja0luU3RydWN0IHVzZWQgZm9yIENoZWNraW4gbWVzc2FnZXMgdG8gQXBmZWxsCnR5cGUgQ2hlY2tJblN0cnVjdCBzdHJ1Y3QgewoJVXNlciAgICAgICAgICAgc3RyaW5nIGBqc29uOiJ1c2VyImAKCUhvc3QgICAgICAgICAgIHN0cmluZyBganNvbjoiaG9zdCJgCglQaWQgICAgICAgICAgICBpbnQgICAgYGpzb246InBpZCJgCglJUCAgICAgICAgICAgICBzdHJpbmcgYGpzb246ImlwImAKCVVVSUQgICAgICAgICAgIHN0cmluZyBganNvbjoidXVpZCJgCglJbnRlZ3JpdHlMZXZlbCBpbnQgICAgYGpzb246ImludGVncml0eV9sZXZlbCJgCn0KCi8vIE1vbml0b3JTdG9wIHRlbGxzIHRoZSBqb2IgdGhhdCBpdCBuZWVkcyB0byB3YWl0IGZvciBhIGtpbGwgc2lnbmFsLgovLyBUaGUgaW5kaXZpZHVhbCBtb2R1bGUgaXMgcmVxdWlyZWQgdG8gbGlzdGVuIGZvciB0aGUgam9iLlN0b3AKLy8gdmFyaWFibGUgdG8gYmUgPiAwLCBhbmQgdGFrZSByZXF1aXNpdGUgYWN0aW9ucyB0byB0ZWFyLWRvd24uCmZ1bmMgKGogKkpvYikgTW9uaXRvclN0b3AoKSB7CglpZiAhai5Nb25pdG9yaW5nIHsKCQlqLk1vbml0b3JpbmcgPSB0cnVlCgkJZm9yIHsKCQkJc2VsZWN0IHsKCQkJY2FzZSA8LWouS2lsbENoYW5uZWw6CgkJCQlsb2cuUHJpbnRsbigiR290IGtpbGwgbWVzc2FnZSBmb3Igam9iIikKCQkJCSpqLlN0b3AgPSAxCgkJCQlqLk1vbml0b3JpbmcgPSBmYWxzZQoJCQkJcmV0dXJuCgkJCWRlZmF1bHQ6CgkJCQkvLyDDosKAwqYKCQkJCS8vIGxvZy5QcmludGxuKCJTbGVlcGluZyBpbiB0aGUga2lsbCBjaGFuLi4uIikKCQkJCXRpbWUuU2xlZXAodGltZS5TZWNvbmQpCgkJCX0KCQl9Cgl9Cn0KCi8vIFNlbmRLaWxsIHNlbmRzIGEga2lsbCBtZXNzYWdlIHRvIHRoZSBjaGFubmVsLgpmdW5jIChqICpKb2IpIFNlbmRLaWxsKCkgewoJai5LaWxsQ2hhbm5lbCA8LSAxCn0KCi8vIFRvU3R1YiBjb252ZXJ0cyBhIFRhc2sgaXRlbSB0byBhIFRhc2tTdHViIHRoYXQncyBlYXNpbHkKLy8gdHJhbnNwb3J0YWJsZSBiZXR3ZWVuIGNsaWVudCBhbmQgc2VydmVyLgpmdW5jICh0ICpUYXNrKSBUb1N0dWIoKSBUYXNrU3R1YiB7CglyZXR1cm4gVGFza1N0dWJ7CgkJQ29tbWFuZDogdC5Db21tYW5kLAoJCUlEOiAgICAgIHQuVGFza0lELAoJCVBhcmFtczogIHQuUGFyYW1zLAoJfQp9"
         },
         {
-          "pkg\/utils\/functions\/functions_darwin.go": "Ly8gK2J1aWxkIGRhcndpbgoKcGFja2FnZSBmdW5jdGlvbnMKLyoKI2NnbyBDRkxBR1M6IC14IG9iamVjdGl2ZS1jCiNjZ28gTERGTEFHUzogLWZyYW1ld29yayBGb3VuZGF0aW9uCiNpbmNsdWRlICJmb3VuZGF0aW9uLmgiCiovCmltcG9ydCAiQyIKaW1wb3J0ICgKCSJmbXQiCgkidW5pY29kZS91dGYxNiIKCSJvcy91c2VyIgoJIm9zIgoJInJ1bnRpbWUiCikKZnVuYyBjc3RyaW5nKHMgKkMuTlNTdHJpbmcpICpDLmNoYXIgeyByZXR1cm4gQy5uc3N0cmluZzJjc3RyaW5nKHMpIH0KZnVuYyBnb3N0cmluZyhzICpDLk5TU3RyaW5nKSBzdHJpbmcgeyByZXR1cm4gQy5Hb1N0cmluZyhjc3RyaW5nKHMpKSB9CmZ1bmMgaXNFbGV2YXRlZCgpIGJvb2wgewoJY3VycmVudFVzZXIsIF8gOj0gdXNlci5DdXJyZW50KCkKCXJldHVybiBjdXJyZW50VXNlci5VaWQgPT0gIjAiCn0KZnVuYyBnZXRBcmNoaXRlY3R1cmUoKSBzdHJpbmd7CiAgICByZXR1cm4gcnVudGltZS5HT0FSQ0gKfQpmdW5jIGdldERvbWFpbigpIHN0cmluZ3sKICAgIGhvc3QsIF8gOj0gb3MuSG9zdG5hbWUoKQogICAgcmV0dXJuIGhvc3QKfQpmdW5jIGdldE9TKCkgc3RyaW5newogICAgcmV0dXJuIGdvc3RyaW5nKCBDLkdldE9TVmVyc2lvbigpICk7CiAgICAvL3JldHVybiBydW50aW1lLkdPT1MKfQovLyBIZWxwZXIgZnVuY3Rpb24gdG8gY29udmVydCBEV09SRCBieXRlIGNvdW50cyB0bwovLyBodW1hbiByZWFkYWJsZSBzaXplcy4KZnVuYyBVSU5UMzJCeXRlQ291bnREZWNpbWFsKGIgdWludDMyKSBzdHJpbmcgewoJY29uc3QgdW5pdCA9IDEwMjQKCWlmIGIgPCB1bml0IHsKCQlyZXR1cm4gZm10LlNwcmludGYoIiVkIEIiLCBiKQoJfQoJZGl2LCBleHAgOj0gdWludDMyKHVuaXQpLCAwCglmb3IgbiA6PSBiIC8gdW5pdDsgbiA+PSB1bml0OyBuIC89IHVuaXQgewoJCWRpdiAqPSB1bml0CgkJZXhwKysKCX0KCXJldHVybiBmbXQuU3ByaW50ZigiJS4xZiAlY0IiLCBmbG9hdDMyKGIpL2Zsb2F0MzIoZGl2KSwgImtNR1RQRSJbZXhwXSkKfQoKLy8gSGVscGVyIGZ1bmN0aW9uIHRvIGNvbnZlcnQgTEFSR0VfSU5URUdFUiBieXRlCi8vICBjb3VudHMgdG8gaHVtYW4gcmVhZGFibGUgc2l6ZXMuCmZ1bmMgVUlOVDY0Qnl0ZUNvdW50RGVjaW1hbChiIHVpbnQ2NCkgc3RyaW5nIHsKCWNvbnN0IHVuaXQgPSAxMDI0CglpZiBiIDwgdW5pdCB7CgkJcmV0dXJuIGZtdC5TcHJpbnRmKCIlZCBCIiwgYikKCX0KCWRpdiwgZXhwIDo9IHVpbnQ2NCh1bml0KSwgMAoJZm9yIG4gOj0gYiAvIHVuaXQ7IG4gPj0gdW5pdDsgbiAvPSB1bml0IHsKCQlkaXYgKj0gdW5pdAoJCWV4cCsrCgl9CglyZXR1cm4gZm10LlNwcmludGYoIiUuMWYgJWNCIiwgZmxvYXQ2NChiKS9mbG9hdDY0KGRpdiksICJrTUdUUEUiW2V4cF0pCn0KCi8vIEhlbHBlciBmdW5jdGlvbiB0byBidWlsZCBhIHN0cmluZyBmcm9tIGEgV0NIQVIgc3RyaW5nCmZ1bmMgVVRGMTZUb1N0cmluZyhzIFtddWludDE2KSBbXXN0cmluZyB7Cgl2YXIgcmVzdWx0cyBbXXN0cmluZwoJY3V0IDo9IDAKCWZvciBpLCB2IDo9IHJhbmdlIHMgewoJCWlmIHYgPT0gMCB7CgkJCWlmIGktY3V0ID4gMCB7CgkJCQlyZXN1bHRzID0gYXBwZW5kKHJlc3VsdHMsIHN0cmluZyh1dGYxNi5EZWNvZGUoc1tjdXQ6aV0pKSkKCQkJfQoJCQljdXQgPSBpICsgMQoJCX0KCX0KCWlmIGN1dCA8IGxlbihzKSB7CgkJcmVzdWx0cyA9IGFwcGVuZChyZXN1bHRzLCBzdHJpbmcodXRmMTYuRGVjb2RlKHNbY3V0Ol0pKSkKCX0KCXJldHVybiByZXN1bHRzCn0K"
+          "pkg\/utils\/functions\/functions_darwin.go": "Ly8gK2J1aWxkIGRhcndpbgoKcGFja2FnZSBmdW5jdGlvbnMKLyoKI2NnbyBDRkxBR1M6IC14IG9iamVjdGl2ZS1jCiNjZ28gTERGTEFHUzogLWZyYW1ld29yayBGb3VuZGF0aW9uCiNpbmNsdWRlICJmb3VuZGF0aW9uX2Rhcndpbi5oIgoqLwppbXBvcnQgIkMiCmltcG9ydCAoCgkiZm10IgoJInVuaWNvZGUvdXRmMTYiCgkib3MvdXNlciIKCSJvcyIKCSJydW50aW1lIgopCmZ1bmMgY3N0cmluZyhzICpDLk5TU3RyaW5nKSAqQy5jaGFyIHsgcmV0dXJuIEMubnNzdHJpbmcyY3N0cmluZyhzKSB9CmZ1bmMgZ29zdHJpbmcocyAqQy5OU1N0cmluZykgc3RyaW5nIHsgcmV0dXJuIEMuR29TdHJpbmcoY3N0cmluZyhzKSkgfQpmdW5jIGlzRWxldmF0ZWQoKSBib29sIHsKCWN1cnJlbnRVc2VyLCBfIDo9IHVzZXIuQ3VycmVudCgpCglyZXR1cm4gY3VycmVudFVzZXIuVWlkID09ICIwIgp9CmZ1bmMgZ2V0QXJjaGl0ZWN0dXJlKCkgc3RyaW5newogICAgcmV0dXJuIHJ1bnRpbWUuR09BUkNICn0KZnVuYyBnZXREb21haW4oKSBzdHJpbmd7CiAgICBob3N0LCBfIDo9IG9zLkhvc3RuYW1lKCkKICAgIHJldHVybiBob3N0Cn0KZnVuYyBnZXRPUygpIHN0cmluZ3sKICAgIHJldHVybiBnb3N0cmluZyggQy5HZXRPU1ZlcnNpb24oKSApOwogICAgLy9yZXR1cm4gcnVudGltZS5HT09TCn0KLy8gSGVscGVyIGZ1bmN0aW9uIHRvIGNvbnZlcnQgRFdPUkQgYnl0ZSBjb3VudHMgdG8KLy8gaHVtYW4gcmVhZGFibGUgc2l6ZXMuCmZ1bmMgVUlOVDMyQnl0ZUNvdW50RGVjaW1hbChiIHVpbnQzMikgc3RyaW5nIHsKCWNvbnN0IHVuaXQgPSAxMDI0CglpZiBiIDwgdW5pdCB7CgkJcmV0dXJuIGZtdC5TcHJpbnRmKCIlZCBCIiwgYikKCX0KCWRpdiwgZXhwIDo9IHVpbnQzMih1bml0KSwgMAoJZm9yIG4gOj0gYiAvIHVuaXQ7IG4gPj0gdW5pdDsgbiAvPSB1bml0IHsKCQlkaXYgKj0gdW5pdAoJCWV4cCsrCgl9CglyZXR1cm4gZm10LlNwcmludGYoIiUuMWYgJWNCIiwgZmxvYXQzMihiKS9mbG9hdDMyKGRpdiksICJrTUdUUEUiW2V4cF0pCn0KCi8vIEhlbHBlciBmdW5jdGlvbiB0byBjb252ZXJ0IExBUkdFX0lOVEVHRVIgYnl0ZQovLyAgY291bnRzIHRvIGh1bWFuIHJlYWRhYmxlIHNpemVzLgpmdW5jIFVJTlQ2NEJ5dGVDb3VudERlY2ltYWwoYiB1aW50NjQpIHN0cmluZyB7Cgljb25zdCB1bml0ID0gMTAyNAoJaWYgYiA8IHVuaXQgewoJCXJldHVybiBmbXQuU3ByaW50ZigiJWQgQiIsIGIpCgl9CglkaXYsIGV4cCA6PSB1aW50NjQodW5pdCksIDAKCWZvciBuIDo9IGIgLyB1bml0OyBuID49IHVuaXQ7IG4gLz0gdW5pdCB7CgkJZGl2ICo9IHVuaXQKCQlleHArKwoJfQoJcmV0dXJuIGZtdC5TcHJpbnRmKCIlLjFmICVjQiIsIGZsb2F0NjQoYikvZmxvYXQ2NChkaXYpLCAia01HVFBFIltleHBdKQp9CgovLyBIZWxwZXIgZnVuY3Rpb24gdG8gYnVpbGQgYSBzdHJpbmcgZnJvbSBhIFdDSEFSIHN0cmluZwpmdW5jIFVURjE2VG9TdHJpbmcocyBbXXVpbnQxNikgW11zdHJpbmcgewoJdmFyIHJlc3VsdHMgW11zdHJpbmcKCWN1dCA6PSAwCglmb3IgaSwgdiA6PSByYW5nZSBzIHsKCQlpZiB2ID09IDAgewoJCQlpZiBpLWN1dCA+IDAgewoJCQkJcmVzdWx0cyA9IGFwcGVuZChyZXN1bHRzLCBzdHJpbmcodXRmMTYuRGVjb2RlKHNbY3V0OmldKSkpCgkJCX0KCQkJY3V0ID0gaSArIDEKCQl9Cgl9CglpZiBjdXQgPCBsZW4ocykgewoJCXJlc3VsdHMgPSBhcHBlbmQocmVzdWx0cywgc3RyaW5nKHV0ZjE2LkRlY29kZShzW2N1dDpdKSkpCgl9CglyZXR1cm4gcmVzdWx0cwp9Cg=="
         },
         {
           "pkg\/utils\/functions\/functions.go": "cGFja2FnZSBmdW5jdGlvbnMKCmltcG9ydCAoCgkibmV0IgopCgovL0dldEN1cnJlbnRJUEFkZHJlc3MgLSB0aGUgY3VycmVudCBJUCBhZGRyZXNzIG9mIHRoZSBzeXN0ZW0KZnVuYyBHZXRDdXJyZW50SVBBZGRyZXNzKCkgc3RyaW5nIHsKCWFkZHJzLCBlcnIgOj0gbmV0LkludGVyZmFjZUFkZHJzKCkKCglpZiBlcnIgIT0gbmlsIHsKCQlyZXR1cm4gIjEyNy4wLjAuMSIKCX0KCgljdXJySVAgOj0gIjAuMC4wLjAiCglmb3IgXywgYWRkcmVzcyA6PSByYW5nZSBhZGRycyB7CgoJCS8vIGNoZWNrIHRoZSBhZGRyZXNzIHR5cGUgYW5kIGlmIGl0IGlzIG5vdCBhIGxvb3BiYWNrIHRoZSBkaXNwbGF5IGl0CgkJLy8gPSBHRVQgTE9DQUwgSVAgQUREUkVTUwoJCWlmIGlwbmV0LCBvayA6PSBhZGRyZXNzLigqbmV0LklQTmV0KTsgb2sgJiYgIWlwbmV0LklQLklzTG9vcGJhY2soKSB7CgkJCWlmIGlwbmV0LklQLlRvNCgpICE9IG5pbCB7CgkJCQkvL2ZtdC5QcmludGxuKCJDdXJyZW50IElQIGFkZHJlc3MgOiAiLCBpcG5ldC5JUC5TdHJpbmcoKSkKCQkJCWN1cnJJUCA9IGlwbmV0LklQLlN0cmluZygpCgkJCX0KCQl9Cgl9CgoJcmV0dXJuIGN1cnJJUAp9CgpmdW5jIElzRWxldmF0ZWQoKSBib29sIHsKCXJldHVybiBpc0VsZXZhdGVkKCkKfQpmdW5jIEdldEFyY2hpdGVjdHVyZSgpIHN0cmluZ3sKICAgIHJldHVybiBnZXRBcmNoaXRlY3R1cmUoKQp9CmZ1bmMgR2V0RG9tYWluKCkgc3RyaW5newogICAgcmV0dXJuIGdldERvbWFpbigpCn0KZnVuYyBHZXRPUygpIHN0cmluZ3sKICAgIHJldHVybiBnZXRPUygpCn0K"
         },
         {
-          "pkg\/utils\/functions\/foundation.h": "I2ltcG9ydCA8Rm91bmRhdGlvbi9Gb3VuZGF0aW9uLmg+Cgpjb25zdCBjaGFyKiBuc3N0cmluZzJjc3RyaW5nKE5TU3RyaW5nKik7CmNvbnN0IE5TU3RyaW5nKiBHZXRPU1ZlcnNpb24oKTs="
+          "pkg\/utils\/functions\/foundation_darwin.h": "I2ltcG9ydCA8Rm91bmRhdGlvbi9Gb3VuZGF0aW9uLmg+Cgpjb25zdCBjaGFyKiBuc3N0cmluZzJjc3RyaW5nKE5TU3RyaW5nKik7CmNvbnN0IE5TU3RyaW5nKiBHZXRPU1ZlcnNpb24oKTs="
         },
         {
-          "pkg\/utils\/functions\/functions_nix.go": "Ly8gK2J1aWxkIGxpbnV4CgpwYWNrYWdlIGZ1bmN0aW9ucwoKaW1wb3J0ICgKCSJmbXQiCgkidW5pY29kZS91dGYxNiIKCSJvcy91c2VyIgoJIm9zIgoJInJ1bnRpbWUiCikKCmZ1bmMgaXNFbGV2YXRlZCgpIGJvb2wgewoJY3VycmVudFVzZXIsIF8gOj0gdXNlci5DdXJyZW50KCkKCXJldHVybiBjdXJyZW50VXNlci5VaWQgPT0gIjAiCn0KZnVuYyBnZXRBcmNoaXRlY3R1cmUoKSBzdHJpbmd7CiAgICByZXR1cm4gcnVudGltZS5HT0FSQ0gKfQpmdW5jIGdldERvbWFpbigpIHN0cmluZ3sKICAgIGhvc3QsIF8gOj0gb3MuSG9zdG5hbWUoKQogICAgcmV0dXJuIGhvc3QKfQpmdW5jIGdldE9TKCkgc3RyaW5newogICAgcmV0dXJuIHJ1bnRpbWUuR09PUwp9Ci8vIEhlbHBlciBmdW5jdGlvbiB0byBjb252ZXJ0IERXT1JEIGJ5dGUgY291bnRzIHRvCi8vIGh1bWFuIHJlYWRhYmxlIHNpemVzLgpmdW5jIFVJTlQzMkJ5dGVDb3VudERlY2ltYWwoYiB1aW50MzIpIHN0cmluZyB7Cgljb25zdCB1bml0ID0gMTAyNAoJaWYgYiA8IHVuaXQgewoJCXJldHVybiBmbXQuU3ByaW50ZigiJWQgQiIsIGIpCgl9CglkaXYsIGV4cCA6PSB1aW50MzIodW5pdCksIDAKCWZvciBuIDo9IGIgLyB1bml0OyBuID49IHVuaXQ7IG4gLz0gdW5pdCB7CgkJZGl2ICo9IHVuaXQKCQlleHArKwoJfQoJcmV0dXJuIGZtdC5TcHJpbnRmKCIlLjFmICVjQiIsIGZsb2F0MzIoYikvZmxvYXQzMihkaXYpLCAia01HVFBFIltleHBdKQp9CgovLyBIZWxwZXIgZnVuY3Rpb24gdG8gY29udmVydCBMQVJHRV9JTlRFR0VSIGJ5dGUKLy8gIGNvdW50cyB0byBodW1hbiByZWFkYWJsZSBzaXplcy4KZnVuYyBVSU5UNjRCeXRlQ291bnREZWNpbWFsKGIgdWludDY0KSBzdHJpbmcgewoJY29uc3QgdW5pdCA9IDEwMjQKCWlmIGIgPCB1bml0IHsKCQlyZXR1cm4gZm10LlNwcmludGYoIiVkIEIiLCBiKQoJfQoJZGl2LCBleHAgOj0gdWludDY0KHVuaXQpLCAwCglmb3IgbiA6PSBiIC8gdW5pdDsgbiA+PSB1bml0OyBuIC89IHVuaXQgewoJCWRpdiAqPSB1bml0CgkJZXhwKysKCX0KCXJldHVybiBmbXQuU3ByaW50ZigiJS4xZiAlY0IiLCBmbG9hdDY0KGIpL2Zsb2F0NjQoZGl2KSwgImtNR1RQRSJbZXhwXSkKfQoKLy8gSGVscGVyIGZ1bmN0aW9uIHRvIGJ1aWxkIGEgc3RyaW5nIGZyb20gYSBXQ0hBUiBzdHJpbmcKZnVuYyBVVEYxNlRvU3RyaW5nKHMgW111aW50MTYpIFtdc3RyaW5nIHsKCXZhciByZXN1bHRzIFtdc3RyaW5nCgljdXQgOj0gMAoJZm9yIGksIHYgOj0gcmFuZ2UgcyB7CgkJaWYgdiA9PSAwIHsKCQkJaWYgaS1jdXQgPiAwIHsKCQkJCXJlc3VsdHMgPSBhcHBlbmQocmVzdWx0cywgc3RyaW5nKHV0ZjE2LkRlY29kZShzW2N1dDppXSkpKQoJCQl9CgkJCWN1dCA9IGkgKyAxCgkJfQoJfQoJaWYgY3V0IDwgbGVuKHMpIHsKCQlyZXN1bHRzID0gYXBwZW5kKHJlc3VsdHMsIHN0cmluZyh1dGYxNi5EZWNvZGUoc1tjdXQ6XSkpKQoJfQoJcmV0dXJuIHJlc3VsdHMKfQo="
+          "pkg\/utils\/functions\/functions_linux.go": "Ly8gK2J1aWxkIGxpbnV4CgpwYWNrYWdlIGZ1bmN0aW9ucwoKaW1wb3J0ICgKCSJmbXQiCgkidW5pY29kZS91dGYxNiIKCSJvcy91c2VyIgoJIm9zIgoJInJ1bnRpbWUiCikKCmZ1bmMgaXNFbGV2YXRlZCgpIGJvb2wgewoJY3VycmVudFVzZXIsIF8gOj0gdXNlci5DdXJyZW50KCkKCXJldHVybiBjdXJyZW50VXNlci5VaWQgPT0gIjAiCn0KZnVuYyBnZXRBcmNoaXRlY3R1cmUoKSBzdHJpbmd7CiAgICByZXR1cm4gcnVudGltZS5HT0FSQ0gKfQpmdW5jIGdldERvbWFpbigpIHN0cmluZ3sKICAgIGhvc3QsIF8gOj0gb3MuSG9zdG5hbWUoKQogICAgcmV0dXJuIGhvc3QKfQpmdW5jIGdldE9TKCkgc3RyaW5newogICAgcmV0dXJuIHJ1bnRpbWUuR09PUwp9Ci8vIEhlbHBlciBmdW5jdGlvbiB0byBjb252ZXJ0IERXT1JEIGJ5dGUgY291bnRzIHRvCi8vIGh1bWFuIHJlYWRhYmxlIHNpemVzLgpmdW5jIFVJTlQzMkJ5dGVDb3VudERlY2ltYWwoYiB1aW50MzIpIHN0cmluZyB7Cgljb25zdCB1bml0ID0gMTAyNAoJaWYgYiA8IHVuaXQgewoJCXJldHVybiBmbXQuU3ByaW50ZigiJWQgQiIsIGIpCgl9CglkaXYsIGV4cCA6PSB1aW50MzIodW5pdCksIDAKCWZvciBuIDo9IGIgLyB1bml0OyBuID49IHVuaXQ7IG4gLz0gdW5pdCB7CgkJZGl2ICo9IHVuaXQKCQlleHArKwoJfQoJcmV0dXJuIGZtdC5TcHJpbnRmKCIlLjFmICVjQiIsIGZsb2F0MzIoYikvZmxvYXQzMihkaXYpLCAia01HVFBFIltleHBdKQp9CgovLyBIZWxwZXIgZnVuY3Rpb24gdG8gY29udmVydCBMQVJHRV9JTlRFR0VSIGJ5dGUKLy8gIGNvdW50cyB0byBodW1hbiByZWFkYWJsZSBzaXplcy4KZnVuYyBVSU5UNjRCeXRlQ291bnREZWNpbWFsKGIgdWludDY0KSBzdHJpbmcgewoJY29uc3QgdW5pdCA9IDEwMjQKCWlmIGIgPCB1bml0IHsKCQlyZXR1cm4gZm10LlNwcmludGYoIiVkIEIiLCBiKQoJfQoJZGl2LCBleHAgOj0gdWludDY0KHVuaXQpLCAwCglmb3IgbiA6PSBiIC8gdW5pdDsgbiA+PSB1bml0OyBuIC89IHVuaXQgewoJCWRpdiAqPSB1bml0CgkJZXhwKysKCX0KCXJldHVybiBmbXQuU3ByaW50ZigiJS4xZiAlY0IiLCBmbG9hdDY0KGIpL2Zsb2F0NjQoZGl2KSwgImtNR1RQRSJbZXhwXSkKfQoKLy8gSGVscGVyIGZ1bmN0aW9uIHRvIGJ1aWxkIGEgc3RyaW5nIGZyb20gYSBXQ0hBUiBzdHJpbmcKZnVuYyBVVEYxNlRvU3RyaW5nKHMgW111aW50MTYpIFtdc3RyaW5nIHsKCXZhciByZXN1bHRzIFtdc3RyaW5nCgljdXQgOj0gMAoJZm9yIGksIHYgOj0gcmFuZ2UgcyB7CgkJaWYgdiA9PSAwIHsKCQkJaWYgaS1jdXQgPiAwIHsKCQkJCXJlc3VsdHMgPSBhcHBlbmQocmVzdWx0cywgc3RyaW5nKHV0ZjE2LkRlY29kZShzW2N1dDppXSkpKQoJCQl9CgkJCWN1dCA9IGkgKyAxCgkJfQoJfQoJaWYgY3V0IDwgbGVuKHMpIHsKCQlyZXN1bHRzID0gYXBwZW5kKHJlc3VsdHMsIHN0cmluZyh1dGYxNi5EZWNvZGUoc1tjdXQ6XSkpKQoJfQoJcmV0dXJuIHJlc3VsdHMKfQo="
         },
         {
-          "pkg\/utils\/functions\/foundation.m": "I2ltcG9ydCAiZm91bmRhdGlvbi5oIgpjb25zdCBjaGFyKgpuc3N0cmluZzJjc3RyaW5nKE5TU3RyaW5nICpzKSB7CiAgICBpZiAocyA9PSBOVUxMKSB7IHJldHVybiBOVUxMOyB9CgogICAgY29uc3QgY2hhciAqY3N0ciA9IFtzIFVURjhTdHJpbmddOwogICAgcmV0dXJuIGNzdHI7Cn0KCmNvbnN0IE5TU3RyaW5nKiBHZXRPU1ZlcnNpb24oKXsKICAgIE5TU3RyaW5nICogb3BlcmF0aW5nU3lzdGVtVmVyc2lvblN0cmluZyA9IFtbTlNQcm9jZXNzSW5mbyBwcm9jZXNzSW5mb10gb3BlcmF0aW5nU3lzdGVtVmVyc2lvblN0cmluZ107CiAgICByZXR1cm4gb3BlcmF0aW5nU3lzdGVtVmVyc2lvblN0cmluZzsKfQ=="
+          "pkg\/utils\/functions\/foundation_darwin.m": "I2ltcG9ydCAiZm91bmRhdGlvbl9kYXJ3aW4uaCIKY29uc3QgY2hhcioKbnNzdHJpbmcyY3N0cmluZyhOU1N0cmluZyAqcykgewogICAgaWYgKHMgPT0gTlVMTCkgeyByZXR1cm4gTlVMTDsgfQoKICAgIGNvbnN0IGNoYXIgKmNzdHIgPSBbcyBVVEY4U3RyaW5nXTsKICAgIHJldHVybiBjc3RyOwp9Cgpjb25zdCBOU1N0cmluZyogR2V0T1NWZXJzaW9uKCl7CiAgICBOU1N0cmluZyAqIG9wZXJhdGluZ1N5c3RlbVZlcnNpb25TdHJpbmcgPSBbW05TUHJvY2Vzc0luZm8gcHJvY2Vzc0luZm9dIG9wZXJhdGluZ1N5c3RlbVZlcnNpb25TdHJpbmddOwogICAgcmV0dXJuIG9wZXJhdGluZ1N5c3RlbVZlcnNpb25TdHJpbmc7Cn0="
         },
         {
           "pkg\/profiles\/profile.go": "cGFja2FnZSBwcm9maWxlcwoKaW1wb3J0ICgKCSJlbmNvZGluZy9iYXNlNjQiCgkicGtnL3V0aWxzL2NyeXB0byIKCSJtYXRoL3JhbmQiCgkidGltZSIKCSJwa2cvdXRpbHMvc3RydWN0cyIKCSJlbmNvZGluZy9qc29uIgopCgp2YXIgKAoJQXBpVmVyc2lvbiA9ICIxLjQiCglzZWVkZWRSYW5kICAgKnJhbmQuUmFuZCA9IHJhbmQuTmV3KHJhbmQuTmV3U291cmNlKHRpbWUuTm93KCkuVW5peE5hbm8oKSkpCglVVUlEID0gIlVVSURfSEVSRSIKCVRhc2tSZXNwb25zZXMgW11qc29uLlJhd01lc3NhZ2UKCVVwbG9hZFJlc3BvbnNlcyBbXWpzb24uUmF3TWVzc2FnZQopCgovL1Byb2ZpbGUgLSBQcmltYXJ5IGludGVyZmFjZSBmb3IgYXBmZWxsIEMyIHByb2ZpbGVzCnR5cGUgUHJvZmlsZSBpbnRlcmZhY2UgewoJQ2hlY2tJbihpcCBzdHJpbmcsIHBpZCBpbnQsIHVzZXIgc3RyaW5nLCBob3N0IHN0cmluZywgb3Mgc3RyaW5nLCBhcmNoIHN0cmluZykgaW50ZXJmYWNle30gLy8gQ2hlY2tJbiBtZXRob2QgZm9yIHNlbmRpbmcgdGhlIGluaXRpYWwgY2hlY2tpbiB0byB0aGUgc2VydmVyCglHZXRUYXNraW5nKCkgaW50ZXJmYWNle30gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAvLyBHZXRUYXNraW5nIG1ldGhvZCBmb3IgcmV0cmlldmluZyB0aGUgbmV4dCB0YXNrIGZyb20gYXBmZWxsCglQb3N0UmVzcG9uc2Uob3V0cHV0IFtdYnl0ZSwgc2tpcENodW5raW5nIGJvb2wpIFtdYnl0ZSAgICAgICAgICAgICAvLyBQb3N0IGEgdGFzayByZXNwb25zZSB0byB0aGUgc2VydmVyCglOZWdvdGlhdGVLZXkoKSBzdHJpbmcgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAvLyBTdGFydCBFS0Uga2V5IG5lZ290aWF0aW9uIGZvciBlbmNyeXB0ZWQgY29tbXMKCVNlbmRGaWxlKHRhc2sgc3RydWN0cy5UYXNrLCBwYXJhbXMgc3RyaW5nLCBjaCBjaGFuIFtdYnl0ZSkgICAgICAgICAgICAgICAgICAgICAgICAvLyBDMiBwcm9maWxlIGltcGxlbWVudGF0aW9uIGZvciBkb3dubG9hZGluZyBmaWxlcwoJR2V0RmlsZSh0YXNrIHN0cnVjdHMuVGFzaywgZmlsZURldGFpbHMgc3RydWN0cy5GaWxlVXBsb2FkUGFyYW1zLCBjaCBjaGFuIFtdYnl0ZSkgICAgICAgICAgICAgICAgLy8gQzIgUHJvZmlsZSBpbXBsZW1lbnRhdGlvbiB0byBnZXQgYSBmaWxlIHdpdGggc3BlY2lmaWVkIGlkIC8vIEMyIHByb2ZpbGUgaGVscGVyIGZ1bmN0aW9uIHRvIHJldHJpZXZlIGFueSBhcmJpdHJhcnkgdmFsdWUgZm9yIGEgcHJvZmlsZQoJU2VuZEZpbGVDaHVua3ModGFzayBzdHJ1Y3RzLlRhc2ssIGRhdGEgW11ieXRlLCBjaCBjaGFuIFtdYnl0ZSkgICAgICAgICAgICAgICAgICAgIC8vIEMyIGhlbHBlciBmdW5jdGlvbiB0byB1cGxvYWQgYSBmaWxlCglTbGVlcEludGVydmFsKCkgaW50CglTZXRTbGVlcEludGVydmFsKGludGVydmFsIGludCkKCVNldFNsZWVwSml0dGVyKGppdHRlciBpbnQpCglBcGZJRCgpIHN0cmluZwoJU2V0QXBmZWxsSUQobmV3SUQgc3RyaW5nKQoJUHJvZmlsZVR5cGUoKSBzdHJpbmcKfQoKZnVuYyBOZXdJbnN0YW5jZSgpIGludGVyZmFjZXt9IHsKCXJldHVybiBuZXdQcm9maWxlKCkKfQoKZnVuYyBFbmNyeXB0TWVzc2FnZShtc2cgW11ieXRlLCBrIHN0cmluZykgW11ieXRlIHsKCWtleSwgXyA6PSBiYXNlNjQuU3RkRW5jb2RpbmcuRGVjb2RlU3RyaW5nKGspCglyZXR1cm4gY3J5cHRvLkFlc0VuY3J5cHQoa2V5LCBtc2cpCn0KCmZ1bmMgRGVjcnlwdE1lc3NhZ2UobXNnIFtdYnl0ZSwgayBzdHJpbmcpIFtdYnl0ZSB7CglrZXksIF8gOj0gYmFzZTY0LlN0ZEVuY29kaW5nLkRlY29kZVN0cmluZyhrKQoJcmV0dXJuIGNyeXB0by5BZXNEZWNyeXB0KGtleSwgbXNnKQp9CgpmdW5jIEdlbmVyYXRlU2Vzc2lvbklEKCkgc3RyaW5nIHsKCWNvbnN0IGxldHRlckJ5dGVzID0gImFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMTIzNDU2Nzg5IgoJYiA6PSBtYWtlKFtdYnl0ZSwgMjApCglmb3IgaSA6PSByYW5nZSBiIHsKCQliW2ldID0gbGV0dGVyQnl0ZXNbc2VlZGVkUmFuZC5JbnRuKGxlbihsZXR0ZXJCeXRlcykpXQoJfQoJcmV0dXJuIHN0cmluZyhiKQp9"
@@ -74,25 +74,11 @@
       "load_transforms": [],
       "create_transforms": [
         {
-          "parameter": "amd64",
-          "description": "Choose the target architecture",
+          "parameter": "c-archive\ndefault",
+          "description": "Choose the buildmode option. Default for executables, c-archive\/archive\/c-shared\/shared are for libraries",
           "transform": "save_parameter",
           "parameter_type": "ChooseOne",
-          "order": 3
-        },
-        {
-          "parameter": "darwin\nlinux",
-          "description": "Choose the target OS.",
-          "transform": "save_parameter",
-          "parameter_type": "ChooseOne",
-          "order": 2
-        },
-        {
-          "parameter": "default\nwebsocket",
-          "description": "Choose the C2 profile you're using.",
-          "transform": "save_parameter",
-          "parameter_type": "ChooseOne",
-          "order": 1
+          "order": 4
         },
         {
           "parameter": "",
@@ -102,11 +88,25 @@
           "order": 5
         },
         {
-          "parameter": "c-archive\ndefault",
-          "description": "Choose the buildmode option. Default for executables, c-archive\/archive\/c-shared\/shared are for libraries",
+          "parameter": "default\nwebsocket",
+          "description": "Choose the C2 profile you're using.",
           "transform": "save_parameter",
           "parameter_type": "ChooseOne",
-          "order": 4
+          "order": 1
+        },
+        {
+          "parameter": "darwin\nlinux",
+          "description": "Choose the target OS.",
+          "transform": "save_parameter",
+          "parameter_type": "ChooseOne",
+          "order": 2
+        },
+        {
+          "parameter": "amd64",
+          "description": "Choose the target architecture",
+          "transform": "save_parameter",
+          "parameter_type": "ChooseOne",
+          "order": 3
         }
       ],
       "transforms": [
@@ -116,7 +116,7 @@
           "parameter_type": "String",
           "description": "base64 encode the parameter",
           "is_command_code": true,
-          "timestamp": "03\/06\/2020 16:21:24",
+          "timestamp": "03\/06\/2020 22:22:25",
           "id": 14,
           "operator": "apfell_admin"
         },
@@ -126,8 +126,8 @@
           "parameter_type": "ChooseOne",
           "description": "Save a value as the next element in self.saved_array",
           "is_command_code": false,
-          "timestamp": "03\/06\/2020 16:21:23",
-          "id": 5,
+          "timestamp": "03\/06\/2020 22:22:23",
+          "id": 8,
           "operator": "apfell_admin"
         },
         {
@@ -136,7 +136,7 @@
           "parameter_type": "None",
           "description": "Compile Poseidon payload and return result",
           "is_command_code": false,
-          "timestamp": "03\/06\/2020 16:21:24",
+          "timestamp": "03\/06\/2020 22:22:25",
           "id": 15,
           "operator": "apfell_admin"
         }
@@ -396,17 +396,10 @@
           "parameters": [
             {
               "type": "String",
-              "hint": "base64 encoded body",
+              "hint": "https:\/\/www.google.com",
               "choices": "",
-              "required": false,
-              "name": "body"
-            },
-            {
-              "type": "String",
-              "hint": "base64 encoded json with headers",
-              "choices": "",
-              "required": false,
-              "name": "headers"
+              "required": true,
+              "name": "url"
             },
             {
               "type": "String",
@@ -417,10 +410,17 @@
             },
             {
               "type": "String",
-              "hint": "https:\/\/www.google.com",
+              "hint": "base64 encoded json with headers",
               "choices": "",
-              "required": true,
-              "name": "url"
+              "required": false,
+              "name": "headers"
+            },
+            {
+              "type": "String",
+              "hint": "base64 encoded body",
+              "choices": "",
+              "required": false,
+              "name": "body"
             }
           ],
           "attack": [],
@@ -579,9 +579,9 @@
             {
               "type": "Choice",
               "hint": "",
-              "choices": "keyring\nuser\nlogin\nlogon\nsession",
-              "required": false,
-              "name": "typename"
+              "choices": "dumpsession\ndumpuser\ndumpprocess\ndumpthreads\nsearch",
+              "required": true,
+              "name": "command"
             },
             {
               "type": "String",
@@ -593,9 +593,9 @@
             {
               "type": "Choice",
               "hint": "",
-              "choices": "dumpsession\ndumpuser\ndumpprocess\ndumpthreads\nsearch",
-              "required": true,
-              "name": "command"
+              "choices": "keyring\nuser\nlogin\nlogon\nsession",
+              "required": false,
+              "name": "typename"
             }
           ],
           "attack": [],
@@ -1019,45 +1019,10 @@
           "parameters": [
             {
               "type": "String",
-              "hint": "Command to execute on remote systems.",
-              "choices": "",
-              "required": false,
-              "name": "command"
-            },
-            {
-              "type": "String",
-              "hint": "SCP remote file destination.",
-              "choices": "",
-              "required": false,
-              "name": "destination"
-            },
-            {
-              "type": "Array",
-              "hint": "",
+              "hint": "Authenticate to the designated hosts using this username.",
               "choices": "",
               "required": true,
-              "name": "hosts"
-            },
-            {
-              "type": "String",
-              "hint": "Authenticate to the designated hosts using this password.",
-              "choices": "",
-              "required": false,
-              "name": "password"
-            },
-            {
-              "type": "Number",
-              "hint": "",
-              "choices": "",
-              "required": true,
-              "name": "port"
-            },
-            {
-              "type": "String",
-              "hint": "Authenticate to the designated hosts using this private key.",
-              "choices": "",
-              "required": false,
-              "name": "private_key"
+              "name": "username"
             },
             {
               "type": "String",
@@ -1068,10 +1033,45 @@
             },
             {
               "type": "String",
-              "hint": "Authenticate to the designated hosts using this username.",
+              "hint": "Authenticate to the designated hosts using this private key.",
+              "choices": "",
+              "required": false,
+              "name": "private_key"
+            },
+            {
+              "type": "Number",
+              "hint": "",
               "choices": "",
               "required": true,
-              "name": "username"
+              "name": "port"
+            },
+            {
+              "type": "String",
+              "hint": "Authenticate to the designated hosts using this password.",
+              "choices": "",
+              "required": false,
+              "name": "password"
+            },
+            {
+              "type": "Array",
+              "hint": "",
+              "choices": "",
+              "required": true,
+              "name": "hosts"
+            },
+            {
+              "type": "String",
+              "hint": "SCP remote file destination.",
+              "choices": "",
+              "required": false,
+              "name": "destination"
+            },
+            {
+              "type": "String",
+              "hint": "Command to execute on remote systems.",
+              "choices": "",
+              "required": false,
+              "name": "command"
             }
           ],
           "attack": [
@@ -1210,32 +1210,18 @@
           "cmd": "xpc",
           "parameters": [
             {
-              "type": "String",
-              "hint": "base64 encoded json data to send to a target service",
-              "choices": "",
-              "required": false,
-              "name": "data"
-            },
-            {
-              "type": "Number",
+              "type": "Choice",
               "hint": "",
-              "choices": "",
-              "required": false,
-              "name": "pid"
-            },
-            {
-              "type": "Boolean",
-              "hint": "",
-              "choices": "",
-              "required": false,
-              "name": "keepalive"
+              "choices": "list\nstart\nstop\nload\nunload\nstatus\nprocinfo\nsubmit\nsend",
+              "required": true,
+              "name": "command"
             },
             {
               "type": "String",
-              "hint": "Name of the service to communicate with. Used with the submit, send, start\/stop commands ",
+              "hint": "Program\/binary to execute with the submit command",
               "choices": "",
               "required": false,
-              "name": "servicename"
+              "name": "program"
             },
             {
               "type": "String",
@@ -1246,17 +1232,31 @@
             },
             {
               "type": "String",
-              "hint": "Program\/binary to execute with the submit command",
+              "hint": "Name of the service to communicate with. Used with the submit, send, start\/stop commands ",
               "choices": "",
               "required": false,
-              "name": "program"
+              "name": "servicename"
             },
             {
-              "type": "Choice",
+              "type": "Boolean",
               "hint": "",
-              "choices": "list\nstart\nstop\nload\nunload\nstatus\nprocinfo\nsubmit\nsend",
-              "required": true,
-              "name": "command"
+              "choices": "",
+              "required": false,
+              "name": "keepalive"
+            },
+            {
+              "type": "Number",
+              "hint": "",
+              "choices": "",
+              "required": false,
+              "name": "pid"
+            },
+            {
+              "type": "String",
+              "hint": "base64 encoded json data to send to a target service",
+              "choices": "",
+              "required": false,
+              "name": "data"
             }
           ],
           "attack": [],
@@ -1382,7 +1382,7 @@
               "parameter": "code",
               "active": true,
               "description": "",
-              "timestamp": "03\/06\/2020 16:21:25",
+              "timestamp": "03\/06\/2020 22:22:25",
               "command": "jxa",
               "command_id": 87,
               "payload_type": "poseidon",

@@ -4,7 +4,7 @@ package functions
 /*
 #cgo CFLAGS: -x objective-c
 #cgo LDFLAGS: -framework Foundation
-#include "foundation.h"
+#include "foundation_darwin.h"
 */
 import "C"
 import (

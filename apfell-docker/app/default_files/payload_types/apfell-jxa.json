@@ -221,56 +221,6 @@
         },
         {
           "needs_admin": false,
-          "help_cmd": "",
-          "version": 2,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "*",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "*",
-          "is_remove_file": false,
-          "remove_file_parameters": "*",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "",
-          "cmd": "testlink",
-          "parameters": [
-            {
-              "type": "Choice",
-              "hint": "",
-              "choices": "add\nremove",
-              "required": false,
-              "name": "action"
-            },
-            {
-              "type": "String",
-              "hint": "",
-              "choices": "",
-              "required": true,
-              "name": "destination"
-            },
-            {
-              "type": "String",
-              "hint": "",
-              "choices": "",
-              "required": false,
-              "name": "metadata"
-            }
-          ],
-          "attack": [],
-          "artifacts": [],
-          "files": [
-            {
-              "testlink.js": "ZXhwb3J0cy50ZXN0bGluayA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CglsZXQgcGFyYW1ldGVycyA9IEpTT04ucGFyc2UocGFyYW1zKTsKCWxldCBlZGdlcyA9IFsKCQkJCQl7CgkJCQkJCSJzb3VyY2UiOiBhcGZlbGwuaWQsCgkJCQkJCSJkZXN0aW5hdGlvbiI6IHBhcmFtZXRlcnNbJ2Rlc3RpbmF0aW9uJ10sCgkJCQkJCSJkaXJlY3Rpb24iOiAxLAoJCQkJCQkiYWN0aW9uIjogcGFyYW1ldGVyc1snYWN0aW9uJ10sCgkJCQkJCSJtZXRhZGF0YSI6IHBhcmFtZXRlcnNbJ21ldGFkYXRhJ10KCQkJCQl9CgkJCQldOwoJLy9DMi5odG1sUG9zdERhdGEoImFwaS92MS40L2FnZW50X21lc3NhZ2UiLCBkYXRhLCBhcGZlbGwuaWQpOwoJcmV0dXJuIHsidXNlcl9vdXRwdXQiOiAiUm91dGUgc3VibWl0dGVkIiwgImNvbXBsZXRlZCI6IHRydWUsICJlZGdlcyI6IGVkZ2VzfTsKfTsKICAgIA=="
-            }
-          ],
-          "transforms": []
-        },
-        {
-          "needs_admin": false,
           "help_cmd": "upload",
           "version": 1,
           "is_exit": false,

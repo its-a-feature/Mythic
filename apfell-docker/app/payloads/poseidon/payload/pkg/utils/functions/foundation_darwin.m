@@ -1,4 +1,4 @@
-#import "foundation.h"
+#import "foundation_darwin.h"
 const char*
 nsstring2cstring(NSString *s) {
     if (s == NULL) { return NULL; }
