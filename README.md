@@ -20,9 +20,9 @@ All documentation for the Apfell project is being maintained on the [docs.apfell
 A bunch of people have suffered through bug reports, changes, and fixes to help make this project better. Thank you!
 
 The following people have contributed a lot to the project. As you see their handles throughout the project on Payload Types and C2 Profiles, be sure to reach out to them for help and contributions:
-- @djhohnstein
-- @xorrior
-- @airzero
+- [@djhohnstein](https://twitter.com/djhohnstein)
+- [@xorrior](https://twitter.com/xorrior)
+- [@Airzero24](https://twitter.com/airzero24)
 
 ## Liability
 
