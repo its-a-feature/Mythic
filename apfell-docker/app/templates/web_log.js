@@ -1,3 +1,4 @@
+document.title = "Web log";
 var searches = new Vue({
     el: '#searches',
     data:{

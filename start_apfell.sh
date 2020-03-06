@@ -16,6 +16,13 @@ docker-compose stop
 if ! which realpath > /dev/null; then
   apt-get install -y realpath
 fi
+
+if [ ! -d "./postgres-docker/database" ]; then
+    mkdir "./postgres-docker/database"
+fi
+if [ ! -d "./rabbitmq-docker/storage" ]; then
+  mkdir "./rabbitmq-docker/storage"
+fi
 docker-compose up --build -d
 
 # stand up c2 profiles

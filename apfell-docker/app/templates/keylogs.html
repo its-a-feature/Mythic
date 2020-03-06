@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block body %}
-<br>
-
-<div id="keylog_div">
+<div id="keylog_div" style="margin-top:5px">
     <div class="btn-group">
         <button class="btn btn{{config['outline-buttons']}}info btn-md" onclick="host_window()">Group by Host</button>
         <button class="btn btn{{config['outline-buttons']}}info btn-md" onclick="user_window()">Group by User</button>
@@ -14,7 +12,7 @@
         <button class="btn btn{{config['outline-buttons']}}info btn-md" @click="search()"><i class="fas fa-search"></i> Search</button>
     </div>
     <template v-if="Object.keys(keylogs).length == 0">
-        <div class="card border border-dark shadow">
+        <div class="card border border-dark shadow" style="margin-top:5px">
             <div class="card-header border border-dark bg-header shadow text-light">
                 <h2><span class="operator">{{current_operation}}'s </span>Keylogs</h2>
             </div>

@@ -10,6 +10,8 @@ import base64
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_c2_rabbitmq_message
 from sanic.exceptions import abort
+from exrex import getone
+import glob
 
 
 # Get all the currently registered profiles
@@ -21,7 +23,7 @@ async def get_all_c2profiles(request, user):
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     #  this syntax is atrocious for getting a pretty version of the results from a many-to-many join table)
     query = await db_model.c2profile_query()
-    all_profiles = await db_objects.execute(query)
+    all_profiles = await db_objects.execute(query.where(C2Profile.deleted == False))
     query = await db_model.payloadtypec2profile_query()
     profiles = await db_objects.execute(query)
     results = []
@@ -108,6 +110,12 @@ async def register_new_c2profile(request, user):
         data['sampleClient'] = ""
     if 'notes' not in data:
         data['notes'] = ""
+    if 'is_p2p' not in data:
+        data['is_p2p'] = False
+    if data['is_p2p'] and 'is_server_routed' not in data:
+        data['is_server_routed'] = True
+    if 'is_server_routed' not in data:
+        data['is_server_routed'] = False
     if 'payload_types' not in data or data['payload_types'] is None:
         return json({'status': 'error', 'error': 'must select some payload types'})
     # we need to 1. make sure these are all valid payload types, and 2. create payloadtypec2profile entries as well
@@ -129,7 +137,7 @@ async def register_new_c2profile(request, user):
         profile = await db_objects.create(C2Profile, name=data['name'], description=data['description'], operator=op,
                                           external=data['external'], container_running=False, author=data['author'],
                                           sampleServer=data['sampleServer'], sampleClient=data['sampleClient'],
-                                          notes=data['notes'])
+                                          notes=data['notes'], is_p2p=data['is_p2p'], is_server_routed=data['is_server_routed'])
         # make the right directory structure
         os.makedirs("./app/c2_profiles/{}".format(data['name']), exist_ok=True)
         # now create the payloadtypec2profile entries
@@ -189,6 +197,8 @@ async def upload_c2_profile_payload_type_code(request, info, user):
         if "code" in data and "file_name" in data:
             # get a base64 blob of the code and the filename to save it as in the right directory
             code = base64.b64decode(data['code'])
+            if 'folder' in data and data['folder'] != "":
+                data['file_name'] = data['folder'] + "/" + data['file_name']
             if data['payload_type'] == "":
                 # looking to upload code to the container
                 status = await send_c2_rabbitmq_message(profile.name, "writefile", js.dumps({"file_path": data['file_name'], "data": data['code']}))
@@ -200,21 +210,33 @@ async def upload_c2_profile_payload_type_code(request, info, user):
             code = request.files['upload_file'][0].body
             if data['payload_type'] == "":
                 status = await send_c2_rabbitmq_message(profile.name, "writefile", js.dumps(
-                    {"file_path": request.files['upload_file'][0].name, "data": base64.b64encode(code).decode('utf-8')}))
+                    {"file_path": request.files['upload_file'][0].name, "data": base64.b64encode(code).decode('utf-8'),
+                     "folder": data['folder'] if 'folder' in data else ""}))
             else:
-                code_file = open(
-                    "./app/c2_profiles/{}/{}/{}".format(profile.name, data['payload_type'], request.files['upload_file'][0].name), "wb")
+                if data['folder'] == "":
+                    code_file = open(
+                        "./app/c2_profiles/{}/{}/{}".format(profile.name, data['payload_type'], request.files['upload_file'][0].name), "wb")
+                else:
+                    code_file = open(
+                        "./app/c2_profiles/{}/{}/{}/{}".format(profile.name, data['payload_type'],data['folder'],
+                                                            request.files['upload_file'][0].name), "wb")
                 code_file.write(code)
                 code_file.close()
             for i in range(1, int(request.form.get('file_length'))):
                 code = request.files['upload_file_' + str(i)][0].body
                 if data['payload_type'] == "":
                     status = await send_c2_rabbitmq_message(profile.name, "writefile", js.dumps(
-                        {"file_path": request.files['upload_file_' + str(i)][0].name, "data": base64.b64encode(code).decode('utf-8')}))
+                        {"file_path": request.files['upload_file_' + str(i)][0].name, "data": base64.b64encode(code).decode('utf-8'),
+                         "folder": data['folder'] if 'folder' in data else ""}))
                 else:
-                    code_file = open(
-                        "./app/c2_profiles/{}/{}/{}".format(profile.name,data['payload_type'],
+                    if data['folder'] == "":
+                        code_file = open(
+                            "./app/c2_profiles/{}/{}/{}".format(profile.name,data['payload_type'],
                                                             request.files['upload_file_' + str(i)][0].name), "wb")
+                    else:
+                        code_file = open(
+                            "./app/c2_profiles/{}/{}/{}/{}".format(profile.name, data['payload_type'], data['folder'],
+                                                                request.files['upload_file_' + str(i)][0].name), "wb")
                     code_file.write(code)
                     code_file.close()
         return json({'status': 'success', **profile.to_json()})
@@ -244,6 +266,8 @@ async def update_c2profile(request, info, user):
             profile.description = data['description']
         if 'container_running' in data:
             profile.container_running = data['container_running']
+            if not profile.container_running:
+                profile.running = False
         if 'external' in data:
             profile.external = data['external']
         if 'author' in data:
@@ -254,6 +278,10 @@ async def update_c2profile(request, info, user):
             profile.sampleServer = data['sampleServer']
         if 'sampleClient' in data:
             profile.sampleClient = data['sampleClient']
+        if 'is_p2p' in data:
+            profile.is_p2p = data['is_p2p']
+        if "is_server_routed" in data:
+            profile.is_server_routed = data['is_server_routed']
         await db_objects.update(profile)
         if 'payload_types' in data:
             # We need to update the mapping in PayloadTypeC2Profile accordingly
@@ -303,8 +331,6 @@ async def start_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
-    if name == "default":
-        return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
     try:
         query = await db_model.c2profile_query()
         profile = await db_objects.get(query, name=name)
@@ -323,9 +349,6 @@ async def stop_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
-    if name == "default":
-        return json({'status': 'error', 'error': 'cannot do start/stop on default c2 profiles'})
-    #  if we had running profiles and they weren't stopped before shutdown, this should still be fine
     return json(await stop_c2profile_func(name))
 
 
@@ -347,8 +370,6 @@ async def status_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
-    if name == "default":
-        return json({'status': 'error', 'error': 'check main server logs for that info'})
     try:
         query = await db_model.c2profile_query()
         profile = await db_objects.get(query, name=name)
@@ -379,7 +400,7 @@ async def get_file_list_for_c2profiles(request, info, user):
         files = []
         for (dirpath, dirnames, filenames) in os.walk(path):
             if dirpath != path:
-                files.append({"folder": dirpath, "dirnames": dirnames, "filenames": filenames})
+                files.append({"folder": dirpath.replace(path, ""), "dirnames": dirnames, "filenames": filenames})
         return json({'status': 'success', 'files': files})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
@@ -422,13 +443,73 @@ async def remove_file_for_c2profiles(request, info, user):
     try:
         data = request.json
         path = os.path.abspath("./app/c2_profiles/{}/".format(profile.name))
-        attempted_path = os.path.abspath(data['folder'] + "/" + data['file'])
-        if path in attempted_path:
+        if data['folder'] != "":
+            attempted_path = os.path.abspath(path + "/" + data['folder'] + "/" + data['file'])
+        else:
+            attempted_path = os.path.abspath(path + "/" + data['file'])
+        if path in attempted_path and attempted_path != path:
             os.remove(attempted_path)
             return json({'status': 'success', 'folder': data['folder'], 'file': data['file']})
         return json({'status': 'error', 'error': 'failed to find file'})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/remove_folder", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def remove_folder_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    name = unquote_plus(info)
+    try:
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    try:
+        data = request.json
+        path = os.path.abspath("./app/c2_profiles/{}/".format(profile.name))
+        if data['folder'] != "":
+            attempted_path = os.path.abspath(path + "/" + data['folder'])
+        else:
+            return json({'status': "error", "error": "Must supply folder path"})
+        if path in attempted_path and attempted_path != path:
+            os.rmdir(attempted_path)
+            return json({'status': 'success', 'folder': data['folder']})
+        return json({'status': 'error', 'error': 'path must be in the right area'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/add_folder", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def add_folder_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    name = unquote_plus(info)
+    try:
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    try:
+        data = request.json
+        path = os.path.abspath("./app/c2_profiles/{}/".format(profile.name))
+        if data['folder'] != "" and data['sub_folder'] != "":
+            attempted_path = os.path.abspath(path + "/" + data['folder'] + "/" + data['sub_folder'])
+        else:
+            return json({'status': "error", "error": "Must supply folder path"})
+        if path in attempted_path:
+            os.mkdir(attempted_path)
+            return json({'status': 'success', 'folder': data['folder'], 'sub_folder': data['sub_folder']})
+        else:
+            return json({'status': 'error', 'error': 'trying to create a folder outside your c2 profile'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed creating folder: ' + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/container_delete", methods=['POST'])
@@ -452,7 +533,49 @@ async def remove_container_file_for_c2profiles(request, info, user):
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/download", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/remove_folder_container", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def remove_container_folder_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    name = unquote_plus(info)
+    try:
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    try:
+        data = request.json
+        status = await send_c2_rabbitmq_message(profile.name, "removefolder", js.dumps(data))
+        return json(status)
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/add_folder_container", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def add_container_folder_for_c2profiles(request, info, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    name = unquote_plus(info)
+    try:
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, name=name)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find C2 Profile'})
+    try:
+        data = request.json
+        status = await send_c2_rabbitmq_message(profile.name, "addfolder", js.dumps(data))
+        return json(status)
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/download", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_file_for_c2profiles(request, info, user):
@@ -466,17 +589,23 @@ async def download_file_for_c2profiles(request, info, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     try:
-        data = dict(folder=request.raw_args['folder'], file=request.raw_args['file'])
+        data = request.json
         path = os.path.abspath("./app/c2_profiles/{}/".format(profile.name))
-        attempted_path = os.path.abspath(data['folder'] + "/" + data['file'])
+        if 'folder' not in data or data['folder'] == "":
+            attempted_path = os.path.abspath(path + "/" + data['file'])
+        else:
+            attempted_path = os.path.abspath(path + "/" + data['folder'] + "/" + data['file'])
         if path in attempted_path:
-            return await file(attempted_path, filename=data['file'])
-        return json({'status': 'success', 'folder': data['folder'], 'file': data['file']})
+            code = open(attempted_path, 'rb')
+            encoded = base64.b64encode(code.read()).decode("UTF-8")
+            return json({"status": "success", "file": encoded})
+        else:
+            return json({'status': 'error', 'error': "File not in correct path"})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/container_download", methods=['GET'])
+@apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/files/container_download", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def download_container_file_for_c2profiles(request, info, user):
@@ -490,7 +619,7 @@ async def download_container_file_for_c2profiles(request, info, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     try:
-        data = dict(folder=request.raw_args['folder'], file=request.raw_args['file'])
+        data = request.json
         status = await send_c2_rabbitmq_message(profile.name, "getfile", js.dumps(data))
         return json(status)
     except Exception as e:
@@ -508,8 +637,8 @@ async def delete_c2profile(request, info, user):
         info = unquote_plus(info)
         query = await db_model.c2profile_query()
         profile = await db_objects.get(query, name=info)
-        query = await db_model.c2profileparameters_query()
-        parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
+        #query = await db_model.c2profileparameters_query()
+        #parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
         query = await db_model.payloadtypec2profile_query()
         ptypec2profile = await db_objects.execute(query.where(PayloadTypeC2Profile.c2_profile == profile))
     except Exception as e:
@@ -517,11 +646,17 @@ async def delete_c2profile(request, info, user):
         return json({'status': 'error', 'error': 'failed to find C2 profile'})
     try:
         # we will do this recursively because there can't be payloadtypec2profile mappings if the profile doesn't exist
-        for p in parameters:
-            await db_objects.delete(p, recursive=True)
+        #for p in parameters:
+        #    p.deleted = True
+        #    await db_objects.update(p)
+            #await db_objects.delete(p, recursive=True)
         for p in ptypec2profile:
-            await db_objects.delete(p, recursive=True)
-        await db_objects.delete(profile, recursive=True)
+            #p.deleted = True
+            await db_objects.delete(p)
+        profile.deleted = True
+        profile.name = profile.name + " ( deleted " + str(profile.id) + ")"
+        await db_objects.update(profile)
+        #await db_objects.delete(profile, recursive=True)
         # remove it from disk
         try:
             shutil.rmtree("./app/c2_profiles/{}".format(info))
@@ -557,11 +692,22 @@ async def get_c2profile_parameters(request, info, user):
             p_json = p.to_json()
             if p_json['key'] == 'AESPSK':
                 p_json['hint'] = operation.AESPSK
+            if p_json['randomize']:
+                # generate a random value based on the associated format_string variable
+                p_json['hint'] = await generate_random_format_string(p_json['format_string'])
             param_list.append(p_json)
         return json({'status': 'success', 'c2profileparameters': param_list})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to get c2 profile parameters'})
+
+
+async def generate_random_format_string(format_string):
+    try:
+        return getone(format_string)
+    except Exception as e:
+        print(e)
+        return ""
 
 
 @apfell.route(apfell.config['API_BASE'] + "/c2profiles/<info:string>/parameters/<id:int>", methods=['PUT'])
@@ -585,8 +731,13 @@ async def edit_c2profile_parameters(request, info, user, id):
             c2_profile_parameter.name = data['name']
         if 'key' in data:
             c2_profile_parameter.key = data['key']
-        if 'hint' in data:
-            c2_profile_parameter.hint = data['hint']
+        if 'randomize' in data:
+            c2_profile_parameter.randomize = data['randomize']
+        if 'format_string' in data:
+            c2_profile_parameter.format_string = data['format_string']
+        if c2_profile_parameter.format_string == "":
+            if 'hint' in data:
+                c2_profile_parameter.hint = data['hint']
         await db_objects.update(c2_profile_parameter)
         return json({'status': 'success', **c2_profile_parameter.to_json()})
     except Exception as e:
@@ -615,7 +766,13 @@ async def create_c2profile_parameters(request, info, user):
             return json({'status': 'error', 'error': '"key" is a required parameter'})
         if 'hint' not in data:
             data['hint'] = ""
-        c2_profile_param = await db_objects.create(C2ProfileParameters, c2_profile=profile, name=data['name'], key=data['key'], hint=data['hint'])
+        if 'randomize' not in data:
+            data['randomize'] = False
+        if 'format_string' not in data:
+            data['format_string'] = ""
+        c2_profile_param = await db_objects.create(C2ProfileParameters, c2_profile=profile, name=data['name'],
+                                                   key=data['key'], hint=data['hint'], randomize=data['randomize'],
+                                                   format_string=data['format_string'])
         return json({'status': 'success', **c2_profile_param.to_json()})
     except Exception as e:
         print(e)
@@ -728,7 +885,8 @@ async def save_c2profile_parameter_value_instance(request, info, user):
             created = await db_objects.create(C2ProfileParametersInstance, c2_profile_parameters=p,
                                               instance_name=data['instance_name'],
                                               value=data[p.name],
-                                              operation=operation)
+                                              operation=operation,
+                                              c2_profile=profile)
             created_params.append(created)
         except Exception as e:
             for c in created_params:
@@ -750,7 +908,9 @@ async def get_all_c2profile_parameter_value_instances(request, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to get the current operation'})
     query = await db_model.c2profileparametersinstance_query()
-    params = await db_objects.execute(query.where(C2ProfileParametersInstance.operation == operation))
+    params = await db_objects.execute(query.where(
+        (C2ProfileParametersInstance.operation == operation) & (C2ProfileParametersInstance.instance_name != None)
+    ))
     instances = {}
     for p in params:
         if p.instance_name not in instances:
@@ -773,7 +933,9 @@ async def get_specific_c2profile_parameter_value_instances(request, info, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to get the c2 profile'})
     query = await db_model.c2profileparametersinstance_query()
-    params = await db_objects.execute(query.where(C2ProfileParametersInstance.operation == operation))
+    params = await db_objects.execute(query.where(
+        (C2ProfileParametersInstance.operation == operation) & (C2ProfileParametersInstance.instance_name != None)
+    ))
     instances = {}
     for p in params:
         if p.c2_profile_parameters.c2_profile.name == name:
@@ -794,9 +956,10 @@ async def delete_c2profile_parameter_value_instance(request, instance_name, user
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
         query = await db_model.c2profileparametersinstance_query()
-        params = await db_objects.execute(query.where( (C2ProfileParametersInstance.instance_name ==name) &
+        params = await db_objects.execute(query.where( (C2ProfileParametersInstance.instance_name == name) &
                                                        (C2ProfileParametersInstance.operation == operation) &
-                                                       (C2ProfileParametersInstance.payload == None)))
+                                                       (C2ProfileParametersInstance.payload == None) &
+                                                       ((C2ProfileParametersInstance.callback == None))))
         for p in params:
             await db_objects.delete(p)
         return json({'status': 'success'})
@@ -818,18 +981,35 @@ async def export_c2_profile(request, user, info):
         profile = await db_objects.get(query, name=info)
     except Exception as e:
         return json({'status': 'error', 'error': 'Failed to find profile'})
-    c2_profile = {"name": profile.name, "description": profile.description}
+    c2_profile = profile.to_json()
+    del c2_profile['operator']
+    del c2_profile['id']
     query = await db_model.c2profileparameters_query()
     params = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == profile))
     params_list = []
     for p in params:
-        params_list.append({"name": p.name, "key": p.key, "hint": p.hint})
+        params_list.append({"name": p.name, "key": p.key, "hint": p.hint, "randomize": p.randomize, "format_string": p.format_string})
     c2_profile['params'] = params_list
     c2_profile['payload_types'] = []
     query = await db_model.payloadtypec2profile_query()
     mappings = await db_objects.execute(query.where(PayloadTypeC2Profile.c2_profile == profile))
+    payload_types = []
     for m in mappings:
-        c2_profile['payload_types'].append(m.payload_type.ptype)
+        payload_type_info = {"name": m.payload_type.ptype, "files": []}
+        try:
+            for c2_file in glob.iglob("./app/c2_profiles/{}/{}/**".format(profile.name, m.payload_type.ptype),
+                                       recursive=True):
+                if os.path.isdir(c2_file):
+                    continue
+                c2_name = c2_file.replace("./app/c2_profiles/{}/{}/".format(profile.name, m.payload_type.ptype), "")
+                file_data = open(c2_file, 'rb')
+                file_dict = {c2_name: base64.b64encode(file_data.read()).decode('utf-8')}
+                payload_type_info['files'].append(file_dict)
+            payload_types.append(payload_type_info)
+        except Exception as e:
+            print(e)
+            pass
+    c2_profile['payload_types'] = payload_types
     return json(c2_profile)
 
 # ----------- IMPORT C2 PROFILE FUNCTION ------------------------
@@ -875,6 +1055,10 @@ async def import_c2_profile_func(data, operator):
             profile.sampleClient = data['sampleClient']
         if 'notes' in data:
             profile.notes = data['notes']
+        if 'is_p2p' in data:
+            profile.is_p2p = data['is_p2p']
+        if 'is_server_routed' in data:
+            profile.is_server_routed = data['is_server_routed']
         await db_objects.update(profile)
     except Exception as e:
         # this means the profile doesn't exit yet, so we need to create it
@@ -884,9 +1068,14 @@ async def import_c2_profile_func(data, operator):
             data['sampleClient'] = ""
         if 'notes' not in data:
             data['notes'] = ""
+        if 'is_p2p' not in data:
+            data['is_p2p'] = False
+        if 'is_server_routed' not in data:
+            data['is_server_routed'] = False
         profile = await db_objects.create(C2Profile, name=data['name'], operator=operator,
                                           description=data['description'], author=data['author'], notes=data['notes'],
-                                          sampleServer=data['sampleServer'], sampleClient=data['sampleClient'])
+                                          sampleServer=data['sampleServer'], sampleClient=data['sampleClient'],
+                                          is_p2p=data['is_p2p'], is_server_routed=data['is_server_routed'])
         print("Created new c2 profile: {}".format(data['name']))
     # now make sure the appropriate directories exist
     try:
@@ -899,29 +1088,44 @@ async def import_c2_profile_func(data, operator):
             c2_profile_param = await db_objects.get(query, key=param['key'], c2_profile=profile)
             c2_profile_param.key = param['key']
             c2_profile_param.hint = param['hint']
+            c2_profile_param.name = param['name']
+            c2_profile_param.randomize = param['randomize']
+            c2_profile_param.format_string = param['format_string']
             await db_objects.update(c2_profile_param)
         except Exception as e:
-            await db_objects.create(C2ProfileParameters, c2_profile=profile, name=param['name'], key=param['key'], hint=param['hint'])
+            await db_objects.create(C2ProfileParameters, c2_profile=profile, name=param['name'], key=param['key'],
+                                    hint=param['hint'], randomze=param['randomize'], format_string=param['format_string'])
         print("Associated new params for profile: {}-{}".format(param['name'], data['name']))
     for ptype in data['payload_types']:
         try:
             query = await db_model.payloadtype_query()
-            payload_type = await db_objects.get(query, ptype=ptype)
+            payload_type = await db_objects.get(query, ptype=ptype['name'])
             try:
                 await db_objects.get(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
             except Exception as e:
                 await db_objects.create(PayloadTypeC2Profile, payload_type=payload_type, c2_profile=profile)
+            #  now try to update the associated files if any are specified in the profile
+            abs_payload_path = os.path.abspath("./app/c2_profiles/{}/{}/".format(profile.name, payload_type.ptype))
+            for c2_file in ptype['files']:
+                for c2_name in c2_file:  # {"filename.extension": "base64 blob"}
+                    file_name_path = os.path.abspath("./app/c2_profiles/{}/{}/{}".format(profile.name, payload_type.ptype, c2_name))
+                    if abs_payload_path in file_name_path:
+                        os.makedirs(os.path.dirname(file_name_path), exist_ok=True)  # make sure all  directories exist first
+                        ptype_file = open(file_name_path, 'wb')
+                        ptype_content = base64.b64decode(c2_file[c2_name])
+                        ptype_file.write(ptype_content)
+                        ptype_file.close()
         except Exception as e:
             # payload type doesn't exist, so skip it and move on
             continue
-        print("Associated new payload types for profile: {}-{}".format(ptype, data['name']))
+        print("Associated new payload types for profile: {}-{}".format(ptype['name'], data['name']))
     return {'status': 'success', **profile.to_json()}
 
 
 # this is called when a new operation is created so we can staff it with the default c2 profiles as needed
 async def register_default_profile_operation(operator):
     try:
-        file = open('./app/templates/default_c2_db_info.json', 'r')
+        file = open('./app/default_files/other_info/default_c2_db_info.json', 'r')
         c2_data = js.load(file)  # this is a lot of data and might take a hot second to load
         for p in c2_data['profiles']:
             print("Creating profile agent files for: " + p['name'])

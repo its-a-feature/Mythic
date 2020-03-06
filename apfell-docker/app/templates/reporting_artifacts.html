@@ -2,8 +2,7 @@
 
 {% block body %}
 
-<br>
-<div style="resize: vertical" class="card border border-dark shadow bg-card-body" id="artifacts_table">
+<div style="margin-top:5px" class="card border border-dark shadow bg-card-body" id="artifacts_table">
     <div class="card-header bg-header text-white">
         <span style="display:inline-block">
             <h2 style="display:inline-block"><span class="operator">Artifact</span> Reporting</h2>
@@ -16,23 +15,23 @@
         </span>
 
     </div>
-    <div style="resize:vertical;overflow:scroll;height:calc(80vh)">
+    <div style="overflow-y:scroll;height:calc(80vh)">
         <table  class="table table-striped table-hover {{config['table-color']}}" style="width:100%">
             <tr>
-                <th style="position:-webkit-sticky;position:sticky;top:0;z-index:99;width:4rem" ><b>Delete</b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99;width:15rem"><b>Timestamp</b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99;width:4rem"><b>Task </b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Host </b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Command </b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Parameters </b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Artifact </b></th>
+                <th class="sticky-top" style="width:4rem" ><b>Delete</b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="width:15rem"><b>Timestamp</b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="width:4rem"><b>Task </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Host </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Command </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Parameters </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Artifact </b></th>
             </tr>
         <!-- Repeat this for each base artifact -->
             <tr v-for="(artifact, i) in artifacts" :key="artifact.id">
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(artifact, i)"><i class="fas fa-trash-alt"></i></button>
                 </td>
-                <td>[[toLocalTime(artifact.timestamp)]]</td>
+                <td style="text-align:center">[[toLocalTime(artifact.timestamp)]]</td>
                 <td>
                     <template v-if="artifact.task_id > 0 && artifact.task_id != ''">
                         <a :href="artifact.task_href" target="_blank"><b>[[artifact.task_id]]</b></a>
@@ -40,8 +39,8 @@
                 </td>
                 <td>[[ artifact.host ]]</td>
                 <td>[[ artifact.command ]]</td>
-                <td>[[ artifact.task ]]</td>
-                <td>[[artifact.artifact_template]]: [[ artifact.artifact_instance ]]</td>
+                <td>[[ artifact.task.substring(0,500) ]]</td>
+                <td>[[artifact.artifact_template]]: [[ artifact.artifact_instance.substring(0,500) ]]</td>
             </tr>
         <!-- End of the repeating -->
         </table>

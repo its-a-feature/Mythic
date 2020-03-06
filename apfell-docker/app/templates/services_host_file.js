@@ -1,4 +1,4 @@
-
+document.title = "Host Files";
 var manualFileModal = new Vue({
     el: '#manualFileModal',
     data: {
@@ -55,29 +55,34 @@ var manual_file_table = new Vue({
 });
 function delete_callback(response){
     try{
-        data = JSON.parse(response);
-    }catch(error){
-        alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'error'){
-        alertTop("danger", data['error']);
-    }
-    else{
-        for(var i = 0; i < manual_file_table.files.length; i++){
-            if(manual_file_table.files[i].id === data['id']){
-                manual_file_table.files.splice(i, 1);
-                return;
+        let data = JSON.parse(response);
+        if(data['status'] === 'error'){
+            alertTop("danger", data['error']);
+        }
+        else{
+            for(let i = 0; i < manual_file_table.files.length; i++){
+                if(manual_file_table.files[i].id === data['id']){
+                    manual_file_table.files.splice(i, 1);
+                    return;
+                }
             }
         }
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
     }
 }
 function startwebsocket_manualFiles(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/files/current_operation');
+	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/manual_files/current_operation');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
-		    data = JSON.parse(event.data);
+		    let data = JSON.parse(event.data);
             if(data['task'] === 'null' || data['task'] == null){
+                for(let i = 0; i < manual_file_table.files.length; i++){
+                    if(manual_file_table.files[i]['id'] === data['id']){
+                        Vue.set(manual_file_table.files, i, data);
+                        return;
+                    }
+                }
                 manual_file_table.files.push(data);
             }
 		}

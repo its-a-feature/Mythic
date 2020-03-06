@@ -12,11 +12,11 @@
             </span>
         </span>
     </div>
-    <div style="resize: vertical; overflow:scroll;height:calc(81vh)" >
+    <div style="resize: vertical; overflow-y:scroll;height:calc(80vh)" >
         <div v-for="callback in callbacks" class="card bg-card-body border-dark border-bottom-0 border-top-0 border-right-0 rounded-0 shadow" id="'callback'+callback.id" :key="callback.id" style="padding:5px">
             <div :class="callback.active ? 'card-header bg-header-dark border border-dark shadow' : 'card-header bg-header-dark border border-dark shadow'">
-                <template v-if="callback.active"><span class="operator">Tasks for Callback [[callback.id]]:</span></template>
-                <template v-else><font color="bg-warning">Tasks for Callback [[callback.id]]:</font></template>
+                <template v-if="callback.active"><span class="operator">Tasks for Callback <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + callback.id" target="_blank">[[callback.id]]</a>:</span></template>
+                <template v-else><font color="bg-warning">Tasks for Callback <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + callback.id" target="_blank">[[callback.id]]</a>:</font></template>
                 [[callback.user]]@[[callback.host]] with pid ([[callback.pid]])
                 <button v-if="callback.hasOwnProperty('tasks')" class="btn btn-sm btn{{config['outline-buttons']}}info" @click="load_tasks(callback)">Hide Tasks</button>
                 <button v-else class="btn btn-sm btn{{config['outline-buttons']}}success" @click="load_tasks(callback)">Load Tasks</button>
@@ -25,7 +25,7 @@
             </div>
             <div v-if="callback.hasOwnProperty('tasks')">
                 <div v-for="(t,i) in callback.tasks" :key="t.id" style="word-wrap: break-word">
-                    <div class="card-header bg-header-dark border border-dark shadow" :id="'task' + t.id" style="padding:0px 0px 0px 10px;margin:0px">
+                    <div class="card-header bg-header-dark border border-dark shadow" :id="'task' + t.id" :style="t.original_params.length > 200 ? 'padding:0px 0px 0px 10px;margin:0px;white-space:nowrap;overflow-x:scroll' : 'padding:0px 0px 0px 10px;margin:0px;white-space:nowrap'">
                         <template v-if="t.completed == true && t.status != 'error'">
                             <button disabled class="btn btn{{config['outline-buttons']}}success btn-sm" >completed</button>
                         </template>
@@ -41,7 +41,7 @@
                         <template v-else>
                             <button disabled class="btn btn{{config['outline-buttons']}}info btn-sm" >[[t.status]]</button>
                         </template>
-                        <button class="btn btn-sm" style="color:green" data-toggle="tooltip" title="download raw output" @click="download_raw_output(t.id)" ><i class="fas fa-save fa-lg" ></i></button><a class="btn btn-link" @click="toggle_response(t, i)"><img :id="'color-arrow' + t.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(0deg)" data-toggle="toggle command output"></a>[[t.operator]]'s task [[t.id]]: <b>[[t.command]]</b> [[t.original_params]] <button class="btn btn-sm" style="color:{{config['text-color']}}" data-toggle="tooltip" title="Copy command to clipboard" @click="copyStringToClipboard(t.command + ' ' + t.original_params)" ><i class="far fa-copy" ></i></button>
+                        <button class="btn btn-sm" style="color:green" data-toggle="tooltip" title="download raw output" @click="download_raw_output(t.id)" ><i class="fas fa-save fa-lg" ></i></button><a class="btn btn-link" @click="toggle_response(t, i)"><img :id="'color-arrow' + t.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(0deg)" data-toggle="toggle command output"></a>[[t.operator]]'s task [[t.id]]:  <button class="btn btn-sm" style="color:{{config['text-color']}}" data-toggle="tooltip" title="Copy command to clipboard" @click="copyStringToClipboard(t.command + ' ' + t.original_params)" ><i class="far fa-copy" ></i></button> <b>[[t.command]]</b> [[t.original_params]]
                     </div>
                     <div class="response-background card-body border border-dark shadow" v-if="t.hasOwnProperty('responses')" style="word-wrap: break-word">
                         <template v-if="t.comment != ''">

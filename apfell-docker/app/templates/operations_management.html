@@ -1,19 +1,17 @@
 {% extends "base.html" %}
 {% block body %}
-
-<br>
-<div style="resize: vertical; overflow:scroll" class="card border border-dark shadow" id="operations_table" >
+<div style="resize: vertical; overflow-y:scroll;margin-top:5px" class="card border border-dark shadow" id="operations_table" >
     <div class="card-header bg-header border border-dark shadow text-white"><h2><span class="operator">Operations</span> Management</h2></div>
         <table class="table table-striped {{config['table-color']}} table-hover" >
             <tr>
-                <th><b>Delete</b></th>
-                <th><b>Modify</b></th>
-                <th onclick="sort_table(this)"><b>Completed</b></th>
-                <th><b>Access Controls</b></th>
+                <th style="width:2rem"><b>Delete</b></th>
+                <th style="width:2rem"><b>Modify</b></th>
+                <th onclick="sort_table(this)" style="width:10rem"><b>Completed</b></th>
+                <th style="width:10rem"><b>Access Controls</b></th>
                 <th onclick="sort_table(this)"><b>Name</b></th>
                 <th onclick="sort_table(this)"><b>Admin</b></th>
                 <th onclick="sort_table(this)"><b>Members</b></th>
-                <th><b>Current Operation</b></th>
+                <th style="width:10rem"><b>Current Operation</b></th>
             </tr>
         <!-- Repeat this for each operation -->
             <tr v-for="o in operations" :key="o.name">
@@ -47,7 +45,7 @@
 		        </td>
                 <td style="text-align:center">[[ o.name ]]</td>
                 <td style="text-align:center">[[ o.admin ]]</td>
-                <td style="text-align:center"><span v-for="m in o.members">[[m.username]]<br></span></td>
+                <td style="text-align:center"><span v-for="m in o.members">[[m.username]]&nbsp;</span></td>
                 <td style="text-align:center">
                     <div v-if="current_operation == o.name">Yes</div>
                     <div v-else>
@@ -106,12 +104,12 @@
                 <h3>Modify Operation</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-            <div class="modal-body" id="operationModifyBody">
+            <div class="modal-body" id="operationModifyBody" >
                 You can modify aspects of an operation here.
-                <table cellpadding="10" style="width:100%" class="table table-striped {{config['table-color']}} table-hover">
+                <table style="width:100%" class="table table-striped {{config['table-color']}} table-hover">
                     <tr>
                         <td style="width:150px">Name</td>
-                        <td><input disabled type="text" id="operationModifyName" size="60"></td>
+                        <td><input disabled type="text" id="operationModifyName" size="95%"></td>
                     </tr>
                     <tr>
                         <td>Admin</td>
@@ -119,7 +117,7 @@
                     </tr>
                     <tr>
                         <td>Slack WebHook</td>
-                        <td><input type="text" id="operationModifyWebhook" size="60"></td>
+                        <td><input type="text" id="operationModifyWebhook" size="95%"></td>
                     </tr>
                     <tr v-for="(mem, i) in operation_members">
                         <td>[[mem.name]]</td>
@@ -147,10 +145,10 @@
             </div>
             <div class="modal-body" id="operationNewBody">
                 You can create a new operation here.
-                <table cellpadding="10" style="width:100%" class="table table-striped table-hover {{config['table-color']}}">
+                <table style="width:100%" class="table table-striped table-hover {{config['table-color']}}">
                     <tr>
                         <td style="width:150px">Name</td>
-                        <td><input type="text" id="operationNewName" size="60"></td>
+                        <td><input type="text" id="operationNewName" size="95%"></td>
                     </tr>
                     <tr>
                         <td>Admin</td>
@@ -158,7 +156,7 @@
                     </tr>
                     <tr>
                         <td>Slack WebHook</td>
-                        <td><input type="text" id="operationNewWebhook" size="60"></td>
+                        <td><input type="text" id="operationNewWebhook" size="95%"></td>
                     </tr>
                     <tr v-for="(mem, i) in operation_members">
                         <td>[[mem.name]]</td>
@@ -215,23 +213,23 @@
             </div>
             <div class="modal-body">
                 Create a template for disabling certain commands that can be applied to an operator.<br>
-                Profile Name: <input type="text" v-model="name" size="40rem">
-                <div v-for="(data, key, i) in selected_commands" style="max-height:20em;overflow:scroll">
+                Profile Name: <input type="text" v-model="name" size="90%">
+                <div v-for="(data, key, i) in selected_commands" style="max-height:20em;overflow-y:scroll">
                     <h3><span class="operator">[[key]]</span></h3>
                     <table cellpadding="10" style="width:100%;" class="table table-striped {{config['table-color']}} table-hover" >
                         <tr>
-                            <th class="sticky-top">
+                            <th class="sticky-top" style="text-align:left;width:5rem">
                                 <b>Disabled?</b>
                             </th>
-                            <th class="sticky-top" onclick="sort_table(this)">
+                            <th class="sticky-top" onclick="sort_table(this)" style="text-align:left;width:5rem">
                                 <b>Needs Admin</b>
                             </th>
-                            <th class="sticky-top" onclick="sort_table(this)">
+                            <th class="sticky-top" onclick="sort_table(this)" style="text-align:left">
                                 <b>Command Name</b>
                             </th>
                         </tr>
                         <tr v-for="command in data">
-                            <td>
+                            <td style="padding-left:10px">
                                 <span class="material-switch pull-right"><input type="checkbox" :checked="command['disabled']" v-model="command['disabled']" :id="'command' + command.id"><label :for="'command' + command.id" class="btn-danger"></label></span>
                             </td>
                             <td>[[command.needs_admin]]</td>
@@ -254,7 +252,7 @@
     <div class="card-header bg-header text-white border border-dark shadow">
         <h2><span class="operator">Command Block</span> Lists</h2>
     </div>
-    <div class="card-body border-0 shadow bg-card-body">
+    <div class="card-body border-0 shadow bg-card-body" style="padding:0">
         <div v-for="i in disabled_profiles" class="card align-top bg-card-body-l1 border-0" style="display:inline-block;min-width:30rem;padding:8px;">
           <div class="card shadow border border-dark">
               <div class="card-header border border-dark shadow" :id="'cardheader' + i.id">

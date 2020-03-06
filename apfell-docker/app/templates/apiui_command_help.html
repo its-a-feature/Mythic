@@ -1,28 +1,33 @@
 {% extends "base.html" %}
 {% block body %}
-<br>
-<div id="payloadTypesDiv">
+<div id="payloadTypesDiv" style="padding-top:5px">
     <div style="resize: vertical; overflow:visible" class="card border border-dark shadow">
         <div class="card-header border border-dark bg-header text-white shadow">
             <h2 style="display: inline-block"><span class="operator">[[current_type.ptype]]</span> Command Listing</h2>
-            <select id="payloadtypeChoice" style="float:right">
-                <option v-for="ptype in payloadtypes" v-model="current_type" :value="ptype.ptype">[[ptype.ptype]]</option>
-            </select><br>
-            <span><b>Execution Guidance:</b> [[current_type.execute_help]]</span><br>
+            <span class="input-group" style="float:right;display:inline-block">
+                <div class="input-group-append" style="display:inline-block">
+                    Select Payload:
+                </div>
+                <div class="input-group-append" style="display:inline-block">
+                    <select id="payloadtypeChoice" v-model="current_type">
+                        <option v-for="ptype in payloadtypes" :value="ptype">[[ptype.ptype]]</option>
+                    </select>
+                </div>
+            </span><br>
         </div>
 
-        <table class="table table-striped {{config['table-color']}} table-hover" >
+        <table class="table table-striped {{config['table-color']}} table-hover" style="word-wrap:break-word;table-layout:fixed;overflow-wrap:break-word;width:100%">
             <tr>
-                <th onclick="sort_table(this)"><b>Command</b></th>
-                <th onclick="sort_table(this)"><b>Help</b></th>
+                <th onclick="sort_table(this)" style="width:10rem"><b>Command</b></th>
+                <th onclick="sort_table(this)" style="width:30rem"><b>Help</b></th>
+                <th onclick="sort_table(this)" style="width:5rem"><b>Needs Admin</b></th>
                 <th onclick="sort_table(this)"><b>description</b></th>
-                <th onclick="sort_table(this)" style="width:9rem"><b>Needs Admin</b></th>
             </tr>
             <tr v-for="c in commands" :class="c.needs_admin ? 'highlightRow' : ''">
                 <td>[[ c.cmd ]]</td>
                 <td>[[ c.help_cmd ]]</td>
-                <td>[[ c.description ]]</td>
                 <td>[[ c.needs_admin ]]</td>
+                <td style="width:100%"><pre style="word-wrap:break-word;white-space:pre-wrap">[[ c.description ]]</pre></td>
             </tr>
         </table>
     </div>

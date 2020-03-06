@@ -1,3 +1,4 @@
+document.title = "Operations Management";
 var operations = [];
 var username = "{{name}}";
 var admin = ("{{admin}}" === "True");
@@ -376,7 +377,7 @@ var view_acls = new Vue({
                 //looping through payload types, x is payload type name
                 instance['values'][x].forEach(function(y){
                     create_acls.selected_commands[x].forEach(function(z){
-                        if(z.cmd == y.command){
+                        if(z.cmd === y.command){
                             z.disabled = true;
                         }
                     });
@@ -428,6 +429,14 @@ function delete_acl_response(response){
     }
 }
 function new_acl_button(){
+    create_acls.name = "";
+    // reset all to not disabled
+    Object.keys(create_acls.selected_commands).forEach(function(x){
+        //looping through payload types, x is payload type name
+        create_acls.selected_commands[x].forEach(function(y){
+            y.disabled = false;
+        });
+    });
      $( '#operationCreateACLsModal' ).modal('show');
      $( '#operationCreateACLsSubmit' ).unbind('click').click(function(){
         let data = {};

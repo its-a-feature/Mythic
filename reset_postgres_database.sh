@@ -3,5 +3,11 @@
 # stop our services
 docker-compose stop
 # remove the postgres service
-docker container rm $(docker ps -a -q --filter ancestor=apfell_postgres)
-docker volume rm apfell_postgres-data-volume
+docker container rm apfell_postgres
+if [ -d "./postgres-docker/database" ]; then
+  rm -rf "./postgres-docker/database/";
+  echo "Removed ./postgres-docker/database files"
+fi
+if [ ! -d "./postgres-docker/database" ]; then
+    mkdir "./postgres-docker/database"
+fi

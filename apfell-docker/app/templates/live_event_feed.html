@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div style="resize: vertical;margin-top:5px" class="card border-0 shadow" id="feed">
+    <div class="card-header bg-header border border-dark shadow text-white">
+        <h2 style="display:inline-block"><span class="operator">Live</span> Event Feed</h2>
+        <span style="display:inline-block; float:right">
+            <span class="input-group" >
+                <div class="input-group-append"><input type="text" size="50rem" placeholder="filter with 'column title:value'" id="filter" v-model="filter"></div>
+                <div class="input-group-append input-group-btn" ><button disabled type="button" class="btn btn{{config['outline-buttons']}}secondary"><i class="fa fa-filter"></i></button></div>
+            </span>
+        </span>
+    </div>
+    <div style="overflow-y:scroll;height:calc(78vh);padding:0;" class="card-body bg-card-body border border-dark shadow" >
+        <table v-if="events.length > 0" class="table table-condensed table-striped table-hover {{config['table-color']}}" style="word-wrap: break-word;table-layout: fixed">
+            <tr>
+                <th class="sticky-top" style="width:12rem">Time</th>
+                <th class="sticky-top" style="width:10rem">Operator</th>
+                <th class="sticky-top">Message</th>
+            </tr>
+            <tr v-for="entry in events" :key="entry.id" v-if="apply_filter(entry)">
+                <td><pre>[[toLocalTime(entry.timestamp)]]</pre></td>
+                <td><pre>[[entry.operator]]</pre></td>
+                <td>
+                    <template v-if="entry.message.startsWith('Apfell:')">
+                        <pre style="color:#008b8b">[[entry.message]]</pre>
+                    </template>
+                    <template v-else>
+                        <pre>[[entry.message]]</pre>
+                    </template>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="card-footer bg-card-footer">
+            <div class="input-group" style="margin:0!important;padding:5px">
+                <input id="message" type="text" class="form-control" v-model="input_field"
+                       placeholder="Send message to operation ..." aria-describedby="basic-addon1"
+                       @keydown.enter="send_message()"
+                       autocomplete="off" style="height:calc(3rem)"
+                >
+                <div class="input-group-append">
+                    <button type="button" class="btn btn{{config['outline-buttons']}}success" @click="send_message()" ><i class="fas fa-paper-plane 2x"></i></button>
+                </div>
+            </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% include "live_event_feed.js" %}
+{% endblock %}
+
+{% block body_config %}
+
+{% endblock %}

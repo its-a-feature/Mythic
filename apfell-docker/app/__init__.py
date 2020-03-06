@@ -1,6 +1,7 @@
 from sanic import Sanic, log
 import uvloop
-from peewee_async import Manager, PooledPostgresqlDatabase
+from peewee_async import Manager
+from peewee_asyncext import PooledPostgresqlExtDatabase
 from sanic_jwt import Initialize
 from ipaddress import ip_network
 from logging import Formatter
@@ -27,7 +28,7 @@ db_name = 'apfell_db'
 db_user = 'apfell_user'
 # custom loop to pass to db manager
 dbloop = uvloop.new_event_loop()
-apfell_db = PooledPostgresqlDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=1000)
+apfell_db = PooledPostgresqlExtDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=1000, register_hstore=False)
 apfell_db.connect_async(loop=dbloop)
 db_objects = Manager(apfell_db, loop=dbloop)
 
@@ -94,7 +95,7 @@ apfell.config['DB_USER'] = db_user
 apfell.config['DB_PASS'] = db_pass
 apfell.config['DB_NAME'] = db_name
 apfell.config['DB_POOL_CONNECT_STRING'] = "dbname='{}' user='{}' password='{}' host='127.0.0.1'".format(apfell.config['DB_NAME'], apfell.config['DB_USER'], apfell.config['DB_PASS'])
-apfell.config['API_VERSION'] = "1.3"
+apfell.config['API_VERSION'] = "1.4"
 apfell.config['API_BASE'] = "/api/v" + apfell.config['API_VERSION']
 apfell.config['REQUEST_MAX_SIZE'] = 1000000000
 apfell.config['REQUEST_TIMEOUT'] = 60

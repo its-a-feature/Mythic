@@ -74,7 +74,6 @@ async def create_browserscript(request, user):
         return json({'status': 'success', **browserscript.to_json()})
 
 
-
 @apfell.route(apfell.config['API_BASE'] + "/browser_scripts/<bid:int>", methods=['PUT'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -140,12 +139,13 @@ async def modify_browserscript(request, user, bid):
                     # make sure it's ok to apply first
                     can_add = True
                     script = await db_objects.execute(query.where(db_model.BrowserScriptOperation.operation == operation) )
+                    # loop through all browserscripts added to the current operation already
                     for s in script:
                         if s.browserscript == browserscript:
                             can_add = False  # it's already added to the operation
                         elif browserscript.command is None and s.browserscript.name == browserscript.name:
                             can_add = False  # already have a support script by the same name
-                        elif s.browserscript.command == browserscript.command:
+                        elif s.browserscript.command is not None and s.browserscript.command == browserscript.command:
                             can_add = False  # there's already a script for that command
                     if can_add:
                         mapping = await db_objects.create(db_model.BrowserScriptOperation, operation=operation, browserscript=browserscript)
@@ -215,12 +215,16 @@ async def import_browserscript(request, user):
                 return json({'status': 'error', 'error': 'code must be supplied in base64 or via a form'})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to parse json'})
+    return json(await import_browserscript_func(code, user))
+
+
+async def import_browserscript_func(code, user):
     failed_imports = []
     for data in code:
         pieces = {}
         # script is base64 encoded
         if 'script' not in data:
-            data['error'] = "script must be supplied in base64 format"
+            data['error'] = "script must be supplied"
             failed_imports.append(data)
             continue
         if 'command' in data and 'payload_type' in data:
@@ -231,7 +235,7 @@ async def import_browserscript(request, user):
                 command = await db_objects.get(query, cmd=data['command'], payload_type=payload_type)
                 pieces['command'] = command
             except Exception as e:
-                data['error'] = str(e)
+                data['error'] = "Command or payload type does not exist"
                 failed_imports.append(data)
                 continue
         query = await db_model.operator_query()
@@ -240,24 +244,28 @@ async def import_browserscript(request, user):
         if 'name' in data:
             try:
                 query = await db_model.browserscript_query()
-                script = await db_objects.get(query, name=data['name'])
-                data['error'] = "script already exists with that name"
+                script = await db_objects.get(query, name=data['name'], operator=operator)
+                data['error'] = "script already exists with that name for this user"
                 failed_imports.append(data)
                 continue
             except Exception as e:
                 # we don't have it in the database yet, so we can make it
                 pieces['name'] = data['name']
+        else:
+            pieces['name'] = None
         pieces['script'] = data['script']
         try:
-            browserscript = await db_objects.create(db_model.BrowserScript, **pieces)
-        except Exception as e:
-            data['error'] = "failed to add script to database: " + str(e)
+            browserscript = await db_objects.get(db_model.BrowserScript, command=pieces['command'], name=pieces['name'], operator=operator)
+            data['error'] = "failed to add script to database because that command already exists for you"
             failed_imports.append(data)
             continue
+        except Exception as e:
+            browserscript = await db_objects.create(db_model.BrowserScript, **pieces)
+
     if len(failed_imports) == 0:
-        return json({'status': 'success'})
+        return {'status': 'success'}
     else:
-        return json({'status': 'error', 'error': 'Some of the scripts were not successfully imported.', 'scripts': js.dumps(failed_imports, indent=2)})
+        return {'status': 'error', 'error': 'Some of the scripts were not successfully imported.', 'scripts': js.dumps(failed_imports, indent=2)}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/browser_scripts/export", methods=['GET'])

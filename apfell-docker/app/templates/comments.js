@@ -1,3 +1,4 @@
+document.title = "Comments";
 try{
     var support_scripts = { {{support_scripts}} };
 }catch(error){

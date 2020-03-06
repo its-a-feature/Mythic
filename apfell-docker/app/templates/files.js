@@ -1,4 +1,4 @@
-
+document.title = "Files";
 var ready_for_updates = false;
 var files_div = new Vue({
     el: '#files_div',
@@ -60,55 +60,14 @@ function delete_file_callback(response){
        }
    }
 }
+
 function startwebsocket_files(){
     let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/files/current_operation');
-    alertTop("success", "Loading...");
-    ws.onmessage = function(event){
-        if (event.data !== ""){
-            //console.log(event.data);
-            let f = JSON.parse(event.data);
-            f['selected'] = false;
-            if(f['deleted'] === true){return;}
-            // will get file_meta data a host field and an operator field
-            f['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + f['agent_file_id'];
-            if(f.path.includes("/downloads/")){
-                files_div.hosts['downloads'].unshift(f);
-            }
-            else{
-                try{
-                    f.upload = JSON.parse(f.upload);
-                    f['path'] = f['path'].split("/").slice(-1)[0];
-                }catch(e){
-                    f.upload = {"remote_path": "agent load of " + f.upload};
-                }
-                files_div.hosts['uploads'].unshift(f);
-            }
-        }
-        else{
-            if(ready_for_updates === false){
-                ready_for_updates = true;
-                startwebsocket_updatedfiles();
-            }
-        }
-    };
-    ws.onclose = function(){
-		wsonclose();
-	};
-	ws.onerror = function(){
-        wsonerror();
-	};
-    ws.onopen = function(event){
-        //console.debug("opened");
-    };
-}
-
-function startwebsocket_updatedfiles(){
-    let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updated_files/current_operation');
     ws.onmessage = function(event){
         if (event.data !== ""){
             let file = JSON.parse(event.data);
             //console.log(file);
-            file['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + f['agent_file_id'];
+            file['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + file['agent_file_id'];
             if(file.path.includes("/downloads/")){
                 for(let i = 0; i < files_div.hosts['downloads'].length; i++){
                     if(file['id'] === files_div.hosts['downloads'][i]['id']){
@@ -121,8 +80,13 @@ function startwebsocket_updatedfiles(){
                         return;
                     }
                 }
+                // if we get here, we don't have the file, so add it
+                files_div.hosts['downloads'].unshift(file);
+                files_div.$forceUpdate();
             }
             else{
+                file.upload = JSON.parse(file.upload);
+                file['path'] = file['path'].split("/").slice(-1)[0];
                 for(let i = 0; i < files_div.hosts['uploads'].length; i++){
                     if(file['id'] === files_div.hosts['uploads'][i]['id']){
                         if(file['deleted'] === true){
@@ -134,6 +98,9 @@ function startwebsocket_updatedfiles(){
                         return;
                     }
                 }
+                // if we get here, we don't have the file, so add it
+                files_div.hosts['uploads'].unshift(file);
+                files_div.$forceUpdate();
             }
 
         }

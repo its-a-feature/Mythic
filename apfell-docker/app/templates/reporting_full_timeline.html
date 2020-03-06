@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 {% block body %}
 
-<br>
-<div id="full_reporting">
-    <div class="card border border-dark shadow bg-card-body">
+<div id="full_reporting" style="padding-top:5px">
+    <div class="card border border-dark shadow bg-card-body" style="padding:0">
         <div class="card-header bg-header border border-dark shadow text-white">
             <h2><span class="operator">Report Generation</span> Options</h2>
         </div>
         <div class="card-body border-dark shadow bg-card-body">
-            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:8px;">
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;">
                 <div class="card border border-dark shadow">
                     <div class="card-header bg-header-dark border border-dark shadow">
                         Include Command output? &nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="cmd_output" v-model="cmd_output"><label for="cmd_output" class="btn-info"></label></span>
@@ -19,7 +18,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:8px;" v-if="cmd_output">
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;" v-if="cmd_output">
                 <div class="card border border-dark shadow" >
                     <div class="card-header bg-header-dark border border-dark shadow">
                         Order output strictly by time? &nbsp;&nbsp; <span class="material-switch pull-right"><input type="checkbox" id="strict_time" v-model="strict_time"><label for="strict_time" class="btn-info"></label></span>
@@ -30,7 +29,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:8px;" v-if="cmd_output">
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;" v-if="cmd_output">
                 <div class="card border border-dark shadow" >
                     <div class="card-header bg-header-dark border border-dark shadow">
                         Group all output with its task? &nbsp;&nbsp;<span class="material-switch pull-right"> <input type="checkbox" id="strict_task" v-model="strict_task"><label for="strict_task" class="btn-info"></label></span>
@@ -41,7 +40,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:8px;">
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;">
                 <div class="card border border-dark shadow">
                     <div class="card-header bg-header-dark border border-dark shadow">
                         Include artifacts? &nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="task_artifacts" v-model="artifacts"><label for="task_artifacts" class="btn-info"></label></span>
@@ -51,7 +50,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:8px;">
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;">
                 <div class="card border border-dark shadow">
                     <div class="card-header bg-header-dark border border-dark shadow">
                         Include ATT&CK? &nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="task_attack" v-model="attack"><label for="task_attack" class="btn-info"></label></span>

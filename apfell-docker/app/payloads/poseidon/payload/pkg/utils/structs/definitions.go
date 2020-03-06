@@ -1,17 +1,180 @@
 package structs
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 )
 
+// Defaultconfig - C2 Profile configuration for the default profile
+type Defaultconfig struct {
+	KEYX       string   `json:"keyx"`
+	Key     string   `json:"key"`
+	BaseURL    string   `json:"baseurl"`
+	UserAgent  string   `json:"useragent"`
+	Sleep      int   `json:"sleep"`
+	HostHeader string   `json:"hostheader"`
+	Jitter     int      `json:"jitter"`
+}
+
+// Websocketconfig - C2 Profile configuration for the websocket profile
+type Websocketconfig struct {
+	KEYX       string   `json:"keyx"`
+	Key     string   `json:"key"`
+	BaseURL    string   `json:"baseurl"`
+	UserAgent  string   `json:"useragent"`
+	Sleep      int   `json:"sleep"`
+	HostHeader string   `json:"hostheader"`
+	Jitter     int      `json:"jitter"`
+	Endpoint   string   `json:"endpoint"`
+}
+
+// Slackconfig - C2 Profile configuration for the slack profile
+type Slackconfig struct {
+	KEYX       string   `json:"keyx"`
+	Key     string   `json:"key"`
+	Sleep      int   `json:"sleep"`
+	Jitter     int      `json:"jitter"`
+	ApiKey	  string 	`json:"apikey"`
+	ChannelID string 	`json:"channelid"`
+}
+
+// Struct definition for CheckIn messages
+type CheckInMessage struct {
+	Action         string `json:"action"`
+	IP             string `json:"ip"`
+	OS             string `json:"os"`
+	User           string `json:"user"`
+	Host           string `json:"host"`
+	Pid            int    `json:"pid"`
+	UUID           string `json:"uuid"`
+	Architecture   string `json:"architecture"`
+	Domain         string `json:"domain"`
+	IntegrityLevel int    `json:"integrity_level"`
+	ExternalIP     string `json:"external_ip"`
+	EncryptionKey  string `json:"encryption_key"`
+	DecryptionKey  string `json:"decryption_key"`
+}
+
+type CheckInMessageResponse struct {
+	Action string `json:"action"`
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
+// Struct definitions for EKE-RSA messages
+
+type EkeKeyExchangeMessage struct {
+	Action    string `json:"action"`
+	PubKey    string `json:"pub_key"`
+	SessionID string `json:"session_id"`
+}
+
+type EkeKeyExchangeMessageResponse struct {
+	Action     string `json:"action"`
+	UUID       string `json:"uuid"`
+	SessionKey string `json:"session_key"`
+	SessionId  string `json:"session_id"`
+}
+
+// Struct definitions for Tasking request messages
+
+type TaskRequestMessage struct {
+	Action      string             `json:"action"`
+	TaskingSize int                `json:"tasking_size"`
+	Delegates   []*json.RawMessage `json:"delegates"`
+}
+
+type TaskRequestMessageResponse struct {
+	Action    string             `json:"action"`
+	Tasks     []Task             `json:"tasks"`
+	Delegates []*json.RawMessage `json:"delegates"`
+}
+
+type Task struct {
+	Command   string  `json:"command"`
+	Params    string  `json:"parameters"`
+	Timestamp float64 `json:"timestamp"`
+	TaskID    string  `json:"id"`
+	Job       *Job
+}
+
+type Job struct {
+	KillChannel chan (int)
+	Stop        *int
+	Monitoring  bool
+}
+
+// Struct definitions for TaskResponse Messages
+type TaskResponseMessage struct {
+	Action    string            `json:"action"`
+	Responses []json.RawMessage `json:"responses"`
+	Delegates []json.RawMessage `json:"delegates"`
+}
+
+type Response struct {
+	TaskID     string `json:"task_id"`
+	UserOutput string `json:"user_output"`
+	Completed  bool   `json:"completed"`
+	Status     string `json:"status"`
+}
+
+type TaskResponseMessageResponse struct {
+	Action    string            `json:"action"`
+	Responses []json.RawMessage `json:"responses"`
+	Delegates []json.RawMessage `json:"delegates"`
+}
+
+type ServerResponse struct {
+	TaskID string `json:"uuid"`
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
+
+type UserOutput struct {
+	Output []byte `json:"user_output"`
+}
+
+// Struct definitions for file downloads and uploads
+type FileDownloadInitialMessage struct {
+	NumChunks int    `json:"total_chunks"`
+	TaskID    string `json:"task_id"`
+	FullPath  string `json:"full_path"`
+}
+
+type FileDownloadInitialMessageResponse struct {
+	Status string `json:"status"`
+	FileID string `json:"file_id"`
+}
+
+type FileDownloadChunkMessage struct {
+	ChunkNum  int    `json:"chunk_num"`
+	FileID    string `json:"file_id"`
+	ChunkData string `json:"chunk_data"`
+	TaskID    string `json:"task_id"`
+}
+
+type FileUploadChunkMessage struct {
+	Action    string `json:"action"`
+	ChunkSize int    `json:"chunk_size"`
+	FileID    string `json:"file_id"`
+	ChunkNum  int    `json:"chunk_num"`
+	FullPath  string `json:"full_path"`
+	TaskID string `json:"task_id"`
+}
+
+type FileUploadChunkMessageResponse struct {
+	Action      string `json:"action"`
+	TotalChunks int    `json:"total_chunks"`
+	ChunkNum    int    `json:"chunk_num"`
+	ChunkData   string `json:"chunk_data"`
+    FileID    string `json:"file_id"`
+}
+
 //Message - struct definition for external C2 messages
 type Message struct {
 	Tag    string `json:"tag"`
-	MType  int    `json:"mtype"`
-	IDType int    `json:"idtype"`
-	ID     string `json:"id"`
-	Client bool `json:"client"`
+	Client bool   `json:"client"`
 	Data   string `json:"data"`
 }
 
@@ -19,17 +182,8 @@ type Message struct {
 type ThreadMsg struct {
 	TaskItem   Task
 	TaskResult []byte
-	SpecialResult []byte
 	Error      bool
 	Completed  bool
-}
-
-// Task used to define a task received from apfell
-type Task struct {
-	Command string `json:"command"`
-	Params  string `json:"params"`
-	ID      string `json:"id"`
-	Job     *Job
 }
 
 // TaskStub to post list of currently processing tasks.
@@ -42,69 +196,7 @@ type TaskStub struct {
 // Job struct that will listen for messages on the kill channel,
 // set the Stop param to an exit code, and checks if it's in a
 // monitoring state.
-type Job struct {
-	KillChannel chan (int)
-	Stop        *int
-	Monitoring  bool
-}
 
-// ClientResponse used to define a task response struct
-type ClientResponse struct {
-	Response string `json:"response"`
-}
-
-// CheckinResponse used to handle the checkin response from Apfell
-type CheckinResponse struct {
-	Status         string `json:"status"`
-	Active         bool   `json:"active"`
-	IntegrityLevel int    `json:"integrity_level"`
-	InitCallback   string `json:"init_callback"`
-	LastCheckin    string `json:"last_checkin"`
-	User           string `json:"user"`
-	OS             string `json:"os"`
-	Arch           string `json:"architecture"`
-	Domain         string `json:"domain"`
-	Host           string `json:"host"`
-	Pid            int    `json:"pid"`
-	IP             string `json:"ip"`
-	Description    string `json:"description"`
-	Operator       string `json:"operator"`
-	Payload        string `json:"registered_payload"`
-	PayloadType    string `json:"payload_type"`
-	C2profile      string `json:"c2_profile"`
-	PCallback      string `json:"pcallback"`
-	Operation      string `json:"operation"`
-	ID             string `json:"id"`
-}
-
-// EKEInit used to initiate a key exchange with the apfell server
-type EKEInit struct {
-	SessionID string `json:"SESSIONID"`
-	Pub       string `json:"PUB"`
-}
-
-// SessionKeyResponse used to handle the session key response from apfell
-type SessionKeyResponse struct {
-	Nonce         string `json:"nonce"`
-	EncSessionKey string `json:"SESSIONKEY"`
-}
-
-// TaskResponse Used to define a task response
-type TaskResponse struct {
-	//Status     string                   `json:"status"`
-	//Timestamp  string                   `json:"timestamp"`
-	//Task       NestedApfellTaskResponse `json:"task"`
-	Response   string                   `json:"response"`
-	//ResponseID string                   `json:"id"`
-	FileID     string                   `json:"file_id"`
-}
-
-// TaskMessage used to define a general message to Apfell
-type TaskMessage struct {
-    UserOutput string `json:"user_output"`
-    Completed bool `json:"completed"`
-    Status  string  `json:"status"`
-}
 //FileRegisterResponse used for holding the response after file registration
 type FileRegisterResponse struct {
 	Status string `json:"status"`
@@ -115,6 +207,17 @@ type FileRegisterResponse struct {
 type FileRegisterRequest struct {
 	Chunks int    `json:"total_chunks"`
 	Task   string `json:"task"`
+}
+
+// NestedApfellTaskResponse used to hold the task response field
+type NestedApfellTaskResponse struct {
+	Status    string `json:"status"`
+	Timestamp string `json:"timestamp"`
+	Command   string `json:"command"`
+	Params    string `json:"params"`
+	AttackID  int    `json:"attack_id"`
+	Callback  int    `json:"callback"`
+	Operator  string `json:"operator"`
 }
 
 // FileChunk used to send a file download chunk to apfell
@@ -143,9 +246,6 @@ type CheckInStruct struct {
 	IP             string `json:"ip"`
 	UUID           string `json:"uuid"`
 	IntegrityLevel int    `json:"integrity_level"`
-	OS             string `json:"os"`
-	Arch           string `json:"architecture"`
-	Domain         string `json:"domain"`
 }
 
 // MonitorStop tells the job that it needs to wait for a kill signal.
@@ -162,7 +262,7 @@ func (j *Job) MonitorStop() {
 				j.Monitoring = false
 				return
 			default:
-				// …
+				// â¦
 				// log.Println("Sleeping in the kill chan...")
 				time.Sleep(time.Second)
 			}
@@ -180,7 +280,7 @@ func (j *Job) SendKill() {
 func (t *Task) ToStub() TaskStub {
 	return TaskStub{
 		Command: t.Command,
-		ID:      t.ID,
+		ID:      t.TaskID,
 		Params:  t.Params,
 	}
 }

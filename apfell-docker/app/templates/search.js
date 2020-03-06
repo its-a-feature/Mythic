@@ -1,3 +1,4 @@
+document.title = "Search";
 var searches = new Vue({
     el: '#searches',
     data:{

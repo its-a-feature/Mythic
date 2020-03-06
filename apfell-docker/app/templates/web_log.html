@@ -1,27 +1,24 @@
 {% extends "base.html" %}
 {% block body %}
-<br>
 
-<div style="resize: vertical" class="card border-0 shadow" id="searches">
+<div style="margin-top:5px" class="card border-0 shadow" id="searches">
     <div class="card-header bg-header border border-dark shadow text-white">
         <span style="display:inline-block">
             <h2 style="display:inline-block"><span class="operator">Browse</span> Apfell's logs...</h2>
         </span>
     </div>
-    <div style="resize:vertical;overflow:scroll;height:calc(80vh);padding:0px;" class="card-body bg-card-body border border-dark shadow">
+    <div style="overflow-y:scroll;height:calc(79vh);padding:0" class="card-body bg-card-body border border-dark shadow">
         <table v-if="entries.length > 0" width="100%" class="table table-condensed table-striped table-hover {{config['table-color']}}" >
             <tr>
-                <th onclick="sort_table(this)">Time</th>
-                <th onclick="sort_table(this)">Log Level</th>
+                <th onclick="sort_table(this)" style="width:20rem">Time</th>
                 <th onclick="sort_table(this)">Message</th>
-                <th onclick="sort_table(this)">Host</th>
-                <th onclick="sort_table(this)">Status</th>
-                <th onclick="sort_table(this)">Response Size</th>
+                <th onclick="sort_table(this)" style="width:15rem">Host</th>
+                <th onclick="sort_table(this)" style="width:10rem">Status</th>
+                <th onclick="sort_table(this)" style="float:right;width:8rem">Response Size</th>
             </tr>
             <tr v-for="entry in entries" :style="'background-color:' + entry['color']">
                 <template v-if="entry.type == 'access_log'">
                     <td><pre>[[entry.time]]</pre></td>
-                    <td><pre>[[entry.level]]</pre></td>
                     <td><pre>[[entry.request]]</pre></td>
                     <td><pre>[[entry.host]]</pre></td>
                     <td><pre>[[entry.status]]</pre></td>
@@ -29,7 +26,6 @@
                 </template>
                 <template v-else-if="entry.type == 'root_log'">
                     <td><pre>[[entry.time]]</pre></td>
-                    <td><pre>[[entry.level]]</pre></td>
                     <td><pre>[[entry.message]]</pre></td>
                     <td><pre>Apfell</pre></td>
                     <td><pre></pre></td>
@@ -40,7 +36,7 @@
     </div>
     <div class="card-footer bg-card-footer">
         <div style="display:inline-block">
-            <a class="btn btn-md btn{{config['outline-buttons']}}info" href="{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/apfell_logs/download"><i class="fas fa-download fa-lg"></i> Download logs</a>
+            <button type="button" class="btn btn-md btn{{config['outline-buttons']}}info" onclick="location.href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/apfell_logs/download'"><i class="fas fa-download fa-lg"></i> Download logs</button>
             <button type="button" :disabled="current_page <= 1" class="btn btn-light" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
             <template v-if="current_page > 1">
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to first page" @click="get_page(1)">1</button>

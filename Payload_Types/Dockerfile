@@ -8,8 +8,8 @@ RUN touch /Apfell/apfell/__init__.py 2>/dev/null
 RUN touch /Apfell/__init__.py 2>/dev/null
 COPY ["apfell_heartbeat.py", "/Apfell_service/apfell_heartbeat.py"]
 COPY ["apfell_service.py", "/Apfell_service/apfell_service.py"]
-
+COPY ["rabbitmq_config.json", "/Apfell_service/rabbitmq_config.json"]
 COPY ["payload_service.sh", "/Apfell_service/payload_service.sh"]
 RUN chmod +x /Apfell_service/payload_service.sh
-WORKDIR /Apfell/
+WORKDIR /Apfell_service/
 ENTRYPOINT ["/Apfell_service/payload_service.sh"]

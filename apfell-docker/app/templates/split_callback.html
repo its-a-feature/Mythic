@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 
 {% block body %}
-<br>
-<div style="resize: both; overflow:auto; display:block" id="callback_table">
-    <button type="button" class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_callback_to_table()"><i class="far fa-eye fa-lg"></i> Callback</button><select id="callback_options_select"><option v-for="c in callback_options" :key="c.id" :value="c.id">[[c.id]]: [[c.user]]@[[c.host]] ([[c.pid]]) - [[c.description]]</option></select><br>
+<div style="resize: both; overflow:auto; display:block;margin-top:5px" id="callback_table">
+    <div class="input-group">
+        <select id="callback_options_select"><option v-for="c in callback_options" :key="c.id" :value="c.id">[[c.id]]: [[c.user]]@[[c.host]] ([[c.pid]]) - [[c.description]]</option></select>
+        <button type="button" class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_callback_to_table()">Split Callback</button>
+    </div>
     <template v-for="callback in callbacks">
         <div class="card border border-dark shadow bg-card-body" :style="'display: inline-block;padding:2px;width:' + (100/Object.keys(callbacks).length) + '%'">
             <div class="card-header bg-header border border-dark shadow text-white">
             <button v-if="Object.keys(callbacks).length > 1" @click="remove_callback(callback)" class="btn btn-sm btn{{config['outline-buttons']}}danger" style="margin:0">X</button> Callback [[callback.id]]: [[callback.user]]@[[callback.host]] ([[callback.pid]])<br>
-            Type: [[callback.payload_type]], C2: [[callback.c2_profile]], Initial Check-in: [[ toLocalTime(callback.init_callback) ]]<br>
+            Type: [[callback.payload_type]], Initial Check-in: [[ toLocalTime(callback.init_callback) ]]<br>
             Last Checkin: [[ callback.real_time  ]]<br>
                 Description: <span class="display"> <b>[[callback.description]]</b></span>
                 <template v-if="callback.locked">
@@ -16,12 +18,13 @@
                 </template>
             </div>
 
-        <div class="card bg-card-body border border-dark shadow" style="overflow:scroll;height:calc(73vh);margin:0" :id="'callbackoutput' + callback.id">
+        <div class="card bg-card-body border border-dark shadow" style="overflow-y:scroll;height:calc(69vh);margin:0" :id="'callbackoutput' + callback.id">
             <template id="'taskview' + callback.id">
-                <div class="card bg-card-body border border-dark shadow" v-for="task in callback.tasks" :key="task.id" :id="'task' + task.id" style="word-wrap: break-word;margin:3px">
-                    <div class="card-header bg-header-dark border border-dark shadow " style="position:-webkit-sticky;position:sticky;top:0;padding-bottom:0;padding-top:10px">
+                <div class="card bg-card-body border border-dark shadow" v-for="task in callback.tasks" :key="task.id" :id="'task' + task.id"  v-if="apply_filter(task)" style="word-wrap: break-word;margin:1px">
+                    <div class="card-header bg-header-dark border border-dark shadow " :style="task.original_params.length > 200 ? 'position:-webkit-sticky;position:sticky;top:0;padding-bottom:0;padding-top:6px;white-space:nowrap;overflow-x:scroll' : 'position:-webkit-sticky;position:sticky;top:0;padding-bottom:0;padding-top:6px;white-space:nowrap;'">
                         <template v-if="task.comment != ''">
-                            <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;line-height:20px">X</button><span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<br><hr>
+                            <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_comment(task.id)" style="margin:0px;padding:0px 4px;"><i class="fas fa-trash-alt"></i></button>
+                            <span class="operator"> [[task.comment_operator]]</span>'s comment: [[task.comment]]<br><hr>
                         </template>
                         <template v-if="task.completed == true && task.status != 'error'">
                             <button disabled class="btn btn{{config['outline-buttons']}}success btn-sm" >completed</button>
@@ -38,10 +41,10 @@
                         <template v-else>
                             <button disabled class="btn btn{{config['outline-buttons']}}info btn-sm" >[[task.status]]</button>
                         </template>
-                        &nbsp;<span class="operator">[[task.operator]]</span>'s task: <a :href="task.href" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_comment(task)" style="border:0"><i class="fas fa-comments fa-lg"></i></button> <span class="material-switch pull-right"><input type="checkbox" :checked="task.use_scripted" v-model="task.use_scripted" :id="'use_scripted' + task.id" ><label :for="'use_scripted' + task.id" class="btn-info"></label></span><button class="btn btn-sm" style="color:green" data-toggle="tooltip" title="download raw output" @click="download_raw_output(task.id)" ><i class="fas fa-save fa-lg" ></i></button> - at <span class="timestamp">[[toLocalTime(task.timestamp)]]</span>: <a class="btn btn-link" type="button" data-toggle="collapse" :data-target="'#cardbody' + task.id" aria-expanded="false" :aria-controls="'cardbody' + task.id" @click="toggle_arrow(task.id)"><img :id="'color-arrow' + task.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(0deg)" data-toggle="tooltip" title="Toggle command output"></a> <b>[[task.command]]</b>&nbsp;[[task.original_params]]<button class="btn btn-sm" style="color:{{config['text-color']}}" data-toggle="tooltip" title="Copy command to clipboard" @click="copyStringToClipboard(task.command + ' ' + task.original_params)" ><i class="far fa-copy" ></i></button>
+                        &nbsp;<span class="operator">[[task.operator]]</span>'s task: <a :href="task.href" target="_blank"><b>[[task.id]]</b></a> <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_comment(task)" style="border:0"><i class="fas fa-comments fa-lg"></i></button> <span class="material-switch pull-right"><input type="checkbox" :checked="task.use_scripted" v-model="task.use_scripted" :id="'use_scripted' + task.id" ><label :for="'use_scripted' + task.id" class="btn-info"></label></span><button class="btn btn-sm" style="color:green" data-toggle="tooltip" title="download raw output" @click="download_raw_output(task.id)" ><i class="fas fa-save fa-lg" ></i></button> - at <span class="timestamp">[[toLocalTime(task.timestamp)]]</span>: <a class="btn btn-link" type="button" data-toggle="collapse" :data-target="'#cardbody' + task.id" aria-expanded="false" :aria-controls="'cardbody' + task.id" @click="toggle_arrow(task.id)"><img :id="'color-arrow' + task.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(0deg)" data-toggle="tooltip" title="Toggle command output"></a><button class="btn btn-sm" style="color:{{config['text-color']}}" data-toggle="tooltip" title="Copy command to clipboard" @click="copyStringToClipboard(task.command + ' ' + task.original_params)" ><i class="far fa-copy" ></i></button> <b>[[task.command]]</b>&nbsp;[[task.original_params]]
                     </div>
                     <div class="collapse" :id="'cardbody' + task.id" style="width:100%">
-                        <div class="card-body response-background border border-dark shadow">
+                        <div class="card-body response-background border border-dark shadow" style="padding-top:10px;padding-bottom: 0">
                             <div v-if="task.params != task.original_params">
                                 <button class="btn btn{{config['outline-buttons']}}info btn-sm" :id="'toggle_task' + task.id" @click="toggle_show_params(task.id)"><i class="fas fa-eye"></i> params</button><span class="response" style="display:none">&nbsp;&nbsp;[[task.params]]</span>
                             </div>
@@ -67,6 +70,7 @@
                 <span class="btn-group" style="position:relative">
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger" @click="task_button(callback)">Submit Task</button>
                     <button data-toggle="modal" :data-target="'#editCommandSwitches' + callback.id" type="button" href="#"  class="btn btn-sm btn-outline-primary" ><font :color="hasTransformsSet(callback.id) ? '#ffc107' : '#C0C0C0'"><i class="fas fa-cogs fa-2x"></i></font></button>
+                    <button type="button" data-toggle="modal" data-target="#editTaskFilter" class="btn btn-sm btn{{config['outline-buttons']}}primary"><font :color="hasFiltersSet ? '#ffc107' : '#C0C0C0'"><i class="fa fa-filter"></i></font></button>
                 </span>
             </div>
         </div>
@@ -113,16 +117,69 @@
             </div>
         </div>
         <!-- END POPOVER FOR EDITING RUNNING COMMAND TRANSFORMS -->
+            <!-- START POPOVER FOR EDITING TASKING FILTER -->
+        <div id="editTaskFilter" class="modal fade" role="dialog">
+         <div class="modal-dialog modal-lg" role="document">
+             <div class="modal-content">
+                 <div class="modal-header bg-dark text-white">
+                <h3>Filter Viewable Tasks</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+             <div class="modal-body">
+                 Changes go away when you leave the page and are only viewable to you.
+                 <table class="table-striped {{config['table-color']}} table-hover" style="width:100%">
+                    <tr>
+                        <th style="width:7rem">Component</th>
+                        <th style="width:4rem">Filter</th>
+                        <th>Values</th>
+                    </tr>
+                    <tr>
+                        <td>Operator</td>
+                        <td><span class="material-switch pull-right"><input type="checkbox" :checked="task_filters['operator']['active']" v-model="task_filters['operator']['active']" id="task_filter_operator"><label for="task_filter_operator" class="btn-warning"></label></span></td>
+                        <td>
+                            <template v-if="task_filters['operator']['active']">
+                                <input v-model="task_filters['operator']['username']" type="text" placeholder="Username includes..." style="width:100%">
+                            </template>
+                        </td>
+                    </tr>
+                     <tr>
+                         <td>Task</td>
+                         <td><span class="material-switch pull-right"><input type="checkbox" :checked="task_filters['task']['active']" v-model="task_filters['task']['active']" id="task_filter_task"><label for="task_filter_task" class="btn-warning"></label></span></td>
+                        <td>
+                            <template v-if="task_filters['task']['active']">
+                                <input type="number" size="7" v-model="task_filters['task']['range_low']"> ->
+                                <input type="number" size="7" v-model="task_filters['task']['range_high']">
+                            </template>
+                        </td>
+                     </tr>
+                     <tr>
+                         <td>Command</td>
+                         <td><span class="material-switch pull-right"><input type="checkbox" :checked="task_filters['command']['active']" v-model="task_filters['command']['active']" id="task_filter_command"><label for="task_filter_command" class="btn-warning"></label></span></td>
+                        <td>
+                            <template v-if="task_filters['command']['active']">
+                                <input v-model="task_filters['command']['cmd']" type="text" placeholder="Command includes..." style="width:100%">
+                            </template>
+                        </td>
+                     </tr>
+                </table>
+             </div>
+             <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" aria-hidden="true">Confirm</button>
+            </div>
+             </div>
+         </div>
+    </div>
+        <!-- END POPOVER FOR EDITING TASKING FILTER -->
         </div>
     </template>
 </div>
 <!-- THIS IS OUR MODAL FOR ADDING A COMMENT -->
 <div class="modal fade bs-example-modal-md" id="addCommentModal" role="dialog" >
-    <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
-                <button type="button" class="close" data-dismiss="modal">×</button>
                 <h3>Add / Edit Comment</h3>
+                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body">
                 <textarea rows="5" cols="50" id="addCommentTextArea"></textarea>
@@ -140,12 +197,14 @@
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
 
-                <h3 id="paramsModalHeader">Command Parameters</h3>
+                <h3 id="paramsModalHeader">[[cmd.cmd]]'s Parameters</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
 
             </div>
-              <div class="modal-body" id="paramsBody">
-                  <p>A * indicates a required parameter</p>
+              <div class="modal-body" id="paramsBody" style="overflow-wrap:break-word">
+                  <pre style="word-wrap:break-word;white-space:pre-wrap">A * indicates a required parameter
+<b>Description:</b>[[cmd.description]]
+<b>Help:</b> [[cmd.help_cmd]]</pre>
                 <table id="paramsTable" class="table table-striped table-hover {{config['table-color']}}">
                     <tr v-for="param in command_params" :key="param.id">
                         <td>
@@ -153,7 +212,7 @@
                         </td>
                         <td>
                             <span v-if="param.type == 'String'">
-                                <input type="text" :placeholder="param.hint" v-model="param.string_value" size="60">
+                                <input type="text" :placeholder="param.hint" v-model="param.string_value" size="90">
                             </span>
                             <span v-else-if="param.type == 'Credential'">
                                 <select v-model="param.credential_id" @change="select_main_credential(param)">
@@ -179,7 +238,8 @@
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'Boolean'">
-                                &nbsp;<input type="checkbox" v-model="param.boolean_value">
+                                &nbsp;<span class="material-switch pull-right"><input type="checkbox" v-model="param.boolean_value" :id="'param' + param.id">
+                                <label :for="'param' + param.id" class="btn-info"></label></span>
                             </span>
                             <span v-else-if="param.type == 'Array'">
                                 <div v-for="(arg, index) in param.array_value" :key="index">
@@ -192,6 +252,34 @@
                             </span>
                             <span v-else-if="param.type == 'File'">
                                 <input type="file" :id="'fileparam' + param.name">
+                            </span>
+                            <span v-else-if="param.type === 'PayloadList'">
+                                <select v-model="param.payloadlist_value">
+                                    <option v-for="p in payloads" :value="p.uuid">[[ p.payload_list_selection ]] </option>
+                                </select>
+                            </span>
+                            <span v-else-if="param.type == 'AgentConnect'">
+                                Host: <select v-model="param.agentconnect_host" @change="select_specific_payload_on_host(param)">
+                                    <option value="">Select One...</option>
+                                    <option v-for="(poh, val) in payloadonhost" :value="val">
+                                        [[ val ]]
+                                    </option>
+                                </select><br>
+                                Payload: <select v-model="param.agentconnect_payload" @change="select_specific_c2profile_in_agent(param)">
+                                    <option value="" selected>Select One...</option>
+                                    <option v-for="(payload, index) in param.payloads" :value="index">
+                                        <template v-if="payload.type === 'payload'">
+                                            [[ payload.payload.payload_type ]] - [[ payload.payload.tag ]]
+                                        </template>
+                                        <template v-else>
+                                            Callback [[ payload.id ]] - [[ payload.description ]]
+                                        </template>
+                                    </option>
+                                </select><br>
+                                C2 Profile: <select v-model="param.agentconnect_c2profile">
+                                    <option value=-1 selected>Select One...</option>
+                                    <option v-for="(profile, index) in param.c2profiles" :value="index" :disabled="!profile.is_p2p">[[profile.name]]</option>
+                                </select>
                             </span>
                         </td>
                     </tr>

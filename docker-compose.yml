@@ -5,7 +5,7 @@ services:
                 container_name: apfell_postgres
                 network_mode: host
                 volumes:
-                 - postgres-data-volume:/var/lib/postgresql/data
+                 - ./postgres-docker/database:/var/lib/postgresql/data
                 labels:
                         NAME: "apfell_postgres"
                 restart: on-failure
@@ -14,7 +14,7 @@ services:
                 container_name: apfell_rabbitmq
                 network_mode: host
                 volumes:
-                 - rabbitmq-data-volume:/var/lib/rabbitmq
+                 - ./rabbitmq-docker/storage:/var/lib/rabbitmq
                 labels:
                         NAME: "apfell_rabbitmq"
                 restart: on-failure
@@ -24,9 +24,7 @@ services:
                 network_mode: host
                 container_name: apfell_apfell
                 volumes:
-                 - apfell-file-data:/Apfell/app/files
-                 - apfell-payload-data:/Apfell/app/payloads/operations
-                 - apfell-c2-data:/Apfell/app/c2_profiles
+                 - ./apfell-docker/app:/Apfell/app
                 labels:
                         NAME: "apfell_apfell"
                 depends_on:
@@ -34,11 +32,4 @@ services:
                  - rabbitmq
                 restart: on-failure
                 command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Apfell/server.py"]
-        
 
-volumes:
-        postgres-data-volume:
-        apfell-file-data:
-        apfell-payload-data:
-        apfell-c2-data:
-        rabbitmq-data-volume:

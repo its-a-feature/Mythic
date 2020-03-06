@@ -87,6 +87,19 @@ async def r_random_alpha(*args):
     return args[0][: -1 * args[1]]
 
 
+async def choose_random(*args):
+    # called with choose_random(value, opt1, opt2, opt3...)
+    choice = random.choice(args[1:])
+    return args[0] + choice
+
+
+async def r_choose_random(*args):
+    # called with choose_random(value, opt1, opt2, opt3...)
+    for e in args[1:]:
+        if e in args[0]:
+            return args[0].replace(e, "", 1)
+
+
 async def get_value(value, transforms):
     # given an obfuscated value, apply transforms to get back the value we need
     # await print_flush(transforms)
@@ -147,7 +160,7 @@ async def create_response(request, data, status=200, method="POST"):
     except Exception as e:
         if config[request.app.name]['debug']:
             await print_flush("error in create_response: {}".format(str(e)))
-        return await no_match(request, e)
+        return html("Error: Requested URL {} not found\n".format(request.url), status=404)
 
 
 async def no_match(request, exception):
@@ -165,7 +178,7 @@ async def no_match(request, exception):
         resp = requests.post(config[request.app.name]['no_match']['proxy_post']['url'], data=request.body, verify=False)
         return await create_response(request, data=resp.content, status=config[request.app.name]['no_match']['proxy_post']['status'])
     elif config[request.app.name]['no_match']['action'] == 'return_file':
-        content = open(config[request.app.name]['no_match']['return_file']['name'], 'rb').read()
+        content = open(config[request.app.name]['no_match']['return_file']['name'], 'r').read()
         return await create_response(request, data=content, status=config[request.app.name]['no_match']['return_file']['status'])
 
 
@@ -174,191 +187,72 @@ async def print_flush(message):
     sys.stdout.flush()
 
 
-async def get_base_values(request, apfell_endpoint: str, apfell_name: str, **kwargs):
+async def get_base_values(request, method: str, apfell_endpoint: str, **kwargs):
     value = None
     transforms = None
     try:
-        if config[request.app.name][apfell_endpoint][apfell_name]['location'] == 'URI':
-            value = kwargs[apfell_name]
+        if config[request.app.name][method][apfell_endpoint]['location'] == 'URI':
+            value = kwargs["message"]
             transforms = {}
-        elif config[request.app.name][apfell_endpoint][apfell_name]['location'] == 'QueryParameters':
-            value = request.raw_args[config[request.app.name][apfell_endpoint][apfell_name]['value']['name']]
-            transforms = config[request.app.name][apfell_endpoint][apfell_name]['value']['transforms']
-        elif config[request.app.name][apfell_endpoint][apfell_name]['location'] == 'Cookies':
-            value = request.cookies.get(config[request.app.name][apfell_endpoint][apfell_name]['value']['name'])
-            transforms = config[request.app.name][apfell_endpoint][apfell_name]['value']['transforms']
-        elif config[request.app.name][apfell_endpoint][apfell_name]['location'] == 'Body':
+        elif config[request.app.name][method][apfell_endpoint]['location'] == 'QueryParameters':
+            value = request.raw_args[config[request.app.name][method][apfell_endpoint]['value']['name']]
+            transforms = config[request.app.name][method][apfell_endpoint]['value']['transforms']
+        elif config[request.app.name][method][apfell_endpoint]['location'] == 'Cookies':
+            value = request.cookies.get(config[request.app.name][method][apfell_endpoint]['value']['name'])
+            transforms = config[request.app.name][method][apfell_endpoint]['value']['transforms']
+        elif config[request.app.name][method][apfell_endpoint]['location'] == 'Body':
             value = request.body
-            transforms = config[request.app.name][apfell_endpoint][apfell_name]['value']
+            transforms = config[request.app.name][method][apfell_endpoint]['value']
         else:
             if config[request.app.name]['debug']:
-                await print_flush("{} failed to find required parameter {}".format(apfell_endpoint, apfell_name))
+                await print_flush("{} failed to find required parameter".format(apfell_endpoint))
+                return None, None
         if config[request.app.name]['debug']:
             await print_flush("Got value: {}\nGot transforms: {}\n".format(value, transforms))
     except Exception as e:
         if config[request.app.name]['debug']:
-            await print_flush("Failed to get a value: {}, {}, {}".format(apfell_endpoint, apfell_name, str(e)))
+            await print_flush("Failed to get a value: {}, {}".format(apfell_endpoint, str(e)))
     return value, transforms
 
 
-async def getNextTask(request, **kwargs):
+async def get_agent_message(request, **kwargs):
     global config
     try:
         if config[request.app.name]['debug']:
-            await print_flush("getNextTask request from: {} with {}".format(request.url, request.cookies))
-        agent, transforms = await get_base_values(request, 'getNextTask', 'agent', **kwargs)
-        if agent is None:
+            await print_flush("get_agent_message request from: {} with {} and {}".format(request.url, request.cookies, request.headers))
+        # find the agent value and the transforms needed to get the real value out
+        message, transforms = await get_base_values(request, 'GET', request.uri_template, **kwargs)
+        if message is None:
+            # this means we failed to find our message
             return await no_match(request, NotFound)
-        agent = await get_value(agent, transforms)
-        url = config['getNextTask'].format(agent.decode('utf-8'))
+        # given the message location and transforms, extract the actual value
+        message = await get_value(message, transforms)
         if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        response = requests.get(url, verify=False)
+            await print_flush("Forwarding along to: {}".format(config['apfellBase']))
+        response = requests.post(config['apfellBase'], verify=False, data=message)
         return await create_response(request, data=response.content, status=response.status_code, method="GET")
     except Exception as e:
         if config[request.app.name]['debug']:
-            await print_flush("error in getNextTask: {}".format(str(e)))
+            await print_flush("error in get_agent_message: {}".format(str(e)))
         return await no_match(request, NotFound)
 
 
-async def pullFile(request, **kwargs):
+async def post_agent_message(request, **kwargs):
     global config
     try:
         if config[request.app.name]['debug']:
-            await print_flush("pullFile request from: {} with {}".format(request.url, request.cookies))
-        agent, agent_transforms = await get_base_values(request, 'pullFile', 'agent', **kwargs)
-        if agent is None:
+            await print_flush("post_agent_message request from: {} with {} and {}".format(request.url, request.cookies, request.headers))
+        message, agent_transforms = await get_base_values(request, 'POST', request.uri_template, **kwargs)
+        if message is None:
             return await no_match(request, NotFound)
-        agent = await get_value(agent, agent_transforms)
-        data, data_transforms = await get_base_values(request, 'pullFile', 'data', **kwargs)
-        if data is None:
-            return await no_match(request, NotFound)
-        data = await get_value(data, data_transforms)
-
-        url = config['pullFile'].format(agent)
+        message = await get_value(message, agent_transforms)
         if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        response = requests.post(url, data=data, verify=False)
+            await print_flush("Forwarding along to: {}".format(config['apfellBase']))
+        response = requests.post(config['apfellBase'], data=message, verify=False)
         return await create_response(request, data=response.content, status=response.status_code, method="POST")
     except Exception as e:
         if config[request.app.name]['debug']:
-            await print_flush("error in pullFile: {}".format(str(e)))
-        return await no_match(request, NotFound)
-
-
-async def postResponse(request, **kwargs):
-    global config
-    try:
-        if config[request.app.name]['debug']:
-            await print_flush("postResponse request from: {} with {}".format(request.url, request.cookies))
-        agent, transforms = await get_base_values(request, 'postResponse', 'agent', **kwargs)
-        if agent is None:
-            return await no_match(request, NotFound)
-        agent = await get_value(agent, transforms)
-        url = config['postResponse'].format(agent)
-        data, transforms = await get_base_values(request, 'postResponse', 'data', **kwargs)
-        if data is None:
-            return await no_match(request, NotFound)
-        data = await get_value(data, transforms)
-        if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        response = requests.post(url, data=data, verify=False)
-        return await create_response(request, data=response.content, status=response.status_code)
-    except Exception as e:
-        if config[request.app.name]['debug']:
-            await print_flush("error in postResponse: {}".format(str(e)))
-        return await no_match(request, NotFound)
-
-
-async def postNewCallback(request, **kwargs):
-    global config
-    if config[request.app.name]['debug']:
-        await print_flush("postNewCallback request from: {} with {}".format(request.url, request.cookies))
-    try:
-        url = config['postNewCallback']
-        if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        data, transforms = await get_base_values(request, 'postNewCallback', 'data', **kwargs)
-        if data is None:
-            return await no_match(request, NotFound)
-        data = await get_value(data.decode('utf-8'), transforms)
-        if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        response = requests.post(url, data=data, verify=False)
-        return await create_response(request, data=response.content, status=response.status_code)
-    except Exception as e:
-        return await no_match(request, NotFound)
-
-
-async def postNewCallbackPSK(request, **kwargs):
-    global config
-    try:
-        if config[request.app.name]['debug']:
-            await print_flush("postNewCallbackPSK request from: {}".format(request.url))
-        agent, transforms = await get_base_values(request, 'postNewCallbackPSK', 'agent', **kwargs)
-        if agent is None:
-            return await no_match(request, NotFound)
-        agent = await get_value(agent, transforms)
-        url = config['postNewCallbackPSK'].format(agent)
-        data, transforms = await get_base_values(request, 'postNewCallbackPSK', 'data', **kwargs)
-        if data is None:
-            return await no_match(request, NotFound)
-        data = await get_value(data.decode('utf-8'), transforms)
-        if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        response = requests.post(url, data=data, verify=False)
-        return await create_response(request, data=response.content, status=response.status_code)
-    except Exception as e:
-        if config[request.app.name]['debug']:
-            await print_flush("error in postNewCallbackPSK: {}".format(str(e)))
-        return await no_match(request, NotFound)
-
-
-async def postNewCallbackEKE(request, **kwargs):
-    global config
-    try:
-        if config[request.app.name]['debug']:
-            await print_flush("postNewCallbackEKE request from: {}".format(request.url))
-        agent, transforms = await get_base_values(request, 'postNewCallbackEKE', 'agent', **kwargs)
-        if agent is None:
-            return await no_match(request, NotFound)
-        agent = await get_value(agent, transforms)
-        url = config['postNewCallbackEKE'].format(agent)
-        data, transforms = await get_base_values(request, 'postNewCallbackEKE', 'data', **kwargs)
-        if data is None:
-            return await no_match(request, NotFound)
-        data = await get_value(data.decode('utf-8'), transforms)
-        if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        response = requests.post(url, data=data, verify=False)
-        return await create_response(request, data=response.content, status=response.status_code)
-    except Exception as e:
-        if config[request.app.name]['debug']:
-            await print_flush("error in postNewCallbackEKE: {}".format(str(e)))
-        return await no_match(request, NotFound)
-
-
-async def postNewCallbackDHEKE(request, **kwargs):
-    global config
-    try:
-        if config[request.app.name]['debug']:
-            await print_flush("postNewCallbackDHEKE request from: {}".format(request.url))
-        agent, transforms = await get_base_values(request, 'postNewCallbackDHEKE', 'agent', **kwargs)
-        if agent is None:
-            return await no_match(request, NotFound)
-        agent = await get_value(agent, transforms)
-        url = config['postNewCallbackDHEKE'].format(agent)
-        data, transforms = await get_base_values(request, 'postNewCallbackDHEKE', 'data', **kwargs)
-        if data is None:
-            return await no_match(request, NotFound)
-        data = await get_value(data.decode('utf-8'), transforms)
-        if config[request.app.name]['debug']:
-            await print_flush("Forwarding along to: {}".format(url))
-        response = requests.post(url, data=data, verify=False)
-        return await create_response(request, data=response.content, status=response.status_code)
-    except Exception as e:
-        if config[request.app.name]['debug']:
-            await print_flush("error in postNewCallbackDHEKE: {}".format(str(e)))
+            await print_flush("error in post_agent_message: {}".format(str(e)))
         return await no_match(request, NotFound)
 
 
@@ -368,27 +262,22 @@ if __name__ == "__main__":
     print("Opening config and starting instances...")
     sys.stdout.flush()
     # basic mapping of the general endpoints to the real endpoints
-    config['getNextTask'] = main_config['apfellBase'] + main_config['apfellNextTask']
-    config['pullFile'] = main_config['apfellBase'] + main_config['apfellPullFile']
-    config['postResponse'] = main_config['apfellBase'] + main_config['apfellPostResponse']
-    config['postNewCallback'] = main_config['apfellBase'] + main_config['apfellNewCallback']
-    config['postNewCallbackPSK'] = main_config['apfellBase'] + main_config['apfellNewCallbackPSK']
-    config['postNewCallbackEKE'] = main_config['apfellBase'] + main_config['apfellNewCallbackEKE']
-    config['postNewCallbackDHEKE'] = main_config['apfellBase'] + main_config['apfellNewCallbackDHEKE']
+    config['apfellBase'] = main_config['apfellBase']
     # now look at the specific instances to start
     for inst in main_config['instances']:
         config[str(inst['port'])] = {'debug': inst['debug'],
                                      'no_match': inst['no_match'],
-                                     'POST': {
+                                     'POST': {  # these are server response configurations
                                          'ServerHeaders': inst['POST']['ServerHeaders'],
                                          'ServerCookies': inst['POST']['ServerCookies'],
                                          'ServerBody': inst['POST']['ServerBody']
                                      },
-                                     "GET": {
+                                     "GET": {  # these are server response configurations
                                          'ServerHeaders': inst['GET']['ServerHeaders'],
                                          'ServerCookies': inst['GET']['ServerCookies'],
                                          'ServerBody': inst['GET']['ServerBody']
                                      }}
+        # now to create an app instance too handle responses
         app = Sanic(str(inst['port']))
         app.config['REQUEST_MAX_SIZE'] = 1000000000
         app.config['REQUEST_TIMEOUT'] = 600
@@ -397,132 +286,48 @@ if __name__ == "__main__":
 
         # do a little extra processing here once so we don't have to do extra processing for each request
         # for each endpoint need to track:
-        #   1. where the value the endpoint needs is located (URI, query, cookie, body)
+        #   1. where the data is located (URI, query, cookie, body, header)
         #   2. what needs to be done to access the value
         #       (access specific field, certain offset into data, decode first, etc)
         #   3. what needs to be done to get the final value out (decode, remove extra data, etc)
-        app.add_route(getNextTask, inst['GET']['getNextTask']['url'], methods=['GET'])
-        config[str(inst['port'])]['getNextTask'] = {'agent': {}}
-        if 'agent' in inst['GET']['getNextTask']['QueryParameters']:
-            config[str(inst['port'])]['getNextTask']['agent']['location'] = "QueryParameters"
-            config[str(inst['port'])]['getNextTask']['agent']['value'] = inst['GET']['getNextTask']['QueryParameters']['agent']
-        elif 'agent' in inst['GET']['getNextTask']['Cookies']:
-            config[str(inst['port'])]['getNextTask']['agent']['location'] = "Cookies"
-            config[str(inst['port'])]['getNextTask']['agent']['value'] = inst['GET']['getNextTask']['Cookies']['agent']
-        elif "<agent:" in inst['GET']['getNextTask']['url']:
-            config[str(inst['port'])]['getNextTask']['agent']['location'] = "URI"
 
-        app.add_route(pullFile, inst['POST']['pullFile']['url'], methods=['POST'])
-        config[str(inst['port'])]['pullFile'] = {'agent': {}, 'data': {}}
-        if 'data' in inst['POST']['pullFile']['QueryParameters']:
-            config[str(inst['port'])]['pullFile']['data']['location'] = "QueryParameters"
-            config[str(inst['port'])]['pullFile']['data']['value'] = inst['POST']['pullFile']['QueryParameters']['data']
-        elif 'data' in inst['POST']['pullFile']['Cookies']:
-            config[str(inst['port'])]['pullFile']['data']['location'] = "Cookies"
-            config[str(inst['port'])]['pullFile']['data']['value'] = inst['POST']['pullFile']['Cookies']['data']
-        else:
-            config[str(inst['port'])]['pullFile']['data']['location'] = "Body"
-            config[str(inst['port'])]['pullFile']['data']['value'] = inst['POST']['pullFile']['Body']
-        if 'agent' in inst['POST']['pullFile']['QueryParameters']:
-            config[str(inst['port'])]['pullFile']['agent']['location'] = "QueryParameters"
-            config[str(inst['port'])]['pullFile']['agent']['value'] = inst['POST']['pullFile']['QueryParameters']['agent']
-        elif 'agent' in inst['POST']['pullFile']['Cookies']:
-            config[str(inst['port'])]['pullFile']['agent']['location'] = "Cookies"
-            config[str(inst['port'])]['pullFile']['agent']['value'] = inst['POST']['pullFile']['Cookies']['agent']
-        elif "<agent:" in inst['POST']['pullFile']['url']:
-            config[str(inst['port'])]['pullFile']['agent']['location'] = "URI"
-
-        app.add_route(postResponse, inst['POST']['postResponse']['url'], methods=['POST'])
-        config[str(inst['port'])]['postResponse'] = {"agent": {}, "data": {}}
-        if 'agent' in inst['POST']['postResponse']['QueryParameters']:
-            config[str(inst['port'])]['postResponse']['agent']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postResponse']['agent']['value'] = inst['POST']['postResponse']['QueryParameters']['agent']
-        elif 'agent' in inst['POST']['postResponse']['Cookies']:
-            config[str(inst['port'])]['postResponse']['agent']['location'] = "Cookies"
-            config[str(inst['port'])]['postResponse']['agent']['value'] = inst['POST']['postResponse']['Cookies']['agent']
-        elif '<agent:' in inst['POST']['postResponse']['url']:
-            config[str(inst['port'])]['postResponse']['agent']['location'] = "URI"
-        if 'data' in inst['POST']['postResponse']['QueryParameters']:
-            config[str(inst['port'])]['postResponse']['data']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postResponse']['data']['value'] = inst['POST']['postResponse']['QueryParameters']['data']
-        elif 'data' in inst['POST']['postResponse']['Cookies']:
-            config[str(inst['port'])]['postResponse']['data']['location'] = "Cookies"
-            config[str(inst['port'])]['postResponse']['data']['value'] = inst['POST']['postResponse']['Cookies']['data']
-        else:
-            config[str(inst['port'])]['postResponse']['data']['location'] = "Body"
-            config[str(inst['port'])]['postResponse']['data']['value'] = inst['POST']['postResponse']['Body']
-
-        app.add_route(postNewCallback, inst['POST']['postNewCallback']['url'], methods=['POST'])
-        config[str(inst['port'])]['postNewCallback'] = {'data': {}}
-        if 'data' in inst['POST']['postNewCallback']['QueryParameters']:
-            config[str(inst['port'])]['postNewCallback']['data']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postNewCallback']['data']['value'] = inst['POST']['postNewCallback']['QueryParameters']['data']
-        elif 'data' in inst['POST']['postNewCallback']['Cookies']:
-            config[str(inst['port'])]['postNewCallback']['data']['location'] = "Cookies"
-            config[str(inst['port'])]['postNewCallback']['data']['value'] = inst['POST']['postNewCallback']['Cookies']['data']
-        else:
-            config[str(inst['port'])]['postNewCallback']['data']['location'] = "Body"
-            config[str(inst['port'])]['postNewCallback']['data']['value'] = inst['POST']['postNewCallback']['Body']
-
-        app.add_route(postNewCallbackPSK, inst['POST']['postNewCallbackPSK']['url'], methods=['POST'])
-        config[str(inst['port'])]['postNewCallbackPSK'] = {'agent': {}, 'data': {}}
-        if 'data' in inst['POST']['postNewCallbackPSK']['QueryParameters']:
-            config[str(inst['port'])]['postNewCallbackPSK']['data']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postNewCallbackPSK']['data']['value'] = inst['POST']['postNewCallbackPSK']['QueryParameters']['data']
-        elif 'data' in inst['POST']['postNewCallbackPSK']['Cookies']:
-            config[str(inst['port'])]['postNewCallbackPSK']['data']['location'] = "Cookies"
-            config[str(inst['port'])]['postNewCallbackPSK']['data']['value'] = inst['POST']['postNewCallbackPSK']['Cookies']['data']
-        else:
-            config[str(inst['port'])]['postNewCallbackPSK']['data']['location'] = "Body"
-            config[str(inst['port'])]['postNewCallbackPSK']['data']['value'] = inst['POST']['postNewCallbackPSK']['Body']
-        if 'agent' in inst['POST']['postNewCallbackPSK']['QueryParameters']:
-            config[str(inst['port'])]['postNewCallbackPSK']['agent']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postNewCallbackPSK']['agent']['value'] = inst['POST']['postNewCallbackPSK']['QueryParameters']['agent']
-        elif 'agent' in inst['POST']['postNewCallbackPSK']['Cookies']:
-            config[str(inst['port'])]['postNewCallbackPSK']['agent']['location'] = "Cookies"
-            config[str(inst['port'])]['postNewCallbackPSK']['agent']['value'] = inst['POST']['postNewCallbackPSK']['Cookies']['agent']
-        elif '<agent:' in inst['POST']['postNewCallbackPSK']['url']:
-            config[str(inst['port'])]['postNewCallbackPSK']['agent']['location'] = "URI"
-
-        app.add_route(postNewCallbackEKE, inst['POST']['postNewCallbackEKE']['url'], methods=['POST'])
-        config[str(inst['port'])]['postNewCallbackEKE'] = {'agent': {}, 'data': {}}
-        if 'data' in inst['POST']['postNewCallbackEKE']['QueryParameters']:
-            config[str(inst['port'])]['postNewCallbackEKE']['data']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postNewCallbackEKE']['data']['value'] = inst['POST']['postNewCallbackEKE']['QueryParameters']['data']
-        elif 'data' in inst['POST']['postNewCallbackEKE']['Cookies']:
-            config[str(inst['port'])]['postNewCallbackEKE']['data']['location'] = "Cookies"
-            config[str(inst['port'])]['postNewCallbackEKE']['data']['value'] = inst['POST']['postNewCallbackEKE']['Cookies']['data']
-        else:
-            config[str(inst['port'])]['postNewCallbackEKE']['data']['location'] = "Body"
-            config[str(inst['port'])]['postNewCallbackEKE']['data']['value'] = inst['POST']['postNewCallbackEKE']['Body']
-        if 'agent' in inst['POST']['postNewCallbackEKE']['QueryParameters']:
-            config[str(inst['port'])]['postNewCallbackEKE']['agent']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postNewCallbackEKE']['agent']['value'] = inst['POST']['postNewCallbackEKE']['QueryParameters']['agent']
-        elif 'agent' in inst['POST']['postNewCallbackEKE']['Cookies']:
-            config[str(inst['port'])]['postNewCallbackEKE']['agent']['location'] = "Cookies"
-            config[str(inst['port'])]['postNewCallbackEKE']['agent']['value'] = inst['POST']['postNewCallbackEKE']['Cookies']['agent']
-        elif '<agent:' in inst['POST']['postNewCallbackEKE']['url']:
-            config[str(inst['port'])]['postNewCallbackEKE']['agent']['location'] = "URI"
-
-        app.add_route(postNewCallbackDHEKE, inst['POST']['postNewCallbackDHEKE']['url'], methods=['POST'])
-        config[str(inst['port'])]['postNewCallbackDHEKE'] = {"agent": {}, 'data': {}}
-        if 'data' in inst['POST']['postNewCallbackDHEKE']['QueryParameters']:
-            config[str(inst['port'])]['postNewCallbackDHEKE']['data']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postNewCallbackDHEKE']['data']['value'] = inst['POST']['postNewCallbackDHEKE']['QueryParameters']['data']
-        elif 'data' in inst['POST']['postNewCallbackDHEKE']['Cookies']:
-            config[str(inst['port'])]['postNewCallbackDHEKE']['data']['location'] = "Cookies"
-            config[str(inst['port'])]['postNewCallbackDHEKE']['data']['value'] = inst['POST']['postNewCallbackDHEKE']['Cookies']['data']
-        else:
-            config[str(inst['port'])]['postNewCallbackDHEKE']['data']['location'] = "Body"
-            config[str(inst['port'])]['postNewCallbackDHEKE']['data']['value'] = inst['POST']['postNewCallbackDHEKE']['Body']
-        if 'agent' in inst['POST']['postNewCallbackDHEKE']['QueryParameters']:
-            config[str(inst['port'])]['postNewCallbackDHEKE']['agent']['location'] = "QueryParameters"
-            config[str(inst['port'])]['postNewCallbackDHEKE']['agent']['value'] = inst['POST']['postNewCallbackDHEKE']['QueryParameters']['agent']
-        elif 'agent' in inst['POST']['postNewCallbackDHEKE']['Cookies']:
-            config[str(inst['port'])]['postNewCallbackDHEKE']['agent']['location'] = "Cookies"
-            config[str(inst['port'])]['postNewCallbackDHEKE']['agent']['value'] = inst['POST']['postNewCallbackDHEKE']['Cookies']['agent']
-        elif '<agent:' in inst['POST']['postNewCallbackDHEKE']['url']:
-            config[str(inst['port'])]['postNewCallbackDHEKE']['agent']['location'] = "URI"
+        # an instance can have multiple URLs and schemes for each GET/POST, so loop through all of that
+        for g in inst['GET']['AgentMessage']:
+            app.add_route(get_agent_message, g['uri'], methods=['GET'])
+            config[str(inst['port'])]['GET'][g['uri']] = {}
+            # we need to find where the "message" parameter exists so we know where the data will be
+            for p in g['QueryParameters']:
+                if p['value'] == "message":
+                    config[str(inst['port'])]['GET'][g['uri']]['location'] = "QueryParameters"
+                    config[str(inst['port'])]['GET'][g['uri']]['value'] = p
+            for p in g['Cookies']:
+                if p['value'] == 'message':
+                    config[str(inst['port'])]['GET'][g['uri']]['location'] = "Cookies"
+                    config[str(inst['port'])]['GET'][g['uri']]['value'] = p
+            for p in g['urlFunctions']:
+                if p['name'] == '<message:string>':
+                    config[str(inst['port'])]['GET'][g['uri']]['location'] = "URI"
+                    config[str(inst['port'])]['GET'][g['uri']]['value'] = p
+        for g in inst['POST']['AgentMessage']:
+            app.add_route(post_agent_message, g['uri'], methods=['POST'])
+            config[str(inst['port'])]['POST'][g['uri']] = {}
+            # we need to find where the "message" parameter exists so we know where the data will be
+            for p in g['QueryParameters']:
+                if p['value'] == "message":
+                    config[str(inst['port'])]['POST'][g['uri']]['location'] = "QueryParameters"
+                    config[str(inst['port'])]['POST'][g['uri']]['value'] = p
+            for p in g['Cookies']:
+                if p['value'] == 'message':
+                    config[str(inst['port'])]['POST'][g['uri']]['location'] = "Cookies"
+                    config[str(inst['port'])]['POST'][g['uri']]['value'] = p
+            for p in g['urlFunctions']:
+                if p['name'] == '<message:string>':
+                    config[str(inst['port'])]['POST'][g['uri']]['location'] = "URI"
+                    config[str(inst['port'])]['POST'][g['uri']]['value'] = p
+            if 'location' not in config[str(inst['port'])]['POST'][g['uri']]:
+                # if we haven't set it yet, data must be in the body
+                config[str(inst['port'])]['POST'][g['uri']]['location'] = "Body"
+                config[str(inst['port'])]['POST'][g['uri']]['value'] = g['Body']
 
         keyfile = Path(inst['key_path'])
         certfile = Path(inst['cert_path'])
@@ -548,6 +353,13 @@ if __name__ == "__main__":
 
     try:
         loop = asyncio.get_event_loop()
+        def callback(fut):
+            try:
+                fetch_count = fut.result()
+            except OSError as e:
+                print("probably the port set is being used")
+                fut.get_loop().stop()
+        task.add_done_callback(callback)
         loop.run_forever()
     except:
         loop.stop()

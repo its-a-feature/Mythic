@@ -9,29 +9,27 @@
         <h2>Current <span class="operator">Manual File</span> Uploads</h2>
     </div>
     <div class="card-body bg-card-body shadow border border-dark">
-        These files can be downloaded via the download button or by hitting {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/[download UUID] .
+        These files can be downloaded via the download button or by hitting {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/[File UUID] .
     </div>
         <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
             <tr>
                 <th style="width:4rem"><b>Delete</b></th>
                 <th style="width:5rem"><b>Download</b></th>
                 <th style="width:15rem" onclick="sort_table(this)"><b>Time</b></th>
-                <th style="width:6rem" onclick="sort_table(this)"><b>File ID</b></th>
-                <th style="width:25rem" onclick="sort_table(this)"><b>Download UUID</b></th>
-                <th style="width:20rem" onclick="sort_table(this)"><b>Uploader</b></th>
-                <th onclick="sort_table(this)"><b>File</b></th>
-                <th style="width:30rem"><b>Hashes</b></th>
+                <th style="width:22rem" onclick="sort_table(this)"><b>File UUID</b></th>
+                <th style="width:10rem;text-align:left" onclick="sort_table(this)"><b>Uploader</b></th>
+                <th style="text-align:left" onclick="sort_table(this)"><b>File</b></th>
+                <th style="width:24rem"><b>Hashes</b></th>
             </tr>
         <!-- Repeat this for each web service -->
             <tr v-for="file in files" :key="file.id">
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(file.id)"><i class="fas fa-trash-alt"></i></button>
                 </td>
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_button(file.agent_file_id)"><i class="fas fa-download"></i></button>
                 </td>
                 <td>[[ toLocalTime(file.timestamp) ]]</td>
-                <td>[[ file.id ]]</td>
                 <td>[[ file.agent_file_id ]]</td>
                 <td>[[ file.operator ]]</td>
                 <td>[[ file.path.split("/").slice(-1)[0] ]]</td>
@@ -45,29 +43,6 @@
 </div>
 
 <button type="button" class="btn btn{{config['outline-buttons']}}primary btn-md" onclick="create_file_button()"><i class="fas fa-plus"></i> File</button>
-<!-- THIS IS OUR MODAL FOR NEW HOSTED DIRECTORY MENU -->
-<div class="modal fade" id="servicesModal" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h3 id="modalLabel">New Host Menu</h3>
-                <button type="button" class="close" data-dismiss="modal">×</button>
-            </div>
-              <div class="modal-body" id="servicesBody">
-                  Opens up a simple python web server in the specified directory and port
-                  <h4>Which port:</h4>
-                  <input type="number" id="servicePort" min="1" max="65535">
-                  <h4>Which directory:</h4>
-                  <input type="text" id="serviceDirectory" size="60">
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="servicesSubmit">Submit</button>
-              </div>
-        </div>
-    </div>
-</div>
-<!-- END MODAL FOR NEW HOSTED DIRECTORY MENU -->
 <!-- THIS IS OUR MODAL FOR NEW MANUAL FILE MENU -->
 <div class="modal fade" id="manualFileModal" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
@@ -79,14 +54,6 @@
               <div class="modal-body">
                   Manually register a file into the database for use with agents with either a local file or uploading one.
                 <table class="table table-striped table-hover {{config['table-color']}}">
-                    <tr>
-                        <td>
-                            Local File?&nbsp;
-                        </td>
-                        <td>
-                            <span class="material-switch pull-right"><input type="checkbox" v-model="local_file" id="local_file"><label for="local_file" class="btn-info"></label></span>
-                        </td>
-                    </tr>
                     <tr v-if="local_file">
                         <td>
                             Local File Path or Payload UUID:&nbsp;&nbsp;

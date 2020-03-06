@@ -1,3 +1,4 @@
+document.title = "Screencaptures";
 var finished_newcallbacks = false;
 var screencapture_div = new Vue({
     el: '#screencapture_div',
@@ -11,7 +12,7 @@ var screencapture_div = new Vue({
                 alertTop("warning", "Image not done downloading from host. Apfell has " + image.chunks_received + " out of " + image.total_chunks + " total chunks.", 2);
             }
             img.style.display = "";
-            img.src = image['remote_path'];
+            img.src = image['remote_path'] + "?cache=" + String(image.chunks_received) + String(image.total_chunks);
             $('#image_modal').modal('show');
         }
     },

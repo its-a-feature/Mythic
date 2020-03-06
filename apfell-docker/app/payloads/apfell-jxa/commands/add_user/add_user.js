@@ -63,12 +63,12 @@ exports.add_user = function(task, command, params){
                 cmd = "chown -R " + username + ":staff \"" + homedir + "\"";
                 currentApp.doShellScript(cmd, {administratorPrivileges:true, userName:user, password:passwd});
             }
-            return JSON.stringify({"user_output": "Successfully ran the commands to create the user", "completed": true});
+            return {"user_output": "Successfully ran the commands to create the user", "completed": true};
         }catch(error){
-            return JSON.stringify({"user_output": error.toString(), "status": "error", "completed": true});
+            return{"user_output": error.toString(), "status": "error", "completed": true};
         }
      }catch(error){
-        return JSON.stringify({"user_output": error.toString(), "status": "error", "completed": true});
+        return {"user_output": error.toString(), "status": "error", "completed": true};
      }
 
 };

@@ -1,5 +1,5 @@
 exports.exit = function(task, command, params){
-    C2.postResponse(task, convert_to_nsdata(JSON.stringify({"completed": true})));
+    C2.postResponse(task, {"completed": true, "user_output": "Exiting"});
     $.NSApplication.sharedApplication.terminate(this);
 };
 COMMAND_ENDS_HERE

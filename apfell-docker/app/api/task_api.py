@@ -7,7 +7,7 @@ from app.api.transform_api import get_transforms_func, get_commandtransforms_fun
 import json as js
 import sys
 import shutil, os, glob
-from app.api.payloads_api import generate_uuid, write_c2, local_copytree
+from app.api.payloads_api import generate_uuid, local_copytree, write_c2_based_on_callback_loaded_c2
 import app.crypto as crypt
 import base64
 import app.database_models.model as db_model
@@ -15,6 +15,7 @@ from app.api.rabbitmq_api import send_pt_rabbitmq_message
 from sanic.exceptions import abort
 from math import ceil
 from app.crypto import hash_MD5, hash_SHA1
+from sanic.log import logger
 
 
 # This gets all tasks in the database
@@ -130,9 +131,7 @@ async def search_tasks(request, user):
                                                   Command.select())
         output = []
         for t in tasks:
-            query = await db_model.response_query()
-            responses = await db_objects.execute(query.where(Response.task == t))
-            output.append({**t.to_json(), "responses": [r.to_json() for r in responses], 'host': t.callback.host})
+            output.append({**t.to_json(), "responses": [], 'host': t.callback.host})
         return json({'status': 'success', 'output': output, "total_count": count, 'page': data['page'], 'size': data['size']})
     except Exception as e:
         return json({'status': 'error', 'error': 'Bad regex'})
@@ -196,64 +195,67 @@ async def get_all_tasks_by_callback_in_current_operation(request, user):
     return json({'status': 'success', 'output': output})
 
 
-# We don't put @protected or @inject_user here since the callback needs to be able to call this function
-@apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:string>/nextTask", methods=['GET'])
-async def get_next_task(request, cid):
-    # gets the next task by time for the callback to do
+async def get_agent_tasks(data, cid):
+    # { INPUT
+    #    "action": "get_tasking",
+    #    "tasking_size": 1, //indicate the maximum number of tasks you want back
+    # }
+    # { RESPONSE
+    #    "action": "get_tasking",
+    #    "tasks": [
+    #       {
+    #           "command": "shell",
+    #           "parameters": "whoami",
+    #           "task_id": UUID
+    #       }
+    #    ]
+    # }
     try:
         query = await db_model.callback_query()
         callback = await db_objects.get(query, agent_callback_id=cid)
+        # get delegate messages if needed
+        # await get_routable_messages(callback, callback.operation)
     except Exception as e:
-        print("Callback did not exist, returning 404")
-        return abort(404)
-    command_string = ""
-    params_string = ""
-    task_id = ""
+        logger.exception("Failed to get callback in get_agent_tasks: " + cid)
+        return {"action": "get_tasking", "tasks": []}
+    if 'tasking_size' not in data:
+        data['tasking_size'] = 1
+    tasks = []
     try:
-        callback.last_checkin = datetime.utcnow()
+        cur_time = datetime.utcnow()
+        callback.last_checkin = cur_time
         callback.active = True  # always set this to true regardless of what it was before because it's clearly active
         await db_objects.update(callback)  # update the last checkin time
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, id=callback.operation)
-        if not operation.complete:
+        if not callback.operation.complete:
             query = await db_model.task_query()
-            task = await db_objects.prefetch(query.where(
-                (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp).limit(1), Command.select())
-            tasks = list(task)
-            if len(tasks) != 0:
-                tasks = tasks[0]
-                tasks.status = "processing"
-                tasks.status_timestamp_processing = datetime.utcnow()
-                tasks.timestamp = datetime.utcnow()
-                await db_objects.update(tasks)
-                command_string = tasks.command.cmd
-                params_string = tasks.params
-                task_id = tasks.agent_task_id
+            if data['tasking_size'] > 0:
+                task_list = await db_objects.prefetch(query.where(
+                    (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp).limit(data['tasking_size']), Command.select())
             else:
-                command_string = "none"
+                task_list = await db_objects.prefetch(query.where(
+                    (Task.callback == callback) & (Task.status == "submitted")).order_by(Task.timestamp), Command.select())
+            for t in task_list:
+                t.status = "processing"
+                t.status_timestamp_processing = datetime.utcnow()
+                t.timestamp = t.status_timestamp_processing
+                await db_objects.update(t)
+                tasks.append({"command": t.command.cmd,
+                              "parameters": t.params,
+                              "id": t.agent_task_id,
+                              "timestamp": t.timestamp.timestamp()})
         else:
             # operation is complete, just return blank for now, potentially an exit command later
             try:
                 query = await db_model.command_query()
                 exit_command = await db_objects.get(query, is_exit=True, payload_type=callback.registered_payload.payload_type)
-                command_string = exit_command.cmd
+                tasks.append({"command": exit_command.cmd, "parameters": "", "id": "", "timestamp": 0})
             except Exception as e:
-                command_string = "none"
-                #return json({})
-                print("Got a request from an operation that's done")
+                logger.exception("Got a tasking request from a callback associated with a completed operation: " + cid)
+                tasks = []
     except Exception as e:
-        print("no command: {}".format(str(e)))
-        command_string = "none"
-    if callback.encryption_type != "" and callback.encryption_type is not None:
-        # encrypt the message before returning it
-        string_message = js.dumps({"command": command_string, "params": params_string, "id": task_id})
-        if callback.encryption_type == "AES256":
-            raw_encrypted = await crypt.encrypt_AES256(data=string_message.encode(),
-                                                       key=base64.b64decode(callback.encryption_key))
-            return raw(base64.b64encode(raw_encrypted), status=200)
-    else:
-        return json({"command": command_string, "params": params_string, "id": task_id})
-
+        logger.exception("Error in getting tasking for : " + cid + ", " + str(e))
+        tasks = []
+    return {"action": "get_tasking", "tasks": tasks}
 
 # create a new task to a specific callback
 @apfell.route(apfell.config['API_BASE'] + "/tasks/callback/<cid:int>", methods=['POST'])
@@ -281,19 +283,19 @@ async def add_task_to_callback(request, cid, user):
         cb = await db_objects.get(query, id=cid, operation=operation)
     except Exception as e:
         return json({'status': 'error', 'error': "failed to get callback"})
-
+    # get the tasking data
     if request.form:
         data = js.loads(request.form.get('json'))
     else:
         data = request.json
+    # check if the callback was locked
     if cb.locked:
         if cb.locked_operator != operator:
             return json({'status': 'error', 'error': 'Callback is locked by another user - Cannot task',
                          'cmd': data['command'], 'params': data['params'], "callback": cid})
+    # make sure the tasking we're trying to do isn't blocked for our user
     query = await db_model.operatoroperation_query()
     operatoroperation = await db_objects.get(query, operator=operator, operation=operation)
-    query = await db_model.callback_query()
-    cb = await db_objects.get(query, id=cid, operation=operation)
     if operatoroperation.base_disabled_commands is not None:
         query = await db_model.command_query()
         if data['command'] not in ['tasks', 'clear']:
@@ -308,43 +310,31 @@ async def add_task_to_callback(request, cid, user):
                              })
             except Exception as e:
                 pass
-    file_updates_with_task = []  # if we create new files throughout this process, be sure to tag them with the right task at the end
+    # if we create new files throughout this process, be sure to tag them with the right task at the end
+    file_updates_with_task = []
+    data['original_params'] = data['params']
     if request.files:
         # this means we got files as part of our task, so handle those first
         params = js.loads(data['params'])
+        original_params_with_names = js.loads(data['params'])
         for k in params:
             if params[k] == 'FILEUPLOAD':
+                original_params_with_names[k] = request.files['file' + k][0].name
                 # this means we need to handle a file upload scenario and replace this value with a file_id
                 code = request.files['file' + k][0].body
-                path = "./app/files/{}/{}".format(user['current_operation'], request.files['file' + k][0].name)
-                os.makedirs("./app/files/{}".format(user['current_operation']), exist_ok=True)
-                code_file = open(path, "wb")
-                code_file.write(code)
-                code_file.close()
-                new_file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
-                                                  path=path, operation=operation, operator=operator)
-                contents = open(new_file_meta.path, 'rb').read()
-                new_file_meta.md5 = await hash_MD5(contents)
-                new_file_meta.sha1 = await hash_SHA1(contents)
-                await db_objects.update(new_file_meta)
-                params[k] = new_file_meta.agent_file_id
-                file_updates_with_task.append(new_file_meta)
+                file_updates_with_task.append([k, None, request.files['file' + k][0].name, False])  # add which parameter has file upload data and if there's file meta for it yet
+                params[k] = base64.b64encode(code).decode()
         # update data['params'] with new file data or just re-string the old data
         data['params'] = js.dumps(params)
-    data['operator'] = user['username']
-    data['original_params'] = data['params']
-    data['file_updates_with_task'] = file_updates_with_task
-    if 'test_command' not in data:
-        data['test_command'] = False
-    if 'transform_status' not in data:
-        data['transform_status'] = []
-    return json(await add_task_to_callback_func(data, cid, user, operator, operation, cb))
+        data['original_params'] = js.dumps(original_params_with_names)
+    test_command_status = data['test_command'] if 'test_command' in data else False
+    transform_status = data['transform_status'] if 'transform_status' in data else []
+    return json(await add_task_to_callback_func(data, cid, user, operator, operation, cb, test_command_status, transform_status, file_updates_with_task))
 
 
-async def add_task_to_callback_func(data, cid, user, op, operation, cb):
+async def add_task_to_callback_func(data, cid, user, op, operation, cb, test_status, transform_status, file_updates_with_task):
     try:
         # first see if the operator and callback exists
-        original_params = None
         task = None
         # now check the task and add it if it's valid and valid for this callback's payload type
         try:
@@ -369,7 +359,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                     return {'status': 'success', **task.to_json(), 'command': 'tasks'}
                 else:
                     return {'status': 'error', 'error': 'failed to get tasks', 'cmd': data['command'],
-                            'params': data['params'], "callback": cid}
+                            'params': data['original_params'], "callback": cid}
             elif data['command'] == "clear":
                 # this means we're going to be clearing out some tasks depending on our access levels
                 task = await db_objects.create(Task, callback=cb, operator=op, params="clear " + data['params'],
@@ -384,166 +374,73 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                 else:
                     await db_objects.create(Response, task=task, response=raw_rsp['error'])
                     return {'status': 'error', 'error': raw_rsp['error'], 'cmd': data['command'],
-                            'params': data['params'], 'callback': cid}
+                            'params': data['original_params'], 'callback': cid}
             # it's not tasks/clear, so return an error
             return {'status': 'error', 'error': data['command'] + ' is not a registered command', 'cmd': data['command'],
                     'params': data['params'], "callback": cid}
         file_meta = ""
         # some tasks require a bit more processing, so we'll handle that here so it's easier for the agent
-        if cmd.cmd == "upload":
-            upload_config = js.loads(data['params'])
-            # we need to get the file into the database before we can signal for the callback to pull it down
-            try:
-                # see if we actually submitted "file_id /remote/path/here"
-                # if upload_config['file'] is still FILEUPLOAD, then we didn't swap it out with an actual file_id
-                if 'file_id' in upload_config and upload_config['file_id'] > 0:
-                    if isinstance(upload_config['file_id'], str):
-                        try:
-                            f = await db_objects.get(FileMeta, agent_file_id=upload_config['file_id'])
-                        except Exception as e:
-                            return {'status': 'error', 'error': "cannot find specified file_id",
-                                         'cmd': data['command'],
-                                         'params': data['params'], "callback": cid
-                                         }
-                    elif isinstance(upload_config['file_id'], int):
-                        try:
-                            f = await db_objects.get(FileMeta, id=upload_config['file_id'])
-                        except Exception as e:
-                            return {'status': 'error', 'error': "cannot find specified file_id",
-                                         'cmd': data['command'],
-                                         'params': data['params'], "callback": cid
-                                         }
-                    else:
-                        return {'status': 'error', 'error': "cannot find specified file_id",
-                                'cmd': data['command'],
-                                'params': data['params'], "callback": cid
-                                }
-                    # we don't want to lose our tracking on this file, so we'll create a new database entry
-                    file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
-                                                        complete=f.complete, path=f.path, operation=f.operation, operator=op)
-                    if f.complete:
-                        contents = open(file_meta.path, 'rb').read()
-                        file_meta.md5 = await hash_MD5(contents)
-                        file_meta.sha1 = await hash_SHA1(contents)
-                        await db_objects.update(file_meta)
-                    data['file_updates_with_task'].append(file_meta)
-                elif 'file' in upload_config and len(data['file_updates_with_task']) == 0:
-                    # file value is specified, but we didn't create any new files yet
-                    # so we need to create a new fileMeta file to track this new tasking from just an up-arrow task
-                    if isinstance(upload_config['file'], str):
-                        try:
-                            f = await db_objects.get(FileMeta, agent_file_id=upload_config['file'])
-                        except Exception as e:
-                            return {'status': 'error', 'error': "cannot find specified file",
-                                         'cmd': data['command'],
-                                         'params': data['params'], "callback": cid
-                                         }
-                    elif isinstance(upload_config['file'], int):
-                        try:
-                            f = await db_objects.get(FileMeta, id=upload_config['file'])
-                        except Exception as e:
-                            return {'status': 'error', 'error': "cannot find specified file",
-                                         'cmd': data['command'],
-                                         'params': data['params'], "callback": cid
-                                         }
-                    else:
-                        return {'status': 'error', 'error': "cannot find specified file",
-                                'cmd': data['command'],
-                                'params': data['params'], "callback": cid
-                                }
-                    # we don't want to lose our tracking on this file, so we'll create a new database entry
-                    file_meta = await db_objects.create(FileMeta, total_chunks=f.total_chunks, chunks_received=f.chunks_received,
-                                                        complete=f.complete, path=f.path, operation=f.operation, operator=op)
-                    if f.complete:
-                        contents = open(file_meta.path, 'rb').read()
-                        file_meta.md5 = await hash_MD5(contents)
-                        file_meta.sha1 = await hash_SHA1(contents)
-                        await db_objects.update(file_meta)
-                    data['file_updates_with_task'].append(file_meta)
-                else:
-                    # we just made the file for this instance, so just use it as the file_meta
-                    # in this case it's already added to data['file_updates_with_task']
-                    query = await db_model.filemeta_query()
-                    file_meta = await db_objects.get(query, agent_file_id=upload_config['file'])
-                # now normalize the data for the agent since it doesn't care if it was an old or new file_id to upload
-                data['original_params'] = data['params']
-                data['params'] = js.dumps({'remote_path': upload_config['remote_path'], 'file_id': file_meta.agent_file_id})
-            except Exception as e:
-                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                return {'status': 'error', 'error': 'failed to get file info from the database: ' + str(e), 'cmd': data['command'], 'params': data['params'], "callback": cid}
-        elif cmd.cmd == "download":
-            if '"' in data['params']:
-                data['params'] = data['params'][1:-1]  # remove "" around the string at this point if they are there
-        elif cmd.cmd == "screencapture":
+        if cmd.cmd == "screencapture":
             if data['params'] == "" or data['params'] is None:
                 data['params'] = datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S') + ".png"
         elif cmd.cmd == "load":
             try:
                 if cb.registered_payload.payload_type.external:
+                    # if the payload type is external, let the agent deal with what needs to be done
                     task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
-                                                   original_params=data['params'], status="submitted")
+                                                   original_params=data['original_params'], status="submitted")
                 else:
+                    # first check that the container is running
                     if not cb.registered_payload.payload_type.container_running:
                         return {"status": "error",
                                 'error': 'build container not running, so cannot task to do load transforms',
-                                'cmd': data['command'], 'params': data['params'], 'callback': cid}
+                                'cmd': data['command'], 'params': data['original_params'], 'callback': cid}
+                    # make sure we update when we last got a heartbeat to verify it's running
                     if cb.registered_payload.payload_type.last_heartbeat < datetime.utcnow() + timedelta(seconds=-30):
                         query = await db_model.payloadtype_query()
                         payload_type = await db_objects.get(query, ptype=cb.registered_payload.payload_type.ptype)
                         payload_type.container_running = False
                         await db_objects.update(payload_type)
-                        return {"status": "error", 'error': 'build container not running, no heartbeat in over 30 seconds'}
+                        return {"status": "error", 'error': 'build container not running, no heartbeat in over 30 seconds',
+                                'cmd': data['command'], 'params': data['original_params'], "callback": cid}
+                    # create the starting task, it'll go into pre-processing initially
                     task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
-                                                   original_params=data['params'])
-                    await db_objects.update(task)
+                                                   original_params=data['original_params'])
                     status = await perform_load_transforms(data, cb, operation, op, task)
                     if status['status'] == "error":
-                        return {'status': 'error', 'error': status['error'], 'cmd': data['command'], 'params': data['params'], 'callback': cid}
+                        return {'status': 'error', 'error': status['error'], 'cmd': data['command'], 'params': data['original_params'], 'callback': cid}
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['params'], 'callback': cid}
+                return {'status': 'error', 'error': 'failed to open and encode new function', 'cmd': data['command'], 'params': data['original_params'], 'callback': cid}
         # now actually run through all of the command transforms
-        original_params = data['original_params']
+        # original_params = data['original_params']  # save off what the user originally typed
         cmd_transforms = await get_commandtransforms_func(cmd.id, operation.name)
         if cmd_transforms['status'] == 'success':
+            # this means we got the transforms, so start constructing the message to send to the docker container
+            # transform status indicates, for each transform, if it's marked active or not
             rabbit_message = {"transforms": cmd_transforms['transforms'], "params": data['params'],
-                              "transform_status": data['transform_status']}
-            if 'test_command' in data and data['test_command']:
-                rabbit_message['test_command'] = True
-            else:
-                rabbit_message['test_command'] = False
+                              "transform_status": data['transform_status'], 'test_command': test_status,
+                              'file_updates_with_task': file_updates_with_task}
         else:
             return {'status': 'error', 'error': 'failed to get command transforms with message: {}'.format(
-                            str(cmd_transforms['error'])), 'cmd': data['command'], 'params': original_params}
+                            str(cmd_transforms['error'])), 'cmd': data['command'], 'params': data['original_params']}
         if "test_command" in data and data['test_command']:
             # we just wanted to test out how things would end up looking, but don't actually create a Task for this
             # remove all of the fileMeta objects we created in prep for this since it's not a real issuing
-            for update_file in data['file_updates_with_task']:
-                await db_objects.delete(update_file)
-                # we only want to delete the file from disk if there are no other db objects pointing to it
-                # so we need to check other FileMeta.paths and Payload.locations
-                query = await db_model.filemeta_query()
-                file_count = await db_objects.count(query.where( (FileMeta.path == update_file.path) & (FileMeta.deleted == False)))
-                query = await db_model.payload_query()
-                file_count += await db_objects.count(query.where( (Payload.location == update_file.path) & (Payload.deleted == False)))
-                try:
-                    if file_count == 0:
-                        os.remove(update_file.path)
-                except Exception as e:
-                    pass
-            try:
-                await db_objects.delete(file_meta)
-                query = await db_model.filemeta_query()
-                file_count = await db_objects.count(query.where( (FileMeta.path == file_meta.path) & (FileMeta.deleted == False)))
-                query = await db_model.payload_query()
-                file_count += await db_objects.count(query.where( (Payload.location == file_meta.path) & (Payload.deleted == False)))
-                if file_count == 0:
-                    os.remove(file_meta.path)
-            except Exception as e:
-                pass
-            #return {'status': 'success', 'cmd': data['command'], 'params': original_params, 'test_output': step_output}
-        if original_params is None:
-            original_params = data['params']
+            for update_file in file_updates_with_task:
+                if update_file[1] is not None:
+                    await db_objects.delete(update_file)
+                    # we only want to delete the file from disk if there are no other db objects pointing to it
+                    # so we need to check other FileMeta.paths and Payload.locations
+                    query = await db_model.filemeta_query()
+                    file_count = await db_objects.count(query.where( (FileMeta.path == update_file.path) & (FileMeta.deleted == False)))
+                    query = await db_model.payload_query()
+                    file_count += await db_objects.count(query.where( (Payload.location == update_file.path) & (Payload.deleted == False)))
+                    try:
+                        if file_count == 0:
+                            os.remove(update_file.path)
+                    except Exception as e:
+                        pass
         # check and update if the corresponding container is running or not
         query = await db_model.payloadtype_query()
         payload_type = await db_objects.get(query, ptype=cb.registered_payload.payload_type.ptype)
@@ -552,88 +449,142 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             await db_objects.update(payload_type)
         result = {'status': 'success'}  # we are successful now unless the rabbitmq service is down
         if task is not None:
+            # this means we already created the task for something like load/screencapture/download
             await add_command_attack_to_task(task, cmd)
         if task is None:
+            # this means the task is some non-standard function
             # if there are no active transforms and this is not a test command, just submit the task
-            if len(["a" for v in data['transform_status'].values() if v]) == 0 and not data['test_command']:
-                task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'], original_params=original_params, status="submitted")
-                task.status_timestamp_submitted = task.timestamp
-                await db_objects.update(task)
-                await add_command_attack_to_task(task, cmd)
-            elif payload_type.container_running:
+            #if len(["a" for v in transform_status.values() if v]) == 0 and not test_status:
+            #    # first store files in the database first if needed and swap to file_ids
+            #    file_updates_with_task, data['params'] = await save_params_to_file_ids(operation, op, file_updates_with_task, data['params'])
+            #    task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'], original_params=data['original_params'], status="submitted")
+            #    for file_update in file_updates_with_task:
+            #        file_update[1].task = task
+            #        if task.command.cmd == "upload":
+            #            file_update[1].temp_file = False
+            #        await db_objects.update(file_update[1])
+            #    task.status_timestamp_submitted = task.timestamp
+            #    await db_objects.update(task)
+            #    await add_command_attack_to_task(task, cmd)
+            if payload_type.container_running:
                 # by default tasks are created in a preprocessing state,
                 # so an agent won't get them as they're tasked to the corresponding build-servers for modifications
-                task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['params'],
-                                               original_params=original_params)
+                # file objects will be created upon receipt from rabbitmq in rabbitmq_api and assigned to the task
+                task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['original_params'],
+                                               original_params=data['original_params'])
+                for update_file in file_updates_with_task:
+                    if update_file[1] is not None:
+                        update_file[1].task = task
+                        await db_objects.update(update_file[1])
+                        update_file[1] = ""  # just needs to be not None
+
                 # we don't want to add ATT&CK and ArtifactTask yet since we need the final results to come back from rabbitmq first
                 result = await send_pt_rabbitmq_message(cb.registered_payload.payload_type.ptype,
                                                         "command_transform.{}".format(task.id),
                                                         base64.b64encode(
                                                             js.dumps(rabbit_message).encode()
                                                         ).decode('utf-8'))
+            elif payload_type.external:
+                # if the payload type is external, we can use the generic 'external' container for transforms
+                # by default tasks are created in a preprocessing state,
+                # so an agent won't get them as they're tasked to the corresponding build-servers for modifications
+                task = await db_objects.create(Task, callback=cb, operator=op, command=cmd, params=data['original_params'],
+                                               original_params=data['original_params'])
+                for update_file in file_updates_with_task:
+                    if update_file[1] is not None:
+                        update_file[1].task = task
+                        await db_objects.update(update_file[1])
+                        update_file[1] = ""  # just needs to be not None
+                # we don't want to add ATT&CK and ArtifactTask yet since we need the final results to come back from rabbitmq first
+                result = await send_pt_rabbitmq_message("external",
+                                                        "command_transform.{}".format(task.id),
+                                                        base64.b64encode(
+                                                            js.dumps(rabbit_message).encode()
+                                                        ).decode('utf-8'))
             else:
                 return {"status": "error",
-                        'error': 'payload\'s container not running, no heartbeat in over 30 seconds, so it cannot be tasked to do transforms or tests',
-                        "cmd": cmd.cmd, "params": data['params'], 'callback': cid}
-
-        for update_file in data['file_updates_with_task']:
-            # now we can associate the task with the filemeta object
-            update_file.task = task
-            await db_objects.update(update_file)
+                        'error': 'payload\'s container not running, no heartbeat in over 30 seconds, so it cannot process tasking',
+                        "cmd": cmd.cmd, "params": data['original_params'], 'callback': cid}
         task_json = task.to_json()
         task_json['task_status'] = task_json['status']  # we don't want the two status keys to conflict
         task_json.pop('status')
-
         return {**result, **task_json}
     except Exception as e:
         print("failed to get something in add_task_to_callback_func " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status': 'error', 'error': 'Failed to create task: ' +str(sys.exc_info()[-1].tb_lineno) + " " + str(e), 'cmd': data['command'], 'params': data['params'], 'callback': cid}
 
 
+async def save_params_to_file_ids(operation, operator, file_updates_with_task, params):
+    try:
+        params = js.loads(params)
+        for file_update in file_updates_with_task:
+            if file_update[1] is None:
+                # this means params[file_update[0]] is base64 of a file to write out
+                count = 1
+                path = "./app/files/{}/{}".format(operation.name, file_update[2])
+                if "." in file_update[2]:
+                    filename = file_update[2].split(".")[-2]
+                    extension = file_update[2].split('.')[-1]
+                else:
+                    filename = file_update[2]
+                    extension = ""
+                while os.path.exists(path):
+                    path = "./app/files/{}/{}{}.{}".format(operation.name, filename, count, extension)
+                    count += 1
+                code_file = open(path, "wb")
+                code = base64.b64decode( params[file_update[0]])
+                code_file.write( code )
+                code_file.close()
+                md5 = await hash_MD5(code)
+                sha1 = await hash_SHA1(code)
+                new_file_meta = await db_objects.create(FileMeta, total_chunks=1, chunks_received=1, complete=True,
+                                                        path=path, operation=operation, operator=operator,
+                                                        full_remote_path="", md5=md5, sha1=sha1, temp_file=True)
+                file_update[1] = new_file_meta
+                params[file_update[0]] = new_file_meta.agent_file_id
+        params = js.dumps(params)
+        return file_updates_with_task, params
+    except Exception as e:
+        # print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return file_updates_with_task, params
+
+
 async def perform_load_transforms(data, cb, operation, op, task):
+    uuid = await generate_uuid()
+    working_path = "./app/payloads/operations/{}/{}".format(operation.name, uuid)
     try:
         # in the end this returns a dict of status and either a final file path or an error message
         load_transforms = await get_transforms_func(cb.registered_payload.payload_type.ptype, "load")
         if load_transforms['status'] == "success":
             # if we need to do something like compile or put code in a specific format
             #   we should have a temp working directory for whatever needs to be done, similar to payload creation
-            uuid = await generate_uuid()
-            working_path = "./app/payloads/operations/{}/{}".format(operation.name, uuid)
+
             # copy the payload type's files there
             await local_copytree("./app/payloads/{}/payload/".format(cb.registered_payload.payload_type.ptype), working_path)
-            await local_copytree("./app/c2_profiles/{}/{}".format(cb.registered_payload.c2_profile.name,
-                                                                      cb.registered_payload.payload_type.ptype), working_path)
             # now that we copied files here, do the same replacement we do for creating a payload
-            param_dict = {}
-            query = await db_model.c2profileparametersinstance_query()
-            c2_param_instances = await db_objects.execute(query.where(C2ProfileParametersInstance.payload == cb.registered_payload))
-            for instance in c2_param_instances:
-                param = instance.c2_profile_parameters
-                param_dict[param.key] = instance.value
             for base_file in glob.iglob(working_path + "/**", recursive=True):
-                if os.path.isdir(base_file):
-                    continue
-                base = open(base_file, 'r')
-                # write to the new file, then copy it over when we're done
-                custom = open(working_path + "/" + uuid, 'w')  # make sure our temp file won't exist
-                for line in base:
-                    # replace c2 parameter values if we see them
-                    for p in param_dict:
-                        if p in line:
-                            line = line.replace(p, param_dict[p])
-                    if 'C2PROFILE_NAME_HERE' in line:
-                        # optional directive to insert the name of the c2 profile
-                        replaced_line = line.replace("C2PROFILE_NAME_HERE", cb.registered_payload.c2_profile.name)
-                        custom.write(replaced_line)
-                    elif 'UUID_HERE' in line:
-                        replaced_line = line.replace("UUID_HERE", uuid)
-                        custom.write(replaced_line)
-                    else:
-                        custom.write(line)
-                base.close()
-                custom.close()
-                os.remove(base_file)
-                os.rename(working_path + "/" + uuid, base_file)
+                try:
+                    if os.path.isdir(base_file):
+                        continue
+                    base = open(base_file, 'r')
+                    # write to the new file, then copy it over when we're done
+                    custom = open(working_path + "/" + uuid, 'w')  # make sure our temp file won't exist
+                    for line in base:
+                        # replace c2 parameter values if we see them
+                        if 'UUID_HERE' in line:
+                            replaced_line = line.replace("UUID_HERE", uuid)
+                            custom.write(replaced_line)
+                        else:
+                            custom.write(line)
+                    base.close()
+                    custom.close()
+                    os.remove(base_file)
+                    os.rename(working_path + "/" + uuid, base_file)
+                except Exception as e:
+                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    custom.close()
+            # bring over all of the c2 components and stamp in their variables
+            await write_c2_based_on_callback_loaded_c2(working_path, cb)
             # always start with a list of paths for all of the things we want to load
             # check if somebody submitted {'cmds':'shell,load, etc', 'file_id': 4} instead of list of commands
             try:
@@ -689,9 +640,11 @@ async def perform_load_transforms(data, cb, operation, op, task):
             os.remove("./app/payloads/operations/{}/{}".format(operation.name, load_uuid) + ".zip")
             return result
         else:
+            shutil.rmtree(working_path)
             return {'status': 'error', 'error': 'failed to get transforms for this payload type', 'cmd': data['command'],
                     'params': data['params'], 'callback': cb.id}
     except Exception as e:
+        shutil.rmtree(working_path)
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         raise e
 
@@ -840,6 +793,10 @@ async def get_one_task_and_responses(request, tid, user):
         query = await db_model.task_query()
         task = await db_objects.prefetch(query.where(Task.id == tid), Command.select())
         task = list(task)[0]
+    except Exception as e:
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({'status': 'error', 'error': 'failed to find that task'})
+    try:
         if task.callback.operation.name in user['operations']:
             query = await db_model.response_query()
             responses = await db_objects.execute(query.where(Response.task == task).order_by(Response.id))
@@ -850,7 +807,7 @@ async def get_one_task_and_responses(request, tid, user):
             return json({'status': 'error', 'error': 'you don\'t have access to that task'})
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return json({'status': 'error', 'error': 'failed to find that task'})
+        return json({'status': 'error', 'error': 'Failed to fetch task: ' + str(sys.exc_info()[-1].tb_lineno) + " " + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/<tid:int>/raw_output", methods=['GET'])
@@ -866,15 +823,13 @@ async def get_one_task_and_responses_as_raw_output(request, tid, user):
         if task.callback.operation.name in user['operations']:
             query = await db_model.response_query()
             responses = await db_objects.execute(query.where(Response.task == task).order_by(Response.id))
-            query = await db_model.callback_query()
-            callback = await db_objects.get(query.where(Callback.id == task.callback))
-            output = ''.join([r.response for r in responses])
+            output = ''.join([bytes(r.response).decode('utf-8', errors="backslashreplace") for r in responses])
             return json({'status': 'success', 'output': base64.b64encode(output.encode()).decode('utf-8')})
         else:
             return json({'status': 'error', 'error': 'you don\'t have access to that task'})
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return json({'status': 'error', 'error': 'failed to find that task'})
+        return json({'status': 'error', 'error': 'failed to find that task {}'.format(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/tasks/comments/<tid:int>", methods=['POST'])

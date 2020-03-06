@@ -1,3 +1,4 @@
+document.title = "Reporting Timelines";
 function generate_pdf_report(){
     generate_report("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/reporting/full_timeline_pdf");
 }

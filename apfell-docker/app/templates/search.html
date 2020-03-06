@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
-<br>
 
-<div style="resize: vertical" class="card border-0 shadow" id="searches">
+<div style="margin-top:5px" class="card shadow" id="searches">
     <div class="card-header bg-header border border-dark shadow text-white">
         <span style="display:inline-block">
             <h2 style="display:inline-block"><span class="operator">Search</span> the Operation...</h2>
@@ -25,13 +24,13 @@
             </span>
         </span>
     </div>
-    <div style="resize:vertical;overflow:scroll;height:calc(80vh);padding:0px;" class="card-body bg-card-body border border-dark shadow">
+    <div style="overflow-y:scroll;height:calc(80vh);padding:0px;" class="card-body bg-card-body border border-dark shadow">
         <div id="searchTasksResults">
             <div v-for="t in tasks" style="padding:0px 0px 15px 0px" class="card border-0 bg-card-body-l1" :key="t.id">
-                <div class="card-header bg-header-dark text-white border border-dark shadow" style="position:-webkit-sticky;position:sticky;top:0px">
-                    Task <a :href="[[t.share_task]]" target="_blank"><b><span class="operator">[[t.id]]</span></b></a> on callback [[t.callback]] ([[t.host]]) - [[t.operator]]'s task with status [[t.status]]:<br> [[t.command]] [[t.original_params]]
+                <div class="card-header bg-header-dark border border-dark shadow" :style="t.original_params.length > 200 ? 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;overflow-x:scroll' : 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;'">
+                    Task <a :href="[[t.share_task]]" target="_blank"><b><span class="operator">[[t.id]]</span></b></a> on callback <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + t.callback" target="_blank"><b>[[t.callback]]</b></a> ([[t.host]]) - [[t.operator]]'s task with status [[t.status]]:<br> [[t.command]] [[t.original_params]]
                 </div>
-                <div class="card-body response-background border border-dark shadow">
+                <div class="card-body response-background border border-dark shadow" style="padding-top:10px;padding-bottom: 0">
                     <div v-if="t.params != t.original_params">Modified params: [[t.params]]</div>
                     <span v-for="r in t.responses" style="white-space: pre-wrap"><span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response"><pre>[[r.response]]</pre></span></span>
                 </div>
@@ -39,10 +38,10 @@
         </div>
         <div id="searchResults">
             <div v-for="r in responses" style="padding: 0px 0px 15px 0px;" class="card border-0 bg-card-body-l1" :key="r.id" >
-                <div class="card-header bg-header-dark border border-dark text-white shadow" style="position:-webkit-sticky;position:sticky;top:0px">
-                    Response [[r.id]] on callback [[r.task.callback]] ([[r.host]]) - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
+                <div class="card-header bg-header-dark border border-dark text-white shadow" :style="r.task.original_params.length > 200 ? 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;overflow-x:scroll' : 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;'">
+                    Response [[r.id]] on callback  <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + r.task.callback" target="_blank"><b>[[r.task.callback]]</b></a> ([[r.host]]) - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
                 </div>
-                <div class="card-body response-background border border-dark shadow">
+                <div class="card-body response-background border border-dark shadow" style="padding-top:10px;padding-bottom: 0">
                     <div v-if="r.task.params != r.task.original_params">Modified params: [[r.task.params]]</div>
                     <span style="white-space: pre-wrap">
                         <span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response"><pre>[[r.response]]</pre></span>

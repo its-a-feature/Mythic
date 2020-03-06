@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import peewee as p
 import datetime
 from app import apfell_db
@@ -14,10 +15,10 @@ class Operator(p.Model):
     light_config = json.dumps({
         "background-color": "hsl(263, 0%, 98%)",
         "text-color": "black",
-        "hover": "grey",
-        "highlight": "grey",
+        "hover": "hsl(263, 0%, 90%)",
+        "highlight": "hsl(263, 0%, 90%)",
         "autocomplete": "#e6f3ff",
-        "highlight-text": "white",
+        "highlight-text": "blue",
         "timestamp": "#1A1A9A",
         "operator": "#b366ff",
         "display": "#FF4D4D",
@@ -41,7 +42,8 @@ class Operator(p.Model):
         "bg-card-body-l2": "hsl(225, 0%, 105%)",
         "bg-card-footer": "hsl(225, 0%, 54%)",
         "bg-body": "hsl(225, 0%, 50%)",
-        "th": "hsl(255, 0%, 80%)"
+        "th": "hsl(255, 0%, 80%)",
+        "font-size": "14"
     })
     dark_config = json.dumps({
         "background-color": "hsl(225, 6%, 14%)",
@@ -54,7 +56,7 @@ class Operator(p.Model):
         "operator": "#b366ff",
         "display": "#FF4D4D",
         "new-callback-color": "dark",
-        "new-callback-hue": "",
+        "new-callback-hue": "blue",
         "table-headers": "#F1F1F1",
         "operation-color": "#b366ff",
         "success_highlight": "#340080",
@@ -73,7 +75,8 @@ class Operator(p.Model):
         "bg-card-body-l2": "hsl(225, 6%, 27%)",
         "bg-card-footer": "hsl(225, 6%, 23%)",
         "bg-body": "hsl(225, 6%, 18%)",
-        "th": "hsl(225, 6%, 20%)"
+        "th": "hsl(225, 6%, 20%)",
+        "font-size": "14"
     })
     username = p.TextField(unique=True, null=False)
     password = p.TextField(null=False)
@@ -85,6 +88,7 @@ class Operator(p.Model):
     current_operation = p.ForeignKeyField(p.DeferredRelation('Operation'), null=True)
     ui_config = p.TextField(null=False, default=dark_config)
     view_utc_time = p.BooleanField(null=False, default=False)
+    deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
         ordering = ['-id', ]
@@ -142,6 +146,9 @@ class PayloadType(p.Model):
     service = p.TextField(null=False, default="rabbitmq")
     icon = p.TextField(null=True)
     author = p.TextField(null=False, default="")  # who created the code for the payload type, not just who imported it
+    note = p.TextField(null=False, default="")
+    supports_dynamic_loading = p.BooleanField(null=False, default=False)
+    deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -166,14 +173,45 @@ class PayloadType(p.Model):
         return json.dumps(self.to_json())
 
 
-class Transform(p.Model):
-    name = p.CharField()  # what function in the TransformOperation class will be executed
-    parameter = p.TextField(null=False, default="")  # optionally pass a parameter to a function
+class TransformCode(p.Model):
+    code = p.TextField(null=False, default="")
+    name = p.TextField(null=False, default="", unique=True)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    operator = p.ForeignKeyField(Operator, null=False)
+    # what kind of parameter should be shown in the UI? String or ChooseOne
+    parameter_type = p.TextField(null=False, default="None")
+    description = p.TextField(null=False, default="")  # description of the transform parameter and purpose
+    is_command_code = p.BooleanField(null=False, default=False)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'operator':
+                    r[k] = getattr(self, k).username
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class Transform(p.Model):  # this is an instance of the transform code applied to a create/load series
+    transform = p.ForeignKeyField(TransformCode, null=False)
+    parameter = p.TextField(null=False, default="")  # optionally pass a parameter to a function, instance value
     order = p.IntegerField()  # which order in the list of transforms is this
     payload_type = p.ForeignKeyField(PayloadType, null=False)
     t_type = p.CharField()  # is this for payload: creation, module load?
-    operator = p.ForeignKeyField(Operator)  # who created this transform
+    operator = p.ForeignKeyField(Operator)  # who assigned this transform
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    description = p.TextField(null=False, default="")
 
     class Meta:
         database = apfell_db
@@ -186,6 +224,9 @@ class Transform(p.Model):
                     r[k] = getattr(self, k).ptype
                 elif k == 'operator':
                     r[k] = getattr(self, k).username
+                elif k == 'transform':
+                    r[k] = getattr(self, k).name
+                    r['parameter_type'] = getattr(self, k).parameter_type
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -225,7 +266,10 @@ class Command(p.Model):
     # indicate if this is the command used for removing files
     is_remove_file = p.BooleanField(null=False, default=False)
     remove_file_parameters = p.TextField(null=False, default="*")
+    # indicate if this command will generate payloads (like spawn or for lateral movement)
+    is_agent_generator = p.BooleanField(null=False, default=False)
     author = p.TextField(null=False, default="")
+    deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
         indexes = ((('cmd', 'payload_type'), True),)
@@ -425,10 +469,15 @@ class C2Profile(p.Model):
     # identify is a c2 profile lives external to Apfell
     external = p.BooleanField(null=False, default=False)
     author = p.TextField(null=False, default="")
+    # identify if this is a p2p protocol or not, we treat those a bit differently
+    is_p2p = p.BooleanField(null=False, default=False)
+    # server_routed means the server specifies the specific route for sending messages
+    is_server_routed = p.BooleanField(null=False, default=False)
     # sample server side and client side configurations for operators to go off of
     sampleServer = p.TextField(null=False, default="")
     sampleClient = p.TextField(null=False, default="")
     notes = p.TextField(null=False, default="")
+    deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -498,7 +547,7 @@ class Payload(p.Model):
     #   this helps track how we're getting callbacks (which payloads/tags/parents/operators)
     pcallback = p.ForeignKeyField(p.DeferredRelation('Callback'), null=True)
     location = p.CharField(null=True)  # location on disk of the payload
-    c2_profile = p.ForeignKeyField(C2Profile, null=False)  # identify which C2 profile is being used
+    # c2_profile = p.ForeignKeyField(C2Profile, null=False)  # identify which C2 profile is being used
     operation = p.ForeignKeyField(Operation, null=False)
     wrapped_payload = p.ForeignKeyField(p.DeferredRelation('Payload'), null=True)
     deleted = p.BooleanField(null=False, default=False)
@@ -509,6 +558,10 @@ class Payload(p.Model):
     hosted_path = p.TextField(null=False, default="")  # current hosting path if we want a unique hosted path
     # if there is a slack webhook for the operation, decide if this payload should generate an alert or not
     callback_alert = p.BooleanField(null=False, default=True)
+    # when dealing with auto-generated payloads for lateral movement or spawning new callbacks
+    auto_generated = p.BooleanField(null=False, default=False)
+    task = p.ForeignKeyField(p.DeferredRelation('Task'), null=True)
+    file_id = p.ForeignKeyField(p.DeferredRelation('FileMeta'), null=True)
 
     class Meta:
         database = apfell_db
@@ -521,8 +574,6 @@ class Payload(p.Model):
                     r[k] = getattr(self, k).username
                 elif k == 'pcallback':
                     r[k] = getattr(self, k).id
-                elif k == 'c2_profile':
-                    r[k] = getattr(self, k).name
                 elif k == 'payload_type':
                     r[k] = getattr(self, k).ptype
                     r["external"] = getattr(self, k).external
@@ -530,11 +581,77 @@ class Payload(p.Model):
                     r[k] = getattr(self, k).name
                 elif k == 'wrapped_payload':
                     r[k] = getattr(self, k).uuid
+                elif k == 'task' and getattr(self, k) is not None:
+                    r[k] = getattr(self, k).to_json()
+                elif k == 'file_id' and getattr(self, k) is not None:
+                    r[k] = getattr(self, k).to_json()
                 else:
                     r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['creation_time'] = r['creation_time'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+# this is an instance of a payload
+class PayloadOnHost(p.Model):
+    host = p.TextField(null=False)
+    payload = p.ForeignKeyField(Payload)
+    deleted = p.BooleanField(default=False, null=False)
+    operation = p.ForeignKeyField(Operation)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    task = p.ForeignKeyField(p.DeferredRelation('Task'), null=True)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'payload':
+                    r[k] = getattr(self, k).to_json()
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
+                elif k == 'task' and getattr(self, k) is not None:
+                    r[k] = getattr(self, k).to_json()
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class TransformInstance(p.Model): # this is the instance of actual values used to create a specific payload instance
+    transform = p.ForeignKeyField(TransformCode, null=False)
+    order = p.IntegerField()  # which order in the list of transforms is this
+    payload = p.ForeignKeyField(Payload, null=False)
+    t_type = p.CharField()  # is this for payload: creation, module load?
+    # if the transform takes a parameter, this is the one that was ultimately passed in
+    parameter = p.TextField(null=False, default="")
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'payload':
+                    r[k] = getattr(self, k).uuid
+                elif k == 'transform':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -581,6 +698,8 @@ class C2ProfileParameters(p.Model):
     name = p.TextField(null=False)  # what the parameter is called. ex: Callback address
     key = p.TextField(null=False)  # what the stamping should look for. ex: XXXXX
     hint = p.TextField(null=False, default="")  # Hint for the user when setting the parameters
+    randomize = p.BooleanField(null=False, default=False)
+    format_string = p.TextField(null=False, default="")
 
     class Meta:
         indexes = ((('c2_profile', 'name'), True),)
@@ -591,43 +710,6 @@ class C2ProfileParameters(p.Model):
         for k in self._data.keys():
             try:
                 if k == 'c2_profile':
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        return r
-
-    def __str__(self):
-        return json.dumps(self.to_json())
-
-
-# c2 profiles will have various parameters that need to be stamped in when the payload is created
-#   This is an opportunity to specify key-value pairs for specific C2 profiles
-#   There can be many of these per c2 profile or none
-#   This holds the specific values used in the C2ProfileParameters and which payload they're associated with
-class C2ProfileParametersInstance(p.Model):
-    c2_profile_parameters = p.ForeignKeyField(C2ProfileParameters)
-    value = p.TextField(null=False)  # this is what we will stamp in instead
-    payload = p.ForeignKeyField(Payload, null=True)  # the specific payload instance these values apply to
-    instance_name = p.TextField(null=True)  # name the group of parameter instances if we want to save off values for later
-    operation = p.ForeignKeyField(Operation, null=True)  # tie this instance to an operation if there's no payload
-
-    class Meta:
-        indexes = ((('c2_profile_parameters', 'payload'), True), (('c2_profile_parameters','instance_name', 'operation'),True))
-        database = apfell_db
-
-    def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == 'c2_profile_parameters' and getattr(self, k) is not None and getattr(self, k) != "null":
-                    r['c2_profile'] = getattr(self, k).c2_profile.name
-                    r['c2_profile_name'] = getattr(self, k).name
-                    r['c2_profile_key'] = getattr(self, k).key
-                elif k == 'payload':
-                    r[k] = getattr(self, k).uuid
-                elif k == 'operation' and getattr(self, k) is not None:
                     r[k] = getattr(self, k).name
                 else:
                     r[k] = getattr(self, k)
@@ -681,7 +763,6 @@ class Callback(p.Model):
                 elif k == 'registered_payload' and getattr(self, k) is not None and getattr(self, k) != "null":
                     r[k] = getattr(self, k).uuid
                     r['payload_type'] = getattr(self, k).payload_type.ptype
-                    r['c2_profile'] = getattr(self, k).c2_profile.name
                     r['payload_description'] = getattr(self, k).tag
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
@@ -696,6 +777,103 @@ class Callback(p.Model):
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['init_callback'] = r['init_callback'].strftime('%m/%d/%Y %H:%M:%S')
         r['last_checkin'] = r['last_checkin'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class PayloadC2Profiles(p.Model):
+    # tracking which c2 profiles are in a payload
+    payload = p.ForeignKeyField(Payload)
+    c2_profile = p.ForeignKeyField(C2Profile)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'payload':
+                    r[k] = getattr(self, k).uuid
+                elif k == 'c2_profile':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class CallbackC2Profiles(p.Model):
+    callback = p.ForeignKeyField(Callback)
+    c2_profile = p.ForeignKeyField(C2Profile)
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'callback':
+                    r[k] = getattr(self, k).id
+                elif k == 'c2_profile':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+# c2 profiles will have various parameters that need to be stamped in when the payload is created
+#   This is an opportunity to specify key-value pairs for specific C2 profiles
+#   There can be many of these per c2 profile or none
+#   This holds the specific values used in the C2ProfileParameters and which payload they're associated with
+# If we want to save a collection off for repeated use, payload will be null, but instance_name and operation are set
+class C2ProfileParametersInstance(p.Model):
+    c2_profile_parameters = p.ForeignKeyField(C2ProfileParameters)
+    c2_profile = p.ForeignKeyField(C2Profile)
+    value = p.TextField(null=False)  # this is what we will stamp in instead
+    payload = p.ForeignKeyField(Payload, null=True)  # the specific payload instance these values apply to
+    # name the group of parameter instances if we want to save off values for later
+    instance_name = p.TextField(null=True)
+    operation = p.ForeignKeyField(Operation, null=True)  # tie this instance to an operation if there's no payload
+    # when keeping track of which profile instances are in a given callback, set the callback variable
+    # if this is just tracking what's in a payload, callback will be null
+    callback = p.ForeignKeyField(Callback, null=True)
+
+    class Meta:
+        indexes = ((('c2_profile_parameters', 'payload'), True), (('c2_profile_parameters','instance_name', 'operation'),True))
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'c2_profile_parameters' and getattr(self, k) is not None and getattr(self, k) != "null":
+                    r['c2_params_name'] = getattr(self, k).name
+                    r['c2_params_key'] = getattr(self, k).key
+                elif k == 'payload':
+                    r[k] = getattr(self, k).uuid
+                elif k == 'operation' and getattr(self, k) is not None:
+                    r[k] = getattr(self, k).name
+                elif k == 'callback' and getattr(self, k) is not None:
+                    r[k] = getattr(self, k).id
+                elif k == 'c2_profile':
+                    r[k] = getattr(self, k).name
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
 
     def __str__(self):
@@ -800,7 +978,7 @@ class Task(p.Model):
 
 
 class Response(p.Model):
-    response = p.TextField(null=True)
+    response = p.BlobField(null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     task = p.ForeignKeyField(Task, null=False)
 
@@ -813,9 +991,12 @@ class Response(p.Model):
             try:
                 if k == 'task':
                     r[k] = (getattr(self, k)).to_json()
+                elif k == 'response':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
                 else:
                     r[k] = getattr(self, k)
-            except:
+            except Exception as e:
+                print(str(e))
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
@@ -832,12 +1013,14 @@ class FileMeta(p.Model):
     task = p.ForeignKeyField(Task, null=True)  # what task caused this file to exist in the database
     complete = p.BooleanField(null=False, default=False)
     path = p.TextField(null=False)  # where the file is located on local disk
+    full_remote_path = p.TextField(null=False, default="")
     operation = p.ForeignKeyField(Operation, null=False)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     deleted = p.BooleanField(null=False, default=False)
     operator = p.ForeignKeyField(Operator, null=True)  # specify this in case it was a manual registration
     md5 = p.TextField(null=True)
     sha1 = p.TextField(null=True)
+    temp_file = p.TextField(null=False, default=True)
 
     class Meta:
         database = apfell_db
@@ -951,9 +1134,10 @@ class Credential(p.Model):
     realm = p.TextField()  # which domain does this credential apply?
     operation = p.ForeignKeyField(Operation)  # which operation does this credential belong to?
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # when did we get it?
-    credential = p.TextField(null=False)  # the actual credential we captured
+    credential = p.BlobField(null=False)  # the actual credential we captured
     operator = p.ForeignKeyField(Operator, null=False)  # who got us this credential? Especially needed if manual entry
     comment = p.TextField(null=True)
+    deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
         database = apfell_db
@@ -970,6 +1154,8 @@ class Credential(p.Model):
                     r[k] = getattr(self, k).name
                 elif k == 'operator':
                     r[k] = getattr(self, k).username
+                elif k == 'credential':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -984,7 +1170,7 @@ class Credential(p.Model):
 class Keylog(p.Model):
     # if you know the task, you know who, where, when, etc
     task = p.ForeignKeyField(Task)  # what command caused this to exist
-    keystrokes = p.TextField(null=False)  # what did you actually capture
+    keystrokes = p.BlobField(null=False)  # what did you actually capture
     window = p.TextField()  # if possible, what's the window title for where these keystrokes happened
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)  # when did we get these keystrokes?
     operation = p.ForeignKeyField(Operation, null=False)
@@ -1003,6 +1189,8 @@ class Keylog(p.Model):
                     r['callback'] = {"id": getattr(self, k).callback.id}
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'keystrokes':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -1017,7 +1205,7 @@ class Keylog(p.Model):
 class CommandTransform(p.Model):
     # these are transforms that apply to a command that can be toggled on/off for each task
     command = p.ForeignKeyField(Command, null=False)  # which command this applies to
-    name = p.TextField(null=False)  # must be unique with the command
+    transform = p.ForeignKeyField(TransformCode, null=False)
     operator = p.ForeignKeyField(Operator)  # who created this transform
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     # might as well allow the ability to take multiple transforms
@@ -1025,8 +1213,8 @@ class CommandTransform(p.Model):
     # ability to pass in a parameter to this transform
     parameter = p.TextField(null=False, default="")
     # make these transforms specific to the operation
-    operation = p.ForeignKeyField(Operation, null=False)
     active = p.BooleanField(null=False, default=True)  # indicate if this transform is globally active on the command
+    description = p.TextField(null=False, default="")
 
     class Meta:
         database = apfell_db
@@ -1039,10 +1227,11 @@ class CommandTransform(p.Model):
                     r[k] = getattr(self, k).cmd
                     r["command_id"] = getattr(self, k).id
                     r['payload_type'] = getattr(self, k).payload_type.ptype
-                elif k == 'operation':
-                    r[k] = getattr(self, k).name
                 elif k == 'operator':
                     r[k] = getattr(self, k).username
+                elif k == 'transform':
+                    r[k] = getattr(self, k).name
+                    r['parameter_type'] = getattr(self, k).parameter_type
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -1057,8 +1246,8 @@ class CommandTransform(p.Model):
 class Artifact(p.Model):
     # this is global and generic information about different kinds of host artifacts
     # type indicates the kind of host artifacts this instance applies to
-    name = p.TextField(null=False, unique=True)
-    description = p.TextField(null=False, default="")
+    name = p.BlobField(null=False, unique=True)
+    description = p.BlobField(null=False, default="")
 
     class Meta:
         database = apfell_db
@@ -1067,7 +1256,10 @@ class Artifact(p.Model):
         r = {}
         for k in self._data.keys():
             try:
-                r[k] = getattr(self, k)
+                if k == 'name' or k == 'description':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
+                else:
+                    r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         return r
@@ -1084,7 +1276,7 @@ class ArtifactTemplate(p.Model):
     artifact = p.ForeignKeyField(Artifact, null=False)
     artifact_string = p.TextField(null=False, default="")  # ex: Command Line: sh -c *
     # if replace_string is left empty, '', then artifact_string will be used unmodified
-    replace_string = p.CharField(null=False, default="")
+    replace_string = p.TextField(null=False, default="")
     deleted = p.BooleanField(null=False, default=False)
 
     class Meta:
@@ -1103,7 +1295,7 @@ class ArtifactTemplate(p.Model):
                     r["command_parameter_name"] = getattr(self, k).name
                 elif k == 'artifact':
                     r[k] = getattr(self, k).id
-                    r["artifact_name"] = getattr(self, k).name
+                    r["artifact_name"] = bytes(getattr(self, k).name).decode()
                 else:
                     r[k] = getattr(self, k)
             except:
@@ -1118,7 +1310,7 @@ class TaskArtifact(p.Model):
     task = p.ForeignKeyField(Task, null=True)
     artifact_template = p.ForeignKeyField(ArtifactTemplate, null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
-    artifact_instance = p.TextField(null=False, default="")
+    artifact_instance = p.BlobField(null=False, default="")
     # if this is a manual entry (no task), still specify the corresponding artifact
     artifact = p.ForeignKeyField(Artifact, null=True)
     operation = p.ForeignKeyField(Operation, null=True)
@@ -1133,9 +1325,11 @@ class TaskArtifact(p.Model):
             try:
                 if k == "artifact_template":
                     if getattr(self, k) is not None and getattr(self, k) != "null":
-                        r[k] = getattr(self, k).artifact.name
+                        r[k] = bytes(getattr(self, k).artifact.name).decode()
                     else:
                         r[k] = "null"
+                elif k == 'artifact_instance':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
                 elif k == 'task':
                     if getattr(self, k) is not None and getattr(self, k) != "null":
                         r["task_id"] = getattr(self, k).id
@@ -1148,7 +1342,7 @@ class TaskArtifact(p.Model):
                         r['command'] = "Manual Entry"
                 elif k == 'artifact':
                     if getattr(self, k) is not None and getattr(self, k) != "null":
-                        r['artifact_template'] = getattr(self, k).name
+                        r['artifact_template'] = bytes(getattr(self, k).name).decode()
                     else:
                         r[k] = "null"
                 elif k == 'operation':
@@ -1175,6 +1369,9 @@ class StagingInfo(p.Model):
     session_id = p.TextField(null=False, unique=True)
     # this is the creation session key that's base64 encoded
     session_key = p.TextField(null=False)
+    # staging step uuid
+    staging_uuid = p.TextField(null=False, unique=True)
+    payload_uuid = p.TextField(null=False)
 
     class Meta:
         database = apfell_db
@@ -1230,7 +1427,7 @@ class BrowserScript(p.Model):
     active = p.BooleanField(default=True)
 
     class Meta:
-        indexes = ((('command', 'operator'), True),)
+        indexes = ((('command', 'name', 'operator'), True),)
         database = apfell_db
 
     def to_json(self):
@@ -1289,7 +1486,7 @@ class ProcessList(p.Model):
     host = p.TextField(null=False)
     # requires a specific format:
     #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
-    process_list = p.TextField(null=False)
+    process_list = p.BlobField(null=False)
     operation = p.ForeignKeyField(Operation, null=False)
 
     class Meta:
@@ -1304,9 +1501,12 @@ class ProcessList(p.Model):
                     r['callback'] = getattr(self, k).callback.id
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'process_list':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
                 else:
                     r[k] = getattr(self, k)
-            except:
+            except Exception as e:
+                print( str(e))
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
@@ -1319,7 +1519,7 @@ class FileBrowse(p.Model):
     task = p.ForeignKeyField(Task, null=False, unique=True)
     timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
     operation = p.ForeignKeyField(Operation, null=False)
-    file_browse = p.TextField(null=False)
+    file_browse = p.BlobField(null=False)  # json blob of the actual file browsing data
 
     class Meta:
         database = apfell_db
@@ -1333,11 +1533,91 @@ class FileBrowse(p.Model):
                     r['callback'] = getattr(self, k).callback.id
                 elif k == 'operation':
                     r[k] = getattr(self, k).name
+                elif k == 'file_browse':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
                 else:
                     r[k] = getattr(self, k)
             except:
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class OperationEventLog(p.Model):
+    # user-user messages, sign-on/off notifications, new callback notifications, file hosted, etc
+    operator = p.ForeignKeyField(Operator)  # who sent the message
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)  # when was the message
+    message = p.BlobField(null=False)
+    operation = p.ForeignKeyField(Operation, null=False)  # which operation has this message
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'operator':
+                    r[k] = getattr(self, k).username
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
+                elif k == 'message':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class CallbackGraphEdge(p.Model):
+    # information about p2p connections and egress to p2p connections
+    start_timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)  # when did this connection start
+    end_timestamp = p.DateTimeField(null=True)  # when did the connection stop
+    operation = p.ForeignKeyField(Operation, null=False)  # which operation does this apply to
+    source = p.ForeignKeyField(Callback, related_name="source", null=False)  # source node for the relationship
+    destination = p.ForeignKeyField(Callback, related_name="destination", null=False) # destination node for the relationship
+    direction = p.IntegerField(null=False)  # 1 is src->dst, 2 is dst->src, 3 is src<->dst
+    metadata = p.BlobField(null=False, default=b"")  # metadata about the connection, JSON string
+    c2_profile = p.ForeignKeyField(C2Profile, null=False)  # which c2 profile does this connection belong to
+    task_start = p.ForeignKeyField(Task, related_name="task_start", null=False)  # which task added the connection
+    task_end = p.ForeignKeyField(Task,related_name="task_end", null=True)  # which task ended the connection
+
+    class Meta:
+        database = apfell_db
+
+    def to_json(self):
+        r = {}
+        for k in self._data.keys():
+            try:
+                if k == 'source':
+                    r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+                elif k == 'destination':
+                    r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+                elif k == 'operation':
+                    r[k] = getattr(self, k).name
+                elif k == 'c2_profile':
+                    r[k] = getattr(self, k).name
+                elif k == 'task_start':
+                    r[k] = getattr(self, k).id
+                elif k == 'task_end':
+                    r[k] = getattr(self, k).id
+                elif k == 'metadata':
+                    r[k] = bytes(getattr(self, k)).decode('unicode-escape', errors='backslashreplace').encode('utf-8', errors="backslashreplace").decode()
+                else:
+                    r[k] = getattr(self, k)
+            except:
+                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r['start_timestamp'] = r['start_timestamp'].strftime('%m/%d/%Y %H:%M:%S')
+        if r['end_timestamp'] is not None:
+            r['end_timestamp'] = r['end_timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
 
     def __str__(self):
@@ -1350,15 +1630,22 @@ async def operator_query():
         .join(Operation, p.JOIN.LEFT_OUTER).switch(Operator)
 
 
+async def transformcode_query():
+    return TransformCode.select(TransformCode, Operator)\
+        .join(Operator)
+
+
 async def payloadtype_query():
     return PayloadType.select(PayloadType, Operator)\
         .join(Operator).switch(PayloadType)
 
 
 async def transform_query():
-    return Transform.select(Transform, PayloadType, Operator)\
+    transform_operator = Operator.alias()
+    return Transform.select(Transform, TransformCode, transform_operator, PayloadType, Operator)\
         .join(PayloadType).switch(Transform)\
-        .join(Operator).switch(Transform)
+        .join(Operator).switch(Transform)\
+        .join(TransformCode).join(transform_operator).switch(Transform)
 
 
 async def command_query():
@@ -1399,15 +1686,23 @@ async def payloadtypec2profile_query():
 
 async def payload_query():
     wrap_alias = Payload.alias()
-    return Payload.select(Payload, Operator, PayloadType, C2Profile, Operation, wrap_alias)\
+    return Payload.select(Payload, Operator, PayloadType, Operation, wrap_alias, Task, FileMeta)\
         .join(Operator).switch(Payload)\
         .join(PayloadType).switch(Payload)\
-        .join(C2Profile).switch(Payload)\
         .join(Operation).switch(Payload)\
         .join(wrap_alias, p.JOIN.LEFT_OUTER, on=(
             (Payload.wrapped_payload == wrap_alias.id) &
             (Payload.wrapped_payload.is_null(False))
-            )).switch(Payload)
+            )).switch(Payload)\
+        .join(Task, p.JOIN.LEFT_OUTER).switch(Payload)\
+        .join(FileMeta, p.JOIN.LEFT_OUTER).switch(Payload)
+
+
+async def payloadonhost_query():
+    return PayloadOnHost.select(PayloadOnHost, Payload, Operation, Task)\
+        .join(Payload).switch(PayloadOnHost)\
+        .join(Operation).switch(PayloadOnHost)\
+        .join(Task).switch(PayloadOnHost)
 
 
 async def payloadcommand_query():
@@ -1422,21 +1717,35 @@ async def c2profileparameters_query():
 
 
 async def c2profileparametersinstance_query():
-    return C2ProfileParametersInstance.select(C2ProfileParametersInstance, C2ProfileParameters, C2Profile, Payload, Operation)\
-        .join(C2ProfileParameters).join(C2Profile).switch(C2ProfileParametersInstance)\
+    return C2ProfileParametersInstance.select(C2ProfileParametersInstance, C2ProfileParameters, C2Profile, Payload, Operation, Callback)\
+        .join(C2ProfileParameters).switch(C2ProfileParametersInstance)\
+        .join(C2Profile).switch(C2ProfileParametersInstance)\
         .join(Payload, p.JOIN.LEFT_OUTER).switch(C2ProfileParametersInstance)\
-        .join(Operation, p.JOIN.LEFT_OUTER).switch(C2ProfileParametersInstance)
+        .join(Operation, p.JOIN.LEFT_OUTER).switch(C2ProfileParametersInstance)\
+        .join(Callback, p.JOIN_LEFT_OUTER).switch(C2ProfileParametersInstance)
 
 
 async def callback_query():
     calias = Callback.alias()
     loperator = Operator.alias()
-    return Callback.select(Callback, Operator, Payload, Operation, PayloadType, C2Profile, calias, loperator)\
+    return Callback.select(Callback, Operator, Payload, Operation, PayloadType, calias, loperator)\
         .join(Operator).switch(Callback)\
-        .join(Payload).join(PayloadType).switch(Payload).join(C2Profile).switch(Payload).switch(Callback)\
+        .join(Payload).join(PayloadType).switch(Payload).switch(Callback)\
         .join(Operation).switch(Callback)\
         .join(calias, p.JOIN.LEFT_OUTER, on=(Callback.pcallback).alias('pcallback')).switch(Callback)\
         .join(loperator, p.JOIN_LEFT_OUTER, on=(Callback.locked_operator).alias('locked_operator')).switch(Callback)
+
+
+async def payloadc2profiles_query():
+    return PayloadC2Profiles.select(PayloadC2Profiles, Payload, C2Profile)\
+        .join(Payload).switch(PayloadC2Profiles)\
+        .join(C2Profile).switch(PayloadC2Profiles)
+
+
+async def callbackc2profiles_query():
+    return CallbackC2Profiles.select(CallbackC2Profiles, Callback, C2Profile)\
+        .join(Callback).switch(CallbackC2Profiles)\
+        .join(C2Profile).switch(CallbackC2Profiles)
 
 
 async def loadedcommands_query():
@@ -1481,7 +1790,7 @@ async def response_query():
 async def filemeta_query():
     return FileMeta.select(FileMeta, Operation, Operator, Task)\
         .join(Operation).switch(FileMeta)\
-        .join(Operator).switch(FileMeta)\
+        .join(Operator, p.JOIN.LEFT_OUTER).switch(FileMeta)\
         .join(Task, p.JOIN.LEFT_OUTER).switch(FileMeta)
 
 
@@ -1519,10 +1828,11 @@ async def keylog_query():
 
 
 async def commandtransform_query():
-    return CommandTransform.select(CommandTransform, Command, Operator, Operation, PayloadType)\
+    transform_operator = Operator.alias()
+    return CommandTransform.select(CommandTransform, Command, TransformCode, transform_operator, Operator, PayloadType)\
         .join(Command).join(PayloadType).switch(CommandTransform)\
         .join(Operator).switch(CommandTransform)\
-        .join(Operation).switch(CommandTransform)
+        .join(TransformCode).join(transform_operator).switch(CommandTransform)
 
 
 async def artifact_query():
@@ -1577,6 +1887,30 @@ async def filebrowse_query():
         .join(Operation).switch(FileBrowse)
 
 
+async def operationeventlog_query():
+    return OperationEventLog.select(OperationEventLog, Operator, Operation)\
+        .join(Operator).switch(OperationEventLog)\
+        .join(Operation).switch(OperationEventLog)
+
+
+async def callbackgraphedge_query():
+    destination = Callback.alias()
+    task_end = Task.alias()
+    return CallbackGraphEdge.select(CallbackGraphEdge, Callback, destination, Operation, Task, task_end, C2Profile)\
+        .join(Callback).switch(CallbackGraphEdge)\
+        .join(destination, on=(CallbackGraphEdge.destination).alias('destination')).switch(CallbackGraphEdge)\
+        .join(Operation).switch(CallbackGraphEdge)\
+        .join(Task).switch(CallbackGraphEdge)\
+        .join(task_end, p.JOIN.LEFT_OUTER, on=(CallbackGraphEdge.task_end).alias('task_end')).switch(CallbackGraphEdge)\
+        .join(C2Profile).switch(CallbackGraphEdge)
+
+
+async def transforminstance_query():
+    return TransformInstance.select(TransformInstance, TransformCode, Operator, Payload)\
+        .join(Payload).switch(TransformInstance)\
+        .join(TransformCode).join(Operator).switch(TransformInstance)
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = ['callback', 'task', 'payload', 'c2profile', 'operator', 'operation', 'payloadtype',
@@ -1584,7 +1918,9 @@ def pg_register_newinserts():
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'response', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate',
                'taskartifact', 'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile',
-               'disabledcommands', 'processlist', 'filebrowse', 'browserscriptoperation']
+               'disabledcommands', 'processlist', 'filebrowse', 'browserscriptoperation',
+               'operationeventlog', 'callbackgraphedge', 'transforminstance', 'payloadc2profiles',
+               'callbackc2profiles', 'payloadonhost', 'transformcode']
     for table in inserts:
         create_function_on_insert = "DROP FUNCTION IF EXISTS notify_new" + table + "() cascade;" + \
                                     "CREATE FUNCTION notify_new" + table + \
@@ -1606,7 +1942,8 @@ def pg_register_updates():
                'attack', 'credential', 'keylog', 'commandparameters', 'transform', 'loadedcommands',
                'commandtransform', 'attackcommand', 'attacktask', 'artifact', 'artifacttemplate', 'taskartifact',
                'staginginfo', 'apitokens', 'browserscript', 'disabledcommandsprofile', 'disabledcommands',
-               'processlist', 'filebrowse', 'browserscriptoperation']
+               'processlist', 'filebrowse', 'browserscriptoperation', 'callbackgraphedge', 'callbackc2profiles',
+               'payloadonhost', 'transformcode']
     for table in updates:
         create_function_on_changes = "DROP FUNCTION IF EXISTS notify_updated" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_updated" + table + \
@@ -1623,7 +1960,7 @@ def pg_register_updates():
 
 
 def pg_register_deletes():
-    updates = ['command', 'commandparameters', 'commandtransform', 'disabledcommands', 'browserscriptoperation']
+    updates = ['commandparameters', 'commandtransform', 'disabledcommands', 'browserscriptoperation', 'credential']
     for table in updates:
         create_function_on_deletes = "DROP FUNCTION IF EXISTS notify_deleted" + table + "() cascade;" + \
                                      "CREATE FUNCTION notify_deleted" + table + \
@@ -1642,6 +1979,7 @@ def pg_register_deletes():
 # don't forget to add in a new truncate command in database_api.py to clear the rows if you add a new table
 Operator.create_table(True)
 PayloadType.create_table(True)
+TransformCode.create_table(True)
 Command.create_table(True)
 CommandParameters.create_table(True)
 Operation.create_table(True)
@@ -1651,6 +1989,7 @@ OperatorOperation.create_table(True)
 C2Profile.create_table(True)
 PayloadTypeC2Profile.create_table(True)
 Payload.create_table(True)
+PayloadOnHost.create_table(True)
 Callback.create_table(True)
 Task.create_table(True)
 Response.create_table(True)
@@ -1658,12 +1997,15 @@ FileMeta.create_table(True)
 PayloadCommand.create_table(True)
 C2ProfileParameters.create_table(True)
 C2ProfileParametersInstance.create_table(True)
+PayloadC2Profiles.create_table(True)
+CallbackC2Profiles.create_table(True)
 ATTACK.create_table(True)
 ATTACKCommand.create_table(True)
 ATTACKTask.create_table(True)
 Credential.create_table(True)
 Keylog.create_table(True)
 Transform.create_table(True)
+TransformInstance.create_table(True)
 LoadedCommands.create_table(True)
 CommandTransform.create_table(True)
 Artifact.create_table(True)
@@ -1675,6 +2017,8 @@ BrowserScript.create_table(True)
 BrowserScriptOperation.create_table(True)
 ProcessList.create_table(True)
 FileBrowse.create_table(True)
+OperationEventLog.create_table(True)
+CallbackGraphEdge.create_table(True)
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()

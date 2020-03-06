@@ -15,22 +15,11 @@ exports.list_users = function(task, command, params){
             groups = data['groups'];
         }
 	}
-	if(method === "jxa"){
-		let users = Application("System Events").users;
-		for (let i = 0; i < users.length; i++){
-			let info = "Name: " + users[i].name() +
-			"\nFullName: " + users[i].fullName() +
-			"\nhomeDirectory: " + users[i].homeDirectory() +
-			"\npicturePath: " + users[i].picturePath();
-			all_users.push(info);
-		}
-		return JSON.stringify({"user_output":JSON.stringify(all_users, null, 2), "completed": true});
-	}
-	else if(method === "api"){
+    if(method === "api"){
         ObjC.import('Collaboration');
         ObjC.import('CoreServices');
-        ObjC.bindFunction('CFMakeCollectable', ['id', ['void*']]);
-        if(gid === -1){
+        //ObjC.bindFunction('CFMakeCollectable', ['id', ['void*']]);
+        if(gid < 0){
             let defaultAuthority = $.CSGetLocalIdentityAuthority();
             let identityClass = 2;
             if(groups){
@@ -44,10 +33,8 @@ exports.list_users = function(task, command, params){
             $.CSIdentityQueryExecute(query, 0, error);
             let results = $.CSIdentityQueryCopyResults(query);
             let numResults = parseInt($.CFArrayGetCount(results));
-            results = $.CFMakeCollectable(results);
-            results = results.js;
             for(let i = 0; i < numResults; i++){
-                let identity = results[i];
+                let identity = results.objectAtIndex(i);//results[i];
                 let idObj = $.CBIdentity.identityWithCSIdentity(identity);
                 if(groups){
                     //if we're looking at groups, then we have a different info to print out
@@ -105,10 +92,10 @@ exports.list_users = function(task, command, params){
                 all_users.push(info);
             }
         }
-        return JSON.stringify({"user_output":JSON.stringify(all_users, null, 2), "completed": true});
+        return {"user_output":JSON.stringify(all_users, null, 2), "completed": true};
 	}
 	else{
-	    return JSON.stringify({"user_output":"Method not known", "completed": true, "status": "error"});
+	    return {"user_output":"Method not known", "completed": true, "status": "error"};
 	}
 };
 COMMAND_ENDS_HERE

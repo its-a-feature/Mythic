@@ -1,3 +1,4 @@
+document.title = "Reporting Artifacts";
 var artifacts_table = new Vue({
     el: '#artifacts_table',
     data: {

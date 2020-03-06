@@ -106,9 +106,9 @@ async def remove_credential(request, user, id):
         except Exception as e:
             print(e)
             return json({'status': 'error', 'error': 'failed to find that credential'})
-        cred_json = credential.to_json()
-        await db_objects.delete(credential)
-        return json({'status': 'success', **cred_json})
+        credential.deleted = True
+        await db_objects.update(credential)
+        return json({'status': 'success', **credential.to_json()})
     else:
         return json({'status': 'error', 'error': "must be part of a current operation"})
 

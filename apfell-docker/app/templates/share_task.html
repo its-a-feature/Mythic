@@ -3,7 +3,7 @@
 <br>
 <div style="resize: vertical; overflow:auto;" class="card border border-dark shadow bg-card-body" id="task_info">
     <div class="card-header bg-header border border-dark shadow text-white">
-        <h2><span class="operator">Task {{tid}}</span> [[callback.user]]@[[callback.host]]([[callback.pid]])</h2>
+        <h2><span class="operator">Task {{tid}}</span> [[callback.user]]@[[callback.host]]([[callback.pid]]) - Callback <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + callback.id">[[callback.id]]</a></h2>
     </div>
     <div class="card-body response-background border border-dark shadow" style="word-wrap: break-word">
         <template v-if="task.comment != ''">

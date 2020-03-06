@@ -1,1 +1,0 @@
-From payload_type_base

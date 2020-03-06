@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block body %}
-<div id="screencapture_div">
-    <div class="card border border-dark shadow" style="resize: vertical; overflow:scroll;margin:30px;max-height:calc(90vh)">
+<div id="screencapture_div" style="margin-top:5px">
+    <div class="card border border-dark shadow" style="overflow-y:scroll;max-height:calc(90vh)">
         <div  class="card-header bg-header border border-dark shadow text-white">
             <h2><span class="operator">Screencaptures</span></h2>
         </div>
-        <table class="table table-striped table-hover {{config['table-color']}} border border-dark shadow">
+        <table class="table table-striped table-hover {{config['table-color']}} border border-dark shadow" style="margin-bottom: 0">
             <tr>
-                <th onclick="sort_table(this)">Task</th>
-                <th onclick="sort_table(this)">Host</th>
-                <th onclick="sort_table(this)">Operator</th>
-                <th>Timestamp</th>
-                <th onclick="sort_table(this)">Completed</th>
-                <th onclick="sort_table(this)">Callback</th>
-                <th>Comment</th>
+                <th style="text-align:left" onclick="sort_table(this)">Task</th>
+                <th style="text-align:left" onclick="sort_table(this)">Host</th>
+                <th style="text-align:left" onclick="sort_table(this)">Operator</th>
+                <th style="text-align:left">Timestamp</th>
+                <th style="text-align:left" onclick="sort_table(this)">Completed</th>
+                <th style="text-align:left" onclick="sort_table(this)">Callback</th>
+                <th style="text-align:left">Comment</th>
                 <th>View</th>
                 <th>Download</th>
             </tr>

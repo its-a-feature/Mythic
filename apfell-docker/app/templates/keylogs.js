@@ -1,3 +1,4 @@
+document.title = "Keylogs";
 var keylog = new Vue({
     el: '#keylog_div',
     delimiters: ['[[',']]'],

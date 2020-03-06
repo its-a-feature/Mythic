@@ -13,19 +13,19 @@ exports.current_user = function(task, command, params){
             "\nFullName: " + user.fullName() +
             "\nhomeDirectory: " + user.homeDirectory() +
             "\npicturePath: " + user.picturePath();
-            return JSON.stringify({"user_output":info, "completed": true});
+            return {"user_output":info, "completed": true};
         }
         else if(method === "api"){
             let output = "\nUserName: " + $.NSUserName().js +
             "\nFull UserName: " + $.NSFullUserName().js +
             "\nHome Directory: " + $.NSHomeDirectory().js;
-            return JSON.stringify({"user_output":output, "completed": true});
+            return {"user_output":output, "completed": true};
         }
         else{
-            return JSON.stringify({"user_output":"Method not supported", "completed": true, "status": "error"});
+            return {"user_output":"Method not supported", "completed": true, "status": "error"};
         }
     }catch(error){
-        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+        return {"user_output":error.toString(), "completed": true, "status": "error"};
     }
 };
 COMMAND_ENDS_HERE

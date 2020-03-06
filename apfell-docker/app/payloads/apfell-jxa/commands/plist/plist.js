@@ -82,7 +82,7 @@ exports.plist = function(task, command, params){
                         }
                     }
                 }catch(error){
-                    return JSON.stringify({"user_output":"Error trying to read ~/Library/LaunchAgents: " + error.toString(), "completed": true, "status": "error"});
+                    return {"user_output":"Error trying to read ~/Library/LaunchAgents: " + error.toString(), "completed": true, "status": "error"};
                 }
                 path = "/Library/LaunchAgents/";
                 files = fileManager.contentsOfDirectoryAtPathError($(path), error);
@@ -132,7 +132,7 @@ exports.plist = function(task, command, params){
                     }
                 }
                 catch(error){
-                    return JSON.stringify({"user_output":"Error trying to read /Library/LaunchAgents: " + error.toString(), "completed": true, "status": "error"});
+                    return {"user_output":"Error trying to read /Library/LaunchAgents: " + error.toString(), "completed": true, "status": "error"};
                 }
             }
             else if(config['type'] === "readLaunchDaemons"){
@@ -148,6 +148,7 @@ exports.plist = function(task, command, params){
                     for(let i in files){
                         let prefs = $.NSMutableDictionary.alloc.initWithContentsOfFile(path + files[i]);
                         let contents = ObjC.deepUnwrap(prefs);
+                        if(contents === undefined){ contents = {};}
                         let plistPerms = ObjC.unwrap(fileManager.attributesOfItemAtPathError($(path + files[i]), $()));
                         let nsposix = {};
                         let posix = "";
@@ -188,15 +189,15 @@ exports.plist = function(task, command, params){
                     }
                 }
                 catch(error){
-                    return JSON.stringify({"user_output":"Failed to read launch daemons: " + error.toString(), "completed": true, "status": "error"});
+                    return {"user_output":"Failed to read launch daemons: " + error.toString(), "completed": true, "status": "error"};
                 }
             }
-            return JSON.stringify({"user_output":JSON.stringify(output, null, 2), "completed": true});
+            return {"user_output":JSON.stringify(output, null, 2), "completed": true};
         }catch(error){
-            return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+            return {"user_output":error.toString(), "completed": true, "status": "error"};
         }
     }catch(error){
-        return JSON.stringify({"user_output":error.toString(), "completed": true, "status": "error"});
+        return {"user_output":error.toString(), "completed": true, "status": "error"};
     }
 };
 COMMAND_ENDS_HERE

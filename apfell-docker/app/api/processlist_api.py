@@ -56,12 +56,13 @@ async def get_a_process_list(request, user, pid, host):
         if len(process_list) != 0:
             process_list = process_list[0]
         else:
-            return json({'status': 'success', 'process_list': {}})
+            return json({'status': 'success', 'process_list': {}, 'tree_list': {}})
     plist = process_list.to_json()
+    plist['process_list'] = js.loads(bytes(process_list.process_list))
     try:
-        tree_list = await get_process_tree(js.loads(plist['process_list']))
+        tree_list = await get_process_tree(js.loads(bytes(process_list.process_list)))
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         tree_list = {}
     return json({'status': 'success', 'process_list': plist, 'tree_list':  tree_list})
 
@@ -116,50 +117,58 @@ async def get_adjacent_process_list(request, user):
         except Exception as e:
             return json({'status': 'error', 'error': 'No later process lists for this host'})
     plist = process_list.to_json()
+    plist['process_list'] = js.loads(bytes(process_list.process_list))
     try:
-        tree = await get_process_tree(js.loads(plist['process_list']))
+        tree = await get_process_tree(js.loads(bytes(process_list.process_list)))
     except Exception as e:
-        print(e)
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         tree = {}
     return json({'status': 'success', 'process_list': plist, 'tree_list': tree})
 
 
 async def get_process_tree(pl):
-    tree = {}
-    #print(pl)
-    if not isinstance(pl, list):
-        return {}
-    if len(pl) == 0 or 'process_id' not in pl[0]:
+    try:
+        tree = {}
+        #print(pl)
+        if not isinstance(pl, list):
+            return {}
+        if len(pl) == 0 or 'process_id' not in pl[0]:
+            return tree
+        pl_dict = {x['process_id']: x for x in pl}
+        sorted_keys = sorted(pl_dict.keys())
+        tree[sorted_keys[0]] = {**pl_dict[sorted_keys[0]], 'children': {}}
+        for p in sorted_keys[1:]:
+            if 'parent_process_id' in pl_dict[p]:
+                #print(pl_dict[p])
+                await add_proc(tree, pl_dict[p])
+            else:
+                tree[p] = {**pl_dict[p], 'children': {}}
+        # do one final pass to check for pid reuse
+        root_keys = list(tree.keys())
+        for p in root_keys:
+            element = tree.pop(p)
+            await add_proc(tree, element)
         return tree
-    pl_dict = {x['process_id']: x for x in pl}
-    sorted_keys = sorted(pl_dict.keys())
-    tree[sorted_keys[0]] = {**pl_dict[sorted_keys[0]], 'children': {}}
-    for p in sorted_keys[1:]:
-        if 'parent_process_id' in pl_dict[p]:
-            #print(pl_dict[p])
-            await add_proc(tree, pl_dict[p])
-        else:
-            tree[p] = {**pl_dict[p], 'children': {}}
-    # do one final pass to check for pid reuse
-    root_keys = list(tree.keys())
-    for p in root_keys:
-        element = tree.pop(p)
-        await add_proc(tree, element)
-    return tree
+    except Exception as e:
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return {}
 
 
 async def add_proc(tree, p):
-    # do a breadth-first search to find p['parent_process_id'] in tree
-    procs = [tree]
-    while procs:
-        cur_tree = procs[0]
-        procs = procs[1:]  # remove the current one from the array
-        if p['parent_process_id'] in cur_tree:
-            cur_tree[p['parent_process_id']]['children'][p['process_id']] = {'children': {}, **p}
-            return
-        else:
-            for (pid, data) in cur_tree.items():
-                procs.append(cur_tree[pid]['children'])
-    # if we get here, we failed to find p['parent_process_id'] in our tree, so add it as a root node
-    tree[p['process_id']] = {'children': {}, **p}
+    try:
+        # do a breadth-first search to find p['parent_process_id'] in tree
+        procs = [tree]
+        while procs:
+            cur_tree = procs[0]
+            procs = procs[1:]  # remove the current one from the array
+            if p['parent_process_id'] in cur_tree:
+                cur_tree[p['parent_process_id']]['children'][p['process_id']] = {'children': {}, **p}
+                return
+            else:
+                for (pid, data) in cur_tree.items():
+                    procs.append(cur_tree[pid]['children'])
+        # if we get here, we failed to find p['parent_process_id'] in our tree, so add it as a root node
+        tree[p['process_id']] = {'children': {}, **p}
+    except Exception as e:
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
 

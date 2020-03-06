@@ -20,7 +20,7 @@ async def get_all_commands(request, user):
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     all_commands = []
     query = await db_model.command_query()
-    commands = await db_objects.execute(query.order_by(Command.id))
+    commands = await db_objects.execute(query.where(Command.deleted == False).order_by(Command.id))
     for cmd in commands:
         query = await db_model.commandparameters_query()
         params = await db_objects.execute(query.where(CommandParameters.command == cmd).order_by(CommandParameters.id))
@@ -216,7 +216,7 @@ async def check_command(request, user, ptype, cmd):
         return json({'status': 'error', 'error': 'failed to get payload type'})
     try:
         query = await db_model.command_query()
-        command = await db_objects.get(query, cmd=cmd, payload_type=payload_type)
+        command = await db_objects.get(query, cmd=cmd, payload_type=payload_type, deleted=False)
         query = await db_model.commandparameters_query()
         params = await db_objects.execute(query.where(CommandParameters.command == command))
         query = await db_model.attackcommand_query()
@@ -262,8 +262,10 @@ async def remove_command(request, user, id):
         query = await db_model.commandtransform_query()
         transforms = await db_objects.execute(query.where(CommandTransform.command == command))
         for t in transforms:
-            await db_objects.delete(t, recursive=True)
-        await db_objects.delete(command, recursive=True)
+            await db_objects.delete(t)
+        command.deleted = True
+        command.cmd = command.cmd + " (deleted " + str(command.id) + ")"
+        await db_objects.update(command)
         try:
             shutil.rmtree("./app/payloads/{}/commands/{}".format(cmd_json['payload_type'], cmd_json['cmd']))
         except Exception as e:
@@ -282,8 +284,8 @@ async def update_command(request, user, id):
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     updated_command = False
     try:
-        query = await db_model.command_query()
-        command = await db_objects.get(query, id=id)
+        cmdquery = await db_model.command_query()
+        command = await db_objects.get(cmdquery, id=id)
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
@@ -293,6 +295,26 @@ async def update_command(request, user, id):
         data = js.loads(request.form.get('json'))
     else:
         data = request.json
+    if 'cmd' in data and data['cmd'] != command.cmd:
+        # this means we're trying to change the name of the command
+        try:
+            matching_command = await db_objects.get(cmdquery, cmd=data['cmd'], payload_type=command.payload_type)
+            return json({'status': 'error', 'error': 'command by that name already exists'})
+        except Exception as e:
+            # it doesn't exist, so we can change it
+            # now update the file system representation
+            if os.path.exists("./app/payloads/{}/commands/{}/{}{}".format(command.payload_type.ptype, command.cmd, command.cmd,
+                                                                          "." + command.payload_type.file_extension if command.payload_type.file_extension != "" else "")):
+                os.rename("./app/payloads/{}/commands/{}/{}{}".format(command.payload_type.ptype, command.cmd, command.cmd,
+                                                                          "." + command.payload_type.file_extension if command.payload_type.file_extension != "" else ""),
+                          "./app/payloads/{}/commands/{}/{}{}".format(command.payload_type.ptype, command.cmd,
+                                                                      data['cmd'],
+                                                                      "." + command.payload_type.file_extension if command.payload_type.file_extension != "" else "")
+                          )
+            os.rename("./app/payloads/{}/commands/{}".format(command.payload_type.ptype, command.cmd),
+                      "./app/payloads/{}/commands/{}".format(command.payload_type.ptype, data['cmd'])
+                      )
+            command.cmd = data['cmd']
     if "description" in data and data['description'] != command.description:
         command.description = data['description']
     if "needs_admin" in data and data['needs_admin'] != command.needs_admin:
@@ -303,7 +325,7 @@ async def update_command(request, user, id):
         query = await db_model.command_query()
         try:
             exit_commands = await db_objects.execute(
-                query.where((Command.is_exit == True) & (Command.payload_type == command.payload_type)))
+                query.where((Command.is_exit == True) & (Command.payload_type == command.payload_type) & (Command.deleted == False)))
             # one is already set, so set it to false
             for e in exit_commands:
                 e.is_exit = False
@@ -318,7 +340,7 @@ async def update_command(request, user, id):
         query = await db_model.command_query()
         try:
             file_commands = await db_objects.execute(
-                query.where((Command.is_file_browse == True) & (Command.payload_type == command.payload_type)))
+                query.where((Command.is_file_browse == True) & (Command.payload_type == command.payload_type) & (Command.deleted == False)))
             # one is already set, so set it to false
             for e in file_commands:
                 e.is_file_browse = False
@@ -339,7 +361,7 @@ async def update_command(request, user, id):
         query = await db_model.command_query()
         try:
             file_commands = await db_objects.execute(
-                query.where((Command.is_process_list == True) & (Command.payload_type == command.payload_type)))
+                query.where((Command.is_process_list == True) & (Command.payload_type == command.payload_type) & (Command.deleted == False)))
             # one is already set, so set it to false
             for e in file_commands:
                 e.is_process_list = False
@@ -360,7 +382,7 @@ async def update_command(request, user, id):
         query = await db_model.command_query()
         try:
             file_commands = await db_objects.execute(
-                query.where((Command.is_download_file == True) & (Command.payload_type == command.payload_type)))
+                query.where((Command.is_download_file == True) & (Command.payload_type == command.payload_type) & (Command.deleted == False)))
             # one is already set, so set it to false
             for e in file_commands:
                 e.is_download_file = False
@@ -381,7 +403,7 @@ async def update_command(request, user, id):
         query = await db_model.command_query()
         try:
             file_commands = await db_objects.execute(
-                query.where((Command.is_remove_file == True) & (Command.payload_type == command.payload_type)))
+                query.where((Command.is_remove_file == True) & (Command.payload_type == command.payload_type) & (Command.deleted == False)))
             # one is already set, so set it to false
             for e in file_commands:
                 e.is_remove_file = False
@@ -395,6 +417,9 @@ async def update_command(request, user, id):
     elif data['is_remove_file'] is False and command.is_remove_file:
         command.is_remove_file = False
         command.remove_file_parameters = ""
+        await db_objects.update(command)
+    if 'is_agent_generator' in data:
+        command.is_agent_generator = data['is_agent_generator']
         await db_objects.update(command)
     if request.files and not command.payload_type.external:
         updated_command = True
@@ -432,8 +457,8 @@ async def create_command(request, user):
     else:
         data = request.json
     resp = await create_command_func(data, user)
-    os.makedirs("./app/payloads/{}/commands/{}".format(resp['payload_type'], resp['cmd']), exist_ok=True)
     if request.files and resp['status'] == "success":
+        os.makedirs("./app/payloads/{}/commands/{}".format(resp['payload_type'], resp['cmd']), exist_ok=True)
         cmd_code = request.files['upload_file'][0].body
         cmd_file = open("./app/payloads/{}/commands/{}/{}".format(resp['payload_type'], resp['cmd'], request.files['upload_file'][0].name), "wb")
         # cmd_code = base64.b64decode(data['code'])
@@ -459,7 +484,7 @@ async def create_command_func(data, user):
         return {'status': 'error', 'error': '"help_cmd" is a required field'}
     if "description" not in data:
         return {'status': 'error', 'error': '"description" is a required field'}
-    if "cmd" not in data:
+    if "cmd" not in data or data['cmd'] == "" or data['cmd'] is None:
         return {'status': 'error', 'error': '"cmd" is a required field'}
     if "payload_type" not in data:
         return {'status': 'error', 'error': '"payload_type" is a required field'}
@@ -474,7 +499,7 @@ async def create_command_func(data, user):
         if data['is_exit'] is True:
             query = await db_model.command_query()
             try:
-                exit_command = await db_objects.execute(query.where( (Command.is_exit == True) & (Command.payload_type == payload_type)))
+                exit_command = await db_objects.execute(query.where( (Command.is_exit == True) & (Command.payload_type == payload_type) & (Command.deleted == False)))
                 # one is already set, so set it to false
                 for e in exit_command:
                     e.is_exit = False
@@ -488,7 +513,7 @@ async def create_command_func(data, user):
         if 'is_file_browse' in data and data['is_file_browse'] is True:
             query = await db_model.command_query()
             try:
-                file_command = await db_objects.execute(query.where( (Command.is_file_browse == True) & (Command.payload_type == payload_type)))
+                file_command = await db_objects.execute(query.where( (Command.is_file_browse == True) & (Command.payload_type == payload_type) & (Command.deleted == False)))
                 # one is already set, so set it to false
                 for e in file_command:
                     e.is_file_browse = False
@@ -503,7 +528,7 @@ async def create_command_func(data, user):
         if 'is_process_list' in data and data['is_process_list'] is True:
             query = await db_model.command_query()
             try:
-                list_command = await db_objects.execute(query.where( (Command.is_process_list == True) & (Command.payload_type == payload_type)))
+                list_command = await db_objects.execute(query.where( (Command.is_process_list == True) & (Command.payload_type == payload_type) & (Command.deleted == False)))
                 # one is already set, so set it to false
                 for e in list_command:
                     e.is_process_list = False
@@ -518,7 +543,7 @@ async def create_command_func(data, user):
         if 'is_download_file' in data and data['is_download_file'] is True:
             query = await db_model.command_query()
             try:
-                download_command = await db_objects.execute(query.where( (Command.is_download_file == True) & (Command.payload_type == payload_type)))
+                download_command = await db_objects.execute(query.where( (Command.is_download_file == True) & (Command.payload_type == payload_type) & (Command.deleted == False)))
                 # one is already set, so set it to false
                 for e in download_command:
                     e.is_download_file = False
@@ -533,7 +558,7 @@ async def create_command_func(data, user):
         if 'is_remove_file' in data and data['is_remove_file'] is True:
             query = await db_model.command_query()
             try:
-                remove_commands = await db_objects.execute(query.where( (Command.is_remove_file == True) & (Command.payload_type == payload_type)))
+                remove_commands = await db_objects.execute(query.where( (Command.is_remove_file == True) & (Command.payload_type == payload_type) & (Command.deleted == False)))
                 # one is already set, so set it to false
                 for e in remove_commands:
                     e.is_remove_file = False
@@ -545,15 +570,19 @@ async def create_command_func(data, user):
             command.is_remove_file = True
             command.remove_file_parameters = data['remove_file_parameters'] if 'remove_file_parameters' in data else "*"
             await db_objects.update(command)
-        if not payload_type.external and 'code' in data:
+        if 'is_agent_generator' in data and data['is_agent_generator'] is True:
+            command.is_agent_generator = True
+            await db_objects.update(command)
+        if 'code' in data:
+            data['code'] = base64.b64decode(data['code']).decode()
+        if not payload_type.external and 'code' in data and data['code'].rstrip() != "":
             dir_path = os.path.abspath("./app/payloads/{}/commands/{}".format(payload_type.ptype,command.cmd))
             base_path = os.path.abspath("./app/payloads/{}/commands/".format(payload_type.ptype))
             if base_path in dir_path:
                 os.makedirs("./app/payloads/{}/commands/{}".format(payload_type.ptype,command.cmd), exist_ok=True)
                 cmd_file = open("./app/payloads/{}/commands/{}/{}.{}".format(
-                    payload_type.ptype, command.cmd, command.cmd, payload_type.file_extension), "wb")
-                cmd_code = base64.b64decode(data['code'])
-                cmd_file.write(cmd_code)
+                    payload_type.ptype, command.cmd, command.cmd, payload_type.file_extension), "w")
+                cmd_file.write(data['code'])
                 cmd_file.close()
         status = {'status': 'success'}
         cmd_json = command.to_json()

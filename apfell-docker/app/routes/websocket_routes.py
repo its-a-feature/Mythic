@@ -51,7 +51,7 @@ async def ws_tasks(request, ws):
         pool.close()
 
 
-@apfell.websocket('/ws/tasks/current_operation')
+@apfell.websocket('/ws/task_feed/current_operation')
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def ws_tasks_current_operation(request, ws, user):
@@ -67,7 +67,8 @@ async def ws_tasks_current_operation(request, ws, user):
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.task_query()
-                        initial_tasks = await db_objects.execute(query.where(Callback.operation == operation))
+                        # to avoid being too slow, just get the latest 200
+                        initial_tasks = await db_objects.execute(query.where(Callback.operation == operation).order_by(Task.timestamp).limit(200))
                         for t in initial_tasks:
                             await ws.send(js.dumps({**t.to_json(), 'host': t.callback.host, 'user': t.callback.user}))
                         await ws.send("")
@@ -193,9 +194,27 @@ async def ws_callbacks_current_operation(request, ws, user):
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.callback_query()
-                        callbacks_with_operators = await db_objects.execute(query.where(Callback.operation == operation).order_by(Callback.id))
+                        callbackc2profilequery = await db_model.callbackc2profiles_query()
+                        c2profileparametersinstancequery = await db_model.c2profileparametersinstance_query()
+                        callbacks_with_operators = await db_objects.execute(query.where(
+                            (Callback.operation == operation) & (Callback.active == True)
+                        ).order_by(Callback.id))
                         for cb in callbacks_with_operators:
-                            await ws.send(js.dumps(cb.to_json()))
+                            cb_json = cb.to_json()
+                            callbackc2profiles = await db_objects.execute(
+                                callbackc2profilequery.where(db_model.CallbackC2Profiles.callback == cb))
+                            c2_profiles_info = []
+                            for c2p in callbackc2profiles:
+                                profile_info = {"name": c2p.c2_profile.name, "is_p2p": c2p.c2_profile.is_p2p, "parameters": {}}
+                                c2_profile_params = await db_objects.execute(c2profileparametersinstancequery.where(
+                                    (db_model.C2ProfileParametersInstance.callback == cb) &
+                                    (db_model.C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+                                ))
+                                for param in c2_profile_params:
+                                    profile_info['parameters'][param.c2_profile_parameters.key] = param.value
+                                c2_profiles_info.append(profile_info)
+                            cb_json['supported_profiles'] = c2_profiles_info
+                            await ws.send(js.dumps(cb_json))
                         await ws.send("")
                         # now pull off any new callbacks we got queued up while processing the old data
                         while True:
@@ -203,9 +222,22 @@ async def ws_callbacks_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = (msg.payload)
-                                query = await db_model.callback_query()
                                 cb = await db_objects.get(query, id=id, operation=operation)
-                                await ws.send(js.dumps(cb.to_json()))
+                                cb_json = cb.to_json()
+                                callbackc2profiles = await db_objects.execute(
+                                    callbackc2profilequery.where(db_model.CallbackC2Profiles.callback == cb))
+                                c2_profiles_info = []
+                                for c2p in callbackc2profiles:
+                                    profile_info = {"name": c2p.c2_profile.name, "is_p2p": c2p.c2_profile.is_p2p, "parameters": {}}
+                                    c2_profile_params = await db_objects.execute(c2profileparametersinstancequery.where(
+                                        (db_model.C2ProfileParametersInstance.callback == cb) &
+                                        (db_model.C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+                                    ))
+                                    for param in c2_profile_params:
+                                        profile_info['parameters'][param.c2_profile_parameters.key] = param.value
+                                    c2_profiles_info.append(profile_info)
+                                cb_json['supported_profiles'] = c2_profiles_info
+                                await ws.send(js.dumps(cb_json))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(0.5)
                                 await ws.send("") # this is our test to see if the client is still there
@@ -224,7 +256,7 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
     if not await valid_origin_header(request):
         return
     try:
-        print("opened socket on webserver for " + str(cid))
+        # print("opened socket on webserver for " + str(cid))
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
@@ -232,12 +264,17 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                     await cur.execute('LISTEN "newtask";')
                     await cur.execute('LISTEN "updatedtask";')
                     await cur.execute('LISTEN "newresponse";')
+                    await cur.execute('LISTEN "newfilemeta";')
+                    await cur.execute('LISTEN "updatedfilemeta";')
                     if user['current_operation'] != "":
                         # before we start getting new things, update with all of the old data
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
-                        query = await db_model.callback_query()
-                        callback = await db_objects.get(query, operation=operation, id=cid)
+                        callbackquery = await db_model.callback_query()
+                        callback = await db_objects.get(callbackquery, operation=operation, id=cid)
+                        taskquery = await db_model.task_query()
+                        filemetaquery = await db_model.filemeta_query()
+                        responsequery = await db_model.response_query()
                         await ws.send("")
                         # now pull off any new callbacks we got queued up while processing the old data
                         while True:
@@ -249,30 +286,38 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                                 if msg.channel == "updatedcallback":
                                     if str(id) != str(callback.id):
                                         continue
-                                    query = await db_model.callback_query()
-                                    obj = await db_objects.get(query, id=id, operation=operation)
+                                    obj = await db_objects.get(callbackquery, id=id, operation=operation)
+                                    obj_json = obj.to_json()
                                 elif "task" in msg.channel:
-                                    query = await db_model.task_query()
-                                    obj = await db_objects.get(query, id=id)
-                                    if obj.callback.id != callback.id:
-                                        continue
+                                    obj = await db_objects.get(taskquery, id=id, callback=callback)
+                                    obj_json = obj.to_json()
+                                elif "filemeta" in msg.channel:
+                                    obj = await db_objects.get(filemetaquery, id=id, operation=operation)
+                                    obj_json = obj.to_json()
+                                    if obj.task is not None:
+                                        obj_json['callback_id'] = obj.task.callback.id
+                                    else:
+                                        obj_json['callback_id'] = 0
                                 else:
-                                    query = await db_model.response_query()
-                                    obj = await db_objects.get(query, id=id)
+                                    obj = await db_objects.get(responsequery, id=id)
                                     if obj.task.callback.id != callback.id:
                                         continue
-                                message = {**obj.to_json(), "channel": msg.channel}
-                                await ws.send(js.dumps(message))
+                                    obj_json = obj.to_json()
+                                # print(obj)
+                                obj_json["channel"] = msg.channel
+                                await ws.send(js.dumps(obj_json))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(0.5)
-                                await ws.send("") # this is our test to see if the client is still there
+                                await ws.send("")  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(msg)
-                                print(str(sys.exc_info()[-1].tb_lineno) + str(e))
+                                if 'Notify(' in str(msg):
+                                    continue
+                                else:
+                                    print(str(sys.exc_info()[-1].tb_lineno) + str(e) + " " + str(msg))
                                 continue
     finally:
-        print("closed socket on webserver for " + str(cid))
+        # print("closed socket on webserver for " + str(cid))
         pool.close()
 
 
@@ -317,25 +362,36 @@ async def ws_updated_callbacks(request, ws, user):
 async def ws_callbacks_updated_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-
     try:
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "updatedcallback";')
+                    await cur.execute('LISTEN "newcallbackc2profiles";')
                     if user['current_operation'] != "":
                         # just want updates, not anything else
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
+                        updatedcallbackquery = await db_model.callback_query()
+                        newcallbackc2profilequery = await db_model.callbackc2profiles_query()
                         while True:
                             # msg = await conn.notifies.get()
                             try:
                                 msg = conn.notifies.get_nowait()
                                 # print("got an update for a callback")
                                 id = (msg.payload)
-                                query = await db_model.callback_query()
-                                cb = await db_objects.get(query, id=id, operation=operation)
-                                await ws.send(js.dumps(cb.to_json()))
+                                if 'profiles' in msg.channel:
+                                    profile = await db_objects.get(newcallbackc2profilequery.where(
+                                        (db_model.CallbackC2Profiles.id == id) &
+                                        (db_model.Callback.operation == operation)
+                                    ))
+                                    obj = profile.to_json()
+                                    obj['channel'] = 'newcallbackc2profiles'
+                                else:
+                                    callback = await db_objects.get(updatedcallbackquery, id=id, operation=operation)
+                                    obj = callback.to_json()
+                                    obj['channel'] = 'updatedcallback'
+                                await ws.send(js.dumps(obj))
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(0.5)
                                 await ws.send("") # this is our test to see if the client is still there
@@ -362,7 +418,9 @@ async def ws_payloads(request, ws):
                     await cur.execute('LISTEN "newpayload";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     query = await db_model.payload_query()
-                    payloads = await db_objects.execute(query.order_by(Payload.id))
+                    payloads = await db_objects.execute(query.where(
+                        Payload.auto_generated == False
+                    ).order_by(Payload.id))
                     for p in payloads:
                         await ws.send(js.dumps(p.to_json()))
                     await ws.send("")
@@ -372,7 +430,7 @@ async def ws_payloads(request, ws):
                             msg = conn.notifies.get_nowait()
                             id = (msg.payload)
                             query = await db_model.payload_query()
-                            p = await db_objects.get(query, id=id)
+                            p = await db_objects.get(query, id=id, auto_generated=False)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -404,7 +462,11 @@ async def ws_payloads_current_operation(request, ws, user):
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.payload_query()
-                        payloads = await db_objects.execute(query.where( (Payload.operation == operation) & (Payload.deleted == False)).order_by(Payload.id))
+                        payloads = await db_objects.execute(query.where(
+                            (Payload.operation == operation) &
+                            (Payload.deleted == False) &
+                            (Payload.auto_generated == False)
+                        ).order_by(Payload.id))
                         for p in payloads:
                             await ws.send(js.dumps(p.to_json()))
                         await ws.send("")
@@ -487,7 +549,7 @@ async def ws_c2profile_current_operation(request, ws, user):
                         query = await db_model.operation_query()
                         operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.c2profile_query()
-                        profiles = await db_objects.execute(query)
+                        profiles = await db_objects.execute(query.where(C2Profile.deleted == False))
                         for p in profiles:
                             await ws.send(js.dumps(p.to_json()))
                         await ws.send("")
@@ -561,7 +623,7 @@ async def ws_operators(request, ws):
                     await cur.execute('LISTEN "newoperator";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     query = await db_model.operator_query()
-                    operators = await db_objects.execute(query)
+                    operators = await db_objects.execute(query.where(db_model.Operator.deleted == False))
                     for o in operators:
                         await ws.send(js.dumps(o.to_json()))
                     await ws.send("")
@@ -604,7 +666,7 @@ async def ws_updated_operators(request, ws):
                             # print("got an update for a callback")
                             id = (msg.payload)
                             query = await db_model.operator_query()
-                            cb = await db_objects.get(query, id=id)
+                            cb = await db_objects.get(query, id=id, deleted=False)
                             await ws.send(js.dumps(cb.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -633,7 +695,7 @@ async def ws_payloadtypes(request, ws):
                     await cur.execute('LISTEN "updatedpayloadtype";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     query = await db_model.payloadtype_query()
-                    payloadtypes = await db_objects.execute(query.order_by(PayloadType.id))
+                    payloadtypes = await db_objects.execute(query.where(db_model.PayloadType.deleted == False).order_by(PayloadType.id))
                     for p in payloadtypes:
                         await ws.send(js.dumps(p.to_json()))
                     await ws.send("")
@@ -643,7 +705,7 @@ async def ws_payloadtypes(request, ws):
                             msg = conn.notifies.get_nowait()
                             id = (msg.payload)
                             query = await db_model.payloadtype_query()
-                            p = await db_objects.get(query, id=id)
+                            p = await db_objects.get(query, id=id, deleted=False)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -671,7 +733,7 @@ async def ws_commands(request, ws):
                     await cur.execute('LISTEN "newcommand";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     query = await db_model.command_query()
-                    commands = await db_objects.execute(query)
+                    commands = await db_objects.execute(query.where(Command.deleted == False))
                     for c in commands:
                         await ws.send(js.dumps(c.to_json()))
                     await ws.send("")
@@ -680,8 +742,7 @@ async def ws_commands(request, ws):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = (msg.payload)
-                            query = await db_model.command_query()
-                            p = await db_objects.get(query, id=id)
+                            p = await db_objects.get(query, id=id, deleted=False)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -713,7 +774,6 @@ async def ws_commands(request, ws):
                     await cur.execute('LISTEN "deletedcommandtransform";')
                     await cur.execute('LISTEN "newcommand";')
                     await cur.execute('LISTEN "updatedcommand";')
-                    await cur.execute('LISTEN "deletedcommand";')
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:
@@ -729,10 +789,6 @@ async def ws_commands(request, ws):
                             elif "deleted" not in msg.channel:
                                 query = await db_model.command_query()
                                 p = await db_objects.get(query, id=id)
-                            if msg.channel == "deletedcommand":
-                                # this is a special case
-                                await ws.send(js.dumps({**js.loads(id), "notify": msg.channel}))
-                                continue
                             elif "deleted" in msg.channel:
                                 # print(msg)
                                 query = await db_model.command_query()
@@ -741,6 +797,41 @@ async def ws_commands(request, ws):
                             await ws.send(js.dumps({**p.to_json(), **msg_dict, "notify": msg.channel}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(1)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        pool.close()
+
+
+# ------------ TRANSFORMS -------------------------
+@apfell.websocket('/ws/transform_code')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_transform_code(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newtransformcode";')
+                    await cur.execute('LISTEN "updatedtransformcode";')
+                    query = await db_model.transformcode_query()
+                    tc = await db_objects.execute(query)
+                    for transform in tc:
+                        await ws.send(js.dumps({**transform.to_json(), 'channel': "newtransformcode"}))
+                    await ws.send("")
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (msg.payload)
+                            transform = await db_objects.get(query, id=id)
+                            await ws.send(js.dumps({**transform.to_json(), 'channel': msg.channel}))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
                             await ws.send("")  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
@@ -856,31 +947,29 @@ async def ws_files_current_operation(request, ws, user):
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newfilemeta";')
+                    await cur.execute('LISTEN "updatedfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     query = await db_model.operation_query()
                     operation = await db_objects.get(query, name=user['current_operation'])
                     query = await db_model.filemeta_query()
                     files = await db_objects.prefetch(query.where(
-                        (FileMeta.operation == operation) & (FileMeta.deleted == False)).order_by(FileMeta.id), Task.select(), Command.select(), Callback.select())
+                        (FileMeta.operation == operation)).order_by(FileMeta.id), Task.select(), Command.select(), Callback.select())
                     for f in files:
                         if "/screenshots/" not in f.path:
+                            #print(f)
                             if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                 # this means it's an upload, so supply additional information as well
-                                # two kinds of uploads: via task or manual
-                                # if load- is in the path, it's a load command that hasn't been pulled down yet
-                                if '/operations/{}/load-'.format(operation.name) not in f.path:
-                                    if f.task is not None:  # this is an upload via agent tasking
+                                if f.full_remote_path != "":
+                                    if f.task is not None:
                                         query = await db_model.callback_query()
                                         callback = await db_objects.get(query, id=f.task.callback)
                                         await ws.send(js.dumps(
-                                            {**f.to_json(), 'comment': f.task.comment,'host': callback.host, "upload": f.task.params}))
-                                    else:  # this is a manual upload
-                                        await ws.send(js.dumps({**f.to_json(),'comment': '','host': 'MANUAL FILE UPLOAD',
-                                                                "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
+                                            {**f.to_json(), 'comment': f.task.comment, 'host': callback.host, "upload": f.task.params}))
                             else:
+                                # this is a file download, so it's straight forward
                                 query = await db_model.callback_query()
                                 callback = await db_objects.get(query, id=f.task.callback)
-                                await ws.send(js.dumps({**f.to_json(),'comment': f.task.comment, 'host': callback.host, 'params': f.task.params}))
+                                await ws.send(js.dumps({**f.to_json(), 'comment': f.task.comment, 'host': callback.host, 'params': f.task.params}))
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
@@ -894,16 +983,14 @@ async def ws_files_current_operation(request, ws, user):
                                     if "/{}/downloads/".format(user['current_operation']) not in f.path:
                                         # this means it's an upload, so supply additional information as well
                                         # could be upload via task or manual
-                                        if f.task is not None:  # this is an upload via gent tasking
-                                            query = await db_model.task_query()
-                                            task = await db_objects.get(query, id=f.task)
-                                            if '/operations/{}/load-'.format(operation.name) not in f.path:
+                                        if f.full_remote_path != "":
+                                            if f.task is not None:  # this is an upload via gent tasking
+                                                query = await db_model.task_query()
+                                                task = await db_objects.get(query, id=f.task)
                                                 await ws.send(js.dumps(
-                                                    {**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, "upload": task.params}))
-                                        else: # this is a manual upload
-                                            await ws.send(js.dumps({**f.to_json(),'comment': '', 'host': 'MANUAL FILE UPLOAD',
-                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
+                                                        {**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, "upload": task.params}))
                                     else:
+                                        # this is a file download, so it's straight forward
                                         query = await db_model.task_query()
                                         task = await db_objects.get(query, id=f.task)
                                         await ws.send(js.dumps({**f.to_json(),'comment': f.task.comment, 'host': task.callback.host,
@@ -920,12 +1007,11 @@ async def ws_files_current_operation(request, ws, user):
     finally:
         pool.close()
 
-
 # notifications for new files in the current operation
-@apfell.websocket('/ws/updated_files/current_operation')
+@apfell.websocket('/ws/manual_files/current_operation')
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def ws_updated_files(request, ws, user):
+async def ws_manual_files_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
 
@@ -933,35 +1019,26 @@ async def ws_updated_files(request, ws, user):
         async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newfilemeta";')
                     await cur.execute('LISTEN "updatedfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     query = await db_model.operation_query()
                     operation = await db_objects.get(query, name=user['current_operation'])
+                    query = await db_model.filemeta_query()
+                    files = await db_objects.prefetch(query.where(
+                        (FileMeta.operation == operation) & (FileMeta.deleted == False)).order_by(FileMeta.id), Task.select(), Command.select(), Callback.select())
+                    for f in files:
+                        if f.task is None:
+                            await ws.send(js.dumps({**f.to_json()}))
+                    await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
                             id = (msg.payload)
                             query = await db_model.filemeta_query()
-                            f = await db_objects.get(query, id=id, operation=operation)
-                            if "/screenshots" not in f.path:
-                                try:
-                                    if "/{}/downloads/".format(user['current_operation']) not in f.path:
-                                        # this means it's an upload, so supply additional information as well
-                                        if f.task is not None:  # this is an upload agent tasking
-                                            query = await db_model.task_query()
-                                            task = await db_objects.get(query, id=f.task)
-                                            await ws.send(js.dumps(
-                                                {**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, "upload": task.params}))
-                                        else:
-                                            await ws.send(js.dumps({**f.to_json(),'comment': '', 'host': 'MANUAL FILE UPLOAD',
-                                                                    "upload": "{\"remote_path\": \"Apfell\", \"file_id\": " + str(f.id) + "}", "task": "null"}))
-                                    else:
-                                        query = await db_model.task_query()
-                                        task = await db_objects.get(query, id=f.task)
-                                        await ws.send(js.dumps({**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, 'params': task.params}))
-                                except Exception as e:
-                                    pass  # got an update for a file not in this operation
+                            f = await db_objects.get(query, id=id, operation=operation, deleted=False)
+                            await ws.send(js.dumps({**f.to_json()}))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(1)
                             await ws.send("")  # this is our test to see if the client is still there
@@ -1054,6 +1131,134 @@ async def ws_keylogs_current_operation(request, ws, user):
     finally:
         pool.close()
 
+
+# ------ OPERATING COMMAND POPUP INFORMATION --------------------
+# ----- INCLUDES CREDENTIALS, PAYLOADS, PAYLOADSONHOST ------------
+# notifications for new credentials
+@apfell.websocket('/ws/parameter_hints/current_operation')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_parameter_hints_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newcredential";')
+                    await cur.execute('LISTEN "updatedcredential";')
+                    await cur.execute('LISTEN "newpayload";')
+                    await cur.execute('LISTEN "updatedpayload";')
+                    await cur.execute('LISTEN "newpayloadonhost";')
+                    await cur.execute('LISTEN "updatedpayloadonhost";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    query = await db_model.operation_query()
+                    operation = await db_objects.get(query, name=user['current_operation'])
+                    credquery = await db_model.credential_query()
+                    creds = await db_objects.execute(credquery.where(Credential.operation == operation))
+                    for c in creds:
+                        await ws.send(js.dumps({**c.to_json(), 'channel': 'newcredential'}))
+                    payloadquery = await db_model.payload_query()
+                    payloads = await db_objects.execute(payloadquery.where(
+                        (Payload.operation == operation) &
+                        (Payload.auto_generated == False) &
+                        (Payload.deleted == False)
+                    ))
+                    c2profileparameterinstancequery = await db_model.c2profileparametersinstance_query()
+                    c2profilepayloadquery = await db_model.payloadc2profiles_query()
+                    for p in payloads:
+                        c2profiles = await db_objects.execute(c2profilepayloadquery.where(db_model.PayloadC2Profiles.payload == p))
+                        supported_profiles = []
+                        for c2p in c2profiles:
+                            profile_info = {"name": c2p.c2_profile.name, "is_p2p": c2p.c2_profile.is_p2p, "parameters": {}}
+                            c2profiledata = await db_objects.execute(c2profileparameterinstancequery.where(
+                                (db_model.C2ProfileParametersInstance.payload == p) &
+                                (db_model.C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+                            ))
+                            for c in c2profiledata:
+                                profile_info['parameters'][c.c2_profile_parameters.key] = c.value
+                            supported_profiles.append(profile_info)
+                        await ws.send(js.dumps({**p.to_json(), 'supported_profiles': supported_profiles, 'channel': 'newpayload'}))
+                    payloadonhostquery = await db_model.payloadonhost_query()
+                    payloadonhost = await db_objects.execute(payloadonhostquery.where(
+                        (db_model.PayloadOnHost.operation == operation) &
+                        (db_model.PayloadOnHost.deleted == False)))
+                    for p in payloadonhost:
+                        c2profiles = await db_objects.execute(
+                            c2profilepayloadquery.where(db_model.PayloadC2Profiles.payload == p.payload))
+                        supported_profiles = []
+                        for c2p in c2profiles:
+                            profile_info = {"name": c2p.c2_profile.name, "is_p2p": c2p.c2_profile.is_p2p,
+                                            "parameters": {}}
+                            c2profiledata = await db_objects.execute(c2profileparameterinstancequery.where(
+                                (db_model.C2ProfileParametersInstance.payload == p.payload) &
+                                (db_model.C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+                            ))
+                            for c in c2profiledata:
+                                profile_info['parameters'][c.c2_profile_parameters.key] = c.value
+                            supported_profiles.append(profile_info)
+                        await ws.send(js.dumps({**p.to_json(), 'supported_profiles': supported_profiles, 'channel': 'newpayloadonhost'}))
+                    await ws.send("")
+                    # now pull off any new payloads we got queued up while processing old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            #print(msg)
+                            id = (msg.payload)
+                            try:
+                                if 'credential' in msg.channel:
+                                    obj = await db_objects.get(credquery, id=id, operation=operation)
+                                    obj_json = obj.to_json()
+                                elif 'onhost' in msg.channel:
+                                    payloadonhost = await db_objects.get(payloadonhostquery, operation=operation, id=id)
+                                    c2profiles = await db_objects.execute(
+                                        c2profilepayloadquery.where(db_model.PayloadC2Profiles.payload == payloadonhost.payload))
+                                    supported_profiles = []
+                                    for c2p in c2profiles:
+                                        profile_info = {"name": c2p.c2_profile.name, "is_p2p": c2p.c2_profile.is_p2p,
+                                                        "parameters": {}}
+                                        c2profiledata = await db_objects.execute(c2profileparameterinstancequery.where(
+                                            (db_model.C2ProfileParametersInstance.payload == payloadonhost.payload) &
+                                            (db_model.C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+                                        ))
+                                        for c in c2profiledata:
+                                            profile_info['parameters'][c.c2_profile_parameters.key] = c.value
+                                        supported_profiles.append(profile_info)
+                                    obj_json = {**payloadonhost.to_json(), 'supported_profiles': supported_profiles}
+                                else:
+                                    # this is just for new payloads
+                                    payload = await db_objects.get(payloadquery.where(
+                                        (Payload.operation == operation) & (Payload.id == id) & (Payload.deleted == False)
+                                    ))
+                                    c2profiles = await db_objects.execute(
+                                        c2profilepayloadquery.where(db_model.PayloadC2Profiles.payload == payload))
+                                    supported_profiles = []
+                                    for c2p in c2profiles:
+                                        profile_info = {"name": c2p.c2_profile.name, "is_p2p": c2p.c2_profile.is_p2p,
+                                                        "parameters": {}}
+                                        c2profiledata = await db_objects.execute(c2profileparameterinstancequery.where(
+                                            (db_model.C2ProfileParametersInstance.payload == payload) &
+                                            (db_model.C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+                                        ))
+                                        for c in c2profiledata:
+                                            profile_info['parameters'][c.c2_profile_parameters.key] = c.value
+                                        supported_profiles.append(profile_info)
+                                    obj_json = {**payload.to_json(), 'supported_profiles': supported_profiles}
+                                obj_json['channel'] = msg.channel
+                                await ws.send(js.dumps(obj_json))
+                            except Exception as e:
+                                print(e)
+                                pass  # we got a file that's just not part of our current operation, so move on
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        pool.close()
 
 # ------------- RABBITMQ DATA ---------------------------
 # messages back from rabbitmq with key: c2.status.#
@@ -1172,18 +1377,22 @@ async def ws_tasks(request, ws, user):
                     await cur.execute('LISTEN "deletedbrowserscriptoperation";')
                     # before we start getting new things, update with all of the old data
                     try:
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(query, name=user['current_operation'])
                         query = await db_model.operator_query()
                         operator = await db_objects.get(query, username=user['username'])
                         script_query = await db_model.browserscript_query()
                         all_scripts = await db_objects.execute(script_query.where(db_model.BrowserScript.operator == operator))
                         for s in all_scripts:
                             await ws.send(js.dumps({'type': 'browserscript', **s.to_json()}))
-                        scriptoperation_query = await db_model.browserscriptoperation_query()
-                        all_scripts = await db_objects.execute(scriptoperation_query.where(db_model.BrowserScriptOperation.operation == operation))
-                        for s in all_scripts:
-                            await ws.send(js.dumps({'type': 'browserscriptoperation', **s.to_json()}))
+                        try:
+                            query = await db_model.operation_query()
+                            operation = await db_objects.get(query, name=user['current_operation'])
+                            scriptoperation_query = await db_model.browserscriptoperation_query()
+                            all_scripts = await db_objects.execute(scriptoperation_query.where(db_model.BrowserScriptOperation.operation == operation))
+                            for s in all_scripts:
+                                await ws.send(js.dumps({'type': 'browserscriptoperation', **s.to_json()}))
+                        except Exception as e:
+                            operation = None
+                            pass  # user might not have an operation assigned, so still
                         await ws.send("")
                     except Exception as e:
                         return
@@ -1193,11 +1402,12 @@ async def ws_tasks(request, ws, user):
                             msg = conn.notifies.get_nowait()
                             id = (msg.payload)
                             if 'operation' in msg.channel:
-                                if 'deleted' in msg.channel:
-                                    await ws.send(js.dumps({'type': 'deletedbrowserscriptoperation', 'info':id}))
-                                else:
-                                    s = await db_objects.get(scriptoperation_query, id=id, operation=operation)
-                                    await ws.send(js.dumps({'type': 'browserscriptoperation', **s.to_json()}))
+                                if operation is not None:
+                                    if 'deleted' in msg.channel:
+                                        await ws.send(js.dumps({'type': 'deletedbrowserscriptoperation', 'info':id}))
+                                    else:
+                                        s = await db_objects.get(scriptoperation_query, id=id, operation=operation)
+                                        await ws.send(js.dumps({'type': 'browserscriptoperation', **s.to_json()}))
                             else:
                                 s = await db_objects.get(script_query, id=id, operator=operator)
                                 await ws.send(js.dumps({'type': 'browserscript', **s.to_json()}))
@@ -1311,6 +1521,119 @@ async def ws_process_list(request, ws, user, cid):
                             continue
     finally:
         # print("closed /ws/tasks")
+        pool.close()
+
+
+# -------------- EVENT LOGS ----------------------
+@apfell.websocket('/ws/events/current_operation')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_events_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newoperationeventlog";')
+                    if user['current_operation'] != "":
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(query, name=user['current_operation'])
+                        query = await db_model.operationeventlog_query()
+                        initial_events = await db_objects.execute(query.where(db_model.OperationEventLog.operation == operation))
+                        for i in initial_events:
+                            await ws.send(js.dumps(i.to_json()))
+                        await ws.send("")
+                        while True:
+                            try:
+                                msg = conn.notifies.get_nowait()
+                                id = (msg.payload)
+
+                                t = await db_objects.get(query, id=id)
+                                if t.operation == operation:
+                                    await ws.send(js.dumps(t.to_json()))
+                            except asyncio.QueueEmpty as e:
+                                await asyncio.sleep(0.5)
+                                await ws.send("")  # this is our test to see if the client is still there
+                            except Exception as e:
+                                print(e)
+                                continue
+    finally:
+        pool.close()
+
+
+@apfell.websocket('/ws/events_new/current_operation')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_events_new_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newoperationeventlog";')
+                    if user['current_operation'] != "":
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(query, name=user['current_operation'])
+                        query = await db_model.operationeventlog_query()
+                        while True:
+                            try:
+                                msg = conn.notifies.get_nowait()
+                                id = (msg.payload)
+
+                                t = await db_objects.get(query, id=id)
+                                if t.operation == operation:
+                                    await ws.send(js.dumps(t.to_json()))
+                            except asyncio.QueueEmpty as e:
+                                await asyncio.sleep(0.5)
+                                await ws.send("")  # this is our test to see if the client is still there
+                            except Exception as e:
+                                print(e)
+                                continue
+    finally:
+        pool.close()
+
+
+# -------------- EVENT LOGS ----------------------
+@apfell.websocket('/ws/graph_edges/current_operation')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_graph_edges_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(apfell.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newcallbackgraphedge";')
+                    await cur.execute('LISTEN "updatedcallbackgraphedge";')
+                    if user['current_operation'] != "":
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(query, name=user['current_operation'])
+                        query = await db_model.callbackgraphedge_query()
+                        initial_edges = await db_objects.execute(query.where(
+                            (db_model.CallbackGraphEdge.operation == operation) &
+                            (db_model.CallbackGraphEdge.end_timestamp == None)
+                        ))
+                        for i in initial_edges:
+                            await ws.send(js.dumps(i.to_json()))
+                        await ws.send("")
+                        while True:
+                            try:
+                                msg = conn.notifies.get_nowait()
+                                id = (msg.payload)
+
+                                t = await db_objects.get(query, id=id, operation=operation)
+                                if t.operation == operation:
+                                    await ws.send(js.dumps(t.to_json()))
+                            except asyncio.QueueEmpty as e:
+                                await asyncio.sleep(0.5)
+                                await ws.send("")  # this is our test to see if the client is still there
+                            except Exception as e:
+                                print(e)
+                                continue
+    finally:
         pool.close()
 
 

@@ -1,3 +1,4 @@
+document.title = "All Callbacks";
 try{
     var support_scripts = { {{support_scripts}} };
 }catch(error){
@@ -90,6 +91,14 @@ var tasks_div = new Vue({
         },
         add_comment: function(task){
             $( '#addCommentTextArea' ).val(task.comment);
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+                $("#addCommentTextArea").unbind('keyup').on('keyup', function (e) {
+                    if (e.keyCode === 13) {
+                        $( '#addCommentSubmit' ).click();
+                    }
+                });
+            });
             $( '#addCommentModal' ).modal('show');
             $( '#addCommentSubmit' ).unbind('click').click(function(){
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, update_callback_comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});

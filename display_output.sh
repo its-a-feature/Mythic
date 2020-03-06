@@ -5,7 +5,7 @@ then
     containers=( "$@" )
     for p in "${containers[@]}"
     do
-        docker logs "$p"
+        docker logs --tail=500 "$p"
         read  -n 1 -p "Press key to move to next container or q to quit" character
         if [ "$character" == "q" ]
         then
@@ -16,12 +16,12 @@ else
     echo "Clearing display_output.txt"
     echo -n "" > display_output.txt
     echo "Writing out apfell_rabbitmq to display_output.txt"
-    output=`docker logs apfell_rabbitmq >> display_output.txt 2>/dev/null`
+    output=`docker logs --tail=500 apfell_rabbitmq >> display_output.txt 2>/dev/null`
     echo "Writing out apfell_postgres to display_output.txt"
-    output=`docker logs apfell_postgres >> display_output.txt 2>/dev/null`
+    output=`docker logs --tail=500 apfell_postgres >> display_output.txt 2>/dev/null`
     echo "Writing out apfell_apfell to display_output.txt"
-    output=`docker logs apfell_apfell >> display_output.txt 2>/dev/null`
-    profiles=(./C2_Profiles/*)
+    output=`docker logs --tail=500 apfell_apfell >> display_output.txt 2>/dev/null`
+    profiles=(./C2_Profiles/*)--tail=500
     for p in "${profiles[@]}"
     do
         realpath=$(realpath "$p")
@@ -32,7 +32,7 @@ else
         if [ -d "$realpath" ]
         then
             echo "Writing out $tag to display_output.txt"
-            output=`docker logs "$tag" >> display_output.txt 2>/dev/null`
+            output=`docker logs --tail=500 "$tag" >> display_output.txt 2>/dev/null`
         fi
     done
     profiles=(./Payload_Types/*)
@@ -46,7 +46,7 @@ else
         if [ -d "$realpath" ]
         then
             echo "Writing out $tag to display_output.txt"
-            output=`docker logs "$tag" >> display_output.txt 2>/dev/null`
+            output=`docker logs --tail=500 "$tag" >> display_output.txt 2>/dev/null`
         fi
     done
 fi

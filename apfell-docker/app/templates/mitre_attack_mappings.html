@@ -30,7 +30,7 @@
 <div id="regexOutput">
     <div style="resize: vertical; overflow:auto;" class="card border border-dark shadow" v-if="tasks.length > 0">
         <div class="card-header bg-header text-white"><h4>Matching Tasks</h4></div>
-        <table width="100%" border="2px" style="table-layout:fixed;word-wrap: break-word" class="table table-striped {{config['table-color']}} table-hover">
+        <table width="100%" border="2px" style="table-layout:fixed;word-wrap: break-word;margin:0;padding:0" class="table table-striped {{config['table-color']}} table-hover">
             <tr>
                 <th style="text-align:left;width:10em"><b>Task Number</b></th>
                 <th style="text-align:left"><b>Task</b></th>
@@ -41,11 +41,11 @@
                     <td style="text-align:left;width:7em">&nbsp;&nbsp;<b><a :href="t.href" target="_blank">[[t.id]]</a></b></td>
                     <td style="text-align:left">
                         <template v-if="t.params != t.original_params">
-                            Original: [[t.command]] [[t.original_params]]<br>
-                            Transformed: [[t.command]] [[t.params]]
+                            Original: [[t.command]] [[t.original_params.substring(0,500)]]<br>
+                            Transformed: [[t.command]] [[t.params.substring(0,500)]]
                         </template>
                         <template v-else>
-                            [[t.command]] [[t.params]]
+                            [[t.command]] [[t.params.substring(0,500)]]
                         </template>
 
                     </td>
@@ -197,7 +197,7 @@ ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" B
                 <template v-for="(value, key, index) in cell_data.mappings">
                     <h3>[[key]]</h3>
                     <div class="card border border-dark shadow" style="overflow:scroll;max-height:20em">
-                        <table width="100%" style="table-layout:fixed;word-wrap: break-word" class="table table-striped {{config['table-color']}} table-hover">
+                        <table width="100%" style="table-layout:fixed;word-wrap: break-word;margin:0;padding:0" class="table table-striped {{config['table-color']}} table-hover">
                         <tr>
                             <th style="text-align:left;width:6em;position:-webkit-sticky;position:sticky;top:0"><b>Remove</b></th>
                             <th style="text-align:left;position:-webkit-sticky;position:sticky;top:0"><b>Value</b></th>
@@ -213,7 +213,7 @@ ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" B
                                 <td style="text-align:left;width:5em">
                                     <button @click="remove_mapping(cmd.task, cmd.attack)" class="btn btn{{config['outline-buttons']}}danger"><i class="fas fa-trash-alt"></i></button>
                                 </td>
-                                <td style="text-align:left">Task: <b><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + cmd.task" target="_blank">[[cmd.task]]</a></b>, [[cmd.task_command]] [[cmd.task_params]]</td>
+                                <td style="text-align:left">Task: <b><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + cmd.task" target="_blank">[[cmd.task]]</a></b>, [[cmd.task_command]] [[cmd.task_params.substring(0,200)]]</td>
                             </template>
 
                         </tr>

@@ -1,4 +1,4 @@
-
+document.title = "Credentials";
 var creds_div = new Vue({
     el: '#creds_div',
     data: {

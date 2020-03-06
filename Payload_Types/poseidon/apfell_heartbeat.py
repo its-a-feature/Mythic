@@ -1,20 +1,24 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 import aio_pika
 import socket
 import asyncio
-
-hostname = socket.gethostname()
+import json
 
 
 async def main_loop():
+    config_file = open("rabbitmq_config.json", 'rb')
+    main_config = json.loads(config_file.read().decode('utf-8'))
+    config_file.close()
+    if main_config['name'] == "hostname":
+        hostname = socket.gethostname()
+    else:
+        hostname = main_config['name']
     while True:
         try:
-            connection = await aio_pika.connect_robust(host="127.0.0.1",
-                                                       login="apfell_user",
-                                                       password="apfell_password",
-                                                       virtualhost="apfell_vhost",
-
-                                                    )
+            connection = await aio_pika.connect_robust(host=main_config['host'],
+                                                       login=main_config['username'],
+                                                       password=main_config['password'],
+                                                       virtualhost=main_config['virtual_host'])
             channel = await connection.channel()
             # declare our heartbeat exchange that everybody will publish to, but only the apfell server will are about
             exchange = await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)

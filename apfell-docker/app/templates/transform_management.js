@@ -1,26 +1,260 @@
+document.title = "Transform Management";
 var transform_code = new Vue({
-    el: '#transform_code',
+    el: '#TransformEditorModal',
     data:{
         code: "",
         theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"],
-        theme: "{{config['code-theme']}}"
+        theme: "{{config['code-theme']}}",
+        function_name: "",
+        description: "",
+        parameter_type: "",
+        parameter_type_options: ["None", "String", "ChooseOne"]
     },
     delimiters: ['[[', ']]']
 });
-httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/view", initialize_code, "GET", null);
-function initialize_code(response){
-    try{
-        data = JSON.parse(response);
-    }catch(error){
-        alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        transform_code.code = atob(data['code']);
-    }else{
-        alertTop("danger", data['error']);
-    }
-}
+var transform_table = new Vue({
+    el: '#transforms_table',
+    data:{
+        command_transforms: [],
+        create_load_transforms: []
+    },
+    methods: {
+        edit_create_load_transform: function(transform){
+            transform_code.code = atob(transform.code);
+            transform_code.function_name = transform.name;
+            transform_code.description = transform.description;
+            transform_code.parameter_type = transform.parameter_type;
+            $( '#TransformEditorModal').modal('show');
+            $( '#EditTransformSubmit').unbind('click').click(function(){
+                let data = {"code": btoa(transform_code.code),
+                        "name": transform_code.function_name, "description": transform_code.description,
+                        "parameter_type": transform_code.parameter_type, "is_command_code": false};
+                //console.log(data);
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code/" + transform.id, (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            alertTop("success", "Successfully updated", 1);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "PUT", data);
+            });
+        },
+        new_create_load_transform: function(){
+            transform_code.code = "async def save_parameter(self, prior_output: None, parameter: str) -> None:\n    self.saved_array.append(parameter)\n    return None";
+            transform_code.function_name = "";
+            transform_code.description = "";
+            transform_code.parameter_type = "None";
+            $( '#TransformEditorModal').modal('show');
+            $( '#EditTransformSubmit').unbind('click').click(function(){
+                let data = {"code": btoa(transform_code.code),
+                        "name": transform_code.function_name, "description": transform_code.description,
+                        "parameter_type": transform_code.parameter_type, "is_command_code": false};
+                //console.log(data);
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            alertTop("success", "Successfully created", 1);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "POST", data);
+            });
+        },
+        delete_create_load_transform: function(transform, index){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code/" + transform.id, (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            transform_table.create_load_transforms.splice(index, 1);
+                            alertTop("success", "Successfully deleted", 1);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "DELETE", null);
+        },
+        export_create_load_transforms: function(){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code/export/create_and_load", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            let transforms = btoa(data['transforms']);
+                            download_from_memory("create_and_load_transforms.py", transforms);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "GET", null);
+        },
+        import_create_load_transforms: function(){
+            $( '#FileModal').modal('show');
+            $( '#FileSubmit').unbind('click').click(function(){
+                //uploadFileAndJSON(url, callback, file, data, method)
+                let file = document.getElementById('FileUpload');
+                let filedata = file.files;
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code/import/",
+                    (response)=>{
+                        try{
+                            let data = JSON.parse(response);
+                            if(data['status'] === 'success'){
+                                alertTop('success', "Successfully imported all transforms");
+                            }else{
+                                if(data.hasOwnProperty('transforms')){
+                                    let transforms = btoa(data['transforms']);
+                                    download_from_memory("create_and_load_transforms_import_errors.json", transforms);
+                                }
+                                alertTop("warning", data['error']);
+                            }
+                        }catch(error){
+                            console.log(error);
+                            alertTop("danger", "Error parsing JSON response");
+                        }
+                    }, filedata, null, "POST");
+                file.value = file.defaultValue;
+                alertTop("info", "Submitted updates...");
+            });
+        },
+        edit_command_transform: function(transform){
+            transform_code.code = atob(transform.code);
+            transform_code.function_name = transform.name;
+            transform_code.description = transform.description;
+            transform_code.parameter_type = transform.parameter_type;
+            $( '#TransformEditorModal').modal('show');
+            $( '#EditTransformSubmit').unbind('click').click(function(){
+                let data = {"code": btoa(transform_code.code),
+                        "name": transform_code.function_name, "description": transform_code.description,
+                        "parameter_type": transform_code.parameter_type, "is_command_code": true};
+                //console.log(data);
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code/" + transform.id, (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            alertTop("success", "Successfully updated", 1);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "PUT", data);
+            });
+        },
+        new_command_transform: function(){
+            transform_code.code = "async def base64EncodeLinuxParameter(self, task_params: str, parameter: ParameterName) -> str:\n    # finds the field indicated by 'parameter' and updates it to be base64 encoded\n    import json\n    param_dict = json.loads(task_params)\n    encoded = base64.b64encode(str.encode(param_dict[parameter])).decode('utf-8')\n    param_dict[parameter] = \"echo '{}' | base64 -d | sh\".format(encoded)\n    return json.dumps(param_dict)";
+            transform_code.function_name = "";
+            transform_code.description = "";
+            transform_code.parameter_type = "None";
+            $( '#TransformEditorModal').modal('show');
+            $( '#EditTransformSubmit').unbind('click').click(function(){
+                let data = {"code": btoa(transform_code.code),
+                        "name": transform_code.function_name, "description": transform_code.description,
+                        "parameter_type": transform_code.parameter_type, "is_command_code": true};
+                //console.log(data);
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            alertTop("success", "Successfully created", 1);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "POST", data);
+            });
+        },
+        delete_command_transform: function(transform, index){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code/" + transform.id, (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            transform_table.command_transforms.splice(index, 1);
+                            alertTop("success", "Successfully deleted", 1);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "DELETE", null);
+        },
+        export_command_transforms: function(){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transform_code/export/command", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'success'){
+                            let transforms = btoa(data['transforms']);
+                            download_from_memory("create_and_load_transforms.py", transforms);
+                        }else{
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        alertTop("danger", "Error parsing JSON response");
+                    }
+                }, "GET", null);
+        }
+    },
+    delimiters: ['[[', ']]']
+});
+function startwebsocket_transformcode(){
+	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/transform_code');
+	ws.onmessage = function(event){
+		if(event.data !== ""){
+			let data = JSON.parse(event.data);
+			if(data['channel'] === 'newtransformcode'){
+                if(data['is_command_code']){
+                    transform_table.command_transforms.push(data);
+                    transform_table.command_transforms.sort((a,b) =>(b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+                }else{
+                    transform_table.create_load_transforms.push(data);
+                    transform_table.create_load_transforms.sort((a,b) =>(b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+                }
+            }else{
+			    if(data['is_command_code']){
+                    for(let i = 0; i < transform_table.command_transforms.length; i++){
+                        if(transform_table.command_transforms[i]['id'] === data['id']){
+                            Vue.set(transform_table.command_transforms, i, data);
+                            break;
+                        }
+                    }
+                }else{
+                    for(let i = 0; i < transform_table.create_load_transforms.length; i++){
+                        if(transform_table.create_load_transforms[i]['id'] === data['id']){
+                            Vue.set(transform_table.create_load_transforms, i, data);
+                            break;
+                        }
+                    }
+                }
+            }
+			transform_table.$forceUpdate();
+
+		}
+	};
+	ws.onclose = function(){
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
+	ws.onopen = function(){
+		//console.log("payloads socket opened");
+	}
+}startwebsocket_transformcode();
+
 
 function download_code_button(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/transforms/code/download", (response)=>{
@@ -86,8 +320,8 @@ function update_code_callback(response){
     wrapBehavioursEnabled: { f: toBool },
     autoScrollEditorIntoView: { f: toBool, v: false },
     copyWithEmptySelection: { f: toBool },
-    useSoftTabs: { f: toBool, v: false },
-    navigateWithinSoftTabs: { f: toBool, v: false },
+    useSoftTabs: { f: toBool, v: true },
+    navigateWithinSoftTabs: { f: toBool, v: true },
     hScrollBarAlwaysVisible: { f: toBool },
     vScrollBarAlwaysVisible: { f: toBool },
     highlightGutterLine: { f: toBool },

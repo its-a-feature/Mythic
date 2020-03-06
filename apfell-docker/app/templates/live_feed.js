@@ -1,3 +1,4 @@
+document.title = "Task Feed";
 var live_feed = new Vue({
    el: '#feed',
    delimiters: ['[[', ']]'],
@@ -22,7 +23,7 @@ var live_feed = new Vue({
 });
 
 function startwebsocket_tasks() {
-    let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/tasks/current_operation');
+    let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/task_feed/current_operation');
     ws.onmessage = function (event) {
         if (event.data !== "") {
             let data = JSON.parse(event.data);

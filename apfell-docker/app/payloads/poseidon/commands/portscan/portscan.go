@@ -8,9 +8,14 @@ import (
 	"time"
 
 	"pkg/utils/structs"
+	"sync"
+	"pkg/profiles"
 )
 
+
+
 var (
+	mu sync.Mutex
 	scanResultChannel = make(chan host)
 )
 
@@ -80,30 +85,43 @@ func doScan(hostList []string, portListStrs []string, job *structs.Job) []CIDR {
 	return results
 }
 
-func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
-	tMsg := structs.ThreadMsg{}
+func Run(task structs.Task) {
+	msg := structs.Response{}
+	msg.TaskID = task.TaskID
 	params := PortScanParams{}
 
-	// do whatever here
-	tMsg.TaskItem = task
 	err := json.Unmarshal([]byte(task.Params), &params)
 	if err != nil {
-		log.Println("Error unmarshalling params:", err.Error())
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
-		threadChannel <- tMsg
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 	if len(params.Hosts) == 0 {
-		tMsg.TaskResult = []byte("Error: No hosts given to scan.")
-		tMsg.Error = true
-		threadChannel <- tMsg
+		msg.UserOutput = "No hosts given to scan"
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 	if len(params.Ports) == 0 {
-		tMsg.TaskResult = []byte("Error: No ports given to scan.")
-		tMsg.Error = true
-		threadChannel <- tMsg
+		msg.UserOutput = "No ports given to scan"
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
 		return
 	}
 
@@ -117,14 +135,22 @@ func Run(task structs.Task, threadChannel chan<- structs.ThreadMsg) {
 	data, err := json.MarshalIndent(results, "", "    ")
 	// // fmt.Println("Data:", string(data))
 	if err != nil {
-		log.Println("Error was not nil when marshalling!", err.Error())
-		tMsg.TaskResult = []byte(err.Error())
-		tMsg.Error = true
-	} else {
-		// fmt.Println("Sending on up the data:\n", string(data))
-		tMsg.TaskResult = data
-		tMsg.Error = false
-		tMsg.Completed = true
-	}
-	threadChannel <- tMsg // Pass the thread msg back through the channel here
+		msg.UserOutput = err.Error()
+		msg.Completed = true
+		msg.Status = "error"
+
+		resp, _ := json.Marshal(msg)
+		mu.Lock()
+		profiles.TaskResponses = append(profiles.TaskResponses, resp)
+		mu.Unlock()
+		return
+	} 
+	// fmt.Println("Sending on up the data:\n", string(data))
+	msg.UserOutput = string(data)
+	msg.Completed = true
+	resp, _ := json.Marshal(msg)
+	mu.Lock()
+	profiles.TaskResponses = append(profiles.TaskResponses, resp)
+	mu.Unlock()
+	return
 }

@@ -1,0 +1,51 @@
+poseidon-websocket: 2020/02/18 19:44:44 websocket.go:314: Starting server at http://0.0.0.0:8080 and ws://0.0.0.0:8080
+poseidon-websocket: 2020/02/18 19:44:55 websocket.go:314: Received new websocket client
+poseidon-websocket: 2020/02/18 19:44:56 websocket.go:314: Received agent message {Tag: Client:true Data:YzgyN2JiOGYtZmNkNS00NzJlLWE2NWYtYjMwODVjMGU5YjZjdyv7Tk97TlGFZtME1gVlwwp06221UQ84wEJKdVx1K8Ak7fqH6uuIALLUgCxHS6qSaQmrMrdqh6rJNz39JkY+LURMG2yLEpoBc7yKoi0rC3aM6Q4dXY1+d3ai9ZSZzd4vuEVY8wDTBSJ+yvm52oZOh5b1PgyJf0k/be6am9HTFqlrOp3WcnQYrZGdLlkMihQspLL3a784In41fkz7eV/DaQb++MtrMBGYVevd+Jm73IXnLeBYWgytwLyAiA8srSXjNJoFvw1en2g+9GUh+a3Dj0S8TLQoutLJ0RdjQ+Y27ZH6fWtpUdSaJD67RG1dVXfx7TzEzD8pSTUIi4bX8Yq0xVmEgiH6SiSiP6+Li6Vj7F8+cfmhMUfgTFyg2ME6VelHDvXdQILtq4CQ/+UZ2mbiqPZeOdABqE7ccKwSZhqOJ2c3u+0F7cea8/oYfp+tI5jizqOXdx/n8Cq+/xJG5TxXjChOVjoNVSF+CBHDXOHl/y3STNVA/morxuymWE6XZa8oiHNYb0ZpbAn6blIxF5bZFx2iFvDNG9P1kcqz7t0EqjZ+zc7HEFsHlI4fHJoAPm1NviEk75ZWznSoexOUUU+Z0hFSixH2Pa0Ae43dUmpHI8akRsLMzaTsEZrHBzlTFP9yytPA7bKxIDklqOc4ijVVc5P6LwtzRegEghbhNJSKiww0PHxEe3707nSi9tfnDsib+RV9o69KdrC97FlyjWs9YOvJSA+TOHCGIlUWtSM5yPgRz3rdPQrVVCvhFkKn9lKcq2dCz54J7m3ExCSUN9K5kN3Jpx3bs0bL19AESLW8sQbkfSSrPWCRyLKtBN7yG+LADyc3fdCwCCww5nHfFz1d3Hx2gLw84RtLkTE5pNMnGB3ucUChLzilLWN5+ZRD5hyVzZO839t1Ug3cBvADjxY42qt9EZ4li76daOtOfjDwIvl1y3+CcrfLMhpWE8RfOj5GBYImXyD+6I8ndfyIu0DNbJeF7Qns0OG9bpd2Mc9PidW2acKUrTIrU0+3dDuvyrdmevNtZeuz0IpHEs9GoZRc7A0vEACLfhq/49d5j0XPLSne6LCqIIeSFd8r2ZLMdCXNFVDkYI2KU7J+Zs6VTE7TdLmuqa51aOJJ/WYN3sT+5g30PbxwBchtOu8tdA5zrhGGM6WLMeJVJHCmxTFbBzx0ZcypnkQd/uwglrxSnQ/mdDJbNldOJBo/G4VD6I3q9cu0FjXqS/5MsJOykQYyf9jDozOJeRnVNna6ZH3uf8XGdnZLqnHs0A1bDjWnyKwsEjs761QDaHqOSP850yEm7d+uarwM7nHBKzkLK8kZATHox8HuRBJsij4SzoHtI6nTzGTpnXo3Au6tFI2DYig6IzT000Rkx4B/9ufgySGt9NOYwqxiSfPkQSxNtTxbbI7yw/kDyI8jMc9eN7lkCFs3xesSldLWiFMYDp9oD8lk4aWLFyuD4f17lH1L4AlqqBnFbFNXixRqv4IdyslQwBrd5uM3333FKnJKTVJuOXr4a7MXJq11qnfjgt0cedEj89bSkGXh2o/lNMPYc/H3cHW+5ji9gA==}
+
+poseidon-websocket: 2020/02/18 19:44:56 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:44:56 websocket.go:314: Received agent message {Tag: Client:true Data:NWYyZWUxNzUtMThmNS00NGMzLWFhN2UtNjg3NmFmODk0MTgx8xujM35rV82ImJAmBZR0qw5gCs7L9F9dH2J9+o+cvc8oIJbmDLI8+usX4x7KTGkaTnb7o7U8rTr8C+sjuL5PLeZRk0x4Mg69aTBPlL8Q1xiYuOiJ8H1YA61EgN/sW9dLP9REz8aju1Y5IKX1GgpXAIRpSYT7IevBIFfnMpuszO+J5ZbrCY1/8TaVnBWBioDmWA0KWOKw/vjJHtASlxFSbqXOTAQsa4M3YZWLGMeuVplRw5aECoLa5wcPi4hj2S7duF0WKN0CnED1brXTSGxJebYoyd61r8OXlcuHcPUTumHI0USFfEvfbcqrOqyN3+3NG9Ch6INvIB9H7y5ti9RMz7hSF0OCzACRloDqBsWLm9gzObZ3Z2XGrXNOwFmgiUgxBXkT7BT/QzB827XEjEZV7ud9Z6lHKLVI9tYw69AAiKc=}
+
+poseidon-websocket: 2020/02/18 19:44:56 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:45:09 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwMyvcpENIaZ9t1kFQHXH59fSnF29LqHl6sJalFOLKr/ywbDfK3ZsRXaiSAy4RysgqjwUCeeUyj41FPnCNcHus2MFgPk+1LTJHkLdGlL+OjNzXJ3nxlb5anDzZ+2eXolTw3o32UCLUtAxF3sKzionOzg==}
+
+poseidon-websocket: 2020/02/18 19:45:09 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:45:20 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwzUANbo2f9F4BRpMphrmuKa+tKoU/LpeiVIQ2wrqN2EH4DceIX/jTQcbZWp5D/CUgGn6e5RnAJO+rEXlaUcvYCwWKkx1oWwYKkW6dk++8re/3Ec9hW3Hl/FoG7siMWvEt/eg64ws/NgOiBOCzhFI5vw==}
+
+poseidon-websocket: 2020/02/18 19:45:20 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:45:31 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwZBcf98yShiUtrLegDW5hst588SXGQCnSHk816PmSZ2Kc3/NZwZ0n53ycsnGchqC/10R91AIR8ONYFq8jadPIdhVt7/+gkF9mEmFOvNfAImdmzLEsIAsXkWCIHDz0+p7rRYN4eaU6sz0vmyQfLf+U/Q==}
+
+poseidon-websocket: 2020/02/18 19:45:31 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:45:42 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgw6lM5XujFFYN1PG8RestAVYwIcQiSxePZbLyqtiVQXxgqiMoXLkormz7k3OHFkzZqdLnO0fI7Ijb9xSSVgnh4bd/VAEkHZu8eK41gFLODPJWEebq6WonpdJWvPY0WUSNzTHC8ETUEjH1P/m5wAzQUiw==}
+
+poseidon-websocket: 2020/02/18 19:45:42 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:45:42 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwVO/HYdjYOx2sRMM5bKEfVnnljmts73KUwtcTK8op+COOt5VVkNEzp87JM8b4jN9f171AsD2RhuiM2uICOQ7Y3iigkL99a+iawVxXqYWMmtu/hHxzgj/5ZW+OfZhCQ/JKErwckds7QaJPCaxdoWhdgWduKNMvY8gLejRs6wekwZ+Q7Vnq+YVYeJLHUwjIpvhYgoqNYAr2nVwR2akUeQsODoCpe8RivGjfqOdQICyGJq07Xxyq3mVMwW1J18zndHGj7WvO93I/6juisFWKdPBCvw==}
+
+poseidon-websocket: 2020/02/18 19:45:42 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:45:55 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwLYNy9KrPoF/EE2reg5nlhMC7T4RAiUcgZs9TPOY1bTnEBpDR7tTXm2mbOdH1i7w3wtkHN0UBF3OxzAmbk5Y45Z9oI21h+6j6pHGjEDjNPAeRgnJQ3712A96Yg2zzLE2WI6qwg7m5MpeqsxQroE0Q1g==}
+
+poseidon-websocket: 2020/02/18 19:45:55 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:46:07 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwP8/jKXJ4MF6SmZWDR1a7+3yztX+V2muc04S7qejasKHgnPfG7HWPjnKe//1QKwotD66BvH8u4kYEGBCJCIe8v7/rVnTpFL3zyd+lgM/jHGepnx7CMFQfsD89XJjfc418JyPt8gVAntNN81WI0OwqPQ==}
+
+poseidon-websocket: 2020/02/18 19:46:07 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:46:18 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwMlROU6+6AIya38PyKQzZk4/Vd5VZCgzyVb+XvFlVcCjYnXLsGW4UCJvzpPZrS24GdXhKNYgEmh8KrLauZxSj0HcDhKHBys3SM8s5Myz2oGpWrLQ9khNXtYs2wctK7e1cK7VS9ZHaC8og5t9KOtInNQ==}
+
+poseidon-websocket: 2020/02/18 19:46:18 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:46:31 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwEWgYF5NWQmfg58zdSAL6m39Tnb6opCjzG+dMk3NmaHfmpKuW0CMrlrZn5VJ19sYrVOeptXWtZp0NzhyxZP7lULjrs1t/pLJo9xOgpy2ch18n0jlKTn8pYgr8ANDyJbJ6sUR9IDgJDRkmB/AigGvhqg==}
+
+poseidon-websocket: 2020/02/18 19:46:31 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:46:31 websocket.go:314: Received agent message {Tag: Client:true Data:OTg2ZTg4ZmUtZWRhNy00Zjg2LWJlYTctODZjNTVlM2RmYjgwR07Y25h6G8OXkpj8FR5umCDLleSKNw69qy8+maqZfAJLJgoCEY93q73HuvdyPAA+0QDOYMLX0tnYcPq4yC37FWSoaKGc2TmwXla6/oqRq/vRmai+tsvBSqd2ZcQQuMpzHFRS8YeAXFTY0nTzGvRUyXHyHLI80bWF5X7ovt4wJhkfag9QBOmWKmW8in6MWaUBtyKyF07z/rfD0nhnDOzwg7Gv31zgWaTVRbXX59w/x2LE0Aort/8zZ4t+J/IHD0PUqnQwyTTSUkRU5eZXXYxkEg==}
+
+poseidon-websocket: 2020/02/18 19:46:31 websocket.go:314: Sending POST request to:  http://127.0.0.1/api/v1.4/agent_message
+
+poseidon-websocket: 2020/02/18 19:46:31 websocket.go:314: Read error websocket: close 1006 (abnormal closure): unexpected EOF. Exiting session

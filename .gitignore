@@ -3,7 +3,7 @@ __pycache__/
 # Sphinx documentation
 docs/_build/
 # Environments
-.env
+#.env
 .venv
 env/
 venv/
@@ -11,7 +11,7 @@ ENV/
 env.bak/
 venv.bak/
 # created payloads
-operations/default
+operations/
 # pycharm
 .idea/
 # ssl certs
@@ -20,4 +20,6 @@ ssl/
 files/
 apfell-docker/app/c2_profiles/
 apfell_access.log
-transforms.py
+postgres-docker/database/
+apfell/**
+**/transforms.py

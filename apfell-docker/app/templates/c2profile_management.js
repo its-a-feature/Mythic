@@ -1,3 +1,4 @@
+document.title = "C2 Profile Management";
 var profiles = []; //all profiles data
 var username = "{{name}}";
 var finished_profiles = false;
@@ -9,12 +10,14 @@ var profile_parameters_table = new Vue({
     },
     methods: {
         add_parameter_button: function(){
-            this.parameters.push({"name": "", "key": "", "hint": ""});
+            this.parameters.push({"name": "", "key": "", "hint": "", "randomize": false, "format_string": ""});
         },
         remove_parameter_button: function(p){
             //remove it from the list and also remove it from the back-end database
-            parameter = this.parameters[p];
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + parameter['c2_profile'] + "/parameters/" + parameter['id'], delete_parameter_callback, "DELETE", null);
+            let parameter = this.parameters[p];
+            if(parameter.hasOwnProperty('id')){
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + parameter['c2_profile'] + "/parameters/" + parameter['id'], delete_parameter_callback, "DELETE", null);
+            }
             this.parameters.splice(p,1);
         },
     },
@@ -33,36 +36,45 @@ var payloads_table = new Vue({
             });
         },
 	    update_button: function(p){
+            edit_payload_files.reset();
 	        let possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
-            let types = "";
             for(let i = 0; i < possiblePayloadTypes.length; i++){
-                types = types + '<option value="' + possiblePayloadTypes[i].ptype + '">'
-                + possiblePayloadTypes[i].ptype + '</option>';
+                if(p.payload_types.includes(possiblePayloadTypes[i].ptype)){
+                    edit_payload_files.edit_payload_file_list.push({"name": possiblePayloadTypes[i].ptype, 'active': true});
+                }else{
+                    edit_payload_files.edit_payload_file_list.push({"name": possiblePayloadTypes[i].ptype, 'active': false});
+                }
+
             }
-            $( '#profileUpdatePayloads' ).html(types);
             // before we show the fields, populate them with the current data
-            $( '#profileUpdateName' ).val(p.name);
-            $( '#profileUpdateAuthor').val(p.author);
-            $( '#profileUpdateSampleServer').val(p.sampleServer);
-            $( '#profileUpdateSampleClient').val(p.sampleClient);
-            $( '#profileUpdateNotes').val(p.notes);
-            $( '#profileUpdateDescription' ).val(p.description);
-            edit_payload_files.edit_payload_file_list = [];
-            $( '#profileUpdatePayloads' ).unbind('change').change(function(){
-                edit_payload_files.edit_payload_file_list = $('#profileUpdatePayloads').val();
-            });
-            $( '#profileUpdatePayloads').val(p.payload_types).change();
-            if( p.external){$( '#profileUpdateExternal' ).click();}
+            edit_payload_files.name = p.name;
+            edit_payload_files.authors = p.author;
+            edit_payload_files.sample_server = p.sampleServer;
+            edit_payload_files.sample_client = p.sampleClient;
+            edit_payload_files.notes = p.notes;
+            edit_payload_files.description = p.description;
+            edit_payload_files.externally_hosted = p.external;
+            edit_payload_files.is_p2p = p.is_p2p;
+            edit_payload_files.is_server_routed = p.is_server_routed;
+
             $( '#profileUpdateModal' ).modal('show');
             $( '#profileUpdateSubmit' ).unbind('click').click(function(){
+                let ptypes = [];
+                for(let i = 0; i < edit_payload_files.edit_payload_file_list.length; i++){
+                    if(edit_payload_files.edit_payload_file_list[i]['active']){
+                        ptypes.push(edit_payload_files.edit_payload_file_list[i]['name']);
+                    }
+                }
                 let data = {"name": p.name,
-                        "description": $( '#profileUpdateDescription' ).val(),
-                        "payload_types": $( '#profileUpdatePayloads' ).val(),
-                        "external": $( '#profileUpdateExternal' ).is(":checked"),
-                        'notes': $('#profileUpdateNotes').val(),
-                        'sampleServer': $('#profileUpdateSampleServer').val(),
-                        'sampleClient': $('#profileUpdateSampleClient').val(),
-                        'author': $('#profileUpdateAuthor').val()
+                        "description": edit_payload_files.description,
+                        "payload_types": ptypes,
+                        "external": edit_payload_files.externally_hosted,
+                        'notes': edit_payload_files.notes,
+                        'sampleServer': edit_payload_files.sample_server,
+                        'sampleClient': edit_payload_files.sample_client,
+                        'author': edit_payload_files.authors,
+                        'is_p2p': edit_payload_files.is_p2p,
+                        'is_server_routed': edit_payload_files.is_server_routed
                         };
                  if(data['payload_types'] === undefined){
                     data['payload_types'] = [];
@@ -70,9 +82,9 @@ var payloads_table = new Vue({
                 // update the data about a profile
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name, update_profile, "PUT", data);
                 // update the files associated with a server profile
-                var file = document.getElementById('profileEditServerFile');
+                let file = document.getElementById('profileUpdateServerFile');
                 if(file.files.length > 0){
-                    var filedata = file.files;
+                    let filedata = file.files;
                     uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/upload", update_profile_ptype_files, filedata, {"payload_type": ""}, "POST");
                     file.value = file.defaultValue;
                 }else{
@@ -88,6 +100,7 @@ var payloads_table = new Vue({
 	    },
 	    edit_files_button: function(p){
 	        //alertTop("info", "Loading files...");
+            profile_files_modal.set_to_blanks();
 	        profile_files_modal.profile_name = p.name;
 	        profile_files_modal.server_folder = [];
 	        profile_files_modal.got_list_from_container = false;
@@ -97,7 +110,7 @@ var payloads_table = new Vue({
 	    },
 	    export_profile_button: function(p){
             //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/export/" + p.name, '_blank').focus();
-            payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/export/" + p.name);
+            let payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/export/" + p.name);
             download_from_memory(p.name + ".json", btoa(payload));
 	    },
 	    running_button: function(p){
@@ -115,12 +128,13 @@ var payloads_table = new Vue({
 	        profile_parameters_table.parameters = [];
 
             // then see if there are any parameters already created for this profile
-            values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters");
+            let values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters");
             values = JSON.parse(values);
-            if(values['status'] == "success"){
-                for(var i = 0; i < values['c2profileparameters'].length; i++){
+            if(values['status'] === "success"){
+                for(let i = 0; i < values['c2profileparameters'].length; i++){
                     profile_parameters_table.parameters.push(values['c2profileparameters'][i]);
                 }
+                profile_parameters_table.parameters.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
             }
             else{
                 alertTop("danger", "failed to get parameters");
@@ -132,15 +146,18 @@ var payloads_table = new Vue({
             $( '#profileEditParametersModal').modal('show');
             $( '#profileEditParametersSubmit').unbind('click').click(function(){
                 // We now have a mix of old, new, modified, and deleted parameters
-                for(var i = 0; i < profile_parameters_table.parameters.length; i ++){
+                for(let i = 0; i < profile_parameters_table.parameters.length; i ++){
                     data = {'key': profile_parameters_table.parameters[i]['key'],
                             'name': profile_parameters_table.parameters[i]['name'],
-                            'hint': profile_parameters_table.parameters[i]['hint']};
+                            'hint': profile_parameters_table.parameters[i]['hint'],
+                            'randomize': profile_parameters_table.parameters[i]['randomize'],
+                            'format_string': profile_parameters_table.parameters[i]['format_string']
+                    };
                     if(profile_parameters_table.parameters[i].hasOwnProperty('id')){
                         //this means it's a parameter we've had before, so send an update
                         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters/" + profile_parameters_table.parameters[i]['id'], edit_parameter_callback, "PUT", data);
                     }
-                    else if(profile_parameters_table.parameters[i]['key'] != ""){
+                    else if(profile_parameters_table.parameters[i]['key'] !== ""){
                         //this means we didn't have it before, so create a new property
                         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters", add_parameter_callback, "POST", data);
                     }
@@ -152,10 +169,10 @@ var payloads_table = new Vue({
 	        instances_table.current_parameters = [];
             instances_table.current_name = "";
             // then see if there are any parameters already created for this profile
-            values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters");
+            let values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameters");
             values = JSON.parse(values);
             if(values['status'] === "success"){
-                for(var i = 0; i < values['c2profileparameters'].length; i++){
+                for(let i = 0; i < values['c2profileparameters'].length; i++){
                     instances_table.current_parameters.push(values['c2profileparameters'][i]);
                 }
             }
@@ -163,14 +180,14 @@ var payloads_table = new Vue({
                 alertTop("danger", "failed to get parameters");
                 return;
             }
-
+            instances_table.current_parameters.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
             // for each one we get back, create a new row
             //    this will be in the form of a Vue object we modify
             $( '#profileCreateInstanceModal').modal('show');
             $( '#profileCreateInstanceSubmit').unbind('click').click(function(){
                 // We now have a mix of old, new, modified, and deleted parameters
-                data = {'instance_name': instances_table.current_name};
-                for(var i = 0; i < instances_table.current_parameters.length; i ++){
+                let data = {'instance_name': instances_table.current_name};
+                for(let i = 0; i < instances_table.current_parameters.length; i ++){
                     data[instances_table.current_parameters[i]['name']] = instances_table.current_parameters[i]['hint'];
                 }
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.name + "/parameter_instances", create_new_parameter_instance_callback, "POST", data);
@@ -202,7 +219,7 @@ function get_parameter_instance_callback(response){
         alertTop("danger", data['error']);
     }
     instances_table.instances = [];
-    var i = 0;
+    let i = 0;
     Object.keys(data['instances']).forEach(function(k){
         data['instances'][k].forEach(function(e){
             e['show_all'] = false;
@@ -221,7 +238,7 @@ function check_status_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
 }
@@ -230,32 +247,280 @@ var profile_files_modal = new Vue({
     el: '#profileFilesModal',
     data: {
         profile_name: "",
+        filename: "",
+        folder: "",
+        saving_container: false,
+        getfile_is_download: true,
         folders: [],
         server_folder: [],
+        language: "python",
+        code: "",
+        theme: "{{config['code-theme']}}",
+        language_options: ["javascript", "c_cpp", "json", "kotlin", "objectivec", "perl", "plain_text", "powershell", "python", "sh", "ruby", "swift", "golang", "applescript","csharp", "assembly_x86"],
+        theme_options: ["monokai", "ambiance", "chaos", "terminal", "xcode", "crimson_editor"],
         got_list_from_container: false
     },
     methods: {
+        set_to_blanks: function(){
+            this.filename = "";
+            this.folder = "";
+            this.code = "";
+        },
         delete_file_button: function(folder, file){
-            if(folder.includes("/Apfell/")){
-                //the user is trying to delete a folder in a docker container
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/container_delete", delete_file_button_callback, "POST", {"folder": folder, "file": file});
-            }else{
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/delete", delete_file_button_callback, "POST", {"folder": folder, "file": file});
-            }
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/delete", delete_file_button_callback, "POST", {"folder": folder, "file": file});
+        },
+        delete_file_button_container: function(folder, file){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/container_delete", delete_file_button_callback, "POST", {"folder": folder, "file": file});
         },
         download_file_button: function(folder, file){
-            if(folder.includes("/Apfell/")){
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/container_download?folder=" + folder + "&file=" + file, null, "GET", null);
-                alertTop("info", "Tasked download...");
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/download", (response)=>{
+                let data = JSON.parse(response);
+                if(data['status'] === 'error'){
+                    alertTop("warning", data['error']);
+                }else{
+                    download_from_memory(file, data['file']);
+                }
+
+            }, "POST", {"folder": folder, "file": file});
+        },
+        download_file_button_container: function(folder, file){
+            profile_files_modal.getfile_is_download = true;
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/container_download", null, "POST", {"folder": folder, "file": file});
+            alertTop("info", "Tasked download...");
+        },
+        send_to_edit: function(folder, file){
+            //console.log(folder);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/download", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'error'){
+                        alertTop("warning", data['error']);
+                    }else{
+                        profile_files_modal.code = atob(data['file']);
+                        profile_files_modal.filename = file;
+                        profile_files_modal.folder = folder;
+                        profile_files_modal.saving_container = false;
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                    alertTop("danger", "Session expired, please refresh");
+                }
+            }, "POST", {"folder": folder, "file": file});
+        },
+        send_to_edit_container: function(folder, file){
+            profile_files_modal.getfile_is_download = false;
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/container_download", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'error'){
+                        alertTop("warning", data['error']);
+                    }else{
+                        profile_files_modal.filename = file;
+                        profile_files_modal.folder = folder;
+                        profile_files_modal.saving_container = true;
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                    alertTop("danger", "Session expired, please refresh");
+                }
+            }, "POST", {"folder": folder, "file": file});
+        },
+        save_changes: function(){
+            if(this.filename !== "") {
+                if(this.saving_container){
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/upload", (response) => {
+                        try {
+                            let data = JSON.parse(response);
+                            if (data['status'] === 'error') {
+                                alertTop("warning", data['error']);
+                            } else {
+                                //this means the folder was successfully created, so update the UI to match
+                                alertTop("info", "Sent to container...");
+                            }
+                        } catch (error) {
+                            alertTop("danger", "Session expired, please refresh");
+                        }
+                    }, "POST", {"file_name": this.filename, "folder": this.folder, "code": btoa(profile_files_modal.code), "payload_type": ""});
+                }else{
+                    let payload_end = this.folder.indexOf("/");
+                    if(payload_end < 0){
+                        payload_end = this.folder.length;
+                    }
+                    let payload_type = this.folder.substring(0, payload_end);
+                    let folder = this.folder.substring(payload_end);
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/upload", (response) => {
+                        try {
+                            let data = JSON.parse(response);
+                            if (data['status'] === 'error') {
+                                alertTop("warning", data['error']);
+                            } else {
+                                //this means the folder was successfully created, so update the UI to match
+                                alertTop("success", "Successfully updated");
+                            }
+                        } catch (error) {
+                            alertTop("danger", "Session expired, please refresh");
+                        }
+                    }, "POST", {"file_name": this.filename, "folder": folder, "code": btoa(profile_files_modal.code), "payload_type": payload_type});
+                }
             }else{
-                //window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/download?folder=" + folder + "&file=" + file, "_blank");
-                payload = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/download?folder=" + folder + "&file=" + file);
-                download_from_memory(file, btoa(payload));
+                alertTop("warning", "Select a file to edit first");
             }
+        },
+        remove_folder: function(folder, i){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/remove_folder", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'success'){
+                        this.folders.splice(i, 1);
+                    }else{
+                        alertTop("warning", data['error']);
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                    alertTop("danger", "Session expired, please refresh");
+                }
+            }, "POST", {"folder": folder.folder});
+        },
+        remove_folder_container: function(folder, i) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_name + "/files/remove_folder_container", (response) => {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] !== 'success') {
+                        alertTop("warning", data['error']);
+                    }
+                } catch (error) {
+                    console.log(error.toString());
+                    alertTop("danger", "Session expired, please refresh");
+                }
+            }, "POST", {"folder": folder.folder});
+        },
+        add_folder: function(folder){
+            $( '#C2ProfileEditFilesAddFolder' ).modal('show');
+            $( '#C2ProfileEditFilesAddFolderSubmit' ).unbind('click').click(function(){
+                let subfolder = $('#C2ProfileEditFilesAddFolderName').val();
+                hide_modal('C2ProfileEditFilesAddFolder');
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + profile_files_modal.profile_name + "/files/add_folder", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        //console.log(data);
+                        if(data['status'] === 'error'){
+                            alertTop("warning", data['error']);
+                        }else{
+                            //this means the folder was successfully created, so update the UI to match
+                            profile_files_modal.folders.push({"folder":data['folder'] + "/" + data['sub_folder'], "filenames":[], "dirnames": []});
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "POST", {"folder": folder.folder, "sub_folder":  subfolder});
+            });
+        },
+        add_folder_container: function(folder){
+            $( '#C2ProfileEditFilesAddFolder' ).modal('show');
+            $( '#C2ProfileEditFilesAddFolderSubmit' ).unbind('click').click(function(){
+                let subfolder = $('#C2ProfileEditFilesAddFolderName').val();
+                hide_modal('C2ProfileEditFilesAddFolder');
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + profile_files_modal.profile_name + "/files/add_folder_container", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        //console.log(data);
+                        if(data['status'] === 'error'){
+                            alertTop("warning", data['error']);
+                        }else{
+                            //this means the folder was successfully created, so update the UI to match
+                            alertTop("info", "Sent to container...");
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "POST", {"folder": folder.folder, "sub_folder":  subfolder});
+            });
+        },
+        upload_agent_file: function(folder){
+            $( '#C2ProfileEditFilesAddFile' ).modal('show');
+            $( '#C2ProfileEditFilesAddFileSubmit' ).unbind('click').click(function(){
+                let file = document.getElementById('C2ProfileEditFilesUploadFile');
+                let filedata = file.files;
+                let payload_end = folder.folder.indexOf("/");
+                    if(payload_end < 0){
+                        payload_end = folder.folder.length;
+                    }
+                let payload_type = folder.folder.substring(0, payload_end);
+                hide_modal('C2ProfileEditFilesAddFile');
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + profile_files_modal.profile_name + "/upload", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("danger", data['error']);
+                        }else{
+                            //this means the file was successfully created, so update the UI to match
+                            if(filedata.length > 0){
+                                for(let i = 0; i < folder.filenames.length; i++){
+                                    if(folder.filenames[i] === filedata[0]['name']){
+                                        alertTop("success", "Updated file");
+                                        file.value = file.defaultValue;
+                                        return;
+                                    }
+                                }
+                                folder.filenames.push(filedata[0]['name']);
+                                file.value = file.defaultValue;
+                                alertTop("success", "Uploaded file");
+                            }
+                            profile_files_modal.$forceUpdate();
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        file.value = file.defaultValue;
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, filedata, {"folder": folder.folder.substring(payload_end), "payload_type": payload_type}, "POST");
+
+            });
+        },
+        upload_agent_file_container: function(folder){
+            $( '#C2ProfileEditFilesAddFile' ).modal('show');
+            $( '#C2ProfileEditFilesAddFileSubmit' ).unbind('click').click(function(){
+                let file = document.getElementById('C2ProfileEditFilesUploadFile');
+                let filedata = file.files;
+                hide_modal('C2ProfileEditFilesAddFile');
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + profile_files_modal.profile_name + "/upload", (response)=>{
+                    try{
+                        let data = JSON.parse(response);
+                        if(data['status'] === 'error'){
+                            alertTop("danger", data['error']);
+                        }
+                    }catch(error){
+                        console.log(error.toString());
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, filedata, {"folder": folder.folder, "payload_type": ""}, "POST");
+                file.value = file.defaultValue;
+            });
         }
     },
     delimiters: ['[[',']]']
 });
+$('#C2ProfileEditFilesAddFolder').on('shown.bs.modal', function() {
+    $('#profileFilesModal').css('z-index', 1030);
+    $('#C2ProfileEditFilesAddFolder').css('z-index', 1041);
+});
+$('#C2ProfileEditFilesAddFolder').on('hidden.bs.modal', function() {
+    $('#profileFilesModal').css('z-index', 1041);
+    $('#C2ProfileEditFilesAddFolder').css('z-index', 1030);
+});
+$('#C2ProfileEditFilesAddFile').on('shown.bs.modal', function() {
+    $('#profileFilesModal').css('z-index', 1030);
+    $('#C2ProfileEditFilesAddFile').css('z-index', 1041);
+});
+$('#C2ProfileEditFilesAddFile').on('hidden.bs.modal', function() {
+    $('#profileFilesModal').css('z-index', 1041);
+    $('#C2ProfileEditFilesAddFile').css('z-index', 1030);
+});
+function hide_modal(modal_name){
+    $('#' + modal_name).modal('hide');
+}
 function delete_file_button_callback(response){
     try{
         var data = JSON.parse(response);
@@ -263,15 +528,15 @@ function delete_file_button_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     else{
         // successfully deleted the file, so we need to remove it from that
-        for(var i = 0; i < profile_files_modal.folders.length; i++){
-            if(profile_files_modal.folders[i].folder == data['folder']){
-                for(var j = 0; j < profile_files_modal.folders[i].filenames.length; j++){
-                    if(data['file'] == profile_files_modal.folders[i].filenames[j]){
+        for(let i = 0; i < profile_files_modal.folders.length; i++){
+            if(profile_files_modal.folders[i].folder === data['folder']){
+                for(let j = 0; j < profile_files_modal.folders[i].filenames.length; j++){
+                    if(data['file'] === profile_files_modal.folders[i].filenames[j]){
                         profile_files_modal.folders[i].filenames.splice(j, 1);
                         return;
                     }
@@ -287,7 +552,7 @@ function edit_files_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
     else{
@@ -300,7 +565,30 @@ var edit_payload_file_list = [];
 var edit_payload_files = new Vue({
     el: '#profileUpdateBody',
     data: {
-        edit_payload_file_list
+        edit_payload_file_list: [],
+        name: "",
+        description: "",
+        authors: "",
+        externally_hosted: false,
+        is_p2p: false,
+        is_server_routed: false,
+        notes: "",
+        sample_server: "",
+        sample_client: ""
+    },
+    methods: {
+        reset: function(){
+            this.name = "";
+            this.description = "";
+            this.edit_payload_file_list = [];
+            this.authors = "";
+            this.externally_hosted = false;
+            this.is_p2p = false;
+            this.is_server_routed = false;
+            this.notes = "";
+            this.sample_server = "";
+            this.sample_client = "";
+        }
     },
     delimiters: ['[[', ']]']
 });
@@ -311,7 +599,7 @@ function add_parameter_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
 }
@@ -322,7 +610,7 @@ function edit_parameter_callback(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == 'error'){
+    if(data['status'] === 'error'){
         alertTop("danger", data['error']);
     }
 }
@@ -345,7 +633,7 @@ function update_profile(response){
         return;
     }
 	if(data['status'] === 'success'){
-		for( var i = 0; i < profiles.length; i++){
+		for( let i = 0; i < profiles.length; i++){
 		    if(payloads_table.profiles[i].id === data['id']){
 		        payloads_table.profiles[i].name = data['name'];
 		        payloads_table.profiles[i].description = data['description'];
@@ -357,16 +645,17 @@ function update_profile(response){
             alertTop("success", "Successfully updated");
 		    return;
         }
-        for(var i = 0; i < edit_payload_files.edit_payload_file_list.length; i++){
-            var file = document.getElementById('edit_payload_file_list' + edit_payload_files.edit_payload_file_list[i]);
-            if(file.files.length > 0){
-                var filedata = file.files;
-                var json_data = {"payload_type":  edit_payload_files.edit_payload_file_list[i]}
-                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + data['name'] + "/upload", update_profile_ptype_files, filedata, json_data, "POST");
-                file.value = file.defaultValue;
+        for(let i = 0; i < edit_payload_files.edit_payload_file_list.length; i++){
+            if(edit_payload_files.edit_payload_file_list[i]['active']){
+                let file = document.getElementById('edit_payload_file_list' + i);
+                if(file.files.length > 0){
+                    let filedata = file.files;
+                    let json_data = {"payload_type":  edit_payload_files.edit_payload_file_list[i]['name']}
+                    uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + data['name'] + "/upload", update_profile_ptype_files, filedata, json_data, "POST");
+                    file.value = file.defaultValue;
+                }
             }
         }
-
 	}
 	else{
 		//there was an error, so we should tell the user
@@ -380,7 +669,7 @@ function update_profile_running(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-	if(data['status'] == 'error'){
+	if(data['status'] === 'error'){
 		alertTop("danger", data['error']);
 	}
 }
@@ -440,12 +729,15 @@ function startwebsocket_c2profiles(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/c2profiles/current_operation');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
-			pdata = JSON.parse(event.data);
+			let pdata = JSON.parse(event.data);
 			//console.log(pdata);
-			for(var i = 0; i < payloads_table.profiles.length; i++){
-			    if(payloads_table.profiles[i]['name'] === pdata['name']){
-			        Vue.set(payloads_table.profiles, i, Object.assign({}, payloads_table.profiles[i], pdata));
-			        //clearAlertTop()
+			for(let i = 0; i < payloads_table.profiles.length; i++){
+			    if(payloads_table.profiles[i]['id'] === pdata['id']){
+			        if(pdata['deleted']){
+                        payloads_table.profiles.splice(i, 1);
+                    }else{
+			             Vue.set(payloads_table.profiles, i, Object.assign({}, payloads_table.profiles[i], pdata));
+                    }
 			        return;
 			    }
 			}
@@ -486,9 +778,9 @@ function startwebsocket_payloadtypec2profile(){
 	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/payloadtypec2profile');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
-			pdata = JSON.parse(event.data);
+			let pdata = JSON.parse(event.data);
 			//profiles.push(pdata);
-            for(var i = 0; i < profiles.length; i++){
+            for(let i = 0; i < profiles.length; i++){
                 if(profiles[i]['id'] === pdata['c2_profile_id']){
                     if( !profiles[i]['payload_types'].includes(pdata['payload_type'])){
                         profiles[i]['payload_types'].push(pdata['payload_type']);
@@ -512,46 +804,95 @@ function startwebsocket_rabbitmqresponses(){
     ws.onmessage = function(event){
 		if(event.data !== ""){
 		    let rdata = JSON.parse(event.data);
+		    //console.log(rdata);
 		    let pieces = rdata['routing_key'].split(".");
             //{"status": "success", "body": "C2 is not running", "routing_key": "c2.status.RESTful Patchthrough.stopped"}
 			if(rdata['status'] === "success"){
 			    if(pieces[4] === "listfiles"){
-			        data = JSON.parse(rdata['body']);
+			        let data = JSON.parse(rdata['body']);
+			        clearTop();
 			        alertTop("success", "Received file list from container", 1);
 			        profile_files_modal.got_list_from_container = true;
 			        //console.log(JSON.stringify(rdata, null, 2));
-			        for(var i = 0; i < data.length; i++){
+			        for(let i = 0; i < data.length; i++){
 			            //console.log(data[i]);
-			            for(var j = 0; j < data[i]['filenames'].length; j++){
-			                profile_files_modal.server_folder.push(data[i]['filenames'][j]);
-                        }
+			            profile_files_modal.server_folder.push(data[i]);
                     }
 			    }else if(pieces[4] === "removefile"){
 			        //console.log(rdata);
-			        data = JSON.parse(rdata['body']);
-			        for(var i = 0; i < profile_files_modal.server_folder.length; i++){
-			            if(profile_files_modal.server_folder[i] === data['file']){
-			                profile_files_modal.server_folder.splice(i, 1);
-			                return;
-			            }
+			        let data = JSON.parse(rdata['body']);
+			        for(let i = 0; i < profile_files_modal.server_folder.length; i++){
+                        if(profile_files_modal.server_folder[i].folder === data['folder']){
+                            for(let j = 0; j < profile_files_modal.server_folder[i].filenames.length; j++){
+                                if(data['file'] === profile_files_modal.server_folder[i].filenames[j]){
+                                    profile_files_modal.server_folder[i].filenames.splice(j, 1);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+			    }else if(pieces[4] === "removefolder"){
+			        let data = JSON.parse(rdata['body']);
+			        if(data['status'] === "success") {
+                        for (let i = 0; i < profile_files_modal.server_folder.length; i++) {
+                            if (profile_files_modal.server_folder[i].folder === data['folder']) {
+                                profile_files_modal.server_folder.splice(i, 1);
+                                return;
+                            }
+                        }
+                    }else{
+			            alertTop("warning", data['error']);
 			        }
-			    }else if(pieces[4] === "getfile"){
+			    }else if(pieces[4] === "addfolder"){
+			        let data = JSON.parse(rdata['body']);
+			        if(data['status'] === "success"){
+                        for (let i = 0; i < profile_files_modal.server_folder.length; i++) {
+                            if (profile_files_modal.server_folder[i].folder === data['folder']) {
+                                profile_files_modal.server_folder.push({"folder":data['folder'] + "/" + data['sub_folder'], "filenames":[], "dirnames": []});
+                                return;
+                            }
+                        }
+                    }else{
+			            alertTop("warning", data['error']);
+                    }
+                }else if(pieces[4] === "getfile"){
 			        //console.log(rdata['body']);
-			        data = JSON.parse(rdata['body']);
+			        let data = JSON.parse(rdata['body']);
 			        //clearAlertTop();
-			        download_from_memory(data['filename'], (data['data']));
-			    }
+                    if(profile_files_modal.getfile_is_download){
+                        download_from_memory(data['filename'], (data['data']));
+                    }else{
+                        profile_files_modal.code = atob(data['data']);
+                        profile_files_modal.filename = data['filename'];
+                    }
+			    }else if(pieces[4] === "writefile"){
+			        let data = JSON.parse(rdata['body']);
+			        if(data['status'] === 'success'){
+			            alertTop("success", "File written");
+			            //console.log(data);
+			            data['file'] = data['file'].replace(data['folder'], "").substring(1);
+			            for (let i = 0; i < profile_files_modal.server_folder.length; i++) {
+                            if (profile_files_modal.server_folder[i].folder === data['folder']) {
+                                for(let j = 0; j < profile_files_modal.server_folder[i].filenames.length; j++){
+                                    if(profile_files_modal.server_folder[i].filenames[j] === data['file']){
+                                        return;
+                                    }
+                                }
+                                profile_files_modal.server_folder[i].filenames.push(data['file']);
+                            }
+                        }
+                    }else{
+			            alertTop("warning", data['error']);
+                    }
+                }
 			    else{
-			        let delay = 4;
-			        if(pieces[4] === "status"){delay = 0;}
 			        if(rdata['body'].length > 512000){
-                        download_from_memory("c2_status_output.txt", rdata['body']);
+                        download_from_memory("c2_status_output.txt", btoa(rdata['body']));
                     }else{
 			            $('#stdoutStderrModal').modal('show');
-			            $('#stdoutStderrBody').html("<b>Received Message</b>:<br> <span style='white-space:pre-wrap'>" + rdata['body'] + "</span>")
+			            $('#stdoutstderrText').text(rdata['body']);
                     }
 			    }
-
 			}else{
 			    alertTop("danger", rdata['error']);
 			}
@@ -559,11 +900,7 @@ function startwebsocket_rabbitmqresponses(){
             pieces = rdata['routing_key'].split(".");
 			for( let i = 0; i < profiles.length; i++){
                 if(payloads_table.profiles[i].name === pieces[2]){
-                    if(pieces[3] === "running"){
-                        payloads_table.profiles[i].running = true;
-                    }else{
-                        payloads_table.profiles[i].running = false;
-                    }
+                    payloads_table.profiles[i].running = pieces[3] === "running";
                     return;
                 }
             }
@@ -577,34 +914,36 @@ function startwebsocket_rabbitmqresponses(){
 	};
 }
 startwebsocket_rabbitmqresponses();
+
 function register_button(){
+    payload_files.reset();
     try{
         var possiblePayloadTypes = JSON.parse(httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/"));
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    //console.log(possiblePayloadTypes);
-    let types = "";
     for(let i = 0; i < possiblePayloadTypes.length; i++){
-        types = types + '<option value="' + possiblePayloadTypes[i].ptype + '">'
-        + possiblePayloadTypes[i].ptype + '</option>';
+        payload_files.payload_file_list.push({'name': possiblePayloadTypes[i].ptype, 'active': false});
     }
-    $( '#profileCreatePayloadTypes' ).html(types);
-    payload_files.payload_file_list = [];
-    $( '#profileCreatePayloadTypes' ).unbind('change').change(function(){
-        payload_files.payload_file_list = $('#profileCreatePayloadTypes').val();
-    });
 	$( '#profileCreateModal' ).modal('show');
     $( '#profileCreateSubmit' ).unbind('click').click(function(){
-        let data = {"name": $('#profileCreateName').val(),
-                    "description": $( '#profileCreateDescription' ).val(),
-                    "payload_types": $( '#profileCreatePayloadTypes' ).val(),
-                    "external": $( '#profileCreateExternal' ).is(":checked"),
-                    "author": $('#profileCreateAuthor').val(),
-                    "notes": $('#profileCreateNotes').val(),
-                    "sampleServer": $('#profileCreateSampleServer').val(),
-                    "sampleClient": $('#profileCreateSampleClient').val()
+        let ptypes = [];
+        for(let i = 0; i < payload_files.payload_file_list.length; i++){
+            if(payload_files.payload_file_list[i]['active']){
+                ptypes.push(payload_files.payload_file_list[i]['name']);
+            }
+        }
+        let data = {"name": payload_files.name,
+                    "description": payload_files.description,
+                    "payload_types": ptypes,
+                    "external": payload_files.externally_hosted,
+                    "author": payload_files.author,
+                    "notes": payload_files.notes,
+                    "sampleServer": payload_files.sample_server,
+                    "sampleClient": payload_files.sample_client,
+                    "is_p2p": payload_files.is_p2p,
+                    "is_server_routed": payload_files.is_server_routed
         };
         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/", create_profile, "POST", data);
     });
@@ -623,14 +962,16 @@ function create_profile(response){
     }
     alertTop("success", "Successfully created profile");
     // we didn't get an error when we tried to create the initial c2 profile, now try to upload all of the code files for the selected types
-    for(var i = 0; i < payload_files.payload_file_list.length; i++){
-        var file = document.getElementById('payload_file_list' + payload_files.payload_file_list[i]);
-        if(file.files.length > 0){
-            var filedata = file.files;
-            var json_data = {"payload_type":  payload_files.payload_file_list[i]};
-            uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + data['name'] + "/upload", upload_profile_file,filedata, json_data, "POST");
-            //uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/, edit_payloadtype_callback, filedata);
-            file.value = file.defaultValue;
+    for(let i = 0; i < payload_files.payload_file_list.length; i++){
+        if(payload_files.payload_file_list[i]['active']){
+            let file = document.getElementById('payload_file_list' + i);
+            if(file.files.length > 0){
+                let filedata = file.files;
+                let json_data = {"payload_type":  payload_files.payload_file_list[i]['name']};
+                uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + data['name'] + "/upload", upload_profile_file,filedata, json_data, "POST");
+                //uploadFiles("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/, edit_payloadtype_callback, filedata);
+                file.value = file.defaultValue;
+            }
         }
     }
 }
@@ -652,7 +993,30 @@ var payload_file_list = [];
 var payload_files = new Vue({
     el: '#profileCreateBody',
     data: {
-        payload_file_list
+        payload_file_list: [],
+        name: "",
+        description: "",
+        authors: "",
+        externally_hosted: false,
+        is_p2p: false,
+        is_server_routed: false,
+        notes: "",
+        sample_server: "",
+        sample_client: ""
+    },
+    methods: {
+        reset: function(){
+            this.name = "";
+            this.description = "";
+            this.profile_file_list = [];
+            this.authors = "";
+            this.externally_hosted = false;
+            this.is_p2p = false;
+            this.is_server_routed = false;
+            this.notes = "";
+            this.sample_server = "";
+            this.sample_client = "";
+        }
     },
     delimiters: ['[[', ']]']
 });
@@ -747,10 +1111,14 @@ var instances_table = new Vue({
             instances_table.current_name = i.instance_name + " copy";
             i.values.forEach((x) => {
                 instances_table.current_parameters.push(
-                    {"key": x.c2_profile_key,
-                    "name": x.c2_profile_name,
-                    "hint": x.value});
+                    {"key": x.c2_params_key,
+                    "name": x.c2_params_name,
+                    "hint": x.value,
+                    "randomize": x.randomize,
+                    "format_string": x.format_string});
             });
+            instances_table.current_parameters.sort((a,b) => (a.name > b.name) ? -1 : ((b.name > a.name) ? 1 : 0));
+            instances_table.$forceUpdate();
             // for each one we get back, create a new row
             //    this will be in the form of a Vue object we modify
             $( '#profileCreateInstanceModal').modal('show');
@@ -814,3 +1182,216 @@ var instances_table = new Vue({
     delimiters: ['[[', ']]'],
 });
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/parameter_instances", get_parameter_instance_callback, "GET", null);
+//ACE specific code from http://cwestblog.com/2018/08/04/ace-editor-vue-component/
+/* START: <ace-editor> Vue component */
+(function () {
+  var PROPS = {
+    selectionStyle: {},
+    highlightActiveLine: { f: toBool },
+    highlightSelectedWord: { f: toBool },
+    readOnly: { f: toBool },
+    cursorStyle: {},
+    mergeUndoDeltas: { f: toBool },
+    behavioursEnabled: { f: toBool },
+    wrapBehavioursEnabled: { f: toBool },
+    autoScrollEditorIntoView: { f: toBool, v: false },
+    copyWithEmptySelection: { f: toBool },
+    useSoftTabs: { f: toBool, v: false },
+    navigateWithinSoftTabs: { f: toBool, v: false },
+    hScrollBarAlwaysVisible: { f: toBool },
+    vScrollBarAlwaysVisible: { f: toBool },
+    highlightGutterLine: { f: toBool },
+    animatedScroll: { f: toBool },
+    showInvisibles: { f: toBool, v: true },
+    showPrintMargin: { f: toBool },
+    printMarginColumn: { f: toNum, v: 80 },
+    // shortcut for showPrintMargin and printMarginColumn
+    printMargin: { f: function (x) { return toBool(x, true) && toNum(x); } }, // false|number
+    fadeFoldWidgets: { f: toBool },
+    showFoldWidgets: { f: toBool, v: true },
+    showLineNumbers: { f: toBool, v: true },
+    showGutter: { f: toBool, v: true },
+    displayIndentGuides: { f: toBool, v: true },
+    fontSize: {},
+    fontFamily: {},
+    minLines: { f: toNum },
+    maxLines: { f: toNum },
+    scrollPastEnd: { f: toBoolOrNum },
+    fixedWidthGutter: { f: toBool, v: false },
+    theme: { v: 'monokai' },
+    scrollSpeed: { f: toNum },
+    dragDelay: { f: toNum },
+    dragEnabled: { f: toBool, v: true },
+    focusTimeout: { f: toNum },
+    tooltipFollowsMouse: { f: toBool },
+    firstLineNumber: { f: toNum, v: 1 },
+    overwrite: { f: toBool },
+    newLineMode: {},
+    useWorker: { f: toBool },
+    tabSize: { f: toNum, v: 2 },
+    wrap: { f: toBoolOrNum, v: false },
+    foldStyle: { v: 'markbegin' },
+    mode: { v: 'javascript' },
+    value: {},
+  };
+
+  var EDITOR_EVENTS = ['blur', 'change', 'changeSelectionStyle', 'changeSession', 'copy', 'focus', 'paste'];
+
+  var INPUT_EVENTS = ['keydown', 'keypress', 'keyup'];
+
+  function toBool(value, opt_ignoreNum) {
+    var result = value;
+    if (result != null) {
+      (value + '').replace(
+        /^(?:|0|false|no|off|(1|true|yes|on))$/,
+        function(m, isTrue) {
+          result = (/01/.test(m) && opt_ignoreNum) ? result : !!isTrue;
+        }
+      );
+    }
+    return result;
+  }
+
+  function toNum(value) {
+    return (value == null || isNaN(+value)) ? value : +value;
+  }
+
+  function toBoolOrNum(value) {
+    var result = toBool(value, true);
+    return 'boolean' === typeof result ? result : toNum(value);
+  }
+
+  function emit(component, name, event) {
+    component.$emit(name.toLowerCase(), event);
+    if (name !== name.toLowerCase()) {
+      component.$emit(
+        name.replace(/[A-Z]+/g, function(m) { return ('-' + m).toLowerCase(); }),
+        event
+      );
+    }
+  }
+
+  // Defined for IE11 compatibility
+  function entries(obj) {
+    return Object.keys(obj).map(function(key) { return [key, obj[key]]; });
+  }
+
+  Vue.component('aceEditor', {
+    template: '<div ref="root"></div>',
+    props: Object.keys(PROPS),
+    data: function() {
+      return {
+        editor: null,
+        isShowingError: false,
+        isShowingWarning: false,
+        allowInputEvent: true,
+        // NOTE:  "lastValue" is needed to prevent cursor from always going to
+        // the end after typing
+        lastValue: ''
+      };
+    },
+    methods: {
+      setOption: function(key, value) {
+        var func = PROPS[key].f;
+
+        value = /^(theme|mode)$/.test(key)
+          ? 'ace/' + key + '/' + value
+          : func
+            ? func(value)
+            : value;
+
+        this.editor.setOption(key, value);
+      }
+    },
+    watch: (function () {
+      var watch = {
+        value: function(value) {
+          if (this.lastValue !== value) {
+            this.allowInputEvent = false;
+            this.editor.setValue(value);
+            this.allowInputEvent = true;
+          }
+        }
+      };
+
+      return entries(PROPS).reduce(
+        function(watch, propPair) {
+          var propName = propPair[0];
+          if (propName !== 'value') {
+            watch[propName] = function (newValue) {
+              this.setOption(propName, newValue);
+            };
+          }
+          return watch;
+        },
+        watch
+      );
+    })(),
+    mounted: function() {
+      var self = this;
+
+      self.editor = window.ace.edit(self.$refs.root, { value: self.value });
+
+      entries(PROPS).forEach(
+        function(propPair) {
+          var propName = propPair[0],
+              prop = propPair[1],
+              value = self.$props[propName];
+          if (value !== undefined || prop.hasOwnProperty('v')) {
+            self.setOption(propName, value === undefined ? prop.v : value);
+          }
+        }
+      );
+
+      self.editor.on('change', function(e) {
+        self.lastValue = self.editor.getValue();
+        if (self.allowInputEvent) {
+          emit(self, 'input', self.lastValue);
+        }
+      });
+
+      INPUT_EVENTS.forEach(
+        function(eName) {
+          self.editor.textInput.getElement().addEventListener(
+            eName, function(e) { emit(self, eName, e); }
+          );
+        }
+      );
+
+      EDITOR_EVENTS.forEach(function(eName) {
+        self.editor.on(eName, function(e) { emit(self, eName, e); });
+      });
+
+      var session = self.editor.getSession();
+      session.on('changeAnnotation', function() {
+        var annotations = session.getAnnotations(),
+            errors = annotations.filter(function(a) { return a.type === 'error'; }),
+            warnings = annotations.filter(function(a) { return a.type === 'warning'; });
+
+        emit(self, 'changeAnnotation', {
+          type: 'changeAnnotation',
+          annotations: annotations,
+          errors: errors,
+          warnings: warnings
+        });
+
+        if (errors.length) {
+          emit(self, 'error', { type: 'error', annotations: errors });
+        }
+        else if (self.isShowingError) {
+          emit(self, 'errorsRemoved', { type: 'errorsRemoved' });
+        }
+        self.isShowingError = !!errors.length;
+
+        if (warnings.length) {
+          emit(self, 'warning', { type: 'warning', annotations: warnings });
+        }
+        else if (self.isShowingWarning) {
+          emit(self, 'warningsRemoved', { type: 'warningsRemoved' });
+        }
+        self.isShowingWarning = !!warnings.length;
+      });
+    }
+  });
+})();
+/* END: <ace-editor> Vue component */

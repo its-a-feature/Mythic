@@ -1,4 +1,4 @@
-
+document.title = "Browser Scripts";
 var scripts = new Vue({
     el: '#browser_scripts_table',
     data:{

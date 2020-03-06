@@ -1,3 +1,4 @@
+document.title = "MITRE ATT&CK Mappings";
 var navigator_base = {
 	"name": "layer",
 	"version": "2.1",
