@@ -9,6 +9,239 @@ import importlib, sys
 import base64
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+import json as js
+
+
+@apfell.route(apfell.config['API_BASE'] + "/transform_code/<id:int>", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_transform_code(request, id, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.transformcode_query()
+        transform = await db_objects.get(query, id=id)
+        return json({'status': 'success', 'transform': transform.to_json()})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find that transform code object'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/transform_code/<id:int>", methods=['PUT'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def update_transform_code(request, id, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.transformcode_query()
+        transform = await db_objects.get(query, id=id)
+        data = request.json
+        if 'code' in data:
+            transform.code = data['code']
+        if 'name' in data:
+            transform.name = data['name']
+        if 'parameter_type' in data:
+            transform.parameter_type = data['parameter_type']
+        if 'description' in data:
+            transform.description = data['description']
+        if 'is_command_code' in data:
+            transform.is_command_code = data['is_command_code']
+        await db_objects.update(transform)
+        resp = await write_transforms_to_file()
+        if resp['status'] == 'success':
+            resp2 = await update_all_pt_transform_code()
+            if resp2['status'] == 'success':
+                return json({'status': 'success', 'transform': transform.to_json()})
+            else:
+                return json({'status': 'error', 'error': 'Failed to send transforms to docker containers: ' + resp2['error']})
+        else:
+            return json({'status': 'error', 'error': 'Failed to write transforms to disk: ' + resp['error']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find that transform code object'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/transform_code", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def new_transform_code(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        data = request.json
+        if 'code' not in data:
+            data['code'] = ""
+        if 'name' not in data or data['name'] == "":
+            return json({'status': 'error', 'error': 'A function name must be supplied'})
+        if 'parameter_type' not in data:
+            data['parameter_type'] = "None"
+        if 'description' not in data:
+            data['description'] = ""
+        if 'is_command_code' not in data:
+            data['is_command_code'] = False
+        transform = await db_objects.create(db_model.TransformCode, code=data['code'], operator=operator,
+                                            name=data['name'], parameter_type=data['parameter_type'],
+                                            description=data['description'], is_command_code=data['is_command_code'])
+        resp = await write_transforms_to_file()
+        if resp['status'] == 'success':
+            resp2 = await update_all_pt_transform_code()
+            if resp2['status'] == 'success':
+                return json({'status': 'success', 'transform': transform.to_json()})
+            else:
+                return json(
+                    {'status': 'error', 'error': 'Failed to send transforms to docker containers: ' + resp2['error']})
+        else:
+            return json({'status': 'error', 'error': 'Failed to write transforms to disk: ' + resp['error']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to create that transform: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/transform_code/<id:int>", methods=['DELETE'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def delete_transform_code(request, id, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.transformcode_query()
+        transform = await db_objects.get(query, id=id)
+        transform_json = transform.to_json()
+        # need to also delete any transform mappings for create/load transforms that might exist
+        await db_objects.delete(transform, recursive=True)
+        resp = await write_transforms_to_file()
+        if resp['status'] == 'success':
+            resp2 = await update_all_pt_transform_code()
+            if resp2['status'] == 'success':
+                return json({'status': 'success', 'transform': transform_json})
+            else:
+                return json(
+                    {'status': 'error', 'error': 'Failed to send transforms to docker containers: ' + resp2['error']})
+        else:
+            return json({'status': 'error', 'error': 'Failed to write transforms to disk: ' + resp['error']})
+    except Exception as e:
+        print(str(e))
+        return json({'status': 'error', 'error': 'failed to find that transform code object: ' + str(e)})
+
+
+async def write_transforms_to_file():
+    try:
+        query = await db_model.transformcode_query()
+        commands = await db_objects.execute(query.where(db_model.TransformCode.is_command_code == True))
+        create_and_load = await db_objects.execute(query.where(db_model.TransformCode.is_command_code == False))
+        final_code = open("./app/api/transforms/transforms.py", "w")
+        command_template = open("./app/api/transforms/command_transform_class.py", "r")
+        create_and_load_template = open("./app/api/transforms/create_and_load_transform_class.py", "r")
+        final_code.write(command_template.read())
+        command_template.close()
+        for c in commands:
+            code = base64.b64decode(c.code).decode()
+            for line in code.split("\n"):
+                final_code.write("    {}\n".format(line))
+        final_code.write("\n")
+        final_code.write(create_and_load_template.read())
+        create_and_load_template.close()
+        for c in create_and_load:
+            code = base64.b64decode(c.code).decode()
+            for line in code.split("\n"):
+                final_code.write("    {}\n".format(line))
+        final_code.close()
+        return {'status': 'success'}
+    except Exception as e:
+        print(e)
+        return {'status': 'error', 'error': 'Failed to create transforms.py file from transforms: ' + str(e)}
+
+
+async def update_all_pt_transform_code():
+    try:
+        transform_code = open("./app/api/transforms/transforms.py", 'rb').read()
+        status = await send_pt_rabbitmq_message("*", "load_transform_code", base64.b64encode(transform_code).decode('utf-8'))
+        return status
+    except Exception as e:
+        print(e)
+        return {'status': 'error', 'error': 'failed to read or send transform code: ' + str(e)}
+
+
+@apfell.route(apfell.config['API_BASE'] + "/transform_code/export/create_and_load", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def export_create_and_load_transform_code(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.transformcode_query()
+        transforms = await db_objects.execute(query.where(db_model.TransformCode.is_command_code == False))
+        return json({'status': 'success', 'transforms': js.dumps([t.to_json() for t in transforms], indent=1)})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Failed to export code: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/transform_code/export/command", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def export_command_transform_code(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.transformcode_query()
+        transforms = await db_objects.execute(query.where(db_model.TransformCode.is_command_code == True))
+        return json({'status': 'success', 'transforms': js.dumps([t.to_json() for t in transforms], indent=1)})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Failed to export code: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/transform_code/import", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def import_create_and_load_transform_code(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.transformcode_query()
+        if request.files:
+            code = js.loads(request.files['upload_file'][0].body)
+        else:
+            input_data = request.json
+            if "code" in input_data:
+                code = js.loads(base64.b64decode(input_data["code"]))
+            else:
+                return json({'status': 'error', 'error': 'code must be supplied in base64 or via a form'})
+        failed_imports = []
+        operatorquery = await db_model.operator_query()
+        operator = await db_objects.get(operatorquery, username=user['username'])
+        for data in code:
+            # script is base64 encoded
+            if 'code' not in data:
+                data['error'] = "transform code must be supplied"
+                failed_imports.append(data)
+                continue
+            try:
+                transform = await db_objects.get(query, name=data['name'])
+                data['error'] = "Transform already exists with that name"
+                failed_imports.append(data)
+                continue
+            except Exception as e:
+                # failed to find that transform, so it's good to create it
+                transform = await db_objects.create(db_model.TransformCode, name=data['name'], code=data['code'],
+                                                    parameter_type=data['parameter_type'], description=data['description'],
+                                                    is_command_code=data['is_command_code'], operator=operator)
+        resp = await write_transforms_to_file()
+        if resp['status'] == 'success':
+            resp2 = await update_all_pt_transform_code()
+            if resp2['status'] == 'success':
+                if len(failed_imports) == 0:
+                    return json({'status': 'success'})
+                else:
+                    return json({'status': 'error', 'error': 'Some of the transforms were not successfully imported.',
+                                 'transforms': js.dumps(failed_imports, indent=2)})
+            else:
+                return json(
+                    {'status': 'error', 'error': 'Failed to send transforms to docker containers: ' + resp2['error']})
+        else:
+            return json({'status': 'error', 'error': 'Failed to write transforms to disk: ' + resp['error']})
+
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Failed to export code: ' + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bytype/<ptype:string>", methods=['GET'])
@@ -47,40 +280,11 @@ async def get_transforms_options(request, user):
 async def get_transforms_options_func():
     # reload the transform data so we can provide updated information
     try:
-        import app.api.transforms.utils
-        importlib.reload(sys.modules['app.api.transforms.utils'])
+        query = await db_model.transformcode_query()
+        transforms = await db_objects.execute(query.where(db_model.TransformCode.is_command_code == False))
+        return {'status': 'success', 'transforms': [t.to_json() for t in transforms]}
     except Exception as e:
-        print(e)
-    from app.api.transforms.utils import TransformOperation
-    t = TransformOperation()
-    method_list = {func: await get_type_hints(getattr(t, func).__annotations__) for func in dir(t) if
-                   callable(getattr(t, func)) and not func.startswith("__")}
-    return method_list
-
-
-async def get_type_hints(func):
-    # we don't want information about the payload or parameter inputs, because that's the same for all of them
-    # we really care about the input and output so we can make sure they match up
-    hints = {"return": "unknown", "prior_output": "unknown"}
-    for hint in func.items():
-        name = hint[0]
-        typehint = str(hint[1])
-        if name is not 'payload':
-            # fix up the typehint a bit
-            if "class" in typehint:
-                typehint = typehint.split(" ")[1][1:-2]
-            elif "typing" in typehint:
-                typehint = typehint[7:]  # cut out "typing."
-            elif "NewType" in typehint:
-                typehint = hint[1].__name__  # function NewType.<locals>.new_type
-            # if the parameter is typehinted to None then don't provide the option to give a parameter
-            if typehint != 'None':
-                # hide the unique names besides "parameter" that people can give
-                if name is not "return" and name is not "prior_output":
-                    hints["parameter"] = name + ":" + typehint
-                else:
-                    hints[name] = typehint
-    return hints
+        return {'status': 'error', 'error': 'Failed to get type hints: ' + str(e)}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bytype/<ptype:string>", methods=['POST'])
@@ -98,23 +302,32 @@ async def register_transform_for_ptype(request, user, ptype):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find payload type'})
-    possible_transforms = await get_transforms_options_func()
     data = request.json
     # check for right parameters
-    if "name" not in data or data['name'] is None or data['name'] not in possible_transforms:
-        return json({'status': 'error', 'error': 'problem with \"name\" parameter'})
+    if "transform" not in data or data['transform'] is None:
+        return json({'status': 'error', 'error': 'problem with \"transform\" parameter'})
     if "parameter" not in data or data['parameter'] is None:
         data['parameter'] = ""
     if "t_type" not in data or data['t_type'] is None:
         return json({'status': 'error', 'error': 'Must specify a type for this transform (\"load\" or \"create\"'})
     if "order" not in data or data['order'] is None:
         return json({'status': 'error', 'error': 'Must provide an order to this transform'})
-    if int(data['order']) <= 0:
-        return json({'status': 'error', 'error': 'Order must be positive'})
     try:
-        transform = await db_objects.create(Transform, name=data['name'], parameter=data['parameter'],
+        if int(data['order']) <= 0:
+            return json({'status': 'error', 'error': 'Order must be positive'})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Order must be an integer'})
+    if 'description' not in data:
+        data['description'] = ""
+    try:
+        query = await db_model.transformcode_query()
+        transform_code = await db_objects.get(query, id=data['transform'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find that transform code: ' + str(e)})
+    try:
+        transform = await db_objects.create(Transform, transform=transform_code, parameter=data['parameter'],
                                             t_type=data['t_type'], order=data['order'], operator=operator,
-                                            payload_type=payloadtype)
+                                            payload_type=payloadtype, description=data['description'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to create transform'})
@@ -138,82 +351,6 @@ async def delete_transform(request, user, id):
     return json({'status': "success", **transform_json})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/transforms/code/download", methods=['GET'])
-@inject_user()
-@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def download_transform_code(request, user):
-    if user['auth'] not in ['access_token', 'apitoken']:
-        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
-    return await file("./app/api/transforms/utils.py", filename="utils.py")
-
-
-@apfell.route(apfell.config['API_BASE'] + "/transforms/code/view", methods=['GET'])
-@inject_user()
-@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def view_transform_code(request, user):
-    if user['auth'] not in ['access_token', 'apitoken']:
-        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
-    try:
-        code = base64.b64encode(open('./app/api/transforms/utils.py', 'rb').read()).decode('utf-8')
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to read transforms file'})
-    return json({'status': 'success', 'code': code})
-
-
-@apfell.route(apfell.config['API_BASE'] + "/transforms/code/upload", methods=['POST'])
-@inject_user()
-@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
-async def upload_transform_code(request, user):
-    if user['auth'] not in ['access_token', 'apitoken']:
-        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
-    # upload a new transforms file to our server and reload the transforms code
-    try:
-        data = request.json
-    except Exception as e:
-        data = {}
-    if request.files:
-        try:
-            code = request.files['upload_file'][0].body
-        except Exception as e:
-            print(e)
-            return json({'status': 'error', 'error': 'failed to get uploaded code: ' + str(e)})
-
-    elif 'code' in data:
-        try:
-            code = base64.b64decode(data['code'])
-        except Exception as e:
-            print(e)
-            return json({'status': 'error', 'error': 'failed to get code from data '})
-    else:
-        return json({'status': 'error', 'error': 'must actually upload files'})
-    try:
-        new_utils = open("./app/api/transforms/utils.py", 'wb')
-        new_utils.write(code)
-        new_utils.close()
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to write to disk: ' + str(e)})
-    try:
-        try:
-            import app.api.transforms.utils
-            importlib.reload(sys.modules['app.api.transforms.utils'])
-        except Exception as e:
-            print(e)
-        from app.api.transforms.utils import CommandTransformOperation, TransformOperation
-        status = await update_all_pt_transform_code()
-        return json(status)
-    except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to reload the transform modules'})
-
-
-async def update_all_pt_transform_code():
-    transform_code = open("./app/api/transforms/utils.py", 'rb').read()
-    status = await send_pt_rabbitmq_message("*", "load_transform_code", base64.b64encode(transform_code).decode('utf-8'))
-    return status
-
-
 @apfell.route(apfell.config['API_BASE'] + "/transforms/<id:int>", methods=['PUT'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -229,9 +366,13 @@ async def update_transform_for_ptype(request, user, id):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find transform'})
-    possible_transforms = await get_transforms_options_func()
-    if "name" in data and data['name'] in possible_transforms:
-        transform.name = data['name']
+    if 'transform' in data:
+        try:
+            query = await db_model.transformcode_query()
+            transform_code = await db_objects.get(query, id=data['transform'])
+            transform.transform = transform_code
+        except Exception as e:
+            return json({'status': 'error', 'error': 'failed to find that transform: ' + str(e)})
     if "t_type" in data:
         transform.t_type = data['t_type']
     if "order" in data and int(data['order']) <= 0:
@@ -240,6 +381,8 @@ async def update_transform_for_ptype(request, user, id):
         transform.parameter = data['parameter']
     if "order" in data:
         transform.order = int(data['order'])
+    if "description" in data:
+        transform.description = data['description']
     transform.operator = operator
     transform.timestamp = datetime.datetime.utcnow()
     await db_objects.update(transform)
@@ -262,7 +405,17 @@ async def get_transforms_func(ptype, t_type):
         return {'status': 'error', 'error': 'failed to get ' + ptype + ' transforms for ' + t_type}
     return {'status': 'success', 'transforms': [t.to_json() for t in transforms]}
 
-###################### COMMAND TRANSFORMS SPECIFICALLY BELOW HERE #########################
+
+async def get_payload_transforms(payload):
+    try:
+        query = await db_model.transforminstance_query()
+        transforms = await db_objects.execute(query.where(db_model.TransformInstance.payload == payload).order_by(db_model.TransformInstance.order))
+        return {'status': 'success', 'transforms': [t.to_json() for t in transforms]}
+    except Exception as e:
+        return {'status': 'error', 'error': 'failed to get transforms for payload'}
+
+
+# ##################### COMMAND TRANSFORMS SPECIFICALLY BELOW HERE #########################
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bycommand/<id:int>", methods=['GET'])
@@ -272,8 +425,6 @@ async def get_transforms_by_command(request, id, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user['current_operation'])
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
     except:
@@ -281,7 +432,7 @@ async def get_transforms_by_command(request, id, user):
     try:
         query = await db_model.commandtransform_query()
         transforms = await db_objects.execute(query.where(
-            (CommandTransform.command == command) & (CommandTransform.operation == operation)
+            (CommandTransform.command == command)
         ).order_by(
             CommandTransform.order
         ))
@@ -302,37 +453,11 @@ async def get_commandtransforms_options(request, user):
 
 async def get_commandtransforms_options_func():
     try:
-        import app.api.transforms.utils
-        importlib.reload(sys.modules['app.api.transforms.utils'])
+        query = await db_model.transformcode_query()
+        transforms = await db_objects.execute(query.where(db_model.TransformCode.is_command_code == True))
+        return {'status': 'success', 'methods': [t.to_json() for t in transforms]}
     except Exception as e:
-        print(e)
-    from app.api.transforms.utils import CommandTransformOperation
-    t = CommandTransformOperation()
-    method_list = {func: await get_command_type_hints(getattr(t, func).__annotations__) for func in dir(t) if
-                   callable(getattr(t, func)) and not func.startswith("__")}
-    return method_list
-
-
-async def get_command_type_hints(func):
-    # we don't want information about the payload or parameter inputs, because that's the same for all of them
-    # we really care about the input and output so we can make sure they match up
-    hints = {"return": "unknown", "parameter": "unknown"}
-    for hint in func.items():
-        name = hint[0]
-        typehint = str(hint[1])
-        if name is not 'task_params':
-            # fix up the typehint a bit
-            if "class" in typehint:
-                typehint = typehint.split(" ")[1][1:-2]
-            elif "typing" in typehint:
-                typehint = typehint[7:]  # cut out "typing."
-            elif "NewType" in typehint:
-                typehint = hint[1].__name__  # function NewType.<locals>.new_type
-            # if the parameter is typehinted to None then don't provide the option to give a parameter
-            if typehint != 'None':
-                # hide the unique names besides "parameter" that people can give
-                    hints[name] = typehint
-    return hints
+        return {'status': 'error', 'error': 'failed to get command transforms: ' + str(e)}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/transforms/bycommand/<id:int>", methods=['POST'])
@@ -351,26 +476,31 @@ async def register_transform_for_command(request, user, id):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find command, operation, or current operator'})
-    possible_transforms = await get_commandtransforms_options_func()
     data = request.json
+    #print(data)
     # check for right parameters
-    if "name" not in data or data['name'] is None or data['name'] not in possible_transforms:
+    if "transform" not in data or data['transform'] is None:
         return json({'status': 'error', 'error': 'problem with \"name\" parameter'})
     if "parameter" not in data or data['parameter'] is None:
         data['parameter'] = ""
     if "order" not in data or data['order'] is None:
         return json({'status': 'error', 'error': 'Must provide an order to this transform'})
-    if data['order'] <= 0:
-        return json({'status': 'error', 'error': 'Order must be positive'})
+    try:
+        if int(data['order']) <= 0:
+            return json({'status': 'error', 'error': 'Order must be a positive integer'})
+    except Exception as e:
+        return json({'status': 'error', 'error': '"order" must be an integer greater than 0'})
     if 'active' not in data:
         data['active'] = True
     try:
-        transform = await db_objects.create(CommandTransform, name=data['name'], parameter=data['parameter'],
+        query = await db_model.transformcode_query()
+        tranform_code = await db_objects.get(query, id=data['transform'])
+        transform = await db_objects.create(CommandTransform, parameter=data['parameter'],
                                             order=data['order'], operator=operator, command=command, operation=operation,
-                                            active=data['active'])
+                                            active=data['active'], transform=tranform_code)
     except Exception as e:
-        print(e)
-        return json({'status': 'error', 'error': 'failed to create transform'})
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({'status': 'error', 'error': 'failed to create transform: ' + str(e)})
     return json({'status': 'success', **transform.to_json()})
 
 
@@ -381,10 +511,8 @@ async def delete_commandtransform(request, user, id):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user['current_operation'])
         query = await db_model.commandtransform_query()
-        transform = await db_objects.get(query, id=id, operation=operation)
+        transform = await db_objects.get(query, id=id)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find that transform'})
@@ -401,20 +529,25 @@ async def update_transform_for_command(request, user, id):
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user['current_operation'])
         query = await db_model.commandtransform_query()
-        transform = await db_objects.get(query, id=id, operation=operation)
+        transform = await db_objects.get(query, id=id)
         query = await db_model.operator_query()
         operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find transform'})
-    possible_transforms = await get_commandtransforms_options_func()
-    if "name" in data and data['name'] in possible_transforms:
-        transform.name = data['name']
-    if "order" in data and int(data['order']) <= 0:
-        return json({'status': 'error', 'error': "can't have order <= 0"})
+    if "transform" in data:
+        try:
+            query = await db_model.transformcode_query()
+            transform_code = await db_objects.get(query, id=data['transform'])
+            transform.transform = transform_code
+        except Exception as e:
+            return json({'status': 'error', 'error': 'failed to find that transform code'})
+    try:
+        if "order" in data and int(data['order']) <= 0:
+            return json({'status': 'error', 'error': "can't have order <= 0"})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'order must be an integer'})
     if "parameter" in data:
         transform.parameter = data['parameter']
     if "order" in data:
@@ -431,15 +564,13 @@ async def get_commandtransforms_func(command_id, operation_name):
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=command_id)
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=operation_name)
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get payload type specified'}
     try:
         query = await db_model.commandtransform_query()
         transforms = await db_objects.execute(query.where(
-            (CommandTransform.command == command) & (CommandTransform.operation == operation)).order_by(CommandTransform.order))
+            (CommandTransform.command == command)).order_by(CommandTransform.order))
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': 'failed to get transforms for ' + command_id}

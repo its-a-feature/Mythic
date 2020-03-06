@@ -8,12 +8,21 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf  
 Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
 
-* Current Version: 1.3
+* Current Version: 1.4
 
 ## Documentation
 
 All documentation for the Apfell project is being maintained on the [docs.apfell.net](https://docs.apfell.net) website.
 
+
+## Contributions
+
+A bunch of people have suffered through bug reports, changes, and fixes to help make this project better. Thank you!
+
+The following people have contributed a lot to the project. As you see their handles throughout the project on Payload Types and C2 Profiles, be sure to reach out to them for help and contributions:
+- [@djhohnstein](https://twitter.com/djhohnstein)
+- [@xorrior](https://twitter.com/xorrior)
+- [@Airzero24](https://twitter.com/airzero24)
 
 ## Liability
 

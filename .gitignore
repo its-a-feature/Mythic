@@ -3,7 +3,7 @@ __pycache__/
 # Sphinx documentation
 docs/_build/
 # Environments
-.env
+#.env
 .venv
 env/
 venv/
@@ -18,4 +18,8 @@ operations/
 ssl/
 # downloaded files
 files/
-app/c2_profiles/
+apfell-docker/app/c2_profiles/
+apfell_access.log
+postgres-docker/database/
+apfell/**
+**/transforms.py

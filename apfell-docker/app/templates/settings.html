@@ -7,24 +7,26 @@
         <div class="card-header bg-header border border-dark shadow text-white">
             <h2 ><span class="operator">User</span> Settings</h2>
         </div>
-            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" >
+            <table class="table table-condensed table-striped table-hover {{config['table-color']}}" style="margin-bottom:0">
                 <tr>
                     <th>Delete Account</th>
                     <th>Change Password</th>
                     <th>Change Username</th>
                     <th>Change UI Colors</th>
+                    <th style="text-align:left">Use UTC Timestamps</th>
                     <th onclick="sort_table(this)">Last Login</th>
                     <th onclick="sort_table(this)">Account Creation Date</th>
                     <th onclick="sort_table(this)">Admin Status</th>
                 </tr>
                 <tr>
-                    <td><button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" onclick="delete_button(current_operator)" ><i class="fas fa-trash-alt"></i></button></td>
-                    <td><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="password_button(current_operator)" ><i class="fas fa-user-edit"></i></button></td>
-                    <td><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="username_button(current_operator)" ><i class="fas fa-user-edit"></i></button></td>
-                    <td><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="config_button(current_operator)">Change</button></td>
-                    <td>[[ current_operator.last_login ]]</td>
-                    <td>[[ current_operator.creation_time ]]</td>
-                    <td>[[ current_operator.admin ]]</td>
+                    <td style="text-align:center"><button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" onclick="delete_button(current_operator)" ><i class="fas fa-trash-alt"></i></button></td>
+                    <td style="text-align:center"><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="password_button(current_operator)" ><i class="fas fa-user-edit"></i></button></td>
+                    <td style="text-align:center"><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="username_button(current_operator)" ><i class="fas fa-user-edit"></i></button></td>
+                    <td style="text-align:center"><button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" onclick="config_button(current_operator)">Change</button></td>
+                    <td style="text-align:center"><span class="material-switch pull-right"><input type="checkbox" v-model="current_operator.view_utc_time" @change="change_time(current_operator)" :id="'view_utc' + current_operator.id"><label :for="'view_utc' + current_operator.id" class="btn-info"></label></span></td>
+                    <td style="text-align:center">[[ toLocalTime(current_operator.last_login) ]]</td>
+                    <td style="text-align:center">[[ toLocalTime(current_operator.creation_time) ]]</td>
+                    <td style="text-align:center">[[ current_operator.admin ]]</td>
                 </tr>
             </table>
     </div>
@@ -33,43 +35,48 @@
     <div class="card-header bg-header border border-dark shadow text-white">
         <h2><span class="operator">Admin</span> Settings</h2>
     </div>
-        <table class="table table-condensed table-striped table-hover {{config['table-color']}} border border-dark shadow" >
+        <table class="table table-condensed table-striped table-hover {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
             <tr>
                 <th><b>Delete</b></th>
+                <th onclick="sort_table(this)" style="text-align:left"><b>Operator</b></th>
 		        <th><b>Change Password</b></th>
                 <th><b>Change Username</b></th>
                 <th><b>Change UI Colors</b></th>
+                <th style="text-align:left"><b>View UTC Timestamps</b></th>
                 <th onclick="sort_table(this)"><b>Toggle Admin</b></th>
-                <th onclick="sort_table(this)"><b>Operator</b></th>
                 <th onclick="sort_table(this)"><b>Last Login</b></th>
                 <th onclick="sort_table(this)"><b>Creation Date</b></th>
                 <th onclick="sort_table(this)"><b>Admin</b></th>
                 <th onclick="sort_table(this)"><b>Active?</b></th>
             </tr>
         <!-- Repeat this for each operator -->
-            <tr v-for="o in operators" :key="o.creation_time">
-                <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" v-if="o.username != 'apfell_admin'" @click="delete_operator_button(o)" ><i class="fas fa-trash-alt"></i></button>
+            <tr v-for="o in operators" :key="o.username">
+                <td style="text-align:center">
+                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" v-if="o.id != 1" @click="delete_operator_button(o)" ><i class="fas fa-trash-alt"></i></button>
                 </td>
-                <td>
+                <td style="text-align:left">[[ o.username ]]</td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="set_password_button(o)">Change Password</button>
                 </td>
-                <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" v-if="o.username != 'apfell_admin'" @click="change_username_button(o)">Change Username</button>
+                <td style="text-align:center">
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="change_username_button(o)">Change Username</button>
                 </td>
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="change_config_button(o)"><i class="fas fa-user-edit"></i></button>
                 </td>
-                <td>
-                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="change_admin_button(o)" v-if="o.username != 'apfell_admin'">Toggle Admin</button>
+                <td >
+                    <span class="material-switch"><input type="checkbox" v-model="o.view_utc_time" @change="change_time(o)" :id="'view_utc' + o.id"> <label :for="'view_utc' + o.id" class="btn-info"></label>
+                    </span>
                 </td>
-                <td>[[ o.username ]]</td>
-                <td>[[ o.last_login ]]</td>
-                <td>[[ o.creation_time ]]</td>
-                <td>[[ o.admin ]]</td>
+                <td style="text-align:center">
+                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="change_admin_button(o)" v-if="o.id != 1">Toggle Admin</button>
+                </td>
+                <td style="text-align:center">[[ toLocalTime(o.last_login) ]]</td>
+                <td style="text-align:center">[[ toLocalTime(o.creation_time) ]]</td>
+                <td style="text-align:center">[[ o.admin ]]</td>
                 <td>
                     <div v-if="o.active">
-                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" v-if="o.username != 'apfell_admin'" @click="change_active_button(o)">Deactivate</button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" v-if="o.id != 1" @click="change_active_button(o)">Deactivate</button>
                     </div>
                     <div v-else>
                         <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="change_active_button(o)">Activate</button>
@@ -79,24 +86,22 @@
         <!-- End of the repeating -->
         </table>
 </div>
-<div v-if="current_operator.admin">
-    <br><button type="button" class="btn btn{{config['outline-buttons']}}danger btn-md" onclick="disable_registration_button()">Disable New Registrations</button>
-</div><br><br>
+<br>
 <div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="apitokens_table">
     <div class="card-header bg-header border border-dark shadow text-white">
         <h2><span class="operator">API</span> Tokens</h2>
     </div>
         <table class="table table-condensed table-striped table-hover {{config['table-color']}}" style="width:100%;table-layout:fixed;word-wrap: break-word">
             <tr>
-                <th style="width:7em"><b>Delete</b></th>
-                <th onclick="sort_table(this)" style="width:7em"><b>Active?</b></th>
-                <th onclick="sort_table(this)" style="width:10em"><b>Token Type</b></th>
+                <th style="width:5rem;text-align:center"><b>Delete</b></th>
+                <th onclick="sort_table(this)" style="width:7rem"><b>Active?</b></th>
+                <th onclick="sort_table(this)" style="width:10rem"><b>Token Type</b></th>
                 <th onclick="sort_table(this)"><b>Token Value</b></th>
-                <th onclick="sort_table(this)" style="align:right;width:10em"><b>Creation time</b></th>
-                <th onclick="sort_table(this)" style="align:right;width:10em"><b>Operator</b></th>
+                <th onclick="sort_table(this)" style="width:12rem"><b>Creation time</b></th>
+                <th onclick="sort_table(this)" style="width:10rem"><b>Operator</b></th>
             </tr>
             <tr v-for="token in tokens" :key="token.id">
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_apitoken_button(token)"><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td>

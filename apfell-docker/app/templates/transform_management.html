@@ -1,21 +1,123 @@
 {% extends "base.html" %}
 {% block body %}
+<div style="margin-top:5px;background:transparent" class="card border border-dark shadow bg-card-body" id="transforms_table">
+    <div>
+        <div class="card-header bg-header text-white">
+            <h2 style="display:inline-block"><span class="operator">Command</span> Transforms</h2>
+            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_command_transforms()" data-toggle="tooltip" title="Export all command transforms as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>
+            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="import_create_load_transforms()" data-toggle="tooltip" title="Import new command transforms from JSON"><i class="fas fa-file-upload fa-lg"></i>&nbsp;Import</button>
+            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}success" @click="new_command_transform()"><i class="fas fa-plus"></i> New Transform</button>
+        </div>
+        <div style="max-height:calc(40vh);overflow-y:scroll">
+            <table class="table table-striped {{config['table-color']}} table-hover border border-dark shadow" style="margin-bottom:0">
+                <tr>
+                    <th class="sticky-top" style="width:5em"><b>Delete</b></th>
+                    <th class="sticky-top" onclick="sort_table(this)" ><b>Function</b></th>
+                    <th class="sticky-top" onclick="sort_table(this)"><b>Author</b></th>
+                    <th class="sticky-top" onclick="sort_table(this)"><b>Registration Time</span></b></th>
+                    <th class="sticky-top" ><b>Edit</b></th>
+                </tr>
 
-<h3>Transform Code Management</h3>
-
-<button class="btn btn{{config['outline-buttons']}}info" onclick="download_code_button()">Download Code</button>
-<button class="btn btn{{config['outline-buttons']}}success" onclick="upload_code_button()">Upload New Code</button>
-<button class="btn btn{{config['outline-buttons']}}primary" onclick="update_code_button()">Submit Current Code</button>
-<br><br>
-<div style="resize: vertical; overflow:auto;" id="transform_code">
-    <span>Theme: </span> <span style="display:inline-block"><select style="display:inline-block" v-model="theme"><option v-for="t in theme_options" :value="t">[[t]]</option></select></span>
-    <div class="card">
-        <div class="card-header bg-header border border-dark shadow text-white">Transform Callback and Payload Code</div>
-        <ace-editor v-model="code" min-lines="3" max-lines="500" :theme="theme" wrap="true"></ace-editor>
+                <tr v-for="(s, i) in command_transforms" :key="i">
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_command_transform(s, i)"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                    <td style="text-align:left">[[s.name]]</td>
+                    <td>[[s.operator]]</td>
+                    <td style="text-align:center">[[toLocalTime(s.timestamp)]]</td>
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_command_transform(s)"><i class="fas fa-edit"></i></button>
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
-
+    <br>
+    <div>
+        <div class="card-header bg-header text-white" >
+            <h2 style="display:inline-block"><span class="operator">Create / Load </span>Transforms </h2>
+            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_create_load_transforms()" data-toggle="tooltip" title="Export all create/load transforms as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>
+            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="import_create_load_transforms()" data-toggle="tooltip" title="Import new create/load transforms from JSON"><i class="fas fa-file-upload fa-lg"></i>&nbsp;Import</button>
+            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}success" @click="new_create_load_transform()"><i class="fas fa-plus"></i> New Transform</button>
+        </div>
+        <div style="max-height:calc(39vh);overflow-y:scroll">
+            <table class="table table-striped {{config['table-color']}} table-hover border border-dark shadow" style="margin-bottom:0">
+                <tr>
+                    <th class="sticky-top" style="text-align:left;width:5em" ><b>Delete</b></th>
+                    <th class="sticky-top" onclick="sort_table(this)" ><b>Function</b></th>
+                    <th class="sticky-top" onclick="sort_table(this)"><b>Author</b></th>
+                    <th class="sticky-top" onclick="sort_table(this)"><b>Registration Time</span></b></th>
+                    <th class="sticky-top" >Edit</th>
+                </tr>
+                <tr v-for="(s, i) in create_load_transforms" :key="i">
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_create_load_transform(s, i)"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                    <td style="text-align:left">[[s.name]]</td>
+                    <td style="text-align:left">[[s.operator]]</td>
+                    <td style="text-align:center">[[toLocalTime(s.timestamp)]]</td>
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_create_load_transform(s)"><i class="fas fa-edit"></i></button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
 </div>
-<br>
+<!-- THIS IS OUR MODAL FOR CREATING A BROWSER SCRIPT -->
+    <div class="modal fade" id="TransformEditorModal" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h3>Transform Editor</h3>
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                </div>
+                  <div class="modal-body">
+                     Create or edit transforms across all operations for use by commands and payload types
+                      <table class="table-striped {{config['table-color']}} table-hover">
+                          <tr>
+                              <td>Function Name:</td>
+                              <td>
+                                  <input type="text" v-model="function_name" style="width:100%">
+                              </td>
+                              <td></td>
+                              <td></td>
+                          </tr>
+                          <tr>
+                              <td>Parameter Type:</td>
+                              <td>
+                                  <select v-model="parameter_type">
+                                      <option v-for="type in parameter_type_options" :value="type">[[type]]</option>
+                                  </select>
+                              </td>
+                              <td> </td>
+                              <td></td>
+                          </tr>
+                          <tr>
+                              <td>Description:</td>
+                              <td>
+                                  <input type="text" v-model="description" style="width:100%">
+                              </td>
+                              <td></td>
+                              <td></td>
+                          </tr>
+                          <tr>
+                              <td style="vertical-align:top">Transform Code:</td>
+                              <td colspan="4" style="width:100%;">
+                                  Theme: <select v-model="theme"><option v-for="t in theme_options" :value="t">[[t]]</option></select>
+                                  <ace-editor v-model="code" min-lines="3" max-lines="50" :theme="theme" wrap="true"></ace-editor>
+                              </td>
+                          </tr>
+                      </table>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                    <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="EditTransformSubmit">Submit</button>
+                  </div>
+            </div>
+        </div>
+    </div>
+    <!-- END MODAL FOR CREATING BROWSER SCRIPT -->
 <!-- THIS IS OUR MODAL FOR NEW MANUAL FILE MENU -->
 <div class="modal fade" id="FileModal" role="dialog">
     <div class="modal-dialog modal-md" role="document">

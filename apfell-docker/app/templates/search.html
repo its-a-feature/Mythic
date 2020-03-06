@@ -1,18 +1,22 @@
 {% extends "base.html" %}
 {% block body %}
-<br>
 
-<div style="resize: vertical" class="card border-0" id="searches">
-    <div class="card-header bg-header border border-dark text-white">
+<div style="margin-top:5px" class="card shadow" id="searches">
+    <div class="card-header bg-header border border-dark shadow text-white">
         <span style="display:inline-block">
             <h2 style="display:inline-block"><span class="operator">Search</span> the Operation...</h2>
         </span>
         <span style="display:inline-block; float:right">
             <span class="input-group">
+                <select id="searchOperator" v-model="operator" :value="operator" style="position:relative;display:inline-block" v-if="option != 'output'">
+                    <option value="none">All Operators</option>
+                    <option v-for="o in operators" :value="o.username">[[o.username]]</option>
+                </select>
                 <input type="text" v-model="search_field" class="form-control" style="position:relative;display:inline-block" id="searchTextField" size="50" placeholder="Search with regex" height="7" @keyup.enter="search_button()">
-                <select id="searchOption" v-model="option" :value="option" style="position:relative;display:inline-block">
+                <select id="searchOption" v-model="option" :value="option" style="position:relative;display:inline-block" class="input-group-append">
                     <option value="output">Command Output</option>
                     <option value="params">Command Parameters</option>
+                    <option value="cmds">Commands</option>
                 </select>
                 <span class="input-group-btn input-group-append" style="position:relative;display:inline-block">
                     <button class="btn btn-md btn{{config['outline-buttons']}}primary" @click="search_button()"><i class="fa fa-search"></i></button>
@@ -20,13 +24,13 @@
             </span>
         </span>
     </div>
-    <div style="resize:vertical;overflow:scroll;height:950px;padding:0px;" class="card-body bg-card-body border border-dark shadow">
+    <div style="overflow-y:scroll;height:calc(80vh);padding:0px;" class="card-body bg-card-body border border-dark shadow">
         <div id="searchTasksResults">
             <div v-for="t in tasks" style="padding:0px 0px 15px 0px" class="card border-0 bg-card-body-l1" :key="t.id">
-                <div class="card-header bg-header-dark text-white border border-dark shadow" style="position:-webkit-sticky;position:sticky;top:0px">
-                    Task <a :href="[[t.share_task]]" target="_blank"><b><span class="operator">[[t.id]]</span></b></a> on callback [[t.callback]] - [[t.operator]]'s task with status [[t.status]]:<br> [[t.command]] [[t.original_params]]
+                <div class="card-header bg-header-dark border border-dark shadow" :style="t.original_params.length > 200 ? 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;overflow-x:scroll' : 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;'">
+                    Task <a :href="[[t.share_task]]" target="_blank"><b><span class="operator">[[t.id]]</span></b></a> on callback <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + t.callback" target="_blank"><b>[[t.callback]]</b></a> ([[t.host]]) - [[t.operator]]'s task with status [[t.status]]:<br> [[t.command]] [[t.original_params]]
                 </div>
-                <div class="card-body response-background border border-dark shadow">
+                <div class="card-body response-background border border-dark shadow" style="padding-top:10px;padding-bottom: 0">
                     <div v-if="t.params != t.original_params">Modified params: [[t.params]]</div>
                     <span v-for="r in t.responses" style="white-space: pre-wrap"><span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response"><pre>[[r.response]]</pre></span></span>
                 </div>
@@ -34,10 +38,10 @@
         </div>
         <div id="searchResults">
             <div v-for="r in responses" style="padding: 0px 0px 15px 0px;" class="card border-0 bg-card-body-l1" :key="r.id" >
-                <div class="card-header bg-header-dark border border-dark text-white shadow" style="position:-webkit-sticky;position:sticky;top:0px">
-                    Response [[r.id]] on callback [[r.task.callback]] - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
+                <div class="card-header bg-header-dark border border-dark text-white shadow" :style="r.task.original_params.length > 200 ? 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;overflow-x:scroll' : 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;'">
+                    Response [[r.id]] on callback  <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + r.task.callback" target="_blank"><b>[[r.task.callback]]</b></a> ([[r.host]]) - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
                 </div>
-                <div class="card-body response-background border border-dark shadow">
+                <div class="card-body response-background border border-dark shadow" style="padding-top:10px;padding-bottom: 0">
                     <div v-if="r.task.params != r.task.original_params">Modified params: [[r.task.params]]</div>
                     <span style="white-space: pre-wrap">
                         <span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response"><pre>[[r.response]]</pre></span>
@@ -48,7 +52,9 @@
     </div>
     <div class="card-footer bg-card-footer">
         <div style="display:inline-block">
-            <button type="button" :class="current_page <= 1 ? 'disabled btn btn-light' : 'btn btn-light'" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><<</button>&nbsp;
+            <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_page()"><i class="fas fa-download fa-lg"></i> Page</button>
+            <button class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_search()"><i class="fas fa-download fa-lg"></i> Search</button>
+            <button type="button" :disabled="current_page <= 1"  class="btn btn-light" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
             <template v-if="current_page > 1">
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to first page" @click="get_page(1)">1</button>
             </template>
@@ -59,7 +65,7 @@
             <template v-if="current_page -1 > 1">
                 <button type="button" class="btn btn-light" @click="get_page(current_page -1)">[[current_page - 1]]</button>
             </template>
-            <button type="button" class="disabled btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
+            <button type="button" disabled class=" btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
             <template v-if="current_page + 1 < Math.ceil(total_count/page_size)">
                 <button type="button" class="btn btn-light" @click="get_page(current_page + 1)">[[current_page + 1]]</button>
             </template>
@@ -73,13 +79,13 @@
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to last page" @click="get_page(Math.ceil(total_count/page_size))">[[Math.ceil(total_count/page_size)]]</button>
             </template>
 
-            <button type="button" :class="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0? 'disabled btn btn-light': 'btn btn-light'" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)">>></button>
+            <button type="button" class="btn btn-light" :disabled="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)"><i class="fa fa-forward"></i></button>
             &nbsp;<font size="4" class="text-white">Total Count: [[total_count]]</font>
         </div>
 
         <div style="display:inline-block; float:right">
             <span class="input-group">
-                <input type="number" size="10rem" :placeholder="page_size" id="page_size" @keyup.enter="get_new_page_size()">
+                <input type="number" size="5em" :placeholder="page_size" id="page_size" @keyup.enter="get_new_page_size()">
                 <div class="input-group-append input-group-btn" ><button  type="button" class="btn btn{{config['outline-buttons']}}success" @click="get_new_page_size()">Edit page size</button></div>
             </span>
         </div>

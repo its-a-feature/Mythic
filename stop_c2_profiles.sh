@@ -34,6 +34,6 @@ do
 			fi
 		fi
 		echo "Deleting $p's container..."
-		docker container rm $(docker ps -a -q --filter name="$tag")
+		docker container rm $(docker ps -a -q --filter name="$tag") 2>/dev/null
 	fi
 done

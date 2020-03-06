@@ -17,42 +17,44 @@ async def get_operations_keystrokes(request, user):
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
         query = await db_model.keylog_query()
-        keylogs = await db_objects.execute(query.where(Keylog.operation == operation))
+        keylogs = await db_objects.execute(query.where(Keylog.operation == operation).order_by(Keylog.timestamp))
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find current operation'})
     # default configuration values
     grouping = "host"
-    sub_grouping = "window"
     output = {}
     # if you POST to this method, you can configure the grouping options
     if request.method == "POST":
         data = request.json
         if "grouping" in data and data['grouping'] is not None:
             grouping = data['grouping']  # this can be by host or user
-        if "sub_grouping" in data and data['sub_grouping'] is not None:
-            sub_grouping = data['sub_grouping']  # this can be by time or window title
     # we will make our higher-level grouping by the log.task.callback.host that our keylogs came from
+    query = await db_model.callback_query()
     for log in keylogs:
         if grouping == "host":
             group = log.task.callback.host
+            if group not in output:
+                output[group] = {}
+            if log.user not in output[group]:
+                output[group][log.user] = {}
+            if log.window not in output[group][log.user]:
+                output[group][log.user][log.window] = {'keylogs': []}
+            callback = await db_objects.get(query, id=log.task.callback)
+            output[group][log.user][log.window]['keylogs'].append({**log.to_json(), "callback": callback.to_json()})
         elif grouping == "user":
             group = log.user
+            callback = await db_objects.get(query, id=log.task.callback)
+            if group not in output:
+                output[group] = {}
+            if callback.host not in output[group]:
+                output[group][callback.host] = {}
+            if log.window not in output[group][callback.host]:
+                output[group][callback.host][log.window] = {'keylogs': []}
+            output[group][callback.host][log.window]['keylogs'].append({**log.to_json(), "callback": callback.to_json()})
         else:
             return json({'status': 'error', 'error': 'grouping type not recognized'})
-        log_json = log.to_json()
-        if group not in output:
-            output[group] = {}
-        if sub_grouping == "window":
-            # {"group": { "window_title": [ {log_obj}, {log_obj} ], "window2": [ {log_obj} ] }, "group2"...}
-            if log.window not in output[group]:
-                output[group][log.window] = []
-            query = await db_model.callback_query()
-            callback = await db_objects.get(query, id=log.task.callback)
-            output[group][log.window].append({**log_json, "callback": callback.to_json()})
-        else:
-            return json({'status': 'error', 'error': 'subgrouping type not recognized'})
-    return json({'status': 'success', 'grouping': grouping, 'sub_grouping': sub_grouping, "keylogs": output})
+    return json({'status': 'success', 'grouping': grouping, "keylogs": output})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/keylogs/callback/<id:int>", methods=['GET'])
@@ -70,23 +72,16 @@ async def get_callback_keystrokes(request, user, id):
         print(e)
         return json({'status': 'error', 'error': 'failed to find that callback in your operation'})
     try:
-        grouping = "host"
-        sub_grouping = "window"
         output = {}
         query = await db_model.keylog_query()
-        keylogs = await db_objects.execute(query.switch(Task).where(Task.callback == callback))
+        keylogs = await db_objects.execute(query.switch(Task).where(Task.callback == callback).switch(Keylog).order_by(Keylog.timestamp))
         for log in keylogs:
-            group = log.task.callback.host
             log_json = log.to_json()
-            if group not in output:
-                output[group] = {}
-            # {"group": { "window_title": [ {log_obj}, {log_obj} ], "window2": [ {log_obj} ] }, "group2"...}
-            if log.window not in output[group]:
-                output[group][log.window] = []
-            query = await db_model.callback_query()
-            callback = await db_objects.get(query, id=log.task.callback)
-            output[group][log.window].append({**log_json, "callback": callback.to_json()})
-        return json({'status': 'success', 'callback': id, 'grouping': grouping, 'sub_grouping': sub_grouping, "keylogs": output})
+            # { "window_title": [ {log_obj}, {log_obj} ], "window2": [ {log_obj} ] } }
+            if log.window not in output:
+                output[log.window] = []
+            output[log.window].append(log_json)
+        return json({'status': 'success', 'callback': id, "keylogs": output})
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to select keylog information from database for that callback'})

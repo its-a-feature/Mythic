@@ -4,13 +4,15 @@ from sanic.response import json, raw, file
 import base64
 from sanic_jwt.decorators import scoped, inject_user
 import os
-from binascii import unhexlify
 import json as js
-import app.crypto as crypt
 import sys
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 import shutil
+from app.crypto import hash_MD5, hash_SHA1
+import uuid
+from sanic.log import logger
+from math import ceil
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files", methods=['GET'])
@@ -46,38 +48,6 @@ async def get_current_operations_files_meta(request, user):
         return json({"status": 'error', 'error': 'must be part of an active operation'})
 
 
-@apfell.route(apfell.config['API_BASE'] + "/files/<fid:string>/callbacks/<cid:string>", methods=['GET'])
-async def get_one_file(request, fid, cid):
-    try:
-        query = await db_model.filemeta_query()
-        file_meta = await db_objects.get(query, agent_file_id=fid)
-        query = await db_model.callback_query()
-        callback = await db_objects.get(query, agent_callback_id=cid)
-    except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return json({'status': 'error', 'error': 'file not found'})
-    # now that we have the file metadata, get the file if it's done downloading
-    if file_meta.complete and not file_meta.deleted:
-        encoded_data = open(file_meta.path, 'rb').read()
-        encoded_data = base64.b64encode(encoded_data)
-        # if this is an auto-generated file from the load command, we should remove the file afterwards
-        if "/app/payloads/operations/" in file_meta.path and "load-" in file_meta.path:
-            os.remove(file_meta.path)
-            file_meta.deleted = True
-            await db_objects.update(file_meta)
-        if callback.encryption_type != "" and callback.encryption_type is not None:
-            # encrypt the message before returning it
-            if callback.encryption_type == "AES256":
-                raw_encrypted = await crypt.encrypt_AES256(data=encoded_data,
-                                                           key=base64.b64decode(callback.encryption_key))
-                return raw(base64.b64encode(raw_encrypted), status=200)
-        return raw(encoded_data)
-    elif file_meta.deleted:
-        return json({'status': 'error', 'error': 'temporary file deleted'})
-    else:
-        return json({'status': 'error', 'error': 'file not done downloading'})
-
-
 @apfell.route(apfell.config['API_BASE'] + "/files/download/<id:string>", methods=['GET'])
 async def download_file(request, id):
     try:
@@ -91,14 +61,96 @@ async def download_file(request, id):
         try:
             return await file(file_meta.path, filename=file_meta.path.split("/")[-1])
         except Exception as e:
+            print(str(e))
             print("File not found")
-            return raw('', status=404)
+            return json({"status": "error", "error": "File doesn't exist on disk"}, status=404)
     elif not file_meta.complete:
         print("File not done downloading")
-        return raw('', status=404)
+        return json({"status": "error", "error": "File not finished uploading to server"}, status=404)
     else:
         print("File was deleted")
-        return raw('', status=404)
+        return json({"status": "error", "error": "File deleted or not finished uploading to server"}, status=404)
+
+
+# this is the function for the 'upload' action of file from Apfell to agent
+async def download_agent_file(data, cid):
+    try:
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, agent_callback_id=cid)
+    except Exception as e:
+        logger.exception("Failed to find callback in download_agent_file: " + cid)
+        return {"action": "upload", "total_chunks": 0, "chunk_num": 0, "chunk_data": "", "file_id": "", "task_id": ""}
+    if 'task_id' not in data:
+        logger.exception("Associated task does not exist is not specified")
+        return {"action": "upload", "total_chunks": 0, "chunk_num": 0, "chunk_data": "",
+                "file_id": data['file_id'], "task_id": ""}
+    try:
+        query = await db_model.filemeta_query()
+        file_meta = await db_objects.get(query, agent_file_id=data['file_id'])
+    except Exception as e:
+        logger.exception("Failed to find file in download_agent_file: " + data['file_id'])
+        return {"action": "upload", "total_chunks": 0, "chunk_num": 0, "chunk_data": "", "file_id": "", "task_id": data['task_id']}
+    # now that we have the file metadata, get the file if it's done downloading
+    if 'full_path' in data and data['full_path'] is not None and data['full_path'] != "":
+        query = await db_model.task_query()
+        task = await db_objects.get(query, agent_task_id=data['task_id'])
+        if file_meta.task is None or file_meta.task != task:
+            # this means the file was hosted on the apfell server and is being pulled down by an agent
+            # or means that another task is pulling down a file that was generated from a different task
+            await db_objects.create(db_model.FileMeta, task=task, total_chunks=file_meta.total_chunks,
+                                    chunks_received=file_meta.chunks_received,
+                                    chunk_size=file_meta.chunk_size, complete=file_meta.complete, path=file_meta.path,
+                                    full_remote_path=data['full_path'],
+                                    operation=task.callback.operation, md5=file_meta.md5, sha1=file_meta.sha1,
+                                    temp_file=False, deleted=False,
+                                    operator=task.operator)
+        else:
+            # this file_meta is already associated with a task, check if it's the same
+            if file_meta.full_remote_path is None or file_meta.full_remote_path == "":
+                file_meta.full_remote_path = data['full_path']
+            else:
+                file_meta.full_remote_path = file_meta.full_remote_path + "," + data['full_path']
+            await db_objects.update(file_meta)
+    if file_meta.complete and not file_meta.deleted:
+        chunk_size = 512000
+        if 'chunk_size' in data:
+            chunk_size = data['chunk_size']
+        total_chunks = ceil(float(os.path.getsize(file_meta.path)) / float(chunk_size))
+        chunk_num = 1
+        if 'chunk_num' in data:
+            data['chunk_num'] = abs(data['chunk_num'])
+            if data['chunk_num'] == 0:
+                data['chunk_num'] = 1
+            if data['chunk_num'] > total_chunks:
+                logger.exception("Request a chunk that doesn't exist in download_agent_file: " + data['file_id'] + \
+                                 "\n total_chunks: " + str(total_chunks) + " requested chunk: " + str(data['chunk_num']))
+                return {"action": "upload", "total_chunks": total_chunks, "chunk_num": 0, "chunk_data": "", "file_id": data['file_id'], "task_id": data['task_id']}
+            else:
+                chunk_num = data['chunk_num']
+        # now to read the actual file and get the right chunk
+        encoded_data = open(file_meta.path, 'rb')
+        encoded_data.seek(chunk_size * (chunk_num-1), 0)
+        encoded_data = encoded_data.read(chunk_size)
+        encoded_data = base64.b64encode(encoded_data).decode()
+        # if this is a temp, we should remove the file afterwards
+        if file_meta.temp_file:
+            # only do this if we actually finished reading it
+            if chunk_num == total_chunks:
+                os.remove(file_meta.path)
+                # if this is a payload based file that was auto-generated, don't mark it as deleted
+                query = await db_model.payload_query()
+                try:
+                    payload = await db_objects.get(query, file_id=file_meta)
+                except Exception as e:
+                    file_meta.deleted = True
+                await db_objects.update(file_meta)
+        return {"action": "upload", "total_chunks": total_chunks, "chunk_num": chunk_num, "chunk_data": encoded_data, "file_id": data['file_id'], "task_id": data['task_id']}
+    elif file_meta.deleted:
+        logger.exception("File is deleted: " + data['file_id'])
+        return {"action": "upload", "total_chunks": 0, "chunk_num": 0, "chunk_data": "", "file_id": data['file_id'], "task_id": data['task_id']}
+    else:
+        logger.exception("file not done downloading in download_agent_file: " + data['file_id'])
+        return {"action": "upload", "total_chunks": 0, "chunk_num": 0, "chunk_data": "", "file_id": data['file_id'], "task_id": data['task_id']}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['DELETE'])
@@ -112,6 +164,8 @@ async def delete_filemeta_in_database(request, user, id):
         operation = await db_objects.get(query, name=user['current_operation'])
         query = await db_model.filemeta_query()
         filemeta = await db_objects.get(query, id=id, operation=operation)
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'file does not exist or not part of your current operation'})
@@ -128,8 +182,8 @@ async def delete_filemeta_in_database(request, user, id):
         file_count = await db_objects.count(query.where( (FileMeta.path == filemeta.path) & (FileMeta.deleted == False)))
         query = await db_model.payload_query()
         file_count += await db_objects.count(query.where( (Payload.location == filemeta.path) & (Payload.deleted == False)))
-        if file_count == 0:
-            os.remove(filemeta.path)
+        await db_objects.create(db_model.OperationEventLog, operator=operator, operation=operation,
+                                message="Apfell: {} deleted".format(filemeta.path.split("/")[-1]))
     except Exception as e:
         pass
     return json({**status, **filemeta.to_json()})
@@ -149,11 +203,9 @@ async def create_filemeta_in_database_func(data):
     #  expects total_chunks, and task
     if 'total_chunks' not in data:
         return {'status': 'error', 'error': 'total_chunks required'}
-    if 'task' not in data:
-        return {'status': 'error', 'error': 'corresponding task id required'}
     try:
         query = await db_model.task_query()
-        task = await db_objects.prefetch(query.where(Task.agent_task_id == data['task']), Command.select())
+        task = await db_objects.prefetch(query.where(Task.id == data['task']), Command.select())
         task = list(task)[0]
         query = await db_model.callback_query()
         callback = await db_objects.get(query.where(Callback.id == task.callback))
@@ -186,10 +238,16 @@ async def create_filemeta_in_database_func(data):
         if not os.path.exists(os.path.split(save_path)[0]):
             os.makedirs(os.path.split(save_path)[0])
         open(save_path, 'a').close()
+        if "full_path" not in data:
+            data['full_path'] = ""
         filemeta = await db_objects.create(FileMeta, total_chunks=data['total_chunks'], task=task, operation=operation,
-                                           path=save_path, operator=task.operator)
+                                           path=save_path, operator=task.operator, full_remote_path=data['full_path'],
+                                           temp_file=False)
         if data['total_chunks'] == 0:
             filemeta.complete = True
+            contents = open(filemeta.path, 'rb').read()
+            filemeta.md5 = await hash_MD5(contents)
+            filemeta.sha1 = await hash_SHA1(contents)
             await db_objects.update(filemeta)
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
@@ -226,7 +284,8 @@ async def create_filemeta_in_database_manual(request, user):
     else:
         return json({'status': 'error', 'error': 'specified remote file, but did not upload anything'})
     # now write the file
-    save_path = os.path.abspath('./app/files/{}/{}'.format(operation.name, filename))
+    os.makedirs('./app/files/{}/'.format(operation.name), exist_ok=True)
+    save_path = './app/files/{}/{}'.format(operation.name, filename)
     extension = save_path.split(".")[-1]
     save_path = ".".join(save_path.split(".")[:-1])
     count = 1
@@ -262,12 +321,18 @@ async def create_filemeta_in_database_manual_func(data, user):
                 data['path'] = payload.location
             except Exception as e:
                 return {'status': 'error', 'error': 'failed to find that payload in your operation'}
-        filemeta = await db_objects.create(FileMeta, total_chunks=1, operation=operation, path=data['path'],
-                                           complete=True, chunks_received=1, operator=operator)
+        file_meta = await db_objects.create(FileMeta, total_chunks=1, operation=operation, path=data['path'],
+                                           complete=True, chunks_received=1, operator=operator, temp_file=False)
+        contents = open(file_meta.path, 'rb').read()
+        file_meta.md5 = await hash_MD5(contents)
+        file_meta.sha1 = await hash_SHA1(contents)
+        await db_objects.update(file_meta)
+        await db_objects.create(db_model.OperationEventLog, operator=operator, operation=operation,
+                                message="Apfell: {} hosted with UID {}".format(data['path'].split("/")[-1], file_meta.agent_file_id))
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': str(e)}
-    return {'status': 'success', **filemeta.to_json()}
+    return {'status': 'success', **file_meta.to_json()}
 
 
 @apfell.route(apfell.config['API_BASE'] + "/files/<id:int>", methods=['POST'])
@@ -293,6 +358,8 @@ async def download_file_to_disk_func(data):
         return {'status': 'error', 'error': 'failed to get File info'}
     try:
         # print("trying to base64 decode chunk_data")
+        if data['chunk_num'] <= file_meta.chunks_received:
+            return {'status': 'error', 'error': 'out of order or duplicate chunk'}
         chunk_data = base64.b64decode(data['chunk_data'])
         f = open(file_meta.path, 'ab')
         f.write(chunk_data)
@@ -303,14 +370,10 @@ async def download_file_to_disk_func(data):
             # print("received chunk num {}".format(data['chunk_num']))
             if file_meta.chunks_received == file_meta.total_chunks:
                 file_meta.complete = True
+                contents = open(file_meta.path, 'rb').read()
+                file_meta.md5 = await hash_MD5(contents)
+                file_meta.sha1 = await hash_SHA1(contents)
             await db_objects.update(file_meta)
-            # if we ended up downloading a file from mac's screencapture utility, we need to fix it a bit
-        f = open(file_meta.path, 'rb').read(8)
-        if f == b"'PNGf'($":
-            f = open(file_meta.path, 'rb').read()
-            new_file = open(file_meta.path, 'wb')
-            new_file.write(unhexlify(f[8:-2]))
-            new_file.close()
     except Exception as e:
         print("Failed to save chunk to disk: " + str(e))
         return {'status': 'error', 'error': 'failed to store chunk: ' + str(e)}
@@ -407,6 +470,8 @@ async def host_payload_file_manually_by_name(request, user):
     try:
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user['current_operation'])
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
     except Exception as e:
         return json({'status': 'error', 'error': "not registered in a current operation"})
     if 'uuid' not in data:
@@ -419,12 +484,15 @@ async def host_payload_file_manually_by_name(request, user):
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find payload: ' + data['uuid']})
     if not data['host']:
+        old_path = payload.hosted_path.split("/")[-1]
         try:
             os.remove(payload.hosted_path)
         except Exception as e:
             pass
         payload.hosted_path = ""
         await db_objects.update(payload)
+        await db_objects.create(db_model.OperationEventLog, operator=operator, operation=operation,
+                                message="Apfell: Payload {} no longer being hosted".format(old_path))
         return json({'status': 'success', **payload.to_json()})
     else:
         if payload.hosted_path != "":
@@ -453,6 +521,41 @@ async def host_payload_file_manually_by_name(request, user):
         shutil.copyfile(payload.location, path)
         payload.hosted_path = path
         await db_objects.update(payload)
+        await db_objects.create(db_model.OperationEventLog, operator=operator, operation=operation,
+                                message="Apfell: Payload {} being hosted as {}".format(payload.location.split("/")[-1], data['name']))
         return json({'status': 'success', **payload.to_json()})
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to copy file: ' + str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/files/download/bulk", methods=['POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def download_zipped_files(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        data = request.json
+        if 'files' not in data:
+            return abort(404, "missing 'files' value")
+        # need to make aa temporary directory, copy all the files there, zip it, return that and clean up temp dir
+        temp_id = str(uuid.uuid4())
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+        working_dir = "./app/payloads/operations/{}/{}/".format(operation.name, str(uuid.uuid4()))
+        os.makedirs(working_dir, exist_ok=True)
+        query = await db_model.filemeta_query()
+        for file_id in data['files']:
+            try:
+                cur_file = await db_objects.get(query, agent_file_id=file_id, operation=operation)
+                shutil.copy(cur_file.path, working_dir + os.path.basename(cur_file.path))
+            except Exception as e:
+                print(str(e))
+        shutil.make_archive("./app/payloads/operations/{}/{}".format(operation.name, temp_id), 'zip', working_dir)
+        zip_data = open("./app/payloads/operations/{}/{}.zip".format(operation.name, temp_id), 'rb').read()
+        os.remove("./app/payloads/operations/{}/{}.zip".format(operation.name, temp_id))
+        shutil.rmtree(working_dir)
+        return raw(base64.b64encode(zip_data))
+    except Exception as e:
+        print(str(e))
+        return json({'status': 'error', 'error': 'failed to process request'})

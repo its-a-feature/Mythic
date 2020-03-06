@@ -1,4 +1,4 @@
-
+document.title = "Files";
 var ready_for_updates = false;
 var files_div = new Vue({
     el: '#files_div',
@@ -9,6 +9,30 @@ var files_div = new Vue({
         delete_file: function(file_id){
             alertTop("info", "deleting...", 1);
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/" + file_id, delete_file_callback, "DELETE", null);
+        },
+        export_file_metadata: function(section){
+            download_from_memory(section + ".json", btoa(JSON.stringify(this.hosts[section])));
+        },
+        display_info: function(file){
+            file_info_div.file = file;
+            $('#file_info_div').modal('show');
+        },
+        zip_selected_files: function(){
+            let selected_files = [];
+            for(let i = 0; i < files_div.hosts['downloads'].length; i++){
+                if(files_div.hosts['downloads'][i]['selected'] === true){
+                    selected_files.push(files_div.hosts['downloads'][i]['agent_file_id']);
+                }
+            }
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/bulk", (response)=>{
+                download_from_memory("apfell_downloads.zip", response);
+            }, "POST", {'files': selected_files});
+        },
+        toggle_all: function(){
+            let selected = $('#fileselectedall').is(":checked");
+            for(let i = 0; i < files_div.hosts['downloads'].length; i++){
+                files_div.hosts['downloads'][i]['selected'] = selected;
+            }
         }
     },
     delimiters: ['[[',']]']
@@ -19,68 +43,35 @@ function delete_file_callback(response){
    }catch(error){
         alertTop("danger", "Session expired, please refresh");
    }
-   if(data['status'] != "success"){
+   if(data['status'] !== "success"){
         alertTop("danger", data['error']);
+   }else{
+       for(let i = 0; i < files_div.hosts['uploads'].length; i++){
+           if(files_div.hosts['uploads'][i]['id'] === data['id']){
+               files_div.hosts['uploads'].splice(i, 1);
+               return;
+           }
+       }
+       for(let i = 0; i < files_div.hosts['downloads'].length; i++){
+           if(files_div.hosts['downloads'][i]['id'] === data['id']){
+               files_div.hosts['downloads'].splice(i, 1);
+               return;
+           }
+       }
    }
 }
-function startwebsocket_files(){
-    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/files/current_operation');
-    alertTop("success", "Loading...");
-    ws.onmessage = function(event){
-        if (event.data != ""){
-            //console.log(event.data);
-            f = JSON.parse(event.data);
-            if(f.deleted == true){return;}
-            // will get file_meta data a host field and an operator field
-            f['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + f['agent_file_id'];
-            if(f.path.includes("/downloads/")){
-                files_div.hosts['downloads'].push(f);
-            }
-            else{
-                try{
-                    f.upload = JSON.parse(f.upload);
-                    f['path'] = f['path'].split("/").slice(-1)[0];
-                }catch(e){
-                    f.upload = {"remote_path": "agent load of " + f.upload};
-                }
-                files_div.hosts['uploads'].push(f);
-            }
-        }
-        else{
-            if(ready_for_updates == false){
-                ready_for_updates = true;
-                setTimeout(() => { // setTimeout to put this into event queue
-                    // executed after render
-                    clearAlertTop();
-                }, 0);
-                startwebsocket_updatedfiles();
-            }
-        }
-    };
-    ws.onclose = function(){
-        //console.log("socket closed");
-        alertTop("danger", "Socket closed. Please refresh");
-    }
-    ws.onerror = function(){
-        //console.log("websocket error");
-        alertTop("danger", "Socket errored, please refresh");
-    }
-    ws.onopen = function(event){
-        //console.debug("opened");
-    }
-};
 
-function startwebsocket_updatedfiles(){
-    var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/updated_files/current_operation');
+function startwebsocket_files(){
+    let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/files/current_operation');
     ws.onmessage = function(event){
-        if (event.data != ""){
-            file = JSON.parse(event.data);
+        if (event.data !== ""){
+            let file = JSON.parse(event.data);
             //console.log(file);
-            file['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + f['agent_file_id'];
+            file['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + file['agent_file_id'];
             if(file.path.includes("/downloads/")){
-                for(var i = 0; i < files_div.hosts['downloads'].length; i++){
-                    if(file['id'] == files_div.hosts['downloads'][i]['id']){
-                        if(file['deleted'] == true){
+                for(let i = 0; i < files_div.hosts['downloads'].length; i++){
+                    if(file['id'] === files_div.hosts['downloads'][i]['id']){
+                        if(file['deleted'] === true){
                             files_div.hosts['downloads'].splice(i, 1);
                         }else{
                             Vue.set(files_div.hosts['downloads'], i, file);
@@ -89,11 +80,16 @@ function startwebsocket_updatedfiles(){
                         return;
                     }
                 }
+                // if we get here, we don't have the file, so add it
+                files_div.hosts['downloads'].unshift(file);
+                files_div.$forceUpdate();
             }
             else{
-                for(var i = 0; i < files_div.hosts['uploads'].length; i++){
-                    if(file['id'] == files_div.hosts['uploads'][i]['id']){
-                        if(file['deleted'] == true){
+                file.upload = JSON.parse(file.upload);
+                file['path'] = file['path'].split("/").slice(-1)[0];
+                for(let i = 0; i < files_div.hosts['uploads'].length; i++){
+                    if(file['id'] === files_div.hosts['uploads'][i]['id']){
+                        if(file['deleted'] === true){
                             files_div.hosts['uploads'].splice(i, 1);
                         }else{
                             Vue.set(files_div.hosts['uploads'], i, file);
@@ -102,20 +98,29 @@ function startwebsocket_updatedfiles(){
                         return;
                     }
                 }
+                // if we get here, we don't have the file, so add it
+                files_div.hosts['uploads'].unshift(file);
+                files_div.$forceUpdate();
             }
 
         }
     };
     ws.onclose = function(){
-        //console.log("socket closed");
-        alertTop("danger", "Socket closed, please refresh");
-    }
-    ws.onerror = function(){
-        //console.log("websocket error");
-        alertTop("danger", "Socket errored, please refresh");
-    }
+		wsonclose();
+	};
+	ws.onerror = function(){
+        wsonerror();
+	};
     ws.onopen = function(event){
         //console.debug("opened");
     }
-};
+}
 startwebsocket_files();
+
+var file_info_div = new Vue({
+    el: '#file_info_div',
+    delimiters: ['[[',']]'],
+    data: {
+        file: {}
+    }
+});

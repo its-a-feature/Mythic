@@ -1,0 +1,365 @@
+#!/usr/bin/env python3
+
+from sanic import Sanic
+from sanic.response import html, redirect, raw
+from sanic.exceptions import NotFound
+import sys
+import asyncio
+import ssl
+from pathlib import Path
+import json
+import requests
+import base64
+import random
+
+config = {}
+
+
+async def r_b64(*args):
+    # called with base64(value)
+    if isinstance(args[0], str):
+        return base64.b64decode(args[0].encode())
+    else:
+        return base64.b64decode(args[0])
+
+
+async def b64(*args):
+    # called with base64(value)
+    return base64.b64encode(args[0]).decode('utf-8')
+
+
+async def r_prepend(*args):
+    # called with prepend(value, "string")
+    return args[0][len(args[1]):]
+
+
+async def prepend(*args):
+    # called with prepend(value, "string")
+    return str(args[1]) + str(args[0])
+
+
+async def r_append(*args):
+    # called with append(value, "string")
+    return args[0][:len(args[0]) - len(args[1])]
+
+
+async def append(*args):
+    # called with append(value, "string")
+    return args[0] + args[1]
+
+
+async def random_mixed(*args):
+    # called with random_mixed(value, 10), always appends
+    letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    rnd = ''.join(random.choice(letters) for i in range(args[1]))
+    return args[0] + rnd
+
+
+async def r_random_mixed(*args):
+    # called with random_mixed(value, 10), always appends
+    # return the string going from 0 to -10 (or ten from the end)
+    return args[0][: -1 * args[1]]
+
+
+async def random_number(*args):
+    # called with random_number(value, 10)
+    letters = "0987654321"
+    rnd = ''.join(random.choice(letters) for i in range(args[1]))
+    return args[0] + rnd
+
+
+async def r_random_number(*args):
+    # called with random_mixed(value, 10), always appends
+    # return the string going from 0 to -10 (or ten from the end)
+    return args[0][: -1 * args[1]]
+
+
+async def random_alpha(*args):
+    # called with random_alpha(value, 10), always appends
+    letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    rnd = ''.join(random.choice(letters) for i in range(args[1]))
+    return args[0] + rnd
+
+
+async def r_random_alpha(*args):
+    # called with random_mixed(value, 10), always appends
+    # return the string going from 0 to -10 (or ten from the end)
+    return args[0][: -1 * args[1]]
+
+
+async def choose_random(*args):
+    # called with choose_random(value, opt1, opt2, opt3...)
+    choice = random.choice(args[1:])
+    return args[0] + choice
+
+
+async def r_choose_random(*args):
+    # called with choose_random(value, opt1, opt2, opt3...)
+    for e in args[1:]:
+        if e in args[0]:
+            return args[0].replace(e, "", 1)
+
+
+async def get_value(value, transforms):
+    # given an obfuscated value, apply transforms to get back the value we need
+    # await print_flush(transforms)
+    for step in transforms[::-1]:
+        if step['function'] == "base64":
+            value = await r_b64(value, *step['parameters'])
+        elif step['function'] == 'prepend':
+            value = await r_prepend(value, *step['parameters'])
+        elif step['function'] == "append":
+            value = await r_append(value, *step['parameters'])
+        elif step['function'] == "random_mixed":
+            value = await r_random_mixed(value, *step['parameters'])
+        elif step['function'] == "random_number":
+            value = await r_random_number(value, *step['parameters'])
+        elif step['function'] == "random_alpha":
+            value = await r_random_alpha(value, *step['parameters'])
+    return value
+
+
+async def create_value(value, transforms):
+    for step in transforms:
+        # await print_flush("in create_value: value: {}\n".format(value))
+        if step['function'] == 'base64':
+            value = await b64(value, *step['parameters'])
+        elif step['function'] == 'prepend':
+            value = await prepend(value, *step['parameters'])
+        elif step['function'] == 'append':
+            value = await append(value, *step['parameters'])
+        elif step['function'] == "random_mixed":
+            value = await random_mixed(value, *step['parameters'])
+        elif step['function'] == "random_number":
+            value = await random_number(value, *step['parameters'])
+        elif step['function'] == "random_alpha":
+            value = await random_alpha(value, *step['parameters'])
+    return value
+
+
+async def create_response(request, data, status=200, method="POST"):
+    try:
+        if config[request.app.name]['debug']:
+            await print_flush("calling create_value for data: {}\nwith transforms: {}\n".format(data, config[request.app.name][method]['ServerBody']))
+        data = await create_value(data, config[request.app.name][method]['ServerBody'])
+
+        headers = config[request.app.name][method]['ServerHeaders']
+
+        cookies = config[request.app.name][method]['ServerCookies']
+        if config[request.app.name]['debug']:
+            await print_flush("response of: {}".format(data))
+            await print_flush("response data: {}\n".format(data))
+            await print_flush("response headers: {}\n".format(headers))
+            await print_flush("response_cookies: {}\n".format(cookies))
+        if isinstance(data, str):
+            data = data.encode()
+        response = raw(data, status=status, headers=headers)
+        for key in cookies.items():
+            response.cookies[key] = cookies[key]
+        return response
+    except Exception as e:
+        if config[request.app.name]['debug']:
+            await print_flush("error in create_response: {}".format(str(e)))
+        return html("Error: Requested URL {} not found\n".format(request.url), status=404)
+
+
+async def no_match(request, exception):
+    global config
+    if config[request.app.name]['debug']:
+        await print_flush("hit a 'no_match' case")
+    if config[request.app.name]['no_match']['action'] == "":
+        return await create_response(request, data="Error: Requested URL {} not found".format(request.url), status=404)
+    elif config[request.app.name]['no_match']['action'] == 'redirect':
+        return redirect(config[request.app.name]['no_match']['redirect'])
+    elif config[request.app.name]['no_match']['action'] == 'proxy_get':
+        resp = requests.get(config[request.app.name]['no_match']['proxy_get']['url'], verify=False)
+        return await create_response(request, data=resp.content, status=config[request.app.name]['no_match']['proxy_get']['status'])
+    elif config[request.app.name]['no_match']['action'] == 'proxy_post':
+        resp = requests.post(config[request.app.name]['no_match']['proxy_post']['url'], data=request.body, verify=False)
+        return await create_response(request, data=resp.content, status=config[request.app.name]['no_match']['proxy_post']['status'])
+    elif config[request.app.name]['no_match']['action'] == 'return_file':
+        content = open(config[request.app.name]['no_match']['return_file']['name'], 'r').read()
+        return await create_response(request, data=content, status=config[request.app.name]['no_match']['return_file']['status'])
+
+
+async def print_flush(message):
+    print(message)
+    sys.stdout.flush()
+
+
+async def get_base_values(request, method: str, apfell_endpoint: str, **kwargs):
+    value = None
+    transforms = None
+    try:
+        if config[request.app.name][method][apfell_endpoint]['location'] == 'URI':
+            value = kwargs["message"]
+            transforms = {}
+        elif config[request.app.name][method][apfell_endpoint]['location'] == 'QueryParameters':
+            value = request.raw_args[config[request.app.name][method][apfell_endpoint]['value']['name']]
+            transforms = config[request.app.name][method][apfell_endpoint]['value']['transforms']
+        elif config[request.app.name][method][apfell_endpoint]['location'] == 'Cookies':
+            value = request.cookies.get(config[request.app.name][method][apfell_endpoint]['value']['name'])
+            transforms = config[request.app.name][method][apfell_endpoint]['value']['transforms']
+        elif config[request.app.name][method][apfell_endpoint]['location'] == 'Body':
+            value = request.body
+            transforms = config[request.app.name][method][apfell_endpoint]['value']
+        else:
+            if config[request.app.name]['debug']:
+                await print_flush("{} failed to find required parameter".format(apfell_endpoint))
+                return None, None
+        if config[request.app.name]['debug']:
+            await print_flush("Got value: {}\nGot transforms: {}\n".format(value, transforms))
+    except Exception as e:
+        if config[request.app.name]['debug']:
+            await print_flush("Failed to get a value: {}, {}".format(apfell_endpoint, str(e)))
+    return value, transforms
+
+
+async def get_agent_message(request, **kwargs):
+    global config
+    try:
+        if config[request.app.name]['debug']:
+            await print_flush("get_agent_message request from: {} with {} and {}".format(request.url, request.cookies, request.headers))
+        # find the agent value and the transforms needed to get the real value out
+        message, transforms = await get_base_values(request, 'GET', request.uri_template, **kwargs)
+        if message is None:
+            # this means we failed to find our message
+            return await no_match(request, NotFound)
+        # given the message location and transforms, extract the actual value
+        message = await get_value(message, transforms)
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(config['apfellBase']))
+        response = requests.post(config['apfellBase'], verify=False, data=message)
+        return await create_response(request, data=response.content, status=response.status_code, method="GET")
+    except Exception as e:
+        if config[request.app.name]['debug']:
+            await print_flush("error in get_agent_message: {}".format(str(e)))
+        return await no_match(request, NotFound)
+
+
+async def post_agent_message(request, **kwargs):
+    global config
+    try:
+        if config[request.app.name]['debug']:
+            await print_flush("post_agent_message request from: {} with {} and {}".format(request.url, request.cookies, request.headers))
+        message, agent_transforms = await get_base_values(request, 'POST', request.uri_template, **kwargs)
+        if message is None:
+            return await no_match(request, NotFound)
+        message = await get_value(message, agent_transforms)
+        if config[request.app.name]['debug']:
+            await print_flush("Forwarding along to: {}".format(config['apfellBase']))
+        response = requests.post(config['apfellBase'], data=message, verify=False)
+        return await create_response(request, data=response.content, status=response.status_code, method="POST")
+    except Exception as e:
+        if config[request.app.name]['debug']:
+            await print_flush("error in post_agent_message: {}".format(str(e)))
+        return await no_match(request, NotFound)
+
+
+if __name__ == "__main__":
+    config_file = open("config.json", 'rb')
+    main_config = json.loads(config_file.read().decode('utf-8'))
+    print("Opening config and starting instances...")
+    sys.stdout.flush()
+    # basic mapping of the general endpoints to the real endpoints
+    config['apfellBase'] = main_config['apfellBase']
+    # now look at the specific instances to start
+    for inst in main_config['instances']:
+        config[str(inst['port'])] = {'debug': inst['debug'],
+                                     'no_match': inst['no_match'],
+                                     'POST': {  # these are server response configurations
+                                         'ServerHeaders': inst['POST']['ServerHeaders'],
+                                         'ServerCookies': inst['POST']['ServerCookies'],
+                                         'ServerBody': inst['POST']['ServerBody']
+                                     },
+                                     "GET": {  # these are server response configurations
+                                         'ServerHeaders': inst['GET']['ServerHeaders'],
+                                         'ServerCookies': inst['GET']['ServerCookies'],
+                                         'ServerBody': inst['GET']['ServerBody']
+                                     }}
+        # now to create an app instance too handle responses
+        app = Sanic(str(inst['port']))
+        app.config['REQUEST_MAX_SIZE'] = 1000000000
+        app.config['REQUEST_TIMEOUT'] = 600
+        app.config['RESPONSE_TIMEOUT'] = 600
+        app.error_handler.add(Exception, no_match)
+
+        # do a little extra processing here once so we don't have to do extra processing for each request
+        # for each endpoint need to track:
+        #   1. where the data is located (URI, query, cookie, body, header)
+        #   2. what needs to be done to access the value
+        #       (access specific field, certain offset into data, decode first, etc)
+        #   3. what needs to be done to get the final value out (decode, remove extra data, etc)
+
+        # an instance can have multiple URLs and schemes for each GET/POST, so loop through all of that
+        for g in inst['GET']['AgentMessage']:
+            app.add_route(get_agent_message, g['uri'], methods=['GET'])
+            config[str(inst['port'])]['GET'][g['uri']] = {}
+            # we need to find where the "message" parameter exists so we know where the data will be
+            for p in g['QueryParameters']:
+                if p['value'] == "message":
+                    config[str(inst['port'])]['GET'][g['uri']]['location'] = "QueryParameters"
+                    config[str(inst['port'])]['GET'][g['uri']]['value'] = p
+            for p in g['Cookies']:
+                if p['value'] == 'message':
+                    config[str(inst['port'])]['GET'][g['uri']]['location'] = "Cookies"
+                    config[str(inst['port'])]['GET'][g['uri']]['value'] = p
+            for p in g['urlFunctions']:
+                if p['name'] == '<message:string>':
+                    config[str(inst['port'])]['GET'][g['uri']]['location'] = "URI"
+                    config[str(inst['port'])]['GET'][g['uri']]['value'] = p
+        for g in inst['POST']['AgentMessage']:
+            app.add_route(post_agent_message, g['uri'], methods=['POST'])
+            config[str(inst['port'])]['POST'][g['uri']] = {}
+            # we need to find where the "message" parameter exists so we know where the data will be
+            for p in g['QueryParameters']:
+                if p['value'] == "message":
+                    config[str(inst['port'])]['POST'][g['uri']]['location'] = "QueryParameters"
+                    config[str(inst['port'])]['POST'][g['uri']]['value'] = p
+            for p in g['Cookies']:
+                if p['value'] == 'message':
+                    config[str(inst['port'])]['POST'][g['uri']]['location'] = "Cookies"
+                    config[str(inst['port'])]['POST'][g['uri']]['value'] = p
+            for p in g['urlFunctions']:
+                if p['name'] == '<message:string>':
+                    config[str(inst['port'])]['POST'][g['uri']]['location'] = "URI"
+                    config[str(inst['port'])]['POST'][g['uri']]['value'] = p
+            if 'location' not in config[str(inst['port'])]['POST'][g['uri']]:
+                # if we haven't set it yet, data must be in the body
+                config[str(inst['port'])]['POST'][g['uri']]['location'] = "Body"
+                config[str(inst['port'])]['POST'][g['uri']]['value'] = g['Body']
+
+        keyfile = Path(inst['key_path'])
+        certfile = Path(inst['cert_path'])
+        if keyfile.is_file() and certfile.is_file():
+            context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+            context.load_cert_chain(inst['cert_path'], keyfile=inst['key_path'])
+            if inst['debug']:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], ssl=context, debug=False, return_asyncio_server=True, access_log=True)
+            else:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], ssl=context, debug=False, return_asyncio_server=True, access_log=False)
+            if inst['debug']:
+                print("using SSL for port {}".format(inst['port']))
+                sys.stdout.flush()
+        else:
+            if inst['debug']:
+                print("not using SSL for port {}".format(inst['port']))
+                sys.stdout.flush()
+            if inst['debug']:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], debug=False, return_asyncio_server=True, access_log=True)
+            else:
+                server = app.create_server(host="0.0.0.0", port=inst['port'], debug=False, return_asyncio_server=True, access_log=False)
+        task = asyncio.ensure_future(server)
+
+    try:
+        loop = asyncio.get_event_loop()
+        def callback(fut):
+            try:
+                fetch_count = fut.result()
+            except OSError as e:
+                print("probably the port set is being used")
+                fut.get_loop().stop()
+        task.add_done_callback(callback)
+        loop.run_forever()
+    except:
+        loop.stop()

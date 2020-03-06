@@ -1,5 +1,6 @@
 #! /bin/bash
 
+apt-get install curl -y
 # install the required services, pull docker the right docker for debian
 apt-get install -y \
     apt-transport-https \

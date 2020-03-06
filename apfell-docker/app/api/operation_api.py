@@ -8,6 +8,7 @@ import os
 import shutil
 from app.crypto import create_key_AES256
 import app.database_models.model as db_model
+from app.api.browserscript_api import remove_admin_browserscripts
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/", methods=['GET'])
@@ -90,15 +91,19 @@ async def create_operation(request, user):
             return json({'status': 'error', 'error': 'admin operator does not exist'})
         try:
             AESPSK =await create_key_AES256()
-            operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator,
-                                                AESPSK=AESPSK)
+            if 'webhook' in data and data['webhook'] is not None and data['webhook'] != "":
+                operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator,
+                                                    AESPSK=AESPSK, webhook=data['webhook'])
+            else:
+                operation = await db_objects.create(Operation, name=data['name'], admin=admin_operator,
+                                                    AESPSK=AESPSK)
         except Exception as e:
             return json({'status': 'error', 'error': 'failed to create operation, is the name unique?'})
         if 'members' not in data or data['members'] is None:
             data['members'] = [data['admin']]
         elif data['admin'] not in data['members']:
             data['members'].append(data['admin'])
-        status = await add_user_to_operation_func(operation, data['members'])
+        status = await add_user_to_operation_func(operation, data['members'], user)
         if status['status'] == 'success':
             if not os.path.exists("./app/payloads/operations/{}".format(data['name'])):
                 os.makedirs("./app/payloads/operations/{}".format(data['name']), exist_ok=True)
@@ -110,16 +115,19 @@ async def create_operation(request, user):
         return json({'status': 'error', 'error': 'must be admin to create new operations'})
 
 
-async def add_user_to_operation_func(operation, users):
+async def add_user_to_operation_func(operation, users, user):
     # this take an operation object and a list of users (string) and adds them to the operation
+    query = await db_model.operator_query()
+    adder = await db_objects.get(query, username=user['username'])
     for operator in users:
         try:
-            query = await db_model.operator_query()
             op = await db_objects.get(query, username=operator)
         except Exception as e:
             return {'status': 'error', 'error': 'failed to find user'}
         try:
             map = await db_objects.create(OperatorOperation, operator=op, operation=operation)
+            await db_objects.create(db_model.OperationEventLog, operator=adder, operation=operation,
+                                    message="Apfell: {} added to operation".format(op.username))
         except Exception as e:
             return {'status': 'error', 'error': 'failed to add user to operation'}
     return {'status': 'success'}
@@ -139,14 +147,20 @@ async def update_operation(request, user, op):
         data = request.json
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=op)
+        query = await db_model.operator_query()
+        modifier = await db_objects.get(query, username=user['username'])
         if not operation.complete:
             if 'admin' in data:
                 try:
                     query = await db_model.operator_query()
                     new_admin = await db_objects.get(query, username=data['admin'])
+                    await remove_admin_browserscripts(operation.admin, operation)
                     operation.admin = new_admin
                     await db_objects.update(operation)
+                    await db_objects.create(db_model.OperationEventLog, operator=modifier, operation=operation,
+                                            message="Apfell: {} is now operation admin".format(new_admin.username))
                 except Exception as e:
+                    print(e)
                     return json({'status': 'error', 'error': 'failed to update the admin'})
             if 'add_members' in data:
                 for new_member in data['add_members']:
@@ -154,6 +168,8 @@ async def update_operation(request, user, op):
                         query = await db_model.operator_query()
                         operator = await db_objects.get(query, username=new_member)
                         map = await db_objects.create(OperatorOperation, operator=operator, operation=operation)
+                        await db_objects.create(db_model.OperationEventLog, operator=modifier, operation=operation,
+                                                message="Apfell: {} added to operation".format(operator.username))
                     except Exception as e:
                         return json({'status': 'error', 'error': 'failed to add user {} to the operation'.format(new_member)})
             if 'remove_members' in data:
@@ -170,6 +186,8 @@ async def update_operation(request, user, op):
                                 operator.current_operation = None
                                 await db_objects.update(operator)
                             await db_objects.delete(operatoroperation)
+                            await db_objects.create(db_model.OperationEventLog, operator=modifier, operation=operation,
+                                                    message="Apfell: {} removed from operation".format(operator.username))
                     except Exception as e:
                         print("got exception: " + str(e))
                         return json({'status': 'error', 'error': 'failed to remove: ' + old_member + "\nAdded: " + str(data['add_users'])})
@@ -187,6 +205,16 @@ async def update_operation(request, user, op):
                         print("failed to find disabled commands profile")
                         operatoroperation.base_disabled_commands = None
                     await db_objects.update(operatoroperation)
+            if 'webhook' in data:
+                if (data['webhook'] == "" or data['webhook'] is None) and (operation.webhook is not None and operation.webhook != ""):
+                    operation.webhook = None
+                    await db_objects.create(db_model.OperationEventLog, operator=modifier, operation=operation,
+                                            message="Apfell: Operation webhook removed")
+                elif data['webhook'] != "":
+                    operation.webhook = data['webhook']
+                    await db_objects.create(db_model.OperationEventLog, operator=modifier, operation=operation,
+                                            message="Apfell: Operation webhook added: {}".format(data['webhook']))
+                await db_objects.update(operation)
             all_users = []
             query = await db_model.operatoroperation_query()
             current_members = await db_objects.execute(query.where(OperatorOperation.operation == operation))
@@ -196,10 +224,14 @@ async def update_operation(request, user, op):
             if 'complete' in data:
                 operation.complete = data['complete']
                 await db_objects.update(operation)
+                await db_objects.create(db_model.OperationEventLog, operator=modifier, operation=operation,
+                                        message="Apfell: operation completed")
             return json({'status': 'success', 'members': all_users, **operation.to_json()})
         elif 'complete' in data and data['complete'] is False:
             operation.complete = False
             await db_objects.update(operation)
+            await db_objects.create(db_model.OperationEventLog, operator=modifier, operation=operation,
+                                    message="Apfell: operation re-opened")
             return json({'status': 'success', **operation.to_json()})
         else:
             return json({'status': 'error', 'error': 'operation is complete and cannot be modified'})
@@ -278,6 +310,8 @@ async def create_disabled_commands_profile(request, user):
         added_acl = []
         # {"profile_name": {"payload type": [command name, command name 2], "Payload type 2": [] }
         for name in data:
+            if name == "":
+                return json({'status': 'error', 'error': 'name cannot be blank'})
             for ptype in data[name]:
                 query = await db_model.payloadtype_query()
                 payload_type = await db_objects.get(query, ptype=ptype)
@@ -306,12 +340,19 @@ async def delete_disabled_commands_profile(request, user, profile):
             return json({'status': 'error', 'error': 'Must be an Apfell admin to delete command profiles'})
         query = await db_model.disabledcommandsprofile_query()
         commands_profile = await db_objects.execute(query.where(DisabledCommandsProfile.name == profile))
+        # make sure that the mapping is gone from operatoroperation.base_disabled_commands
+        query = await db_model.operatoroperation_query()
+        operator_operation_mapping = await db_objects.execute(query.where(DisabledCommandsProfile.name == profile))
+        for o in operator_operation_mapping:
+            o.base_disabled_commands = None
+            await db_objects.update(o)
         for c in commands_profile:
             await db_objects.delete(c)
+
         return json({"status": 'success', "name": profile})
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'failed to delete disabled command profile'})
+        return json({'status': 'error', 'error': 'failed to delete disabled command profile: ' + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operations/disabled_commands_profile", methods=['PUT'])

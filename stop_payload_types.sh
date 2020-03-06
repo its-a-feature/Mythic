@@ -29,6 +29,7 @@ do
 		# only try to do this if the specified directory actually exists
 		#docker container prune -f
 		#docker volume prune -f
+		echo "Trying to stop $tag's container..."
 		output=`docker stop "$tag" 2>/dev/null`
 		if [ $? -ne 0 ] 
 		then

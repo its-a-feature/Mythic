@@ -28,10 +28,34 @@ var task_info = new Vue({
         },
         add_comment: function(task){
             $( '#addCommentTextArea' ).val(task.comment);
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+                $("#addCommentTextArea").unbind('keyup').on('keyup', function (e) {
+                    if (e.keyCode === 13) {
+                        $( '#addCommentSubmit' ).click();
+                    }
+                });
+            });
             $( '#addCommentModal' ).modal('show');
             $( '#addCommentSubmit' ).unbind('click').click(function(){
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});
             });
+        },
+        download_raw_output: function(taskid){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + taskid + "/raw_output", (response)=>{
+                try{
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'success'){
+                        download_from_memory("task_" + taskid + ".txt", data['output']);
+                    }else{
+                        alertTop("warning", data['error']);
+                    }
+                }catch(error){
+                    alertTop("danger", "Session expired, please refresh");
+                    console.log(error.toString());
+                }
+            }, "GET", null);
+
         },
         remove_comment: function(id){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, comment_callback, "DELETE", null);
@@ -49,13 +73,14 @@ function set_info(response){
         alertTop("danger", "Session expired, please refresh");
         return;
     }
-    if(data['status'] == "error"){
+    if(data['status'] === "error"){
         alertTop("danger", data['error']);
         return;
     }
     else{
         task_info.callback = data['callback'];
         task_info.task = data['task'];
+        document.title = "Task " + data['task']['id'];
         task_info.task['use_scripted'] = false;
         task_info.responses = data['responses'];
         if(browser_scripts.hasOwnProperty(data['task']['command_id'])){

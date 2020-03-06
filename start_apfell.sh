@@ -7,12 +7,25 @@ elif ! which docker-compose > /dev/null; then
 fi
 # make sure things are stopped first
 docker-compose stop
+# stop c2 profiles
+./stop_c2_profiles.sh
+# stop payload types
+./stop_payload_types.sh
+
 # stand up the docker services and build if needed, started them detached
 if ! which realpath > /dev/null; then
   apt-get install -y realpath
 fi
+
+if [ ! -d "./postgres-docker/database" ]; then
+    mkdir "./postgres-docker/database"
+fi
+if [ ! -d "./rabbitmq-docker/storage" ]; then
+  mkdir "./rabbitmq-docker/storage"
+fi
 docker-compose up --build -d
+
 # stand up c2 profiles
 ./start_c2_profiles.sh
 # stand up payload types
-./start_payload_types.sh
+./start_payload_types.sh $@

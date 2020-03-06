@@ -7,7 +7,7 @@ import os
 from urllib.parse import unquote_plus
 import base64
 import sys
-from app.api.transform_api import get_transforms_func
+from app.api.transform_api import get_payload_transforms
 import uuid
 import shutil
 import glob
@@ -68,9 +68,14 @@ async def remove_payload_func(uuid, from_disk, operation):
         payload = await db_objects.get(query, uuid=uuid, operation=operation)
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return {'status':'error', 'error': 'specified payload does not exist'}
+        return {'status': 'error', 'error': 'specified payload does not exist'}
     try:
         payload.deleted = True
+        if os.path.exists(payload.hosted_path):
+            try:
+                os.remove(payload.hosted_path)
+            except Exception as e:
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         await db_objects.update(payload)
         if from_disk == 1 and os.path.exists(payload.location):
             try:
@@ -113,16 +118,17 @@ async def remove_multiple_payload(request, user):
             return json({'status': 'error', 'errors': errors, 'successes': successes})
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return json({'status': 'error', 'error': 'Failed to get operation', 'errors':{}, 'successes':{}})
+        return json({'status': 'error', 'error': 'Failed to get operation', 'errors': {}, 'successes': {}})
 
 
 async def register_new_payload_func(data, user):
+    delete_elements = []  # keep track of elements to delete if we error out in the process
     if user['current_operation'] == "":
         return {'status': 'error', 'error': "must be in an active operation"}
     if 'payload_type' not in data:
         return {'status': 'error', 'error': '"payload_type" field is required'}
-    if 'c2_profile' not in data:
-        return {'status': 'error', 'error': '"c2_profile" field is required'}
+    if 'c2_profiles' not in data:
+        return {'status': 'error', 'error': '"c2_profiles" field is required'}
     # the other parameters are based on the payload_type, c2_profile, or other payloads
     try:
         query = await db_model.operator_query()
@@ -134,12 +140,6 @@ async def register_new_payload_func(data, user):
         return {'status': 'error', 'error': 'failed to get operator or operation when registering payload'}
     # we want to track the parent callbacks of new callbacks if possible
 
-    try:
-        query = await db_model.c2profile_query()
-        c2_profile = await db_objects.get(query, name=data['c2_profile'])
-    except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return {'status': 'error', 'error': 'failed to get c2 profile when registering payload'}
     try:
         query = await db_model.payloadtype_query()
         payload_type = await db_objects.get(query, ptype=data['payload_type'])
@@ -159,10 +159,6 @@ async def register_new_payload_func(data, user):
                 db_commands[cmd] = await db_objects.get(query, cmd=cmd, payload_type=payload_type)
             except Exception as e:
                 return {'status': 'error', 'error': 'failed to get command {}'.format(cmd)}
-    if payload_type.wrapper:
-        data['wrapper'] = True
-    else:
-        data['wrapper'] = False
     uuid = await generate_uuid()
     if 'location' in data:
         full_filename = os.path.basename(data['location'])
@@ -185,28 +181,26 @@ async def register_new_payload_func(data, user):
     if 'build_container' not in data:
         data['build_container'] = payload_type.ptype
     if not payload_type.wrapper:
-        create = False
-        try:
-            query = await db_model.payload_query()
-            payload = await db_objects.get(query, operator=operator, payload_type=payload_type,
-                                                             tag=tag, location=location, c2_profile=c2_profile,
-                                                             uuid=uuid, operation=operation,
-                                                             build_container=data['build_container'])
-        except Exception as e:
-            payload = await db_objects.create(Payload, operator=operator, payload_type=payload_type,
-                                                             tag=tag, location=location, c2_profile=c2_profile,
-                                                             uuid=uuid, operation=operation,
-                                                             build_container=data['build_container'])
-            create = True
-        if create:
-            for cmd in db_commands:
-                try:
-                    await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd], version=db_commands[cmd].version)
-                except Exception as e:
-                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                    # this should delete any PayloadCommands that managed to get created before the error
-                    await db_objects.delete(payload, recursive=True)
-                    return json({'status': 'error', 'error': "Failed to create payloadcommand: " + str(e)})
+        payload = await db_objects.create(Payload, operator=operator, payload_type=payload_type,
+                                          tag=tag, location=location,
+                                          uuid=uuid, operation=operation,
+                                          build_container=data['build_container'])
+        delete_elements.append(payload)
+        await db_objects.create(db_model.OperationEventLog, operator=operator, operation=operation,
+                                message="Apfell: New payload {} with UUID {} and tag: {}".format(payload_type.ptype,
+                                                                                                    payload.uuid,
+                                                                                                    payload.tag))
+
+        for cmd in db_commands:
+            try:
+                pc = await db_objects.create(PayloadCommand, payload=payload, command=db_commands[cmd], version=db_commands[cmd].version)
+                delete_elements.append(pc)
+            except Exception as e:
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                # this should delete any PayloadCommands that managed to get created before the error
+                for e in delete_elements:
+                    await db_objects.delete(e)
+                return {'status': 'error', 'error': "Failed to create payloadcommand: " + str(e)}
     else:
         # this means we're looking at making a wrapped payload, so make sure we can find the right payload
         try:
@@ -214,33 +208,96 @@ async def register_new_payload_func(data, user):
             wrapped_payload = await db_objects.get(query, uuid=data['wrapped_payload'], operation=operation)
         except Exception as e:
             print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            for e in delete_elements:
+                await db_objects.delete(e)
             return {'status': 'error', 'error': 'failed to find the wrapped payload specified in our current operation'}
-        try:
-            query = await db_model.payload_query()
-            payload = await db_objects.get(query, operator=operator, payload_type=payload_type,
-                                                             tag=tag, location=location, c2_profile=c2_profile,
-                                                             uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
-        except Exception as e:
-            payload = await db_objects.create(Payload, operator=operator, payload_type=payload_type,
-                                           tag=tag, location=location, c2_profile=c2_profile,
-                                           uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
+        payload = await db_objects.create(Payload, operator=operator, payload_type=payload_type,
+                                       tag=tag, location=location,
+                                       uuid=uuid, operation=operation, wrapped_payload=wrapped_payload)
+        delete_elements.append(payload)
+        await db_objects.create(db_model.OperationEventLog, operator=operator, operation=operation,
+                                message="Apfell: New payload {} with UUID {} and tag: {}".format(
+                                    payload_type.ptype, payload.uuid, payload.tag))
+    # go through each c2 profile and creating payload/c2 mappings and instantiate their parameters
     # Get all of the c2 profile parameters and create their instantiations
-    query = await db_model.c2profileparameters_query()
-    db_c2_profile_parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == c2_profile))
-    for param in db_c2_profile_parameters:
-        # find the matching data in the data['c2_profile_parameters']
+    for p in data['c2_profiles']:
         try:
-            await db_objects.create(C2ProfileParametersInstance, c2_profile_parameters=param, value=data['c2_profile_parameters'][param.name], payload=payload)
+            query = await db_model.c2profile_query()
+            c2_profile = await db_objects.get(query, name=p['c2_profile'])
+        except Exception as e:
+            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            for e in delete_elements:
+                await db_objects.delete(e)
+            return {'status': 'error', 'error': 'failed to get c2 profile when registering payload'}
+        query = await db_model.c2profileparameters_query()
+        db_c2_profile_parameters = await db_objects.execute(query.where(C2ProfileParameters.c2_profile == c2_profile))
+        for param in db_c2_profile_parameters:
+            # find the matching data in the data['c2_profile_parameters']
+            try:
+                c2p = await db_objects.create(C2ProfileParametersInstance, c2_profile_parameters=param,
+                                              value=p['c2_profile_parameters'][param.key], payload=payload,
+                                              c2_profile=c2_profile)
+                delete_elements.append(c2p)
+            except Exception as e:
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                # remove our payload that we managed to create
+                for e in delete_elements:
+                    await db_objects.delete(e)
+                return {'status': 'error', 'error': 'failed to create parameter instance: ' + str(e)}
+        try:
+            payload_c2 = await db_objects.create(db_model.PayloadC2Profiles, payload=payload, c2_profile=c2_profile)
+            delete_elements.append(payload_c2)
         except Exception as e:
             print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             # remove our payload that we managed to create
-            await db_objects.delete(payload, recursive=True)
+            for e in delete_elements:
+                await db_objects.delete(e)
             return {'status': 'error', 'error': 'failed to create parameter instance: ' + str(e)}
+    # Get all of the transform parameters if any and create their instantiations
+    if data['transforms']:
+        query = await db_model.transformcode_query()
+        for t in data['transforms']:
+            transform = await db_objects.get(query, name=t['transform'])
+            await db_objects.create(db_model.TransformInstance, transform=transform, order=t['order'], payload=payload,
+                                    t_type=t['t_type'], parameter=t['parameter'])
+    try:
+        os.makedirs(pathlib.Path(payload.location).parent, exist_ok=True)
+        pathlib.Path(payload.location).touch()
+    except Exception as e:
+        return {'status': 'error', 'error': 'failed to touch file on disk'}
     return {'status': 'success', **payload.to_json()}
 
 
 async def generate_uuid():
     return str(uuid.uuid4())
+
+
+async def local_copytree(src, dst):
+    names = os.listdir(src)
+    #os.makedirs(dst, exist_ok=True)
+    pathlib.Path(dst).mkdir(parents=True, exist_ok=True)
+    errors = []
+    for name in names:
+        srcname = os.path.join(src, name)
+        dstname = os.path.join(dst, name)
+        try:
+            shutil.copytree(srcname, dstname)
+        except OSError as why:
+            try:
+                shutil.copy2(srcname, dstname)
+            except OSError as why2:
+                errors.append((srcname, dstname, str(why2)))
+        # catch the Error from the recursive copytree so that we can
+        # continue with other files
+        except Exception as err:
+            errors.extend(err.args[0])
+        try:
+            shutil.copystat(src, dst)
+        except Exception as e:
+            errors.append(e.args[0])
+    if len(errors):
+        print(errors)
+        raise Exception(str(errors))
 
 
 async def write_payload(uuid, user, data):
@@ -256,151 +313,167 @@ async def write_payload(uuid, user, data):
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {'status': 'error', 'error': 'failed to get payload db object to write to disk'}
     try:
-        if payload.payload_type.file_extension:
-            extension = payload.payload_type.file_extension
-        else:
-            extension = ""
         working_path = "./app/payloads/operations/{}/{}".format(operation.name, payload.uuid)
         # copy the payload type's files there
-        shutil.copytree("./app/payloads/{}/payload/".format(payload.payload_type.ptype), working_path)
+        await local_copytree("./app/payloads/{}/payload/".format(payload.payload_type.ptype), working_path)
         # now we will work with the files from our temp directory
-        # make sure the path and everything exists for where the final payload will go, create it if it doesn't exist
-        payload_directory = os.path.dirname(payload.location)
-        pathlib.Path(payload_directory).mkdir(parents=True, exist_ok=True)
-
-        # wrappers won't necessarily have a c2 profile associated with them
-        c2_path = './app/c2_profiles/{}/{}/{}{}'.format(payload.c2_profile.name,
-                                                        payload.payload_type.ptype,
-                                                        payload.c2_profile.name, extension)
-        try:
-            base_c2 = open(c2_path, 'r')
-        except Exception as e:
-            # if the wrapper doesn't have a c2 profile, that's ok
-            if payload.payload_type.wrapper:
-                pass
-            # if the normal profile doesn't though, that's an issue, raise the exception
-            else:
-                raise e
-
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        shutil.rmtree(working_path)
-        return {'status': 'error', 'error': 'failed to open all needed files. ' + str(e)}
-    # if we didn't actually find C2PROFILEHERE in the main code, we are probably looking at a multi-file project
-    #   in that case, keep track so that we can copy the file over to our temp directory, fill it out, and compile
+        try:
+            shutil.rmtree(working_path)
+        except Exception as err:
+            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(err))
+            pass
+        return {'status': 'error', 'error': 'failed to copy over all needed files. ' + str(e)}
+    wrote_commands_inline = False
     wrote_c2_inline = False
     # we will loop over all the files in the temp directory as we attempt to write out our information
     # this will help multi file projects as well as ones where maybe code and headers need to be in different files
-    for base_file in glob.iglob(working_path + "/*", recursive=False):
-        base = open(base_file, 'r')
-        # write to the new file, then copy it over when we're done
-        custom = open(working_path + "/" + payload.uuid, 'w')  # make sure our temp file won't exist
-        for line in base:
-            if "C2PROFILE_HERE" in line and base_c2:
-                # this means we need to write out the c2 profile and all parameters here
-                await write_c2(custom, base_c2, payload)
-                wrote_c2_inline = True
-            elif 'C2PROFILE_NAME_HERE' in line:
-                # optional directive to insert the name of the c2 profile
-                replaced_line = line.replace("C2PROFILE_NAME_HERE", payload.c2_profile.name)
-                custom.write(replaced_line)
-            elif 'UUID_HERE' in line:
-                replaced_line = line.replace("UUID_HERE", uuid)
-                custom.write(replaced_line)
-            elif 'COMMANDS_HERE' in line:
-                # go through all the commands and write them to the payload
-                try:
+    # this iterates over all payload files in the working path
+    for base_file in glob.iglob(working_path + "/**", recursive=True):
+        try:
+            # print("base_file: " + base_file)
+            # print("is folder: " + str(os.path.isdir(base_file)))
+            if os.path.isdir(base_file):
+                continue
+            base = open(base_file, 'r')
+            # print("payload file: " + base_file)
+            # write to the new file, then copy it over when we're done
+            custom = open(base_file + payload.uuid, 'w')  # make sure our temp file won't exist
+            for line in base:
+                # search for any of our payload_type-based pre-processing commands
+                if "C2PROFILE_HERE" in line:
+                    # this means we need to write out the c2 profile and all parameters here
+                    try:
+                        wrote_c2_inline = True
+                        await write_c2_inline(custom, payload)
+                    except Exception as e:
+                        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                        shutil.rmtree(working_path)
+                        return {'status': 'error',
+                                'error': 'failed to get and write C2 profiles to payload on disk: ' + str(e)}
+                elif 'UUID_HERE' in line:
+                    replaced_line = line.replace("UUID_HERE", uuid)
+                    custom.write(replaced_line)
+                elif 'COMMANDS_HERE' in line:
+                    # go through all the commands and write them to the payload
+                    wrote_commands_inline = True
+                    try:
+                        query = await db_model.payloadcommand_query()
+                        commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
+                        for command in commands:
+                            # try to open up the corresponding command file
+                            try:
+                                cmd_file = open('./app/payloads/{}/commands/{}/{}.{}'.format(
+                                    payload.payload_type.ptype, command.command.cmd,
+                                    command.command.cmd, payload.payload_type.file_extension), 'r')
+                                # we will write everything from the beginning to COMMAND_ENDS_HERE
+                                for cmdline in cmd_file:
+                                    if 'COMMAND_ENDS_HERE' not in cmdline:
+                                        custom.write(cmdline)
+                                    else:
+                                        break  # stop once we find 'COMMAND_ENDS_HERE'
+                                cmd_file.close()
+                            except Exception as e:
+                                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                                print("Failed to read command: " + command.command.cmd)
+                                raise e  # stop, propagate out
+                    except Exception as e:
+                        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                        shutil.rmtree(working_path)
+                        return {'status': 'error', 'error': 'failed to get and write commands to payload on disk: ' + str(e)}
+                elif 'COMMAND_COUNT_HERE' in line:
+                    count = await db_objects.count(PayloadCommand.select().where(PayloadCommand.payload == payload))
+                    replaced_line = line.replace('COMMAND_COUNT_HERE', str(count))
+                    custom.write(replaced_line)
+                elif 'COMMAND_STRING_LIST_HERE' in line:
                     query = await db_model.payloadcommand_query()
                     commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
-                    for command in commands:
-                        # try to open up the corresponding command file
-                        cmd_file = open('./app/payloads/{}/commands/{}'.format(payload.payload_type.ptype, command.command.cmd), 'r')
-                        # we will write everything from the beginning to COMMAND_ENDS_HERE
-                        for cmdline in cmd_file:
-                            if 'COMMAND_ENDS_HERE' not in cmdline:
-                                custom.write(cmdline)
-                            else:
-                                break  # stop once we find 'COMMAND_ENDS_HERE'
-                        cmd_file.close()
-                except Exception as e:
-                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                    return {'status': 'error', 'error': 'failed to get and write commands to payload on disk'}
-            elif 'COMMAND_COUNT_HERE' in line:
-                count = await db_objects.count(PayloadCommand.select().where(PayloadCommand.payload == payload))
-                replaced_line = line.replace('COMMAND_COUNT_HERE', str(count))
-                custom.write(replaced_line)
-            elif 'COMMAND_STRING_LIST_HERE' in line:
-                query = await db_model.payloadcommand_query()
-                commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
-                cmdlist = ','.join([str('"' + cmd.command.cmd + '"') for cmd in commands])
-                replaced_line = line.replace('COMMAND_STRING_LIST_HERE', cmdlist)
-                custom.write(replaced_line)
-            elif 'COMMAND_RAW_LIST_HERE' in line:
-                query = await db_model.payloadcommand_query()
-                commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
-                cmdlist = ','.join([cmd.command.cmd for cmd in commands])
-                replaced_line = line.replace('COMMAND_RAW_LIST_HERE', cmdlist)
-                custom.write(replaced_line)
-            elif 'COMMAND_HEADERS_HERE' in line:
-                # go through all the commands and write them to the payload
-                try:
+                    cmdlist = ','.join([str('"' + cmd.command.cmd + '"') for cmd in commands])
+                    replaced_line = line.replace('COMMAND_STRING_LIST_HERE', cmdlist)
+                    custom.write(replaced_line)
+                elif 'COMMAND_RAW_LIST_HERE' in line:
                     query = await db_model.payloadcommand_query()
                     commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
-                    for command in commands:
-                        # try to open up the corresponding command file
-                        cmd_file = open(
-                            './app/payloads/{}/commands/{}'.format(payload.payload_type.ptype, command.command.cmd), 'r')
-                        found_headers = False
-                        for cmdline in cmd_file:
-                            if found_headers:
-                                custom.write(cmdline)
-                            elif 'COMMAND_ENDS_HERE' in cmdline:
-                                found_headers = True
-                        #custom.write(cmd_file.read())
-                        cmd_file.close()
-                except Exception as e:
-                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                    return {'status': 'error', 'error': 'failed to get and write commands to payload on disk'}
-            elif 'WRAPPEDPAYLOADHERE' in line and payload.payload_type.wrapper:
-                # first we need to do the proper encoding, then we write it do the appropriate spot
-                wrapped_payload = open(payload.wrapped_payload.location, 'rb').read()
-                # eventually give a choice of how to encode, for now though, always base64 encode
-                #if payload.payload_type.wrapped_encoding_type == "base64":
-                wrapped_payload = base64.b64encode(wrapped_payload).decode("UTF-8")
-                replaced_line = line.replace("WRAPPEDPAYLOADHERE", str(wrapped_payload))
-                custom.write(replaced_line)
-            else:
-                custom.write(line)
-        base.close()
-        custom.close()
-        os.remove(base_file)
-        os.rename(working_path + "/" + payload.uuid, base_file)
+                    cmdlist = ','.join([cmd.command.cmd for cmd in commands])
+                    replaced_line = line.replace('COMMAND_RAW_LIST_HERE', cmdlist)
+                    custom.write(replaced_line)
+                elif 'COMMAND_HEADERS_HERE' in line:
+                    # go through all the commands and write them to the payload
+                    try:
+                        query = await db_model.payloadcommand_query()
+                        commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
+                        for command in commands:
+                            # try to open up the corresponding command file
+                            try:
+                                cmd_file = open(
+                                    './app/payloads/{}/commands/{}/{}.{}'.format(payload.payload_type.ptype,
+                                                                                 command.command.cmd,
+                                                                                 command.command.cmd,
+                                                                                 payload.payload_type.file_extension), 'r')
+                                found_headers = False
+                                for cmdline in cmd_file:
+                                    if found_headers:
+                                        custom.write(cmdline)
+                                    elif 'COMMAND_ENDS_HERE' in cmdline:
+                                        found_headers = True
+                                cmd_file.close()
+                            except Exception as e:
+                                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                                print("Failed to read command: " + command.command.cmd)
+                                raise e
+                    except Exception as e:
+                        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                        shutil.rmtree(working_path)
+                        return {'status': 'error', 'error': 'failed to get and write commands to payload on disk: ' + str(e)}
+                elif 'WRAPPED_PAYLOAD_HERE' in line and payload.payload_type.wrapper:
+                    # first we need to do the proper encoding, then we write it do the appropriate spot
+                    wrapped_payload = open(payload.wrapped_payload.location, 'rb').read()
+                    # eventually give a choice of how to encode, for now though, always base64 encode
+                    #if payload.payload_type.wrapped_encoding_type == "base64":
+                    wrapped_payload = base64.b64encode(wrapped_payload).decode("UTF-8")
+                    replaced_line = line.replace("WRAPPED_PAYLOAD_HERE", str(wrapped_payload))
+                    custom.write(replaced_line)
+                else:
+                    custom.write(line)
+            base.close()
+            custom.close()
+            os.remove(base_file)
+            os.rename(base_file + payload.uuid, base_file)
+        except Exception as e:
+            # we likely got a binary file that can't be parsed like this, so move on
+            custom.close()
+            os.remove(base_file + payload.uuid)
+            print("Tried to read lines of a binary file, moving to the next file: " + str(e))
     try:
-        base_c2.close()
+        custom.close()
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         pass
-    custom.close()
-    if not wrote_c2_inline:
-        # we didn't write the c2 information into the main file, so it's in another file, copy it over and fill it out
-        for file in glob.glob(r'./app/c2_profiles/{}/{}/*'.format(payload.c2_profile.name, payload.payload_type.ptype)):
-            # once we copy a file over, try to replace some c2 params in it
+    # if we didn't write the commands anywhere, then it's needed in its current separate files, copy them over
+    if not wrote_commands_inline:
+        query = await db_model.payloadcommand_query()
+        commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
+        for command in commands:
             try:
-                base_c2 = open(file, 'r')
-                base_c2_new = open(working_path + "/{}".format(file.split("/")[-1]), 'w')
+                # copy the payload type's files there
+                await local_copytree('./app/payloads/{}/commands/{}'.format(payload.payload_type.ptype, command.command.cmd),
+                                     working_path + "/{}".format(command.command.cmd))
             except Exception as e:
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 shutil.rmtree(working_path)
-                return {'status': 'error', 'error': 'failed to open c2 code'}
-            await write_c2(base_c2_new, base_c2, payload)
-            base_c2.close()
-            base_c2_new.close()
-
-    transform_request = await get_transforms_func(payload.payload_type.ptype, "create")
+                return {'status': 'error', 'error': 'failed to get and write commands to payload on disk: ' + str(e)}
+    if not wrote_c2_inline:
+        # we didn't write c2 inline into the file, so we need to copy it over
+        try:
+            await write_c2(working_path, payload)
+        except Exception as e:
+            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            shutil.rmtree(working_path)
+            return {"status": "error", 'error': 'Failed to write c2 files to temporary folder: ' + str(e)}
+    # transform_request = await get_transforms_func(payload.payload_type.ptype, "create")
+    transform_request = await get_payload_transforms(payload)
     if transform_request['status'] == "success":
-        if 'transforms' in data:
-            transform_list = data['transforms']
-        else:
-            transform_list = transform_request['transforms']
+        transform_list = transform_request['transforms']
         # now we have a temporary location with everything we need
         # zip it all up and save it
         if not payload.payload_type.container_running:
@@ -437,6 +510,10 @@ async def create_payload(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     data = request.json
+    return json(await(create_payload_func(data, user)))
+
+
+async def create_payload_func(data, user):
     if 'tag' not in data:
         data['tag'] = data['payload_type'] + " payload created by " + user['username']
     # first we need to register the payload
@@ -448,66 +525,135 @@ async def create_payload(request, user):
         if payload.payload_type.external is False:
             create_rsp = await write_payload(payload.uuid, user, data)
             if create_rsp['status'] == "success":
-                return json({'status': 'success',
-                             'uuid': rsp['uuid']})
+                return {'status': 'success',
+                             'uuid': rsp['uuid']}
             else:
                 await db_objects.delete(payload, recursive=True)
-                return json({'status': 'error', 'error': create_rsp['error']})
-        elif payload.payload_type.external:
-            payload.build_phase = "success"
-            payload.build_message = payload.build_message + ". Created externally, not hosted in Apfell"
-            await db_objects.update(payload)
-            return json({'status': 'success', 'uuid': rsp['uuid']})
+                return {'status': 'error', 'error': create_rsp['error']}
         else:
-            # if this is created externally, just put the necessary information onto the queue
-            transform_request = await get_transforms_func(payload.payload_type.ptype, "create")
-            if transform_request['status'] == "success":
-                if 'transforms' in data:
-                    transform_list = data['transforms']
-                else:
-                    transform_list = transform_request['transforms']
-                query = await db_model.payloadcommand_query()
-                payloadcommands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
-                commands = [{"cmd": c.command.cmd} for c in payloadcommands]
-                # now we need to get the c2 profile parameters as well
-                query = await db_model.c2profileparametersinstance_query()
-                c2_profile_params = await db_objects.execute(
-                    query.where(C2ProfileParametersInstance.payload == payload))
-                params = [p.to_json() for p in c2_profile_params]
-                message_json = {"transforms": transform_list,
-                                "commands": commands,
-                                "c2_profile_parameters_instance": params,
-                                }
-                # if the payload is truely external, this message will just go into the ether
-                status = await send_pt_rabbitmq_message(payload.payload_type.ptype,
-                                                        "create_external_payload.{}".format(payload.uuid),
-                                                        base64.b64encode(js.dumps(message_json).encode()).decode('utf-8'))
-                return json({**status, "uuid": rsp['uuid']})
-            return json({'status': 'error', 'error': 'failed to query for transforms'})
+            payload.build_phase = "success"
+            payload.build_message = "Created externally, not hosted in Apfell"
+            await db_objects.update(payload)
+            return {'status': 'success', 'uuid': rsp['uuid']}
     else:
         print(rsp['error'])
-        return json({'status': 'error', 'error': rsp['error']})
+        return {'status': 'error', 'error': rsp['error']}
 
 
-async def write_c2(custom, base_c2, payload):
-    # we need to write out base_C2 content to the custom file
-    # but we also need to replace all parameter values as we see them
-    # first get all of the parameter instances
-    try:
+async def write_c2_inline(custom, payload):
+    # get all of the c2 profiles associated with this payload
+    # print("in write_c2_inline")
+    query = await db_model.payloadc2profiles_query()
+    payloadc2profiles = await db_objects.execute(query.where(db_model.PayloadC2Profiles.payload == payload))
+    for pc2p in payloadc2profiles:
+        # for each profile, we need to get all of the parameters and supplied values for just that profile
+        # print("Going through profile: " + pc2p.c2_profile.name)
         param_dict = {}
         query = await db_model.c2profileparametersinstance_query()
-        c2_param_instances = await db_objects.execute(query.where(C2ProfileParametersInstance.payload == payload))
+        c2_param_instances = await db_objects.execute(query.where(
+            (C2ProfileParametersInstance.payload == payload) & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
+        ))
+        # save all the variables off to a dictionary for easy looping
+        for instance in c2_param_instances:
+            # print("looping through params")
+            param = instance.c2_profile_parameters
+            param_dict[param.key] = instance.value
+        # loop through all of that c2 profile's files,
+        # replacing the variables along the way and writing out to the new payload
+        # print(param_dict)
+        for base_file in glob.iglob('./app/c2_profiles/{}/{}/'.format(pc2p.c2_profile.name, payload.payload_type.ptype) + "/**", recursive=True):
+            if os.path.isdir(base_file):
+                continue
+            c2_code = open(base_file).read()
+            try:
+                for key, val in param_dict.items():
+                    c2_code = c2_code.replace(key, val)
+                custom.write(c2_code)
+            except Exception as e:
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                raise e
+    return {'status': 'success'}
+
+
+async def write_c2(working_path, payload):
+    # get all of the c2 profiles associated with this payload
+    query = await db_model.payloadc2profiles_query()
+    payloadc2profiles = await db_objects.execute(query.where(db_model.PayloadC2Profiles.payload == payload))
+    for pc2p in payloadc2profiles:
+        # for each profile, we need to get all of the parameters and supplied values for just that profile
+        param_dict = {}
+        query = await db_model.c2profileparametersinstance_query()
+        c2_param_instances = await db_objects.execute(query.where(
+            (C2ProfileParametersInstance.payload == payload) & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
+        ))
+        # save all the variables off to a dictionary for easy looping
         for instance in c2_param_instances:
             param = instance.c2_profile_parameters
             param_dict[param.key] = instance.value
-        c2_code = base_c2.read()
-        for key,val in param_dict.items():
-            c2_code = c2_code.replace(key, val)
-        custom.write(c2_code)
-        return {'status': 'success'}
-    except Exception as e:
-        print(e)
-        return {'status': 'error', 'error': 'failed to write c2'}
+        # loop through all of that c2 profile's files,
+        # replacing the variables along the way and writing out to the new payload
+        for base_file in glob.iglob(
+                './app/c2_profiles/{}/{}/'.format(pc2p.c2_profile.name, payload.payload_type.ptype) + "/**",
+                recursive=True):
+            relative_file = base_file.replace('./app/c2_profiles/{}/{}/'.format(pc2p.c2_profile.name, payload.payload_type.ptype), "")
+            if os.path.isdir(base_file):
+                # make this directory in our working_path
+                os.makedirs(working_path + "/" + relative_file, exist_ok=True)
+                continue
+            else:
+                os.makedirs(working_path + "/" + os.path.dirname(relative_file), exist_ok=True)
+            c2_code = open(base_file).read()
+            try:
+                for key, val in param_dict.items():
+                    c2_code = c2_code.replace(key, val)
+                custom = open(working_path + "/" + relative_file, 'w')
+                custom.write(c2_code)
+                custom.close()
+            except Exception as e:
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                raise e
+    return {'status': 'success'}
+
+
+async def write_c2_based_on_callback_loaded_c2(working_path, callback):
+    query = await db_model.callbackc2profiles_query()
+    callbackc2profiles = await db_objects.execute(query.where(db_model.CallbackC2Profiles.callback == callback))
+    for pc2p in callbackc2profiles:
+        # for each profile, we need to get all of the parameters and supplied values for just that profile
+        param_dict = {}
+        query = await db_model.c2profileparametersinstance_query()
+        c2_param_instances = await db_objects.execute(query.where(
+            (C2ProfileParametersInstance.callback == callback) & (
+                        C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
+        ))
+        # save all the variables off to a dictionary for easy looping
+        for instance in c2_param_instances:
+            param = instance.c2_profile_parameters
+            param_dict[param.key] = instance.value
+        # loop through all of that c2 profile's files,
+        # replacing the variables along the way and writing out to the new payload
+        for base_file in glob.iglob(
+                './app/c2_profiles/{}/{}/'.format(pc2p.c2_profile.name, callback.registered_payload.payload_type.ptype) + "/**",
+                recursive=True):
+            relative_file = base_file.replace(
+                './app/c2_profiles/{}/{}/'.format(pc2p.c2_profile.name, callback.registered_payload.payload_type.ptype), "")
+            if os.path.isdir(base_file):
+                # make this directory in our working_path
+                os.makedirs(working_path + "/" + relative_file, exist_ok=True)
+                continue
+            else:
+                os.makedirs(working_path + "/" + os.path.dirname(relative_file), exist_ok=True)
+            c2_code = open(base_file).read()
+            try:
+                for key, val in param_dict.items():
+                    c2_code = c2_code.replace(key, val)
+                custom = open(working_path + "/" + relative_file, 'w')
+                custom.write(c2_code)
+                custom.close()
+            except Exception as e:
+                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                raise e
+    return {'status': 'success'}
 
 
 # needs to not be protected so the implant can call back and get a copy of an agent to run
@@ -515,8 +661,6 @@ async def write_c2(custom, base_c2, payload):
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
 async def get_payload(request, uuid, user):
-    if user['auth'] not in ['access_token', 'apitoken']:
-        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     # return a blob of the requested payload
     # the pload string will be the uuid of a payload registered in the system
     try:
@@ -574,11 +718,48 @@ async def get_one_payload_info(request, uuid, user):
         payloadcommands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
         commands = [{"cmd": c.command.cmd, "version": c.version, "apfell_version": c.command.version} for c in payloadcommands]
         # now we need to get the c2 profile parameters as well
-        query = await db_model.c2profileparametersinstance_query()
-        c2_profile_params = await db_objects.execute(query.where(C2ProfileParametersInstance.payload == payload))
-        params = [p.to_json() for p in c2_profile_params]
+        c2_profiles_data = {}
+        query = await db_model.payloadc2profiles_query()
+        c2profiles = await db_objects.execute(query.where(db_model.PayloadC2Profiles.payload == payload))
+        for c2p in c2profiles:
+            query = await db_model.c2profileparametersinstance_query()
+            c2_profile_params = await db_objects.execute(query.where(
+                (C2ProfileParametersInstance.payload == payload) &
+                (C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+            ))
+            params = [p.to_json() for p in c2_profile_params]
+            c2_profiles_data[c2p.c2_profile.name] = params
+        query = await db_model.transforminstance_query()
+        create_transforms = await db_objects.execute(query.where(db_model.TransformInstance.payload == payload).order_by(db_model.TransformInstance.order))
+        transforms = [t.to_json() for t in create_transforms]
         return json({'status': 'success', **payload.to_json(),
                      "commands": commands,
-                     "c2_profile_parameters_instance": params})
+                     "c2_profiles": c2_profiles_data,
+                     "create_transforms": transforms})
     else:
         return json({'status': 'error', 'error': 'you need to be part of the right operation to see this'})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/payloads/<uuid:string>", methods=['PUT'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def edit_one_payload(request, uuid, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    try:
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=uuid)
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find payload'})
+    try:
+        if payload.operation.name in user['operations']:
+            data = request.json
+            if "callback_alert" in data:
+                payload.callback_alert = data['callback_alert']
+                await db_objects.update(payload)
+                return json({'status': 'success'})
+        else:
+            return json({'status': 'error', 'error': 'you need to be part of the right operation to see this'})
+    except Exception as e:
+        return json({'status': 'error', 'error': str(e)})

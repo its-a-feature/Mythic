@@ -17,12 +17,20 @@
         <button type="button" class="btn btn{{config['outline-buttons']}}primary" @click="submit_search()">Match </button>
     </template>
 
-    <span class="input-group-append"><span class="input-group-text">Finalize?&nbsp;&nbsp;<label class="switch" style="width:40px; height:20px"><input type="checkbox" v-model="finalize"><span class="script-slider round"></span></label></span></span>
+    <span class="input-group-append">
+        <span class="input-group-text">Finalize?&nbsp;&nbsp;</span>
+    </span>
+    <span class="input-group-append">
+        <span class="material-switch input-group-text">
+            <input type="checkbox" v-model="finalize" id="finalize">
+            <label for="finalize" class="btn-warning input-group-append"></label>
+        </span>
+    </span>
 </div>
 <div id="regexOutput">
     <div style="resize: vertical; overflow:auto;" class="card border border-dark shadow" v-if="tasks.length > 0">
         <div class="card-header bg-header text-white"><h4>Matching Tasks</h4></div>
-        <table width="100%" border="2px" style="table-layout:fixed;word-wrap: break-word" class="table table-striped {{config['table-color']}} table-hover">
+        <table width="100%" border="2px" style="table-layout:fixed;word-wrap: break-word;margin:0;padding:0" class="table table-striped {{config['table-color']}} table-hover">
             <tr>
                 <th style="text-align:left;width:10em"><b>Task Number</b></th>
                 <th style="text-align:left"><b>Task</b></th>
@@ -33,11 +41,11 @@
                     <td style="text-align:left;width:7em">&nbsp;&nbsp;<b><a :href="t.href" target="_blank">[[t.id]]</a></b></td>
                     <td style="text-align:left">
                         <template v-if="t.params != t.original_params">
-                            Original: [[t.command]] [[t.original_params]]<br>
-                            Transformed: [[t.command]] [[t.params]]
+                            Original: [[t.command]] [[t.original_params.substring(0,500)]]<br>
+                            Transformed: [[t.command]] [[t.params.substring(0,500)]]
                         </template>
                         <template v-else>
-                            [[t.command]] [[t.params]]
+                            [[t.command]] [[t.params.substring(0,500)]]
                         </template>
 
                     </td>
@@ -69,7 +77,7 @@
             <th style="text-align:center"><b>Impact</b></th>
         </tr>
         <tr v-for="(index, i) in matrix_length">
-            <td >
+            <td style="text-align:center">
                 <template v-if="matrix['initial-access'][index-1].name != ''">
                     <button @click="view_data('initial-access', index-1)" :style="Object.keys(matrix['initial-access'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['initial-access'][index-1].name ]]</button>
                 </template>
@@ -77,7 +85,7 @@
                     [[ matrix['initial-access'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['execution'][index-1].name != ''">
                     <button @click="view_data('execution', index-1)" :style="Object.keys(matrix['execution'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['execution'][index-1].name ]]</button>
                 </template>
@@ -85,7 +93,7 @@
                     [[ matrix['execution'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['persistence'][index-1].name != ''">
                     <button @click="view_data('persistence', index-1)" :style="Object.keys(matrix['persistence'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['persistence'][index-1].name ]]</button>
                 </template>
@@ -93,7 +101,7 @@
                     [[ matrix['persistence'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['privilege-escalation'][index-1].name != ''">
                     <button @click="view_data('privilege-escalation', index-1)" :style="Object.keys(matrix['privilege-escalation'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['privilege-escalation'][index-1].name ]]</button>
                 </template>
@@ -101,7 +109,7 @@
                     [[ matrix['privilege-escalation'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['defense-evasion'][index-1].name != ''">
                     <button @click="view_data('defense-evasion', index-1)" :style="Object.keys(matrix['defense-evasion'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['defense-evasion'][index-1].name ]]</button>
                 </template>
@@ -109,7 +117,7 @@
                     [[ matrix['defense-evasion'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['credential-access'][index-1].name != ''">
                     <button @click="view_data('credential-access', index-1)" :style="Object.keys(matrix['credential-access'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['credential-access'][index-1].name ]]</button>
                 </template>
@@ -117,7 +125,7 @@
                     [[ matrix['credential-access'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['discovery'][index-1].name != ''">
                     <button @click="view_data('discovery', index-1)" :style="Object.keys(matrix['discovery'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['discovery'][index-1].name ]]</button>
                 </template>
@@ -125,7 +133,7 @@
                     [[ matrix['discovery'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['lateral-movement'][index-1].name != ''">
                     <button @click="view_data('lateral-movement', index-1)" :style="Object.keys(matrix['lateral-movement'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['lateral-movement'][index-1].name ]]</button>
                 </template>
@@ -133,7 +141,7 @@
                     [[ matrix['lateral-movement'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['collection'][index-1].name != ''">
                     <button @click="view_data('collection', index-1)" :style="Object.keys(matrix['collection'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['collection'][index-1].name ]]</button>
                 </template>
@@ -141,7 +149,7 @@
                     [[ matrix['collection'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['exfiltration'][index-1].name != ''">
                     <button @click="view_data('exfiltration', index-1)" :style="Object.keys(matrix['exfiltration'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['exfiltration'][index-1].name ]]</button>
                 </template>
@@ -149,7 +157,7 @@
                     [[ matrix['exfiltration'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['command-and-control'][index-1].name != ''">
                     <button @click="view_data('command-and-control', index-1)" :style="Object.keys(matrix['command-and-control'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['command-and-control'][index-1].name ]]</button>
                 </template>
@@ -157,7 +165,7 @@
                     [[ matrix['command-and-control'][index-1].name ]]
                 </template>
             </td>
-            <td>
+            <td style="text-align:center">
                 <template v-if="matrix['impact'][index-1].name != ''">
                     <button @click="view_data('impact', index-1)" :style="Object.keys(matrix['impact'][index-1]['mappings']).length > 0 ? 'background-color: #c63f1e;color:white;width:100%;height:100%;border:none' : ''" class="btn btn-mitre">[[ matrix['impact'][index-1].name ]]</button>
                 </template>
@@ -189,7 +197,7 @@ ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" B
                 <template v-for="(value, key, index) in cell_data.mappings">
                     <h3>[[key]]</h3>
                     <div class="card border border-dark shadow" style="overflow:scroll;max-height:20em">
-                        <table width="100%" style="table-layout:fixed;word-wrap: break-word" class="table table-striped {{config['table-color']}} table-hover">
+                        <table width="100%" style="table-layout:fixed;word-wrap: break-word;margin:0;padding:0" class="table table-striped {{config['table-color']}} table-hover">
                         <tr>
                             <th style="text-align:left;width:6em;position:-webkit-sticky;position:sticky;top:0"><b>Remove</b></th>
                             <th style="text-align:left;position:-webkit-sticky;position:sticky;top:0"><b>Value</b></th>
@@ -205,7 +213,7 @@ ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" B
                                 <td style="text-align:left;width:5em">
                                     <button @click="remove_mapping(cmd.task, cmd.attack)" class="btn btn{{config['outline-buttons']}}danger"><i class="fas fa-trash-alt"></i></button>
                                 </td>
-                                <td style="text-align:left">Task: <b><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + cmd.task" target="_blank">[[cmd.task]]</a></b>, [[cmd.task_command]] [[cmd.task_params]]</td>
+                                <td style="text-align:left">Task: <b><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + cmd.task" target="_blank">[[cmd.task]]</a></b>, [[cmd.task_command]] [[cmd.task_params.substring(0,200)]]</td>
                             </template>
 
                         </tr>

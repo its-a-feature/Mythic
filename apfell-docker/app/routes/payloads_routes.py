@@ -12,9 +12,11 @@ env = Environment(loader=PackageLoader('app', 'templates'))
 async def payloads_creation(request, user):
     template = env.get_template('payloads_creation.html')
     if use_ssl:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
+                                  ws="wss", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     else:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http",
+                                  ws="ws", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     return response.html(content)
 
 
@@ -24,9 +26,11 @@ async def payloads_creation(request, user):
 async def instantiate_c2profile(request, user):
     template = env.get_template('instantiate_c2profile.html')
     if use_ssl:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https", ws="wss", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="https",
+                                  ws="wss", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     else:
-        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http", ws="ws", config=user['ui_config'])
+        content = template.render(links=await respect_pivot(links, request), name=user['username'], http="http",
+                                  ws="ws", config=user['ui_config'], view_utc_time=user['view_utc_time'])
     return response.html(content)
 
 links['payloads_creation'] = apfell.url_for('payloads_creation')

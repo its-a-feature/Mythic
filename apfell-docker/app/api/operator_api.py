@@ -8,6 +8,8 @@ from sanic_jwt.decorators import inject_user
 from sanic_jwt import scoped
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+from app.api.browserscript_api import import_browserscript_func
+import json as js
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/", methods=['GET'])
@@ -17,7 +19,7 @@ async def get_all_operators(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     query = await db_model.operator_query()
-    ops = await db_objects.execute(query)
+    ops = await db_objects.execute(query.where(db_model.Operator.deleted == False))
     return json([p.to_json() for p in ops])
 
 
@@ -39,15 +41,17 @@ async def create_operator(request, user):
     # we need to create a new user
     try:
         user = await db_objects.create(Operator, username=data['username'], password=password, admin=admin)
-        # default_operation = await db_objects.get(Operation, name="default")
-        # now add the new user to the default operation
-        # await db_objects.create(OperatorOperation, operator=user, operation=default_operation)
         success = {'status': 'success'}
         new_user = user.to_json()
+        # try to get the browser script code to auto load for the new operator
+        code = open("./app/scripts/browser_scripts.json", 'r').read()
+        code = js.loads(code)
+        result = await import_browserscript_func(code, user)
+        #print(result)
         return response.json({**success, **new_user})
-    except:
+    except Exception as e:
         return json({'status': 'error',
-                     'error': 'failed to add user'})
+                     'error': 'failed to add user: ' + str(e)})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/operators/<name:string>", methods=['GET'])
@@ -116,8 +120,10 @@ async def update_operator(request, name, user):
                 op.ui_config = op.default_specter_config
             else:
                 op.ui_config = data['ui_config']
-        if 'username' in data:
+        if 'username' in data and data['username'] != "":
             op.username = data['username']
+        if 'view_utc_time' in data:
+            op.view_utc_time = data['view_utc_time']
         try:
             await db_objects.update(op)
             success = {'status': 'success'}
@@ -139,18 +145,16 @@ async def remove_operator(request, name, user):
     if name != user['username'] and not user['admin']:
         return json({'status': 'error', 'error': 'cannot delete anybody but yourself unless you\'re admin'})
     try:
-        if name == "apfell_admin":
-            return json({'status': 'error', 'error': 'cannot delete apfell_admin'})
         query = await db_model.operator_query()
         op = await db_objects.get(query, username=name)
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find operator'})
     try:
-        updated_operator = {'username': str(op.username)}
-        await db_objects.delete(op, recursive=True)
+        op.deleted = True
+        await db_objects.update(op)
         success = {'status': 'success'}
-        return json({**success, **updated_operator})
+        return json({**success, **op.to_json()})
     except Exception as e:
         print(e)
-        return json({'status': 'error', 'error': 'failed to delete operator. Potentially linked to operational objects?'})
+        return json({'status': 'error', 'error': 'failed to mark operator as deleted'})

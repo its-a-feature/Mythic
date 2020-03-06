@@ -5,6 +5,7 @@ from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from math import ceil
+from peewee import fn
 
 
 @apfell.route(apfell.config['API_BASE'] + "/artifacts", methods=['GET'])
@@ -76,7 +77,7 @@ async def update_artifact(request, user, id):
         task_artifacts = await db_objects.execute(query.where(TaskArtifact.artifact == artifact))
         for t in task_artifacts:
             await db_objects.delete(t)
-        await db_objects.delete(artifact, recursive=True)
+        await db_objects.delete(artifact)
     except Exception as e:
         return json({'status': 'error', 'error': 'Failed to delete artifact: {}'.format(str(e))})
     return json({'status': 'success', **artifact_json})
@@ -129,7 +130,6 @@ async def get_pageinate_artifact_tasks(request, user, page, size):
     return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': page, 'size': size})
 
 
-# Get a single response
 @apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/search", methods=['POST'])
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -147,34 +147,37 @@ async def search_artifact_tasks(request, user):
     query = await db_model.callback_query()
     callbacks = query.where(Callback.operation == operation).select(Callback.id)
     task_query = await db_model.taskartifact_query()
-    count = await db_objects.count(
-            task_query.where(
-                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
-                TaskArtifact.artifact_instance.regexp(data['search']))
-    )
-    if 'page' not in data:
-        tasks = await db_objects.execute(
-            task_query.where(
-                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
-            TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp)
+    try:
+        count = await db_objects.count(
+                task_query.where(
+                    ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+                    fn.encode(TaskArtifact.artifact_instance, 'escape').regexp(data['search']))
         )
-        data['page'] = 1
-        data['size'] = count
-    else:
-        if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
-            return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
-        data['size'] = int(data['size'])
-        data['page'] = int(data['page'])
-        if data['page'] * data['size'] > count:
-            data['page'] = ceil(count / data['size'])
-            if data['page'] == 0:
-                data['page'] = 1
-        tasks = await db_objects.execute(
-            task_query.where(
-                ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
-            TaskArtifact.artifact_instance.regexp(data['search'])).order_by(-TaskArtifact.timestamp).paginate(data['page'], data['size'])
-        )
-    return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': data['page'], 'size': data['size']})
+        if 'page' not in data:
+            tasks = await db_objects.execute(
+                task_query.where(
+                    ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+                fn.encode(TaskArtifact.artifact_instance, 'escape').regexp(data['search'])).order_by(-TaskArtifact.timestamp)
+            )
+            data['page'] = 1
+            data['size'] = count
+        else:
+            if 'page' not in data or 'size' not in data or int(data['size']) <= 0 or int(data['page']) <= 0:
+                return json({'status': 'error', 'error': 'size and page must be supplied and be greater than 0'})
+            data['size'] = int(data['size'])
+            data['page'] = int(data['page'])
+            if data['page'] * data['size'] > count:
+                data['page'] = ceil(count / data['size'])
+                if data['page'] == 0:
+                    data['page'] = 1
+            tasks = await db_objects.execute(
+                task_query.where(
+                    ( (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation) ) &
+                fn.encode(TaskArtifact.artifact_instance, 'escape').regexp(data['search'])).order_by(-TaskArtifact.timestamp).paginate(data['page'], data['size'])
+            )
+        return json({'status': 'success', 'tasks': [a.to_json() for a in tasks], 'total_count': count, 'page': data['page'], 'size': data['size']})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'Bad regex'})
 
 
 @apfell.route(apfell.config['API_BASE'] + "/artifact_tasks/<aid:int>", methods=['DELETE'])
@@ -224,13 +227,14 @@ async def create_artifact_task_manually(request, user):
         return json({'status': 'error', 'error': 'must supply an artifact_instance value'})
     if 'artifact' not in data:
         return json({'status': 'error', 'error': 'must supply a base artifact to associate with the instance'})
-    else:
-        try:
-            query = await db_model.artifact_query()
-            artifact = await db_objects.get(query, name=data['artifact'])
-        except Exception as e:
-            return json({'status': 'error', 'error': 'failed to find the artifact'})
+    if 'host' not in data:
+        data['host'] = ""
+    try:
+        query = await db_model.artifact_query()
+        artifact = await db_objects.get(query, name=data['artifact'])
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to find the artifact'})
     task_artifact = await db_objects.create(TaskArtifact, task=task, artifact_instance=data['artifact_instance'],
-                                            artifact=artifact, operation=operation)
+                                            artifact=artifact, operation=operation, host=data['host'])
     return json({'status': 'success', **task_artifact.to_json()})
 

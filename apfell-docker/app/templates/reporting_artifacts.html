@@ -2,8 +2,7 @@
 
 {% block body %}
 
-<br>
-<div style="resize: vertical" class="card border border-dark shadow bg-card-body" id="artifacts_table">
+<div style="margin-top:5px" class="card border border-dark shadow bg-card-body" id="artifacts_table">
     <div class="card-header bg-header text-white">
         <span style="display:inline-block">
             <h2 style="display:inline-block"><span class="operator">Artifact</span> Reporting</h2>
@@ -16,39 +15,42 @@
         </span>
 
     </div>
-    <div style="resize:vertical;overflow:scroll;height:950px">
+    <div style="overflow-y:scroll;height:calc(80vh)">
         <table  class="table table-striped table-hover {{config['table-color']}}" style="width:100%">
             <tr>
-                <th style="position:-webkit-sticky;position:sticky;top:0;z-index:99" width="4rem"><b>Delete</b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Timestamp</b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Task </b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Command </b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Parameters </b></th>
-                <th onclick="sort_table(this)" style="position:-webkit-sticky;position:sticky;top:0;z-index:99"><b>Artifact </b></th>
+                <th class="sticky-top" style="width:4rem" ><b>Delete</b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="width:15rem"><b>Timestamp</b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="width:4rem"><b>Task </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Host </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Command </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Parameters </b></th>
+                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Artifact </b></th>
             </tr>
         <!-- Repeat this for each base artifact -->
             <tr v-for="(artifact, i) in artifacts" :key="artifact.id">
-                <td>
+                <td style="text-align:center">
                     <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(artifact, i)"><i class="fas fa-trash-alt"></i></button>
                 </td>
-                <td>[[toLocalTime(artifact.timestamp)]]</td>
+                <td style="text-align:center">[[toLocalTime(artifact.timestamp)]]</td>
                 <td>
-                    <template v-if="artifact.task_id != -1">
-                        <a :href="artifact.task_href" target="_blank">[[artifact.task_id]]</a>
+                    <template v-if="artifact.task_id > 0 && artifact.task_id != ''">
+                        <a :href="artifact.task_href" target="_blank"><b>[[artifact.task_id]]</b></a>
                     </template>
                 </td>
+                <td>[[ artifact.host ]]</td>
                 <td>[[ artifact.command ]]</td>
-                <td>[[ artifact.task ]]</td>
-                <td>[[artifact.artifact_template]]: [[ artifact.artifact_instance ]]</td>
+                <td>[[ artifact.task.substring(0,500) ]]</td>
+                <td>[[artifact.artifact_template]]: [[ artifact.artifact_instance.substring(0,500) ]]</td>
             </tr>
         <!-- End of the repeating -->
         </table>
     </div>
     <div class="card-footer bg-card-footer">
         <div style="display:inline-block">
-            <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="add_artifact()">Add Artifact</button>&nbsp;
-            <button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" @click="export_artifacts()" data-toggle="tooltip" title="Export all artifacts"><i class="fas fa-file-export"></i></button>&nbsp;
-            <button type="button" :class="current_page <= 1 ? 'disabled btn btn-light' : 'btn btn-light'" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><<</button>&nbsp;
+            <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="add_artifact()"><i class="fas fa-plus"></i> Artifact</button>&nbsp;
+            <button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" @click="export_artifacts_page()" data-toggle="tooltip" title="Export current page"><i class="fas fa-download fa-lg"></i> Page</button>&nbsp;
+            <button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" @click="export_artifacts_search()" data-toggle="tooltip" title="Export current search"><i class="fas fa-download fa-lg"></i> Search</button>&nbsp;
+            <button type="button" :disabled="current_page <= 1"  class="btn btn-light" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
             <template v-if="current_page > 1">
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to first page" @click="get_page(1)">1</button>
             </template>
@@ -59,7 +61,7 @@
             <template v-if="current_page -1 > 1">
                 <button type="button" class="btn btn-light" @click="get_page(current_page -1)">[[current_page - 1]]</button>
             </template>
-            <button type="button" class="disabled btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
+            <button type="button" disabled class=" btn btn-light" data-toggle="tooltip" title="Current page">[[current_page]] </button>
             <template v-if="current_page + 1 < Math.ceil(total_count/page_size)">
                 <button type="button" class="btn btn-light" @click="get_page(current_page + 1)">[[current_page + 1]]</button>
             </template>
@@ -73,7 +75,7 @@
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to last page" @click="get_page(Math.ceil(total_count/page_size))">[[Math.ceil(total_count/page_size)]]</button>
             </template>
 
-            <button type="button" :class="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0? 'disabled btn btn-light': 'btn btn-light'" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)">>></button>
+            <button type="button" :disabled="current_page == Math.ceil(total_count/page_size) || Math.ceil(total_count/page_size) == 0" class="btn btn-light" data-toggle="tooltip" title="Go forward one page" @click="get_page(current_page + 1)"><i class="fas fa-forward"></i></button>
             &nbsp;<font size="4" class="text-white">Total Count: [[total_count]]</font>
         </div>
 
@@ -107,6 +109,10 @@
                         <tr>
                             <td><b>Task Number</b></td>
                             <td><textarea v-model="current_task" placeholder="-1 for manual entry, or specify task number" cols="50" rows="1"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td><b>Hostname</b></td>
+                            <td><textarea v-model="current_host" placeholder="Hostname for artifact if task not specified" cols="50" rows="1"></textarea></td>
                         </tr>
                         <tr>
                             <td><b>Artifact Instance</b></td>

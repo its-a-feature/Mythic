@@ -1,32 +1,36 @@
 {% extends "base.html" %}
 {% block body %}
-
-<br>
-<div style="resize: vertical; overflow:scroll" class="card border border-dark shadow bg-card-body" id="payloads_table" >
-    <div class="card-header shadow border border-dark bg-header text-white"><h2>Operation <span class="operator">{{links.current_operation}}</span>'s Payload Information</h2></div>
-        <table class="table table-condensed table-striped {{config['table-color']}} table-hover border border-dark shadow" >
+<div style="resize: vertical; overflow-y:scroll;max-height:calc(45vh); margin-top:5px;margin-bottom:5px" class="card border border-dark shadow bg-card-body" id="payloads_table" >
+    <div class="card-header shadow border border-dark bg-header text-white">
+        <h2 style="display:inline-block">Operation <span class="operator">{{links.current_operation}}</span>'s Payload Information</h2>
+        <button style="float:right" class="btn btn{{config['outline-buttons']}}danger btn-md" onclick="delete_selected_function()">Delete all Selected</button>
+    </div>
+        <table class="table table-condensed table-striped {{config['table-color']}} table-hover border border-dark shadow" style="margin-bottom:0">
             <tr>
-                <th><input type="checkbox" id="selectAllForDelete">&nbsp;<b>Delete</b></th>
-                <th onclick="sort_table(this)"><b>Hosting</b></th>
-                <th onclick="sort_table(this)"><b>Config</b></th>
-                <th onclick="sort_table(this)"><b>Download</b></th>
-                <th onclick="sort_table(this)"><b>Build Status</b></th>
-                <th onclick="sort_table(this)"><b>Tag</b></th>
-                <th onclick="sort_table(this)"><b>Creator</b></th>
-                <th onclick="sort_table(this)"><b>Creation Time</b></th>
-                <th onclick="sort_table(this)"><b>Payload Type</b></th>
-                <th onclick="sort_table(this)"><b>C2 Profile</b></th>
-                <th onclick="sort_table(this)"><b>File</b></th>
-                <th onclick="sort_table(this)"><b>Hosted Name</b></th>
+                <th style="width:6rem;text-align:left"><input type="checkbox" id="selectAllForDelete">&nbsp;<b>Delete</b></th>
+                <th style="width:6rem;text-align:left" onclick="sort_table(this)"><b>Hosting</b></th>
+                <th style="width:3rem;text-align:left" ><b>Notify?</b></th>
+                <th style="width:4rem;text-align:left" onclick="sort_table(this)"><b>Config</b></th>
+                <th style="width:7rem;text-align:left"><b>Download</b></th>
+                <th style="width:7rem;text-align:left"><b>Build Status</b></th>
+                <th style="width:12rem;text-align:left" onclick="sort_table(this)"><b>Creation Time</b></th>
+                <th onclick="sort_table(this)" style="text-align:left"><b>Tag</b></th>
+                <th onclick="sort_table(this)" style="text-align:left;width:10rem"><b>Creator</b></th>
+                <th onclick="sort_table(this)" style="text-align:left"><b>Payload Type</b></th>
+                <th onclick="sort_table(this)" style="text-align:left"><b>File</b></th>
+                <th onclick="sort_table(this)" style="text-align:left"><b>Hosted Name</b></th>
             </tr>
         <!-- Repeat this for each payload -->
             <tr v-for="p in payloads" :key="p.creation_time" v-show="!p.deleted">
-                <td>
+                <td style="text-align:center">
                     <input type="checkbox" v-model="p.checked"> <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(p)" ><i class="fas fa-trash-alt"></i></button>
                 </td>
-                <td>
+                <td style="text-align:center">
                     <template v-if="p.external">
                         <button type="button" disabled class=" btn btn{{config['outline-buttons']}}info btn-sm" data-toggle="tooltip" title="Payload created externally, can't host here. Use 'Services'->'Host Files'.">Can't Host</button>
+                    </template>
+                    <template v-else-if="p.build_phase != 'success'">
+                        <button type="button" disabled class=" btn btn{{config['outline-buttons']}}info btn-sm" data-toggle="tooltip" title="Payload build failed or isn't done building">Can't Host</button>
                     </template>
                     <template v-else-if="p.hosted_path != ''">
                         <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="edit_hosting_path_button(p)"><i class="fas fa-edit"></i></button>
@@ -34,30 +38,39 @@
                     <template v-else>
                         <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="new_hosting_path_button(p)">Host</button>
                     </template>
-
 		        </td>
+                <td style="padding-top:10px">
+                    <span class="material-switch pull-right" data-toggle="tooltip" title="Get notifications for new callbacks based on this payload via the operation's slack webhook">
+                        <input type="checkbox" :checked="p.callback_alert" v-model="p.callback_alert" @change="update_callback_alert(p)" :id="'callback_alert' + p.id" >
+                        <label :for="'callback_alert' + p.id" class="btn-info"></label></span>
+                </td>
                 <td>
                     <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="show_parameters_button(p)">Config</button>
                 </td>
-                <td>
-                    <button type="button" :disabled="p.external || p.deleted" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_payload_button(p)"><i class="fas fa-download"></i></button>
-                </td>
-                <td >
+                <td style="text-align:center">
+                    <template v-if="p.external || p.deleted || p.build_phase !== 'success'">
+                        <font color="red"><i class="fas fa-ban fa-lg"></i></font>
+                    </template>
+                    <template v-else>
+                        <a style="color:green" :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/' + p.uuid"><font ><i class="fas fa-download fa-lg"></i></font></a>
+                    </template>
+                    </td>
+                <td style="text-align:center">
                     <div v-if="p.build_phase == 'success'">
-                        <i class="far fa-check-circle fa-2x" style="color:green"></i>
+                        <i class="fas fa-check-circle fa-lg" style="color:green"></i>
                     </div>
                     <div v-else-if="p.build_phase == 'error'">
-                        <i class="far fa-exclamation-triangle fa-2x" style="color:red"></i>
+                        <i class="fas fa-exclamation-triangle fa-lg" style="color:red"></i>
                     </div>
                     <div v-else>
                         <div class="spinner-border text-info" role="status"></div>
                     </div>
                 </td>
+                <td style="text-align:center">[[ toLocalTime(p.creation_time) ]]</td>
                 <td>[[ p.tag ]]</td>
                 <td>[[ p.operator ]]</td>
-                <td>[[ toLocalTime(p.creation_time) ]]</td>
+
                 <td>[[ p.payload_type ]]</td>
-                <td>[[ p.c2_profile ]]</td>
                 <td>[[ p.location.split("/").slice(-1)[0] ]]</td>
                 <td>
                     <template v-if="p.hosted_path != ''">
@@ -71,7 +84,6 @@
         <!-- End of the repeating -->
         </table>
 </div>
-<button class="btn btn{{config['outline-buttons']}}danger btn-md" onclick="delete_selected_function()">Delete all Selected</button>
 
 <!-- THIS IS OUR MODAL FOR DELETING PAYLOAD -->
 <div class="modal fade" id="payloadDeleteModal" role="dialog">
@@ -83,7 +95,7 @@
             </div>
               <div class="modal-body" id="payloadDeleteBody">
                    Mark the payload as deleted (and optionally delete from disk).<br><br>
-                  <h4>Delete from disk:&nbsp;&nbsp;<label class="switch" style="width:40px; height:20px"><input type="checkbox" id="payloadDeleteFile"><span class="script-slider round"></span></label></h4>
+                  <h4>Delete from disk:&nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="payloadDeleteFile"><label for="payloadDeleteFile" class="btn-danger"></label></span></h4>
               </div>
               <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
@@ -122,7 +134,7 @@
             </div>
               <div class="modal-body" id="payloadEditHostBody">
                   Specify the name of the endpoint: <input id="payloadEditHostName" size="32" type="text"><br><br>
-                  Continue Hosting:&nbsp;&nbsp;<label class="switch" style="width:40px; height:20px"><input type="checkbox" id="payloadEditHostHost"><span class="script-slider round"></span></label>
+                  Continue Hosting:&nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="payloadEditHostHost"><label for="payloadEditHostHost" class="btn-warning"></label></span>
               </div>
               <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
@@ -134,13 +146,14 @@
 <!-- END MODAL FOR EDITING HOSTING PAYLOAD -->
 <!-- THIS IS OUR MODAL FOR GETTING PAYLOAD CONFIG -->
 <div class="modal fade" id="payloadConfigModal" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h3>Viewing payload configuration</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" >
+                <button disabled class="btn-md btn btn{{config['outline-buttons']}}info" style="width:100%">Command Configuration</button>
               <table class="table table-striped {{config['table-color']}} table-hover" style="table-layout:fixed;word-wrap: break-word">
                     <tr v-if="config.commands != undefined" align="center">
                         <th><b>Loaded Commands</b></th>
@@ -148,26 +161,43 @@
                         <th><b>Apfell Version</b></th>
                     </tr>
                   <tr v-for="c in config.commands" v-if="config.commands != undefined" :style="c.version != c.apfell_version ? 'background-color:{{config.failure_highlight}}' : ''">
-                      <td>[[c.cmd]]</td>
-                      <td>[[c.version]]</td>
-                      <td>[[c.apfell_version]]</td>
-                  </tr>
-                  <tr><td><b>C2 Profile Param Name</b></td>
-                      <td colspan="2"><b>C2 Profile Param Value</b></td>
-                  </tr>
-                  <tr v-for="p in config.c2_profile_parameters_instance">
-                      <td>[[p.c2_profile_name]]</td>
-                      <td colspan="2">[[p.value]]</td>
-                  </tr>
-                  <tr>
-                      <td>Build Message</td>
-                      <td colspan="2">[[config.build_message]]</td>
-                  </tr>
-                  <tr>
-                      <td>UUID</td>
-                      <td colspan="2">[[config.uuid]]</td>
+                      <td style="padding-left:10px">[[c.cmd]]</td>
+                      <td style="text-align:center">[[c.version]]</td>
+                      <td style="text-align:center">[[c.apfell_version]]</td>
                   </tr>
               </table>
+                <template v-for="(value, key) in config.c2_profiles">
+                    <button disabled class="btn-md btn btn{{config['outline-buttons']}}info" style="width:100%">[[key]] C2 Profile</button>
+                    <table class="table table-striped {{config['table-color']}} table-hover" style="table-layout:fixed;word-wrap: break-word">
+                        <tr>
+                            <th><b>C2 Profile Param Name</b></th>
+                            <th><b>C2 Profile Param Value</b></th>
+                          </tr>
+                          <tr v-for="p in value">
+                              <td style="padding-left:10px">[[p.c2_params_name]]</td>
+                              <td>[[p.value]]</td>
+                          </tr>
+                    </table>
+                </template>
+            <button disabled class="btn-md btn btn{{config['outline-buttons']}}info" style="width:100%">Payload Type Configuration</button>
+            <table class="table table-striped {{config['table-color']}} table-hover" style="table-layout:fixed;word-wrap: break-word">
+                <tr>
+                    <th><b>Payload Configuration</b></th>
+                    <th><b>Payload Value</b></th>
+                  </tr>
+                  <tr v-for="p in config.create_transforms">
+                      <td style="padding-left:10px">[[p.transform]]</td>
+                      <td>[[p.parameter]]</td>
+                  </tr>
+                <tr>
+                      <td style="padding-left:10px">Build Message</td>
+                      <td >[[config.build_message]]</td>
+                  </tr>
+                  <tr>
+                      <td style="padding-left:10px">UUID</td>
+                      <td >[[config.uuid]]</td>
+                  </tr>
+            </table>
             </div>
               <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal">Close</button>
@@ -176,19 +206,34 @@
     </div>
 </div>
 <!-- END MODAL FOR GETTING PAYLOAD CONFIG -->
-<br><br>
-
-<button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="create_payloadtype_button()"><i class="fas fa-plus"></i> PayloadType</button>
-<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="import_payload_button()" data-toggle="tooltip" title="Import new payload type"><i class="fas fa-file-import"></i></button>
 <br>
+
 <!-- PAYLOAD TYPE AND COMMAND INFORMATION/MODIFICATION/CREATION HERE -->
-<div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="payloadtypes_table" >
-    <div class="card-header bg-header text-white border border-dark shadow"><h2>Global <span class="operator">Payload Type</span> and <span class="operator">Command</span> Information</h2></div>
-        <div class="card-body border border-dark bg-card-body shadow">
-            <div class="card border-0 bg-transparent " v-for="(p, i) in payloadtypes" :key="p.id" style="display:inline-block;padding:8px">
-                <div class="card border border-dark align-top shadow" style="display: inline-block;width:30em">
-                    <div class="card-header border border-dark bg-header-dark">
-                        <img src="/static/apfell-transparent.png" class="card-img-top" alt="..." style="width:100px;height:100px">
+<div style="resize: vertical; overflow:visible; max-height:calc(40vh)" class="card border border-dark shadow bg-card-body" id="payloadtypes_table" >
+    <div class="card-header bg-header text-white border border-dark shadow">
+        <h2 style="display:inline-block">Global <span class="operator">Payload Type</span> and <span class="operator">Command</span> Information</h2>
+        <button style="margin:5px;float:right" type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="create_payloadtype_button()"><i class="fas fa-plus"></i> PayloadType</button>
+        <button style="margin:5px;float:right" type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="import_payload_button()" data-toggle="tooltip" title="Import new payload type"><i class="fas fa-file-upload fa-lg"></i>&nbsp;Import</button>
+
+    </div>
+        <div class="card-body border border-dark bg-card-body shadow" style="padding:0">
+            <table style="width:100%;margin-bottom:0;overflow-y:scroll" class="table table-striped {{config['table-color']}} table-hover border border-dark shadow">
+                <tr>
+                    <th style="width:2rem">Delete</th>
+                    <th style="width:2rem">Docker</th>
+                    <th style="width:10rem">Name</th>
+                    <th style="width:10rem">Supported OS</th>
+                    <th>Notes</th>
+                    <th style="width:3rem">Export</th>
+                    <th style="width:3rem">Modify</th>
+                    <th style="width:10rem">Authors</th>
+                    <th style="width:12rem">Commands</th>
+                </tr>
+                <tr v-for="(p, i) in payloadtypes" :key="p.id">
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_payloadtype_button(p)" data-toggle="tooltip" title="Delete the entire payload type"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                    <td style="text-align:center">
                         <template v-if="p.external && !p.container_running">
                             <div class="led-blue" data-toggle="tooltip" title="Creation hosted externally and no local container running" style="display:inline-block"></div>
                         </template>
@@ -198,35 +243,44 @@
                         <template v-else>
                             <div class="led-red" style="display:inline-block" data-toggle="tooltip" title="No heartbeat from container in over 30 seconds"></div>
                         </template>
-                        &nbsp;<a class="btn btn-link"  style="word-wrap: break-word" type="button" data-toggle="collapse" :data-target="'#payloadtypecardbody' + p.id" aria-expanded="false" :aria-controls="'payloadtypecardbody' + p.id"><font size="6"><b>[[p.ptype]]</b></font></a>
-                        <img :id="'dropdownarrow' + p.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(180deg)" >
-                    </div>
-                    <div class="collapse show" :id="'payloadtypecardbody' + p.id">
-                        <div class="card-body border border-dark bg-card-body-l2 shadow">
-                            <b>Supported OS:</b> [[p.supported_os]]<br>
-                            <b>Number of Commands:</b> [[p.commands.length]]<br>
-                            <b>Commands:</b>
-                            <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_commands_button(p)"><i class="fas fa-plus"></i></button>
-                            <button class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_commands_button(p)"><i class="fas fa-edit"></i> </button>
-                            <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_commands_button(p)"><i class="fas fa-trash-alt"></i></button>
-                          </div>
-                    </div>
-                    <div class="card-footer border border-dark shadow">
-                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_payloadtype_button(p)" ><i class="fas fa-trash-alt"></i></button>
-                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="export_commands_button(p)" data-toggle="tooltip" title="Export payload type and commands"><i class="fas fa-file-export"></i></button>
+                    </td>
+                    <td>
+                        <b>[[p.ptype]]</b>
+                    </td>
+                    <td>
+                        <pre style="word-wrap:break-word;white-space:pre-wrap">[[p.supported_os.replace(/,/g,"\n")]]</pre>
+                    </td>
+                    <td>
+                        <pre style="word-wrap:break-word;white-space:pre-wrap">[[p.note]]</pre>
+                    </td>
+                    <td style="text-align:center">
+                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="export_payload_type_button(p)" data-toggle="tooltip" title="Export payload type and commands"><i class="fas fa-file-export"></i></button>
+                    </td>
+                    <td style="text-align:center">
                         <div class="dropdown" style="display:inline-block">
                               <button class="btn btn{{config['outline-buttons']}}warning btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-edit"></i>
                               </button>
                               <div class="dropdown-menu">
                                   <button class="dropdown-item" @click="edit_payloadtype_button(p)">Edit Info and Files</button>
-                                  <button class="dropdown-item" @click="edit_create_transforms_button(p, i)">Edit "Create" Transforms</button>
-                                  <button class="dropdown-item" @click="edit_load_transforms_button(p, i)">Edit "Load" Transforms</button>
+                                  <button class="dropdown-item" @click="edit_create_transforms_button(p, i)">Edit "Create Payload" Transforms</button>
+                                  <button class="dropdown-item" @click="edit_load_transforms_button(p, i)">Edit "Load Command" Transforms</button>
                               </div>
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </td>
+                    <td>
+                        [[p.author]]
+                    </td>
+                    <td>
+                        Number of Commands: [[p.commands.length]]<br>
+                        <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_commands_button(p)" data-toggle="tooltip" title="Create new commands"><i class="fas fa-plus"></i></button>
+                        <button class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_commands_button(p)" data-toggle="tooltip" title="Edit commands"><i class="fas fa-edit"></i> </button>
+                        <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_commands_button(p)" data-toggle="tooltip" title="Delete commands"><i class="fas fa-trash-alt"></i></button>
+                        <button class="btn btn{{config['outline-buttons']}}info btn-sm" @click="export_commands_button(p)" data-toggle="tooltip" title="Export a subset of just commands"><i class="fas fa-file-export"></i></button>
+                        <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="import_commands_button(p)" data-toggle="tooltip" title="Import commands"><i class="fas fa-file-upload fa-lg"></i></button>
+                    </td>
+                </tr>
+            </table>
         </div>
 </div>
 <!-- THIS IS OUR MODAL FOR CREATING PAYLOADTYPE -->
@@ -245,16 +299,20 @@
                       </tr>
                     <tr>
                         <td style="width:300px">Name</td>
-                        <td><input type="text" id="payloadtypeCreatePtype" size="50"></td>
+                        <td><input type="text" id="payloadtypeCreatePtype" size="50" v-model="ptype"></td>
                     </tr>
                       <tr>
                           <td style="width:300px">Payload file extension</td>
-                          <td><input type="text" id="payloadtypeCreateFileExtension" size="50"></td>
+                          <td><input type="text" id="payloadtypeCreateFileExtension" size="50" v-model="file_extension"></td>
+                      </tr>
+                      <tr>
+                          <td>Author (twitter handle)</td>
+                          <td><input type="text" id="payloadtypeCreateAuthor" size="50" v-model="authors"></td>
                       </tr>
                       <tr>
                           <td>Supported OS:</td>
                           <td>
-                              <select multiple id="payloadtypeCreateSupportedOS" size="6">
+                              <select multiple id="payloadtypeCreateSupportedOS" size="6" v-model="supported_os">
                                   <option value="linux (x86)">Linux (x86)</option>
                                   <option value="linux (x64)">Linux (x64)</option>
                                   <option value="macOS (x86)">macOS (x86)</option>
@@ -266,31 +324,35 @@
                       </tr>
                       <tr>
                           <td style="width:300px">Is this payload a wrapper for another payload?</td>
-                          <td><label class="switch" style="width:40px; height:20px"><input type="checkbox" id="payloadtypeCreateWrapper"><span class="script-slider round"></span></label></td>
+                          <td style="padding-top:10px;padding-left:10px"><span class="material-switch pull-right"><input type="checkbox" id="payloadtypeCreateWrapper" v-model="wrapper"><label for="payloadtypeCreateWrapper" class="btn-info"></label></span></td>
                       </tr>
                       <tr hidden id="payloadtypeCreateWrappedPayloadTypeRow">
                           <td style="width:300px">What kind of payload does this wrap?</td>
                           <td>
-                              <select id="payloadtypeCreateWrappedPayloadType">
+                              <select id="payloadtypeCreateWrappedPayloadType" v-model="wrapped_payload_type">
 
                               </select>
                           </td>
                       </tr>
                       <tr>
                           <td style="width:450px">Is this payload going to be created externally to Apfell?</td>
-                          <td><label class="switch" style="width:40px; height:20px"><input type="checkbox" id="payloadtypeCreateExternal"><span class="script-slider round"></span></label></td>
+                          <td style="padding-top:10px;padding-left:10px"><span class="material-switch pull-right"><input type="checkbox" id="payloadtypeCreateExternal" v-model="external"><label for="payloadtypeCreateExternal" class="btn-info"></label></span></td>
+                      </tr>
+                      <tr>
+                          <td style="width:450px">Does this payload support dynamic loading of commands</td>
+                          <td style="padding-top:10px;padding-left:10px"><span class="material-switch pull-right"><input type="checkbox" id="payloadtypeCreateSupportsDynamicLoading" v-model="supports_dynamic_loading"><label for="payloadtypeCreateSupportsDynamicLoading" class="btn-info"></label></span></td>
                       </tr>
                       <tr>
                           <td>Select payload code files to upload:</td>
                           <td><input multiple type="file" id="payloadtypeCreateUploadFiles"></td>
                       </tr>
                       <tr>
-                          <td>Select files to upload to container:</td>
-                          <td><input multiple type="file" id="payloadtypeCreateUploadContainerFiles"></td>
+                          <td>Helpful information for executing the payload:</td>
+                          <td><textarea id="payloadtypeCreateExecuteHelp" rows="5" cols="80" v-model="execute_help"></textarea></td>
                       </tr>
                       <tr>
-                          <td>Helpful information for executing the payload:</td>
-                          <td><textarea id="payloadtypeCreateExecuteHelp" rows="5" cols="80"></textarea></td>
+                          <td>Notes about the payload type:</td>
+                          <td><textarea id="payloadtypeCreateNote" rows="5" cols="80" v-model="note"></textarea></td>
                       </tr>
                       <tr>
                           <td>Specify a template for adding commands:</td>
@@ -321,21 +383,25 @@
               <div class="modal-body">
                   <table cellpadding="10" style="width:100%" class="table table-striped table-hover {{config['table-color']}}">
                       <tr>
-                          <th><b>Parameter</b></th>
-                          <th><b>Value</b></th>
+                          <th style="text-align:left"><b>Parameter</b></th>
+                          <th style="text-align:left"><b>Value</b></th>
                       </tr>
                     <tr>
                         <td style="width:300px">Name</td>
-                        <td><input type="text" id="payloadtypeEditPtype" size="50"></td>
+                        <td style="padding-left:20px"><input type="text" id="payloadtypeEditPtype" size="50" v-model="ptype"></td>
                     </tr>
                       <tr>
                           <td style="width:150px">Payload file extension</td>
-                          <td><input type="text" id="payloadtypeEditFileExtension" size="50"></td>
+                          <td style="padding-left:20px"><input type="text" id="payloadtypeEditFileExtension" v-model="file_extension" size="50"></td>
+                      </tr>
+                      <tr>
+                          <td>Author (twitter handle)</td>
+                          <td style="padding-left:20px"><input type="text" id="payloadtypeEditAuthor" v-model="authors" size="50"></td>
                       </tr>
                       <tr>
                           <td>Supported OS:</td>
-                          <td>
-                              <select multiple id="payloadtypeEditSupportedOS" size="6">
+                          <td style="padding-left:20px">
+                              <select multiple id="payloadtypeEditSupportedOS" size="6" v-model="supported_os">
                                   <option value="linux (x86)">Linux (x86)</option>
                                   <option value="linux (x64)">Linux (x64)</option>
                                   <option value="macOS (x86)">macOS (x86)</option>
@@ -346,32 +412,32 @@
                           </td>
                       </tr>
                       <tr>
-                          <td style="width:300px">Is this payload a wrapper for another payload?</td>
-                          <td><label class="switch" style="width:40px; height:20px"><input type="checkbox" id="payloadtypeEditWrapper"><span class="script-slider round"></span></label></td>
+                          <td style="width:450px">Is this payload a wrapper for another payload?</td>
+                          <td style="padding-left:20px;padding-top:10px"><span class="material-switch pull-right"><input type="checkbox" id="payloadtypeEditWrapper" v-model="wrapper"><label for="payloadtypeEditWrapper" class="btn-info"></label></span></td>
                       </tr>
                       <tr hidden id="payloadtypeEditWrappedPayloadTypeRow">
                           <td style="width:150px">What kind of payload does this wrap?</td>
-                          <td>
-                              <select id="payloadtypeEditWrappedPayloadType">
+                          <td style="padding-left:20px">
+                              <select id="payloadtypeEditWrappedPayloadType" v-model="wrapped_payload_type">
 
                               </select>
                           </td>
                       </tr>
                       <tr>
                           <td style="width:300px">Is this payload going to be created externally to Apfell?</td>
-                          <td><label class="switch" style="width:40px; height:20px"><input type="checkbox" id="payloadtypeEditExternal"><span class="script-slider round"></span></label></td>
+                          <td style="padding-left:20px;padding-top:10px"><span class="material-switch pull-right"><input type="checkbox" id="payloadtypeEditExternal" v-model="external"><label for="payloadtypeEditExternal" class="btn-info"></label></span></td>
                       </tr>
                       <tr>
-                          <td>Select payload code files to upload:</td>
-                          <td><input multiple type="file" id="payloadtypeEditUploadFiles"></td>
-                      </tr>
-                      <tr>
-                          <td>Select payload code files to upload to container:</td>
-                          <td><input multiple type="file" id="payloadtypeEditUploadContainerFiles"></td>
+                          <td style="width:300px">Does this payload support dynamic loading of commands?</td>
+                          <td style="padding-left:20px;padding-top:10px"><span class="material-switch pull-right"><input type="checkbox" id="payloadtypeEditSupportsDynamicLoading" v-model="supports_dynamic_loading"><label for="payloadtypeEditSupportsDynamicLoading" class="btn-info"></label></span></td>
                       </tr>
                       <tr>
                           <td style="vertical-align:top">Helpful information for executing the payload:</td>
-                          <td><textarea id="payloadtypeEditExecuteHelp" rows="5" cols="80"></textarea></td>
+                          <td style="padding-left:20px;padding-top:10px"><textarea id="payloadtypeEditExecuteHelp" rows="5" cols="80" v-model="execute_help"></textarea></td>
+                      </tr>
+                      <tr>
+                          <td style="vertical-align:top">Notes about the payload type:</td>
+                          <td style="padding-left:20px;padding-top:10px"><textarea id="payloadtypeEditNote" rows="5" cols="80" v-model="note"></textarea></td>
                       </tr>
                       <tr>
                           <td style="vertical-align:top">Specify a template for adding commands:</td>
@@ -383,21 +449,44 @@
                       </tr>
                 </table>
                   <div id="payloadtypeEditFiles">
-                      <template v-if="folders.length > 0" v-for="folder in folders">
+                      <template v-if="folders.length > 0" v-for="(folder, i) in folders">
                         <table class="table table-condensed table-striped {{config['table-color']}} table-hover" width="100%">
                             <tr>
-                                <th align="left" width="50"><b>Delete</b></th>
-                                <th align="left" width="50"><b>Download</b></th>
-                                <th align="left"><b>
-                                <div v-if="folder.folder.includes('/Apfell/')">Server files (Deletions are permanent) </div>
-                                <div v-else>Agent Files in [[folder.folder.replace("./app/payloads/","")]] (Deletions are permanent)</div>
-                                    </b></th>
+                                <th style="text-align:left" width="50"><b>Delete</b></th>
+                                <th style="text-align:left" width="50"><b>Download</b></th>
+                                <th style="text-align:left"><b>Agent Files: <span class="operator">[[folder.folder]]</span></b></th>
+                                <th align="right"  style="width:11rem">
+                                    <button class="btn btn{{config['outline-buttons']}}success" @click="upload_agent_file(folder)" data-toggle="tooltip" title="Upload Files to this folder"><i class="fas fa-file-upload fa-lg"></i></button>
+                                    <button class="btn btn{{config['outline-buttons']}}success" @click="add_sub_folder(folder)" data-toggle="tooltip" title="Add a new folder"><i class="fas fa-folder-plus fa-lg"></i></button>
+                                    <button class="btn btn{{config['outline-buttons']}}danger" @click="remove_folder(folder, i)" data-toggle="tooltip" title="Remove this folder"><i class="fas fa-folder-minus fa-lg"></i></button>
+                                </th>
                             </tr>
                             <template v-for="file in folder.filenames">
                                 <tr>
                                     <td><button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_file_button(folder.folder, file)"><i class="fas fa-trash-alt"></i></button></td>
                                     <td><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_file_button(folder.folder, file)">Download</button></td>
                                     <td>[[file]]</td>
+                                    <td></td>
+                                </tr>
+                            </template>
+                        </table>
+                    </template>
+                    <template v-if="server_folders.length > 0" v-for="(folder, i) in server_folders">
+                        <table class="table table-condensed table-striped {{config['table-color']}} table-hover" width="100%">
+                            <tr>
+                                <th style="text-align:left" width="50"><b>Delete</b></th>
+                                <th style="text-align:left" width="50"><b>Download</b></th>
+                                <th style="text-align:left"><b>Server Files: <span class="operator">[[folder.folder]]</span></b></th>
+                                <th align="right"  style="width:11rem">
+                                    <button class="btn btn{{config['outline-buttons']}}success" @click="upload_container_file(folder)" data-toggle="tooltip" title="Upload files to the docker container"><i class="fas fa-file-upload fa-lg"></i></button>
+                                </th>
+                            </tr>
+                            <template v-for="file in folder.filenames">
+                                <tr>
+                                    <td><button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_server_file_button(folder.folder, file)"><i class="fas fa-trash-alt"></i></button></td>
+                                    <td><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_server_file_button(folder.folder, file)">Download</button></td>
+                                    <td>[[file]]</td>
+                                    <td></td>
                                 </tr>
                             </template>
                         </table>
@@ -412,6 +501,44 @@
     </div>
 </div>
 <!-- END MODAL FOR EDITING PAYLOADTYPE -->
+<!-- START MODAL FOR ADDING FOLDER -->
+<div class="modal fade" id="payloadtypeEditFilesAddFolder" role="dialog">
+  <div class="modal-dialog modal-md" role="document">
+      <div class="modal-content">
+          <div class="modal-header bg-dark text-white">
+              <h3>New sub-folder name</h3>
+              <button type="button" class="close"  onclick="hide_modal('payloadtypeEditFilesAddFolder')">×</button>
+          </div>
+          <div class="modal-body" id="payloadtypeEditFilesAddFolderBody">
+              <input type="text" id="payloadtypeEditFilesAddFolderName" style="width:100%">
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn{{config['outline-buttons']}}warning" onclick="hide_modal('payloadtypeEditFilesAddFolder')" aria-hidden="true">Cancel</button>
+            <button class="btn btn{{config['outline-buttons']}}primary" id="payloadtypeEditFilesAddFolderSubmit">Submit</button>
+          </div>
+      </div>
+  </div>
+</div>
+<!-- END MODAL FOR ADDING FOLDER -->
+<!-- START MODAL FOR UPLOADING FILE -->
+<div class="modal fade" id="payloadtypeEditFilesAddFile" role="dialog">
+  <div class="modal-dialog modal-md" role="document">
+      <div class="modal-content">
+          <div class="modal-header bg-dark text-white">
+              <h3>Select Files to Upload</h3>
+              <button type="button" class="close"  onclick="hide_modal('payloadtypeEditFilesAddFile')">×</button>
+          </div>
+          <div class="modal-body">
+                 <input multiple type="file" id="payloadtypeEditFilesUploadFile">
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn{{config['outline-buttons']}}warning" onclick="hide_modal('payloadtypeEditFilesAddFile')" aria-hidden="true">Cancel</button>
+            <button class="btn btn{{config['outline-buttons']}}primary" id="payloadtypeEditFilesAddFileSubmit">Submit</button>
+          </div>
+      </div>
+  </div>
+</div>
+<!-- END MODAL FOR UPLOADING FILE -->
 <!-- THIS IS OUR MODAL FOR DELETING PAYLOADTYPE -->
 <div class="modal fade" id="payloadtypeDeleteModal" role="dialog">
     <div class="modal-dialog modal-md" role="document">
@@ -421,8 +548,8 @@
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body" id="payloadtypeDeleteBody">
-                  Are you sure? This will automatically delete payloads created from this payload type, callbacks associated with those payloads, and more.<br><br>
-                  Delete from disk? &nbsp;<label class="switch" style="width:40px; height:20px"><input type="checkbox" id="payloadtypeDeleteFromDisk"><span class="script-slider round"></span></label>
+                  Are you sure? This will mark the payload type as deleted and remove it from view. Current payloads and callbacks will still exist and work though. The payload type will be unregistered from associated c2 profiles as well<br><br>
+                  Delete from disk? &nbsp;<span class="material-switch pull-right"><input type="checkbox" id="payloadtypeDeleteFromDisk"><label for="payloadtypeDeleteFromDisk" class="btn-danger"></label></span></label>
               </div>
               <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
@@ -454,24 +581,21 @@
 <!-- END MODAL FOR IMPORTING COMMAND -->
 <!-- THIS IS OUR MODAL FOR REMOVING COMMANDS -->
 <div class="modal fade" id="commandRemoveModal" role="dialog">
-    <div class="modal-dialog modal-md" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h3>Remove commands from payload type</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body" id="commandRemoveBody">
-                <table class="table table-striped table-hover {{config['table-color']}}">
-                    <tr>
-                        <td>
-                            Select commands to remove:
-                        </td>
-                        <td>
-                            <select multiple id="commandRemoveList" size="20">
-                            </select>
-                        </td>
-                    </tr>
-                </table>
+                <div class="card-deck" >
+                        <div v-for="cmd in commands" class="card" style="min-width: 15rem">
+                            <span class="material-switch pull-right" style="display:inline-block">
+                                <input type="checkbox" :checked="cmd.checked" v-model="cmd.checked" :id="'removecommand' + cmd.id" >
+                                <label :for="'removecommand' + cmd.id" class="btn-danger"></label>&nbsp;[[cmd.cmd]]
+                            </span>
+                        </div>
+                    </div>
               </div>
               <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
@@ -481,6 +605,32 @@
     </div>
 </div>
 <!-- END MODAL FOR REMOVING COMMANDS -->
+<!-- THIS IS OUR MODAL FOR EXPORTING COMMANDS -->
+<div class="modal fade" id="commandExportModal" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Export commands from payload type</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <div class="modal-body" id="commandExportBody">
+                    <div class="card-deck" >
+                        <div v-for="cmd in commands" class="card" style="min-width: 15rem">
+                            <span class="material-switch pull-right" style="display:inline-block">
+                                <input type="checkbox" :checked="cmd.checked" v-model="cmd.checked" :id="'exportcommand' + cmd.id" >
+                                <label :for="'exportcommand' + cmd.id" class="btn-info"></label>&nbsp;[[cmd.cmd]]
+                            </span>
+                        </div>
+                    </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" id="commandExportSubmit">Export</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR EXPORTING COMMANDS -->
 <!-- THIS IS OUR MODAL FOR ADDING COMMANDS -->
 <div class="modal fade" id="commandAddModal" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
@@ -490,7 +640,7 @@
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body" id="commandAddBody">
-                <table style=";word-wrap: break-word" class="table table-striped table-hover {{config['table-color']}}">
+                <table style="word-wrap: break-word" class="table table-striped table-hover {{config['table-color']}}">
                     <tr>
                         <td> Command Name: </td>
                         <td>
@@ -502,15 +652,15 @@
                     </tr>
                     <tr>
                         <td> Description: </td>
-                        <td><input type="text" id="commandAddDescription" size="90"></td>
+                        <td><textarea type="text" id="commandAddDescription" style="width:100%" rows="5"></textarea></td>
                     </tr>
                     <tr>
                         <td> Help: </td>
-                        <td><input type="text" id="commandAddHelpCmd" size="90"></td>
+                        <td><input type="text" id="commandAddHelpCmd" style="width:100%"></td>
                     </tr>
                     <tr>
                         <td> Needs Admin: </td>
-                        <td><label class="switch" style="width:40px; height:20px"><input type="checkbox" id="commandAddNeedsAdmin"><span class="script-slider round"></span></label></td>
+                        <td><span class="material-switch pull-right"><input type="checkbox" id="commandAddNeedsAdmin"><label for="commandAddNeedsAdmin" class="btn-info"></label></span></td>
                     </tr>
                     <tr>
                         <td> Version: </td>
@@ -518,7 +668,53 @@
                     </tr>
                     <tr>
                         <td> Is Exit Command:</td>
-                        <td> <label class="switch" style="width:40px; height:20px"><input type="checkbox" id="commandAddIsExit"><span class="script-slider round"></span></label></td>
+                        <td><span class="material-switch pull-right"><input type="checkbox" id="commandAddIsExit"><label for="commandAddIsExit" class="btn-info"></label></span></td>
+                    </tr>
+                    <tr>
+                        <td> Is Used For File Browsing:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandAddIsFileBrowse" ><label for="commandAddIsFileBrowse" class="btn-info"></label></span>
+                            <div hidden id="commandAddIsFileBrowseSelected">
+                                Parameters to call this command: " * " will be replaced with the path to browse<br>
+                                <input type="text" id="commandAddFileBrowseParameters" size="80" placeholder="*">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Process Listing:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandAddIsProcessList"><label for="commandAddIsProcessList" class="btn-info"></label></span>
+                            <div hidden id="commandAddIsProcessListSelected">
+                                Parameters to call this command:<br>
+                                <input type="text" id="commandAddProcessListParameters" size="80" placeholder="*">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Downloading Files:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandAddIsDownloadFile"><label for="commandAddIsDownloadFile" class="btn-info"></label></span>
+                            <div hidden id="commandAddIsDownloadFileSelected">
+                                Parameters to call this command: " * " will be replaced with the path to download<br>
+                                <input type="text" id="commandAddDownloadFileParameters" size="80" placeholder="*">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Removing Files:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandAddIsRemoveFile"><label for="commandAddIsRemoveFile" class="btn-info"></label></span>
+                            <div hidden id="commandAddIsRemoveFileSelected">
+                                Parameters to call this command: " * " will be replaced with the path to remove<br>
+                                <input type="text" id="commandAddRemoveFileParameters" size="80" placeholder="*">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Generates Additional Payloads:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandAddIsAgentGenerator"><label for="commandAddIsAgentGenerator" class="btn-info"></label></span>
+                        </td>
                     </tr>
                     <tr>
                         <td> Code: </td>
@@ -540,7 +736,7 @@
                             &nbsp;Name: <input type="text" size="30" :value="i.name" v-model="i.name">
                         </td>
                           <td>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Required? <label class="switch" style="width:40px; height:20px"> <input type="checkbox" :value="i.required" v-model="i.required"><span class="script-slider round"></span></label>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Required? <span class="material-switch pull-right"><input type="checkbox" :value="i.required" v-model="i.required" :id="'required' + p"><label :for="'required' + p" class="btn-info"></label></span>
                           </td>
                           <td>
                               &nbsp;&nbsp;Type: <select v-model="i.type">
@@ -553,6 +749,8 @@
                                         <option value="ChoiceMultiple">Choose Many</option>
                                         <option value="Credential">Credential</option>
                                         <option value="Number">Number</option>
+                                        <option value="PayloadList">Payload List</option>
+                                        <option value="AgentConnect">Remote Agent Connection</option>
                                     </select>
                           </td>
                         <td>
@@ -572,6 +770,8 @@
                       </tr>
                   </table>
                   <h3>Command Transforms:</h3>
+                  This section allows you to assign command transforms to this command. To create new transforms or edit current ones, go to the "Manage Operations" -> "Transforms Management" page and look at the CommandTransformOperation class.
+                  <br>
                   <table id="add_command_transforms_table" width="100%" class="table table-striped table-hover {{config['table-color']}}">
                       <tr>
                           <th></th>
@@ -591,11 +791,11 @@
                         </td>
                           <td align="center"><input type="number" :value="i.order" v-model="i.order" min="1" style="width: 4em"></td>
                           <td align="center">
-                              <select id="'commandTransformsOptions' + p" v-model="i.name"><option v-for="(item, key, index) in transformOptions" :value="key">[[key]]</option></select>
+                              <select id="'commandTransformsOptions' + p" v-model="i.transform"><option v-for="(item, index) in transformOptions" :value="index">[[item.name]]</option></select>
                           </td>
                           <td align="center">
-                              <div v-if="transformOptions[i.name].hasOwnProperty('parameter')">
-                                  <input type="text" size="31" :value="i.parameter" v-model="i.parameter" :placeholder="transformOptions[i.name].parameter">
+                              <div v-if="transformOptions[i.transform]['parameter_type'] === 'String'">
+                                  <input type="text" style="width:100%" :value="i.parameter" v-model="i.parameter" :placeholder="transformOptions[i.transform].description">
                               </div>
                               <div v-else>
                                   Takes no parameters
@@ -677,42 +877,124 @@
                 <h3>Edit a Command</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-              <div class="modal-body" id="commanEditdBody">
-                <table class="table table-striped table-hover {{config['table-color']}}">
+              <div class="modal-body">
+                <table class="table table-striped table-hover {{config['table-color']}}" style="word-wrap: break-word" id="commandEditTable">
                     <tr>
                         <td> Command Name: </td>
-                        <td><select id="commandEditCmd"></select></td>
+                        <td><select id="commandEditCmd" v-model="selected_command"><option v-for="c in commands" :value="c">[[c.cmd]]</option></select></td>
+                    </tr>
+                    <tr>
+                        <td>Edit Command Name:</td>
+                        <td><input type="text" id="commandEditName" style="width:100%" v-model="cmd"></td>
                     </tr>
                     <tr>
                         <td> Description: </td>
-                        <td><input type="text" id="commandEditDescription" size="90"></td>
+                        <td><textarea type="text" id="commandEditDescription" style="width:100%" rows="5" v-model="description"></textarea></td>
                     </tr>
                     <tr>
                         <td> Help: </td>
-                        <td><input type="text" id="commandEditHelpCmd" size="90"></td>
+                        <td><input type="text" id="commandEditHelpCmd" style="width:100%" v-model="help_cmd"></td>
                     </tr>
                     <tr>
                         <td> Needs Admin: </td>
-                        <td><label class="switch" style="width:40px; height:20px"> <input type="checkbox" id="commandEditNeedsAdmin"><span class="script-slider round"></span></label></td>
+                        <td><span class="material-switch pull-right"><input type="checkbox" id="commandEditNeedsAdmin" v-model="needs_admin">
+                        <label for="commandEditNeedsAdmin" class="btn-info"></label></span></td>
                     </tr>
                     <tr>
                         <td> Currently Editing Version: </td>
-                        <td> <input type="number" id="commandEditVersion"></td>
+                        <td> [[version]]</td>
                     </tr>
                     <tr>
                         <td> Is Exit Command:</td>
-                        <td> <label class="switch" style="width:40px; height:20px"> <input type="checkbox" id="commandEditIsExit"><span class="script-slider round"></span></label></td>
+                        <td><span class="material-switch pull-right"><input type="checkbox" id="commandEditIsExit" v-model="is_exit">
+                        <label for="commandEditIsExit" class="btn-info"></label></span></td>
                     </tr>
                     <tr>
-                        <td> Code: </td>
-                        <td id="edit_command_code" width="100%">
+                        <td> Is Used For File Browsing:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandEditIsFileBrowse" v-model="is_file_browse">
+                                <label for="commandEditIsFileBrowse" class="btn-info"></label></span>
+                            <div :hidden="!is_file_browse" id="commandEditIsFileBrowseSelected">
+                                Parameters to call this command: " * " will be replaced with the path to browse<br>
+                                <input type="text" id="commandEditFileBrowseParameters" size="80" placeholder="*" v-model="file_browse_parameters">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Process Listing:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandEditIsProcessList" v-model="is_process_list">
+                                <label for="commandEditIsProcessList" class="btn-info"></label></span>
+                            <div :hidden="!is_process_list" id="commandEditIsProcessListSelected">
+                                Parameters to call this command:<br>
+                                <input type="text" id="commandEditProcessListParameters" size="80" placeholder="*" v-model="process_list_parameters">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Downloading Files:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandEditIsDownloadFile" v-model="is_download_file">
+                                <label for="commandEditIsDownloadFile" class="btn-info"></label></span>
+                            <div :hidden="!is_download_file" id="commandEditIsDownloadFileSelected">
+                                Parameters to call this command: " * " will be replaced with the path to download<br>
+                                <input type="text" id="commandEditDownloadFileParameters" size="80" placeholder="*" v-model="download_file_parameters">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Removing Files:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandEditIsRemoveFile" v-model="is_remove_file">
+                                <label for="commandEditIsRemoveFile" class="btn-info"></label></span>
+                            <div :hidden="!is_remove_file" id="commandEditIsRemoveFileSelected">
+                                Parameters to call this command: " * " will be replaced with the path to remove<br>
+                                <input type="text" id="commandEditRemoveFileParameters" size="80" placeholder="*" v-model="remove_file_parameters">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Generates additional payloads:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input type="checkbox" id="commandEditIsAgentGenerator" v-model="is_agent_generator">
+                                <label for="commandEditIsAgentGenerator" class="btn-info"></label></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Code for [[filename]]: <br><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="save_changes()"><i class="fas fa-save fa-lg"></i></button></td>
+                        <td id="edit_command_code" >
                             Theme: <select v-model="theme"><option v-for="t in theme_options" :value="t">[[t]]</option></select>
                             Language: <select v-model="language"><option v-for="l in language_options" :value="l">[[l]]</option></select>
                             <ace-editor v-model="code" min-lines="3" max-lines="30" :theme="theme" :mode="language" wrap="true"></ace-editor>
-                            <textarea hidden id="commandEditOldCode"></textarea>
-                            <input type="file" id="commandEditFile">
                         </td>
                     </tr>
+                    <tr><td colspan="2">
+                        <template v-if="folders.length > 0" v-for="(folder, i) in folders">
+                            <table class="table table-condensed table-striped table-hover" width="100%" style="color:{{config['text-color']}}">
+                                <tr>
+                                    <th style="width:5rem;text-align:left"><b>Delete</b></th>
+                                    <th style="width:5rem;text-align:left"><b>Download</b></th>
+                                    <th style="text-align:left"><b>
+                                        Code Files: <span class="operator">[[folder.folder]]</span>
+                                        </b>
+                                    </th>
+                                    <th style="width:11rem;text-align:right">
+                                        <button class="btn btn{{config['outline-buttons']}}success" @click="upload_agent_file(folder)" data-toggle="tooltip" title="Upload files for the command to this folder"><i class="fas fa-file-upload fa-lg"></i></button>
+                                        <button class="btn btn{{config['outline-buttons']}}success" @click="add_sub_folder(folder)" data-toggle="tooltip" title="Create new folder"><i class="fas fa-folder-plus fa-lg"></i></button>
+                                        <button class="btn btn{{config['outline-buttons']}}danger" @click="remove_folder(folder, i)" data-toggle="tooltip" title="Remove folder"><i class="fas fa-folder-minus fa-lg"></i></button>
+                                    </th>
+                                </tr>
+                                <template v-for="file in folder.filenames">
+                                    <tr>
+                                        <td><button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_file_button(folder, file)"><i class="fas fa-trash-alt"></i></button></td>
+                                        <td><button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="download_file_button(folder.folder, file)">Download</button></td>
+                                        <td>[[file]]</td>
+                                        <td><button class="btn btn{{config['outline-buttons']}}info btn-sm" @click="send_to_edit(folder.folder, file)" data-toggle="tooltip" title="Edit this file in the above editor"><i class="fas fa-edit fa-lg"></i></button></td>
+                                    </tr>
+                                </template>
+                            </table>
+                        </template>
+                    </td></tr>
                 </table>
                   <h3>Command Parameters:</h3>
                   <table id="edit_command_parameters_table" class="table table-striped table-hover {{config['table-color']}}">
@@ -724,7 +1006,7 @@
                             Name: <input type="text" size="30" :value="i.name" v-model="i.name">
                         </td>
                           <td>
-                            Required? <label class="switch" style="width:40px; height:20px"><input type="checkbox" :value="i.required" v-model="i.required"><span class="script-slider round"></span></label>
+                            Required? <span class="material-switch pull-right"><input type="checkbox" :value="i.required" v-model="i.required" :id="'required_edit' + p"><label :for="'required_edit' + p" class="btn-info"></label></span>
                           </td>
                         <td>
                               Type: <select v-model="i.type">
@@ -737,6 +1019,8 @@
                                         <option value="ChoiceMultiple">Choose Many</option>
                                         <option value="Credential">Credential</option>
                                         <option value="Number">Number</option>
+                                        <option value="PayloadList">Payload List</option>
+                                        <option value="AgentConnect">Remote Agent Connection</option>
                                     </select>
                           </td>
                         <td>
@@ -756,6 +1040,8 @@
 
                   </table>
                   <h3>Command Transforms:</h3>
+                  This section allows you to assign command transforms to this command. To create new transforms or edit current ones, go to the "Manage Operations" -> "Transforms Management" page and look at the CommandTransformOperation class.
+                  <br>
                   <table id="edit_command_transforms_table" width="100%" class="table table-striped table-hover {{config['table-color']}}">
                       <tr>
                           <th></th>
@@ -777,17 +1063,17 @@
                         </td>
                           <td align="center"><input type="number" :value="i.order" v-model="i.order" min="1" style="width: 4em"></td>
                           <td align="center">
-                              <select v-model="i.name"><option v-for="(item, key, index) in transformOptions" :value="key">[[key]]</option></select>
+                              <select v-model="i.transform"><option v-for="(item, index) in transformOptions" :value="index">[[item.name]]</option></select>
                           </td>
                           <td align="center">
-                              <div v-if="transformOptions[i.name].hasOwnProperty('parameter')">
-                                  <input type="text" size="31" :value="i.parameter" v-model="i.parameter" :placeholder="transformOptions[i.name].parameter">
+                              <div v-if="transformOptions[i.transform].parameter_type === 'String'">
+                                  <input type="text" size="31" :value="i.parameter" v-model="i.parameter" :placeholder="transformOptions[i.transform].discription">
                               </div>
                               <div v-else>
                                   Takes no parameters
                               </div>
                           </td>
-                          <td align="center"><label class="switch" style="width:40px; height:20px"><input type="checkbox" :checked="i.active" v-model="i.active"><span class="script-slider round"></span></label></td>
+                          <td align="center"><span class="material-switch pull-right"><input type="checkbox" :checked="i.active" v-model="i.active" :id="'transform_active' + p"><label :for="'transform_active' + p" class="btn-info"></label></span></td>
                       </tr>
                       <tr>
                           <td colspan="5">
@@ -858,7 +1144,7 @@
 <!-- END MODAL FOR EDITING COMMANDS -->
 <!-- THIS IS OUR MODAL FOR EDITING A PAYLOAD TYPE'S LOAD TRANSFORMS -->
 <div class="modal fade" id="payloadEditLoadTransformsModal" role="dialog">
-    <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-dialog modal-xl" role="document" style="max-width:100%">
 	<div class="modal-content">
 	    <div class="modal-header bg-dark text-white">
 		<h3>Add / Edit / Remove Transforms for Loading new Commands</h3>
@@ -871,46 +1157,60 @@
                     <tr>
                         <th></th>
                         <th align="center"><b>Step</b></th>
-                        <th align="center"><b>Input</b></th>
                         <th align="center"><b>Transform</b></th>
+                        <th align="center"><b>Transform Description</b></th>
+                        <th align="center"><b>Parameter Type</b></th>
                         <th align="center"><b>Parameter</b></th>
-                        <th align="center"><b>Output</b></th>
+                        <th align="center"><b>Instance Description</b></th>
                     </tr>
                     <tr>
                         <td></td>
                         <td align="center">0</td>
-                        <td align="center">List of commands -></td>
-                        <td align="center">Get command code </td>
-                        <td align="center">This transform uses no additional parameter</td>
-                        <td align="center">-> Dict[command name, base64 command code]</td>
+                        <td align="center">List of commands</td>
+                        <td align="center">Get a list of commands</td>
+                        <td align="center">None</td>
+                        <td align="center"></td>
+                        <td align="center">Get the list of commands</td>
                     </tr>
                     <tr v-for="(i,p) in loadTransforms" :key="i.order">
                         <td>
                             <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_load_transform_button(i, p)"><i class="fas fa-trash-alt"></i></button>
                         </td>
                         <td align="center"><input type="number" :value="i.order" v-model="i.order" min="1" style="width: 4em"></td>
-                        <td align="center">[[transformOptions[i.name].prior_output]] -></td>
                         <td align="center">
-                            <select id="'loadTransformsOptions' + p" v-model="i.name"><option v-for="(item, key, index) in transformOptions" :value="key">[[key]]</option></select>
+                            <select id="'loadTransformsOptions' + p" v-model="i.transform"><option v-for="(item, index) in transformOptions" :value="index">[[item.name]]</option></select>
                         </td>
                         <td align="center">
-                            <div v-if="transformOptions[i.name].hasOwnProperty('parameter')">
-                                <input type="text" size="31" :value="i.parameter" v-model="i.parameter" :placeholder="transformOptions[i.name].parameter">
-                            </div>
-                            <div v-else>
-                                This transform uses no additional parameter
-                            </div>
-
+                            <template v-if="i.transform >= 0">
+                                [[transformOptions[i.transform].description]]
+                            </template>
                         </td>
-                        <td align="center">-> [[transformOptions[i.name].return]]</td>
+                        <td align="center">
+                            <template v-if="i.transform >= 0">
+                                [[transformOptions[i.transform].parameter_type]]
+                            </template>
+                        </td>
+                        <td align="center">
+                            <div v-if="transformOptions[i.transform].parameter_type === 'String'">
+                                <input type="text" style="width:100%" :value="i.parameter" v-model="i.parameter" placeholder="Default value goes here">
+                            </div>
+                            <div v-else-if="transformOptions[i.transform].parameter_type === 'ChooseOne'">
+                                <textarea :value="i.parameter" v-model="i.parameter" rows="3" cols="80"></textarea>
+                            </div>
+                            <div v-else></div>
+                        </td>
+                        <td align="center">
+                            <input type="text" style="width:100%" :value="i.description" v-model="i.description" placeholder="Description goes here to help the operator">
+                        </td>
                     </tr>
                     <tr>
                         <td></td>
                         <td align="center">[[loadTransforms.length + 1]]</td>
-                        <td align="center">Final bytes -></td>
                         <td align="center">Register file in system </td>
-                        <td align="center">This transform uses no additional parameter</td>
-                        <td align="center">-> File ID number</td>
+                        <td align="center">Save the result in the file system with a file_id</td>
+                        <td align="center">None</td>
+                        <td>None</td>
+                        <td align="center">Returns a final file_id for an agent to pull down</td>
                     </tr>
                 </table>
                 <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_load_transform_button()"><i class="fas fa-plus"></i></button>
@@ -925,60 +1225,74 @@
 </div>
 <!-- END MODAL FOR EDITING A PAYLOAD TYPE'S LOAD TRANSFORMS -->
 <!-- THIS IS OUR MODAL FOR EDITING A PAYLOAD TYPE'S CREATE TRANSFORMS -->
-<div class="modal fade" id="payloadEditCreateTransformsModal" role="dialog">
-    <div class="modal-dialog modal-xl" role="document">
+<div class="modal fade" id="payloadEditCreateTransformsModal" role="dialog" >
+    <div class="modal-dialog modal-xl" role="document" style="max-width:100%">
 	<div class="modal-content">
 	    <div class="modal-header bg-dark text-white">
-		<h3>Add / Edit / Remove Transforms for a New Payload</h3>
+		<h3>Add / Edit / Remove Transforms for a Payload Type</h3>
         <button type="button" class="close" data-dismiss="modal">x</button>
 	    </div>
-	    <div class="modal-body">
-            Adjust the transforms applied to the code of a new payload after the c2, c2 parameters, uuid, and commands have been stamped in.
+	    <div class="modal-body" style="width:100%">
+            Adjust the transforms applied to the code of a new payload after the c2, c2 parameters, uuid, and commands have been stamped in.<br>
+            For <b>ChooseOne</b>, each option should be on a new line.
             <div id="payloadEditCreateTransformsTable">
                 <table cellpadding="10" style="width:100%" class="table table-striped table-hover {{config['table-color']}}" >
                     <tr>
-                        <th></th>
-                        <th align="center"><b>Step</b></th>
-                        <th align="center"><b>Input</b></th>
+                        <th style="width:4rem"></th>
+                        <th align="center" style="width:4rem"><b>Step</b></th>
                         <th align="center"><b>Transform</b></th>
+                        <th align="center"><b>Transform Description</b></th>
+                        <th align="center"><b>Parameter Type</b></th>
                         <th align="center"><b>Parameter</b></th>
-                        <th align="center"><b>Output</b></th>
+                        <th align="center"><b>Instance Description</b></th>
                     </tr>
                     <tr>
                         <td></td>
                         <td align="center">0</td>
-                        <td align="center">Newly Created Payload -></td>
-                        <td align="center">Get Path to payload.extension </td>
-                        <td align="center">This transform uses no additional parameter</td>
-                        <td align="center">-> FilePath</td>
+                        <td align="center">ProvideSource</td>
+                        <td align="center">Provides pre-processed source code</td>
+                        <td align="center">None</td>
+                        <td align="center"></td>
+                        <td align="center">Get the agent's source code with values stamped in</td>
                     </tr>
                     <tr v-for="(i,p) in createTransforms" :key="i.order">
                         <td>
                             <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_create_transform_button(i, p)"><i class="fas fa-trash-alt"></i></button>
                         </td>
-                        <td align="center"><input type="number" :value="i.order" v-model="i.order" min="1" style="width: 4em"></td>
-                        <td align="center">[[transformOptions[i.name].prior_output]] -></td>
+                        <td align="center"><input type="number" v-model="i.order" min="1" style="width: 3em"></td>
                         <td align="center">
-                            <select id="'createTransformsOptions' + p" v-model="i.name"><option v-for="(item, key, index) in transformOptions" :value="key">[[key]]</option></select>
+                            <select id="'createTransformsOptions' + p" v-model="i.transform">
+                                <option v-for="(item, index) in transformOptions" :value="index">[[item.name]]
+                                </option>
+                            </select>
+                        </td>
+                        <td>
+                            [[ transformOptions[i.transform].description ]]
+                        </td>
+                        <td>
+                            [[ transformOptions[i.transform].parameter_type ]]
+                        </td>
+                        <td align="left">
+                            <div v-if="transformOptions[i.transform].parameter_type === 'String'">
+                                <input type="text" style="width:100%" :value="i.parameter" v-model="i.parameter" placeholder="User Hint Goes Here for Value">
+                            </div>
+                            <div v-else-if="transformOptions[i.transform].parameter_type === 'ChooseOne'">
+                                <textarea :value="i.parameter" v-model="i.parameter" rows="3" cols="60"></textarea>
+                            </div>
+                            <div v-else></div>
                         </td>
                         <td align="center">
-                            <div v-if="transformOptions[i.name].hasOwnProperty('parameter')">
-                                <input type="text" size="31" :value="i.parameter" v-model="i.parameter" :placeholder="transformOptions[i.name].parameter">
-                            </div>
-                            <div v-else>
-                                This transform uses no additional parameter
-                            </div>
-
+                            <input type="text" style="width:100%" :value="i.description" v-model="i.description" placeholder="Description goes here to help the operator">
                         </td>
-                        <td align="center">-> [[transformOptions[i.name].return]]</td>
                     </tr>
                     <tr>
                         <td></td>
                         <td align="center">[[createTransforms.length + 1]]</td>
-                        <td align="center">Final file path to register -></td>
-                        <td align="center">Register file in system </td>
-                        <td align="center">This transform uses no additional parameter</td>
-                        <td align="center">-> File ID number</td>
+                        <td align="center">RegisterPayload</td>
+                        <td align="center">Register final payload in system </td>
+                        <td align="center">None</td>
+                        <td align="center">None</td>
+                        <td align="center">Output the final bytes of the payload to be written to disk</td>
                     </tr>
                 </table>
                 <button type="button" class="btn btn{{config['outline-buttons']}}success btn-sm" @click="add_create_transform_button()"><i class="fas fa-plus"></i></button>

@@ -1,35 +1,38 @@
 {% extends "base.html" %}
 {% block body %}
 
-<br>
-<div id="full_reporting">
-    <div class="card border border-dark shadow bg-card-body">
+<div id="full_reporting" style="padding-top:5px">
+    <div class="card border border-dark shadow bg-card-body" style="padding:0">
         <div class="card-header bg-header border border-dark shadow text-white">
             <h2><span class="operator">Report Generation</span> Options</h2>
         </div>
-        <div class="card-body border-dark border-left bg-card-body">
-            <div class="card-columns bg-card-body-l1">
-                <div class="card border border-dark shadow ">
+        <div class="card-body border-dark shadow bg-card-body">
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;">
+                <div class="card border border-dark shadow">
                     <div class="card-header bg-header-dark border border-dark shadow">
-                        Include Command output? &nbsp;&nbsp;<label class="switch" style="width:40px; height:20px"><input type="checkbox" id="cmd_output" v-model="cmd_output"><span class="script-slider round"></span></label>
+                        Include Command output? &nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="cmd_output" v-model="cmd_output"><label for="cmd_output" class="btn-info"></label></span>
                     </div>
                     <div class="card-body bg-card-body-l2 border border-dark shadow">
                         <img src="/no_cmd_output.png" height="200" width="550"><br>
                         Select this if you want command output included in the report
                     </div>
                 </div>
-                <div class="card" :hidden="!cmd_output">
+            </div>
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;" v-if="cmd_output">
+                <div class="card border border-dark shadow" >
                     <div class="card-header bg-header-dark border border-dark shadow">
-                        Order output strictly by time? &nbsp;&nbsp; <label class="switch" style="width:40px; height:20px"><input type="checkbox" id="strict_time" v-model="strict_time"><span class="script-slider round"></span></label>
+                        Order output strictly by time? &nbsp;&nbsp; <span class="material-switch pull-right"><input type="checkbox" id="strict_time" v-model="strict_time"><label for="strict_time" class="btn-info"></label></span>
                     </div>
                     <div class="card-body bg-card-body-l2 border border-dark shadow">
                         <img src="/strict_time.png" height="300" width="550"><br>
                         Select this if you want a strictly chronological timeline of events
                     </div>
                 </div>
-                <div class="card" :hidden="!cmd_output">
+            </div>
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;" v-if="cmd_output">
+                <div class="card border border-dark shadow" >
                     <div class="card-header bg-header-dark border border-dark shadow">
-                        Group all output with its task? &nbsp;&nbsp;<label class="switch" style="width:40px; height:20px"> <input type="checkbox" id="strict_task" v-model="strict_task"><span class="script-slider round"></span></label>
+                        Group all output with its task? &nbsp;&nbsp;<span class="material-switch pull-right"> <input type="checkbox" id="strict_task" v-model="strict_task"><label for="strict_task" class="btn-info"></label></span>
                     </div>
                     <div class="card-body bg-card-body-l2 border border-dark shadow">
                         <img src="/grouped_output.png" height="300" width="550"><br>
@@ -37,9 +40,31 @@
                     </div>
                 </div>
             </div>
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;">
+                <div class="card border border-dark shadow">
+                    <div class="card-header bg-header-dark border border-dark shadow">
+                        Include artifacts? &nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="task_artifacts" v-model="artifacts"><label for="task_artifacts" class="btn-info"></label></span>
+                    </div>
+                    <div class="card-body bg-card-body-l2 border border-dark shadow">
+                        Select this if you want tasks to also include associated artifacts
+                    </div>
+                </div>
+            </div>
+            <div class="card align-top border-0 bg-transparent" style="display:inline-block;min-width:30rem;padding:0px;">
+                <div class="card border border-dark shadow">
+                    <div class="card-header bg-header-dark border border-dark shadow">
+                        Include ATT&CK? &nbsp;&nbsp;<span class="material-switch pull-right"><input type="checkbox" id="task_attack" v-model="attack"><label for="task_attack" class="btn-info"></label></span>
+                    </div>
+                    <div class="card-body bg-card-body-l2 border border-dark shadow">
+                        Select this if you want tasks to also include information about their associated ATT&CK Mappings
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div><br>
-    <button class="btn btn{{config['outline-buttons']}}success" onclick="generate_report()">Generate</button>
+    <button class="btn btn{{config['outline-buttons']}}success" onclick="generate_pdf_report()">Generate PDF</button>
+    <button class="btn btn{{config['outline-buttons']}}success" onclick="generate_json_report()">Generate JSON</button>
 </div>
 {% endblock %}
 

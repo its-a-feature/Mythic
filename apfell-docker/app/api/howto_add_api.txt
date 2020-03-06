@@ -1,3 +1,0 @@
-create file called: thing_api.py
-in api/__init__.py add thing to the list of imports
-update cli_api.json with appropriate information so people know how to use the new api

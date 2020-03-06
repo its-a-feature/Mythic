@@ -1,3 +1,4 @@
+document.title = "Artifacts Management";
 var artifacts_table = new Vue({
     el: '#artifacts_table',
     delimiters: ['[[', ']]'],

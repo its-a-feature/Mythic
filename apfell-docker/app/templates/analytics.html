@@ -1,42 +1,14 @@
 {% extends "base.html" %}
 {% block body %}
-<br>
-<div class="card border border-dark">
-    <div class="card-header border border-dark bg-header text-white">
-        <h2>Current <span class="operator">Callback Tree</span></h2>
-    </div>
-    <div class="card-body bg-card-body border border-dark shadow">
-        <div id="callbacktree" style="white-space: pre-wrap" v-html="callback_tree_data"></div>
-    </div>
-</div>
-
-<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_button()">Toggle Removed</button>
-<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_strike_button()">Toggle Strikethrough</button>
-<button type="button" class="btn btn{{config['outline-buttons']}}warning btn-md" onclick="adjust_callback_relationship_button()">Adjust Callback Relationship</button>
-<br><br>
-<div class="card border border-dark">
-    <div class="card-header border border-dark bg-header text-white">
-        <h2>Payload, C2Profile, Callback <span class="operator">Relationships</span></h2>
-    </div>
-    <div class="card-body bg-card-body border border-dark shadow">
-        <p>This analytic displays which callbacks were created from which payloads.</p>
-        <div id="payloadtree" style="white-space: pre-wrap" v-html="payload_tree_data"></div>
-    </div>
-</div>
-
-<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_payload_button()">Toggle Removed</button>
-<button type="button" class="btn btn{{config['outline-buttons']}}info btn-md" onclick="show_removed_payload_strike_button()">Toggle Strikethrough</button>
-
-<br><br>
-<div class="card border border-dark shadow-sm" id="commandFrequencies">
-    <div class="card-header border border-dark bg-header text-white">
+<div class="card border border-dark shadow" id="commandFrequencies" style="margin-top:5px">
+    <div class="card-header border border-dark bg-header text-white shadow">
         <h2>Command Usage <span class="operator">Frequencies</span></h2>
     </div>
-    <div class="card-body bg-card-body">
+    <div class="card-body bg-card-body border border-dark shadow" style="padding:0">
         <div class="card border-0 bg-transparent" v-for="(v, k, i) in frequencies" style="display:inline-block;padding:8px;vertical-align:top">
             <div class="card-header shadow border border-dark bg-info text-white"><h5>[[k]]'s command usage</h5></div>
-            <div class="card-body shadow border border-dark" style="padding:0">
-                <table v-for="(v2, k2, i2) in v" style="display: inline-block;vertical-align:top;word-wrap: break-word" class="border border-dark shadow table-striped {{config['table-color']}} table-hover">
+            <div class="card-body " style="padding:0">
+                <table v-for="(v2, k2, i2) in v" style="display: inline-block;vertical-align:top;word-wrap: break-word" class=" table-striped {{config['table-color']}} table-hover">
                     <tr>
                         <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">[[k2]]'s Commands </font></th>
                         <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Count </font></th>
@@ -57,45 +29,66 @@
         </div>
     </div>
 </div>
-<!-- THIS IS OUR MODAL FOR ADJUSTING RELATIONSHIP -->
-<div class="modal fade" id="adjustCallbackRelationshipModal" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-header text-white">
-                <h3>Adjust Callback Relationship</h3>
-                <button type="button" class="close" data-dismiss="modal">×</button>
+<br>
+<div class="card border border-dark shadow" id="callbackAnalysis">
+    <div class="card-header border border-dark bg-header text-white">
+        <h2> <span class="operator">Callbacks</span> Overview</h2>
+    </div>
+    <div class="card-body bg-card-body border border-dark" style="padding:0">
+        <div class="card-columns" style="column-count:2">
+
+            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
+                <div class="card-header shadow border border-dark bg-info text-white"><h5>Callbacks by Host</h5></div>
+                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px" >
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table table-striped {{config['table-color']}} table-hover">
+                        <tr style="height:20px">
+                            <th onclick="sort_table(this)" style="width:40%;padding:0px 20px 0px 20px"><font size="4">Host </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Callbacks </font></th>
+                        </tr>
+                        <tr v-for="(host, i) in callbacks['host']">
+                            <td style="width:40%;padding:0px 20px 0px 20px">[[ host[0] ]] ([[ host[1].length ]])</td>
+                            <td style="padding: 0px 20px 0px 20px"><span v-for="instance in host[1]">ID <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + instance.id">[[instance.id]]</a> : [[instance.user]]( [[instance.pid]] ) at [[instance.init_callback]] UTC<br></span></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <b>Total Callbacks: [[ callbacks['total_count'] ]]</b>
+                </div>
             </div>
-              <div class="modal-body">
-                  <h4>Select Parent Callback:</h4>
-                  <select id="adjustCallbackRelationshipParentCallback" v-model="parent">
-                      <option value="-1">No Parent</option>
-                      <option v-for="c in callbacks" :value="c.id" :key="c.id">[[c.user]]@[[c.host]]([[c.pid]]) - [[c.description]]</option>
-                  </select>
-                  <h4>Select Child Callback:</h4>
-                  <select id="adjustCallbackRelationshipChildCallback" v-model="child">
-                      <option v-for="c in callbacks" :value="c.id" :key="c.id">[[c.user]]@[[c.host]]([[c.pid]]) - [[c.description]]</option>
-                  </select>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="adjustCallbackRelationshipSubmit">Submit</button>
-              </div>
+            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
+                <div class="card-header shadow border border-dark bg-info text-white"><h5>Callbacks by UTC Date</h5></div>
+                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px">
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table table-striped {{config['table-color']}} table-hover">
+                        <tr style="height:20px">
+                            <th onclick="sort_table(this)" style="width:30%;padding: 0px 20px 0px 20px"><font size="4">Date </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Callbacks </font></th>
+                        </tr>
+                        <tr v-for="(date, i) in callbacks['date']">
+                            <td style="width:30%;padding: 0px 20px 0px 20px">[[ date[0] ]] ([[ date[1].length ]])</td>
+                            <td style="padding: 0px 20px 0px 20px"><span v-for="instance in date[1]">ID <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + instance.id">[[instance.id]]</a> : [[instance.user]]( [[instance.pid]] ) on [[instance.host]]<br></span></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer border border-dark shadow">
+                    <b>Total Callbacks: [[ callbacks['total_count'] ]]</b>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-<!-- END MODAL FOR ADJUSTING RELATIONSHIP -->
+
 <br>
 <div class="card border border-dark shadow" id="artifactAnalysis">
     <div class="card-header border border-dark bg-header text-white shadow">
-        <h2>Artifact Creation <span class="operator">Overview</span></h2>
+        <h2>Artifact Possibility <span class="operator">Overview</span></h2>
     </div>
-    <div class="card-body bg-card-body shadow">
+    <div class="card-body bg-card-body shadow border border-dark" style="padding:0">
         <div class="card-columns" style="column-count:2">
 
             <div class="card border-0 bg-transparent" v-for="(v, k, i) in artifacts" style="display:inline-block;padding:8px;vertical-align:top;">
                 <div class="card-header shadow border border-dark bg-info text-white"><h4>[[k]]</h4></div>
                 <div class="card-body bg-card-body shadow border border-dark" style="padding:0">
-                    <table v-for="(v2, k2, i2) in v" style="word-wrap:break-word;table-layout:fixed;width:100%;padding:30px" v-if="k2 != 'total_count'" class="table-striped {{config['table-color']}} table-hover">
+                    <table v-for="(v2, k2, i2) in v" style="word-wrap:break-word;table-layout:fixed;width:100%;padding:30px" v-if="k2 != 'total_count'" class="table table-striped {{config['table-color']}} table-hover">
                         <tr style="height:20px;">
                             <th onclick="sort_table(this)" style="width:20%;padding: 0px 20px 0px 20px"><font size="4">[[k2]] </font></th>
                             <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Artifact Template </font></th>
@@ -118,75 +111,31 @@
     </div>
 </div>
 <br>
-<div class="card border border-dark" id="callbackAnalysis">
-    <div class="card-header border border-dark bg-header text-white">
-        <h2> <span class="operator">Callbacks</span> Overview</h2>
-    </div>
-    <div class="card-body bg-card-body">
-        <div class="card-columns" style="column-count:2">
 
-            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
-                <div class="card-header shadow border border-dark bg-info text-white"><h5>Callbacks by Host</h5></div>
-                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px" >
-                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table-striped {{config['table-color']}} table-hover">
-                        <tr style="height:20px">
-                            <th onclick="sort_table(this)" style="width:40%;padding:0px 20px 0px 20px"><font size="4">Host </font></th>
-                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Callbacks </font></th>
-                        </tr>
-                        <tr v-for="(cb, host, i) in callbacks['host']">
-                            <td style="width:40%;padding:0px 20px 0px 20px">[[host]] ([[cb.length]])</td>
-                            <td style="padding: 0px 20px 0px 20px"><span v-for="instance in cb">ID <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + instance.id">[[instance.id]]</a> : [[instance.user]]( [[instance.pid]] ) at [[instance.init_callback]] UTC<br></span></td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="card-footer border border-dark shadow">
-                    <b>Total Callbacks: [[ callbacks['total_count'] ]]</b>
-                </div>
-            </div>
-            <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
-                <div class="card-header shadow border border-dark bg-info text-white"><h5>Callbacks by UTC Date</h5></div>
-                <div class="card-body bg-card-body shadow border border-dark" style="padding:0px">
-                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table-striped {{config['table-color']}} table-hover">
-                        <tr style="height:20px">
-                            <th onclick="sort_table(this)" style="width:30%;padding: 0px 20px 0px 20px"><font size="4">Date </font></th>
-                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Callbacks </font></th>
-                        </tr>
-                        <tr v-for="(cb, date, i) in callbacks['date']">
-                            <td style="width:30%;padding: 0px 20px 0px 20px">[[date]] ([[cb.length]])</td>
-                            <td style="padding: 0px 20px 0px 20px"><span v-for="instance in cb">ID <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + instance.id">[[instance.id]]</a> : [[instance.user]]( [[instance.pid]] ) on [[instance.host]]<br></span></td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="card-footer border border-dark shadow">
-                    <b>Total Callbacks: [[ callbacks['total_count'] ]]</b>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<br>
-<div class="card border border-dark" id="artifactOverview">
+<div class="card border border-dark shadow" id="artifactOverview">
     <div class="card-header border border-dark bg-header text-white">
-        <h2><span class="operator">Artifacts</span> Operational Overview</h2>
+        <h2><span class="operator">Artifact</span> Instances Overview</h2>
     </div>
-    <div class="card-body bg-card-body">
+    <div class="card-body bg-card-body border border-dark shadow" style="padding:0">
         <div class="card-columns" style="column-count:2">
 
             <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
                 <div class="card-header shadow border border-dark bg-info text-white"><h5>Artifact Statistics</h5></div>
                 <div class="card-body bg-card-body shadow border border-dark" style="padding:0px">
-                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class="table-striped {{config['table-color']}} table-hover">
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%" class=" table table-striped {{config['table-color']}} table-hover">
                         <tr style="height:20px">
-                            <th onclick="sort_table(this)" style="width:40%;padding: 0px 20px 0px 20px"><font size="4">Artifact </font></th>
-                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Automatic </font></th>
-                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Manual </font></th>
+                            <th onclick="sort_table(this)" style="width:20rem;padding: 0px 20px 0px 20px"><font size="4">Artifact </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">From Templates </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Agent Reported </font></th>
+                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Manually Added </font></th>
                             <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Total </font></th>
                         </tr>
                         <tr v-for="(v, artifact, i) in artifacts['artifact_counts']" v-if="artifact != 'total_count'">
                             <td style="padding: 0px 20px 0px 20px">[[artifact]]</td>
-                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['automatic'] ]]</td>
+                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['from_templates'] ]]</td>
+                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['agent_reported'] ]]</td>
                             <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['manual'] ]]</td>
-                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['automatic'] + v['manual'] ]]</td>
+                            <td style="text-align:center;padding: 0px 20px 0px 20px">[[ v['from_templates'] + v['agent_reported'] + v['manual'] ]]</td>
                         </tr>
                     </table>
                 </div>
@@ -197,11 +146,11 @@
             <div class="card border-0 bg-transparent" style="display:inline-block;padding:8px;vertical-align:top;">
                 <div class="card-header shadow border border-dark bg-info text-white"><h5>File Statistics</h5></div>
                 <div class="card-body bg-card-body shadow border border-dark" style="padding:0px">
-                    <table style="word-wrap:break-word;table-layout:fixed;width:100%;" class="table-striped {{config['table-color']}} table-hover">
-                        <tr style="height:20px">
-                            <th onclick="sort_table(this)" style="width:30%;padding: 0px 20px 0px 20px"><font size="4">Type </font></th>
-                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Total </font></th>
-                            <th style="padding: 0px 20px 0px 20px" onclick="sort_table(this)"><font size="4">Operator Breakdown </font></th>
+                    <table style="word-wrap:break-word;table-layout:fixed;width:100%;" class="table table-striped {{config['table-color']}} table-hover">
+                        <tr>
+                            <th onclick="sort_table(this)" style="text-align:left;padding: 0px 20px 0px 20px"><font size="4">Type</font></th>
+                            <th onclick="sort_table(this)" style="text-align:left;padding: 0px 20px 0px 20px"><font size="4">Total</font></th>
+                            <th onclick="sort_table(this)" style="text-align:left;padding: 0px 20px 0px 20px"><font size="4">Operator Breakdown</font></th>
                         </tr>
                         <tr v-for="(data, category, i) in artifacts['files']">
                             <td style="padding: 0px 20px 0px 20px">[[category]]</td>

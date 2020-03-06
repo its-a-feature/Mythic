@@ -1,10 +1,12 @@
 from app import apfell, db_objects
 from app.database_models.model import Callback, Payload, ArtifactTemplate, Task, TaskArtifact, FileMeta
-from sanic.response import json
+from sanic.response import json, file
 from anytree import Node, find_by_attr, RenderTree, DoubleStyle
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+import os
+from sanic.log import logger
 
 
 # ------- ANALYTIC-BASED API FUNCTION -----------------
@@ -89,8 +91,9 @@ async def analytics_callback_tree_api_function(callback, config):
 
 
 async def analytics_payload_tree_api_function(payload, config):
+
     display = ""
-    display += payload.operator.username + "'s " + payload.payload_type.ptype + " payload with " + payload.c2_profile.name + " c2 profile with tag: "
+    display += payload.operator.username + "'s " + payload.payload_type.ptype + " payload with tag: "
     display += payload.tag
     if config['strikethrough'] and payload.deleted:
         display = "<del>" + display + "</del>"
@@ -215,14 +218,15 @@ async def analytics_artifact_creation_analysis_api(request, user):
         return json({'status': 'error', 'error': 'failed to get artifact templates'})
     output = {}
     for a in artifacts:
-        if a.artifact.name not in output:
-            output[a.artifact.name] = {"total_count": 0}
-        if a.command.payload_type.ptype not in output[a.artifact.name]:
-            output[a.artifact.name][a.command.payload_type.ptype] = {}
-        if a.command.cmd not in output[a.artifact.name][a.command.payload_type.ptype]:
-            output[a.artifact.name][a.command.payload_type.ptype][a.command.cmd] = []
-        output[a.artifact.name][a.command.payload_type.ptype][a.command.cmd].append(a.to_json())
-        output[a.artifact.name]['total_count'] += 1
+        artifact_name = bytes(a.artifact.name).decode()
+        if artifact_name not in output:
+            output[artifact_name] = {"total_count": 0}
+        if a.command.payload_type.ptype not in output[artifact_name]:
+            output[artifact_name][a.command.payload_type.ptype] = {}
+        if a.command.cmd not in output[artifact_name][a.command.payload_type.ptype]:
+            output[artifact_name][a.command.payload_type.ptype][a.command.cmd] = []
+        output[artifact_name][a.command.payload_type.ptype][a.command.cmd].append(a.to_json())
+        output[artifact_name]['total_count'] += 1
 
     return json({'status': 'success', 'output': output})
 
@@ -288,19 +292,26 @@ async def analytics_artifact_overview_api(request, user):
     artifact_tasks = await db_objects.execute(task_query.where(Task.callback.in_(callbacks)))
     manual_tasks = await db_objects.execute(task_query.where(TaskArtifact.operation == operation))
     for t in artifact_tasks:
-        if t.artifact_template is None:
-            if t.artifact.name not in output['artifact_counts']:
-                output['artifact_counts'][t.artifact.name] = {"automatic": 0, "manual": 0}
-            output['artifact_counts'][t.artifact.name]['manual'] += 1
-        elif t.artifact_template.artifact.name not in output['artifact_counts']:
-            output['artifact_counts'][t.artifact_template.artifact.name] = {"automatic": 0, "manual": 0}
-        elif t.artifact_template is not None:
-            output['artifact_counts'][t.artifact_template.artifact.name]['automatic'] += 1
+        if t.artifact_template is None and t.task is not None:  # this was automatically reported by a task
+            artifact_name = bytes(t.artifact.name).decode()
+            if artifact_name not in output['artifact_counts']:
+                output['artifact_counts'][artifact_name] = {"agent_reported": 0, "manual": 0, "from_templates": 0}
+            output['artifact_counts'][artifact_name]['agent_reported'] += 1
+        elif t.artifact_template is None and t.task is None:  # this was added manually on the reporting page
+            artifact_name = bytes(t.artifact.name).decode()
+            if artifact_name not in output['artifact_counts']:
+                output['artifact_counts'][artifact_name] = {"agent_reported": 0, "manual": 0, "from_templates": 0}
+            output['artifact_counts'][artifact_name]['manual'] += 1
+        else:
+            artifact_name = bytes(t.artifact_template.artifact.name).decode()
+            if artifact_name not in output['artifact_counts']:
+                output['artifact_counts'][artifact_name] = {"agent_reported": 0, "manual": 0, "from_templates": 0}
+            output['artifact_counts'][artifact_name]['from_templates'] += 1
         output['artifact_counts']['total_count'] += 1
     for t in manual_tasks:
-        if t.artifact.name not in output['artifact_counts']:
-            output['artifact_counts'][t.artifact.name] = {"automatic": 0, "manual": 0}
-        output['artifact_counts'][t.artifact.name]['manual'] += 1
+        if bytes(t.artifact.name).decode() not in output['artifact_counts']:
+            output['artifact_counts'][bytes(t.artifact.name).decode()] = {"agent_reported": 0, "manual": 0, "from_templates": 0}
+        output['artifact_counts'][bytes(t.artifact.name).decode()]['manual'] += 1
         output['artifact_counts']['total_count'] += 1
     # # of files manually uploaded to Apfell
     # # of files staged/loaded through Apfell
@@ -319,7 +330,7 @@ async def analytics_artifact_overview_api(request, user):
                 output['files']['download_files']['operators'][f.operator.username] = 0
             output['files']['download_files']['operators'][f.operator.username] += 1
             output['files']['download_files']['total_count'] += 1
-        elif '/operations/{}/load-'.format(operation.name) in f.path:
+        elif f.temp_file:
             output['files']['staged_files'] += 1
         else:
             if f.operator.username not in output['files']['upload_files']['operators']:
@@ -327,3 +338,51 @@ async def analytics_artifact_overview_api(request, user):
             output['files']['upload_files']['operators'][f.operator.username] += 1
             output['files']['upload_files']['total_count'] += 1
     return json({'status': 'success', 'output': output})
+
+
+# ------------------ endpoint for getting access or  debugging logs ------------------
+@apfell.route(apfell.config['API_BASE'] + "/apfell_logs/", methods=['GET', 'POST'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def get_access_log_data(request, user):
+    if user['auth'] not in ['access_token', 'apitoken']:
+        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
+    entries = 1000
+    page = 1
+    output = []
+    total_entries = 0
+    try:
+        if request.method == "POST":
+            data = request.json
+            if 'entries' in data and int(data['entries']) > 0:
+                entries = int(data['entries'])
+            else:
+                return json({'status': 'error', 'error': 'missing required "entries" parameter or bad value'})
+            if 'page' in data:
+                page = data['page']
+        if os.path.exists("apfell_access.log"):
+            logs = open("apfell_access.log", 'r')
+            seek_lines = (entries * (page-1))  # the number of entries we need to skip
+            for line in logs:
+                total_entries += 1
+                if seek_lines > 0:  # if we still need to skip lines
+                    seek_lines -= 1
+                elif entries > 0:  # if we still have lines to capture
+                    output.insert(0, line)
+                    entries -= 1
+            logs.close()
+            return json({'status': 'success', 'output': output, 'total': total_entries, "page": page})
+        else:
+            return json({"status": 'error', 'error': "apfell_access.log doesn't exist"})
+    except Exception  as e:
+        return json({'status': 'error', 'error':  str(e)})
+
+
+@apfell.route(apfell.config['API_BASE'] + "/apfell_logs/download", methods=['GET'])
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def download_access_log_data(request, user):
+    if os.path.exists("apfell_access.log"):
+        return await file("apfell_access.log", filename="apfell_access.log")
+    else:
+        return json({'status': 'error', 'error': 'file does not exist'})

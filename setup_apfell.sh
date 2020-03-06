@@ -38,5 +38,3 @@ echo "ENV POSTGRES_DB '${db_name}'" >> postgres-docker/Dockerfile
 mkdir ./apfell-docker/app/ssl > /dev/null 2>&1
 openssl req -new -x509 -keyout ./apfell-docker/app/ssl/apfell-ssl.key -out ./apfell-docker/app/ssl/apfell-cert.pem -days 365 -nodes -subj "/C=US" >/dev/null 2>&1
 
-./start_apfell.sh
-
