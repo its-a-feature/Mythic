@@ -968,7 +968,7 @@
           "is_agent_generator": false,
           "author": "",
           "deleted": false,
-          "description": "execute a shell command with (\"bash -c\" or \"cmd.ex \/c\")",
+          "description": "execute a shell command with \"bash -c\"",
           "cmd": "shell",
           "parameters": [],
           "attack": [
