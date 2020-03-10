@@ -21,5 +21,6 @@ files/
 apfell-docker/app/c2_profiles/
 apfell_access.log
 postgres-docker/database/
+rabbitmq-docker/storage/
 apfell/**
 **/transforms.py

