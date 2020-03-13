@@ -349,7 +349,7 @@ async def stop_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
-    return json(await stop_c2profile_func(name))
+    return await stop_c2profile_func(name)
 
 
 async def stop_c2profile_func(profile_name):
