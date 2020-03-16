@@ -495,7 +495,7 @@ async def write_payload(uuid, user, data):
                                                          "transforms": transform_list,
                                                          "extension": payload.payload_type.file_extension}
                                                     ).encode()
-                                                ).decode('utf-8'))
+                                                ).decode('utf-8'), user['username'])
         shutil.rmtree(working_path)
         os.remove("./app/payloads/operations/{}/{}".format(operation.name, payload.uuid) + ".zip")
         return {**result, "uuid": payload.uuid}

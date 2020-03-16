@@ -33,7 +33,8 @@
 </div>
 <div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="operators_table" v-if="current_operator.admin">
     <div class="card-header bg-header border border-dark shadow text-white">
-        <h2><span class="operator">Admin</span> Settings</h2>
+        <h2 style="display:inline-block"><span class="operator">Admin</span> Settings</h2>
+        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="new_user_button()" style="width:10%;float:right"><i class="fas fa-plus"></i> User</button>
     </div>
         <table class="table table-condensed table-striped table-hover {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
             <tr>
@@ -85,11 +86,45 @@
             </tr>
         <!-- End of the repeating -->
         </table>
+    <!-- THIS IS OUR MODAL FOR CHANGING OPERATOR PASSWORD-->
+    <div class="modal fade" id="newOperatorModal" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+
+                    <h3>Create a new user</h3>
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                </div>
+                <div class="modal-body">
+                    <table cellpadding="10" style="width:100%">
+                        <tr>
+                            <td style="width:150px">Username</td>
+                            <td><input type="text" v-model="new_username" size="80%"></td>
+                        </tr>
+                        <tr>
+                            <td>Password</td>
+                            <td> <input type="password" v-model="new_password_1" size="80%"></td>
+                        </tr>
+                        <tr>
+                            <td>Password Again</td>
+                            <td><input type="password" v-model="new_password_2" size="80%"></td>
+                        </tr>
+                    </table>
+                </div>
+                  <div class="modal-footer">
+                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                    <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="newOperatorSubmit">Create</button>
+                  </div>
+            </div>
+        </div>
+    </div>
+    <!-- END MODAL FOR CHANGING OPERATOR PASSWORD-->
 </div>
 <br>
 <div style="resize: vertical; overflow:visible" class="card border border-dark shadow bg-card-body" id="apitokens_table">
     <div class="card-header bg-header border border-dark shadow text-white">
-        <h2><span class="operator">API</span> Tokens</h2>
+        <h2 style="display:inline-block"><span class="operator">API</span> Tokens</h2>
+        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="create_apitoken_button()" style="width:10%;float:right"><i class="fas fa-plus"></i> Token</button>
     </div>
         <table class="table table-condensed table-striped table-hover {{config['table-color']}}" style="width:100%;table-layout:fixed;word-wrap: break-word">
             <tr>
@@ -126,7 +161,6 @@
                 </td>
             </tr>
         </table>
-    <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" @click="create_apitoken_button()" style="width:10%"><i class="fas fa-plus"></i> Token</button>
 </div>
 <!-- THIS IS OUR MODAL FOR CREATING APITOKEN -->
 <div class="modal fade" id="apitokenCreateModal" role="dialog">
@@ -165,7 +199,7 @@
 
 <!-- THIS IS OUR MODAL FOR DELETING OPERATOR -->
 <div class="modal fade" id="operatorDeleteModal" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h3>Are you sure? This could have implications elsewhere.</h3>
@@ -193,15 +227,15 @@
                 <table cellpadding="10" style="width:100%">
                     <tr>
                         <td style="width:150px">Old Password</td>
-                        <td><input type="password" id="operatorOldPassword" size="64"></td>
+                        <td><input type="password" id="operatorOldPassword" size="80%"></td>
                     </tr>
                     <tr>
                         <td>New Password</td>
-                        <td> <input type="password" id="operatorNewPassword1" size="64"></td>
+                        <td> <input type="password" id="operatorNewPassword1" size="80%"></td>
                     </tr>
                     <tr>
                         <td>New Password Again</td>
-                        <td><input type="password" id="operatorNewPassword2" size="64"></td>
+                        <td><input type="password" id="operatorNewPassword2" size="80%"></td>
                     </tr>
                 </table>
             </div>

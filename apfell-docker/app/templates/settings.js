@@ -17,7 +17,10 @@ var operators_table = new Vue({
     el: '#operators_table',
     data: {
         operators,
-        current_operator
+        current_operator,
+        new_username: "",
+        new_password_1: "",
+        new_password_2: ""
     },
     delimiters: ['[[', ']]'],
     methods: {
@@ -55,6 +58,29 @@ var operators_table = new Vue({
                     config[operator_config.config[i]["key"]] = operator_config.config[i]["value"];
                 }
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/" + o.username, get_set_config_button_callback, "PUT", {"ui_config": JSON.stringify(config)});
+            });
+        },
+        new_user_button: function(){
+            this.new_username = "";
+            this.new_password_1 = "";
+            this.new_password_2 = "";
+            $('#newOperatorModal').modal('show');
+            $('#newOperatorSubmit').unbind('click').click(function(){
+                if(operators_table.new_password_1 !== operators_table.new_password_2){
+                    alertTop("warning", "Passwords don't match");
+                }else{
+                     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/operators/", (response)=>{
+                        try{
+                            let data = JSON.parse(response);
+                            if(data['status'] !== 'success'){
+                                alertTop("warning", data['error']);
+                            }
+                        }catch(error){
+                            console.log(error.toString());
+                            alertTop("danger", "Session expired, please refresh");
+                        }
+                     }, "POST", {'username':operators_table.new_username, 'password':operators_table.new_password_1});
+                }
             });
         }
     }
@@ -143,8 +169,7 @@ function startwebsocket_operators(){
 		if(event.data !== ""){
 			let odata = JSON.parse(event.data);
 			operators.push(odata);
-			operators.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
-
+			operators.sort((a,b) => (a.username > b.username) ? 1 : ((b.username > a.username) ? -1 : 0));
 		}
 	};
 	ws.onclose = function(){

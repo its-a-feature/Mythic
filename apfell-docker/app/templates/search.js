@@ -66,7 +66,15 @@ var searches = new Vue({
                 if(this.operator !== "none"){ data['operator'] = this.operator; }
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/search", export_search_callback, "POST", data);
             }
-        }
+        },
+        toggle_arrow: function(taskid){
+            $('#cardbody' + taskid).unbind('shown.bs.collapse').on('shown.bs.collapse', function(){
+                $('#color-arrow' + taskid).css("transform", "rotate(0deg)");
+            });
+            $('#cardbody' + taskid).unbind('hidden.bs.collapse').on('hidden.bs.collapse', function(){
+                $('#color-arrow' + taskid).css("transform", "rotate(180deg)");
+            });
+        },
     },
     delimiters: ['[[', ']]']
 });

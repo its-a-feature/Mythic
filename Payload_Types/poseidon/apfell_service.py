@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 import aio_pika
 import os
 import sys
@@ -16,14 +16,14 @@ exchange = None
 container_files_path = ""
 
 
-async def send_status(message="", command="", status=""):
+async def send_status(message="", command="", status="", username=""):
     global exchange
     # status is success or error
     try:
         message_body = aio_pika.Message(message.encode())
         # Sending the message
         await exchange.publish(
-            message_body, routing_key="pt.status.{}.{}.{}".format(hostname, command, status)
+            message_body, routing_key="pt.status.{}.{}.{}.{}".format(hostname, command, status, username)
         )
     except Exception as e:
         print("Exception in send_status: {}".format(str(e)))
@@ -36,6 +36,7 @@ async def callback(message: aio_pika.IncomingMessage):
         # messages of the form: pt.task.PAYLOAD_TYPE.command
         pieces = message.routing_key.split(".")
         command = pieces[3]
+        username = pieces[4]
         if command == "create_payload_with_code":
             try:
                 # pt.task.PAYLOAD_TYPE.create_payload_with_code.UUID
@@ -59,7 +60,7 @@ async def callback(message: aio_pika.IncomingMessage):
                     foo = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(foo)
                 except Exception as e:
-                    await send_status('failed to load transforms with message: {}'.format(str(e)), "create_payload_with_code", "error.{}".format(pieces[4]))
+                    await send_status('failed to load transforms with message: {}'.format(str(e)), "create_payload_with_code", "error.{}".format(pieces[4]), username)
                     shutil.rmtree(working_dir)
                     return
                 transform = foo.TransformOperation(working_dir=working_dir)
@@ -76,23 +77,23 @@ async def callback(message: aio_pika.IncomingMessage):
                         print(e)
                         shutil.rmtree(working_dir)
                         os.remove(temp_zip)
-                        await send_status('failed to apply transform {}, with message: {}'.format(t['transform'], str(e)), "create_payload_with_code", "error.{}".format(pieces[4]))
+                        await send_status('failed to apply transform {}, with message: {}'.format(t['transform'], str(e)), "create_payload_with_code", "error.{}".format(pieces[4]), username)
                         return
                 if isinstance(transform_output, str):
                     await send_status(base64.b64encode(transform_output.encode()).decode('utf-8'),
-                                      "create_payload_with_code", "success.{}".format(pieces[4]))
+                                      "create_payload_with_code", "success.{}".format(pieces[4]), username)
                 else:
                     await send_status(base64.b64encode(transform_output).decode('utf-8'),
-                                      "create_payload_with_code", "success.{}".format(pieces[4]))
+                                      "create_payload_with_code", "success.{}".format(pieces[4]), username)
                 shutil.rmtree(working_dir)
                 os.remove(temp_zip)
             except Exception as e:
                 shutil.rmtree(working_dir)
                 os.remove(temp_zip)
-                await send_status("{} - {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)), "create_payload_with_code", "error.{}".format(pieces[4]))
+                await send_status("{} - {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)), "create_payload_with_code", "error.{}".format(pieces[4]), username)
                 return
         elif command == "create_external_payload":
-            await send_status("NOT IMPLEMENTED", "create_external_payload", "error.{}".format(pieces[4]))
+            await send_status("NOT IMPLEMENTED", "create_external_payload", "error.{}".format(pieces[4]), username)
         elif command == "load_transform_code":
             # pt.task.PAYLOAD_TYPE.load_transform_code with body of "base64 code"
             try:
@@ -102,9 +103,9 @@ async def callback(message: aio_pika.IncomingMessage):
                 # file = open("/Apfell/apfell/transforms.py", 'wb')
                 file.write(base64.b64decode(message.body.decode('utf-8')))
                 file.close()
-                await send_status("File written", "load_transform_code", "success")
+                await send_status("File written", "load_transform_code", "success", username)
             except Exception as e:
-                await send_status("Failed to write file: {}".format(str(e)), "load_transform_code", "error")
+                await send_status("Failed to write file: {}".format(str(e)), "load_transform_code", "error", username)
         elif command == "command_transform":
             try:
                 # pt.task.PAYLOAD_TYPE.command_transform.taskID
@@ -130,15 +131,15 @@ async def callback(message: aio_pika.IncomingMessage):
                         except Exception as e:
                             print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                             await send_status('failed to apply transform {}, with message: {}'.format(t['transform'], str(e)),
-                                              "command_transform", "error.{}".format(pieces[4]))
+                                              "command_transform", "error.{}".format(pieces[4]), username)
                             return
                 response = {"params": message_json['params'], "test_command": message_json['test_command'], 'file_updates_with_task': transform.file_mapping}
                 if message_json['test_command']:
                     response['step_output'] = json.dumps(step_output, indent=4)
-                await send_status(base64.b64encode(json.dumps(response).encode()).decode('utf-8'), "command_transform", "success.{}".format(pieces[4]))
+                await send_status(base64.b64encode(json.dumps(response).encode()).decode('utf-8'), "command_transform", "success.{}".format(pieces[4]), username)
             except Exception as e:
                 await send_status("{} - {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)),
-                                  "command_transform", "error.{}".format(pieces[4]))
+                                  "command_transform", "error.{}".format(pieces[4]), username)
                 return
         elif command == "load_transform_with_code":
             try:
@@ -163,7 +164,7 @@ async def callback(message: aio_pika.IncomingMessage):
                     spec.loader.exec_module(foo)
                 except Exception as e:
                     await send_status('failed to load transforms.py file', 'load_transform_with_code',
-                                      'error.{}'.format(pieces[4]))
+                                      'error.{}'.format(pieces[4]), username)
                     shutil.rmtree(working_dir)
                     os.remove(temp_zip)
                     return
@@ -178,24 +179,24 @@ async def callback(message: aio_pika.IncomingMessage):
                         shutil.rmtree(working_dir)
                         os.remove(temp_zip)
                         await send_status('failed to apply transform {}, with message: {}'.format(t['transform'], str(e)),
-                                          "load_transform_with_code", "error.{}".format(pieces[4]))
+                                          "load_transform_with_code", "error.{}".format(pieces[4]), username)
                 if isinstance(transform_output, str):
                     await send_status(base64.b64encode(transform_output.encode()).decode('utf-8'),
-                                      "load_transform_with_code", "success.{}".format(pieces[4]))
+                                      "load_transform_with_code", "success.{}".format(pieces[4]), username)
                 else:
                     await send_status(base64.b64encode(transform_output).decode('utf-8'),
-                                      "load_transform_with_code", "success.{}".format(pieces[4]))
+                                      "load_transform_with_code", "success.{}".format(pieces[4]), username)
                 shutil.rmtree(working_dir)
                 os.remove(temp_zip)
             except Exception as e:
                 await send_status("{} - {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)),
-                                  "load_transform_with_code", "error.{}".format(pieces[4]))
+                                  "load_transform_with_code", "error.{}".format(pieces[4]), username)
         elif command == "listfiles":
             files = []
             for (dirpath, dirnames, filenames) in os.walk(container_files_path):
                 if "__pycache__" not in dirpath and "apfell" not in dirpath:
                     files.append({"folder": dirpath, "dirnames": dirnames, "filenames": filenames})
-            await send_status(message=json.dumps(files), command="listfiles", status="success")
+            await send_status(message=json.dumps(files), command="listfiles", status="success", username=username)
         elif command == "getfile":
             try:
                 message_json = json.loads(base64.b64decode(message.body).decode('utf-8'), strict=False)
@@ -207,13 +208,13 @@ async def callback(message: aio_pika.IncomingMessage):
                     file_data = b"Not Found"
                 encoded_data = base64.b64encode(json.dumps(
                     {"filename": message_json['file'], "data": base64.b64encode(file_data).decode('utf-8')}).encode()).decode('utf-8')
-                await send_status(message=encoded_data, command="getfile", status="success")
+                await send_status(message=encoded_data, command="getfile", status="success", username=username)
             except Exception as e:
                 file_data = "{} - {}".format(str(sys.exc_info()[-1].tb_lineno), str(e))
                 encoded_data = base64.b64encode(json.dumps(
                     {"filename": message_json['file'],
                      "data": base64.b64encode(file_data).decode('utf-8')}).encode()).decode('utf-8')
-                await send_status(message=encoded_data, command="getfile", status="error")
+                await send_status(message=encoded_data, command="getfile", status="error", username=username)
         elif command == "writefile":
             try:
                 message_json = json.loads(base64.b64decode(message.body).decode('utf-8'), strict=False)
@@ -221,11 +222,11 @@ async def callback(message: aio_pika.IncomingMessage):
                 file.write(base64.b64decode(message_json['data']))
                 file.close()
                 response = "File written"
-                await send_status(message=response, command="writefile", status="success")
+                await send_status(message=response, command="writefile", status="success", username=username)
             except Exception as e:
                 file_data = "{} - {}".format(str(sys.exc_info()[-1].tb_lineno), str(e))
                 response = "Failed to decode message: {}".format(file_data)
-                await send_status(message=response, command="writefile", status="error")
+                await send_status(message=response, command="writefile", status="error", username=username)
         elif command == "removefile":
             try:
                 message_json = json.loads(base64.b64decode(message.body).decode('utf-8'), strict=False)
@@ -241,7 +242,7 @@ async def callback(message: aio_pika.IncomingMessage):
             except Exception as e:
                 response = "Failed to find or remove file"
                 status = "error"
-            await send_status(message=response, command="removefile", status=status)
+            await send_status(message=response, command="removefile", status=status, username=username)
         else:
             print("Unknown command: {}".format(command))
 

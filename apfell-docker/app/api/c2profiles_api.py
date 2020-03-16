@@ -201,7 +201,7 @@ async def upload_c2_profile_payload_type_code(request, info, user):
                 data['file_name'] = data['folder'] + "/" + data['file_name']
             if data['payload_type'] == "":
                 # looking to upload code to the container
-                status = await send_c2_rabbitmq_message(profile.name, "writefile", js.dumps({"file_path": data['file_name'], "data": data['code']}))
+                status = await send_c2_rabbitmq_message(profile.name, "writefile", js.dumps({"file_path": data['file_name'], "data": data['code']}), user['username'])
             else:
                 code_file = open("./app/c2_profiles/{}/{}/{}".format(profile.name, data['payload_type'], data['file_name']), 'wb')
                 code_file.write(code)
@@ -211,7 +211,7 @@ async def upload_c2_profile_payload_type_code(request, info, user):
             if data['payload_type'] == "":
                 status = await send_c2_rabbitmq_message(profile.name, "writefile", js.dumps(
                     {"file_path": request.files['upload_file'][0].name, "data": base64.b64encode(code).decode('utf-8'),
-                     "folder": data['folder'] if 'folder' in data else ""}))
+                     "folder": data['folder'] if 'folder' in data else ""}), user['username'])
             else:
                 if data['folder'] == "":
                     code_file = open(
@@ -227,7 +227,7 @@ async def upload_c2_profile_payload_type_code(request, info, user):
                 if data['payload_type'] == "":
                     status = await send_c2_rabbitmq_message(profile.name, "writefile", js.dumps(
                         {"file_path": request.files['upload_file_' + str(i)][0].name, "data": base64.b64encode(code).decode('utf-8'),
-                         "folder": data['folder'] if 'folder' in data else ""}))
+                         "folder": data['folder'] if 'folder' in data else ""}), user['username'])
                 else:
                     if data['folder'] == "":
                         code_file = open(
@@ -337,7 +337,7 @@ async def start_c2profile(request, info, user):
     except Exception as e:
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
-    status = await send_c2_rabbitmq_message(profile.name, "start", "")
+    status = await send_c2_rabbitmq_message(profile.name, "start", "", user['username'])
     return json(status)
 
 
@@ -349,16 +349,16 @@ async def stop_c2profile(request, info, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     name = unquote_plus(info)
-    return await stop_c2profile_func(name)
+    return await stop_c2profile_func(name, user['username'])
 
 
-async def stop_c2profile_func(profile_name):
+async def stop_c2profile_func(profile_name, username):
     try:
         query = await db_model.c2profile_query()
         profile = await db_objects.get(query, name=profile_name)
     except Exception as e:
         return {'status': 'error', 'error': 'failed to find c2 profile in database'}
-    status = await send_c2_rabbitmq_message(profile_name, "stop", "")
+    status = await send_c2_rabbitmq_message(profile_name, "stop", "", username)
     return json(status)
 
 
@@ -377,7 +377,7 @@ async def status_c2profile(request, info, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     # we want to send a rabbitmq message and wait for a response via websocket
-    status = await send_c2_rabbitmq_message(profile.name, "status", "")
+    status = await send_c2_rabbitmq_message(profile.name, "status", "", user['username'])
     return json(status)
 
 
@@ -421,7 +421,7 @@ async def get_container_file_list_for_c2profiles(request, info, user):
         print(e)
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     try:
-        status = await send_c2_rabbitmq_message(profile.name, "listfiles", "")
+        status = await send_c2_rabbitmq_message(profile.name, "listfiles", "", user['username'])
         return json(status)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed getting files: ' + str(e)})
@@ -527,7 +527,7 @@ async def remove_container_file_for_c2profiles(request, info, user):
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     try:
         data = request.json
-        status = await send_c2_rabbitmq_message(profile.name, "removefile", js.dumps(data))
+        status = await send_c2_rabbitmq_message(profile.name, "removefile", js.dumps(data), user['username'])
         return json(status)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
@@ -548,7 +548,7 @@ async def remove_container_folder_for_c2profiles(request, info, user):
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     try:
         data = request.json
-        status = await send_c2_rabbitmq_message(profile.name, "removefolder", js.dumps(data))
+        status = await send_c2_rabbitmq_message(profile.name, "removefolder", js.dumps(data), user['username'])
         return json(status)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
@@ -569,7 +569,7 @@ async def add_container_folder_for_c2profiles(request, info, user):
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     try:
         data = request.json
-        status = await send_c2_rabbitmq_message(profile.name, "addfolder", js.dumps(data))
+        status = await send_c2_rabbitmq_message(profile.name, "addfolder", js.dumps(data), user['username'])
         return json(status)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})
@@ -620,7 +620,7 @@ async def download_container_file_for_c2profiles(request, info, user):
         return json({'status': 'error', 'error': 'failed to find C2 Profile'})
     try:
         data = request.json
-        status = await send_c2_rabbitmq_message(profile.name, "getfile", js.dumps(data))
+        status = await send_c2_rabbitmq_message(profile.name, "getfile", js.dumps(data), user['username'])
         return json(status)
     except Exception as e:
         return json({'status': 'error', 'error': 'failed finding the file: ' + str(e)})

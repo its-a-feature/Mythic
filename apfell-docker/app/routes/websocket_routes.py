@@ -1270,14 +1270,16 @@ async def ws_c2_status_messages(request, ws, user):
         return
 
     async def send_data(message: aio_pika.IncomingMessage):
+        base_username = base64.b64encode(user['username'].encode()).decode('utf-8')
         with message.process():
-            data = {"status": "success",
-                    "body": message.body.decode('utf-8'),
-                    "routing_key": message.routing_key}
-            try:
-                await ws.send(js.dumps(data))
-            except Exception as e:
-                pass
+            if message.routing_key.split(".")[5] == base_username:
+                data = {"status": "success",
+                        "body": message.body.decode('utf-8'),
+                        "routing_key": message.routing_key}
+                try:
+                    await ws.send(js.dumps(data))
+                except Exception as e:
+                    pass
 
     try:
         connection = await aio_pika.connect(host="127.0.0.1",
@@ -1289,13 +1291,6 @@ async def ws_c2_status_messages(request, ws, user):
         await channel.declare_exchange('apfell_traffic', aio_pika.ExchangeType.TOPIC)
         # get a random queue that only the apfell server will use to listen on to catch all heartbeats
         queue = await channel.declare_queue('', exclusive=True)
-        # bind the queue to the exchange so we can actually catch messages
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.listfiles")
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.getfile")
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.writefile")
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.*.removefile")
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.running.status")
-        # await queue.bind(exchange='apfell_traffic', routing_key="c2.status.*.stopped.status")
         await queue.bind(exchange='apfell_traffic', routing_key="c2.status.#")
         await channel.set_qos(prefetch_count=50)
         print(' [*] Waiting for messages in websocket. To exit press CTRL+C')
@@ -1320,14 +1315,17 @@ async def ws_payload_type_status_messages(request, ws, user):
         return
 
     async def send_data(message: aio_pika.IncomingMessage):
+        base_username = base64.b64encode(user['username'].encode()).decode('utf-8')
         with message.process():
-            data = {"status": "success",
-                    "body": message.body.decode('utf-8'),
-                    "routing_key": message.routing_key}
-            try:
-                await ws.send(js.dumps(data))
-            except Exception as e:
-                pass
+            # print(message.routing_key)
+            if message.routing_key.split(".")[-1] == base_username:
+                data = {"status": "success",
+                        "body": message.body.decode('utf-8'),
+                        "routing_key": message.routing_key}
+                try:
+                    await ws.send(js.dumps(data))
+                except Exception as e:
+                    pass
 
     try:
         connection = await aio_pika.connect(host="127.0.0.1",
@@ -1340,10 +1338,7 @@ async def ws_payload_type_status_messages(request, ws, user):
         # get a random queue that only the apfell server will use to listen on to catch all heartbeats
         queue = await channel.declare_queue('', exclusive=True)
         # bind the queue to the exchange so we can actually catch messages
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.listfiles.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.removefile.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.getfile.#")
-        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.*.writefile.#")
+        await queue.bind(exchange='apfell_traffic', routing_key="pt.status.#")
         await channel.set_qos(prefetch_count=50)
         print(' [*] Waiting for messages in websocket. To exit press CTRL+C')
         await queue.consume(send_data)

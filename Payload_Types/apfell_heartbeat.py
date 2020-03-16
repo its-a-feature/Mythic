@@ -30,7 +30,7 @@ async def main_loop():
             try:
                 # routing key is ignored for fanout, it'll go to anybody that's listening, which will only be the server
                 await exchange.publish( aio_pika.Message("heartbeat".encode()), routing_key="pt.heartbeat.{}".format(hostname))
-                await asyncio.sleep( 5 )
+                await asyncio.sleep( 10 )
             except Exception as e:
                 print(str(e))
                 # if we get an exception here, break out to the bigger loop and try to connect again

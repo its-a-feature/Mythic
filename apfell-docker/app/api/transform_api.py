@@ -155,7 +155,7 @@ async def write_transforms_to_file():
 async def update_all_pt_transform_code():
     try:
         transform_code = open("./app/api/transforms/transforms.py", 'rb').read()
-        status = await send_pt_rabbitmq_message("*", "load_transform_code", base64.b64encode(transform_code).decode('utf-8'))
+        status = await send_pt_rabbitmq_message("*", "load_transform_code", base64.b64encode(transform_code).decode('utf-8'), "")
         return status
     except Exception as e:
         print(e)

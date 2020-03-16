@@ -51,6 +51,7 @@ def callback(ch, method, properties, body):
     global container_files_path
     # messages of the form: c2.modify.PROFILE NAME.command
     command = method.routing_key.split(".")[3]
+    username = method.routing_key.split(".")[4]
     server_path = os.path.join(container_files_path, 'server')
     #command = body.decode('utf-8')
     if command == "start":
@@ -65,14 +66,14 @@ def callback(ch, method, properties, body):
             if process.returncode is not None:
                 # this means something went wrong and the process is dead
                 running = False
-                send_status(message="Failed to start\nOutput: {}".format(output), routing_key="c2.status.{}.stopped.start".format(hostname))
+                send_status(message="Failed to start\nOutput: {}".format(output), routing_key="c2.status.{}.stopped.start.{}".format(hostname,username))
                 output = ""
             else:
                 running = True
-                send_status(message="Started with pid: {}...\nOutput: {}".format(str(process.pid), output), routing_key="c2.status.{}.running.start".format(hostname))
+                send_status(message="Started with pid: {}...\nOutput: {}".format(str(process.pid), output), routing_key="c2.status.{}.running.start.{}".format(hostname,username))
                 output = ""
         else:
-            send_status(message="Already running...\nOutput: {}".format(output), routing_key="c2.status.{}.running.start".format(hostname))
+            send_status(message="Already running...\nOutput: {}".format(output), routing_key="c2.status.{}.running.start.{}".format(hostname,username))
             output = ""
     elif command == "stop":
         if running:
@@ -86,23 +87,23 @@ def callback(ch, method, properties, body):
             except Exception as e:
                 pass
             running = False
-            send_status(message="Process killed...\nOld Output: {}".format(output), routing_key="c2.status.{}.stopped.stop".format(hostname))
+            send_status(message="Process killed...\nOld Output: {}".format(output), routing_key="c2.status.{}.stopped.stop.{}".format(hostname,username))
             output = ""
         else:
-            send_status(message="Process not running...\nOld Output: {}".format(output), routing_key="c2.status.{}.stopped.stop".format(hostname))
+            send_status(message="Process not running...\nOld Output: {}".format(output), routing_key="c2.status.{}.stopped.stop.{}".format(hostname,username))
             output = ""
         # make sure to stop the /Apfell/server in the background
     elif command == "status":
         if running:
-            send_status(message="Output: {}".format(output), routing_key="c2.status.{}.running.status".format(hostname))
+            send_status(message="Output: {}".format(output), routing_key="c2.status.{}.running.status.{}".format(hostname,username))
             output = ""
         else:
-            send_status(message="C2 is not running", routing_key="c2.status.{}.stopped.status".format(hostname))
+            send_status(message="C2 is not running", routing_key="c2.status.{}.stopped.status.{}".format(hostname,username))
     elif command == "listfiles":
         files = []
         for (dirpath, dirnames, filenames) in os.walk(container_files_path):
             files.append({"folder": dirpath, "dirnames": dirnames, "filenames": filenames})
-        send_status(message=json.dumps(files), routing_key="c2.status.{}.{}.listfiles".format(hostname, "running" if running else "stopped"))
+        send_status(message=json.dumps(files), routing_key="c2.status.{}.{}.listfiles.{}".format(hostname, "running" if running else "stopped", username))
     elif command == "getfile":
         message = json.loads(body.decode('utf-8'))
         try:
@@ -116,7 +117,7 @@ def callback(ch, method, properties, body):
             file_data = b"File not found"
         encoded_data = json.dumps(
             {"filename": message['file'], "data": base64.b64encode(file_data).decode('utf-8')})
-        send_status(message=encoded_data, routing_key="c2.status.{}.{}.getfile".format(hostname, "running" if running else "stopped"))
+        send_status(message=encoded_data, routing_key="c2.status.{}.{}.getfile.{}".format(hostname, "running" if running else "stopped",username))
     elif command == "writefile":
         try:
             message = json.loads(body.decode('utf-8'))
@@ -135,7 +136,7 @@ def callback(ch, method, properties, body):
         except Exception as e:
             response = {"status": "error", "error": str(e)}
         send_status(message=json.dumps(response),
-                    routing_key="c2.status.{}.{}.writefile".format(hostname, "running" if running else "stopped"))
+                    routing_key="c2.status.{}.{}.writefile.{}".format(hostname, "running" if running else "stopped", username))
     elif command == "removefile":
         try:
             message = json.loads(body.decode('utf-8'))
@@ -150,7 +151,7 @@ def callback(ch, method, properties, body):
         except Exception as e:
             response = json.dumps({"status": "error", "error": str(e)})
         send_status(message=response,
-                    routing_key="c2.status.{}.{}.removefile".format(hostname, "running" if running else "stopped"))
+                    routing_key="c2.status.{}.{}.removefile.{}".format(hostname, "running" if running else "stopped", username))
     elif command == "removefolder":
         try:
             message = json.loads(body.decode('utf-8'))
@@ -165,7 +166,7 @@ def callback(ch, method, properties, body):
         except Exception as e:
             response = response = json.dumps({"status": "error", "error": str(e)})
         send_status(message=response,
-                    routing_key="c2.status.{}.{}.removefolder".format(hostname, "running" if running else "stopped"))
+                    routing_key="c2.status.{}.{}.removefolder.{}".format(hostname, "running" if running else "stopped", username))
     elif command == "addfolder":
         try:
             message = json.loads(body.decode('utf-8'))
@@ -180,7 +181,7 @@ def callback(ch, method, properties, body):
         except Exception as e:
             response = response = json.dumps({"status": "error", "error": str(e)})
         send_status(message=response,
-                    routing_key="c2.status.{}.{}.addfolder".format(hostname, "running" if running else "stopped"))
+                    routing_key="c2.status.{}.{}.addfolder.{}".format(hostname, "running" if running else "stopped", username))
     else:
         print("Unknown command: {}".format(command))
         sys.stdout.flush()

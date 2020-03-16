@@ -40,13 +40,13 @@ async def create_operator(request, user):
     admin = False  # cannot create a user initially as admin
     # we need to create a new user
     try:
-        user = await db_objects.create(Operator, username=data['username'], password=password, admin=admin)
+        new_operator = await db_objects.create(Operator, username=data['username'], password=password, admin=admin)
         success = {'status': 'success'}
-        new_user = user.to_json()
+        new_user = new_operator.to_json()
         # try to get the browser script code to auto load for the new operator
         code = open("./app/scripts/browser_scripts.json", 'r').read()
         code = js.loads(code)
-        result = await import_browserscript_func(code, user)
+        result = await import_browserscript_func(code, new_user)
         #print(result)
         return response.json({**success, **new_user})
     except Exception as e:

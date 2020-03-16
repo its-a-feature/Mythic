@@ -483,7 +483,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb, test_sta
                                                         "command_transform.{}".format(task.id),
                                                         base64.b64encode(
                                                             js.dumps(rabbit_message).encode()
-                                                        ).decode('utf-8'))
+                                                        ).decode('utf-8'), user['username'])
             elif payload_type.external:
                 # if the payload type is external, we can use the generic 'external' container for transforms
                 # by default tasks are created in a preprocessing state,
@@ -500,7 +500,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb, test_sta
                                                         "command_transform.{}".format(task.id),
                                                         base64.b64encode(
                                                             js.dumps(rabbit_message).encode()
-                                                        ).decode('utf-8'))
+                                                        ).decode('utf-8'), user['username'])
             else:
                 return {"status": "error",
                         'error': 'payload\'s container not running, no heartbeat in over 30 seconds, so it cannot process tasking',
@@ -635,7 +635,7 @@ async def perform_load_transforms(data, cb, operation, op, task):
                                                              "extension": cb.registered_payload.payload_type.file_extension,
                                                              "loads": data['params'].split(",")}
                                                         ).encode()
-                                                    ).decode('utf-8'))
+                                                    ).decode('utf-8'), op.username)
             shutil.rmtree(working_path)
             os.remove("./app/payloads/operations/{}/{}".format(operation.name, load_uuid) + ".zip")
             return result

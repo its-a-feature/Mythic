@@ -263,7 +263,7 @@ async def upload_payload_container_code(request, user, ptype):
                                                     js.dumps(
                                                         {"file_path": request.files['upload_file'][0].name,
                                                          "data": base64.b64encode(code).decode('utf-8')}).encode()
-                                                ).decode('utf-8'))
+                                                ).decode('utf-8'), user['username'])
         for i in range(1, int(request.form.get('file_length'))):
             code = request.files['upload_file_' + str(i)][0].body
             status = await send_pt_rabbitmq_message(payload_type, "writefile",
@@ -272,7 +272,7 @@ async def upload_payload_container_code(request, user, ptype):
                                                             {"file_path": request.files['upload_file_' + str(i)][
                                                                 0].name,
                                                              "data": base64.b64encode(code).decode('utf-8')}).encode()
-                                                    ).decode('utf-8'))
+                                                    ).decode('utf-8'), user['username'])
         return json(status)
     else:
         return json({'status': 'error', 'error': 'nothing to upload...'})
@@ -458,7 +458,7 @@ async def list_uploaded_container_files_for_payloadtype(request, user, ptype):
         print(e)
         return json({'status': 'error', 'error': 'failed to get payload type'})
     try:
-        status = await send_pt_rabbitmq_message(payload_type, "listfiles", "")
+        status = await send_pt_rabbitmq_message(payload_type, "listfiles", "", user['username'])
         return json(status)
     except Exception as e:
         logger.exception("exception in list_uploaded_contianer_files_for_payloadtype")
@@ -515,7 +515,7 @@ async def remove_uploaded_container_files_for_payloadtype(request, user, ptype):
                                                 base64.b64encode(js.dumps({
                                                     "folder": data['folder'],
                                                     "file": data['file']
-                                                }).encode()).decode('utf-8'))
+                                                }).encode()).decode('utf-8'), user['username'])
         return json(status)
     except Exception as e:
         logger.exception("exception in remove_uploaded_container_files_for_payloadtype")
@@ -570,7 +570,7 @@ async def download_container_file_for_payloadtype(request, ptype, user):
     try:
         data = request.json
         status = await send_pt_rabbitmq_message(payload_type, "getfile",
-                                                base64.b64encode(js.dumps(data).encode()).decode('utf-8'))
+                                                base64.b64encode(js.dumps(data).encode()).decode('utf-8'), user['username'])
         return json(status)
     except Exception as e:
         logger.exception("exception in download_container_file_for_payloadtype")

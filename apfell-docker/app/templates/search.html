@@ -39,9 +39,10 @@
         <div id="searchResults">
             <div v-for="r in responses" style="padding: 0px 0px 15px 0px;" class="card border-0 bg-card-body-l1" :key="r.id" >
                 <div class="card-header bg-header-dark border border-dark text-white shadow" :style="r.task.original_params.length > 200 ? 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;overflow-x:scroll' : 'position:-webkit-sticky;position:sticky;top:0px;white-space:nowrap;'">
-                    Response [[r.id]] on callback  <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + r.task.callback" target="_blank"><b>[[r.task.callback]]</b></a> ([[r.host]]) - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<br> [[r.task.command]] [[r.task.original_params]]
+                    Response [[r.id]] on callback  <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + r.task.callback" target="_blank"><b>[[r.task.callback]]</b></a> ([[r.host]]) - [[r.task.operator]]'s task <a :href="r.share_task" target="_blank"><b><span class="operator">[[r.task.id]]</span></b></a>:<a class="btn btn-link" type="button" data-toggle="collapse" :data-target="'#cardbody' + r.task.id" aria-expanded="true" :aria-controls="'cardbody' + r.task.id" @click="toggle_arrow(r.task.id)"><img :id="'color-arrow' + r.task.id" src="/static/color-arrow.png" style="width:32px;height:32px;transform:rotate(0deg)" data-toggle="tooltip" title="view / hide task output"></a>
+                    <br> [[r.task.command]] [[r.task.original_params]]
                 </div>
-                <div class="card-body response-background border border-dark shadow" style="padding-top:10px;padding-bottom: 0">
+                <div class="card-body response-background border border-dark shadow collapse show" style="padding-top:10px;padding-bottom: 0" :id="'cardbody' + r.task.id">
                     <div v-if="r.task.params != r.task.original_params">Modified params: [[r.task.params]]</div>
                     <span style="white-space: pre-wrap">
                         <span class="timestamp">([[toLocalTime(r.timestamp)]])</span><br><span class="response"><pre>[[r.response]]</pre></span>
