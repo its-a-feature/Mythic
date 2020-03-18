@@ -4,7 +4,7 @@ var artifacts_table = new Vue({
     data: {
         artifacts: [],
         base_artifacts: [],
-        current_task: "",
+        current_task: -1,
         current_host: "",
         current_artifact: "",
         current_instance: "",
@@ -24,12 +24,12 @@ var artifacts_table = new Vue({
             $('#newArtifactSubmit').unbind('click').click(function(){
                 let data = {"artifact_instance": artifacts_table.current_instance,
                         "artifact": artifacts_table.current_artifact};
-                if(artifacts_table.current_task !== -1 && artifacts_table.current_task !== "" && artifacts_table.current_task > 0){
+                if(artifacts_table.current_task > 0){
                     data['task_id'] = artifacts_table.current_task;
                 }
                 data['host'] = artifacts_table.current_host;
                  httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/artifact_tasks/", create_artifact, "POST", data);
-                 artifacts_table.current_task = "";
+                 artifacts_table.current_task = -1;
                  artifacts_table.current_artifact = "";
                  artifacts_table.current_instance = "";
                  artifacts_table.current_host = "";

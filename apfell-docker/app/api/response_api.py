@@ -257,7 +257,7 @@ async def post_agent_response(agent_message):
                                     base_artifact = await db_objects.create(Artifact, name=artifact['base_artifact'], description="Auto created from task {}".format(task.id))
                                 # you can report back multiple artifacts at once, no reason to make separate C2 requests
                                 await db_objects.create(TaskArtifact, task=task, artifact_instance=str(artifact['artifact']),
-                                                        artifact=base_artifact)
+                                                        artifact=base_artifact, host=task.callback.host)
                                 final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
                                 json_return_info = {**json_return_info, "status": "success"}
                             except Exception as e:

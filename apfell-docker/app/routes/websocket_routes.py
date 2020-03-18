@@ -1390,6 +1390,7 @@ async def ws_tasks(request, ws, user):
                             pass  # user might not have an operation assigned, so still
                         await ws.send("")
                     except Exception as e:
+                        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                         return
                     # now pull off any new tasks we got queued up while processing the old data
                     while True:

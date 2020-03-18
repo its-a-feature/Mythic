@@ -168,7 +168,7 @@ async def get_all_data(operation, pdf, config):
                             pdf.set_fill_color(204, 229, 255)
                             pdf.cell(w=36, h=height, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=1)
                             try:
-                                r_json['response'] = r_json['response'].decode('unicode-escape', errors='backslashreplace')
+                                r_json['response'] = r_json['response'].encode('unicode-escape', errors='backslashreplace').decode('utf-8', errors='backslash-replace')
                             except Exception as e:
                                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                                 r_json['response'] = '[[cannot handle non latin-1 character here]]'
@@ -191,7 +191,7 @@ async def get_all_data(operation, pdf, config):
                 pdf.set_fill_color(204, 229, 255)
                 pdf.cell(w=38, h=height, txt=r_json['timestamp'], border=0, align="L", fill=True, ln=1)
                 try:
-                    r_json['response'] = r_json['response'].decode('unicode-escape', errors='backslashreplace')
+                    r_json['response'] =r_json['response'].encode('unicode-escape', errors='backslashreplace').decode('utf-8', errors='backslash-replace')
                 except Exception as e:
                     print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                     r_json['response'] = '[[cannot handle non latin-1 character here]]'

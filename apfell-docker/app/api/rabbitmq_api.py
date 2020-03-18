@@ -355,7 +355,7 @@ async def add_command_attack_to_task(task, command):
                 # we need to swap out temp_string's replace_string with task's params value
                 if artifact.replace_string != "":
                     temp_string = temp_string.replace(artifact.replace_string, str(task.params))
-            await db_objects.create(db_model.TaskArtifact, task=task, artifact_template=artifact, artifact_instance=temp_string)
+            await db_objects.create(db_model.TaskArtifact, task=task, artifact_template=artifact, artifact_instance=temp_string, host=task.callback.host)
 
     except Exception as e:
         logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))

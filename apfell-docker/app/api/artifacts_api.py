@@ -217,8 +217,9 @@ async def create_artifact_task_manually(request, user):
             query = await db_model.task_query()
             task = await db_objects.get(query, id=data['task_id'])
             # make sure this task belongs to a callback in the current operation
-            query = await db_model.callback_query()
-            callback = await db_objects.get(query, operation=operation, id=task.callback.id)
+            if operation.name != task.callback.operation.name:
+                return json({'status': 'error', 'error': 'task isn\'t in the current operation'})
+            data['host'] = task.callback.host
         except Exception as e:
             return json({'status': 'error', 'error': 'task isn\'t in the current operation'})
     else:
@@ -231,10 +232,13 @@ async def create_artifact_task_manually(request, user):
         data['host'] = ""
     try:
         query = await db_model.artifact_query()
-        artifact = await db_objects.get(query, name=data['artifact'])
+        artifact = await db_objects.get(query, name=data['artifact'].encode())
     except Exception as e:
         return json({'status': 'error', 'error': 'failed to find the artifact'})
-    task_artifact = await db_objects.create(TaskArtifact, task=task, artifact_instance=data['artifact_instance'],
-                                            artifact=artifact, operation=operation, host=data['host'])
-    return json({'status': 'success', **task_artifact.to_json()})
+    try:
+        task_artifact = await db_objects.create(TaskArtifact, task=task, artifact_instance=data['artifact_instance'].encode(),
+                                                artifact=artifact, operation=operation, host=data['host'])
+        return json({'status': 'success', **task_artifact.to_json()})
+    except Exception as e:
+        return json({'status': 'error', 'error': str(e)})
 

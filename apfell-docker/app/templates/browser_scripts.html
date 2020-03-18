@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
-<div style="margin-top:5px;background:transparent" class="card border border-dark shadow bg-card-body" id="browser_scripts_table">
-    <div>
+<div style="margin-top:5px;background:transparent"  id="browser_scripts_table">
+    <div class="card border border-dark shadow bg-card-body">
         <div class="card-header bg-header text-white">
             <h2 style="display:inline-block">User's <span class="operator">Browser Scripts</span></h2>
             <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_scripts()" data-toggle="tooltip" title="Export all personal browser scripts as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>
@@ -57,7 +57,7 @@
         </div>
     </div>
     <br>
-    <div>
+    <div class="card border border-dark shadow bg-card-body">
         <div class="card-header bg-header text-white" >
             <h2 style="display:inline-block">Operation's <span class="operator">Browser Scripts</span></h2>
             <button style="float:right" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_operation_scripts()" data-toggle="tooltip" title="Export all browser scripts for this operation as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>

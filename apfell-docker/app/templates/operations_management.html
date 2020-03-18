@@ -261,11 +261,8 @@
               <div class="collapse" :id="'cardbody' + i.id">
                   <div class="card-body border border-dark shadow">
                       <div v-for="(data, ptype, i) in i.values">
-                          <span class="operator"><b>[[ptype]]</b></span>
+                          <span class="operator"><h4>[[ptype]]</h4></span>
                           <table class="table table-striped table-hover {{config['table-color']}}">
-                              <tr>
-                                  <th><b>Command</b></th>
-                              </tr>
                               <tr v-for="row in data">
                                   <td>[[row.command]]</td>
                               </tr>

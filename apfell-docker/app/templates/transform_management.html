@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
-<div style="margin-top:5px;background:transparent" class="card border border-dark shadow bg-card-body" id="transforms_table">
-    <div>
+<div style="margin-top:5px;background:transparent"  id="transforms_table">
+    <div class="card border border-dark shadow bg-card-body">
         <div class="card-header bg-header text-white">
             <h2 style="display:inline-block"><span class="operator">Command</span> Transforms</h2>
             <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_command_transforms()" data-toggle="tooltip" title="Export all command transforms as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>
@@ -33,7 +33,7 @@
         </div>
     </div>
     <br>
-    <div>
+    <div class="card border border-dark shadow bg-card-body">
         <div class="card-header bg-header text-white" >
             <h2 style="display:inline-block"><span class="operator">Create / Load </span>Transforms </h2>
             <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_create_load_transforms()" data-toggle="tooltip" title="Export all create/load transforms as JSON"><i class="fa fa-file-export fa-lg"></i>&nbsp;Export</button>

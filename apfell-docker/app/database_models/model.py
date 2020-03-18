@@ -1335,7 +1335,6 @@ class TaskArtifact(p.Model):
                         r["task_id"] = getattr(self, k).id
                         r["task"] = getattr(self, k).params
                         r['command'] = getattr(self, k).command.cmd
-                        r['host'] = getattr(self, k).callback.host
                     else:
                         r[k] = ""
                         r["task_id"] = -1
@@ -1355,7 +1354,8 @@ class TaskArtifact(p.Model):
                         r[k] = getattr(self, k)
                 else:
                     r[k] = getattr(self, k)
-            except:
+            except Exception as e:
+                print(str(e))
                 r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
         r['timestamp'] = r['timestamp'].strftime('%m/%d/%Y %H:%M:%S')
         return r
@@ -1769,12 +1769,12 @@ async def disabledcommands_query():
 
 async def task_query():
     comment_operator = Operator.alias()
-    return Task.select(Task, Callback, Operator, comment_operator, Operation, Command)\
+    return Task.select(Task, Callback, Operator, comment_operator, Operation, Command, PayloadType)\
         .join(Callback)\
             .join(Operation).switch(Callback).switch(Task)\
         .join(Operator).switch(Task)\
         .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Task)\
-        .join(Command, p.JOIN.LEFT_OUTER).switch(Task)
+        .join(Command, p.JOIN.LEFT_OUTER).join(PayloadType).switch(Task)
 
 
 async def response_query():
@@ -1847,9 +1847,10 @@ async def artifacttemplate_query():
 
 
 async def taskartifact_query():
-    return TaskArtifact.select(TaskArtifact, Task, ArtifactTemplate, Command, Artifact, Operation)\
+    artifacttemplate_artifact = Artifact.alias()
+    return TaskArtifact.select(TaskArtifact, Task, ArtifactTemplate, Command, Artifact, Operation, artifacttemplate_artifact)\
         .join(Task, p.JOIN.LEFT_OUTER).join(Command, p.JOIN.LEFT_OUTER).switch(TaskArtifact)\
-        .join(ArtifactTemplate, p.JOIN.LEFT_OUTER).switch(TaskArtifact)\
+        .join(ArtifactTemplate, p.JOIN.LEFT_OUTER).join(artifacttemplate_artifact, p.JOIN_LEFT_OUTER).switch(TaskArtifact)\
         .join(Artifact, p.JOIN.LEFT_OUTER).switch(TaskArtifact)\
         .join(Operation, p.JOIN.LEFT_OUTER).switch(TaskArtifact)
 
@@ -1864,14 +1865,14 @@ async def apitokens_query():
 
 
 async def browserscript_query():
-    return BrowserScript.select(BrowserScript, Operator, Command)\
+    return BrowserScript.select(BrowserScript, Operator, Command, PayloadType)\
         .join(Operator, p.JOIN.LEFT_OUTER).switch(BrowserScript)\
         .join(Command, p.JOIN.LEFT_OUTER).join(PayloadType, p.JOIN.LEFT_OUTER).switch(BrowserScript)
 
 
 async def browserscriptoperation_query():
-    return BrowserScriptOperation.select(BrowserScriptOperation, BrowserScript, Operation)\
-        .join(BrowserScript).switch(BrowserScriptOperation)\
+    return BrowserScriptOperation.select(BrowserScriptOperation, BrowserScript, Operation, Command, PayloadType, Operator)\
+        .join(BrowserScript).join(Command, p.JOIN_LEFT_OUTER).join(PayloadType, p.JOIN_LEFT_OUTER).switch(BrowserScript).join(Operator).switch(BrowserScriptOperation)\
         .join(Operation).switch(BrowserScriptOperation)
 
 
