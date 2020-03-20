@@ -28,7 +28,7 @@ db_name = 'apfell_db'
 db_user = 'apfell_user'
 # custom loop to pass to db manager
 dbloop = uvloop.new_event_loop()
-apfell_db = PooledPostgresqlExtDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=1000, register_hstore=False)
+apfell_db = PooledPostgresqlExtDatabase(db_name, user=db_user, password=db_pass, host='127.0.0.1', max_connections=10000, register_hstore=False)
 apfell_db.connect_async(loop=dbloop)
 db_objects = Manager(apfell_db, loop=dbloop)
 

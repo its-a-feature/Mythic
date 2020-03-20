@@ -1044,29 +1044,13 @@ function import_button_callback(response){
         alertTop("danger", data['error']);
     }
 }
-function reset_default_profiles_button(){
-     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/reset", reset_default_profiles_button_callback, "GET", null);
-}
-function reset_default_profiles_button_callback(response){
-    try{
-        var data = JSON.parse(response);
-    }catch(error){
-        alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        location.reload(true);
-        alertTop("success", "Successfully reset default c2 profiles");
-    }else{
-        alertTop("danger", data['error']);
-    }
-}
+
 function container_heartbeat_check(){
-    var date = new Date();
-    var now = date.getTime() + date.getTimezoneOffset() * 60000;
+    let date = new Date();
+    let now = date.getTime() + date.getTimezoneOffset() * 60000;
     for(let i = 0; i < payloads_table.profiles.length; i ++){
-        var heartbeat = new Date(payloads_table.profiles[i].last_heartbeat);
-        var difference =  (now - heartbeat.getTime() ) / 1000;
+        let heartbeat = new Date(payloads_table.profiles[i].last_heartbeat);
+        let difference =  (now - heartbeat.getTime() ) / 1000;
         if(difference < 30){
             payloads_table.profiles[i]['container_running'] = true;
         }else{

@@ -1774,7 +1774,7 @@ async def task_query():
             .join(Operation).switch(Callback).switch(Task)\
         .join(Operator).switch(Task)\
         .join(comment_operator, p.JOIN.LEFT_OUTER, on=(Task.comment_operator == comment_operator.id).alias('comment_operator')).switch(Task)\
-        .join(Command, p.JOIN.LEFT_OUTER).join(PayloadType).switch(Task)
+        .join(Command, p.JOIN.LEFT_OUTER).join(PayloadType, p.JOIN_LEFT_OUTER).switch(Task)
 
 
 async def response_query():

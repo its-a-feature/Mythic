@@ -381,8 +381,8 @@ async def initial_setup():
     for artifact in artifacts_file['artifacts']:
         await db_objects.get_or_create(Artifact, name=artifact['name'], description=artifact['description'])
     file.close()
-    await register_default_profile_operation(admin)
     print("Created all base artifacts")
+    await register_default_profile_operation(admin)
     for base_file in glob.iglob("./app/default_files/payload_types/*"):
         file = open(base_file, 'r')
         ptype = js.load(file)

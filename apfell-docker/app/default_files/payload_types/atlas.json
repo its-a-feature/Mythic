@@ -12,7 +12,7 @@
       "note": "This payload uses C# to target Windows hosts with the .NET framework installed. For more information and a more detailed README, check out: https:\/\/github.com\/airzero24\/Atlas",
       "supports_dynamic_loading": false,
       "deleted": false,
-      "last_heartbeat": "03\/06\/2020 17:27:58",
+      "last_heartbeat": "03\/20\/2020 01:12:12",
       "ptype": "atlas",
       "file_extension": "cs",
       "wrapped_payload_type": "null",
@@ -60,25 +60,53 @@
       "load_transforms": [],
       "create_transforms": [
         {
-          "parameter": "",
-          "description": "",
-          "transform": "atlas_stamp_parameters",
-          "parameter_type": "None",
-          "order": 10
+          "parameter": "x64\nx86\nanycpu",
+          "description": "Architecture to target when compiling",
+          "transform": "save_parameter",
+          "parameter_type": "ChooseOne",
+          "order": 2
         },
         {
-          "parameter": "",
-          "description": "Compile Atlas payload",
-          "transform": "atlas_compile_and_return",
-          "parameter_type": "None",
-          "order": 11
+          "parameter": "DEFAULT_EKE\nDEFAULT_PSK\nDEFAULT",
+          "description": "Profile\/encryption to use",
+          "transform": "save_parameter",
+          "parameter_type": "ChooseOne",
+          "order": 3
         },
         {
-          "parameter": "",
-          "description": "(Optional) Specify the username to use to authenticate to the proxy server",
+          "parameter": "id",
+          "description": "Specify the query parameter to use for GET requests",
           "transform": "save_string_parameter",
           "parameter_type": "String",
-          "order": 9
+          "order": 4
+        },
+        {
+          "parameter": "512000",
+          "description": "Specify the chunking size to use for download\/upload and command output",
+          "transform": "save_string_parameter",
+          "parameter_type": "String",
+          "order": 5
+        },
+        {
+          "parameter": "true\nfalse",
+          "description": "True will use the system's default proxy settings, false will use proxy settings specify below",
+          "transform": "save_parameter",
+          "parameter_type": "ChooseOne",
+          "order": 6
+        },
+        {
+          "parameter": "4.0\n3.5",
+          "description": "",
+          "transform": "save_parameter",
+          "parameter_type": "ChooseOne",
+          "order": 1
+        },
+        {
+          "parameter": "",
+          "description": "(Optional) Specify the proxy address to use for web requests ",
+          "transform": "save_string_parameter",
+          "parameter_type": "String",
+          "order": 7
         },
         {
           "parameter": "",
@@ -89,72 +117,44 @@
         },
         {
           "parameter": "",
-          "description": "(Optional) Specify the proxy address to use for web requests ",
+          "description": "(Optional) Specify the username to use to authenticate to the proxy server",
           "transform": "save_string_parameter",
           "parameter_type": "String",
-          "order": 7
+          "order": 9
         },
         {
-          "parameter": "4.0\n3.5",
+          "parameter": "",
+          "description": "Compile Atlas payload",
+          "transform": "atlas_compile_and_return",
+          "parameter_type": "None",
+          "order": 11
+        },
+        {
+          "parameter": "",
           "description": "",
-          "transform": "save_parameter",
-          "parameter_type": "ChooseOne",
-          "order": 1
-        },
-        {
-          "parameter": "true\nfalse",
-          "description": "True will use the system's default proxy settings, false will use proxy settings specify below",
-          "transform": "save_parameter",
-          "parameter_type": "ChooseOne",
-          "order": 6
-        },
-        {
-          "parameter": "512000",
-          "description": "Specify the chunking size to use for download\/upload and command output",
-          "transform": "save_string_parameter",
-          "parameter_type": "String",
-          "order": 5
-        },
-        {
-          "parameter": "id",
-          "description": "Specify the query parameter to use for GET requests",
-          "transform": "save_string_parameter",
-          "parameter_type": "String",
-          "order": 4
-        },
-        {
-          "parameter": "DEFAULT_EKE\nDEFAULT_PSK\nDEFAULT",
-          "description": "Profile\/encryption to use",
-          "transform": "save_parameter",
-          "parameter_type": "ChooseOne",
-          "order": 3
-        },
-        {
-          "parameter": "x64\nx86\nanycpu",
-          "description": "Architecture to target when compiling",
-          "transform": "save_parameter",
-          "parameter_type": "ChooseOne",
-          "order": 2
+          "transform": "atlas_stamp_parameters",
+          "parameter_type": "None",
+          "order": 10
         }
       ],
       "transforms": [
-        {
-          "code": "YXN5bmMgZGVmIHN3YXBfc2hvcnRuYW1lcyhzZWxmLCB0YXNrX3BhcmFtczogc3RyLCBwYXJhbWV0ZXI6IE5vbmUpIC0+IHN0cjoNCiAgICAjIHNldHMgYSBmbGFnIHRvIHN3YXAgcGFyYW1ldGVycyB0aGF0IGVuZCBpbiBfaWQgd2l0aCBmaWxlbmFtZXMgaWYgdGhlIGN1cnJlbnQgdmFsdWUgZXhpc3RzIGFzIGEgZmlsZSBuYW1lDQogICAgaW1wb3J0IGpzb24NCiAgICB0cnk6DQogICAgICAgIHBhcmFtcyA9IGpzb24ubG9hZHModGFza19wYXJhbXMpDQogICAgICAgIHBhcmFtc1snc3dhcF9zaG9ydG5hbWVzJ10gPSBUcnVlDQogICAgICAgIHJldHVybiBqc29uLmR1bXBzKHBhcmFtcykNCiAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGU6DQogICAgICAgIHByaW50KCJjYW4ndCBhZGQgc3dhcF9zaG9ydG5hbWVzIGZpZWxkIHNpbmNlIGl0J3Mgbm90IGpzb24iKQ0KICAgIHJldHVybiB0YXNrX3BhcmFtcw==",
-          "name": "swap_shortnames",
-          "parameter_type": "None",
-          "description": "Swap *_id parameter filename to corresponding file_id",
-          "is_command_code": true,
-          "timestamp": "03\/06\/2020 16:21:23",
-          "id": 2,
-          "operator": "apfell_admin"
-        },
         {
           "code": "YXN5bmMgZGVmIGF0bGFzX2xvYWRhc3NlbWJseV9zaG9ydGhhbmQoc2VsZiwgdGFza19wYXJhbXM6c3RyLCBwYXJhbWV0ZXI6IE5vbmUpIC0+IHN0cjoNCiAgICBpbXBvcnQganNvbg0KICAgIGlmIGxlbih0YXNrX3BhcmFtcykgPT0gMDoNCiAgICAgICAgcmFpc2UgRXhjZXB0aW9uKCJNaXNzaW5nIHBhcmFtZXRlcnMiKQ0KICAgIGlmIHRhc2tfcGFyYW1zWzBdID09ICJ7IjoNCiAgICAgICAgdGFza19kaWN0ID0ganNvbi5sb2Fkcyh0YXNrX3BhcmFtcykNCiAgICAgICAgdGFza19kaWN0WydyZW1vdGVfcGF0aCddID0gJycNCiAgICAgICAgcmV0dXJuIGpzb24uZHVtcHModGFza19kaWN0LCBzb3J0X2tleXM9VHJ1ZSkNCiAgICB0YXNrX2RpY3QgPSB7ImFzc2VtYmx5X2lkIjogdGFza19wYXJhbXMsICJyZW1vdGVfcGF0aCI6ICIifQ0KICAgIHJldHVybiBqc29uLmR1bXBzKHRhc2tfZGljdCk=",
           "name": "atlas_loadassembly_shorthand",
           "parameter_type": "None",
           "description": "Swap out filenames for needed file_id",
           "is_command_code": true,
-          "timestamp": "03\/06\/2020 16:21:23",
+          "timestamp": "03\/20\/2020 01:01:59",
+          "id": 2,
+          "operator": "apfell_admin"
+        },
+        {
+          "code": "YXN5bmMgZGVmIHN3YXBfc2hvcnRuYW1lcyhzZWxmLCB0YXNrX3BhcmFtczogc3RyLCBwYXJhbWV0ZXI6IE5vbmUpIC0+IHN0cjoNCiAgICAjIHNldHMgYSBmbGFnIHRvIHN3YXAgcGFyYW1ldGVycyB0aGF0IGVuZCBpbiBfaWQgd2l0aCBmaWxlbmFtZXMgaWYgdGhlIGN1cnJlbnQgdmFsdWUgZXhpc3RzIGFzIGEgZmlsZSBuYW1lDQogICAgaW1wb3J0IGpzb24NCiAgICB0cnk6DQogICAgICAgIHBhcmFtcyA9IGpzb24ubG9hZHModGFza19wYXJhbXMpDQogICAgICAgIHBhcmFtc1snc3dhcF9zaG9ydG5hbWVzJ10gPSBUcnVlDQogICAgICAgIHJldHVybiBqc29uLmR1bXBzKHBhcmFtcykNCiAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGU6DQogICAgICAgIHByaW50KCJjYW4ndCBhZGQgc3dhcF9zaG9ydG5hbWVzIGZpZWxkIHNpbmNlIGl0J3Mgbm90IGpzb24iKQ0KICAgIHJldHVybiB0YXNrX3BhcmFtcw==",
+          "name": "swap_shortnames",
+          "parameter_type": "None",
+          "description": "Swap *_id parameter filename to corresponding file_id",
+          "is_command_code": true,
+          "timestamp": "03\/20\/2020 01:01:59",
           "id": 1,
           "operator": "apfell_admin"
         },
@@ -164,7 +164,7 @@
           "parameter_type": "None",
           "description": "Swap out filename for needed file_id",
           "is_command_code": true,
-          "timestamp": "03\/06\/2020 16:21:23",
+          "timestamp": "03\/20\/2020 01:01:59",
           "id": 3,
           "operator": "apfell_admin"
         },
@@ -174,38 +174,8 @@
           "parameter_type": "None",
           "description": "Swap out filename for needed file_id",
           "is_command_code": true,
-          "timestamp": "03\/06\/2020 16:21:23",
+          "timestamp": "03\/20\/2020 01:01:59",
           "id": 4,
-          "operator": "apfell_admin"
-        },
-        {
-          "code": "YXN5bmMgZGVmIGF0bGFzX3N0YW1wX3BhcmFtZXRlcnMoc2VsZiwgcHJpb3Jfb3V0cHV0OiBOb25lLCBwYXJhbWV0ZXI6IHN0cikgLT4gYnl0ZWFycmF5OgogICAgaWYgbGVuKHNlbGYuc2F2ZWRfYXJyYXkpIDwgNjoKICAgICAgICByYWlzZSBFeGNlcHRpb24oIkluY29ycmVjdCBudW1iZXIgb2Ygc2F2ZWQgYXJndW1lbnRzIikKICAgIHV1aWQgPSBvcGVuKCJ7fS9VdWlkLnR4dCIuZm9ybWF0KHNlbGYud29ya2luZ19kaXIpLCAncicpLnJlYWQoKQogICAgZmlsZTEgPSBvcGVuKCJ7fS9Db25maWdfdGVtcC5jcyIuZm9ybWF0KHNlbGYud29ya2luZ19kaXIpLCAncicpLnJlYWQoKQogICAgZmlsZTIgPSBvcGVuKCJ7fS9Db25maWcuY3MiLmZvcm1hdChzZWxmLndvcmtpbmdfZGlyKSwgJ3cnKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCIlVVVJRCUiLCB1dWlkLnN0cmlwKCkpCiAgICBpZiBzZWxmLnNhdmVkX2FycmF5WzNdIGlzIG5vdCBOb25lIGFuZCBzZWxmLnNhdmVkX2FycmF5WzNdIGlzIG5vdCAiIjoKICAgICAgICBmaWxlMSA9IGZpbGUxLnJlcGxhY2UoJyVQQVJBTSUnLCBzZWxmLnNhdmVkX2FycmF5WzNdKQogICAgZWxzZToKICAgICAgICBmaWxlMSA9IGZpbGUxLnJlcGxhY2UoJyVQQVJBTSUnLCAnaWQnKQogICAgaWYgc2VsZi5zYXZlZF9hcnJheVs0XSBpcyBub3QgTm9uZSBhbmQgc2VsZi5zYXZlZF9hcnJheVs0XSBpcyBub3QgIiI6CiAgICAgICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclQ0hVTktfU0laRSUnLCBzZWxmLnNhdmVkX2FycmF5WzRdKQogICAgZWxzZToKICAgICAgICBmaWxlMSA9IGZpbGUxLnJlcGxhY2UoJyVDSFVOS19TSVpFJScsIHN0cig1MTIwMDApKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclREVGQVVMVF9QUk9YWSUnLCBzZWxmLnNhdmVkX2FycmF5WzVdKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclUFJPWFlfQUREUkVTUyUnLCBzZWxmLnNhdmVkX2FycmF5WzZdKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclUFJPWFlfVVNFUiUnLCBzZWxmLnNhdmVkX2FycmF5WzddKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclUFJPWFlfUEFTU1dPUkQlJywgc2VsZi5zYXZlZF9hcnJheVs4XSkKICAgIGZpbGUyLndyaXRlKGZpbGUxKQogICAgZmlsZTIuY2xvc2UoKQ==",
-          "name": "atlas_stamp_parameters",
-          "parameter_type": "None",
-          "description": "Stamp in parameters for Atlas payload",
-          "is_command_code": false,
-          "timestamp": "03\/06\/2020 16:21:23",
-          "id": 8,
-          "operator": "apfell_admin"
-        },
-        {
-          "code": "YXN5bmMgZGVmIGF0bGFzX2NvbXBpbGVfYW5kX3JldHVybihzZWxmLCBwcmlvcl9vdXRwdXQ6IE5vbmUsIHBhcmFtZXRlcjogc3RyKSAtPiBieXRlYXJyYXk6DQogICAgdHJ5Og0KICAgICAgICBpZiBsZW4oc2VsZi5zYXZlZF9hcnJheSkgPCA2Og0KICAgICAgICAgICAgcmFpc2UgRXhjZXB0aW9uKCJJbmNvcnJlY3QgbnVtYmVyIG9mIHNhdmVkIGFyZ3VtZW50cyIpDQogICAgICAgIGFyY2ggPSBzZWxmLnNhdmVkX2FycmF5WzFdDQogICAgICAgIHByb2ZpbGUgPSBzZWxmLnNhdmVkX2FycmF5WzJdDQogICAgICAgIGlmIHNlbGYuc2F2ZWRfYXJyYXlbMF0gPT0gIjQuMCI6DQogICAgICAgICAgICBjb21tYW5kID0gIi91c3IvYmluL21jcyAtdGFyZ2V0OndpbmV4ZSAtc2RrOjQgLXBsYXRmb3JtOnt9IC1kZWZpbmU6XCJUUkFDRSx7fVwiIC1vcHRpbWl6ZSsgLW91dDpBdGxhcy5leGUgQ29uZmlnLmNzICBDcnlwdG8uY3MgIEh0dHBfNC4wLmNzIE1vZHVsZXMuY3MgIFByb2dyYW0uY3MgVXRpbHMuY3MiLmZvcm1hdChhcmNoLCBwcm9maWxlKQ0KICAgICAgICBlbGlmIHNlbGYuc2F2ZWRfYXJyYXlbMF0gPT0gIjMuNSI6DQogICAgICAgICAgICBjb21tYW5kID0gIi91c3IvYmluL2dtY3MgL25vY29uZmlnIC9kZWJ1Zy0gL29wdGltaXplKyAvb3V0OkF0bGFzLmV4ZSBDb25maWcuY3MgQ3J5cHRvLmNzIEh0dHBfMy41LmNzIE1vZHVsZXMuY3MgUHJvZ3JhbS5jcyBVdGlscy5jcyAvdGFyZ2V0OndpbmV4ZSAvZGVmaW5lOlRSQUNFLHt9IC9wbGF0Zm9ybTp7fSAvcmVmZXJlbmNlOi91c3IvbGliL21vbm8vMi4wL1N5c3RlbS5kbGwgL3JlZmVyZW5jZTovdXNyL2xpYi9tb25vLzIuMC9TeXN0ZW0uWG1sLkxpbnEuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby8yLjAvU3lzdGVtLkRhdGEuRGF0YVNldEV4dGVuc2lvbnMuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby9nYWMvTWljcm9zb2Z0LkNTaGFycC80LjAuMC4wX19iMDNmNWY3ZjExZDUwYTNhL01pY3Jvc29mdC5DU2hhcnAuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby8yLjAvU3lzdGVtLkRhdGEuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby8yLjAvU3lzdGVtLlhtbC5kbGwgL3JlZmVyZW5jZTovdXNyL2xpYi9tb25vLzIuMC9TeXN0ZW0uQ29yZS5kbGwgL3dhcm46NCIuZm9ybWF0KHByb2ZpbGUsIGFyY2gpDQogICAgICAgIHByb2MgPSBhd2FpdCBhc3luY2lvLmNyZWF0ZV9zdWJwcm9jZXNzX3NoZWxsKGNvbW1hbmQsIHN0ZG91dD1hc3luY2lvLnN1YnByb2Nlc3MuUElQRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdGRlcnI9YXN5bmNpby5zdWJwcm9jZXNzLlBJUEUsIGN3ZD1zZWxmLndvcmtpbmdfZGlyKQ0KICAgICAgICBzdGRvdXQsIHN0ZGVyciA9IGF3YWl0IHByb2MuY29tbXVuaWNhdGUoKQ0KICAgICAgICBpZiBzdGRvdXQ6DQogICAgICAgICAgICBwcmludChmJ1tzdGRvdXRdXG57c3Rkb3V0LmRlY29kZSgpfScpDQogICAgICAgIGlmIHN0ZGVycjoNCiAgICAgICAgICAgIHByaW50KGYnW3N0ZGVycl1cbntzdGRlcnIuZGVjb2RlKCl9JykNCiAgICAgICAgaWYgb3MucGF0aC5leGlzdHMoInt9L0F0bGFzLmV4ZSIuZm9ybWF0KHNlbGYud29ya2luZ19kaXIpKToNCiAgICAgICAgICAgIHJldHVybiBieXRlYXJyYXkob3Blbigie30vQXRsYXMuZXhlIi5mb3JtYXQoc2VsZi53b3JraW5nX2RpciksICdyYicpLnJlYWQoKSkNCiAgICAgICAgZWxzZToNCiAgICAgICAgICAgICMgc29tZXRoaW5nIHdlbnQgd3JvbmcsIHJldHVybiBvdXIgZXJyb3JzDQogICAgICAgICAgICByYWlzZSBFeGNlcHRpb24oc3RkZXJyLmRlY29kZSgpKQ0KICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToNCiAgICAgICAgcmFpc2UgRXhjZXB0aW9uKHN0ZGVyci5kZWNvZGUoKSArIHN0ZG91dC5kZWNvZGUoKSk=",
-          "name": "atlas_compile_and_return",
-          "parameter_type": "None",
-          "description": "Compile atlas payload",
-          "is_command_code": false,
-          "timestamp": "03\/06\/2020 16:21:23",
-          "id": 7,
-          "operator": "apfell_admin"
-        },
-        {
-          "code": "YXN5bmMgZGVmIHNhdmVfc3RyaW5nX3BhcmFtZXRlcihzZWxmLCBwcmlvcl9vdXRwdXQ6IE5vbmUsIHBhcmFtZXRlcjogc3RyKSAtPiBOb25lOgogICAgc2VsZi5zYXZlZF9hcnJheS5hcHBlbmQocGFyYW1ldGVyKQogICAgcmV0dXJuIE5vbmU=",
-          "name": "save_string_parameter",
-          "parameter_type": "String",
-          "description": "Save a string parameter to saved_array",
-          "is_command_code": false,
-          "timestamp": "03\/06\/2020 16:21:23",
-          "id": 6,
           "operator": "apfell_admin"
         },
         {
@@ -214,7 +184,37 @@
           "parameter_type": "ChooseOne",
           "description": "Save a value as the next element in self.saved_array",
           "is_command_code": false,
-          "timestamp": "03\/06\/2020 16:21:23",
+          "timestamp": "03\/20\/2020 01:01:59",
+          "id": 8,
+          "operator": "apfell_admin"
+        },
+        {
+          "code": "YXN5bmMgZGVmIHNhdmVfc3RyaW5nX3BhcmFtZXRlcihzZWxmLCBwcmlvcl9vdXRwdXQ6IE5vbmUsIHBhcmFtZXRlcjogc3RyKSAtPiBOb25lOgogICAgc2VsZi5zYXZlZF9hcnJheS5hcHBlbmQocGFyYW1ldGVyKQogICAgcmV0dXJuIE5vbmU=",
+          "name": "save_string_parameter",
+          "parameter_type": "String",
+          "description": "Save a string parameter to saved_array",
+          "is_command_code": false,
+          "timestamp": "03\/20\/2020 01:01:59",
+          "id": 7,
+          "operator": "apfell_admin"
+        },
+        {
+          "code": "YXN5bmMgZGVmIGF0bGFzX2NvbXBpbGVfYW5kX3JldHVybihzZWxmLCBwcmlvcl9vdXRwdXQ6IE5vbmUsIHBhcmFtZXRlcjogc3RyKSAtPiBieXRlYXJyYXk6DQogICAgdHJ5Og0KICAgICAgICBpZiBsZW4oc2VsZi5zYXZlZF9hcnJheSkgPCA2Og0KICAgICAgICAgICAgcmFpc2UgRXhjZXB0aW9uKCJJbmNvcnJlY3QgbnVtYmVyIG9mIHNhdmVkIGFyZ3VtZW50cyIpDQogICAgICAgIGFyY2ggPSBzZWxmLnNhdmVkX2FycmF5WzFdDQogICAgICAgIHByb2ZpbGUgPSBzZWxmLnNhdmVkX2FycmF5WzJdDQogICAgICAgIGlmIHNlbGYuc2F2ZWRfYXJyYXlbMF0gPT0gIjQuMCI6DQogICAgICAgICAgICBjb21tYW5kID0gIi91c3IvYmluL21jcyAtdGFyZ2V0OndpbmV4ZSAtc2RrOjQgLXBsYXRmb3JtOnt9IC1kZWZpbmU6XCJUUkFDRSx7fVwiIC1vcHRpbWl6ZSsgLW91dDpBdGxhcy5leGUgQ29uZmlnLmNzICBDcnlwdG8uY3MgIEh0dHBfNC4wLmNzIE1vZHVsZXMuY3MgIFByb2dyYW0uY3MgVXRpbHMuY3MiLmZvcm1hdChhcmNoLCBwcm9maWxlKQ0KICAgICAgICBlbGlmIHNlbGYuc2F2ZWRfYXJyYXlbMF0gPT0gIjMuNSI6DQogICAgICAgICAgICBjb21tYW5kID0gIi91c3IvYmluL2dtY3MgL25vY29uZmlnIC9kZWJ1Zy0gL29wdGltaXplKyAvb3V0OkF0bGFzLmV4ZSBDb25maWcuY3MgQ3J5cHRvLmNzIEh0dHBfMy41LmNzIE1vZHVsZXMuY3MgUHJvZ3JhbS5jcyBVdGlscy5jcyAvdGFyZ2V0OndpbmV4ZSAvZGVmaW5lOlRSQUNFLHt9IC9wbGF0Zm9ybTp7fSAvcmVmZXJlbmNlOi91c3IvbGliL21vbm8vMi4wL1N5c3RlbS5kbGwgL3JlZmVyZW5jZTovdXNyL2xpYi9tb25vLzIuMC9TeXN0ZW0uWG1sLkxpbnEuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby8yLjAvU3lzdGVtLkRhdGEuRGF0YVNldEV4dGVuc2lvbnMuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby9nYWMvTWljcm9zb2Z0LkNTaGFycC80LjAuMC4wX19iMDNmNWY3ZjExZDUwYTNhL01pY3Jvc29mdC5DU2hhcnAuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby8yLjAvU3lzdGVtLkRhdGEuZGxsIC9yZWZlcmVuY2U6L3Vzci9saWIvbW9uby8yLjAvU3lzdGVtLlhtbC5kbGwgL3JlZmVyZW5jZTovdXNyL2xpYi9tb25vLzIuMC9TeXN0ZW0uQ29yZS5kbGwgL3dhcm46NCIuZm9ybWF0KHByb2ZpbGUsIGFyY2gpDQogICAgICAgIHByb2MgPSBhd2FpdCBhc3luY2lvLmNyZWF0ZV9zdWJwcm9jZXNzX3NoZWxsKGNvbW1hbmQsIHN0ZG91dD1hc3luY2lvLnN1YnByb2Nlc3MuUElQRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdGRlcnI9YXN5bmNpby5zdWJwcm9jZXNzLlBJUEUsIGN3ZD1zZWxmLndvcmtpbmdfZGlyKQ0KICAgICAgICBzdGRvdXQsIHN0ZGVyciA9IGF3YWl0IHByb2MuY29tbXVuaWNhdGUoKQ0KICAgICAgICBpZiBzdGRvdXQ6DQogICAgICAgICAgICBwcmludChmJ1tzdGRvdXRdXG57c3Rkb3V0LmRlY29kZSgpfScpDQogICAgICAgIGlmIHN0ZGVycjoNCiAgICAgICAgICAgIHByaW50KGYnW3N0ZGVycl1cbntzdGRlcnIuZGVjb2RlKCl9JykNCiAgICAgICAgaWYgb3MucGF0aC5leGlzdHMoInt9L0F0bGFzLmV4ZSIuZm9ybWF0KHNlbGYud29ya2luZ19kaXIpKToNCiAgICAgICAgICAgIHJldHVybiBieXRlYXJyYXkob3Blbigie30vQXRsYXMuZXhlIi5mb3JtYXQoc2VsZi53b3JraW5nX2RpciksICdyYicpLnJlYWQoKSkNCiAgICAgICAgZWxzZToNCiAgICAgICAgICAgICMgc29tZXRoaW5nIHdlbnQgd3JvbmcsIHJldHVybiBvdXIgZXJyb3JzDQogICAgICAgICAgICByYWlzZSBFeGNlcHRpb24oc3RkZXJyLmRlY29kZSgpKQ0KICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToNCiAgICAgICAgcmFpc2UgRXhjZXB0aW9uKHN0ZGVyci5kZWNvZGUoKSArIHN0ZG91dC5kZWNvZGUoKSk=",
+          "name": "atlas_compile_and_return",
+          "parameter_type": "None",
+          "description": "Compile atlas payload",
+          "is_command_code": false,
+          "timestamp": "03\/20\/2020 01:01:59",
+          "id": 6,
+          "operator": "apfell_admin"
+        },
+        {
+          "code": "YXN5bmMgZGVmIGF0bGFzX3N0YW1wX3BhcmFtZXRlcnMoc2VsZiwgcHJpb3Jfb3V0cHV0OiBOb25lLCBwYXJhbWV0ZXI6IHN0cikgLT4gYnl0ZWFycmF5OgogICAgaWYgbGVuKHNlbGYuc2F2ZWRfYXJyYXkpIDwgNjoKICAgICAgICByYWlzZSBFeGNlcHRpb24oIkluY29ycmVjdCBudW1iZXIgb2Ygc2F2ZWQgYXJndW1lbnRzIikKICAgIHV1aWQgPSBvcGVuKCJ7fS9VdWlkLnR4dCIuZm9ybWF0KHNlbGYud29ya2luZ19kaXIpLCAncicpLnJlYWQoKQogICAgZmlsZTEgPSBvcGVuKCJ7fS9Db25maWdfdGVtcC5jcyIuZm9ybWF0KHNlbGYud29ya2luZ19kaXIpLCAncicpLnJlYWQoKQogICAgZmlsZTIgPSBvcGVuKCJ7fS9Db25maWcuY3MiLmZvcm1hdChzZWxmLndvcmtpbmdfZGlyKSwgJ3cnKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCIlVVVJRCUiLCB1dWlkLnN0cmlwKCkpCiAgICBpZiBzZWxmLnNhdmVkX2FycmF5WzNdIGlzIG5vdCBOb25lIGFuZCBzZWxmLnNhdmVkX2FycmF5WzNdIGlzIG5vdCAiIjoKICAgICAgICBmaWxlMSA9IGZpbGUxLnJlcGxhY2UoJyVQQVJBTSUnLCBzZWxmLnNhdmVkX2FycmF5WzNdKQogICAgZWxzZToKICAgICAgICBmaWxlMSA9IGZpbGUxLnJlcGxhY2UoJyVQQVJBTSUnLCAnaWQnKQogICAgaWYgc2VsZi5zYXZlZF9hcnJheVs0XSBpcyBub3QgTm9uZSBhbmQgc2VsZi5zYXZlZF9hcnJheVs0XSBpcyBub3QgIiI6CiAgICAgICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclQ0hVTktfU0laRSUnLCBzZWxmLnNhdmVkX2FycmF5WzRdKQogICAgZWxzZToKICAgICAgICBmaWxlMSA9IGZpbGUxLnJlcGxhY2UoJyVDSFVOS19TSVpFJScsIHN0cig1MTIwMDApKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclREVGQVVMVF9QUk9YWSUnLCBzZWxmLnNhdmVkX2FycmF5WzVdKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclUFJPWFlfQUREUkVTUyUnLCBzZWxmLnNhdmVkX2FycmF5WzZdKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclUFJPWFlfVVNFUiUnLCBzZWxmLnNhdmVkX2FycmF5WzddKQogICAgZmlsZTEgPSBmaWxlMS5yZXBsYWNlKCclUFJPWFlfUEFTU1dPUkQlJywgc2VsZi5zYXZlZF9hcnJheVs4XSkKICAgIGZpbGUyLndyaXRlKGZpbGUxKQogICAgZmlsZTIuY2xvc2UoKQ==",
+          "name": "atlas_stamp_parameters",
+          "parameter_type": "None",
+          "description": "Stamp in parameters for Atlas payload",
+          "is_command_code": false,
+          "timestamp": "03\/20\/2020 01:01:59",
           "id": 5,
           "operator": "apfell_admin"
         }
@@ -308,27 +308,27 @@
           "files": [],
           "transforms": [
             {
-              "order": 2,
-              "parameter": "",
-              "active": true,
-              "description": "",
-              "timestamp": "03\/06\/2020 16:21:23",
-              "command": "loadassembly",
-              "command_id": 3,
-              "payload_type": "atlas",
-              "transform": "swap_shortnames",
-              "parameter_type": "None"
-            },
-            {
               "order": 1,
               "parameter": "",
               "active": true,
               "description": "",
-              "timestamp": "03\/06\/2020 16:21:23",
+              "timestamp": "03\/20\/2020 01:01:59",
               "command": "loadassembly",
               "command_id": 3,
               "payload_type": "atlas",
               "transform": "atlas_loadassembly_shorthand",
+              "parameter_type": "None"
+            },
+            {
+              "order": 2,
+              "parameter": "",
+              "active": true,
+              "description": "",
+              "timestamp": "03\/20\/2020 01:01:59",
+              "command": "loadassembly",
+              "command_id": 3,
+              "payload_type": "atlas",
+              "transform": "swap_shortnames",
               "parameter_type": "None"
             }
           ]
@@ -389,7 +389,7 @@
               "parameter": "",
               "active": true,
               "description": "",
-              "timestamp": "03\/06\/2020 16:21:23",
+              "timestamp": "03\/20\/2020 01:01:59",
               "command": "upload",
               "command_id": 4,
               "payload_type": "atlas",
@@ -401,7 +401,7 @@
               "parameter": "",
               "active": true,
               "description": "",
-              "timestamp": "03\/06\/2020 16:21:23",
+              "timestamp": "03\/20\/2020 01:01:59",
               "command": "upload",
               "command_id": 4,
               "payload_type": "atlas",
@@ -477,7 +477,7 @@
               "parameter": "",
               "active": true,
               "description": "",
-              "timestamp": "03\/06\/2020 16:21:23",
+              "timestamp": "03\/20\/2020 01:01:59",
               "command": "runassembly",
               "command_id": 6,
               "payload_type": "atlas",
@@ -489,7 +489,7 @@
               "parameter": "",
               "active": true,
               "description": "",
-              "timestamp": "03\/06\/2020 16:21:23",
+              "timestamp": "03\/20\/2020 01:01:59",
               "command": "runassembly",
               "command_id": 6,
               "payload_type": "atlas",

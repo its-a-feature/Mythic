@@ -1128,12 +1128,7 @@ async def register_default_profile_operation(operator):
         file = open('./app/default_files/other_info/default_c2_db_info.json', 'r')
         c2_data = js.load(file)  # this is a lot of data and might take a hot second to load
         for p in c2_data['profiles']:
-            print("Creating profile agent files for: " + p['name'])
-            if os.path.exists("./app/c2_profiles/{}".format(p['name'])):
-                shutil.rmtree("./app/c2_profiles/{}".format(p['name']))
-            shutil.copytree("./app/default_files/c2_profiles/{}".format(p['name']),
-                            "./app/c2_profiles/{}".format(p['name']))
-            # remove all mapped c2 profile payload types
+            print("Creating profile for: " + p['name'])
             query = await db_model.payloadtypec2profile_query()
             mappings = await db_objects.execute(query.switch(C2Profile).where(C2Profile.name == p['name']))
             for m in mappings:
@@ -1144,17 +1139,3 @@ async def register_default_profile_operation(operator):
     except Exception as e:
         print(e)
         return {'status': 'error', 'error': str(e)}
-
-
-@apfell.route(apfell.config['API_BASE'] + "/c2profiles/reset", methods=['GET'])
-@inject_user()
-@scoped('auth:user')
-async def reset_c2_profile(request, user):
-    if user['auth'] not in ['access_token', 'apitoken']:
-        abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
-    try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user['username'])
-    except Exception as e:
-        return json({'status': 'error', 'error': 'no current operation'})
-    return json(await register_default_profile_operation(operator))

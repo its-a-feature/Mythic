@@ -160,9 +160,9 @@ async def parse_agent_message(data, request):
         print(decrypted)
         response_data = {}
         if decrypted['action'] == 'get_tasking':
-            response_data = await get_agent_tasks(decrypted, UUID)
             query = await db_model.callback_query()
             callback = await db_objects.get(query, agent_callback_id=UUID)
+            response_data = await get_agent_tasks(decrypted, callback)
             delegates = await get_routable_messages(callback, callback.operation)
             if delegates is not None:
                 response_data['delegates'] = delegates
@@ -402,6 +402,7 @@ async def update_callback(data, UUID):
 
 
 # https://pypi.org/project/Dijkstar/
+current_graphs = {}
 async def get_routable_messages(requester, operation):
     # are there any messages sitting in the database in the "submitted" stage that have routes from the requester
     # 1. get all CallbackGraphEdge entries that have an end_timestamp of Null (they're still active)
@@ -410,20 +411,10 @@ async def get_routable_messages(requester, operation):
     # 4.   if there's tasking, wrap it up in a message:
     #        content is the same of that of a "get_tasking" reply with a a -1 request
     delegates = []
-    query = await db_model.callbackgraphedge_query()
-    available_edges = await db_objects.execute(query.where(
-        (db_model.CallbackGraphEdge.operation == operation) & (db_model.CallbackGraphEdge.end_timestamp == None)
-    ))
-    graph = Graph()
-    # dijkstra is directed, so if we have a bidirectional connection (type 3) account for that as well
-    for e in available_edges:
-        if e.direction == 1:
-            graph.add_edge(e.source, e.destination, 1)
-        elif e.direction == 2:
-            graph.add_edge(e.destination, e.source, 1)
-        else:
-            graph.add_edge(e.source, e.destination, 1)
-            graph.add_edge(e.destination, e.source, 1)
+    if operation.name not in current_graphs:
+        await update_graphs(operation)
+    if current_graphs[operation.name].edge_count == 0:
+        return None  # graph for this operation has no edges
     query = await db_model.task_query()
     submitted_tasks = await db_objects.execute(query.where(
         (db_model.Task.status == "submitted") & (db_model.Callback.operation == operation)
@@ -434,7 +425,7 @@ async def get_routable_messages(requester, operation):
     for t in submitted_tasks:
         # print(t.to_json())
         try:
-            path = find_path(graph, requester, t.callback)
+            path = find_path(current_graphs[operation.name], requester, t.callback)
         except NoPathError:
             # print("No path from {} to {}".format(requester.id, t.callback.id))
             continue
@@ -486,6 +477,28 @@ async def get_routable_messages(requester, operation):
         return None
     else:
         return delegates
+
+
+async def update_graphs(operation):
+    try:
+        query = await db_model.callbackgraphedge_query()
+        available_edges = await db_objects.execute(query.where(
+            (db_model.CallbackGraphEdge.operation == operation) & (db_model.CallbackGraphEdge.end_timestamp == None)
+        ))
+        if operation.name not in current_graphs:
+            current_graphs[operation.name] = Graph()
+        # dijkstra is directed, so if we have a bidirectional connection (type 3) account for that as well
+        for e in available_edges:
+            if e.direction == 1:
+                current_graphs[operation.name].add_edge(e.source, e.destination, 1)
+            elif e.direction == 2:
+                current_graphs[operation.name].add_edge(e.destination, e.source, 1)
+            else:
+                current_graphs[operation.name].add_edge(e.source, e.destination, 1)
+                current_graphs[operation.name].add_edge(e.destination, e.source, 1)
+    except Exception as e:
+        print(str(e))
+        return
 
 
 @apfell.route(apfell.config['API_BASE'] + "/callbacks/<id:int>", methods=['GET'])
@@ -760,12 +773,15 @@ async def add_p2p_route(agent_message, callback, task):
     # }
     query = await db_model.callback_query()
     profile_query = await db_model.c2profile_query()
+    # dijkstra is directed, so if we have a bidirectional connection (type 3) account for that as well
     for e in agent_message:
         if e['action'] == "add":
             try:
                 profile = None
                 source = await db_objects.get(query, agent_callback_id=e['source'])
                 destination = await db_objects.get(query, agent_callback_id=e['destination'])
+                if source.operation.name not in current_graphs:
+                    current_graphs[source.operation.name] = Graph()
                 if "c2_profile" in e and e['c2_profile'] is not None and e['c2_profile'] != "":
                     profile = await db_objects.get(profile_query, name=e['c2_profile'])
                 else:
@@ -786,6 +802,13 @@ async def add_p2p_route(agent_message, callback, task):
                 await db_objects.create(db_model.CallbackGraphEdge, source=source, destination=destination,
                                         direction=e['direction'], metadata=e['metadata'], operation=callback.operation,
                                         c2_profile=profile, task_start=task)
+                if e['direction'] == 1:
+                    current_graphs[source.operation.name].add_edge(source, destination, 1)
+                elif e['direction'] == 2:
+                    current_graphs[source.operation.name].add_edge(destination, source, 1)
+                else:
+                    current_graphs[source.operation.name].add_edge(source, destination, 1)
+                    current_graphs[source.operation.name].add_edge(destination, source, 1)
             except Exception as d:
                 print(d)
                 return {'status': 'error', 'error': str(d), "task_id": task.agent_task_id}
@@ -799,6 +822,19 @@ async def add_p2p_route(agent_message, callback, task):
                 edge.end_timestamp = datetime.utcnow()
                 edge.task_end = task
                 await db_objects.update(edge)
+                if source.operation.name not in current_graphs:
+                    current_graphs[source.operation.name] = Graph()
+                try:
+                    if edge.direction == 1:
+                        current_graphs[source.operation.name].remove_edge(source, destination)
+                    elif edge.direction == 2:
+                        current_graphs[source.operation.name].remove_edge(destination, source)
+                    else:
+                        current_graphs[source.operation.name].remove_edge(source, destination)
+                        current_graphs[source.operation.name].remove_edge(destination, source)
+                except Exception as e:
+                    print(str(e))
+                    pass
             except Exception as d:
                 print(d)
                 return {'status': 'error', 'error': str(d), "task_id": task.agent_task_id}

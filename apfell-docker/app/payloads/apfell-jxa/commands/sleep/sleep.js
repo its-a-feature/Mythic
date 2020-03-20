@@ -1,7 +1,7 @@
 exports.sleep = function(task, command, params){
     try{
         let command_params = JSON.parse(params);
-        if(command_params.hasOwnProperty('interval') && command_params['interval'] > 0){
+        if(command_params.hasOwnProperty('interval') && command_params['interval'] >= 0){
             C2.interval = command_params['interval'];
         }
         if(command_params.hasOwnProperty('jitter') && command_params['jitter'] >= 0 && command_params['jitter'] <= 100){

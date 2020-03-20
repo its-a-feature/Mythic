@@ -3,6 +3,9 @@ exports.screencapture = function(task, command, params){
         ObjC.import('Cocoa');
         ObjC.import('AppKit');
         let cgimage = $.CGDisplayCreateImage($.CGMainDisplayID());
+        if(cgimage.js === undefined) {
+            cgimage = $.CFMakeCollectable(cgimage); // in case 10.15 is messing with the types again
+        }
         if(cgimage.js === undefined){
           return {"user_output":"Failed to get image from display", "completed": true, "status": "error"};
         }
