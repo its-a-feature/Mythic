@@ -29,3 +29,4 @@ docker-compose up --build -d
 ./start_c2_profiles.sh
 # stand up payload types
 ./start_payload_types.sh $@
+docker image prune -f

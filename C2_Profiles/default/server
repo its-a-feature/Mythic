@@ -53,7 +53,7 @@ async def agent_message(request, **kwargs):
             response = requests.post(config['apfellBase'], data=request.body, verify=False)
         else:
             response = requests.get(config['apfellBase'] + "?{}".format(request.query_string), verify=False, data=request.body)
-        return html(response.content, headers=config[request.app.name]['headers'], status=response.status_code)
+        return raw(response.content, headers=config[request.app.name]['headers'], status=response.status_code)
     except Exception as e:
         if config[request.app.name]['debug']:
             await print_flush("error in agent_message: {}".format(str(e)))
