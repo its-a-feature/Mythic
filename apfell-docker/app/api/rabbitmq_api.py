@@ -305,6 +305,7 @@ async def save_params_to_file_ids(operation, operator, file_updates_with_task, p
                     if modify_original:
                         original_params[file_update[0]] = "{}{}.{}".format(filename, count, extension)
                     count += 1
+                os.makedirs(os.path.dirname(path), exist_ok=True)
                 code_file = open(path, "wb")
                 code = base64.b64decode( params[file_update[0]])
                 code_file.write( code )
