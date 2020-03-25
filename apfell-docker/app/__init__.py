@@ -19,7 +19,8 @@ ssl_key_path = './app/ssl/apfell-ssl.key'
 whitelisted_ip_blocks = ['0.0.0.0/0']  # only allow connections from these IPs to the /login and /register pages
 use_ssl = False
 server_header = "nginx 1.2"
-log_size = 0  # grows indefinitely, or specify a max size in Bytes
+log_size = 1024000  # grows indefinitely (0), or specify a max size in Bytes (1MB). If 0, will not rotate!
+max_log_count = 5  # if log_size > 0, rotate and make a max of max_log_count files to hold logs
 keep_logs = True  # set to false for speed improvement, but no logs will be kept
 # --------------------------------------------
 # --------------------------------------------
@@ -65,7 +66,7 @@ apfell_logging['handlers']['rotating_log'] = {
     "formatter": "apfell_format",
     "filename": "apfell_access.log",
     "maxBytes": log_size,
-    "backupCount": 0
+    "backupCount": max_log_count
 }
 apfell_logging['formatters']['apfell_format'] = {
     "()": AccessLogFormatter
@@ -76,7 +77,7 @@ apfell_logging['handlers']['rotating_root_log'] = {
     "formatter": "apfell_root_format",
     "filename": "apfell_access.log",
     "maxBytes": log_size,
-    "backupCount": 0
+    "backupCount": max_log_count
 }
 apfell_logging['formatters']['apfell_root_format'] = {
     "()": RootLogFormatter

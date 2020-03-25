@@ -1,4 +1,4 @@
-from app import apfell, db_objects
+from app import apfell, db_objects, keep_logs
 from sanic.response import json, raw, text
 from app.database_models.model import Callback, Task, LoadedCommands, PayloadCommand, Command
 from sanic_jwt.decorators import scoped, inject_user
@@ -112,7 +112,8 @@ async def get_encryption_data(UUID):
 async def parse_agent_message(data, request):
     try:
         decoded = base64.b64decode(data)
-        print(decoded)
+        if keep_logs:
+            print(decoded)
     except Exception as e:
         logger.exception("Failed to base64 decode the agent message")
         return ""
@@ -157,7 +158,8 @@ async def parse_agent_message(data, request):
             return b""
         # now to parse out what we're doing, everything is decrypted at this point
         # shuttle everything out to the appropriate api files for processing
-        print(decrypted)
+        if keep_logs:
+            print(decrypted)
         response_data = {}
         if decrypted['action'] == 'get_tasking':
             query = await db_model.callback_query()
@@ -211,11 +213,11 @@ async def parse_agent_message(data, request):
                     response_data['delegates'].append({d_uuid: del_message})
         #   special encryption will be handled by the appropriate stager call
         # base64 ( UID + ENC(response_data) )
-        if enc_key is None:
+        if keep_logs:
             print(response_data)
+        if enc_key is None:
             return base64.b64encode((UUID + js.dumps(response_data)).encode()).decode()
         else:
-            print(response_data)
             enc_data = await crypt.encrypt_AES256(data=js.dumps(response_data).encode(), key=enc_key)
             return base64.b64encode(UUID.encode() + enc_data).decode()
     except Exception as e:
@@ -355,7 +357,8 @@ async def create_callback_func(data, request):
                         }
                         ] } ] }
             response = requests.post(cal.operation.webhook, json=message)
-            print("Slack webhook response: {}".format(str(response.content)))
+            if keep_logs:
+                print("Slack webhook response: {}".format(str(response.content)))
         except Exception as e:
             logger.exception("Failed to send off webhook: " + str(e))
             print(str(e))

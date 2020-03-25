@@ -19,7 +19,7 @@ ssl/
 # downloaded files
 files/
 apfell-docker/app/c2_profiles/
-apfell_access.log
+apfell_access.*
 postgres-docker/database/
 rabbitmq-docker/storage/
 apfell/**
