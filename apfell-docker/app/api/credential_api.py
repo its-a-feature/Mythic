@@ -49,7 +49,7 @@ async def create_credential(request, user):
 
 async def create_credential_func(operator, operation, data):
     types_list = ['plaintext', 'certificate', 'hash', 'key', 'ticket', 'cookie']
-    if "type" not in data or data['type'] not in types_list:
+    if "credential_type" not in data or data['credential_type'] not in types_list:
         return {'status': 'error', 'error': 'type of credential is required'}
     if "realm" not in data or data['realm'] == "":
         return {'status': 'error', 'error': 'domain for the credential is required'}
@@ -63,29 +63,23 @@ async def create_credential_func(operator, operation, data):
         try:
             # trying to prevent duplication of data in the database
             query = await db_model.credential_query()
-            cred = await db_objects.get(query, type=data['type'], account=data['account'],
+            cred = await db_objects.get(query, type=data['credential_type'], account=data['account'],
                                         realm=data['realm'], operation=operation,
                                         credential=data['credential'], operator=operator)
         except Exception as e:
             # we got here because the credential doesn't exist, so we need to create it
-            cred = await db_objects.create(Credential, type=data['type'], account=data['account'],
+            cred = await db_objects.create(Credential, type=data['credential_type'], account=data['account'],
                                            realm=data['realm'], operation=operation,
                                            credential=data['credential'], operator=operator, comment=data['comment'])
     else:
         try:
-            query = await db_model.task_query()
-            task = await db_objects.get(query, id=data['task'])
-        except Exception as e:
-            print(e)
-            return {"status": 'error', 'error': 'failed to find task'}
-        try:
             query = await db_model.credential_query()
-            cred = await db_objects.get(query, type=data['type'], account=data['account'], task=task,
+            cred = await db_objects.get(query, type=data['credential_type'], account=data['account'], task=data['task'],
                                         realm=data['realm'], operation=operation,
                                         credential=data['credential'], operator=operator)
         except Exception as e:
             # we got here because the credential doesn't exist, so we need to create it
-            cred = await db_objects.create(Credential, type=data['type'], account=data['account'], task=task,
+            cred = await db_objects.create(Credential, type=data['credential_type'], account=data['account'], task=data['task'],
                                            realm=data['realm'], operation=operation,
                                            credential=data['credential'], operator=operator, comment=data['comment'])
     return {'status': 'success', **cred.to_json()}

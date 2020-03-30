@@ -266,7 +266,7 @@ async def post_agent_response(agent_message):
                         parsed_response.pop('artifacts', None)
                     if 'credentials' in parsed_response and str(parsed_response['credentials']) != "":
                         for cred in parsed_response['credentials']:
-                            cred['task'] = task.id
+                            cred['task'] = task
                             new_cred_status = await create_credential_func(task.operator, callback.operation, cred)
                             if new_cred_status['status'] == "success":
                                 final_output += "\nAdded credential for {}".format(cred['user'])
