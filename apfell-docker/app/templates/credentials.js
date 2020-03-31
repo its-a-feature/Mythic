@@ -13,7 +13,7 @@ var creds_div = new Vue({
             $('#createCredentialCredential').val("");
             $('#createCredentialModal').modal('show');
             $('#createCredentialSubmit').unbind('click').click(function(){
-                let data = {"type": $('#createCredentialType').val(),
+                let data = {"credential_type": $('#createCredentialType').val(),
                 "account": $('#createCredentialAccount').val(),
                 "realm": $('#createCredentialRealm').val(),
                 "comment": $('#createCredentialComment').val(),
@@ -34,7 +34,7 @@ var creds_div = new Vue({
             $('#createCredentialCredential').val(cred.credential);
             $('#createCredentialModal').modal('show');
             $('#createCredentialSubmit').unbind('click').click(function(){
-                let data = {"type": $('#createCredentialType').val(),
+                let data = {"credential_type": $('#createCredentialType').val(),
                 "account": $('#createCredentialAccount').val(),
                 "realm": $('#createCredentialRealm').val(),
                 "comment": $('#createCredentialComment').val(),
