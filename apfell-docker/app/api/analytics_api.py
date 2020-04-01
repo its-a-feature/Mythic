@@ -7,6 +7,7 @@ import app.database_models.model as db_model
 from sanic.exceptions import abort
 import os
 from sanic.log import logger
+from collections import deque
 
 
 # ------- ANALYTIC-BASED API FUNCTION -----------------
@@ -349,7 +350,6 @@ async def get_access_log_data(request, user):
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
     entries = 1000
     page = 1
-    output = []
     total_entries = 0
     try:
         if request.method == "POST":
@@ -360,10 +360,14 @@ async def get_access_log_data(request, user):
                 return json({'status': 'error', 'error': 'missing required "entries" parameter or bad value'})
             if 'page' in data:
                 page = data['page']
+        output = []
         if os.path.exists("apfell_access.log"):
             logs = open("apfell_access.log", 'r')
+            # for now, not efficient
+            all_lines = logs.readlines()
+            all_lines.reverse()
             seek_lines = (entries * (page-1))  # the number of entries we need to skip
-            for line in logs:
+            for line in all_lines:
                 total_entries += 1
                 if seek_lines > 0:  # if we still need to skip lines
                     seek_lines -= 1

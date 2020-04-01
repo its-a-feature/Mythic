@@ -10,11 +10,11 @@
     <div style="overflow-y:scroll;height:calc(79vh);padding:0" class="card-body bg-card-body border border-dark shadow">
         <table v-if="entries.length > 0" width="100%" class="table table-condensed table-striped table-hover {{config['table-color']}}" >
             <tr>
-                <th onclick="sort_table(this)" style="width:20rem">Time</th>
+                <th onclick="sort_table(this)" style="width:15rem">Time</th>
                 <th onclick="sort_table(this)">Message</th>
                 <th onclick="sort_table(this)" style="width:15rem">Host</th>
                 <th onclick="sort_table(this)" style="width:10rem">Status</th>
-                <th onclick="sort_table(this)" style="float:right;width:8rem">Response Size</th>
+                <th onclick="sort_table(this)" style="width:8rem">Response Size</th>
             </tr>
             <tr v-for="entry in entries" :style="'background-color:' + entry['color']">
                 <template v-if="entry.type == 'access_log'">
