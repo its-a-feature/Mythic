@@ -457,8 +457,9 @@ async def create_command(request, user):
     else:
         data = request.json
     resp = await create_command_func(data, user)
-    if request.files and resp['status'] == "success":
+    if resp['status'] == 'success':
         os.makedirs("./app/payloads/{}/commands/{}".format(resp['payload_type'], resp['cmd']), exist_ok=True)
+    if request.files and resp['status'] == "success":
         cmd_code = request.files['upload_file'][0].body
         cmd_file = open("./app/payloads/{}/commands/{}/{}".format(resp['payload_type'], resp['cmd'], request.files['upload_file'][0].name), "wb")
         # cmd_code = base64.b64decode(data['code'])
