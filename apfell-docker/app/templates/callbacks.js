@@ -418,6 +418,13 @@ var callback_table = new Vue({
             for(let i = 0; i < this.tree_view_pieces.edges.length; i++){
                 // add all edges to the tree
                 if(this.tree_view_pieces.edges[i]['direction'] === 1){
+                    this.tree_view_pieces.json_data.push(
+                        Object.assign({},
+                        this.tree_view_pieces.edges[i]['destination'],
+                        { "parent":  this.tree_view_pieces.edges[i]['source']['id'],
+                                  "id":  this.tree_view_pieces.edges[i]['destination']['id']}
+                            ));
+                }else if(this.tree_view_pieces.edges[i]['direction'] === 2){
                     if(!this.tree_view_pieces.edges[i]['source']['active']){
                         this.tree_view_pieces.edges[i]['source'] = {
                             id: this.tree_view_pieces.edges[i]['source']['id'],
@@ -434,14 +441,6 @@ var callback_table = new Vue({
                         this.tree_view_pieces.edges[i]['source'],
                         { "parent":  this.tree_view_pieces.edges[i]['destination']['id'],
                                   "id": this.tree_view_pieces.edges[i]['source']['id']}
-                            ));
-
-                }else if(this.tree_view_pieces.edges[i]['direction'] === 2){
-                    this.tree_view_pieces.json_data.push(
-                        Object.assign({},
-                        this.tree_view_pieces.edges[i]['source'],
-                        { "parent":  this.tree_view_pieces.edges[i]['destination']['id'],
-                                  "id":  this.tree_view_pieces.edges[i]['source']['id']}
                             ));
                 }else if(this.tree_view_pieces.edges[i]['direction'] === 3){
                     this.tree_view_pieces.json_data.push(
@@ -969,8 +968,8 @@ function add_edge_for_graph_view(event){
             description: "User removed from callbacks"
         });
         let new_edge = {
-            source: "{\"id\": " + cb['source'] + "}",
-            destination: "{\"id\": 0}",
+            destination: "{\"id\": " + cb['source'] + "}",
+            source: "{\"id\": 0}",
             metadata: "Testing link to server",
             end_timestamp: null,
             id: "fake" + cb['source']
@@ -987,8 +986,8 @@ function add_edge_for_graph_view(event){
             description: "User removed from callbacks",
         });
         let new_edge = {
-            source: "{\"id\": " + cb['target'] + "}",
-            destination: "{\"id\": 0}",
+            destination: "{\"id\": " + cb['target'] + "}",
+            source: "{\"id\": 0}",
             metadata: "Testing link to server",
             end_timestamp: null,
             id: "fake" + cb['target']
@@ -997,7 +996,7 @@ function add_edge_for_graph_view(event){
     }
     //if there's an edge for cb['source'] with destination of 0, remove that edge first
     for(let i = 0; i < callback_table.graph_view_pieces.json_data['links'].length; i++){
-        if(callback_table.graph_view_pieces.json_data['links'][i]['source']['id'] === cb['source'] &&
+        if(callback_table.graph_view_pieces.json_data['links'][i]['source']['id'] === cb['target'] &&
         callback_table.graph_view_pieces.json_data['links'][i]['target']['id'] === 0){
             callback_table.graph_view_pieces.json_data['links'].splice(i, 1);
             continue;
