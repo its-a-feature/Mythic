@@ -1,9 +1,10 @@
-from app import apfell, links, use_ssl
+from app import apfell, links, use_ssl, db_objects
 from sanic import response
 from jinja2 import Environment, PackageLoader
 from sanic_jwt.decorators import scoped, inject_user
 from app.routes.routes import respect_pivot
 import urllib.parse
+import app.database_models.model as db_model
 
 env = Environment(loader=PackageLoader('app', 'templates'))
 
@@ -15,7 +16,11 @@ async def apiui_command_help(request, user):
     template = env.get_template('apiui_command_help.html')
     if len(request.query_args) != 0:
         data = urllib.parse.unquote(request.query_args[0][1])
-        print(data)
+        query = await db_model.payloadtype_query()
+        try:
+            payloadtype = await db_objects.get(query, ptype=data)
+        except Exception as e:
+            data = ""
     else:
         data = ""
     if use_ssl:
