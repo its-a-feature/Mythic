@@ -1,8 +1,0 @@
-{
-  "username": "apfell_user",
-  "password": "apfell_password",
-  "virtual_host": "apfell_vhost",
-  "host": "127.0.0.1",
-  "name": "hostname",
-  "container_files_path": "/Apfell/"
-}

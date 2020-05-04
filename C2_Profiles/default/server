@@ -78,7 +78,7 @@ if __name__ == "__main__":
         app.config['REQUEST_TIMEOUT'] = 600
         app.config['RESPONSE_TIMEOUT'] = 600
         app.error_handler.add(Exception, no_match)
-        app.add_route(agent_message, "/api/<version:string>/agent_message", methods=['GET','POST'])
+        app.add_route(agent_message, "/<uri:path>", methods=['GET','POST'])
         app.error_handler.add(Exception, server_error_handler)
         keyfile = Path(inst['key_path'])
         certfile = Path(inst['cert_path'])
