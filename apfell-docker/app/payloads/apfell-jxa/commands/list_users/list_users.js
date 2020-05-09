@@ -8,7 +8,7 @@ exports.list_users = function(task, command, params){
         if(data.hasOwnProperty('method') && data['method'] !== ""){
             method = data['method'];
         }
-        if(data.hasOwnProperty('gid') && data['gid'] !== ""){
+        if(data.hasOwnProperty('gid') && data['gid'] !== "" && data['gid'] > 0){
             gid = data['gid'];
         }
         if(data.hasOwnProperty("groups") && data['groups'] !== ""){
@@ -23,7 +23,7 @@ exports.list_users = function(task, command, params){
             let defaultAuthority = $.CSGetLocalIdentityAuthority();
             let identityClass = 2;
             if(groups){
-                all_users = {}; // we will want to do a dictionary so we can group the members by their GID
+                all_users = []; // we will want to do a dictionary so we can group the members by their GID
             }
             else{
                 identityClass = 1; //enumerate users
@@ -33,12 +33,20 @@ exports.list_users = function(task, command, params){
             $.CSIdentityQueryExecute(query, 0, error);
             let results = $.CSIdentityQueryCopyResults(query);
             let numResults = parseInt($.CFArrayGetCount(results));
+            if(results.js === undefined){
+                results = $.CFMakeCollectable(results);
+            }
             for(let i = 0; i < numResults; i++){
                 let identity = results.objectAtIndex(i);//results[i];
                 let idObj = $.CBIdentity.identityWithCSIdentity(identity);
                 if(groups){
                     //if we're looking at groups, then we have a different info to print out
-                    all_users[idObj.posixGID] = [];
+                    all_users[i] = {};
+                    all_users[i]["POSIXID"] = idObj.posixGID;
+                    all_users[i]['aliases'] = ObjC.deepUnwrap(idObj.aliases);
+                    all_users[i]['fullName'] = ObjC.deepUnwrap(idObj.fullName);
+                    all_users[i]['POSIXName'] = ObjC.deepUnwrap(idObj.posixName);
+                    all_users[i]['members'] = [];
                     let members = idObj.memberIdentities.js;
                     for(let j = 0; j < members.length; j++){
                         let info = {
@@ -52,7 +60,7 @@ exports.list_users = function(task, command, params){
                             "Aliases": ObjC.deepUnwrap(members[j].aliases),
                             "UUID": members[j].UUIDString.js
                         };
-                        all_users[idObj.posixGID].push(info);
+                        all_users[i]['members'].push(info);
                     }
                 }
                 else{
