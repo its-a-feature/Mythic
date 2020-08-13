@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block body %}
+<!-- PAYLOAD TYPE AND COMMAND INFORMATION/MODIFICATION/CREATION HERE -->
+<div style="margin-top:5px" class="card border border-dark shadow bg-card-body" id="payloadtypes_table" >
+    <div class="card-header bg-header text-white border border-dark shadow">
+        <h2 style="display:inline-block">Global <span class="operator">Payload Type</span> and <span class="operator">Command</span> Information</h2>
+    </div>
+        <div class="card-body border border-dark bg-card-body shadow" style="padding:0">
+            <table style="width:100%;margin-bottom:0;overflow-y:scroll;" class="table table-striped {{config['table-color']}} border border-dark shadow">
+                <tr v-for="(p, i) in payloadtypes" :key="p.id">
+                    <td >
+                        <template v-if="p.wrapper">
+                            <template v-if="p.wrapped_payload_types.length == 1">
+                                <i class="fas fa-gift fa-5x" style="padding-left:40px;padding-top:20px"></i>
+                            </template>
+                            <template v-else-if="p.wrapped_payload_types.length > 1">
+                                <i class="fas fa-gifts fa-5x" style="padding-left:40px;padding-top:20px"></i>
+                            </template>
+                        </template>
+                        <template v-else>
+                            <img :src="'/static/' + p.ptype + '.svg'" style="display:block;margin-left:auto;margin-right:auto;margin-top:auto;margin-bottom:auto;width:100px">
+                        </template>
+                    </td>
+                    <td style="padding-left:15px">
+                        <template v-if="p.container_running">
+                            <div class="led-green" data-toggle="tooltip" title="payload type has running container" style="display:inline-block"></div>
+                        </template>
+                        <template v-else>
+                            <span class="led-red" style="display:inline-block" data-toggle="tooltip" title="No heartbeat from container in over 30 seconds"></span>
+                        </template>
+                        <h3 style="display:inline-block;padding-left:10px">[[p.ptype]]</h3><br>
+                        <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Supported OS: [[p.supported_os]]</pre><br>
+                        <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Authors: [[p.author]]</pre><br><br>
+                        <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">[[p.note]]</pre><br><br>
+                    </td>
+                    <td style="width:14rem">
+                        <span v-if="p.wrapper == false">
+                            Number of Commands: [[p.commands.length]]<br>
+                            <button class="btn btn{{config['outline-buttons']}}secondary btn-sm" @click="edit_commands_button(p)" data-toggle="tooltip" title="View commands">View Commands </button>
+                        </span>
+                        <span v-else>
+                            Wrapped Payload Types:<br>
+                            <div v-for="w in p.wrapped_payload_types">[[w.wrapped]]</div>
+                        </span>
+                        <template v-if="p.wrapper">
+                            <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/wrappers/' + p.ptype.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
+                        </template>
+                        <template v-else>
+                            <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/' + p.ptype.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
+                        </template>
+                        {% if view_mode == 'developer' %}
+                            <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_payloadtype_button(p)" data-toggle="tooltip" title="Delete the entire payload type"><i class="fas fa-trash-alt"></i></button>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+</div>
+<p class="card-text" style="margin:0;padding-left:5px; display:inline-block"><small class="text-muted">
+    leviathan icon made by Freepik, poseidon icons made by Eucalyp from www.flaticon.com
+</small></p>
+    <!-- THIS IS OUR MODAL FOR DELETING PAYLOADTYPE -->
+<div class="modal fade" id="payloadtypeDeleteModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Delete a PayloadType</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <div class="modal-body" id="payloadtypeDeleteBody">
+                  Are you sure? This will mark the payload type as deleted and remove it from view. Current payloads and callbacks will still exist and work though. The payload type will be unregistered from associated c2 profiles as well<br><br>
+
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="payloadtypeDeleteSubmit">Submit</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR DELETING PAYLOADTYPE -->
+<!-- THIS IS OUR MODAL FOR EDITING COMMANDS -->
+<div class="modal fade" id="commandEditModal" role="dialog">
+    <div class="modal-dialog modal-xl" role="document" style="max-width:90%">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>View a Command</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <div class="modal-body">
+                <table class="table table-striped {{config['table-color']}}" style="word-wrap: break-word" id="commandEditTable">
+                    <tr>
+                        <td style="width:20rem"> Command Name: </td>
+                        <td><select class="form-control" id="commandEditCmd" v-model="selected_command"><option v-for="c in commands" :value="c">[[c.cmd]]</option></select></td>
+                    </tr>
+                    <tr>
+                        <td>Command Name:</td>
+                        <td><input disabled class="form-control" type="text" id="commandEditName" style="width:100%" v-model="cmd"></td>
+                    </tr>
+                    <tr>
+                        <td> Description: </td>
+                        <td><textarea disabled class="form-control" type="text" id="commandEditDescription" style="width:100%" rows="5" v-model="description"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td> Help: </td>
+                        <td><input disabled class="form-control" type="text" id="commandEditHelpCmd" style="width:100%" v-model="help_cmd"></td>
+                    </tr>
+                    <tr>
+                        <td> Needs Admin: </td>
+                        <td><span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" id="commandEditNeedsAdmin" v-model="needs_admin">
+                        <label for="commandEditNeedsAdmin" class="btn-info"></label></span></td>
+                    </tr>
+                    <tr>
+                        <td> Author: </td>
+                        <td> <input disabled class="form-control" type="text" style="width:100%" v-model="author"></td>
+                    </tr>
+                    <tr>
+                        <td> Currently Using Version: </td>
+                        <td> [[version]]</td>
+                    </tr>
+                    <tr>
+                        <td> Is Exit Command:</td>
+                        <td><span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsExit" v-model="is_exit">
+                        <label for="commandEditIsExit" class="btn-info"></label></span></td>
+                    </tr>
+                    <tr>
+                        <td> Is Used For File Browsing:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsFileBrowse" v-model="is_file_browse">
+                                <label for="commandEditIsFileBrowse" class="btn-info"></label></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Process Listing:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsProcessList" v-model="is_process_list">
+                                <label for="commandEditIsProcessList" class="btn-info"></label></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Downloading Files:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsDownloadFile" v-model="is_download_file">
+                                <label for="commandEditIsDownloadFile" class="btn-info"></label></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Removing Files:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" id="commandEditIsRemoveFile" v-model="is_remove_file">
+                                <label for="commandEditIsRemoveFile" class="btn-info"></label></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Is Used for Uploading Files:</td>
+                        <td>
+                            <span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" id="commandEditIsUploadFile" v-model="is_upload_file">
+                                <label for="commandEditIsUploadFile" class="btn-info"></label></span>
+                        </td>
+                    </tr>
+                </table>
+                  <h3>Command Parameters:</h3>
+                  <table id="edit_command_parameters_table" class="table table-striped {{config['table-color']}}">
+                      <tr>
+                          <th>Name</th>
+                          <th>Required?</th>
+                          <th>Type</th>
+                          <th>Description</th>
+                          <th>Default Value</th>
+                      </tr>
+                      <tr v-for="(i,p) in command_parameters" :key="i.id">
+                        <td>
+                            <input class="form-control" disabled type="text" style="width:auto" :value="i.name" v-model="i.name">
+                        </td>
+                          <td>
+                              <span style="padding-left:10px" class="material-switch pull-right">
+                                  <input class="form-control" disabled type="checkbox" :value="i.required" v-model="i.required" :id="'required_edit' + p">
+                                  <label :for="'required_edit' + p" class="btn-info">
+                                  </label>
+                              </span>
+                          </td>
+                        <td>
+                              <select disabled class="form-control" v-model="i.type">
+                                        <option value="Select One...">Select One...</option>
+                                        <option value="String">String</option>
+                                        <option value="Boolean">Boolean</option>
+                                        <option value="File">File</option>
+                                        <option value="Array">Array</option>
+                                        <option value="Choice">Choose One</option>
+                                        <option value="ChoiceMultiple">Choose Many</option>
+                                        <option value="Credential-JSON">Credential (JSON)</option>
+                                        <option value="Credential-Account">Credential - Account</option>
+                                        <option value="Credential-Realm">Credential - Realm</option>
+                                        <option value="Credential-Type">Credential - Type</option>
+                                        <option value="Credential-Credential">Credential - Credential</option>
+                                        <option value="Number">Number</option>
+                                        <option value="PayloadList">Payload List</option>
+                                        <option value="AgentConnect">Remote Agent Connection</option>
+                                    </select>
+                          </td>
+                        <td>
+                            <input class="form-control" disabled type="text" size="31" :value="i.description" v-model="i.description">
+                        </td>
+                          <td>
+                              <template v-if="i.choices.length > 0">
+                                Choices: [[i.choices]]
+                              </template>
+                                [[i.default_value]]
+                          </td>
+                    </tr>
+
+                  </table>
+                  <h3>ATT&CK Mapping:</h3>
+                  <table id="edit_command_attack_table" width="100%" class="table table-striped {{config['table-color']}}">
+                      <tr>
+                          <th>ATT&CK Technique</th>
+                      </tr>
+                      <tr v-for="(i, p) in add_attack_command" :key="i.t_num">
+                          <td>
+                              <select disabled class="form-control" v-model="i.t_num"><option v-for="item in attackOptions" :value="item.t_num">[[item.t_num]] - [[item.name]]</option></select>
+                          </td>
+                      </tr>
+                  </table>
+              </div>
+              <div class="modal-footer">
+                  <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true" id="commandEditCancel">Close</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR EDITING COMMANDS -->
+
+{% endblock %}
+
+{% block scripts %}
+{% include "payloadtype_management.js" %}
+{% endblock %}
+
+{% block body_config %}
+
+{% endblock %}

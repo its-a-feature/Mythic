@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block body %}
+<img src="/static/dark.png" style="opacity:0.05;position:absolute;width:99%;height:100%">
+    <div style="position:absolute; top:20%; left:35%">
+        <img src="/static/red_blue_login.png" style="width:482px;height:377px">
+        <form action="" method="post">
+        {{ errors.token_errors }}
+        <span style="color: red;">{{ errors.username_errors }}</span>
+    {{ form.csrf_token }}
+        <table>
+            <tr style="vertical-align:middle">
+                <td style="vertical-align:bottom;padding-left:35px"><h4 style="color:white">Username</h4></td>
+                <td style="vertical-align:middle">{{form.username(size=32, class_="form-control")}}
+                    <br>
+                </td>
+            </tr>
+            <tr>
+                <td style="vertical-align:bottom;padding-left:35px"><h4 style="color:white">Password</h4></td>
+                <td>{{form.password(size=32, class_="form-control")}}
+                    <br>
+                </td>
+            </tr>
+            <tr>
+                <td><br>{{form.submit(class_="btn btn-secondary")}}</td>
+                <td></td>
+            </tr>
+        </table>
+        </form>
+        <p >New User? <a href="{{ links.register }}">Click to Register!</a></p>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
+
+{% block body_config %}
+body{
+    background:  linear-gradient(135deg, transparent 0%,#646f80 70%, #122443 100%);
+    width:100%;
+    height:100vh;
+    background-size: cover;
+    color: white;
+}
+input[type=text]{
+    border: 1px solid white;
+}
+input[type=password]{
+    border: 1px solid white;
+}
+{% endblock %}

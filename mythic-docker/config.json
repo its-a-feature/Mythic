@@ -1,0 +1,17 @@
+{
+  "mythic_admin_user": "mythic_admin",
+  "mythic_admin_password": "mythic_password",
+  "default_operation_name": "Operation Chimera",
+  "listen_port": 7443,
+  "ssl_cert_path": "./app/ssl/mythic-cert.pem",
+  "ssl_key_path": "./app/ssl/mythic-ssl.key",
+  "allowed_ip_blocks": ["0.0.0.0/0"],
+  "use_ssl": true,
+  "server_header": "nginx 1.2",
+  "log_size": 1024000,
+  "keep_logs": true,
+  "excluded_c2_profiles": [ ],
+  "excluded_payload_types": [ ],
+  "start_documentation_container": true,
+  "documentation_container_port": 8080
+}

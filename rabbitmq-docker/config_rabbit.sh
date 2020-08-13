@@ -21,11 +21,11 @@ done
 # Execute RabbitMQ config commands here
 
 # Create user
-rabbitmqctl add_user apfell_user apfell_password
-rabbitmqctl add_vhost apfell_vhost
-rabbitmqctl set_user_tags apfell_user administrator
-rabbitmqctl set_permissions -p apfell_vhost apfell_user ".*" ".*" ".*"
-echo "$0 `date` user apfell_user created"
+rabbitmqctl add_user mythic_user mythic_password
+rabbitmqctl add_vhost mythic_vhost
+rabbitmqctl set_user_tags mythic_user administrator
+rabbitmqctl set_permissions -p mythic_vhost mythic_user ".*" ".*" ".*"
+echo "$0 `date` user mythic_user created"
 
 # Create queue
 #rabbitmqadmin declare queue name=QUEUE durable=true

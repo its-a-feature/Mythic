@@ -15,13 +15,13 @@ then
 else
     echo "Clearing display_output.txt"
     echo -n "" > display_output.txt
-    echo "Writing out apfell_rabbitmq to display_output.txt"
-    output=`docker logs --tail=500 apfell_rabbitmq >> display_output.txt 2>/dev/null`
-    echo "Writing out apfell_postgres to display_output.txt"
-    output=`docker logs --tail=500 apfell_postgres >> display_output.txt 2>/dev/null`
-    echo "Writing out apfell_apfell to display_output.txt"
-    output=`docker logs --tail=500 apfell_apfell >> display_output.txt 2>/dev/null`
-    profiles=(./C2_Profiles/*)--tail=500
+    echo "Writing out mythic_rabbitmq to display_output.txt"
+    output=`docker logs --tail=500 mythic_rabbitmq >> display_output.txt 2>/dev/null`
+    echo "Writing out mythic_postgres to display_output.txt"
+    output=`docker logs --tail=500 mythic_postgres >> display_output.txt 2>/dev/null`
+    echo "Writing out mythic_server to display_output.txt"
+    output=`docker logs --tail=500 mythic_server >> display_output.txt 2>/dev/null`
+    profiles=(./C2_Profiles/*)
     for p in "${profiles[@]}"
     do
         realpath=$(realpath "$p")

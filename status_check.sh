@@ -1,6 +1,11 @@
 #!/bin/bash
-echo "Core apfell services:  apfell_apfell, apfell_postgres, apfell_rabbitmq"
-docker ps -a --filter name=apfell_apfell --filter name=apfell_postgres --filter name=apfell_rabbitmq
+if [ "$EUID" -ne 0 ]
+  then echo "[-] Please run as root"
+  exit
+fi
+
+echo "Core mythic services:  mythic_server, mythic_postgres, mythic_rabbitmq"
+docker ps -a --filter name=mythic_server --filter name=mythic_postgres --filter name=mythic_rabbitmq
 echo ""
 echo "C2_Profile endpoints"
 profiles=(./C2_Profiles/*)
@@ -14,7 +19,7 @@ do
         tag=$(echo "${tag/'_'/}")
 	if [ -d "$realpath" ]
 	then
-		filter_string=$(echo "$filter_string --filter name=$tag")
+		filter_string=$(echo "$filter_string --filter name=^/$tag\$")
 	fi
 done
 docker ps -a $filter_string
@@ -31,7 +36,7 @@ do
         tag=$(echo "${tag/'_'/}")
 	if [ -d "$realpath" ]
 	then
-		filter_string=$(echo "$filter_string --filter name=$tag")
+		filter_string=$(echo "$filter_string --filter name=^/$tag\$")
 	fi
 done
 docker ps -a $filter_string

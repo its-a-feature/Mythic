@@ -1,0 +1,42 @@
+baseURL = "/"
+languageCode = "en-US"
+defaultContentLanguage = "en"
+
+title = "Mythic Agent Documentation"
+theme = "hugo-theme-learn"
+themesdir = "themes"
+metaDataFormat = "yaml"
+defaultContentLanguageInSubdir= true
+
+[params]
+  editURL = ""
+  description = "Mythic Agent Documentation"
+  author = ""
+  showVisitedLinks = false
+  disableBreadcrumb = false
+  disableNextPrev = false
+  disableInlineCopyToClipBoard = true
+  disableLanguageSwitchingButton = true
+  themeVariant = "mythic"
+  disableSearch = true
+
+[outputs]
+home = [ "HTML", "RSS", "JSON"]
+
+[Languages]
+[Languages.en]
+title = "Mythic Agent Documentation"
+weight = 1
+languageName = "English"
+
+[[Languages.en.menu.shortcuts]]
+name = "<i class='fab fa-fw fa-github'></i> GitHub repo"
+identifier = "ds"
+url = "https://github.com/its-a-feature/Apfell"
+weight = 10
+
+[[Languages.en.menu.shortcuts]]
+name = "<i class='fas fa-fw fa-bookmark'></i> Mythic Documentation"
+identifier = "hugodoc"
+url = "https://docs.apfell.net/"
+weight = 20

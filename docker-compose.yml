@@ -2,34 +2,34 @@ version: '2.4'
 services:
         postgres:
                 build: ./postgres-docker
-                container_name: apfell_postgres
+                container_name: mythic_postgres
                 network_mode: host
                 volumes:
                  - ./postgres-docker/database:/var/lib/postgresql/data
                 labels:
-                        NAME: "apfell_postgres"
+                        NAME: "mythic_postgres"
                 restart: on-failure
         rabbitmq:
                 build: ./rabbitmq-docker
-                container_name: apfell_rabbitmq
+                container_name: mythic_rabbitmq
                 network_mode: host
                 volumes:
                  - ./rabbitmq-docker/storage:/var/lib/rabbitmq
                 labels:
-                        NAME: "apfell_rabbitmq"
+                        NAME: "mythic_rabbitmq"
                 restart: on-failure
                 #mem_limit: 512M
-        apfell:
-                build: ./apfell-docker
+        mythic:
+                build: ./mythic-docker
                 network_mode: host
-                container_name: apfell_apfell
+                container_name: mythic_server
                 volumes:
-                 - ./apfell-docker/app:/Apfell/app
+                 - ./mythic-docker:/Mythic
                 labels:
-                        NAME: "apfell_apfell"
+                        NAME: "mythic_server"
                 depends_on:
                  - postgres
                  - rabbitmq
                 restart: on-failure
-                command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Apfell/server.py"]
+                command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Mythic/server.py"]
 

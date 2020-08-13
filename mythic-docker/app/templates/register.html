@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block body_config %}
+body{
+    background:  linear-gradient(135deg, transparent 0%,#646f80 70%, #122443 100%);
+    width:100%;
+    height:100vh;
+    background-size: cover;
+    color: white;
+}
+input[type=text]{
+    border: 1px solid white;
+}
+input[type=password]{
+    border: 1px solid white;
+}
+}
+{% endblock %}
+{% block body %}
+<img src="/static/dark.png" style="opacity:0.05;position:absolute;width:99%;height:100%">
+<div style="position:absolute; top:20%; left:35%">
+    <img src="/static/red_blue_login.png" style="width:40%;height:40%">
+    <form action="" method="post">
+        {% for error in form.username.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+        {{ form.csrf_token }}
+        <table>
+            <tr>
+                <td style="vertical-align:bottom"><h4 style="color:white">Username</h4></td>
+                <td>{{ form.username(size=32, class_="form-control", style="color:black") }}
+                    <br>
+                </td>
+            </tr>
+            <tr>
+                <td style="vertical-align:bottom"><h4 style="color:white">Password</h4></td>
+                <td>{{ form.password(size=32, class_="form-control", style="color:black") }}
+                    <br>
+                </td>
+            </tr>
+            <tr>
+                <td style="vertical-align:bottom"><h4 style="color:white">Repeat Password</h4></td>
+                <td>{{ form.password2(size=32, class_="form-control", style="color:black") }}
+                    <br>
+                </td>
+            </tr>
+            <tr>
+                <td>{{ form.submit(class_="btn btn-secondary") }}</td>
+                <td></td>
+            </tr>
+        </table>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

@@ -1,5 +1,5 @@
-# Apfell
-A cross-platform, post-exploit, red teaming framework built with python3, docker, docker-compose, and a web browser UI. It's designed to provide a collaborative and user friendly interface for operators, managers, and reporting throughout mac and linux based red teaming. 
+# Mythic
+A cross-platform, post-exploit, red teaming framework built with python3, docker, docker-compose, and a web browser UI. It's designed to provide a collaborative and user friendly interface for operators, managers, and reporting throughout red teaming. 
 
 ## Details
 Check out the [blog post](https://its-a-feature.github.io/posts/2018/07/bare-bones-apfell-server-code-release/) on the initial release of the framework and what the bare bones content can do.  
@@ -8,11 +8,11 @@ BSides Seattle 2019 Demo Videos: [Available on my Youtube](https://www.youtube.c
 Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf  
 Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
 
-* Current Version: 1.4
+* Current Version: 2.0
 
 ## Documentation
 
-All documentation for the Apfell project is being maintained on the [docs.apfell.net](https://docs.apfell.net) website.
+All documentation for the Mythic project is being maintained on the [docs.mythic-c2.net](https://docs.mythic-c2.net) website.
 
 
 ## Contributions

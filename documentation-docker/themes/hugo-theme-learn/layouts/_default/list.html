@@ -1,0 +1,16 @@
+{{ partial "header.html" . }}
+
+{{ if eq .Kind "section" }}
+	{{ .Content }}
+{{end}}
+
+{{ if or (eq .Kind "taxonomy") (eq .Kind "taxonomyTerm") }}
+<ul>
+	{{ range .Pages }}
+		<li><a href="{{.RelPermalink}}">{{.Title}}</a></li>
+	{{ end }}
+</ul>
+{{end}}
+
+
+{{ partial "footer.html" . }}

@@ -1,0 +1,96 @@
+# Go cross compiler (xgo): Base cross-compilation layer
+# Copyright (c) 2014 Péter Szilágyi. All rights reserved.
+#
+# Released under the MIT license.
+# pulled and modified from https://github.com/karalabe/xgo/blob/master/docker/go-1.13.4/Dockerfile
+
+FROM ubuntu:18.04
+# Mark the image as xgo enabled to support xgo-in-xgo
+ENV XGO_IN_XGO 1
+
+# Configure the Go environment, since it's not going to change
+ENV PATH   /usr/local/go/bin:$PATH
+ENV GOPATH /go
+
+
+# Inject the remote file fetcher and checksum verifier
+ADD fetch.sh /fetch.sh
+ENV FETCH /fetch.sh
+RUN chmod +x $FETCH
+
+
+# Make sure apt-get is up to date and dependent packages are installed
+RUN \
+  apt-get update && \
+  apt-get install -y automake autogen build-essential ca-certificates cmake                   \
+    gcc-5-aarch64-linux-gnu g++-5-aarch64-linux-gnu libc6-dev-arm64-cross                \
+    gcc-5-multilib g++-5-multilib clang llvm-dev             \
+    libtool libxml2-dev uuid-dev libssl-dev swig openjdk-8-jdk pkg-config patch          \
+    make xz-utils cpio wget zip unzip p7zip git mercurial bzr texinfo help2man           \
+    --no-install-recommends
+
+RUN \
+    apt-get install -y python3 python3-pip
+
+RUN pip3 install aio_pika
+
+# Fix any stock package issues
+RUN ln -s /usr/include/asm-generic /usr/include/asm
+
+##########################
+# Darwin Toolchain build #
+##########################
+
+# Configure the container for OSX cross compilation
+ENV OSX_SDK MacOSX10.11.sdk
+ENV OSX_SDK_PATH https://s3.dockerproject.org/darwin/v2/$OSX_SDK.tar.xz
+
+# Make libxar known to the ld64 and cctools build
+ENV LD_LIBRARY_PATH=/osxcross/target/lib
+
+# Download the osx sdk and build the osx toolchain
+# We download the osx sdk, patch it and pack it again to be able to throw the patched version at osxcross
+RUN \
+  $FETCH $OSX_SDK_PATH dd228a335194e3392f1904ce49aff1b1da26ca62 && \
+  tar -xf `basename $OSX_SDK_PATH` && rm -f `basename $OSX_SDK_PATH`
+ADD patch.tar.xz $OSX_SDK/usr/include/c++
+RUN tar -cf - $OSX_SDK/ | xz -c - > $OSX_SDK.tar.xz && rm -rf $OSX_SDK
+
+# Actually build the toolchain
+RUN \
+  git clone https://github.com/tpoechtrager/osxcross.git && \
+  cd osxcross && git checkout 88cb6e8d0d7675cae7c8a2d66c11f58237101df0 && cd ../ && \
+  mv  $OSX_SDK.tar.xz /osxcross/tarballs/ && \
+  OSX_VERSION_MIN=10.10 UNATTENDED=1 LD_LIBRARY_PATH=/osxcross/target/lib /osxcross/build.sh
+ENV PATH /osxcross/target/bin:$PATH
+
+# Inject the new Go root distribution downloader and bootstrapper
+ADD bootstrap_pure.sh /bootstrap_pure.sh
+ENV BOOTSTRAP_PURE /bootstrap_pure.sh
+RUN chmod +x $BOOTSTRAP_PURE
+
+# Inject the container entry point, the build script
+ADD build.sh /build.sh
+ENV BUILD /build.sh
+RUN chmod +x $BUILD
+
+ENV GO_VERSION 11304
+# Make libxar known to the ld64 and cctools build
+ENV LD_LIBRARY_PATH=/osxcross/target/lib
+
+RUN \
+  export ROOT_DIST=https://storage.googleapis.com/golang/go1.13.4.linux-amd64.tar.gz    && \
+  export ROOT_DIST_SHA=692d17071736f74be04a72a06dab9cac1cd759377bd85316e52b2227604c004c && \
+  \
+  $BOOTSTRAP_PURE
+
+RUN mkdir /Mythic_service 2>/dev/null
+COPY ["payload_service.sh", "/Mythic_service/payload_service.sh"]
+RUN chmod +x /Mythic_service/payload_service.sh
+WORKDIR /Mythic_service/
+
+ENV GOROOT /usr/local/go
+ENV GOPATH /go/src:/go/src/poseidon
+
+
+ENTRYPOINT ["/Mythic_service/payload_service.sh"]

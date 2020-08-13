@@ -1,0 +1,21 @@
+function(task, response){
+  var rows = [];
+  for(let i = 0; i < response.length; i++){
+    try{
+        var data = JSON.parse(response[i]['response']);
+    }catch(error){
+        return response;
+    }
+    data.forEach(function(r){
+      let row_style = "";
+      rows.push({"process_id": r['process_id'],
+                          "parent_process_id": r['parent_process_id'],
+                          "path": r['bin_path'],
+                          "user": r['user'],
+                          "row-style": row_style,
+                           "cell-style": {}
+                         });
+    });
+  }
+  return support_scripts['atlas_create_table']([{"name":"process_id", "size":"10em"},{"name":"parent_process_id", "size":"10em"}, {"name": "user", "size": "10em"},{"name":"path", "size":""}], rows);
+}

@@ -1,18 +1,25 @@
 #!/bin/bash
-
+RED='\033[1;31m'
+NC='\033[0m' # No Color
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+if [ "$EUID" -ne 0 ]
+  then echo -e "${RED}[-]${NC} Please run as root"
+  exit
+fi
 if [ $# -eq 0 ]
 then
-	# if no arguments supplied, try to build and start all c2 profiles
+	# if no arguments supplied, try to stop all c2 profiles
 	profiles=(./C2_Profiles/*)
 else
-	# if any arguments supplied, try to build and start only the specified c2 profiles
+	# if any arguments supplied, try to stop only the specified c2 profiles
 	profiles=( "$@" )
 	profiles=("${profiles[@]/#/.\/C2_Profiles\/}")
 fi
 
 # build out the standard image for c2 profiles
-echo "Pruning old images..."
-docker image prune -f
+echo -e "${BLUE}[*]${NC} Pruning old images..."
+output=`docker image prune -f 2>/dev/null`
 # now loop through the profiles to build out their variations
 for p in "${profiles[@]}"
 do
@@ -24,16 +31,22 @@ do
 	if [ -d "$realpath" ]
 	then
 		# only try to do this if the specified directory actually exists
-		echo "Trying to stop $p's container..."
+		echo -e "${BLUE}[*]${NC} Trying to stop $p's container..."
 		if [ "$(docker ps -a | grep $tag )" ]
 		then
 			output=`docker stop "$tag" 2>/dev/null`
 			if [ $? -ne 0 ]
 			then
-				echo "Failed to stop container $tag"
+				echo -e "${RED}[-]${NC} Failed to stop container $tag"
+			else
+			  echo -e "${GREEN}[+]${NC} Successfully stopped $tag's container"
 			fi
+		else
+		  echo -e "${GREEN}[+]${NC} $tag's container not running"
 		fi
-		echo "Deleting $p's container..."
-		docker container rm $(docker ps -a -q --filter name="$tag") 2>/dev/null
+		echo -e "${BLUE}[*]${NC} Deleting $p's container..."
+		output=`docker container rm $(docker ps -a -q --filter name="$tag") 2>/dev/null`
+	else
+	  echo -e "${RED}[-]${NC} $tag is not in the C2_Profiles folder"
 	fi
 done
