@@ -55,18 +55,14 @@ startContainer(){
       else
         echo -e "${GREEN}[+]${NC} Successfully built $p's container"
       fi
-      docker container prune -f
-      #docker volume prune -f
+      docker container prune --filter label=name="$tag" -f
       output=`docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="$use_ssl://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag" 2>&1`
       if [ $? -ne 0 ]
       then
         echo -e "${BLUE}[*]${NC} C2 Profile, $p, is already running. Stopping it..."
         # if we got an error while trying to run the container, stop any current ones first and try again
         output=`docker stop "$tag" 2>/dev/null`
-        #docker container prune -f
         output=`docker container rm $(docker container ps -aq --filter name="$tag") 2>/dev/null`
-        #docker volume prune -f
-        #output=`docker volume rm "mythic_${tag}" 2>/dev/null`
         echo -e "${BLUE}[*]${NC} Now trying to start it again..."
         docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="$use_ssl://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag"
         if [ $? -ne 0 ]
@@ -120,14 +116,6 @@ done
 fi
 payloads=(./C2_Profiles/*)
 
-# build out the standard image for building payload types
-echo -e "${BLUE}[*]${NC} Pruning old images..."
-docker image prune -f
-if [ $? -ne 0 ]
-then
-  echo -e "${RED}[-]${NC} Failed to prune old images. Aborting"
-  exit 1
-fi
 # can use the next two lines to build a local "payload_type_base" image that's python3.6 and has the necessary files
 #echo "Building golden payload_type_base image..."
 # now loop through the profiles to build out their variations

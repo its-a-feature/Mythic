@@ -18,8 +18,6 @@ else
 fi
 
 # build out the standard image for c2 profiles
-echo -e "${BLUE}[*]${NC} Pruning old images..."
-output=`docker image prune -f 2>/dev/null`
 # now loop through the profiles to build out their variations
 for p in "${profiles[@]}"
 do

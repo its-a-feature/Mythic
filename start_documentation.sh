@@ -34,7 +34,6 @@ then
 else
   echo -e "${GREEN}[+]${NC} Successfully built the documentation container"
 fi
-docker container prune -f
-#docker volume prune -f
+docker container prune --filter label=name=documentation -f
 realpath=$(realpath "documentation-docker")
 output=`docker run -d -v "$realpath:/src" --name "documentation" -p $documentation_port:1313  "mythic_documentation" server 2>/dev/null`

@@ -156,12 +156,6 @@ if $start_documentation
 then
     ./start_documentation.sh $documentation_port
 fi
-docker image prune -f
-if [ $? -ne 0 ]
-then
-  echo -e "${RED}[-]${NC} Failed to prune images. Aborting"
-  exit 1
-fi
 
 echo -e "${BLUE}[*]${NC} Testing connection to server via curl at: $use_ssl://127.0.0.1:$server_port"
 output=`curl -s --retry-connrefused --retry 5 $use_ssl://127.0.0.1:$server_port --insecure`

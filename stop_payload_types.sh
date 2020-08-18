@@ -18,9 +18,6 @@ else
 fi
 
 # build out the standard image for building payload types
-echo -e "${BLUE}[*]${NC} Pruning old images..."
-output=`docker image prune -f 2>/dev/null`
-#echo "Building golden payload_type_base image..."
 #docker build -f "./Payload_Types/Dockerfile" --rm -t "payload_type_base" "./Payload_Types"
 # now loop through the profiles to build out their variations
 echo -e "${BLUE}[*]${NC} Looping through payload types..."

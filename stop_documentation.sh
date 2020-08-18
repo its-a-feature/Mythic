@@ -9,5 +9,5 @@ if [ "$EUID" -ne 0 ]
 fi
 echo -e "${BLUE}[*]${NC} Stopping documentation container"
 docker stop "documentation" 2>/dev/null
-docker container prune -f
+docker container prune --filter label=name=documentation -f
 echo -e "${GREEN}[+]${NC} Successfully stopped the documentation container"
