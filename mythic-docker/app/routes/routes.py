@@ -70,7 +70,7 @@ class Login(BaseEndpoint):
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('login.html')
         content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={},
-                                  view_utc_time=False)
+                                  view_utc_time=False, http="https" if use_ssl else "http")
         return response.html(content)
 
     async def post(self, request):
@@ -104,7 +104,7 @@ class Login(BaseEndpoint):
                             })
                             template = env.get_template('login.html')
                             content = template.render(links=await respect_pivot(links, request), form=form,
-                                                      errors=errors, access_token=access_token,
+                                                      errors=errors, access_token=access_token, http="https" if use_ssl else "http",
                                                       refresh_token=refresh_token, config={}, view_utc_time=False)
                             resp = response.html(content)
                             # resp = response.redirect("/")
@@ -125,7 +125,7 @@ class Login(BaseEndpoint):
         errors['password_errors'] = '<br>'.join(form.password.errors)
         template = env.get_template('login.html')
         content = template.render(links=await respect_pivot(links, request), form=form, errors=errors,
-                                  config={}, view_utc_time=False)
+                                  config={}, view_utc_time=False, http="https" if use_ssl else "http")
         return response.html(content)
 
 
@@ -135,7 +135,7 @@ class Register(BaseEndpoint):
         form = RegistrationForm(request)
         template = env.get_template('register.html')
         content = template.render(links=await respect_pivot(links, request), form=form, errors=errors,
-                                  config={}, view_utc_time=False)
+                                  config={}, view_utc_time=False, http="https" if use_ssl else "http")
         return response.html(content)
 
     async def post(self, request, *args, **kwargs):
@@ -169,7 +169,7 @@ class Register(BaseEndpoint):
                 # we want to make sure to store access/refresh token in JS before moving into the rest of the app
                 template = env.get_template('register.html')
                 content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, access_token=access_token,
-                                          refresh_token=refresh_token, config={}, view_utc_time=False)
+                                          refresh_token=refresh_token, config={}, view_utc_time=False, http="https" if use_ssl else "http")
                 resp = response.html(content)
                 resp.cookies[self.config.cookie_access_token_name()] = access_token
                 resp.cookies[self.config.cookie_access_token_name()]['httponly'] = True
@@ -183,7 +183,7 @@ class Register(BaseEndpoint):
         errors['username_errors'] = '<br>'.join(form.username.errors)
         template = env.get_template('register.html')
         content = template.render(links=await respect_pivot(links, request), form=form, errors=errors, config={},
-                                  view_utc_time=False)
+                                  view_utc_time=False, http="https" if use_ssl else "http")
         return response.html(content)
 
 

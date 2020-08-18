@@ -33,8 +33,11 @@
                     <template v-if="o.name == current_operation">
                         Current Operation
                     </template>
-                    <template v-else>
+                    <template v-else-if="is_member(o, username)">
                         <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="set_current_operation(o)">Make Current Operation</button>
+                    </template>
+                    <template v-else>
+                        Not a member of Operation
                     </template>
                 </td>
             </tr>

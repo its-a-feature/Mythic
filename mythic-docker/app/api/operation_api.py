@@ -47,25 +47,29 @@ async def get_one_operation(request, user, op):
     # get information about a single operation
     # first confirm that this authenticated user as permission to view the op
     #   side effect is that we confirm if the op is real or not
-    if op in user['operations']:
+    try:
         # get all users associated with that operation and the admin
         operators = []
         query = await db_model.operation_query()
         operation = await db_objects.get(query, id=op)
-        query = await db_model.operatoroperation_query()
-        operatorsmap = await db_objects.execute(query.where(OperatorOperation.operation == operation))
-        for operator in operatorsmap:
-            o = operator.operator
-            data = {"username": o.username, "view_mode": operator.view_mode}
-            if o.base_disabled_commands is not None:
-                data['base_disabled_commands'] = o.base_disabled_commands.name
-            else:
-                data['base_disabled_commands'] = None
-            operators.append(data)
-        status = {'status': 'success'}
-        return json({**operation.to_json(), "members": operators, **status})
-    else:
-        return json({"status": 'error', 'error': 'failed to find operation or not authorized'})
+        if operation.name in user['operations'] or operation.name in user['admin_operations']:
+            query = await db_model.operatoroperation_query()
+            operatorsmap = await db_objects.execute(query.where(OperatorOperation.operation == operation))
+            for operator in operatorsmap:
+                o = operator.operator
+                data = {"username": o.username, "view_mode": operator.view_mode}
+                if operator.base_disabled_commands is not None:
+                    data['base_disabled_commands'] = operator.base_disabled_commands.name
+                else:
+                    data['base_disabled_commands'] = None
+                operators.append(data)
+            status = {'status': 'success'}
+            return json({**operation.to_json(), "members": operators, **status})
+        else:
+            return json({"status": 'error', 'error': 'failed to find operation or not authorized'})
+    except Exception as e:
+        print(e)
+        return json({'status': 'error', 'error': 'failed to find operation'})
 
 
 async def add_user_to_operation_func(operation, users, user):

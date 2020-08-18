@@ -32,6 +32,7 @@ class LoadAssemblyCommand(CommandBase):
     author = ""
     argument_class = LoadAssemblyArguments
     attackmapping = []
+    browser_script = None
 
     # this function is called after all of your arguments have been parsed and validated that each "required" parameter has a non-None value
     async def create_tasking(self, task: MythicTask) -> MythicTask:

@@ -15,11 +15,11 @@ function(task, response){
 		      if(r['name'].includes("Term")){row_style="background-color:red;color:white"}
 		      if(r['name'].includes("Snitch")){row_style="background-color:red;color:white"}
 		      if(r['name'].includes("Slack")){row_style="background-color:blue;color:white"}
-		      rows.push({"pid": r['process_id'],
-		                 "name": r['name'],
-		                 "arch": r['architecture'],
-		                 "frontMost": r['frontMost'],
-		                 "bin_path": r['bin_path'],
+		      rows.push({"pid": escapeHTML(r['process_id']),
+		                 "name": escapeHTML(r['name']),
+		                 "arch": escapeHTML(r['architecture']),
+		                 "frontMost": escapeHTML(r['frontMost']),
+		                 "bin_path": escapeHTML(r['bin_path']),
 		                 "row-style": row_style,
 		                 "cell-style": {"hidden": "text-align:center",
 		                                "pid":"text-align:center"}

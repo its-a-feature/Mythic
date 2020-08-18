@@ -28,9 +28,12 @@ async def get_all_operators(request, user):
 async def get_my_operator(request, user):
     if user['auth'] not in ['access_token', 'apitoken']:
         abort(status_code=403, message="Cannot access via Cookies. Use CLI or access via JS in browser")
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, username=user['username'])
-    return json(operator.to_json())
+    try:
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user['username'])
+        return json({'status': 'success', **operator.to_json()})
+    except Exception as e:
+        return json({'status': 'error', 'error': 'failed to get current operator'})
 
 
 @mythic.route(mythic.config['API_BASE'] + "/operators/", methods=['POST'])

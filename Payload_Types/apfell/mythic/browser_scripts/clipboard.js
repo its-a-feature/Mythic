@@ -11,17 +11,17 @@ function(task, responses){
 		let key_list = [];
 		let specified = false;
 		for(const [key, value] of Object.entries(data)){
-			key_list.push(key);
+			key_list.push(escapeHTML(key));
 			if(key === "public.utf8-plain-text"){
-				output = atob(value);
+				output = escapeHTML(atob(value));
 			}else if(value !== ""){
 				specified = true;
 			}
 		}
 		if(specified){
-			return "<pre>All Keys: " + key_list.join(", ") + "\n" + responses[0]['response'] + "</pre>";
+			return "<pre>All Keys: " + key_list.join(", ") + "\n" + escapeHTML(responses[0]['response']) + "</pre>";
 		}else{
-			return "<pre>All Keys: " + key_list.join(", ") + "\nPlaintext Data:\n" + output + "</pre>";
+			return "<pre>All Keys: " + key_list.join(", ") + "\nPlaintext Data:\n" + escapeHTML(output) + "</pre>";
 		}
 
 	}catch(error){

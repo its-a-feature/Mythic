@@ -256,7 +256,8 @@ async def set_default_scripts(new_user):
         for script in scripts:
             await db_objects.create(db_model.BrowserScript, operator=new_user, payload_type=script.payload_type,
                                     name=script.name, script=script.script, container_version=script.container_version,
-                                    author=script.author, container_version_author=script.container_version_author)
+                                    author=script.author, container_version_author=script.container_version_author,
+                                    command=script.command)
     except Exception as e:
         return {"status": "error", "error": "failed to create scripts: " + str(e)}
 

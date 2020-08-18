@@ -11,7 +11,7 @@ class Atlas(PayloadType):
     file_extension = "exe"  # default file extension to use when creating payloads
     author = "@Airzero24"  # author of the payload type
     supported_os = [  # supported OS and architecture combos
-        "Windows (x64)", "Windows (x86)", "Windows (Any)"
+        SupportedOS.Windows
     ]
     wrapper = False  # does this payload type act as a wrapper for another payloads inside of it?
     wrapped_payloads = []  # if so, which payload types

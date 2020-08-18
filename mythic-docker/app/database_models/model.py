@@ -102,6 +102,7 @@ class Operator(p.Model):
             try:
                 if k == 'current_operation':
                     r[k] = getattr(self, k).name
+                    r['current_operation_id'] = getattr(self, k).id
                 elif k != 'password' and 'default' not in k:
                     r[k] = getattr(self, k)
             except:

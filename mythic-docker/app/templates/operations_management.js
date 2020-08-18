@@ -159,6 +159,14 @@ var operations_table = new Vue({
                     alertTop("danger", "Session expired, please refresh");
                 }
             }, "PUT", {"current_operation": o.name});
+        },
+        is_member: function(o, name){
+            for(let i = 0; i < o.members.length; i++){
+                if(o.members[i]['username'] === name){
+                    return true;
+                }
+            }
+            return false;
         }
     },
     delimiters: ['[[',']]']

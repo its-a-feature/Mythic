@@ -14,10 +14,10 @@ function(task, response) {
                 row_style = "background-color: #5E28DC";
             }
             rows.push({
-                "Filename": r['file_name'],
-                "Size": r['size'],
-                "Lastmodified": r['timestamp'],
-                "IsDir": r['IsDir'],
+                "Filename": escapeHTML(r['file_name']),
+                "Size": escapeHTML(r['size']),
+                "Lastmodified": escapeHTML(r['timestamp']),
+                "IsDir": escapeHTML(r['IsDir']),
                 "row-style": row_style,
                 "cell-style": {}
             });

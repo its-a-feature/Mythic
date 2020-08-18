@@ -18,12 +18,11 @@ class LsArguments(TaskArguments):
                     # this means we have tasking from the file browser rather than the popup UI
                     # the apfell agent doesn't currently have the ability to do _remote_ listings, so we ignore it
                     self.add_arg("path", temp_json['path'] + "/" + temp_json['file'])
+                    self.add_arg("file_browser", "true")
                 else:
                     self.add_arg("path", temp_json['path'])
-                self.add_arg("file_browser", "true")
             else:
                 self.add_arg("path", self.command_line)
-                self.add_arg("file_browser", "true")
 
 
 class LsCommand(CommandBase):
@@ -41,6 +40,7 @@ class LsCommand(CommandBase):
     author = "@its_a_feature_"
     attackmapping = ["T1106", "T1083"]
     argument_class = LsArguments
+    browser_script = BrowserScript(script_name="ls", author="@its_a_feature_")
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         return task

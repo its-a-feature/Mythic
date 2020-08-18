@@ -8,13 +8,13 @@ function(task, responses){
         let data = JSON.parse(responses[i]['response']);
         for (const [key, value] of Object.entries(data)) {
 		  output += '<div class="card-header shadow" style="top: 0px; background-color: #393485; color: white;">' +
-	      key + " with title: " + "\"" + value['Name'] + "\""
+	      escapeHTML(key) + " with title: " + "\"" + escapeHTML(value['Name']) + "\""
 	      + '</div>';
 	      for(let j = 0; j < value['tabs'].length; j++){
 	      	output += '<div class="card-header shadow" style="top: 0px; background-color:#228B22; color: white;">' +
-		    "tab_" + value['tabs'][j]['tab'] + " with title: " + "\"" + value['tabs'][j]['CustomTitle'] + "\""
+		    "tab_" + escapeHTML(value['tabs'][j]['tab']) + " with title: " + "\"" + escapeHTML(value['tabs'][j]['CustomTitle'] )+ "\""
 		      + '</div>';
-		    output += "<pre>" + value['tabs'][j]['Contents'] + "</pre>";
+		    output += "<pre>" + escapeHTML(value['tabs'][j]['Contents']) + "</pre>";
 	      }
 		}
     }

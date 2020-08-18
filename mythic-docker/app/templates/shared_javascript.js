@@ -363,10 +363,23 @@ function refresh_access_token(){
     }
 }
 setInterval(refresh_access_token, 600000); // update every 10min
-
 $(document).keydown(function(e) {
   let code = e.keyCode || e.which;
   if (code === 27){
       $(".modal").modal('hide');
   }
 });
+function escapeHTML(content)
+{
+    if(typeof content === "string"){
+        return content
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }else{
+        return content;
+    }
+
+}

@@ -7,7 +7,6 @@ function(task, response){
     }catch(error){
         return response;
     }
-
     data.forEach(function(r){
       let row_style = "";
       if(r['name'].includes("Little Snitch")){
@@ -15,28 +14,19 @@ function(task, response){
       }else if(r['bundleid'].includes("objective-see")){
           row_style = "background-color:indianred;color:black;";
       }
-      function escapeHTML(content)
-        {
-            return content
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-        let additionalInfo = "<pre>" + escapeHTML(JSON.stringify(r, null, 2)) + '</pre>';
-      rows.push({"pid": r['process_id'],
-                          "ppid": r['parent_process_id'],
-                          "path": r['bin_path'],
-                          "user": r['user'],
-                          "name": r['name'],
-                          "metadata": '<i class="fas fa-info-circle" modal-name="' + uniqueName + '" additional-info="' + additionalInfo + '" onclick=support_scripts[\"poseidon_show_process_additional_info_modal\"](this) style="cursor:pointer"></i> ',
+      let additionalInfo = "<pre>" + escapeHTML(JSON.stringify(r, null, 2)) + '</pre>';
+      rows.push({"pid": escapeHTML(r['process_id']),
+                          "ppid": escapeHTML(r['parent_process_id']),
+                          "path": escapeHTML(r['bin_path']),
+                          "user": escapeHTML(r['user']),
+                          "name": escapeHTML(r['name']),
+                          "metadata": '<i class="fas fa-info-circle" modal-name="' + escapeHTML(uniqueName) + '" additional-info="' + escapeHTML(additionalInfo) + '" onclick=support_scripts[\"poseidon_show_process_additional_info_modal\"](this) style="cursor:pointer"></i> ',
                           "row-style": row_style,
                            "cell-style": {}
                          });
     });
   }
-  let output = support_scripts['poseidon_create_process_additional_info_modal'](uniqueName);
+  let output = support_scripts['poseidon_create_process_additional_info_modal'](escapeHTML(uniqueName));
   output += support_scripts['poseidon_create_table'](
       [
       {"name":"pid", "size":"3em"},

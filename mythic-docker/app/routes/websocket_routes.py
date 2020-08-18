@@ -54,6 +54,48 @@ async def ws_tasks(request, ws, user):
         pool.close()
 
 
+@mythic.websocket('/ws/task/<tid:int>')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_updates_for_task(request, ws, user, tid):
+    if not await valid_origin_header(request):
+        return
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user['current_operation'])
+
+        async with aiopg.create_pool(mythic.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "updatedtask";')
+                    # before we start getting new things, update with all of the old data
+                    query = await db_model.task_query()
+                    task = await db_objects.get(query, id=tid)
+                    if task.callback.operation == operation:
+                        await ws.send(js.dumps(task.to_json()))
+                    else:
+                        return
+                    # now pull off any new tasks we got queued up while processing the old data
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (msg.payload)
+                            query = await db_model.task_query()
+                            tsk = await db_objects.get(query, id=id)
+                            if tsk.id == task.id:
+                                await ws.send(js.dumps(tsk.to_json()))
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("")  # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        # print("closed /ws/tasks")
+        pool.close()
+
+
 @mythic.websocket('/ws/task_feed/current_operation')
 @inject_user()
 @scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
@@ -141,6 +183,55 @@ async def ws_responses(request, ws, user):
         pool.close()
 
 
+@mythic.websocket('/ws/responses/by_task/<tid:int>')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_responses(request, ws, user, tid):
+    if not await valid_origin_header(request):
+        return
+    if not user['admin']:
+        await ws.send(js.dumps({'status': 'error', 'error': 'must be an admin'}))
+        return
+    try:
+        async with aiopg.create_pool(mythic.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newresponse";')
+                    tquery = await db_model.task_query()
+                    task = await db_objects.get(tquery, id=tid)
+                    if task.callback.operation.name not in user['operations'] and task.callback.operation.name not in user['admin_operations']:
+                        await ws.send(js.dumps({"error": "task not in one of your operations", "status": "error"}))
+                        return
+                    query = await db_model.response_query()
+                    responses_with_tasks = await db_objects.execute(query.where(db_model.Response.task == task))
+                    for resp in responses_with_tasks:
+                        await ws.send(js.dumps(resp.to_json()))
+                    if task.completed:
+                        return
+                    await ws.send("")
+                    # now pull off any new responses we got queued up while processing old responses
+                    while True:
+                        try:
+                            msg = conn.notifies.get_nowait()
+                            id = (msg.payload)
+                            query = await db_model.response_query()
+                            rsp = await db_objects.get(query, id=id)
+                            if rsp.task == task:
+                                await ws.send(js.dumps(rsp.to_json()))
+                                if rsp.task.completed:
+                                    return
+                            # print(msg.payload)
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(2)
+                            await ws.send("") # this is our test to see if the client is still there
+                            continue
+                        except Exception as e:
+                            print(e)
+                            continue
+    finally:
+        # print("closed /ws/task_updates")
+        pool.close()
+
 # --------------------- CALLBACKS ------------------
 @mythic.websocket('/ws/callbacks/current_operation')
 @inject_user()
@@ -179,6 +270,66 @@ async def ws_callbacks_current_operation(request, ws, user):
                                 c2_profiles_info.append(profile_info)
                             cb_json['supported_profiles'] = c2_profiles_info
                             await ws.send(js.dumps(cb_json))
+                        await ws.send("")
+                        # now pull off any new callbacks we got queued up while processing the old data
+                        while True:
+                            # msg = await conn.notifies.get()
+                            try:
+                                msg = conn.notifies.get_nowait()
+                                id = (msg.payload)
+                                cb = await db_objects.get(query, id=id, operation=operation)
+                                cb_json = cb.to_json()
+                                callbackc2profiles = await db_objects.execute(
+                                    callbackc2profilequery.where(db_model.CallbackC2Profiles.callback == cb))
+                                c2_profiles_info = []
+                                for c2p in callbackc2profiles:
+                                    profile_info = {"name": c2p.c2_profile.name, "is_p2p": c2p.c2_profile.is_p2p, "parameters": {}}
+                                    c2_profile_params = await db_objects.execute(c2profileparametersinstancequery.where(
+                                        (db_model.C2ProfileParametersInstance.callback == cb) &
+                                        (db_model.C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
+                                    ))
+                                    for param in c2_profile_params:
+                                        profile_info['parameters'][param.c2_profile_parameters.name] = param.value
+                                    c2_profiles_info.append(profile_info)
+                                cb_json['supported_profiles'] = c2_profiles_info
+                                await ws.send(js.dumps(cb_json))
+                            except asyncio.QueueEmpty as e:
+                                await asyncio.sleep(0.5)
+                                await ws.send("") # this is our test to see if the client is still there
+                                continue
+                            except Exception as e:
+                                print("exception in callbacks/current_operation: {}".format(str(e)))
+                                continue
+                    else:
+                        await ws.send("no_operation")
+                        while True:
+                            await ws.send("")
+                            await asyncio.sleep(0.5)
+    finally:
+        pool.close()
+
+
+@mythic.websocket('/ws/new_callbacks/current_operation')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_callbacks_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(mythic.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newcallback";')
+                    if user['current_operation'] != "":
+                        # before we start getting new things, update with all of the old data
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(query, name=user['current_operation'])
+                        query = await db_model.callback_query()
+                        callbackc2profilequery = await db_model.callbackc2profiles_query()
+                        c2profileparametersinstancequery = await db_model.c2profileparametersinstance_query()
+                        callbacks_with_operators = await db_objects.execute(query.where(
+                            (Callback.operation == operation) & (Callback.active == True)
+                        ).order_by(Callback.id))
                         await ws.send("")
                         # now pull off any new callbacks we got queued up while processing the old data
                         while True:
@@ -851,6 +1002,63 @@ async def ws_files_current_operation(request, ws, user):
     finally:
         pool.close()
 
+
+@mythic.websocket('/ws/files/new/current_operation')
+@inject_user()
+@scoped(['auth:user', 'auth:apitoken_user'], False)  # user or user-level api token are ok
+async def ws_new_files_current_operation(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+
+    try:
+        async with aiopg.create_pool(mythic.config['DB_POOL_CONNECT_STRING']) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newfilemeta";')
+                    await cur.execute('LISTEN "updatedfilemeta";')
+                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+                    if user['current_operation'] != "":
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(query, name=user['current_operation'])
+                        # now pull off any new payloads we got queued up while processing old data
+                        while True:
+                            try:
+                                msg = conn.notifies.get_nowait()
+                                id = (msg.payload)
+                                query = await db_model.filemeta_query()
+                                f = await db_objects.get(query, id=id, operation=operation, is_screenshot=False, is_payload=False)
+                                try:
+                                    if not f.is_download_from_agent:
+                                        # this means it's an upload, so supply additional information as well
+                                        # could be upload via task or manual
+                                        if f.task is not None:  # this is an upload via gent tasking
+                                            query = await db_model.task_query()
+                                            task = await db_objects.get(query, id=f.task)
+                                            await ws.send(js.dumps(
+                                                    {**f.to_json(),'comment': f.task.comment, 'host': task.callback.host, "upload": task.params}))
+
+                                    else:
+                                        # this is a file download, so it's straight forward
+                                        query = await db_model.task_query()
+                                        task = await db_objects.get(query, id=f.task)
+                                        await ws.send(js.dumps({**f.to_json(),'comment': f.task.comment, 'host': task.callback.host,
+                                                                'params': task.params}))
+                                except Exception as e:
+                                    pass  # we got a file that's just not part of our current operation, so move on
+                            except asyncio.QueueEmpty as e:
+                                await asyncio.sleep(1)
+                                await ws.send("")  # this is our test to see if the client is still there
+                                continue
+                            except Exception as e:
+                                print(e)
+                                continue
+                    else:
+                        await ws.send("no_operation")
+                        while True:
+                            await ws.send("")
+                            await asyncio.sleep(0.5)
+    finally:
+        pool.close()
 
 # notifications for new files in the current operation
 @mythic.websocket('/ws/manual_files/current_operation')
