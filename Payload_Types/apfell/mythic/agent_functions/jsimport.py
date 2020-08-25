@@ -1,4 +1,5 @@
 from CommandBase import *
+from MythicFileRPC import *
 import json
 
 
@@ -37,6 +38,14 @@ class JsimportCommand(CommandBase):
     argument_class = JsimportArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        original_file_name = json.loads(task.original_params)['file']
+        response = await MythicFileRPC(task).register_file(file=task.args.get_arg("file"),
+                                                           saved_file_name=original_file_name,
+                                                           delete_after_fetch=False)
+        if response.status == MythicStatus.Success:
+            task.args.add_arg("file", response.agent_file_id)
+        else:
+            raise Exception("Error from Mythic: " + response.error_message)
         return task
 
     async def process_response(self, response: AgentResponse):
