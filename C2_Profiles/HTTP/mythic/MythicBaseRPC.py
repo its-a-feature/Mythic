@@ -13,13 +13,13 @@ class MythicStatus(Enum):
 class RPCResponse:
     def __init__(self, resp: dict):
         self._raw_resp = resp
-        if resp['status'] == 'success':
+        if resp["status"] == "success":
             self.status = MythicStatus.Success
-            self.response = resp['response'] if 'response' in resp else ""
+            self.response = resp["response"] if "response" in resp else ""
             self.error_message = None
         else:
             self.status = MythicStatus.Error
-            self.error_message = resp['error']
+            self.error_message = resp["error"]
             self.response = None
 
     @property
@@ -56,13 +56,15 @@ class MythicBaseRPC:
         self.loop = asyncio.get_event_loop()
 
     async def connect(self):
-        config_file = open("rabbitmq_config.json", 'rb')
-        main_config = json.loads(config_file.read().decode('utf-8'))
+        config_file = open("/Mythic/mythic/rabbitmq_config.json", "rb")
+        main_config = json.loads(config_file.read().decode("utf-8"))
         config_file.close()
-        self.connection = await connect_robust(host=main_config['host'],
-                                               login=main_config['username'],
-                                               password=main_config['password'],
-                                               virtualhost=main_config['virtual_host'])
+        self.connection = await connect_robust(
+            host=main_config["host"],
+            login=main_config["username"],
+            password=main_config["password"],
+            virtualhost=main_config["virtual_host"],
+        )
         self.channel = await self.connection.channel()
         self.callback_queue = await self.channel.declare_queue(exclusive=True)
         await self.callback_queue.consume(self.on_response)

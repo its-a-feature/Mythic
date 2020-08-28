@@ -7,22 +7,22 @@ class MythicPayloadRPCResponse(RPCResponse):
     def __init__(self, payload: RPCResponse):
         super().__init__(payload._raw_resp)
         if payload.status == MythicStatus.Success:
-            self.uuid = payload.response['uuid']
-            self.tag = payload.response['tag']
-            self.operator = payload.response['operator']
-            self.creation_time = payload.response['creation_time']
-            self.payload_type = payload.response['payload_type']
-            self.operation = payload.response['operation']
-            self.wrapped_payload = payload.response['wrapped_payload']
-            self.deleted = payload.response['deleted']
-            self.auto_generated = payload.response['auto_generated']
-            self.task = payload.response['task']
-            if 'contents' in payload.response:
-                self.contents = payload.response['contents']
-            self.build_phase = payload.response['build_phase']
-            self.agent_file_id = payload.response['file_id']['agent_file_id']
-            self.c2info = payload.response['c2info']
-            self.build_parameters = payload.response['build_parameters']
+            self.uuid = payload.response["uuid"]
+            self.tag = payload.response["tag"]
+            self.operator = payload.response["operator"]
+            self.creation_time = payload.response["creation_time"]
+            self.payload_type = payload.response["payload_type"]
+            self.operation = payload.response["operation"]
+            self.wrapped_payload = payload.response["wrapped_payload"]
+            self.deleted = payload.response["deleted"]
+            self.auto_generated = payload.response["auto_generated"]
+            self.task = payload.response["task"]
+            if "contents" in payload.response:
+                self.contents = payload.response["contents"]
+            self.build_phase = payload.response["build_phase"]
+            self.agent_file_id = payload.response["file_id"]["agent_file_id"]
+            self.c2info = payload.response["c2info"]
+            self.build_parameters = payload.response["build_parameters"]
         else:
             self.uuid = None
             self.tag = None
@@ -161,27 +161,27 @@ class MythicPayloadRPCResponse(RPCResponse):
 
 
 class MythicPayloadRPC(MythicBaseRPC):
-
-    async def get_payload_by_uuid(self,
-                                  uuid: str) -> MythicPayloadRPCResponse:
+    async def get_payload_by_uuid(self, uuid: str) -> MythicPayloadRPCResponse:
         resp = await self.call(
-            {"action": "get_payload_by_uuid",
-             "uuid": uuid,
-             "task_id": self.task_id
-             })
+            {"action": "get_payload_by_uuid", "uuid": uuid, "task_id": self.task_id}
+        )
         return MythicPayloadRPCResponse(resp)
 
-    async def build_payload_from_template(self,
-                                          uuid: str,
-                                          destination_host: str = None,
-                                          wrapped_payload: str = None,
-                                          description: str = None) -> MythicPayloadRPCResponse:
+    async def build_payload_from_template(
+        self,
+        uuid: str,
+        destination_host: str = None,
+        wrapped_payload: str = None,
+        description: str = None,
+    ) -> MythicPayloadRPCResponse:
         resp = await self.call(
-            {"action": "build_payload_from_template",
-             "uuid": uuid,
-             "task_id": self.task_id,
-             "destination_host": destination_host,
-             "wrapped_payload": wrapped_payload,
-             "description": description
-             })
+            {
+                "action": "build_payload_from_template",
+                "uuid": uuid,
+                "task_id": self.task_id,
+                "destination_host": destination_host,
+                "wrapped_payload": wrapped_payload,
+                "description": description,
+            }
+        )
         return MythicPayloadRPCResponse(resp)

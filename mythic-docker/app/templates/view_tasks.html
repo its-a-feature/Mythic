@@ -54,7 +54,7 @@
                             <div class="dropdown-menu">
                                 <a class="dropdown-item" href="#" data-toggle="tooltip" title="Add comment to task" @click="add_comment(task)"><i class="fas fa-comments"></i> Comment</a>
                                 <a class="dropdown-item" href="#" data-toggle="tooltip" title="download raw output" @click="download_raw_output(task.id)"><i class="fas fa-save"></i> Save Output</a>
-                                <a class="dropdown-item" href="#" data-toggle="tooltip" title="Copy command to clipboard" @click="copyStringToClipboard(task.command + ' ' + task.original_params)"><i class="far fa-copy" ></i> Copy Command</a>
+                                <a class="dropdown-item" href="#" data-toggle="tooltip" title="Copy command to clipboard" onclick="copyStringToClipboard(task.command + ' ' + task.original_params)"><i class="far fa-copy" ></i> Copy Command</a>
                                 <a class="dropdown-item" href="#" data-toggle="tooltip" title="Toggle application of browser scripts to output of this task" @click="task.use_scripted = !task.use_scripted; tasks_div.$forceUpdate();"><i class="fas fa-code"></i>
                                     <template v-if="task.use_scripted">
                                         Disable Browser Script

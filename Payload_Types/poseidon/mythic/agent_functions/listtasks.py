@@ -5,11 +5,11 @@ import json
 class ListtasksArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
-        self.args = {
-        }
+        self.args = {}
 
     async def parse_arguments(self):
         pass
+
 
 class ListtasksCommand(CommandBase):
     cmd = "listtasks"
@@ -28,10 +28,10 @@ class ListtasksCommand(CommandBase):
     attackmapping = ["T1057"]
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
-        if task.callback.integrity_level <= 2 :
+        if task.callback.integrity_level <= 2:
             raise Exception("Error: the listtasks command requires elevated privileges")
         else:
             return task
-    
+
     async def process_response(self, response: AgentResponse):
         pass

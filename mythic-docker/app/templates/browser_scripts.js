@@ -61,17 +61,16 @@ var scripts = new Vue({
         delete_button: function(s, index){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s.id, function(response){
                 try{
-                    data = JSON.parse(response);
-                   }catch(error){
+                    let data = JSON.parse(response);
+                    if(data['status'] === 'success'){
+                        scripts.bscripts.splice(index, 1);
+                    }
+                    else{
+                        alertTop("danger", "Failed to remove: " + data['error']);
+                    }
+                }catch(error){
                     alertTop("danger", "Session expired, please refresh or login again");
-                   }
-                if(data['status'] === 'success'){
-                    scripts.bscripts.splice(index, 1);
                 }
-                else{
-                    alertTop("danger", "Failed to remove: " + data['error']);
-                }
-
             }, "DELETE", null);
         },
         toggle_active: function(s){
@@ -96,7 +95,6 @@ var scripts = new Vue({
             else{
                 //it is active, to find out if it is actually in effect or overridden
                 //console.log(s);
-                let found = false;
                 for(let i = 0; i < this.operation_scripts.length; i++){
                     //check to see if operation script command matches this one
                     if( (this.operation_scripts[i]['command_id'] === s['command_id'] && s['command'] !== -1)){
@@ -109,7 +107,7 @@ var scripts = new Vue({
                 return "YES, Personally";
             }
         },
-        remove_from_operation_button: function(s, i){
+        remove_from_operation_button: function(s){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s['id'], (response)=>{
                 try{
                     let data = JSON.parse(response);
@@ -188,13 +186,14 @@ function import_script_button_callback(response){
 }
 function register_script_callback(response){
     try{
-        data = JSON.parse(response);
-       }catch(error){
+        let data = JSON.parse(response);
+        if(data['status'] !== 'success'){
+            alertTop("danger", data['error']);
+        }
+    }catch(error){
         alertTop("danger", "Session expired, please refresh or login again");
-       }
-    if(data['status'] !== 'success'){
-        alertTop("danger", data['error']);
     }
+
 }
 var commands = new Vue({
     el: '#modal_vues',
@@ -272,7 +271,7 @@ function startwebsocket_browserscripts(){
             }
 		}
 		else{
-		    finished_bulk = true;
+            finished_bulk = true;
         }
 	};
 	ws.onclose = function(event){
@@ -286,12 +285,12 @@ function startwebsocket_commands(){
 	let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/commands');
 	ws.onmessage = function(event){
 		if(event.data !== ""){
-			data = JSON.parse(event.data);
-			if(!commands.commands.hasOwnProperty(data['payload_type'])){
-			    commands.commands[data['payload_type']] = [];
-			    commands.payload_types.push(data['payload_type']);
-			    commands.payload_types.sort((a,b) =>(b.cmd > a.cmd) ? -1 : ((a.cmd > b.cmd) ? 1 : 0));
-			    commands.current_payload_type = commands.payload_types[0];
+			let data = JSON.parse(event.data);
+			if(!Object.prototype.hasOwnProperty.call(commands.commands,data['payload_type'])){
+                commands.commands[data['payload_type']] = [];
+                commands.payload_types.push(data['payload_type']);
+                commands.payload_types.sort((a,b) =>(b.cmd > a.cmd) ? -1 : ((a.cmd > b.cmd) ? 1 : 0));
+                commands.current_payload_type = commands.payload_types[0];
 			}
 			commands.commands[data['payload_type']].push(data);
 			commands.commands[data['payload_type']].sort((a,b) =>(b.cmd > a.cmd) ? -1 : ((a.cmd > b.cmd) ? 1 : 0));
@@ -306,6 +305,8 @@ function startwebsocket_commands(){
 }startwebsocket_commands();
 //ACE specific code from http://cwestblog.com/2018/08/04/ace-editor-vue-component/
 /* START: <ace-editor> Vue component */
+/* eslint-disable */
+        // 3rd party code
 (function () {
   var PROPS = {
     selectionStyle: {},
@@ -363,7 +364,7 @@ function startwebsocket_commands(){
 
   function toBool(value, opt_ignoreNum) {
     var result = value;
-    if (result != null) {
+    if (result !== null) {
       (value + '').replace(
         /^(?:|0|false|no|off|(1|true|yes|on))$/,
         function(m, isTrue) {
@@ -375,7 +376,7 @@ function startwebsocket_commands(){
   }
 
   function toNum(value) {
-    return (value == null || isNaN(+value)) ? value : +value;
+    return (value === null || isNaN(+value)) ? value : +value;
   }
 
   function toBoolOrNum(value) {
@@ -426,7 +427,9 @@ function startwebsocket_commands(){
       }
     },
     watch: (function () {
+
       var watch = {
+
         value: function(value) {
           if (this.lastValue !== value) {
             this.allowInputEvent = false;
@@ -459,13 +462,13 @@ function startwebsocket_commands(){
           var propName = propPair[0],
               prop = propPair[1],
               value = self.$props[propName];
-          if (value !== undefined || prop.hasOwnProperty('v')) {
+          if (value !== undefined || Object.prototype.hasOwnProperty.call(prop,'v')) {
             self.setOption(propName, value === undefined ? prop.v : value);
           }
         }
       );
 
-      self.editor.on('change', function(e) {
+      self.editor.on('change', function() {
         self.lastValue = self.editor.getValue();
         if (self.allowInputEvent) {
           emit(self, 'input', self.lastValue);
@@ -517,3 +520,4 @@ function startwebsocket_commands(){
   });
 })();
 /* END: <ace-editor> Vue component */
+/* eslint-enable */

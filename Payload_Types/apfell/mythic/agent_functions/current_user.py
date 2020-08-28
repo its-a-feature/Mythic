@@ -6,14 +6,18 @@ class CurrentUserArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "method": CommandParameter(name="method", type=ParameterType.ChooseOne, choices=["api","jxa"],
-                                       description="Use AppleEvents or ObjectiveC calls to get user information",
-                                       default_value="api")
+            "method": CommandParameter(
+                name="method",
+                type=ParameterType.ChooseOne,
+                choices=["api", "jxa"],
+                description="Use AppleEvents or ObjectiveC calls to get user information",
+                default_value="api",
+            )
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 self.add_arg("method", self.command_line)

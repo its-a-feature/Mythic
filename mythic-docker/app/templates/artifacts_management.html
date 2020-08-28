@@ -1,31 +1,36 @@
 {% extends "base.html" %}
 
 {% block body %}
-<div style="resize: vertical; overflow:visible;margin-top:5px" class="card border border-dark shadow bg-card-body" id="artifacts_table">
+<div style="resize: vertical; overflow:visible;margin-top:5px" class="card border border-dark shadow bg-card-body"
+     id="artifacts_table">
     <div class="card-header bg-header text-white border border-dark shadow">
         <h2 style="display:inline-block"><span class="operator">Artifact</span> Types</h2>
-        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="new_artifact_button()" style="display:inline-block;float:right"><i class="fas fa-plus"></i> Base Artifact</button>
+        <button type="button" class="btn btn{{config['outline-buttons']}}success btn-md" onclick="new_artifact_button()"
+                style="display:inline-block;float:right"><i class="fas fa-plus"></i> Base Artifact
+        </button>
     </div>
-        <table class="table table-striped {{config['table-color']}}" >
-            <tr>
-                <th style="width:2rem"><b>Delete</b></th>
-                <th style="width:2rem"><b>Edit</b></th>
-                <th onclick="sort_table(this)" style="text-align:left"><b>Name</b></th>
-                <th onclick="sort_table(this)" style="text-align:left"><b>Description</b></th>
-            </tr>
+    <table class="table table-striped {{config['table-color']}}">
+        <tr>
+            <th style="width:2rem"><b>Delete</b></th>
+            <th style="width:2rem"><b>Edit</b></th>
+            <th onclick="sort_table(this)" style="text-align:left"><b>Name</b></th>
+            <th onclick="sort_table(this)" style="text-align:left"><b>Description</b></th>
+        </tr>
         <!-- Repeat this for each base artifact -->
-            <tr v-for="(artifact, i) in artifacts" :key="artifact.id">
-                <td style="text-align:center">
-                    <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(i)"><i class="fas fa-trash-alt"></i></button>
-                </td>
-                <td style="text-align:center">
-                    <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="edit_button(i)"><i class="fas fa-edit"></i></button>
-                </td>
-                <td>[[ artifact.name ]]</td>
-                <td>[[ artifact.description ]]</td>
-            </tr>
+        <tr v-for="(artifact, i) in artifacts" :key="artifact.id">
+            <td style="text-align:center">
+                <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm"
+                        @click="delete_button(i)"><i class="fas fa-trash-alt"></i></button>
+            </td>
+            <td style="text-align:center">
+                <button type="button" class="btn btn{{config['outline-buttons']}}warning btn-sm"
+                        @click="edit_button(i)"><i class="fas fa-edit"></i></button>
+            </td>
+            <td>[[ artifact.name ]]</td>
+            <td>[[ artifact.description ]]</td>
+        </tr>
         <!-- End of the repeating -->
-        </table>
+    </table>
 </div>
 <!-- THIS IS OUR MODAL FOR NEW ARTIFACT -->
 <div class="modal fade" id="newArtifactModal" role="dialog">
@@ -35,16 +40,20 @@
                 <h3>New Base Artifact</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-              <div class="modal-body">
-                  <h4>Name:</h4>
-                  <input type="text" id="newArtifactName" size="80" class="form-control">
-                  <h4>Description:</h4>
-                  <textarea id="newArtifactDescription" cols="80" rows="20" class="form-control"></textarea>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="newArtifactSubmit">Submit</button>
-              </div>
+            <div class="modal-body">
+                <h4>Name:</h4>
+                <input type="text" id="newArtifactName" size="80" class="form-control">
+                <h4>Description:</h4>
+                <textarea id="newArtifactDescription" cols="80" rows="20" class="form-control"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">
+                    Cancel
+                </button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="newArtifactSubmit">
+                    Submit
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -57,16 +66,20 @@
                 <h3>Edit Base Artifact</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-              <div class="modal-body">
-                  <h4>Name:</h4>
-                  <input type="text" id="editArtifactName" size="80" class="form-control">
-                  <h4>Description:</h4>
-                  <textarea id="editArtifactDescription" cols="80" rows="20" class="form-control"></textarea>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="editArtifactSubmit">Submit</button>
-              </div>
+            <div class="modal-body">
+                <h4>Name:</h4>
+                <input type="text" id="editArtifactName" size="80" class="form-control">
+                <h4>Description:</h4>
+                <textarea id="editArtifactDescription" cols="80" rows="20" class="form-control"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">
+                    Cancel
+                </button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal"
+                        id="editArtifactSubmit">Submit
+                </button>
+            </div>
         </div>
     </div>
 </div>

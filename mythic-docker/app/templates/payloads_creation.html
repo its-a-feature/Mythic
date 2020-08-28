@@ -28,7 +28,7 @@
                 </div>
                 <div class="card-body border border-dark shadow bg-card-body border-0">
                     <select :disabled="!c2_buttons" :style="!c2_buttons ? 'display:inline-block;width:auto;cursor:not-allowed' : 'display:inline-block;width:auto'" class="form-control" id="cp.c2_profile" v-model="cp.selected_c2_profile">
-                        <option v-for="c in filtered_c2_options()" :value="c.name">
+                        <option v-for="c in filtered_c2_options(cp)" :value="c.name">
                             <template v-if="c['payload_types'].length > 0">
                                 [[c.name + " - " + c['payload_types'].join(", ") ]]
                             </template>
@@ -38,7 +38,7 @@
                         </option>
                     </select>
                     <select style="display:inline-block;width:auto" class="form-control" :id="'c2_instance' + i" hidden v-model="cp.selected_c2_instance">
-                        <option value="Select One...">Select One...</option>
+                        <option value=" Select One...">Select One...</option>
                         <option v-for="(value, k, s) in cp.c2_instance_values" :value="k">[[k]]</option>
                     </select><br>
                     <div id="cp.c2ParameterFormFields">
@@ -90,7 +90,7 @@
                 <template v-if="payload_type_options.length > 1">
                     Select a payload type that supports the C2 Profile you just selected.<br>
                     <select class="form-control" id="payload_type" v-model="selected_payload_type" :disabled="!pt_buttons" :style="!pt_buttons ? 'display:inline-block;width:auto;cursor:not-allowed' : 'display:inline-block;width:auto'">
-                        <option v-for="p in payload_type_options" v-model="p">[[p]]</option>
+                        <option v-for="p in payload_type_options" :value="p">[[p]]</option>
                     </select><br>
                     <div id="payloadParameterFormFields">
                         <template v-if="payload_parameters.length != 0">

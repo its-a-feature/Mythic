@@ -36,7 +36,15 @@
                     <td style="width:14rem">
                         <span v-if="p.wrapper == false">
                             Number of Commands: [[p.commands.length]]<br>
-                            <button class="btn btn{{config['outline-buttons']}}secondary btn-sm" @click="edit_commands_button(p)" data-toggle="tooltip" title="View commands">View Commands </button>
+                            <div class="dropdown" style="display:inline">
+                                <button class="btn btn{{config['outline-buttons']}}secondary dropdown-toggle btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" :data-target="p.id + 'edit_button'">
+                                    View Components
+                                  </button>
+                                  <div class="dropdown-menu" :id="p.id + 'edit_button'">
+                                      <button class="dropdown-item" @click="edit_commands_button(p)">View Commands</button>
+                                      <button class="dropdown-item" @click="parameters_button(p)">View Parameters</button>
+                                  </div>
+                             </div>
                         </span>
                         <span v-else>
                             Wrapped Payload Types:<br>
@@ -55,6 +63,55 @@
                 </tr>
             </table>
         </div>
+        <!-- THIS IS OUR MODAL FOR DISPLAYING PAYLOADTYPE -->
+<div class="modal fade" id="payload-type-view" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3>Payload Type Information</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+              <div class="modal-body" >
+                Payload Types can have build parameters that can get stamped in at payload creation time. Here, you will specify the "description" that will be presented to the user for the parameter and the "name" that will be stamped out when the profile is created.
+                <table cellpadding="10" style="width:100%" class="table-striped {{config['table-color']}} table">
+                    <tr>
+                        <th style="width:20rem"><b>Name</b></th>
+                        <th style="width:20rem"><b>Description</b></th>
+                        <th><b>Instance Configuration</b></th>
+                    </tr>
+                    <tr v-for="(i,p) in current_payload.build_parameters" :key="p">
+                        <td>
+                            <input disabled class="form-control" type="text" :value="i.name" v-model="i.name" style="width:100%">
+                        </td>
+                        <td>
+                            <input disabled class="form-control" type="text" :value="i.description" v-model="i.description" style="width:100%">
+                        </td>
+                        <td style="padding-left:20px">
+                            Parameter Type:
+                            <select disabled class="form-control" v-model="i.parameter_type">
+                                <option v-for="o in parameter_type_options" :value="o">[[o]]</option>
+                            </select>
+                            Default Value:
+                            <textarea disabled class="form-control" type="text" :value="i.parameter" v-model="i.parameter" style="width:100%"></textarea>
+                            Is Parameter Required to be supplied?
+                            <span style="padding-left:20px;" class="material-switch pull-right">
+                                <input class="form-control" disabled type="checkbox" v-model="i.required" :value="i.required" :id="'paramreq' + p">
+                            <label :for="'paramreq' + p" class="btn-info"></label></span><br>
+                            <template v-if="i.required">
+                                Supply a regex that the value must match to be considered valid:
+                                <textarea class="form-control" disabled type="text" :value="i.verifier_regex" v-model="i.verifier_regex" style="width:100%"></textarea>
+                            </template>
+                        </td>
+                    </tr>
+                </table>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}info" data-dismiss="modal" aria-hidden="true">Close</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR DISPLAYING PAYLOADTYPE -->
 </div>
 <p class="card-text" style="margin:0;padding-left:5px; display:inline-block"><small class="text-muted">
     leviathan icon made by Freepik, poseidon icons made by Eucalyp from www.flaticon.com

@@ -18,7 +18,7 @@ class LoadCommand(CommandBase):
     cmd = "load"
     needs_admin = False
     help_cmd = "load cmd1 cmd2 cmd3..."
-    description = 'This loads new functions into memory via the C2 channel.'
+    description = "This loads new functions into memory via the C2 channel."
     version = 1
     is_exit = False
     is_file_browse = False
@@ -37,10 +37,12 @@ class LoadCommand(CommandBase):
             cmd = cmd.strip()
             try:
                 code_path = self.agent_code_path / "{}.js".format(cmd)
-                total_code += open(code_path, 'r').read() + "\n"
+                total_code += open(code_path, "r").read() + "\n"
             except Exception as e:
                 raise Exception("Failed to find code for '{}'".format(cmd))
-        resp = await MythicFileRPC(task).register_file(total_code.encode(), delete_after_fetch=True)
+        resp = await MythicFileRPC(task).register_file(
+            total_code.encode(), delete_after_fetch=True
+        )
         if resp.status == MythicStatus.Success:
             task.args.add_arg("file_id", resp.agent_file_id)
             task.args.add_arg("cmds", task.args.command_line)

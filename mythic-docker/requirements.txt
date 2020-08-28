@@ -18,3 +18,4 @@ requests
 dijkstar
 exrex
 treelib
+shortuuid

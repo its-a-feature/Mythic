@@ -14,8 +14,8 @@ class SecurityInfoArguments(TaskArguments):
 class SecurityInfoCommand(CommandBase):
     cmd = "security_info"
     needs_admin = False
-    help_cmd = 'security_info'
-    description = "This uses JXA to list some security information about the system by contacting the \"System Events\" application via Apple Events. This can cause a popup or be denied in Mojave and later"
+    help_cmd = "security_info"
+    description = 'This uses JXA to list some security information about the system by contacting the "System Events" application via Apple Events. This can cause a popup or be denied in Mojave and later'
     version = 1
     is_exit = False
     is_file_browse = False

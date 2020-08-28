@@ -7,19 +7,19 @@ class MythicFileRPCResponse(RPCResponse):
     def __init__(self, file: RPCResponse):
         super().__init__(file._raw_resp)
         if file.status == MythicStatus.Success:
-            self.agent_file_id = file.response['agent_file_id']
-            self.task = file.response['task']
-            self.timestamp = file.response['timestamp']
-            self.deleted = file.response['deleted']
-            self.operator = file.response['operator']
-            self.delete_after_fetch = file.response['delete_after_fetch']
-            self.filename = file.response['filename']
-            self.md5 = file.response['md5']
-            self.sha1 = file.response['sha1']
-            self.chunks_received = file.response['chunks_received']
-            self.total_chunks = file.response['total_chunks']
-            if 'contents' in file.response:
-                self.contents = base64.b64decode(file.response['contents'])
+            self.agent_file_id = file.response["agent_file_id"]
+            self.task = file.response["task"]
+            self.timestamp = file.response["timestamp"]
+            self.deleted = file.response["deleted"]
+            self.operator = file.response["operator"]
+            self.delete_after_fetch = file.response["delete_after_fetch"]
+            self.filename = file.response["filename"]
+            self.md5 = file.response["md5"]
+            self.sha1 = file.response["sha1"]
+            self.chunks_received = file.response["chunks_received"]
+            self.total_chunks = file.response["total_chunks"]
+            if "contents" in file.response:
+                self.contents = base64.b64decode(file.response["contents"])
             else:
                 self.contents = None
         else:
@@ -134,30 +134,39 @@ class MythicFileRPCResponse(RPCResponse):
 
 
 class MythicFileRPC(MythicBaseRPC):
-
-    async def register_file(self,
-                            file: bytes,
-                            delete_after_fetch: bool = None,
-                            saved_file_name: str = None,
-                            remote_path: str = None,
-                            is_screenshot: bool = None,
-                            is_download: bool = None) -> MythicFileRPCResponse:
+    async def register_file(
+        self,
+        file: bytes,
+        delete_after_fetch: bool = None,
+        saved_file_name: str = None,
+        remote_path: str = None,
+        is_screenshot: bool = None,
+        is_download: bool = None,
+    ) -> MythicFileRPCResponse:
         resp = await self.call(
-            {"action": "register_file",
-             "file": base64.b64encode(file).decode(),
-             "delete_after_fetch": delete_after_fetch if delete_after_fetch is not None else True,
-             "saved_file_name": saved_file_name if saved_file_name is not None else str(uuid.uuid4()),
-             "task_id": self.task_id,
-             "remote_path": remote_path if remote_path is not None else "",
-             "is_screenshot": is_screenshot if is_screenshot is not None else False,
-             "is_download": is_download if is_download is not None else False
-             })
+            {
+                "action": "register_file",
+                "file": base64.b64encode(file).decode(),
+                "delete_after_fetch": delete_after_fetch
+                if delete_after_fetch is not None
+                else True,
+                "saved_file_name": saved_file_name
+                if saved_file_name is not None
+                else str(uuid.uuid4()),
+                "task_id": self.task_id,
+                "remote_path": remote_path if remote_path is not None else "",
+                "is_screenshot": is_screenshot if is_screenshot is not None else False,
+                "is_download": is_download if is_download is not None else False,
+            }
+        )
         return MythicFileRPCResponse(resp)
 
     async def get_file_by_name(self, filename: str) -> MythicFileRPCResponse:
         resp = await self.call(
-            {"action": "get_file_by_name",
-             "task_id": self.task_id,
-             "filename": filename
-             })
+            {
+                "action": "get_file_by_name",
+                "task_id": self.task_id,
+                "filename": filename,
+            }
+        )
         return MythicFileRPCResponse(resp)

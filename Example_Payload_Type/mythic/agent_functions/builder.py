@@ -10,16 +10,19 @@ class Atlas(PayloadType):
     name = "atlas"  # name that would show up in the UI
     file_extension = "exe"  # default file extension to use when creating payloads
     author = "@Airzero24"  # author of the payload type
-    supported_os = [  # supported OS and architecture combos
-        SupportedOS.Windows
-    ]
+    supported_os = [SupportedOS.Windows]  # supported OS and architecture combos
     wrapper = False  # does this payload type act as a wrapper for another payloads inside of it?
     wrapped_payloads = []  # if so, which payload types
     note = """Any note you want to show up about your payload type in the UI"""
     supports_dynamic_loading = False  # setting this to True allows users to only select a subset of commands when generating a payload
     build_parameters = {
         #  these are all the build parameters that will be presented to the user when creating your payload
-        "version": BuildParameter(name="version", parameter_type=BuildParameterType.ChooseOne, description="Choose a target .NET Framework", choices=["4.0", "3.5"]),
+        "version": BuildParameter(
+            name="version",
+            parameter_type=BuildParameterType.ChooseOne,
+            description="Choose a target .NET Framework",
+            choices=["4.0", "3.5"],
+        ),
     }
     #  the names of the c2 profiles that your agent supports
     c2_profiles = ["HTTP"]
@@ -29,4 +32,3 @@ class Atlas(PayloadType):
         # this function gets called to create an instance of your payload
         resp = BuildResponse(status=BuildStatus.Error)
         return resp
-

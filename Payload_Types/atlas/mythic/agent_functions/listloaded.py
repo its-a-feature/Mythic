@@ -15,7 +15,9 @@ class ListLoadedCommand(CommandBase):
     cmd = "listloaded"
     needs_admin = False
     help_cmd = "listloaded"
-    description = "Retrieve a list of .NET assemblies loaded via the loadassembly command. "
+    description = (
+        "Retrieve a list of .NET assemblies loaded via the loadassembly command. "
+    )
     version = 1
     is_exit = False
     is_file_browse = False

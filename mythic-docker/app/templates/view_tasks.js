@@ -1,12 +1,17 @@
 document.title = "All Callbacks";
-try{
-    var support_scripts = { {{support_scripts}} };
-}catch(error){
+/* eslint-disable no-unused-vars */
+// this is called from within browser_scripts functions, not directly
+var support_scripts = {};
+/* eslint-enable no-unused-vars */
+var browser_scripts = {}
+try {
+    eval(atob(" {{support_scripts}} "));
+} catch (error) {
     alertTop("danger", "Support Scripting error: " + error.toString());
 }
-try{
-    var browser_scripts = { {{browser_scripts}} };
-}catch(error){
+try {
+    eval(atob(" {{browser_scripts}} "));
+} catch (error) {
     alertTop("danger", "Browser Scripting error: " + error.toString());
 }
 //[{callback info, "tasks": [{task info, "responses": [{response info}]}]},
@@ -34,7 +39,7 @@ var tasks_div = new Vue({
                      try{
                          let data = JSON.parse(response);
                          task.response = data['responses'];
-                         if(browser_scripts.hasOwnProperty(task['command_id'])){
+                         if(task['command_id'] in browser_scripts){
                             task['use_scripted'] = true;
                             task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
                         }
@@ -64,22 +69,6 @@ var tasks_div = new Vue({
                 }
             }, "GET", null);
 
-        },
-        copyStringToClipboard: function (str) {
-          // Create new element
-          var el = document.createElement('textarea');
-          // Set value (string to be copied)
-          el.value = str;
-          // Set non-editable to avoid focus and move outside of view
-          el.setAttribute('readonly', '');
-          el.style = {position: 'absolute', left: '-9999px'};
-          document.body.appendChild(el);
-          // Select text inside element
-          el.select();
-          // Copy text to clipboard
-          document.execCommand('copy');
-          // Remove temporary element
-          document.body.removeChild(el);
         },
         update_view: function(task){
             Vue.set(task, 'use_scripted', !task['use_scripted']);
@@ -117,7 +106,7 @@ var tasks_div = new Vue({
         load_tasks: function(callback){
             for(let i = 0; i < tasks_div.callbacks.length; i++){
                 if(tasks_div.callbacks[i]['id'] === callback.id){
-                    if(tasks_div.callbacks[i].hasOwnProperty('tasks')){
+                    if('tasks' in tasks_div.callbacks[i]){
                         delete tasks_div.callbacks[i]['tasks'];
                         tasks_div.$forceUpdate();
                         return;
@@ -164,37 +153,40 @@ var tasks_div = new Vue({
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/1/15", set_callback_data_callback, "GET", null);
 function set_callback_data_callback(response){
     try{
-        data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] !== 'success'){
+            alertTop("danger", data['error'], 2);
+        }else{
+            tasks_div.callbacks = [];
+             for(let t in data['callbacks']){
+                data['callbacks']['tasks'] = [];
+                tasks_div.callbacks.push(data['callbacks'][t]);
+             }
+             tasks_div.total_count = data['total_count'];
+             tasks_div.current_page = data['page'];
+             tasks_div.page_size = data['size'];
+        }
         //console.log(data);
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] !== 'success'){
-        alertTop("danger", data['error'], 2);
-    }else{
-        tasks_div.callbacks = [];
-         for(t in data['callbacks']){
-            data['callbacks']['tasks'] = [];
-            tasks_div.callbacks.push(data['callbacks'][t]);
-         }
-         tasks_div.total_count = data['total_count'];
-         tasks_div.current_page = data['page'];
-         tasks_div.page_size = data['size'];
     }
 }
 function make_active_callback(response){
-    let data = JSON.parse(response);
-    if(data['status'] === 'success'){
-        for(let i = 0; i < tasks_div.callbacks.length; i++){
-            if(tasks_div.callbacks[i].id === data['id']){
-                Vue.set(tasks_div.callbacks[i], 'active', data['active']);
-                return;
+    try{
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            for(let i = 0; i < tasks_div.callbacks.length; i++){
+                if(tasks_div.callbacks[i].id === data['id']){
+                    Vue.set(tasks_div.callbacks[i], 'active', data['active']);
+                    return;
+                }
             }
         }
-    }
-    else{
-        alertTop("danger", data['error']);
+        else{
+            alertTop("danger", data['error']);
+        }
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
     }
 }
 
@@ -221,25 +213,24 @@ function get_callback_tasks_callback(response){
 }
 function update_callback_comment_callback(response){
     try{
-        data = JSON.parse(response);
-    }catch(error){
-        alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] == 'success'){
-        data = data['task'];
-        for(var i = 0; i < tasks_div.callbacks.length; i++){
-            if(data['callback'] == tasks_div.callbacks[i]['id']){
-                for(var j = 0; j < tasks_div.callbacks[i]['tasks'].length; j++){
-                    if(data['id'] == tasks_div.callbacks[i]['tasks'][j]['id']){
-                        tasks_div.callbacks[i]['tasks'][j]['comment'] = data['comment'];
-                        tasks_div.callbacks[i]['tasks'][j]['comment_operator'] = data['comment_operator'];
-                        return;
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            data = data['task'];
+            for(let i = 0; i < tasks_div.callbacks.length; i++){
+                if(data['callback'] === tasks_div.callbacks[i]['id']){
+                    for(let j = 0; j < tasks_div.callbacks[i]['tasks'].length; j++){
+                        if(data['id'] === tasks_div.callbacks[i]['tasks'][j]['id']){
+                            tasks_div.callbacks[i]['tasks'][j]['comment'] = data['comment'];
+                            tasks_div.callbacks[i]['tasks'][j]['comment_operator'] = data['comment_operator'];
+                            return;
+                        }
                     }
                 }
             }
+        }else{
+            alertTop("danger", data['error']);
         }
-    }else{
-        alertTop("danger", data['error']);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
     }
 }

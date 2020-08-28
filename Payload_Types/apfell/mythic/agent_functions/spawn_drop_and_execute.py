@@ -9,14 +9,17 @@ class SpawnDropAndExecuteArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "template": CommandParameter(name="template", type=ParameterType.Payload,
-                                         description="apfell agent to use as template to generate a new payload",
-                                         supported_agents=["apfell"])
+            "template": CommandParameter(
+                name="template",
+                type=ParameterType.Payload,
+                description="apfell agent to use as template to generate a new payload",
+                supported_agents=["apfell"],
+            )
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON arguments")
@@ -41,18 +44,22 @@ class SpawnDropAndExecuteCommand(CommandBase):
     argument_class = SpawnDropAndExecuteArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
-        gen_resp = await MythicPayloadRPC(task).build_payload_from_template(task.args.get_arg('template'))
+        gen_resp = await MythicPayloadRPC(task).build_payload_from_template(
+            task.args.get_arg("template")
+        )
         if gen_resp.status == MythicStatus.Success:
             # we know a payload is building, now we want it
             while True:
                 resp = await MythicPayloadRPC(task).get_payload_by_uuid(gen_resp.uuid)
                 if resp.status == MythicStatus.Success:
-                    if resp.build_phase == 'success':
+                    if resp.build_phase == "success":
                         # it's done, so we can register a file for it
                         task.args.add_arg("template", resp.agent_file_id)
                         break
-                    elif resp.build_phase == 'error':
-                        raise Exception("Failed to build new payload: " + resp.error_message)
+                    elif resp.build_phase == "error":
+                        raise Exception(
+                            "Failed to build new payload: " + resp.error_message
+                        )
                     else:
                         await asyncio.sleep(1)
         return task

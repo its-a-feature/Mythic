@@ -52,7 +52,13 @@
                        autocomplete="off"
                 ></textarea>
                 <div class="input-group-append">
-                    <button type="button" class="btn btn{{config['outline-buttons']}}success" @click="send_message($event)" ><i class="fas fa-paper-plane 2x"></i></button>
+                        <button :class="level === 'info' ? 'btn btn{{config['outline-buttons']}}success dropdown-toggle' :'btn btn{{config['outline-buttons']}}danger dropdown-toggle' " type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"  data-target="level_button">
+                        <i class="fas fa-paper-plane 2x"></i>
+                      </button>
+                      <div class="dropdown-menu" id="level_button">
+                          <button class="dropdown-item"  @click="level = 'info'">Send normal message</button>
+                          <button class="dropdown-item"  @click="level = 'warning'">Send warning message</button>
+                      </div>
                 </div>
             </div>
     </div>

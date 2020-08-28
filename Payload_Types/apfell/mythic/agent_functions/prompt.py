@@ -6,18 +6,38 @@ class PromptArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "title": CommandParameter(name="title", type=ParameterType.String, description="Title of the dialog box", required=False,
-                                      default_value="Application Needs to Update"),
-            "icon": CommandParameter(name="icon", type=ParameterType.String, required=False, description="full path to .icns file to use",
-                                     default_value="/System/Library/CoreServices/Software Update.app/Contents/Resources/SoftwareUpdate.icns"),
-            "text": CommandParameter(name="text", type=ParameterType.String, required=False, description="additional descriptive text to display",
-                                     default_value="An application needs permission to update"),
-            "answer": CommandParameter(name="answer", type=ParameterType.String, required=False, description="Default answer to pre-populate")
+            "title": CommandParameter(
+                name="title",
+                type=ParameterType.String,
+                description="Title of the dialog box",
+                required=False,
+                default_value="Application Needs to Update",
+            ),
+            "icon": CommandParameter(
+                name="icon",
+                type=ParameterType.String,
+                required=False,
+                description="full path to .icns file to use",
+                default_value="/System/Library/CoreServices/Software Update.app/Contents/Resources/SoftwareUpdate.icns",
+            ),
+            "text": CommandParameter(
+                name="text",
+                type=ParameterType.String,
+                required=False,
+                description="additional descriptive text to display",
+                default_value="An application needs permission to update",
+            ),
+            "answer": CommandParameter(
+                name="answer",
+                type=ParameterType.String,
+                required=False,
+                description="Default answer to pre-populate",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON argument")

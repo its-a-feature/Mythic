@@ -24,21 +24,23 @@ class BuildParameterType(Enum):
 
 
 class BuildParameter:
-
-    def __init__(self,
-                 name: str,
-                 parameter_type: BuildParameterType = None,
-                 description: str = None,
-                 required: bool = None,
-                 verifier_regex: str = None,
-                 default_value: str = None,
-                 choices: [str] = None,
-                 value: any = None,
-                 verifier_func: callable = None
-                 ):
+    def __init__(
+        self,
+        name: str,
+        parameter_type: BuildParameterType = None,
+        description: str = None,
+        required: bool = None,
+        verifier_regex: str = None,
+        default_value: str = None,
+        choices: [str] = None,
+        value: any = None,
+        verifier_func: callable = None,
+    ):
         self.name = name
         self.verifier_func = verifier_func
-        self.parameter_type = parameter_type if parameter_type is not None else ParameterType.String
+        self.parameter_type = (
+            parameter_type if parameter_type is not None else ParameterType.String
+        )
         self.description = description if description is not None else ""
         self.required = required if required is not None else True
         self.verifier_regex = verifier_regex if verifier_regex is not None else ""
@@ -113,14 +115,20 @@ class BuildParameter:
                 self._value = value
 
     def to_json(self):
-        return {"name": self._name, "parameter_type": self._parameter_type.value, "description": self._description,
-                "required": self._required, "verifier_regex": self._verifier_regex,
-                "parameter": self._default_value if self._parameter_type == BuildParameterType.String else "\n".join(self.choices)}
+        return {
+            "name": self._name,
+            "parameter_type": self._parameter_type.value,
+            "description": self._description,
+            "required": self._required,
+            "verifier_regex": self._verifier_regex,
+            "parameter": self._default_value
+            if self._parameter_type == BuildParameterType.String
+            else "\n".join(self.choices),
+        }
 
 
 class C2ProfileParameters:
-    def __init__(self, c2profile: dict,
-                 parameters: dict = None):
+    def __init__(self, c2profile: dict, parameters: dict = None):
         self.parameters = {}
         self.c2profile = c2profile
         if parameters is not None:
@@ -158,7 +166,7 @@ class CommandList:
 class BuildResponse:
     def __init__(self, status: BuildStatus, payload: bytes = None, message: str = None):
         self.status = status
-        self.payload = payload if payload is not None else b''
+        self.payload = payload if payload is not None else b""
         self.message = message if message is not None else ""
 
     def get_status(self) -> BuildStatus:
@@ -184,11 +192,14 @@ class PayloadType:
 
     support_browser_scripts = []
 
-    def __init__(self, uuid: str = None,
-                 agent_code_path: Path = None,
-                 c2info: [C2ProfileParameters] = None,
-                 commands: CommandList = None,
-                 wrapped_payload: str = None):
+    def __init__(
+        self,
+        uuid: str = None,
+        agent_code_path: Path = None,
+        c2info: [C2ProfileParameters] = None,
+        commands: CommandList = None,
+        wrapped_payload: str = None,
+    ):
         self.commands = commands
         self.base_path = agent_code_path
         self.agent_code_path = agent_code_path / "agent_code"
@@ -262,7 +273,9 @@ class PayloadType:
             if key in buildinfo and buildinfo[key] is not None:
                 bp.value = buildinfo[key]
             if bp.required and bp.value is None:
-                raise ValueError("{} is a required parameter but has no value".format(key))
+                raise ValueError(
+                    "{} is a required parameter but has no value".format(key)
+                )
 
     def get_build_instance_values(self):
         values = {}
@@ -272,8 +285,18 @@ class PayloadType:
         return values
 
     def to_json(self):
-        return {"ptype": self.name, "file_extension": self.file_extension, "author": self.author,
-                "supported_os": ",".join([x.value for x in self.supported_os]), "wrapper": self.wrapper,
-                "wrapped": self.wrapped_payloads, "supports_dynamic_loading": self.supports_dynamic_loading,
-                "note": self.note, "build_parameters": [b.to_json() for k, b in self.build_parameters.items()],
-                "c2_profiles": self.c2_profiles, "support_scripts": [a.to_json(self.base_path) for a in self.support_browser_scripts]}
+        return {
+            "ptype": self.name,
+            "file_extension": self.file_extension,
+            "author": self.author,
+            "supported_os": ",".join([x.value for x in self.supported_os]),
+            "wrapper": self.wrapper,
+            "wrapped": self.wrapped_payloads,
+            "supports_dynamic_loading": self.supports_dynamic_loading,
+            "note": self.note,
+            "build_parameters": [b.to_json() for k, b in self.build_parameters.items()],
+            "c2_profiles": self.c2_profiles,
+            "support_scripts": [
+                a.to_json(self.base_path) for a in self.support_browser_scripts
+            ],
+        }

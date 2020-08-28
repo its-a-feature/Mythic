@@ -704,14 +704,15 @@ li span.badge {
         {% endif %}
     </ul>
       {% if name %}
-      <span class="nav-item active dropdown" data-boundary="viewport">
-            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false"><span class="{{config['text-color']}}"><i class="fa fa-user"></i></span> ({{name|e}})<span class="caret"></span></a>
-            <div class="dropdown-menu border border-dark shadow dropdown-menu-right">
+      <span class="nav-item active dropdown" data-boundary="viewport" id="event_notices">
+          <span v-show="messages.length > 0" data-toggle="tooltip" title="Go to Live Event Feed to address important messages" style="padding:5px 10px 5px 10px;display:inline-block;cursor:pointer" class="badge badge-danger pull-right" onclick="window.location = '{{links.live_event_feed}}' ">[[ messages.length ]]</span>
+            <a href="#" class="nav-link dropdown-toggle" style="display:inline-block" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false"><span class="{{config['text-color']}}"><i class="fa fa-user"></i></span> ({{name|e}})<span class="caret"></span></a>
+          <div class="dropdown-menu border border-dark shadow dropdown-menu-right">
                 <a class="dropdown-item" href="{{ links.logout }}">Logout</a>
                 <a class="dropdown-item" href="{{ links.settings }}">Settings</a>
             </div>
         </span>
-      <font size="4" style="float:right;padding-right:10px">v2.0.2</font>
+      <font size="4" style="float:right;padding-right:10px">v2.0.8</font>
       {% endif %}
   </div>
 </nav>

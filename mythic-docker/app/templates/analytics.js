@@ -32,50 +32,47 @@ var callback_analysis = new Vue({
 
 function update_command_frequencies(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === "success"){
+            command_frequencies.frequencies = data['output'];
+            let user_count = 0;
+            for(let i in data['output']){
+                for(let j in data['output'][i]){
+                    user_count += data['output'][i][j]['total_count'];
+                }
+                command_frequencies.total_counts[i] = user_count;
+                user_count = 0;
+            }
+        }else{
+            alertTop("danger", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === "success"){
-        command_frequencies.frequencies = data['output'];
-        let user_count = 0;
-        for(let i in data['output']){
-            for(let j in data['output'][i]){
-                user_count += data['output'][i][j]['total_count'];
-            }
-            command_frequencies.total_counts[i] = user_count;
-            user_count = 0;
-        }
-    }else{
-        alertTop("danger", data['error']);
     }
 }
 function update_artifact_overview(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === "success"){
+            artifact_overview.artifacts = data['output'];
+        }else{
+            alertTop("danger", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === "success"){
-        artifact_overview.artifacts = data['output'];
-    }else{
-        alertTop("danger", data['error']);
     }
 }
 function update_callback_analysis(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === "success"){
+            callback_analysis.callbacks['hosts'] = data['hosts'];
+            callback_analysis.callbacks['users'] = data['users'];
+        }else{
+            alertTop("danger", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === "success"){
-        callback_analysis.callbacks['hosts'] = data['hosts'];
-        callback_analysis.callbacks['users'] = data['users'];
-    }else{
-        alertTop("danger", data['error']);
     }
 }
 

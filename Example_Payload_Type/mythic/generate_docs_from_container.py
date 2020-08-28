@@ -9,11 +9,12 @@ from PayloadBuilder import *
 
 def import_all_agent_functions():
     import glob
+
     # Get file paths of all modules.
-    modules = glob.glob('agent_functions/*.py')
+    modules = glob.glob("agent_functions/*.py")
     for x in modules:
         if not x.endswith("__init__.py") and x[-3:] == ".py":
-            module = import_module( "agent_functions." + pathlib.Path(x).stem)
+            module = import_module("agent_functions." + pathlib.Path(x).stem)
             for el in dir(module):
                 if "__" not in el:
                     globals()[el] = getattr(module, el)
@@ -28,10 +29,10 @@ for cls in PayloadType.__subclasses__():
     break
 for cls in CommandBase.__subclasses__():
     commands.append(cls(root).to_json())
-payload_type['commands'] = commands
+payload_type["commands"] = commands
 
 # now generate the docs
-root_home = root / payload_type['ptype']
+root_home = root / payload_type["ptype"]
 if not root_home.exists():
     root_home.mkdir()
 if not (root_home / "c2_profiles").exists():
@@ -40,7 +41,8 @@ if not (root_home / "commands").exists():
     (root_home / "commands").mkdir()
 # now to generate files
 with open(root_home / "_index.md", "w") as f:
-    f.write(f"""+++
+    f.write(
+        f"""+++
 title = "{payload_type['ptype']}"
 chapter = false
 weight = 5
@@ -58,9 +60,11 @@ list of authors
 
 ### Special Thanks to These Contributors
 list of contributors
-""")
+"""
+    )
 with open(root_home / "c2_profiles" / "_index.md", "w") as f:
-    f.write(f"""+++
+    f.write(
+        f"""+++
 title = "C2 Profiles"
 chapter = true
 weight = 25
@@ -70,9 +74,11 @@ pre = "<b>4. </b>"
 # Supported C2 Profiles
 
 This section goes into any `{payload_type['ptype']}` specifics for the supported C2 profiles.
-""")
+"""
+    )
 with open(root_home / "development.md", "w") as f:
-    f.write(f"""+++
+    f.write(
+        f"""+++
 title = "Development"
 chapter = false
 weight = 20
@@ -93,9 +99,11 @@ Info for how to add commands
 
 Info for how to add c2 profiles
 - Where code for editing/adding c2 profiles is located
-""")
+"""
+    )
 with open(root_home / "opsec.md", "w") as f:
-    f.write(f"""+++
+    f.write(
+        f"""+++
 title = "OPSEC"
 chapter = false
 weight = 10
@@ -112,9 +120,11 @@ Info here
 Info here
 
 ### Process Execution
-Info here""")
+Info here"""
+    )
 with open(root_home / "commands" / "_index.md", "w") as f:
-    f.write(f"""+++
+    f.write(
+        f"""+++
 title = "Commands"
 chapter = true
 weight = 15
@@ -123,13 +133,15 @@ pre = "<b>2. </b>"
 
 # {payload_type['ptype']} Command Reference
 These pages provide in-depth documentation and code samples for the `{payload_type['ptype']}` commands.
-""")
-payload_type['commands'] =sorted(payload_type['commands'], key=lambda i: i['cmd'])
-for i in range(len(payload_type['commands'])):
-    c = payload_type['commands'][i]
-    cmd_file = c['cmd'] + ".md"
+"""
+    )
+payload_type["commands"] = sorted(payload_type["commands"], key=lambda i: i["cmd"])
+for i in range(len(payload_type["commands"])):
+    c = payload_type["commands"][i]
+    cmd_file = c["cmd"] + ".md"
     with open(root_home / "commands" / cmd_file, "w") as f:
-        f.write(f"""+++
+        f.write(
+            f"""+++
 title = "{c['cmd']}"
 chapter = false
 weight = 100
@@ -145,30 +157,41 @@ hidden = false
 
 ### Arguments
 
-""")
-        for a in c['parameters']:
-            f.write(f"""#### {a['name']}
+"""
+        )
+        for a in c["parameters"]:
+            f.write(
+                f"""#### {a['name']}
 
 - Description: {a['description']}  
 - Required Value: {a['required']}  
 - Default Value: {a['default_value']}  
 
-""")
-        f.write(f"""## Usage
+"""
+            )
+        f.write(
+            f"""## Usage
 
 ```
 {c['help_cmd']}
 ```
 
-""")
-        if len(c['attack']) > 0:
-            f.write(f"""## MITRE ATT&CK Mapping
-""")
-            for a in c['attack']:
-                f.write(f"""
-- {a['t_num']}  """)
+"""
+        )
+        if len(c["attack"]) > 0:
+            f.write(
+                f"""## MITRE ATT&CK Mapping
+"""
+            )
+            for a in c["attack"]:
+                f.write(
+                    f"""
+- {a['t_num']}  """
+                )
 
-        f.write(f"""
+        f.write(
+            f"""
 ## Detailed Summary
 
-""")
+"""
+        )

@@ -6,10 +6,16 @@ class PortScanArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "ports": CommandParameter(name="ports", type=ParameterType.String,
-                                         description="List of ports to scan. Can use the dash separator to specify a range."),
-            "hosts": CommandParameter(name="hosts", type=ParameterType.Array,
-                                      description="List of hosts to scan"),
+            "ports": CommandParameter(
+                name="ports",
+                type=ParameterType.String,
+                description="List of ports to scan. Can use the dash separator to specify a range.",
+            ),
+            "hosts": CommandParameter(
+                name="hosts",
+                type=ParameterType.Array,
+                description="List of hosts to scan",
+            ),
         }
 
     async def parse_arguments(self):

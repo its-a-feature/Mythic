@@ -6,16 +6,32 @@ class ShellElevatedArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "command": CommandParameter(name="command", type=ParameterType.String, description="Command to execute"),
-            "use_creds": CommandParameter(name="use_creds", type=ParameterType.Boolean, description="Use supplied creds or prompt the user for creds"),
-            "user": CommandParameter(name="user", type=ParameterType.Credential_Account),
-            "credential": CommandParameter(name="credential", type=ParameterType.Credential_Value),
-            "prompt": CommandParameter(name="prompt", type=ParameterType.String, description="What prompt to display to the user when asking for creds")
+            "command": CommandParameter(
+                name="command",
+                type=ParameterType.String,
+                description="Command to execute",
+            ),
+            "use_creds": CommandParameter(
+                name="use_creds",
+                type=ParameterType.Boolean,
+                description="Use supplied creds or prompt the user for creds",
+            ),
+            "user": CommandParameter(
+                name="user", type=ParameterType.Credential_Account
+            ),
+            "credential": CommandParameter(
+                name="credential", type=ParameterType.Credential_Value
+            ),
+            "prompt": CommandParameter(
+                name="prompt",
+                type=ParameterType.String,
+                description="What prompt to display to the user when asking for creds",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON arguments")

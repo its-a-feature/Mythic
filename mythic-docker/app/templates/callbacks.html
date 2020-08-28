@@ -704,7 +704,7 @@
         <div class="input-group" style="margin:0!important;padding:5px">
             <input id="commandline" type="text" class="form-control" v-model="input_field"
                    :placeholder="input_field_placeholder.data" aria-describedby="basic-addon1"
-                   @keydown.enter="task_button(input_field_placeholder)" @keyup.up="cmd_history_up(input_field_placeholder)" @keyup.down="cmd_history_down(input_field_placeholder)"
+                   @keydown.enter="task_button(input_field_placeholder)" @keyup.up="cmd_history_up()" @keyup.down="cmd_history_down()"
                    autocomplete="off" style="height:calc(3rem)"
             >
             <div class="input-group-append">

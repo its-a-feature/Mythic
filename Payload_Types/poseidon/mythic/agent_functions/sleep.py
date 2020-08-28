@@ -6,10 +6,20 @@ class SleepArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "jitter": CommandParameter(name="jitter", type=ParameterType.Number, required=False,
-                                         description="Jitter percentage.", default_value=-1),
-            "interval": CommandParameter(name="interval", type=ParameterType.Number, required=False,
-                                      description="Sleep time in seconds", default_value=-1),
+            "jitter": CommandParameter(
+                name="jitter",
+                type=ParameterType.Number,
+                required=False,
+                description="Jitter percentage.",
+                default_value=-1,
+            ),
+            "interval": CommandParameter(
+                name="interval",
+                type=ParameterType.Number,
+                required=False,
+                description="Sleep time in seconds",
+                default_value=-1,
+            ),
         }
 
     async def parse_arguments(self):

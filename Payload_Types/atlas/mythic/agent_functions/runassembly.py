@@ -7,13 +7,17 @@ class RunAssemblyArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "assembly_id": CommandParameter(name="assembly_id", type=ParameterType.String, description=""),
-            "args": CommandParameter(name="args", type=ParameterType.String, required=False)
+            "assembly_id": CommandParameter(
+                name="assembly_id", type=ParameterType.String, description=""
+            ),
+            "args": CommandParameter(
+                name="args", type=ParameterType.String, required=False
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 pieces = self.command_line.split(" ")
@@ -40,11 +44,15 @@ class RunAssemblyCommand(CommandBase):
     attackmapping = []
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
-        resp = await MythicFileRPC(task).get_file_by_name(task.args.get_arg("assembly_id"))
+        resp = await MythicFileRPC(task).get_file_by_name(
+            task.args.get_arg("assembly_id")
+        )
         if resp.status == MythicStatus.Success:
             task.args.add_arg("assembly_id", resp.agent_file_id)
         else:
-            raise ValueError("Failed to find file:  {}".format(task.args.get_arg("assembly_id")))
+            raise ValueError(
+                "Failed to find file:  {}".format(task.args.get_arg("assembly_id"))
+            )
         return task
 
     async def process_response(self, response: AgentResponse):

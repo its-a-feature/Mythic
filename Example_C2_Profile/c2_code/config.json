@@ -1,0 +1,17 @@
+{
+  "instances": [
+  {
+    "ServerHeaders": {
+      "Server": "NetDNA-cache/2.2",
+      "Cache-Control": "max-age=0, no-cache",
+      "Pragma": "no-cache",
+      "Connection": "keep-alive",
+      "Content-Type": "application/javascript; charset=utf-8"
+    },
+    "port": 80,
+    "key_path": "",
+    "cert_path": "",
+    "debug": true
+    }
+  ]
+}

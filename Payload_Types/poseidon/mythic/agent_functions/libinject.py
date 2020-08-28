@@ -6,10 +6,16 @@ class LibinjectArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "pid": CommandParameter(name="pid", type=ParameterType.Number,
-                                         description="PID of process to inject into."),
-            "library": CommandParameter(name="library", type=ParameterType.String,
-                                      description="Path to the dylib to inject"),
+            "pid": CommandParameter(
+                name="pid",
+                type=ParameterType.Number,
+                description="PID of process to inject into.",
+            ),
+            "library": CommandParameter(
+                name="library",
+                type=ParameterType.String,
+                description="Path to the dylib to inject",
+            ),
         }
 
     async def parse_arguments(self):

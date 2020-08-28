@@ -22,7 +22,7 @@ exports.ls = function(task, command, params){
         if(path[0] === '~'){
             path = $(path).stringByExpandingTildeInPath.js;
         }
-        output['host'] = ObjC.deepUnwrap($.NSHost.currentHost.names)[0];
+        output['host'] = ObjC.unwrap(apfell.procInfo.hostName);
         let attributes = ObjC.deepUnwrap(fileManager.attributesOfItemAtPathError($(path), error));
         if (attributes !== undefined) {
             output['is_file'] = true;

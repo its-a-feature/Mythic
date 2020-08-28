@@ -24,7 +24,7 @@ class ParameterType(Enum):
     Credential_JSON = "Credential-JSON"
     Credential_Account = "Credential-Account"
     Credential_Realm = "Credential-Realm"
-    Credential_Type = "Credential-Type",
+    Credential_Type = ("Credential-Type",)
     Credential_Value = "Credential-Credential"
     Number = "Number"
     Payload = "PayloadList"
@@ -32,16 +32,18 @@ class ParameterType(Enum):
 
 
 class CommandParameter:
-
-    def __init__(self, name: str,
-                 type: ParameterType,
-                 description: str = "",
-                 choices: [any] = None,
-                 required: bool = True,
-                 default_value: any = None,
-                 validation_func: callable = None,
-                 value: any = None,
-                 supported_agents: [str] = None):
+    def __init__(
+        self,
+        name: str,
+        type: ParameterType,
+        description: str = "",
+        choices: [any] = None,
+        required: bool = True,
+        default_value: any = None,
+        validation_func: callable = None,
+        value: any = None,
+        supported_agents: [str] = None,
+    ):
         self.name = name
         self.type = type
         self.description = description
@@ -126,7 +128,11 @@ class CommandParameter:
                     self.validation_func(type_validated)
                     self._value = type_validated
                 except Exception as e:
-                    raise ValueError("Failed validation check for parameter {} with value {}".format(self.name, str(value)))
+                    raise ValueError(
+                        "Failed validation check for parameter {} with value {}".format(
+                            self.name, str(value)
+                        )
+                    )
                 return
             else:
                 # now we do some verification ourselves based on the type
@@ -135,12 +141,18 @@ class CommandParameter:
         self._value = value
 
     def to_json(self):
-        return {"name": self._name, "type": self._type.value, "description": self._description, "choices": "\n".join(self._choices),
-                "required": self._required, "default_value": self._value, "supported_agents": "\n".join(self._supported_agents)}
+        return {
+            "name": self._name,
+            "type": self._type.value,
+            "description": self._description,
+            "choices": "\n".join(self._choices),
+            "required": self._required,
+            "default_value": self._value,
+            "supported_agents": "\n".join(self._supported_agents),
+        }
 
 
 class TypeValidators:
-
     def validateString(self, val):
         return str(val)
 
@@ -208,7 +220,7 @@ class TypeValidators:
         "Choice": validatePass,
         "ChoiceMultiple": validateChooseMultiple,
         "PayloadList": validatePayloadList,
-        "AgentConnect": validateAgentConnect
+        "AgentConnect": validateAgentConnect,
     }
 
     def validate(self, type: ParameterType, val: any):
@@ -216,7 +228,6 @@ class TypeValidators:
 
 
 class TaskArguments(metaclass=ABCMeta):
-
     def __init__(self, command_line: str):
         self.command_line = str(command_line)
 
@@ -248,7 +259,9 @@ class TaskArguments(metaclass=ABCMeta):
             self.args[key].value = value
         else:
             if type is None:
-                self.args[key] = CommandParameter(name=key, type=ParameterType.String, value=value)
+                self.args[key] = CommandParameter(
+                    name=key, type=ParameterType.String, value=value
+                )
             else:
                 self.args[key] = CommandParameter(name=key, type=type, value=value)
 
@@ -299,7 +312,6 @@ class AgentResponse:
 
 
 class Callback:
-
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -307,15 +319,18 @@ class Callback:
 class BrowserScript:
     # if a browserscript is specified as part of a PayloadType, then it's a support script
     # if a browserscript is specified as part of a command, then it's for that command
-    def __init__(self,
-                 script_name: str,
-                 author: str = None):
+    def __init__(self, script_name: str, author: str = None):
         self.script_name = script_name
         self.author = author
 
     def to_json(self, base_path: Path):
         try:
-            code_file = base_path / "mythic" / "browser_scripts" / "{}.js".format(self.script_name)
+            code_file = (
+                base_path
+                / "mythic"
+                / "browser_scripts"
+                / "{}.js".format(self.script_name)
+            )
             if code_file.exists():
                 code = code_file.read_bytes()
                 code = base64.b64encode(code).decode()
@@ -327,16 +342,15 @@ class BrowserScript:
 
 
 class MythicTask:
-    def __init__(self,
-                 taskinfo: dict,
-                 args: TaskArguments,
-                 status: MythicStatus = None):
-        self.task_id = taskinfo['id']
-        self.original_params = taskinfo['original_params']
-        self.completed = taskinfo['completed']
-        self.callback = Callback(**taskinfo['callback'])
-        self.agent_task_id = taskinfo['agent_task_id']
-        self.operator = taskinfo['operator']
+    def __init__(
+        self, taskinfo: dict, args: TaskArguments, status: MythicStatus = None
+    ):
+        self.task_id = taskinfo["id"]
+        self.original_params = taskinfo["original_params"]
+        self.completed = taskinfo["completed"]
+        self.callback = Callback(**taskinfo["callback"])
+        self.agent_task_id = taskinfo["agent_task_id"]
+        self.operator = taskinfo["operator"]
         self.args = args
         self.status = MythicStatus.Success
         if status is not None:
@@ -353,7 +367,6 @@ class MythicTask:
 
 
 class CommandBase(metaclass=ABCMeta):
-
     def __init__(self, agent_code_path: Path):
         self.base_path = agent_code_path
         self.agent_code_path = agent_code_path / "agent_code"
@@ -446,10 +459,20 @@ class CommandBase(metaclass=ABCMeta):
             bscript = {"browser_script": self.browser_script.to_json(self.base_path)}
         else:
             bscript = {}
-        return {"cmd": self.cmd, "needs_admin": self.needs_admin, "help_cmd": self.help_cmd,
-                "description": self.description, "version": self.version, "is_exit": self.is_exit,
-                "is_file_browse": self.is_file_browse, "is_process_list": self.is_process_list,
-                "is_download_file": self.is_download_file, "is_remove_file": self.is_remove_file,
-                "is_upload_file": self.is_upload_file,
-                "author": self.author, "attack": [{"t_num": a} for a in self.attackmapping],
-                "parameters": params, **bscript}
+        return {
+            "cmd": self.cmd,
+            "needs_admin": self.needs_admin,
+            "help_cmd": self.help_cmd,
+            "description": self.description,
+            "version": self.version,
+            "is_exit": self.is_exit,
+            "is_file_browse": self.is_file_browse,
+            "is_process_list": self.is_process_list,
+            "is_download_file": self.is_download_file,
+            "is_remove_file": self.is_remove_file,
+            "is_upload_file": self.is_upload_file,
+            "author": self.author,
+            "attack": [{"t_num": a} for a in self.attackmapping],
+            "parameters": params,
+            **bscript,
+        }

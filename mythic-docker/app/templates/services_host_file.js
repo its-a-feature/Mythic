@@ -5,84 +5,89 @@ var manualFileModal = new Vue({
         local_file: false,
         path: ""
     },
-    delimiters: ['[[',']]']
+    delimiters: ['[[', ']]']
 });
-function create_file_button(){
-    $( '#manualFileModal').modal('show');
-    $( '#manualFileSubmit').unbind('click').click(function(){
-        var data = {'local_file': manualFileModal.local_file};
-        if(manualFileModal.local_file){
+/* eslint-disable no-unused-vars */
+// this is called via Vue from the HTML code
+function create_file_button() {
+    $('#manualFileModal').modal('show');
+    $('#manualFileSubmit').unbind('click').click(function () {
+        let data = {'local_file': manualFileModal.local_file};
+        if (manualFileModal.local_file) {
             data['path'] = manualFileModal.path.trim();
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/manual/",
-            manual_file_upload, "POST", data);
-        }else{
+                manual_file_upload, "POST", data);
+        } else {
             //uploadFileAndJSON(url, callback, file, data, method)
-            var file = document.getElementById('manualFileUpload');
-            var filedata = file.files;
+            let file = document.getElementById('manualFileUpload');
+            let filedata = file.files;
             uploadFileAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/manual/",
-            manual_file_upload, filedata, data, "POST");
+                manual_file_upload, filedata, data, "POST");
             file.value = file.defaultValue;
         }
         alertTop("info", "Loading file...");
     });
 }
-function manual_file_upload(response){
-    try{
-        data = JSON.parse(response);
-    }catch(error){
+/* eslint-enable no-unused-vars */
+function manual_file_upload(response) {
+    try {
+        let data = JSON.parse(response);
+        if (data['status'] === "error") {
+            alertTop("danger", data['error']);
+        }
+    } catch (error) {
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === "error"){
-        alertTop("danger", data['error']);
     }
 }
+
 var manual_file_table = new Vue({
     el: '#manualFileTable',
     data: {
         files: []
     },
     methods: {
-        delete_button: function(id){
+        delete_button: function (id) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/" + id.toString(),
-            delete_callback, "DELETE", null);
+                delete_callback, "DELETE", null);
         },
-        download_button: function(id){
-            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" +id.toString(), '_blank').focus();
+        download_button: function (id) {
+            window.open("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + id.toString(), '_blank').focus();
         }
     },
     delimiters: ['[[', ']]']
 });
-function delete_callback(response){
-    try{
+
+function delete_callback(response) {
+    try {
         let data = JSON.parse(response);
-        if(data['status'] === 'error'){
+        if (data['status'] === 'error') {
             alertTop("danger", data['error']);
-        }
-        else{
-            for(let i = 0; i < manual_file_table.files.length; i++){
-                if(manual_file_table.files[i].id === data['id']){
+        } else {
+            for (let i = 0; i < manual_file_table.files.length; i++) {
+                if (manual_file_table.files[i].id === data['id']) {
                     manual_file_table.files.splice(i, 1);
                     return;
                 }
             }
         }
-    }catch(error){
+    } catch (error) {
         alertTop("danger", "Session expired, please refresh");
     }
 }
-function startwebsocket_manualFiles(){
-	var ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/manual_files/current_operation');
-	ws.onmessage = function(event){
-	    if(event.data === "no_operation"){
-	        alertTop("warning", "No operation selected");
-        }
-		else if(event.data !== ""){
-		    let data = JSON.parse(event.data);
-		    if(data['deleted'] === true){return}
-            if(data['task'] === 'null' || data['task'] == null){
-                for(let i = 0; i < manual_file_table.files.length; i++){
-                    if(manual_file_table.files[i]['id'] === data['id']){
+
+function startwebsocket_manualFiles() {
+    let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/manual_files/current_operation');
+    ws.onmessage = function (event) {
+        if (event.data === "no_operation") {
+            alertTop("warning", "No operation selected");
+        } else if (event.data !== "") {
+            let data = JSON.parse(event.data);
+            if (data['deleted'] === true) {
+                return
+            }
+            if (data['task'] === 'null' || data['task'] === null) {
+                for (let i = 0; i < manual_file_table.files.length; i++) {
+                    if (manual_file_table.files[i]['id'] === data['id']) {
                         Vue.set(manual_file_table.files, i, data);
                         clearTop();
                         return;
@@ -90,13 +95,14 @@ function startwebsocket_manualFiles(){
                 }
                 manual_file_table.files.push(data);
             }
-		}
-	};
-	ws.onclose = function(event){
-		wsonclose(event);
-	};
-	ws.onerror = function(event){
+        }
+    };
+    ws.onclose = function (event) {
+        wsonclose(event);
+    };
+    ws.onerror = function (event) {
         wsonerror(event);
-	};
+    };
 }
+
 startwebsocket_manualFiles();

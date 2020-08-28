@@ -10,6 +10,8 @@ from pathlib import Path
 import requests
 import json
 import os
+from MythicCallbackRPC import *
+from C2ProfileBase import *
 
 config = {}
 
@@ -31,8 +33,12 @@ async def agent_message(request, **kwargs):
         if config[request.app.name]['debug']:
             await print_flush("Forwarding along to: {}".format(config['mythic_address']))
         if request.method == "POST":
+            # manipulate the request if needed
+            #await MythicCallbackRPC().add_event_message(message="got a POST message")
             response = requests.post(config['mythic_address'], data=request.body, verify=False, cookies=request.cookies, headers=request.headers)
         else:
+            # manipulate the request if needed
+            #await MythicCallbackRPC().add_event_message(message="got a GET message")
             response = requests.get(config['mythic_address'] + "?{}".format(request.query_string), verify=False, data=request.body, cookies=request.cookies, headers=request.headers)
         return raw(response.content, headers=config[request.app.name]['headers'], status=response.status_code)
     except Exception as e:
@@ -42,6 +48,7 @@ async def agent_message(request, **kwargs):
 
 
 if __name__ == "__main__":
+    sys.path.append("/Mythic/mythic")
     config_file = open("config.json", 'rb')
     main_config = json.loads(config_file.read().decode('utf-8'))
     print("Opening config and starting instances...")

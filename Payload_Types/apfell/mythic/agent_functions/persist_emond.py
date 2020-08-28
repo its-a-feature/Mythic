@@ -6,16 +6,38 @@ class PersistEmondArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "rule_name": CommandParameter(name="rule_name", type=ParameterType.String, description="Rule name for inside of the plist"),
-            "payload_type": CommandParameter(name="payload_type", type=ParameterType.ChooseOne, choices=["oneliner-jxa", "custom_bash-c"]),
-            "url": CommandParameter(name="url", type=ParameterType.String, description="url of payload for oneliner-jxa for download cradle", required=False),
-            "command": CommandParameter(name="command", type=ParameterType.String, required=False, description="Command if type is custom_bash-c to execute via /bin/bash -c"),
-            "file_name": CommandParameter(name="file_name", type=ParameterType.String, description="Name of plist in /etc/emond.d/rules/")
+            "rule_name": CommandParameter(
+                name="rule_name",
+                type=ParameterType.String,
+                description="Rule name for inside of the plist",
+            ),
+            "payload_type": CommandParameter(
+                name="payload_type",
+                type=ParameterType.ChooseOne,
+                choices=["oneliner-jxa", "custom_bash-c"],
+            ),
+            "url": CommandParameter(
+                name="url",
+                type=ParameterType.String,
+                description="url of payload for oneliner-jxa for download cradle",
+                required=False,
+            ),
+            "command": CommandParameter(
+                name="command",
+                type=ParameterType.String,
+                required=False,
+                description="Command if type is custom_bash-c to execute via /bin/bash -c",
+            ),
+            "file_name": CommandParameter(
+                name="file_name",
+                type=ParameterType.String,
+                description="Name of plist in /etc/emond.d/rules/",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("missing JSON arguments")

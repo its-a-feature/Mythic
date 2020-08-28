@@ -6,10 +6,16 @@ class CpArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "source": CommandParameter(name="source", type=ParameterType.String,
-                                         description="Source file to copy."),
-            "destination": CommandParameter(name="destination", type=ParameterType.String,
-                                      description="Source will copy to this location"),
+            "source": CommandParameter(
+                name="source",
+                type=ParameterType.String,
+                description="Source file to copy.",
+            ),
+            "destination": CommandParameter(
+                name="destination",
+                type=ParameterType.String,
+                description="Source will copy to this location",
+            ),
         }
 
     async def parse_arguments(self):

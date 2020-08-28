@@ -5,14 +5,13 @@ import json
 class LsArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
-        self.args = {
-        }
+        self.args = {}
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
             if self.command_line[0] == "{":
                 tmp_json = json.loads(self.command_line)
-                self.command_line = tmp_json['path'] + "/" + tmp_json['file']
+                self.command_line = tmp_json["path"] + "/" + tmp_json["file"]
 
 
 class LsCommand(CommandBase):

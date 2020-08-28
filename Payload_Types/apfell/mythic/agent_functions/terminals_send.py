@@ -6,14 +6,26 @@ class TerminalsSendArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "window": CommandParameter(name="window", type=ParameterType.Number, description="window # to send command to"),
-            "tab": CommandParameter(name="tab", type=ParameterType.Number, description="tab # to send command to"),
-            "command": CommandParameter(name="command", type=ParameterType.String, description="command to execute")
+            "window": CommandParameter(
+                name="window",
+                type=ParameterType.Number,
+                description="window # to send command to",
+            ),
+            "tab": CommandParameter(
+                name="tab",
+                type=ParameterType.Number,
+                description="tab # to send command to",
+            ),
+            "command": CommandParameter(
+                name="command",
+                type=ParameterType.String,
+                description="command to execute",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON arguments")

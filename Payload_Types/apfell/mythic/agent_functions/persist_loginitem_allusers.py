@@ -6,15 +6,21 @@ class PersistLoginItemAllUsersArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "path": CommandParameter(name="path", type=ParameterType.String,
-                                     description="path to binary to execute on execution"),
-            "name": CommandParameter(name="name", type=ParameterType.String,
-                                          description="The name that is displayed in the Login Items section of the Users & Groups preferences pane")
+            "path": CommandParameter(
+                name="path",
+                type=ParameterType.String,
+                description="path to binary to execute on execution",
+            ),
+            "name": CommandParameter(
+                name="name",
+                type=ParameterType.String,
+                description="The name that is displayed in the Login Items section of the Users & Groups preferences pane",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON arguments")

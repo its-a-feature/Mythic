@@ -74,106 +74,108 @@ var attack_matrix = new Vue({
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mitreattack", initialize_attack, "GET", null);
 function initialize_attack(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        //console.log('before');
+        //console.log(JSON.stringify(data['attack']['privilege-escalation']));
+        if(data['status'] === 'success'){
+            //lets square out the matrix first before we push it to the UI
+            let longest = 0;
+            for(let key in data['attack']){
+                if(data['attack'][key].length > longest){
+                    longest = data['attack'][key].length;
+                }
+            }
+            // now make sure each 'column' is 'longest' in length, fill with empty
+            for(let key in data['attack']){
+                while(data['attack'][key].length < longest){
+                    data['attack'][key].push({'name': '', 't_num': '', 'mappings': []});
+                }
+            }
+            //console.log('when setting');
+            //console.log(JSON.stringify(data['attack']['privilege-escalation']));
+            attack_matrix.matrix = data['attack'];
+        }else{
+            alertTop("warning", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    //console.log('before');
-    //console.log(JSON.stringify(data['attack']['privilege-escalation']));
-    if(data['status'] === 'success'){
-        //lets square out the matrix first before we push it to the UI
-        let longest = 0;
-        for(let key in data['attack']){
-            if(data['attack'][key].length > longest){
-                longest = data['attack'][key].length;
-            }
-        }
-        // now make sure each 'column' is 'longest' in length, fill with empty
-        for(let key in data['attack']){
-            while(data['attack'][key].length < longest){
-                data['attack'][key].push({'name': '', 't_num': '', 'mappings': []});
-            }
-        }
-        //console.log('when setting');
-        //console.log(JSON.stringify(data['attack']['privilege-escalation']));
-        attack_matrix.matrix = data['attack'];
-    }else{
-        alertTop("warning", data['error']);
     }
 }
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mitreattack/listing", initialize_attack_options, "GET", null);
 function initialize_attack_options(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            data['attack'].sort((a,b) => (a.t_num > b.t_num) ? 1 : ((b.t_num > a.t_num) ? -1 : 0));
+            regexVue.options = data['attack'];
+            regexVue.selected = regexVue.options[0].t_num;
+        }else{
+            alertTop("warning", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        data['attack'].sort((a,b) => (a.t_num > b.t_num) ? 1 : ((b.t_num > a.t_num) ? -1 : 0));
-        regexVue.options = data['attack'];
-        regexVue.selected = regexVue.options[0].t_num;
-    }else{
-        alertTop("warning", data['error']);
     }
 }
+/* eslint-disable no-unused-vars */
+// this is called via Vue from the HTML code
 function get_command_by_attack(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mitreattack/bycommand", attack_by_command, "GET", null);
 }
+/* eslint-enable no-unused-vars */
 function attack_by_command(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            //lets square out the matrix first before we push it to the UI
+            let longest = 0;
+            for(let key in data['attack']){
+                if(data['attack'][key].length > longest){
+                    longest = data['attack'][key].length;
+                }
+            }
+            // now make sure each 'column' is 'longest' in length, fill with empty
+            for(let key in data['attack']){
+                while(data['attack'][key].length < longest){
+                    data['attack'][key].push({'name': '', 't_num': '', 'mappings': {}});
+                }
+            }
+            attack_matrix.matrix = data['attack'];
+        }else{
+            alertTop("warning", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        //lets square out the matrix first before we push it to the UI
-        let longest = 0;
-        for(let key in data['attack']){
-            if(data['attack'][key].length > longest){
-                longest = data['attack'][key].length;
-            }
-        }
-        // now make sure each 'column' is 'longest' in length, fill with empty
-        for(let key in data['attack']){
-            while(data['attack'][key].length < longest){
-                data['attack'][key].push({'name': '', 't_num': '', 'mappings': {}});
-            }
-        }
-        attack_matrix.matrix = data['attack'];
-    }else{
-        alertTop("warning", data['error']);
     }
 }
+/* eslint-disable no-unused-vars */
+// this is called via Vue from the HTML code
 function get_task_by_attack(){
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mitreattack/bytask", attack_by_task, "GET", null);
 }
+/* eslint-enable no-unused-vars */
 function attack_by_task(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            //lets square out the matrix first before we push it to the UI
+            let longest = 0;
+            for(let key in data['attack']){
+                if(data['attack'][key].length > longest){
+                    longest = data['attack'][key].length;
+                }
+            }
+            // now make sure each 'column' is 'longest' in length, fill with empty
+            for(let key in data['attack']){
+                while(data['attack'][key].length < longest){
+                    data['attack'][key].push({'name': '', 't_num': '', 'mappings': {}});
+                }
+            }
+            attack_matrix.matrix = data['attack'];
+        }else{
+            alertTop("warning", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        //lets square out the matrix first before we push it to the UI
-        let longest = 0;
-        for(let key in data['attack']){
-            if(data['attack'][key].length > longest){
-                longest = data['attack'][key].length;
-            }
-        }
-        // now make sure each 'column' is 'longest' in length, fill with empty
-        for(let key in data['attack']){
-            while(data['attack'][key].length < longest){
-                data['attack'][key].push({'name': '', 't_num': '', 'mappings': {}});
-            }
-        }
-        attack_matrix.matrix = data['attack'];
-    }else{
-        alertTop("warning", data['error']);
     }
 }
 
@@ -193,28 +195,27 @@ var view_data_modal = new Vue({
 });
 function remove_task_mapping(response){
     try{
-        var data = JSON.parse(response);
-    }catch(error){
-        alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        for(const [key, value] of Object.entries(view_data_modal.cell_data['mappings'])){
-            for(let i = 0; i < view_data_modal.cell_data['mappings'][key].length; i++){
-                if(view_data_modal.cell_data['mappings'][key][i]['task'] === data['task_id']){
-                    view_data_modal.cell_data['mappings'][key].splice(i, 1);
-                    if(view_data_modal.cell_data['mappings'][key].length === 0){
-                        //if there are no more tasks for that type, remove the type as well
-                        delete view_data_modal.cell_data['mappings'][key];
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            for(const [key, ] of Object.entries(view_data_modal.cell_data['mappings'])){
+                for(let i = 0; i < view_data_modal.cell_data['mappings'][key].length; i++){
+                    if(view_data_modal.cell_data['mappings'][key][i]['task'] === data['task_id']){
+                        view_data_modal.cell_data['mappings'][key].splice(i, 1);
+                        if(view_data_modal.cell_data['mappings'][key].length === 0){
+                            //if there are no more tasks for that type, remove the type as well
+                            delete view_data_modal.cell_data['mappings'][key];
+                        }
+                        // update the global view so that if we delete all mappings, the cell un-highlights
+                        Vue.set(attack_matrix.matrix[view_data_modal.tactic], view_data_modal.index, view_data_modal.cell_data);
+                        return;
                     }
-                    // update the global view so that if we delete all mappings, the cell un-highlights
-                    Vue.set(attack_matrix.matrix[view_data_modal.tactic], view_data_modal.index, view_data_modal.cell_data);
-                    return;
                 }
             }
+        }else{
+            alertTop("warning", data['error']);
         }
-    }else{
-        alertTop("warning", data['error']);
+    }catch(error){
+        alertTop("danger", "Session expired, please refresh");
     }
 }
 var regexVue = new Vue({
@@ -237,24 +238,23 @@ var regexVue = new Vue({
 });
 function submit_regex_callback(response){
     try{
-        var data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            if('matches' in data){
+                for(let i = 0; i < data['matches'].length; i++){
+                    data['matches'][i]['href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['matches'][i]['id'];
+                    data['matches'][i]['attack'] = data['matches'][i]['attack'].sort((a,b) =>(b.t_num > a.t_num) ? -1 : ((a.t_num > b.t_num) ? 1 : 0));
+                }
+                regexOutput.tasks = data['matches'];
+            }else{
+                regexOutput.tasks = [];
+                alertTop("success", "Successfully updated matches", 1);
+            }
+        }else{
+            alertTop("warning", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        if(data.hasOwnProperty('matches')){
-            for(let i = 0; i < data['matches'].length; i++){
-                data['matches'][i]['href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['matches'][i]['id'];
-                data['matches'][i]['attack'] = data['matches'][i]['attack'].sort((a,b) =>(b.t_num > a.t_num) ? -1 : ((a.t_num > b.t_num) ? 1 : 0));
-            }
-            regexOutput.tasks = data['matches'];
-        }else{
-            regexOutput.tasks = [];
-            alertTop("success", "Successfully updated matches", 1);
-        }
-    }else{
-        alertTop("warning", data['error']);
     }
 }
 var regexOutput = new Vue({
@@ -264,7 +264,8 @@ var regexOutput = new Vue({
     },
     delimiters: ['[[',']]']
 });
-
+/* eslint-disable no-unused-vars */
+// this is called via Vue from the HTML code
 function output_to_navigator(){
     let nav_list = []
     for(const [key, value] of Object.entries(attack_matrix.matrix)){
@@ -286,5 +287,4 @@ function output_to_navigator(){
     wnd.focus();
     navigator_base['techniques'] = [];
 }
-
-
+/* eslint-enable no-unused-vars */

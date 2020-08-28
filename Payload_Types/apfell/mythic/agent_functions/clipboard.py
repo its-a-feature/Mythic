@@ -6,15 +6,23 @@ class ClipboardArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "types": CommandParameter(name="types", type=ParameterType.Array, required=False,
-                                      description="Types of clipboard data to retrieve, defaults to public.utf8-plain-text"),
-            "data":  CommandParameter(name="data", type=ParameterType.String,
-                                      description="Data to put on the clipboard", required=False)
+            "types": CommandParameter(
+                name="types",
+                type=ParameterType.Array,
+                required=False,
+                description="Types of clipboard data to retrieve, defaults to public.utf8-plain-text",
+            ),
+            "data": CommandParameter(
+                name="data",
+                type=ParameterType.String,
+                description="Data to put on the clipboard",
+                required=False,
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 self.add_arg("data", self.command_line)

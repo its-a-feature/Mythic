@@ -8,14 +8,23 @@ def positiveTime(val):
 
 
 class SleepArguments(TaskArguments):
-
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "jitter": CommandParameter(name="jitter", type=ParameterType.Number, validation_func=positiveTime, required=False,
-                                       description="Percentage of C2's interval to use as jitter"),
-            "interval": CommandParameter(name="interval", type=ParameterType.Number, required=False, validation_func=positiveTime,
-                                         description="Number of seconds between checkins")
+            "jitter": CommandParameter(
+                name="jitter",
+                type=ParameterType.Number,
+                validation_func=positiveTime,
+                required=False,
+                description="Percentage of C2's interval to use as jitter",
+            ),
+            "interval": CommandParameter(
+                name="interval",
+                type=ParameterType.Number,
+                required=False,
+                validation_func=positiveTime,
+                description="Number of seconds between checkins",
+            ),
         }
 
     async def parse_arguments(self):

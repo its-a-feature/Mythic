@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 {% block body %}
-<div style="margin-top:5px;background:transparent"  id="browser_scripts_table">
+<div style="margin-top:5px;background:transparent" id="browser_scripts_table">
     <div class="card border border-dark shadow bg-card-body">
         <div class="card-header bg-header text-white">
             <h2 style="display:inline-block">User's <span class="operator">Browser Scripts</span></h2>
-            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}success" @click="new_script()"><i class="fas fa-plus"></i> New Script</button>
+            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}success"
+                    @click="new_script()"><i class="fas fa-plus"></i> New Script
+            </button>
         </div>
         <div style="max-height:calc(40vh);overflow-y:auto">
-            <table class="table table-striped {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
+            <table class="table table-striped {{config['table-color']}} border border-dark shadow"
+                   style="margin-bottom:0">
                 <tr>
                     <th class="sticky-top" style="width:5em"><b>Delete</b></th>
                     <th class="sticky-top" onclick="sort_table(this)"><b>Active Status</b></th>
@@ -16,19 +19,24 @@
                     <th class="sticky-top" onclick="sort_table(this)"><b>Author</b></th>
                     <th class="sticky-top" onclick="sort_table(this)"><b>Registration Time</span></b></th>
                     <th class="sticky-top" onclick="sort_table(this)"><b>In Effect</b></th>
-                    <th class="sticky-top" ><b>Actions</b></th>
+                    <th class="sticky-top"><b>Actions</b></th>
                 </tr>
 
                 <tr v-for="(s, i) in bscripts" :key="i">
                     <td style="text-align:center">
-                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(s, i)"><i class="fas fa-trash-alt"></i></button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm"
+                                @click="delete_button(s, i)"><i class="fas fa-trash-alt"></i></button>
                     </td>
-                    <td >
+                    <td>
                         <template v-if="s.active">
-                            <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="toggle_active(s)">Deactivate</button>
+                            <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="toggle_active(s)">
+                                Deactivate
+                            </button>
                         </template>
                         <template v-else>
-                            <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="toggle_active(s)">Activate</button>
+                            <button class="btn btn-sm btn{{config['outline-buttons']}}success"
+                                    @click="toggle_active(s)">Activate
+                            </button>
                         </template>
                     </td>
                     <td>[[s.payload_type]]</td>
@@ -41,7 +49,7 @@
                         </template>
                     </td>
                     <td>[[s.author]]</td>
-                    <td >[[toLocalTime(s.creation_time)]]</td>
+                    <td>[[toLocalTime(s.creation_time)]]</td>
                     <td>
                         <pre>[[in_effect(s)]]</pre>
                         <template v-if="s.user_modified">
@@ -51,24 +59,32 @@
                             <font color="green"><b>User Created</b></font>
                         </template>
                     </td>
-                    <td >
+                    <td>
                         <div class="dropdown" style="display:inline">
-                                <button class="btn btn{{config['outline-buttons']}}warning dropdown-toggle btn-sm" type="button" data-boundary="viewport" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"  :data-target="s.id + 'actions'">
+                            <button class="btn btn{{config['outline-buttons']}}warning dropdown-toggle btn-sm"
+                                    type="button" data-boundary="viewport" data-toggle="dropdown" aria-haspopup="true"
+                                    aria-expanded="false" :data-target="s.id + 'actions'">
                                 <i class="fas fa-edit"> Actions</i>
-                              </button>
-                              <div class="dropdown-menu" :id="s.id + 'actions'">
-                                  <button type="button" class="dropdown-item" @click="edit_button(s)">Edit Script</button>
-                                  <template v-if="is_in_operation(s)">
-                                      <button type="button" class="dropdown-item" @click="toggle_operation(s)">Remove From Operation</button>
-                                  </template>
-                                  <template v-else>
-                                      <button type="button" class="dropdown-item" @click="toggle_operation(s)">Apply Across Operation</button>
-                                  </template>
-                                  <template v-if="s.user_modified">
-                                      <button type="button" class="dropdown-item" @click="revert_script(s)">Revert All Changes</button>
-                                  </template>
-                              </div>
-                         </div>
+                            </button>
+                            <div class="dropdown-menu" :id="s.id + 'actions'">
+                                <button type="button" class="dropdown-item" @click="edit_button(s)">Edit Script</button>
+                                <template v-if="is_in_operation(s)">
+                                    <button type="button" class="dropdown-item" @click="toggle_operation(s)">Remove From
+                                        Operation
+                                    </button>
+                                </template>
+                                <template v-else>
+                                    <button type="button" class="dropdown-item" @click="toggle_operation(s)">Apply
+                                        Across Operation
+                                    </button>
+                                </template>
+                                <template v-if="s.user_modified">
+                                    <button type="button" class="dropdown-item" @click="revert_script(s)">Revert All
+                                        Changes
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             </table>
@@ -76,25 +92,27 @@
     </div>
     <br>
     <div class="card border border-dark shadow bg-card-body">
-        <div class="card-header bg-header text-white" >
+        <div class="card-header bg-header text-white">
             <h2 style="display:inline-block">Operation's <span class="operator">Browser Scripts</span></h2>
         </div>
         <div style="max-height:calc(39vh);overflow-y:auto">
-            <table class="table table-striped {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
+            <table class="table table-striped {{config['table-color']}} border border-dark shadow"
+                   style="margin-bottom:0">
                 <tr>
-                    <th class="sticky-top" style="text-align:left;width:5em" ><b>Remove</b></th>
+                    <th class="sticky-top" style="text-align:left;width:5em"><b>Remove</b></th>
                     <th class="sticky-top" onclick="sort_table(this)" style="text-align:left"><b>Payload Type </b></th>
                     <th class="sticky-top" onclick="sort_table(this)" style="text-align:left"><b>Command </b></th>
                     <th class="sticky-top" onclick="sort_table(this)"><b>Author</b></th>
                     <th class="sticky-top" onclick="sort_table(this)"><b>Operator</b></th>
                     <th class="sticky-top" onclick="sort_table(this)"><b>Registration Time</span></b></th>
-                    <th class="sticky-top" >View</th>
+                    <th class="sticky-top">View</th>
                 </tr>
                 <tr v-for="(s, i) in operation_scripts" :key="i">
                     <td style="text-align:center">
-                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_from_operation_button(s, i)"><i class="fas fa-trash-alt"></i></button>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm"
+                                @click="remove_from_operation_button(s)"><i class="fas fa-trash-alt"></i></button>
                     </td>
-                    <td >[[s.payload_type]]</td>
+                    <td>[[s.payload_type]]</td>
                     <td>
                         <template v-if="s.command === -1">
                             Support Script - [[s.name]]
@@ -109,11 +127,13 @@
                             <font color="green"><br><b>User Created</b></font>
                         </template>
                     </td>
-                    <td >[[s.author]]</td>
-                    <td >[[s.operator]]</td>
-                    <td >[[toLocalTime(s.creation_time)]]</td>
-                    <td >
-                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="view_code(s)">View Script</button>
+                    <td>[[s.author]]</td>
+                    <td>[[s.operator]]</td>
+                    <td>[[toLocalTime(s.creation_time)]]</td>
+                    <td>
+                        <button type="button" class="btn btn{{config['outline-buttons']}}info btn-sm"
+                                @click="view_code(s)">View Script
+                        </button>
                     </td>
                 </tr>
             </table>
@@ -129,51 +149,64 @@
                     <h3>Register a Browser Script</h3>
                     <button type="button" class="close" data-dismiss="modal">×</button>
                 </div>
-                  <div class="modal-body">
-                      Register a new script to process and react to the output of a specific command. Can be tied to an operator or operation overall.<br><br>
-                      Support scripts for a payload type offer the ability to provide common functionality outside of a specific command. These functions can be called within other functions for your payload type by prefixing your payload type name in all lower case.<br>
-                      i.e.: for the payload type "apfell", <b>support_scripts['apfell_script name']</b>.
-                      <table class="table-striped {{config['table-color']}} table">
-                          <tr>
-                              <td>Payload Type:</td>
-                              <td>
-                                  <select class="form-control" v-model="current_payload_type" style="width:auto">
-                                      <option v-for="ptype in payload_types" :value="ptype">[[ptype]]</option>
-                                  </select>
-                              </td>
-                              <td>Script Author</td>
-                              <td><input placeholder="Script Author name" v-model="author" size="45" class="form-control"></td>
-                          </tr>
-                          <tr>
-                              <td>Command:</td>
-                              <td>
-                                  <select class="form-control" v-model="current_command" style="width:auto">
-                                      <option :value="-1">Support Script</option>
-                                      <option v-for="cmd in commands[current_payload_type]" :value="cmd.id">[[cmd.cmd]]</option>
-                                  </select>
-                              </td>
-                              <template v-if="current_command == -1">
-                                  <td>Support Script Name: </td>
-                                  <td align="left"><input placeholder="Function Name Here" v-model="name" size="45" class="form-control"></td>
-                              </template>
-                              <template v-else>
-                                  <td></td>
-                                  <td></td>
-                              </template>
-                          </tr>
-                          <tr>
-                              <td style="vertical-align:top">Script:</td>
-                              <td colspan="4" style="width:100%;">
-                                  Theme: <select class="form-control" v-model="theme"><option v-for="t in theme_options" :value="t">[[t]]</option></select>
-                                  <ace-editor v-model="script" min-lines="3" max-lines="50" :theme="theme" wrap="true"></ace-editor>
-                              </td>
-                          </tr>
-                      </table>
-                  </div>
-                  <div class="modal-footer">
-                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                    <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="createBrowserScriptSubmit">Submit</button>
-                  </div>
+                <div class="modal-body">
+                    Register a new script to process and react to the output of a specific command. Can be tied to an
+                    operator or operation overall.<br><br>
+                    Support scripts for a payload type offer the ability to provide common functionality outside of a
+                    specific command. These functions can be called within other functions for your payload type by
+                    prefixing your payload type name in all lower case.<br>
+                    i.e.: for the payload type "apfell", <b>support_scripts['apfell_script name']</b>.
+                    <table class="table-striped {{config['table-color']}} table">
+                        <tr>
+                            <td>Payload Type:</td>
+                            <td>
+                                <select class="form-control" v-model="current_payload_type" style="width:auto">
+                                    <option v-for="ptype in payload_types" :value="ptype">[[ptype]]</option>
+                                </select>
+                            </td>
+                            <td>Script Author</td>
+                            <td><input placeholder="Script Author name" v-model="author" size="45" class="form-control">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Command:</td>
+                            <td>
+                                <select class="form-control" v-model="current_command" style="width:auto">
+                                    <option :value="-1">Support Script</option>
+                                    <option v-for="cmd in commands[current_payload_type]" :value="cmd.id">[[cmd.cmd]]
+                                    </option>
+                                </select>
+                            </td>
+                            <template v-if="current_command == -1">
+                                <td>Support Script Name:</td>
+                                <td align="left"><input placeholder="Function Name Here" v-model="name" size="45"
+                                                        class="form-control"></td>
+                            </template>
+                            <template v-else>
+                                <td></td>
+                                <td></td>
+                            </template>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top">Script:</td>
+                            <td colspan="4" style="width:100%;">
+                                Theme: <select class="form-control" v-model="theme">
+                                <option v-for="t in theme_options" :value="t">[[t]]</option>
+                            </select>
+                                <ace-editor v-model="script" min-lines="3" max-lines="50" :theme="theme"
+                                            wrap="true"></ace-editor>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">
+                        Cancel
+                    </button>
+                    <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal"
+                            id="createBrowserScriptSubmit">Submit
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -186,19 +219,21 @@
                     <h3>Viewing a Browser Script</h3>
                     <button type="button" class="close" data-dismiss="modal">×</button>
                 </div>
-                  <div class="modal-body">
-                      <table class="table-striped {{config['table-color']}} table">
-                          <tr>
-                              <td style="vertical-align:top">Script:</td>
-                              <td style="width:100%">
-                                  <ace-editor v-model="script" min-lines="3" max-lines="30"></ace-editor>
-                              </td>
-                          </tr>
-                      </table>
-                  </div>
-                  <div class="modal-footer">
-                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Close</button>
-                  </div>
+                <div class="modal-body">
+                    <table class="table-striped {{config['table-color']}} table">
+                        <tr>
+                            <td style="vertical-align:top">Script:</td>
+                            <td style="width:100%">
+                                <ace-editor v-model="script" min-lines="3" max-lines="30"></ace-editor>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -212,13 +247,17 @@
                 <h3>Import a JSON file containing the scripts and associated information</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-              <div class="modal-body" id="commandImportBody">
-                  <input type="file" id="scriptImportFile" class="form-control-file">
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="scriptImportSubmit">Submit</button>
-              </div>
+            <div class="modal-body" id="commandImportBody">
+                <input type="file" id="scriptImportFile" class="form-control-file">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">
+                    Cancel
+                </button>
+                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal"
+                        id="scriptImportSubmit">Submit
+                </button>
+            </div>
         </div>
     </div>
 </div>

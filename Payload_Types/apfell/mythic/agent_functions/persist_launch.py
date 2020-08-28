@@ -6,23 +6,46 @@ class PersistLaunchArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "args": CommandParameter(name="args", type=ParameterType.Array,
-                                     description="List of arguments to execute in the ProgramArguments section of the PLIST"),
-            "KeepAlive": CommandParameter(name="KeepAlive", type=ParameterType.Boolean, default_value=True,
-                                          description="Restart the persistence if it crashes for some reason"),
-            "label": CommandParameter(name="label", type=ParameterType.String, default_value="com.apple.softwareupdateagent",
-                                      description="The label for the launch element"),
-            "LaunchPath": CommandParameter(name="LaunchPath", type=ParameterType.String, required=False,
-                              description="Path to save new plist to if LocalAgent is false"),
-            "LocalAgent": CommandParameter(name="LocalAgent", type=ParameterType.Boolean, default_value=True,
-                                           description="Should be a local user launch agent?"),
-            "RunAtLoad": CommandParameter(name="RunAtLoad", type=ParameterType.Boolean, default_value=True,
-                                          description="Should the launch element be executed at load")
+            "args": CommandParameter(
+                name="args",
+                type=ParameterType.Array,
+                description="List of arguments to execute in the ProgramArguments section of the PLIST",
+            ),
+            "KeepAlive": CommandParameter(
+                name="KeepAlive",
+                type=ParameterType.Boolean,
+                default_value=True,
+                description="Restart the persistence if it crashes for some reason",
+            ),
+            "label": CommandParameter(
+                name="label",
+                type=ParameterType.String,
+                default_value="com.apple.softwareupdateagent",
+                description="The label for the launch element",
+            ),
+            "LaunchPath": CommandParameter(
+                name="LaunchPath",
+                type=ParameterType.String,
+                required=False,
+                description="Path to save new plist to if LocalAgent is false",
+            ),
+            "LocalAgent": CommandParameter(
+                name="LocalAgent",
+                type=ParameterType.Boolean,
+                default_value=True,
+                description="Should be a local user launch agent?",
+            ),
+            "RunAtLoad": CommandParameter(
+                name="RunAtLoad",
+                type=ParameterType.Boolean,
+                default_value=True,
+                description="Should the launch element be executed at load",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON arguments")

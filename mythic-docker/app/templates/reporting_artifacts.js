@@ -13,7 +13,7 @@ var artifacts_table = new Vue({
         total_count: 0
     },
     methods: {
-        delete_button: function(artifact, index){
+        delete_button: function(artifact){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/artifact_tasks/" + artifact.id, remove_artifact, "DELETE", null);
         },
         add_artifact: function(){
@@ -40,7 +40,6 @@ var artifacts_table = new Vue({
             data = JSON.stringify(data, null, 2);
             //console.log(data);
             download_from_memory("search_results.json", btoa(data));
-            //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/artifact_tasks", export_artifacts_callback, "GET", null);
         },
         export_artifacts_search: function(){
             let filter_query = $('#filter').val();
@@ -95,83 +94,65 @@ function export_artifact_data_callback(response){
 }
 function set_artifact_data_callback(response){
     try{
-        data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] !== 'success'){
+            alertTop("danger", data['error'], 2);
+        }else{
+            artifacts_table.artifacts = [];
+             for(let t in data['tasks']){
+                data['tasks'][t]['task_href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['tasks'][t]['task_id'];
+                artifacts_table.artifacts.push(data['tasks'][t]);
+             }
+             artifacts_table.total_count = data['total_count'];
+             artifacts_table.current_page = data['page'];
+             artifacts_table.page_size = data['size'];
+        }
         //console.log(data);
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] !== 'success'){
-        alertTop("danger", data['error'], 2);
-    }else{
-        artifacts_table.artifacts = [];
-         for(let t in data['tasks']){
-            data['tasks'][t]['task_href'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/" + data['tasks'][t]['task_id'];
-            artifacts_table.artifacts.push(data['tasks'][t]);
-         }
-         artifacts_table.total_count = data['total_count'];
-         artifacts_table.current_page = data['page'];
-         artifacts_table.page_size = data['size'];
     }
 }
 function set_base_artifact_data_callback(response){
     try{
-        data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] !== 'success'){
+            alertTop("danger", data['error']);
+        }else{
+            artifacts_table.base_artifacts = data['artifacts'];
+            artifacts_table.base_artifacts.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
+        }
         //console.log(data);
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] !== 'success'){
-        alertTop("danger", data['error']);
-    }else{
-        artifacts_table.base_artifacts = data['artifacts'];
-        artifacts_table.base_artifacts.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
-    }
-}
-function export_artifacts_callback(response){
-    try{
-        data = JSON.parse(response);
-        //console.log(data);
-    }catch(error){
-        alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] !== 'success'){
-        alertTop("danger", data['error']);
-    }else{
-         download_from_memory("artifacts.json", btoa(response));
     }
 }
 function create_artifact(response){
     try{
-        data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] !== 'success'){
+            alertTop("danger", data['error']);
+        }else{
+            alertTop("success", "Successfully added", 1);
+        }
         //console.log(data);
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] !== 'success'){
-        alertTop("danger", data['error']);
-    }else{
-        alertTop("success", "Successfully added", 1);
     }
 }
 function remove_artifact(response){
     try{
-        data = JSON.parse(response);
+        let data = JSON.parse(response);
+        if(data['status'] === 'success'){
+            for(let i = 0; i < artifacts_table.artifacts.length; i++){
+                if(data['id'] === artifacts_table.artifacts[i]['id']){
+                    artifacts_table.artifacts.splice(i, 1);
+                    return;
+                }
+            }
+        }else{
+            alertTop("danger", data['error']);
+        }
     }catch(error){
         alertTop("danger", "Session expired, please refresh");
-        return;
-    }
-    if(data['status'] === 'success'){
-        for(var i = 0; i < artifacts_table.artifacts.length; i++){
-            if(data['id'] === artifacts_table.artifacts[i]['id']){
-                artifacts_table.artifacts.splice(i, 1);
-                return;
-            }
-        }
-    }else{
-        alertTop("danger", data['error']);
     }
 }

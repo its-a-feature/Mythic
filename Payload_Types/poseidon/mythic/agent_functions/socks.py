@@ -6,10 +6,17 @@ class SocksArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "action": CommandParameter(name="action", type=ParameterType.ChooseOne, choices=["start", "stop"],
-                                         description="Start or Stop socks through this callback."),
-            "port": CommandParameter(name="port", type=ParameterType.Number,
-                                      description="Port number on Mythic server to open for socksv5"),
+            "action": CommandParameter(
+                name="action",
+                type=ParameterType.ChooseOne,
+                choices=["start", "stop"],
+                description="Start or Stop socks through this callback.",
+            ),
+            "port": CommandParameter(
+                name="port",
+                type=ParameterType.Number,
+                description="Port number on Mythic server to open for socksv5",
+            ),
         }
 
     async def parse_arguments(self):

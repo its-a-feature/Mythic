@@ -7,8 +7,12 @@ class InjectArguments(TaskArguments):
         super().__init__(command_line)
         self.args = {
             "tabid": CommandParameter(name="tabid", type=ParameterType.Number),
-            "javascript": CommandParameter(name="javascript", type=ParameterType.String,
-                                         description="Base64 encoded javascript", required=False),
+            "javascript": CommandParameter(
+                name="javascript",
+                type=ParameterType.String,
+                description="Base64 encoded javascript",
+                required=False,
+            ),
         }
 
     async def parse_arguments(self):
@@ -18,7 +22,7 @@ class InjectArguments(TaskArguments):
 class InjectCommand(CommandBase):
     cmd = "inject"
     needs_admin = False
-    help_cmd = "inject {\"tabid\":0,\"javascript\":\"base64 encoded javascript\"}"
+    help_cmd = 'inject {"tabid":0,"javascript":"base64 encoded javascript"}'
     description = "Inject arbitrary javascript into a browser tab"
     version = 1
     is_exit = False

@@ -1,0 +1,10 @@
+{
+    "bindaddress": "0.0.0.0:8081",
+    "usessl": false,
+    "sslkey":"",
+    "sslcert":"",
+    "websocketuri": "socket",
+    "defaultpage": "index.html",
+    "logfile": "server.log",
+    "debug": true
+}

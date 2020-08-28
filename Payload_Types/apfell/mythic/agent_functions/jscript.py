@@ -6,12 +6,16 @@ class JscriptArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "command": CommandParameter(name="command", type=ParameterType.String, description="The JXA command to execute")
+            "command": CommandParameter(
+                name="command",
+                type=ParameterType.String,
+                description="The JXA command to execute",
+            )
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 self.add_arg("command", self.command_line)

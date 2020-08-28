@@ -6,15 +6,25 @@ class ListUsersArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "gid": CommandParameter(name="gid", type=ParameterType.Number, required=False, default_value=-1,
-                                    description="Enumerate users in a specific group or -1 for all groups"),
-            "groups": CommandParameter(name="groups", type=ParameterType.Boolean, required=False, default_value=False,
-                                       description="Enumerate groups and their members ")
+            "gid": CommandParameter(
+                name="gid",
+                type=ParameterType.Number,
+                required=False,
+                default_value=-1,
+                description="Enumerate users in a specific group or -1 for all groups",
+            ),
+            "groups": CommandParameter(
+                name="groups",
+                type=ParameterType.Boolean,
+                required=False,
+                default_value=False,
+                description="Enumerate groups and their members ",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON arguments")

@@ -1,12 +1,17 @@
 document.title = "Search";
-try{
-    var support_scripts = { {{support_scripts}} };
-}catch(error){
+/* eslint-disable no-unused-vars */
+// this is called from within browser_scripts functions, not directly
+var support_scripts = {};
+/* eslint-enable no-unused-vars */
+var browser_scripts = {}
+try {
+    eval(atob(" {{support_scripts}} "));
+} catch (error) {
     alertTop("danger", "Support Scripting error: " + error.toString());
 }
-try{
-    var browser_scripts = { {{browser_scripts}} };
-}catch(error){
+try {
+    eval(atob(" {{browser_scripts}} "));
+} catch (error) {
     alertTop("danger", "Browser Scripting error: " + error.toString());
 }
 var searches = new Vue({
@@ -54,12 +59,12 @@ var searches = new Vue({
                 "path": this.file_browser_path};
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/filebrowserobj/search", (response)=>{
                     try{
-                        let data = JSON.parse(response);
-                        if(data['status'] === 'success'){
-                            searches.page_size = data['size'];
-                            searches.total_count = data['total_count'];
-                            searches.current_page = data['page'];
-                            searches.files = data['output'];
+                        let rdata = JSON.parse(response);
+                        if(rdata['status'] === 'success'){
+                            searches.page_size = rdata['size'];
+                            searches.total_count = rdata['total_count'];
+                            searches.current_page = rdata['page'];
+                            searches.files = rdata['output'];
                             //console.log(data);
                             toastr.clear();
                             setTimeout(function(){
@@ -68,7 +73,7 @@ var searches = new Vue({
                               }, 1010 );
                         }
                         else{
-                            alertTop("warning", data['error']);
+                            alertTop("warning", rdata['error']);
                         }
                     }catch(error){
                         console.log(error);
@@ -80,12 +85,12 @@ var searches = new Vue({
                 let data = {"search": this.search_field, "page": page_num, "size": this.page_size};
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/event_message/search", (response)=>{
                     try{
-                        let data = JSON.parse(response);
-                        if(data['status'] === 'success'){
-                            searches.page_size = data['size'];
-                            searches.total_count = data['total_count'];
-                            searches.current_page = data['page'];
-                            searches.event_messages = data['output'];
+                        let rdata = JSON.parse(response);
+                        if(rdata['status'] === 'success'){
+                            searches.page_size = rdata['size'];
+                            searches.total_count = rdata['total_count'];
+                            searches.current_page = rdata['page'];
+                            searches.event_messages = rdata['output'];
                             //console.log(data);
                             toastr.clear();
                             setTimeout(function(){
@@ -94,7 +99,7 @@ var searches = new Vue({
                               }, 1010 );
                         }
                         else{
-                            alertTop("warning", data['error']);
+                            alertTop("warning", rdata['error']);
                         }
                     }catch(error){
                         console.log(error);
@@ -146,7 +151,7 @@ var searches = new Vue({
                      try{
                          let data = JSON.parse(response);
                          task.response = data['responses'];
-                         if(browser_scripts.hasOwnProperty(task['command_id'])){
+                         if(task['command_id'] in browser_scripts){
                             task['use_scripted'] = true;
                             task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
                         }

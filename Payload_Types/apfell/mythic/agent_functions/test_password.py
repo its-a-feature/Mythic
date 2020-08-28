@@ -6,10 +6,16 @@ class TestPasswordArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "password": CommandParameter(name="password", type=ParameterType.Credential_Value,
-                                         description="Password to test"),
-            "username": CommandParameter(name="username", type=ParameterType.Credential_Account,
-                                         description="Local user to test against")
+            "password": CommandParameter(
+                name="password",
+                type=ParameterType.Credential_Value,
+                description="Password to test",
+            ),
+            "username": CommandParameter(
+                name="username",
+                type=ParameterType.Credential_Account,
+                description="Local user to test against",
+            ),
         }
 
     async def parse_arguments(self):

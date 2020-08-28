@@ -6,7 +6,11 @@ class CdArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "path": CommandParameter(name="path", type=ParameterType.String, description="path to change directory to")
+            "path": CommandParameter(
+                name="path",
+                type=ParameterType.String,
+                description="path to change directory to",
+            )
         }
 
     async def parse_arguments(self):
@@ -14,9 +18,9 @@ class CdArguments(TaskArguments):
             if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
-                self.args['path'].value = self.command_line
+                self.args["path"].value = self.command_line
         else:
-            self.args['path'].value = "."
+            self.args["path"].value = "."
 
 
 class CdCommand(CommandBase):

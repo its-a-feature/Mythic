@@ -19,71 +19,79 @@ class MythicRPCResponse(RPCResponse):
 
 
 class MythicCallbackRPC(MythicBaseRPC):
-
-    async def get_tasking(self,
-                          uuid: str,
-                          tasking_size: int = 1,
-                          raw_response: bool = False) -> MythicRPCResponse:
+    async def get_tasking(
+        self, uuid: str, tasking_size: int = 1, raw_response: bool = False
+    ) -> MythicRPCResponse:
         resp = await self.call(
-            {"action": "get_tasking",
-             "uuid": uuid,
-             "tasking_size": tasking_size,
-             "raw_response": raw_response  # indicate if mythic should return the response or base64(uuid + response)
-             })
+            {
+                "action": "get_tasking",
+                "uuid": uuid,
+                "tasking_size": tasking_size,
+                "raw_response": raw_response,  # indicate if mythic should return the response or base64(uuid + response)
+            }
+        )
         return MythicRPCResponse(resp)
 
-    async def add_route(self,
-                        source_uuid: str,
-                        destination_uuid: str,
-                        direction: int = 1,
-                        metadata: str = None) -> MythicRPCResponse:
+    async def add_route(
+        self,
+        source_uuid: str,
+        destination_uuid: str,
+        direction: int = 1,
+        metadata: str = None,
+    ) -> MythicRPCResponse:
         resp = await self.call(
-            {"action": "add_route",
-             "source": source_uuid,
-             "destination": destination_uuid,
-             "direction": direction,
-             "metadata": metadata,
-             })
+            {
+                "action": "add_route",
+                "source": source_uuid,
+                "destination": destination_uuid,
+                "direction": direction,
+                "metadata": metadata,
+            }
+        )
         return MythicRPCResponse(resp)
 
-    async def remove_route(self,
-                           source_uuid: str,
-                           destination_uuid: str,
-                           direction: int = 1,
-                           metadata: str = None) -> MythicRPCResponse:
+    async def remove_route(
+        self,
+        source_uuid: str,
+        destination_uuid: str,
+        direction: int = 1,
+        metadata: str = None,
+    ) -> MythicRPCResponse:
         resp = await self.call(
-            {"action": "remove_route",
-             "source": source_uuid,
-             "destination": destination_uuid,
-             "direction": direction,
-             "metadata": metadata
-             })
+            {
+                "action": "remove_route",
+                "source": source_uuid,
+                "destination": destination_uuid,
+                "direction": direction,
+                "metadata": metadata,
+            }
+        )
         return MythicRPCResponse(resp)
 
-    async def get_callback_info(self,
-                                uuid: str) -> MythicRPCResponse:
-        resp = await self.call({
-            "action": "get_callback_info",
-            "uuid": uuid
-        })
+    async def get_callback_info(self, uuid: str) -> MythicRPCResponse:
+        resp = await self.call({"action": "get_callback_info", "uuid": uuid})
         return MythicRPCResponse(resp)
 
-    async def update_callback_info(self,
-                                   uuid: str,
-                                   info: dict) -> MythicRPCResponse:
-        resp = await self.call({
-            "action": "update_callback_info",
-            "uuid": uuid,
-            "data": info
-        })
+    async def get_encryption_data(self, uuid: str, profile: str) -> MythicRPCResponse:
+        resp = await self.call(
+            {
+                "action": "get_encryption_data",
+                "uuid": uuid,
+                "profile": profile,
+            }
+        )
         return MythicRPCResponse(resp)
 
-    async def add_event_message(self,
-                                message: str,
-                                level: str = "info") -> MythicRPCResponse:
-        resp = await self.call({
-            "action": "add_event_message",
-            "level": level,
-            "message": message
-        })
+    async def update_callback_info(self, uuid: str, info: dict) -> MythicRPCResponse:
+        resp = await self.call(
+            {"action": "update_callback_info", "uuid": uuid, "data": info}
+        )
+        return MythicRPCResponse(resp)
+
+    async def add_event_message(
+        self, message: str, level: str = "info"
+    ) -> MythicRPCResponse:
+        resp = await self.call(
+            {"action": "add_event_message", "level": level, "message": message}
+        )
         return MythicRPCResponse(resp)

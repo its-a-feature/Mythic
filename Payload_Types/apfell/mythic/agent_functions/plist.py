@@ -6,16 +6,24 @@ class PlistArguments(TaskArguments):
     def __init__(self, command_line):
         super().__init__(command_line)
         self.args = {
-            "filename": CommandParameter(name="filename", type=ParameterType.String, required=False,
-                              description="full filename path of type is just read"),
-            "type": CommandParameter(name="type", type=ParameterType.ChooseOne, choices=["readLaunchAgents", "readLaunchDaemons", "read"],
-                                     description="read a specific plist file or all launchagents/launchdaemons",
-                                     default_value="readLaunchAgents")
+            "filename": CommandParameter(
+                name="filename",
+                type=ParameterType.String,
+                required=False,
+                description="full filename path of type is just read",
+            ),
+            "type": CommandParameter(
+                name="type",
+                type=ParameterType.ChooseOne,
+                choices=["readLaunchAgents", "readLaunchDaemons", "read"],
+                description="read a specific plist file or all launchagents/launchdaemons",
+                default_value="readLaunchAgents",
+            ),
         }
 
     async def parse_arguments(self):
         if len(self.command_line) > 0:
-            if self.command_line[0] == '{':
+            if self.command_line[0] == "{":
                 self.load_args_from_json_string(self.command_line)
             else:
                 raise ValueError("Missing JSON arguments")
