@@ -897,7 +897,7 @@ async def get_encryption_data(request):
             payload = await db_objects.get(payload_query, uuid=request["uuid"])
             cjson = {"uuid_type": "payload"}
             for p in payload.payload_profile_parameters:
-                if p.C2Profile == profile:
+                if p.c2_profile == profile:
                     cjson[p.c2_profile_parameters.name] = p.value
             return {"status": "success", "response": cjson}
             # if we get another exception trying to get it as a payload, fall through to error
