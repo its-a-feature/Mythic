@@ -430,19 +430,19 @@ async def create_manual_callback(request, user):
     try:
         data = request.json
         encryption = await get_encryption_data(data["uuid"])
-        if encryption is None:
+        if encryption['type'] is None:
             data["encryption_type"] = ""
             data["encryption_key"] = None
             data["decryption_key"] = None
         else:
-            data["encryption_type"] = "AES256"
-            data["encryption_key"] = base64.b64encode(encryption).decode()
-            data["decryption_key"] = base64.b64encode(encryption).decode()
+            data["encryption_type"] = encryption['type']
+            data["encryption_key"] = base64.b64encode(encryption['enc_key']).decode()
+            data["decryption_key"] = base64.b64encode(encryption['dec_key']).decode()
         return json(await create_callback_func(data, request))
     except Exception as e:
         print(e)
         return json(
-            {"status": "error", "error": "failed to delete callback: " + str(e)}
+            {"status": "error", "error": "failed to create callback: " + str(e)}
         )
 
 
@@ -591,7 +591,7 @@ async def create_callback_func(data, request):
         await update_graphs(cal.operation)
     except Exception as e:
         print(e)
-        return {"status": "error", "error": "Failed to create callback"}
+        return {"status": "error", "error": "Failed to create callback: " + str(e)}
     status = {"status": "success"}
     if cal.operation.webhook and cal.registered_payload.callback_alert:
         # if we have a webhook, send a message about the new callback
@@ -687,6 +687,33 @@ async def create_callback_func(data, request):
         ]:
             status[k] = data[k]
     return {**status, "id": cal.agent_callback_id, "action": "checkin"}
+
+
+async def load_commands_func(command_dict, callback, task):
+    try:
+        cquery = await db_model.command_query()
+        cmd = await db_objects.get(cquery, cmd=command_dict["cmd"],
+                                   payload_type=callback.registered_payload.payload_type)
+        lcquery = await db_model.loadedcommands_query()
+        if command_dict["action"] == "add":
+            try:
+                lc = await db_objects.get(lcquery, command=cmd, callback=callback)
+                lc.version = cmd.version
+                lc.operator = task.operator
+                await db_objects.update(lc)
+            except Exception as e:
+                await db_objects.create(db_model.LoadedCommands,
+                                             command=cmd,
+                                             version=cmd.version,
+                                             callback=callback,
+                                             operator=task.operator)
+        else:
+            lc = await db_objects.get(lcquery, callback=callback, command=cmd)
+            await db_objects.delete(lc)
+        return {"status": "success"}
+    except Exception as e:
+        print(e)
+        return {"status": "error", "error": str(e)}
 
 
 async def update_callback(data, UUID):
@@ -807,7 +834,7 @@ async def get_routable_messages(requester, operation):
         message = {"action": "get_tasking", "tasks": tasks}
         # now wrap this message up like it's going to be sent out, first level is just normal
         enc_key = await get_encryption_data(v["path"][0].agent_callback_id)
-        if enc_key is None:
+        if enc_key['type'] is None:
             message = {
                 v["path"][0]
                 .agent_callback_id: base64.b64encode(
@@ -817,7 +844,7 @@ async def get_routable_messages(requester, operation):
             }
         else:
             enc_data = await crypt.encrypt_AES256(
-                data=js.dumps(message).encode(), key=enc_key
+                data=js.dumps(message).encode(), key=enc_key['enc_key']
             )
             message = {
                 v["path"][0]
@@ -831,7 +858,7 @@ async def get_routable_messages(requester, operation):
         for cal in v["path"][1:-1]:
             message = {"action": "get_tasking", "tasks": [], "delegates": [message]}
             enc_key = await get_encryption_data(cal.agent_callback_id)
-            if enc_key is None:
+            if enc_key['type'] is None:
                 message = {
                     cal.agent_callback_id: base64.b64encode(
                         (cal.agent_callback_id + js.dumps(message)).encode()
@@ -839,7 +866,7 @@ async def get_routable_messages(requester, operation):
                 }
             else:
                 enc_data = await crypt.encrypt_AES256(
-                    data=js.dumps(message).encode(), key=enc_key
+                    data=js.dumps(message).encode(), key=enc_key['enc_key']
                 )
                 message = {
                     cal.agent_callback_id: base64.b64encode(
@@ -1157,10 +1184,10 @@ async def send_socks_data(data, callback: Callback):
                 # cached_socks[callback.id]['socket'].sendall(int.to_bytes(len(msg), 4, "big"))
                 cached_socks[callback.id]["socket"].sendall(msg)
             else:
-                print("****** NO CACHED SOCCKS *******")
+                print("****** NO CACHED SOCKS *******")
         return {"status": "success"}
     except Exception as e:
-        print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
+        #print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
         return {"status": "error", "error": str(e)}
 
 
@@ -1171,7 +1198,7 @@ async def get_socks_data(callback: Callback):
             while True:
                 try:
                     data.append(cached_socks[callback.id]["queue"].popleft())
-                    print("Just got socks data to give to agent")
+                    #print("Just got socks data to give to agent")
                 except:
                     break
     return data
@@ -1191,7 +1218,7 @@ def thread_read_socks(port: int, callback_id: int) -> None:
         sock.close()
         return
     while True:
-        print("in thread loop")
+        #print("in thread loop")
         try:
             # print("about to get size")
             size = sock.recv(4)
@@ -1221,17 +1248,17 @@ def thread_read_socks(port: int, callback_id: int) -> None:
                 )
                 print(d)
                 if callback_id not in cached_socks:
-                    print("*" * 10 + "Got closing socket" + "*" * 10)
+                    #print("*" * 10 + "Got closing socket" + "*" * 10)
                     sock.close()
-                    print("thread exiting")
+                    #print("thread exiting")
                     return
         except Exception as e:
-            print("*" * 10 + "Got exception from reading socket data" + "*" * 10)
-            print(e)
+            #print("*" * 10 + "Got exception from reading socket data" + "*" * 10)
+            #print(e)
             if callback_id not in cached_socks:
-                print("*" * 10 + "Got closing socket" + "*" * 10)
+                #print("*" * 10 + "Got closing socket" + "*" * 10)
                 sock.close()
-                print("thread exiting")
+                #print("thread exiting")
                 return
             tsleep(1)
 

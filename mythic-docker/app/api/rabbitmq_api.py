@@ -659,7 +659,7 @@ async def encrypt_bytes(request):
             if enc_key["type"] == "AES256":
                 enc_message = await encrypt_AES256(
                     base64.b64decode(request["data"]),
-                    base64.b64decode(enc_key["enc_key"]),
+                    enc_key["enc_key"],
                 )
         else:
             enc_message = request["data"]
@@ -775,7 +775,7 @@ async def rabbit_c2_rpc_callback(
     exchange: aio_pika.Exchange, message: aio_pika.IncomingMessage
 ):
     with message.process():
-        print(message)
+        #print(message)
         request = json.loads(message.body.decode())
         if "action" in request:
             if request["action"] == "get_tasking":

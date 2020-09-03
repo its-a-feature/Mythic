@@ -256,7 +256,6 @@ async def post_agent_response(agent_message, UUID):
                     {task_id: "error", "error": "failed to find task or callback"}
                 )
                 continue
-            resp = None  # declare the variable now so we can tell if we already created a response later
             json_return_info = {"status": "success", "task_id": task_id}
             final_output = ""  # we're resetting it since we're going to be doing some processing on the response
             try:
@@ -332,7 +331,7 @@ async def post_agent_response(agent_message, UUID):
                             rsp.pop(
                                 "status", None
                             )  # remove the status key from the dictionary
-                            final_output += (
+                            download_data = (
                                 js.dumps(
                                     rsp,
                                     sort_keys=True,
@@ -342,8 +341,8 @@ async def post_agent_response(agent_message, UUID):
                                 .encode("unicode-escape", errors="backslashreplace")
                                 .decode("utf-8", errors="backslashreplace")
                             )
-                            resp = await db_objects.create(
-                                Response, task=task, response=final_output
+                            await db_objects.create(
+                                Response, task=task, response=download_data
                             )
                             task.status = "processed"
                             task.timestamp = datetime.datetime.utcnow()
@@ -353,7 +352,7 @@ async def post_agent_response(agent_message, UUID):
                                 "file_id": rsp["agent_file_id"],
                             }
                         else:
-                            final_output = rsp["error"]
+                            final_output += rsp["error"]
                             json_return_info = {
                                 **json_return_info,
                                 "status": "error",
@@ -559,9 +558,20 @@ async def post_agent_response(agent_message, UUID):
                             rsp = {"status": "error", "error": str(e)}
                         json_return_info = {**json_return_info, **rsp}
                         parsed_response.pop("edges", None)
+                    if (
+                        "commands" in parsed_response
+                        and parsed_response["commands"] != []
+                        and parsed_response["commands"] is not None
+                    ):
+                        # the agent is reporting back that it has commands that are loaded/unloaded
+                        from app.api.callback_api import load_commands_func
+                        for c in parsed_response["commands"]:
+                            rsp = await load_commands_func(command_dict=c, callback=callback, task=task)
+                            json_return_info = {**json_return_info, **rsp}
                     # go through to make sure we remove blank fields that were sent
                     parsed_response.pop("full_path", None)
                     parsed_response.pop("status", None)
+                    parsed_response.pop("commands", None)
                     parsed_response.pop("completed", None)
                     parsed_response.pop("is_screenshot", None)
                     parsed_response.pop("error", None)
@@ -599,17 +609,15 @@ async def post_agent_response(agent_message, UUID):
                 pass
             # echo back any values that the agent sent us that don't match something we're expecting
             json_return_info = {**json_return_info, **parsed_response}
-            if resp is None:
-                # we need to check for the case where the response is JSON, but doesn't conform to any of our keywords
-                if final_output != "":
-                    # if we got here, then we did some sort of meta processing
-                    resp = await db_objects.create(
-                        Response,
-                        task=task,
-                        response=final_output.encode("unicode-escape"),
-                    )
-                if task.status != "error":
-                    task.status = "processed"
+            if final_output != "":
+                # if we got here, then we did some sort of meta processing
+                resp = await db_objects.create(
+                    Response,
+                    task=task,
+                    response=final_output.encode("unicode-escape"),
+                )
+            if task.status != "error":
+                task.status = "processed"
             if task.status_timestamp_processed is None:
                 task.status_timestamp_processed = datetime.datetime.utcnow()
             task.timestamp = datetime.datetime.utcnow()

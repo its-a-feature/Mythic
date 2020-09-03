@@ -84,6 +84,7 @@ async def ws_tasks(request, ws, user):
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newtask";')
+                    await cur.execute('LISTEN "updatedtask";')
                     # before we start getting new things, update with all of the old data
                     query = await db_model.task_query()
                     tasks_with_all_info = await db_objects.execute(
@@ -93,7 +94,9 @@ async def ws_tasks(request, ws, user):
                     )
                     # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
                     for task in tasks_with_all_info:
-                        await ws.send(js.dumps(task.to_json()))
+                        taskj = task.to_json()
+                        taskj["callback"] = task.callback.to_json()
+                        await ws.send(js.dumps(taskj))
                     await ws.send("")
                     # now pull off any new tasks we got queued up while processing the old data
                     while True:
@@ -102,7 +105,9 @@ async def ws_tasks(request, ws, user):
                             id = msg.payload
                             tsk = await db_objects.get(query, id=id)
                             if tsk.callback.operation == op:
-                                await ws.send(js.dumps(tsk.to_json()))
+                                taskj = tsk.to_json()
+                                taskj["callback"] = tsk.callback.to_json()
+                                await ws.send(js.dumps(taskj))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send(
@@ -132,6 +137,7 @@ async def ws_tasks(request, ws, user):
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newtask";')
+                    await cur.execute('LISTEN "updatedtask";')
                     # before we start getting new things, update with all of the old data
                     query = await db_model.task_query()
                     # now pull off any new tasks we got queued up while processing the old data
@@ -141,7 +147,9 @@ async def ws_tasks(request, ws, user):
                             id = msg.payload
                             tsk = await db_objects.get(query, id=id)
                             if tsk.callback.operation == op:
-                                await ws.send(js.dumps(tsk.to_json()))
+                                taskj = tsk.to_json()
+                                taskj["callback"] = tsk.callback.to_json()
+                                await ws.send(js.dumps(taskj))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send(

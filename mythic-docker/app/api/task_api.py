@@ -5,12 +5,9 @@ from app.database_models.model import (
     Task,
     FileMeta,
     Response,
-    LoadedCommands,
     ATTACKCommand,
     ATTACKTask,
     TaskArtifact,
-    OperatorOperation,
-    Payload,
     Command,
     C2ProfileParametersInstance,
 )
@@ -18,8 +15,7 @@ from datetime import datetime, timedelta
 from sanic_jwt.decorators import scoped, inject_user
 import json as js
 import sys
-import shutil, os, glob
-from app.api.payloads_api import generate_uuid
+import os
 import base64
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_pt_rabbitmq_message

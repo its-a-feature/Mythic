@@ -10,8 +10,6 @@ from pathlib import Path
 import requests
 import json
 import os
-from MythicCallbackRPC import *
-from C2ProfileBase import *
 
 config = {}
 
@@ -49,6 +47,8 @@ async def agent_message(request, **kwargs):
 
 if __name__ == "__main__":
     sys.path.append("/Mythic/mythic")
+    from C2ProfileBase import *
+    from MythicCallbackRPC import *
     config_file = open("config.json", 'rb')
     main_config = json.loads(config_file.read().decode('utf-8'))
     print("Opening config and starting instances...")
