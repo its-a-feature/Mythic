@@ -77,7 +77,7 @@ class MythicCallbackRPC(MythicBaseRPC):
             {
                 "action": "get_encryption_data",
                 "uuid": uuid,
-                "profile": profile,
+                "c2_profile": profile,
             }
         )
         return MythicRPCResponse(resp)
