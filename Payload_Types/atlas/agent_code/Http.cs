@@ -364,11 +364,11 @@ namespace Atlas
                         }
                     }
                 }
-                string Data = Utils.PostResponse.ToJson(PostResponse);
-                if (Data.Contains("[]"))
+                if (PostResponse.responses.Count < 1)
                 {
                     return false;
                 }
+                string Data = Utils.PostResponse.ToJson(PostResponse);
 #if DEFAULT
                 string SerializedData = Convert.ToBase64String(Encoding.UTF8.GetBytes(Config.UUID + Utils.PostResponse.ToJson(PostResponse)));
 #elif (DEFAULT_PSK || DEFAULT_EKE)
@@ -450,7 +450,7 @@ namespace Atlas
                 client.UseDefaultCredentials = true;
                 client.Proxy.Credentials = CredentialCache.DefaultNetworkCredentials;
             }
-            else 
+            else
             {
                 WebProxy proxy = new WebProxy
                 {
@@ -476,7 +476,7 @@ namespace Atlas
             }
             catch
             {
-                Config.Servers[0].count++; 
+                Config.Servers[0].count++;
                 return result;
             }
         }
