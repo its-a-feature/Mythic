@@ -439,7 +439,6 @@ function refresh_access_token() {
         if (refresh_token !== null && successful_refresh && refresh_token !== undefined) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/refresh", (response) => {
                 try {
-                    console.log(response);
                     let data = JSON.parse(response);
                     if (data['access_token'] !== undefined) {
                         localStorage.setItem("access_token", data['access_token']);

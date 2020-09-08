@@ -2309,10 +2309,13 @@ var task_data = new Vue({
             }
         },
         get_latest_download_chunk_count: function (files) {
-            if (files[files.length - 1]['total_chunks'] === files[files.length - 1]['chunks_received']) {
+            if(files.length === 0){
+                return "";
+            }
+            if (files[0]['total_chunks'] === files[0]['chunks_received']) {
                 return "";
             } else {
-                return files[files.length - 1]['chunks_received'] + " of " + files[files.length - 1]['total_chunks'] + " total chunks received";
+                return files[0]['chunks_received'] + " of " + files[0]['total_chunks'] + " total chunks received";
             }
         },
         task_download_file: function (data) {
@@ -2627,7 +2630,7 @@ Vue.component('browser-menu', {
             task_data.$forceUpdate();
         },
         get_latest_download_path() {
-            return "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + this.data['files'][this.data['files'].length - 1]['agent_file_id'];
+            return "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + this.data['files'][0]['agent_file_id'];
         }
     },
     delimiters: ['[[', ']]']

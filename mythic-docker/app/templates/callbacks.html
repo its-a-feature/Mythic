@@ -675,6 +675,10 @@
                                          <template v-if="k.deleted">
                                             <i class="fas fa-times-circle" style="color:red"></i>
                                          </template>
+                                         <template v-else-if="k.chunks_received !== k.total_chunks">
+                                             <i class="fas fa-times-circle" style="color:red"></i>
+                                             <span style="color:indianred">[[k.chunks_received]] of [[k.total_chunks]] received</span>
+                                         </template>
                                          <template v-else>
                                              <a class="btn btn-md" :href='get_file_download_path(k)' style="color:green"><i class="fas fa-download fa-lg"></i></a>
                                          </template>
