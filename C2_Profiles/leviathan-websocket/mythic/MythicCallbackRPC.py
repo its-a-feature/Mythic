@@ -19,15 +19,15 @@ class MythicRPCResponse(RPCResponse):
 
 
 class MythicCallbackRPC(MythicBaseRPC):
+    # returns dictionary of `{"raw": raw_tasking, "encrypted": base64(uuid+encrypted_tasking)}`
     async def get_tasking(
-        self, uuid: str, tasking_size: int = 1, raw_response: bool = False
+        self, uuid: str, tasking_size: int = 1
     ) -> MythicRPCResponse:
         resp = await self.call(
             {
                 "action": "get_tasking",
                 "uuid": uuid,
                 "tasking_size": tasking_size,
-                "raw_response": raw_response,  # indicate if mythic should return the response or base64(uuid + response)
             }
         )
         return MythicRPCResponse(resp)

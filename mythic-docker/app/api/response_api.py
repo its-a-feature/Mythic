@@ -236,7 +236,7 @@ async def post_agent_response(agent_message, UUID):
     response_message = {"action": "post_response", "responses": []}
 
     for r in agent_message["responses"]:
-        print(r)
+        #print(r)
         try:
             task_id = r["task_id"]
             del r["task_id"]
@@ -344,9 +344,6 @@ async def post_agent_response(agent_message, UUID):
                             await db_objects.create(
                                 Response, task=task, response=download_data
                             )
-                            task.status = "processed"
-                            task.timestamp = datetime.datetime.utcnow()
-                            await db_objects.update(task)
                             json_return_info = {
                                 **json_return_info,
                                 "file_id": rsp["agent_file_id"],

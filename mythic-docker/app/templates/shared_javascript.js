@@ -370,7 +370,6 @@ var event_notices = new Vue({
         },
         add_message: function (data) {
             for (let i = 0; i < this.messages.length; i++) {
-                console.log(this.messages[i]);
                 if (this.messages[i]['id'] === data['id']) {
                     return;
                 }
@@ -392,7 +391,7 @@ function startwebsocket_events() {
                 event_notices.messages = data['alerts'];
             } else if (data['channel'].includes("new")) {
                 if (data['operator'] !== "{{name|e}}") {
-                    alertTop(data['level'], data['message'], 2, data['operator']);
+                    alertTop(data['level'], data['message'], 4, data['operator']);
                 }
                 if (data['level'] !== 'info') {
                     event_notices.add_message(data);
@@ -440,6 +439,7 @@ function refresh_access_token() {
         if (refresh_token !== null && successful_refresh && refresh_token !== undefined) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}/refresh", (response) => {
                 try {
+                    console.log(response);
                     let data = JSON.parse(response);
                     if (data['access_token'] !== undefined) {
                         localStorage.setItem("access_token", data['access_token']);
@@ -448,7 +448,7 @@ function refresh_access_token() {
                     }
                 } catch (error) {
                     successful_refresh = false;
-                    console.log("failed to update access token...");
+                    console.log("failed to update access token: " + error.toString());
                     //alertTop("warning", "Failed to refresh access token");
                 }
             }, "POST", {"refresh_token": refresh_token});

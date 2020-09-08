@@ -97,21 +97,8 @@ async def download_file(request, id):
         )
 
 
-# this is the function for the 'upload' action of file from Apfell to agent
+# this is the function for the 'upload' action of file from Mythic to agent
 async def download_agent_file(data, cid):
-    try:
-        query = await db_model.callback_query()
-        callback = await db_objects.get(query, agent_callback_id=cid)
-    except Exception as e:
-        logger.exception("Failed to find callback in download_agent_file: " + cid)
-        return {
-            "action": "upload",
-            "total_chunks": 0,
-            "chunk_num": 0,
-            "chunk_data": "",
-            "file_id": "",
-            "task_id": "",
-        }
     if "task_id" not in data:
         logger.exception("Associated task does not exist is not specified")
         return {
@@ -176,14 +163,16 @@ async def download_agent_file(data, cid):
                         full_path=file_meta.full_remote_path.encode("unicode-escape"),
                         host=file_meta.host,
                     )
-                    file_meta.file_browser = fb_object
+                    if file_meta.file_browser is None:
+                        file_meta.file_browser = fb_object
+                        await db_objects.update(file_meta)
                 except Exception as e:
                     pass
             else:
                 file_meta.full_remote_path = (
                     file_meta.full_remote_path + "," + data["full_path"]
                 )
-            await db_objects.update(file_meta)
+                await db_objects.update(file_meta)
     if file_meta.complete and not file_meta.deleted:
         chunk_size = 512000
         if "chunk_size" in data:
@@ -302,7 +291,7 @@ async def delete_filemeta_in_database(request, user, id):
             db_model.OperationEventLog,
             operator=operator,
             operation=operation,
-            message="Apfell: {} deleted".format(filemeta.path.split("/")[-1]),
+            message="{} deleted".format(filemeta.path.split("/")[-1]),
         )
     except Exception as e:
         pass
@@ -317,14 +306,11 @@ async def create_filemeta_in_database_func(data):
     try:
         query = await db_model.task_query()
         task = await db_objects.get(query, id=data["task"])
-        query = await db_model.callback_query()
-        callback = await db_objects.get(query.where(Callback.id == task.callback))
-        operation = callback.operation
+        operation = task.callback.operation
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
         return {"status": "error", "error": "failed to find task"}
     try:
-        filename = None
         if "full_path" in data and data["full_path"] != "":
             filename = data["full_path"]
         elif "{" in task.params:
@@ -357,41 +343,39 @@ async def create_filemeta_in_database_func(data):
             data["full_path"] = ""
         if "host" not in data:
             data["host"] = task.callback.host
-        filemeta = await db_objects.create(
-            FileMeta,
-            total_chunks=data["total_chunks"],
-            task=task,
-            operation=operation,
-            path="",
-            operator=task.operator,
-            full_remote_path=data["full_path"],
-            delete_after_fetch=False,
-            is_screenshot=is_screenshot,
-            filename=filename.name,
-            is_download_from_agent=True,
-            host=data["host"],
-        )
-        # check and see if there's a filebrowserobj that matches our full path
+            # check and see if there's a filebrowserobj that matches our full path
         query = await db_model.filebrowserobj_query()
+        file_browser = None
         try:
             if not is_screenshot:
                 fb_object = await db_objects.get(
                     query,
-                    full_path=filemeta.full_remote_path.encode("unicode-escape"),
+                    full_path=data["full_path"].encode("unicode-escape"),
                     host=data["host"].encode("unicode-escape"),
                 )
-                filemeta.file_browser = fb_object
-                await db_objects.update(filemeta)
+                file_browser = fb_object
         except Exception as e:
             pass
-        filemeta.path = "./app/files/{}".format(filemeta.agent_file_id)
-        await db_objects.update(filemeta)
-        if data["total_chunks"] == 0:
-            filemeta.complete = True
-            contents = open(filemeta.path, "rb").read()
-            filemeta.md5 = await hash_MD5(contents)
-            filemeta.sha1 = await hash_SHA1(contents)
-            await db_objects.update(filemeta)
+        file_agent_id = str(uuid.uuid4())
+        file_path = "./app/files/{}".format(file_agent_id)
+        complete = data['total_chunks'] == 0
+        filemeta = await db_objects.create(
+            FileMeta,
+            agent_file_id=file_agent_id,
+            path=file_path,
+            total_chunks=data["total_chunks"],
+            task=task,
+            complete=complete,
+            operation=operation,
+            operator=task.operator,
+            full_remote_path=data["full_path"],
+            delete_after_fetch=False,
+            is_screenshot=is_screenshot,
+            file_browser=file_browser,
+            filename=filename.name,
+            is_download_from_agent=True,
+            host=data["host"],
+        )
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
         return {"status": "error", "error": "failed to create file"}
@@ -461,7 +445,7 @@ async def create_filemeta_in_database_manual(request, user):
         db_model.OperationEventLog,
         operator=operator,
         operation=operation,
-        message="Apfell: {} hosted with UID {}".format(
+        message="{} hosted with UID {}".format(
             filename, file_meta.agent_file_id
         ),
     )

@@ -287,8 +287,18 @@ async def update_operation(request, user, op):
                         query, name=user["base_disabled_commands"]
                     )
                     operatoroperation.base_disabled_commands = disabled_profile
+                    await db_objects.create(
+                        db_model.OperationEventLog,
+                        operation=operation,
+                        message=f"{modifier.username} updated {operator.username}'s disabled command list to {disabled_profile.name}",
+                    )
                 except Exception as e:
                     operatoroperation.base_disabled_commands = None
+                    await db_objects.create(
+                        db_model.OperationEventLog,
+                        operation=operation,
+                        message=f"{modifier.username} removed {operator.username}'s disabled command list",
+                    )
                 await db_objects.update(operatoroperation)
         if "webhook" in data:
             if (data["webhook"] == "" or data["webhook"] is None) and (

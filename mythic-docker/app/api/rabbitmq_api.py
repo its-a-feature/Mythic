@@ -839,8 +839,6 @@ async def get_tasking(request):
         from app.api.callback_api import get_encryption_data
 
         enc_key = await get_encryption_data(callback.agent_callback_id)
-        if request["raw_response"]:
-            return {"status": "success", "response": response_data}
         if enc_key["type"] is not None:
             if enc_key["type"] == "AES256":
                 enc_message = await encrypt_AES256(
@@ -856,7 +854,7 @@ async def get_tasking(request):
             enc_message = base64.b64encode(
                 (callback.agent_callback_id + json.dumps(response_data)).encode()
             ).decode()
-        return {"status": "success", "response": enc_message}
+        return {"status": "success", "response": {"encrypted": enc_message, "raw": response_data}}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
