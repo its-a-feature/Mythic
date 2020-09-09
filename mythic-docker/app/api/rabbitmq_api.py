@@ -642,36 +642,111 @@ async def control_socks(request):
     return {"status": "error", "error": "unknown socks tasking"}
 
 
+async def encrypt(callback_uuid: str, data: bytes, with_uuid: bool):
+    from app.crypto import encrypt_AES256
+    from app.api.callback_api import get_encryption_data
+    enc_key = await get_encryption_data(callback_uuid)
+    if enc_key["type"] is not None:
+        if enc_key["type"] == "AES256":
+            enc_message = await encrypt_AES256(
+                data, enc_key["enc_key"],
+            )
+        else:
+            callback_query = await db_model.callback_query()
+            callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
+            await db_objects.create(
+                db_model.OperationEventLog,
+                level="warning",
+                operation=callback.operation,
+                message="Payload or C2 profile tried to have Mythic encrypt a message of type: {}, but Mythic doesn't know that type".format(enc_key["type"]),
+            )
+            enc_message = data
+    else:
+        enc_message = data
+    if with_uuid:
+        message = base64.b64encode(
+            callback_uuid.encode() + enc_message
+        ).decode()
+    else:
+        message = base64.b64encode(enc_message).decode()
+    return message
+
 async def encrypt_bytes(request):
     # {
     # "action": "encrypt_bytes",
     # "data": base64 of bytes to encrypt,
     # "task_id": self.task_id
+    # "with_uuid": include the UUID or not
     # }
     try:
         task_query = await db_model.task_query()
         task = await db_objects.get(task_query, id=request["task_id"])
-        from app.crypto import encrypt_AES256
-        from app.api.callback_api import get_encryption_data
-
-        enc_key = await get_encryption_data(task.callback.agent_callback_id)
-        if enc_key["type"] is not None:
-            if enc_key["type"] == "AES256":
-                enc_message = await encrypt_AES256(
-                    base64.b64decode(request["data"]),
-                    enc_key["enc_key"],
-                )
-        else:
-            enc_message = request["data"]
-        if "with_uuid" in request and request["with_uuid"]:
-            message = base64.b64encode(
-                task.callback.agent_callback_id.encode() + enc_message
-            ).decode()
-        else:
-            message = base64.b64encode(enc_message).decode()
+        message = await encrypt(task.callback.agent_callback_id, base64.b64decode(request["data"]), request["with_uuid"])
         return {"status": "success", "response": {"data": message}}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+
+async def encrypt_bytes_c2_rpc(request):
+    # {
+    # "action": "encrypt_bytes",
+    # "data": base64 of bytes to encrypt,
+    # "uuid": callback uuid
+    # "with_uuid": bool
+    # }
+    try:
+        message = await encrypt(request["uuid"], base64.b64decode(request["data"]), request["with_uuid"])
+        return {"status": "success", "response": message}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def decrypt(callback_uuid: str, data: bytes, with_uuid: bool):
+    from app.crypto import decrypt_AES256
+    from app.api.callback_api import get_encryption_data
+    dec_key = await get_encryption_data(callback_uuid)
+    if with_uuid:
+        # this means that the message is Mythic standard and has the UUID+message format
+        if dec_key["type"] is not None:
+            if dec_key["type"] == "AES256":
+                dec_message = await decrypt_AES256(
+                    data[36:], dec_key["dec_key"]
+                )
+            else:
+                callback_query = await db_model.callback_query()
+                callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
+                await db_objects.create(
+                    db_model.OperationEventLog,
+                    level="warning",
+                    operation=callback.operation,
+                    message="Payload or C2 profile tried to have Mythic decrypt a message of type: {}, but Mythic doesn't know that type".format(
+                        dec_key["type"]),
+                )
+                dec_message = data[36:]
+        else:
+            dec_message = data[36:]
+    else:
+        # this means it's just a blob of encrypted data
+        if dec_key["type"] is not None:
+            if dec_key["type"] == "AES256":
+                dec_message = await decrypt_AES256(
+                    data,
+                    dec_key["dec_key"],
+                )
+            else:
+                callback_query = await db_model.callback_query()
+                callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
+                await db_objects.create(
+                    db_model.OperationEventLog,
+                    level="warning",
+                    operation=callback.operation,
+                    message="Payload or C2 profile tried to have Mythic decrypt a message of type: {}, but Mythic doesn't know that type".format(
+                        dec_key["type"]),
+                )
+                dec_message = data
+        else:
+            dec_message = data
+    return base64.b64encode(dec_message).decode()
 
 
 async def decrypt_bytes(request):
@@ -679,29 +754,32 @@ async def decrypt_bytes(request):
     # "action": "decrypt_bytes",
     # "data": base64 of bytes to decrypt,
     # "task_id": self.task_id
+    # "with_uuid": does the message have a UUID in it or not
     # }
     try:
         task_query = await db_model.task_query()
         task = await db_objects.get(task_query, id=request["task_id"])
-        from app.crypto import decrypt_AES256
-
-        if "with_uuid" in request and request["with_uuid"]:
-            message = base64.b64decode(request["data"])
-            callback_query = await db_model.callback_query()
-            callback = await db_objects.get(
-                callback_query, agent_callback_id=message[:36]
-            )
-            dec_message = await decrypt_AES256(
-                message[36:], base64.b64decode(callback.decryption_key)
-            )
-        else:
-            dec_message = await decrypt_AES256(
-                base64.b64decode(request["data"]),
-                base64.b64decode(task.callback.decryption_key),
-            )
+        dec_message = await decrypt(task.callback.agent_callback_id, base64.b64decode(request["data"]), request["with_uuid"])
         return {
             "status": "success",
-            "response": {"data": base64.b64encode(dec_message).decode()},
+            "response": {"data": dec_message},
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def decrypt_bytes_c2_rpc(request):
+    # {
+    # "action": "decrypt_bytes",
+    # "data": base64 of bytes to decrypt,
+    # "uuid": callback uuid
+    # "with_uuid": does the message have a UUID in it or not
+    # }
+    try:
+        dec_message = await decrypt(request["uuid"], base64.b64decode(request["data"]), request["with_uuid"])
+        return {
+            "status": "success",
+            "response": dec_message,
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}
@@ -792,6 +870,10 @@ async def rabbit_c2_rpc_callback(
                 response = await add_event_message(request)
             elif request["action"] == "get_encryption_data":
                 response = await get_encryption_data(request)
+            elif request["action"] == "encrypt_bytes":
+                response = await encrypt_bytes_c2_rpc(request)
+            elif request["action"] == "decrypt_bytes":
+                response = await decrypt_bytes_c2_rpc(request)
             else:
                 response = {"status": "error", "error": "unknown action"}
             response = json.dumps(response).encode()

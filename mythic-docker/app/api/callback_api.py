@@ -729,12 +729,17 @@ async def update_callback(data, UUID):
     query = await db_model.callback_query()
     cal = await db_objects.get(query, agent_callback_id=UUID)
     try:
+        if UUID not in cached_keys:
+            cached_keys[UUID] = {"type": None, "enc_key": None, "dec_key": None}
         if "encryption_type" in data:
             cal.encryption_type = data["encryption_type"]
+            cached_keys[UUID]["type"] = cal.encryption_type
         if "encryption_key" in data:
             cal.encryption_key = data["encryption_key"]
+            cached_keys[UUID]["enc_key"] = base64.b64decode(cal.encryption_key)
         if "decryption_key" in data:
             cal.decryption_key = data["decryption_key"]
+            cached_keys[UUID]["dec_key"] = base64.b64decode(cal.decryption_key)
         if "user" in data:
             cal.user = data["user"]
         if "ip" in data:
@@ -756,11 +761,6 @@ async def update_callback(data, UUID):
         if "pid" in data:
             cal.pid = data["pid"]
         await db_objects.update(cal)
-        cached_keys[UUID] = {
-            "type": cal.encryption_type,
-            "enc_key": base64.b64decode(cal.encryption_key),
-            "dec_key": base64.b64decode(cal.decryption_key),
-        }
         return {"action": "update_info", "status": "success"}
     except Exception as e:
         print("error in callback update function")

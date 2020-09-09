@@ -1,4 +1,5 @@
 from MythicBaseRPC import *
+import base64
 
 
 class MythicRPCResponse(RPCResponse):
@@ -93,5 +94,31 @@ class MythicCallbackRPC(MythicBaseRPC):
     ) -> MythicRPCResponse:
         resp = await self.call(
             {"action": "add_event_message", "level": level, "message": message}
+        )
+        return MythicRPCResponse(resp)
+
+    async def encrypt_bytes(
+        self, data: bytes, uuid: str, with_uuid: bool = False,
+    ) -> MythicRPCResponse:
+        resp = await self.call(
+            {
+                "action": "encrypt_bytes",
+                "data": base64.b64encode(data).decode(),
+                "uuid": uuid,
+                "with_uuid": with_uuid,
+            }
+        )
+        return MythicRPCResponse(resp)
+
+    async def decrypt_bytes(
+        self, data: bytes, uuid: str, with_uuid: bool = False,
+    ) -> MythicRPCResponse:
+        resp = await self.call(
+            {
+                "action": "decrypt_bytes",
+                "uuid": uuid,
+                "data": base64.b64encode(data).decode(),
+                "with_uuid": with_uuid,
+            }
         )
         return MythicRPCResponse(resp)
