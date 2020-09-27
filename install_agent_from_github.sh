@@ -82,7 +82,9 @@ then
 else
   echo -e "${BLUE}[*]${NC} Copying the Payload Type's documentation folder"
   cp -R ./temp/documentation-payload/* ./documentation-docker/content/Agents/
-  echo -e "${GREEN}[+]${NC} Successfully copied the Payload Type's documentation folder"
+  echo -e "${BLUE}[*]${NC} Copying the Wrapper documentation folder"
+  cp -R ./temp/documentation-wrapper/* ./documentation-docker/content/Wrappers/
+  echo -e "${GREEN}[+]${NC} Successfully copied the Wrapper's documentation folder"
 fi
 if $exclude_c2_profiles
 then
