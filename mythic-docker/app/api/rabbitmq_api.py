@@ -961,8 +961,10 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 try:
                     profile = await db_objects.get(query, name=pieces[2], deleted=False)
                 except Exception as e:
-                    print("Sending sync message to {}".format(pieces[2]))
-                    await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
+                    if pieces[2] not in sync_tasks:
+                        sync_tasks[pieces[2]] = True
+                        print("Sending sync message to {}".format(pieces[2]))
+                        await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
                     return
                 if (
                     profile.last_heartbeat
@@ -984,7 +986,9 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                     payload_type.last_heartbeat = datetime.datetime.utcnow()
                     await db_objects.update(payload_type)
                 except Exception as e:
-                    await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "")
+                    if pieces[2] not in sync_tasks:
+                        sync_tasks[pieces[2]] = True
+                        await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "")
         except Exception as e:
             logger.exception(
                 "Exception in rabbit_heartbeat_callback: {}, {}".format(pieces, str(e))
