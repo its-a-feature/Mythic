@@ -129,7 +129,7 @@ func (p *UnixProcess) Refresh() error {
 }
 
 func findProcess(pid int) (Process, error) {
-	ps, err := processes()
+	ps, err := Processes()
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func findProcess(pid int) (Process, error) {
 	return nil, fmt.Errorf("no process found for pid %d", pid)
 }
 
-func processes() ([]Process, error) {
+func Processes() ([]Process, error) {
 	d, err := os.Open("/proc")
 	if err != nil {
 		return nil, err

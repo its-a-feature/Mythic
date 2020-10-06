@@ -174,7 +174,7 @@ async def get_base_values(request, method: str, mythic_endpoint: str, **kwargs):
             value = kwargs["message"]
             transforms = {}
         elif config[request.app.name][method][mythic_endpoint]['location'] == 'QueryParameters':
-            value = request.raw_args[config[request.app.name][method][mythic_endpoint]['value']['name']]
+            value = request.args[config[request.app.name][method][mythic_endpoint]['value']['name']][0]
             transforms = config[request.app.name][method][mythic_endpoint]['value']['transforms']
         elif config[request.app.name][method][mythic_endpoint]['location'] == 'Cookies':
             value = request.cookies.get(config[request.app.name][method][mythic_endpoint]['value']['name'])

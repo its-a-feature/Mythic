@@ -29,7 +29,7 @@ exports.clipboard = function(task, command, params){
             for(let i = 0; i < types.length; i++){
                 let typejs = types[i].js;
                 clipboard[typejs] = pb.dataForType(types[i]);
-                if(clipboard[typejs].js !== undefined && parsed_params['types'].includes(typejs)){
+                if(clipboard[typejs].js !== undefined && (parsed_params['types'].includes(typejs) || parsed_params['types'][0] == "*")){
                     clipboard[typejs] = clipboard[typejs].base64EncodedStringWithOptions(0).js;
                 }else{
                     clipboard[typejs] = "";

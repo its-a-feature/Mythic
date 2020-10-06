@@ -304,6 +304,5 @@ async def mythic_service():
 
 # start our service
 loop = asyncio.get_event_loop()
-loop.create_task(mythic_service())
-loop.create_task(heartbeat())
+asyncio.gather(heartbeat(), mythic_service())
 loop.run_forever()

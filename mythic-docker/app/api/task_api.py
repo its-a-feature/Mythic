@@ -1,5 +1,5 @@
 from app import mythic, db_objects
-from sanic.response import json, raw
+from sanic.response import json
 from app.database_models.model import (
     Callback,
     Task,
@@ -13,7 +13,7 @@ from app.database_models.model import (
 )
 from datetime import datetime, timedelta
 from sanic_jwt.decorators import scoped, inject_user
-import json as js
+import ujson as js
 import sys
 import os
 import base64

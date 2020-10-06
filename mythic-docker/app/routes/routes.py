@@ -30,7 +30,7 @@ import datetime
 import app.crypto as crypto
 from sanic_jwt import BaseEndpoint, utils, exceptions
 from sanic_jwt.decorators import scoped, inject_user
-import json as js
+import ujson as js
 from ipaddress import ip_address
 from app.routes.authentication import invalidate_refresh_token
 from app.crypto import create_key_AES256

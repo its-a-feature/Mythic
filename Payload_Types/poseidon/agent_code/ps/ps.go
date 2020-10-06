@@ -69,7 +69,7 @@ type ProcessDetails struct {
 
 //Run - interface method that retrieves a process list
 func Run(task structs.Task) {
-	procs, err := processes()
+	procs, err := Processes()
 	msg := structs.Response{}
 	msg.TaskID = task.TaskID
 	if err != nil {

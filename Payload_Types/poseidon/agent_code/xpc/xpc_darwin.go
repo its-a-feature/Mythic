@@ -336,13 +336,7 @@ func runCommand(command string) ([]byte, error) {
 			empty := make([]byte, 0)
 			return empty, errors.New("Missing program argument")
 		} else {
-			var k int
-			if args.KeepAlive {
-				k = 1
-			} else {
-				k = 0
-			}
-			response := XpcLaunchSubmit(args.ServiceName, args.Program, k)
+			response := XpcLaunchSubmit(args.ServiceName, args.Program)
 			response = response.(Dict)
 			raw, err := json.MarshalIndent(response, "", "	")
 			if err != nil {
@@ -413,7 +407,7 @@ func XpcLaunchControl(service string, startstop int) interface{} {
 	}
 }
 
-func XpcLaunchSubmit(label string, program string, keepalive int) interface{} {
+func XpcLaunchSubmit(label string, program string) interface{} {
 	if len(label) == 0 || len(program) == 0 {
 		return Dict{
 			"error": "label and program required",
@@ -423,9 +417,8 @@ func XpcLaunchSubmit(label string, program string, keepalive int) interface{} {
 		cprogram := C.CString(program)
 		defer C.free(unsafe.Pointer(clabel))
 		defer C.free(unsafe.Pointer(cprogram))
-		ckeepalive := C.int(keepalive)
 
-		raw := C.XpcLaunchdSubmitJob(cprogram, clabel, ckeepalive)
+		raw := C.XpcLaunchdSubmitJob(cprogram, clabel, 1)
 		result := xpcToGo(raw).(Dict)
 		return result
 	}
@@ -655,7 +648,7 @@ func xpcToGo(v C.xpc_object_t) interface{} {
 		C.XpcDictApply(C.uintptr_t(p), v)
 		return d
 	case C.TYPE_BOOL:
-		log.Printf("Received bool xpc type: %#v", v)
+		return C.xpc_bool_get_value(v)
 
 	case C.TYPE_CONNECTION:
 		log.Printf("Received connection xpc type: %#v", v)
@@ -668,9 +661,8 @@ func xpcToGo(v C.xpc_object_t) interface{} {
 	case C.TYPE_SHMEM:
 		log.Printf("Received shared memory xpc type: %#v", v)
 	default:
-		log.Fatalf("unexpected type %#v, value %#v", t, v)
+		log.Printf("unexpected type %#v, value %#v", t, v)
 	}
-
 	return nil
 }
 

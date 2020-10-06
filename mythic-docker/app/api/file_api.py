@@ -1,10 +1,10 @@
 from app import mythic, db_objects
-from app.database_models.model import FileMeta, Callback, Payload, Task, Command
-from sanic.response import json, raw, file
+from app.database_models.model import FileMeta, Callback, Task, Command
+from sanic.response import json, file
 import base64
 from sanic_jwt.decorators import scoped, inject_user
 import os
-import json as js
+import ujson as js
 import sys
 import app.database_models.model as db_model
 from sanic.exceptions import abort

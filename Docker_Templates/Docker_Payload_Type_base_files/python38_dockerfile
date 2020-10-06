@@ -1,0 +1,4 @@
+From python:3.8-buster
+RUN pip install aio_pika
+
+ENTRYPOINT ["/Mythic/mythic/payload_service.sh"]

@@ -16,7 +16,7 @@ import sys
 import uuid
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
-import json as js
+import ujson as js
 from datetime import datetime, timedelta
 from sanic.exceptions import abort
 from app.api.rabbitmq_api import send_c2_rabbitmq_message
@@ -350,6 +350,21 @@ async def register_new_payload_func(data, user):
                             p["c2_profile_parameters"][
                                 param.name
                             ] = param.default_value.split("\n")[0]
+                        elif param.parameter_type == "Date":
+                            if param.default_value == "":
+                                p["c2_profile_parameters"][param.name] = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
+                            else:
+                                p["c2_profile_parameters"][param.name] = (
+                                            datetime.utcnow() + timedelta(days=param.default_value)
+                                ).strftime("%Y-%m-%d")
+                        elif param.parameter_type == "Dictionary":
+                            # default for a dictionary type is to just display all those that have "default_show" to true
+                            default_dict = js.loads(param.default_value)
+                            temp_dict = []
+                            for entry in default_dict:
+                                if entry.default_show:
+                                    temp_dict.append({"key": entry.key, "name": entry.name, "value": entry.default_value})
+                            p["c2_profile_parameter"][param.name] = temp_dict
                         else:
                             p["c2_profile_parameters"][param.name] = param.default_value
                     c2p = await db_objects.create(
@@ -603,6 +618,8 @@ async def get_payload(request, uuid, user):
     # return a blob of the requested payload
     # the pload string will be the uuid of a payload registered in the system
     try:
+        if user["view_mode"] == "spectator":
+            return json({"status": "error", "error": "Spectators cannot download payloads"})
         query = await db_model.payload_query()
         payload = await db_objects.get(query, uuid=uuid)
     except Exception as e:

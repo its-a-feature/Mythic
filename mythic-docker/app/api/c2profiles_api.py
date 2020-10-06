@@ -8,7 +8,7 @@ from app.database_models.model import (
 )
 from urllib.parse import unquote_plus
 from sanic_jwt.decorators import scoped, inject_user
-import json as js
+import ujson as js
 import app.database_models.model as db_model
 from app.api.rabbitmq_api import send_c2_rabbitmq_message
 from sanic.exceptions import abort
@@ -452,6 +452,8 @@ async def save_c2profile_parameter_value_instance(request, info, user):
     created_params = []
     for p in params:
         try:
+            if p.parameter_type in ['Array', 'Dictionary']:
+                data[p.name] = js.dumps(data[p.name])
             created = await db_objects.create(
                 C2ProfileParametersInstance,
                 c2_profile_parameters=p,
@@ -580,9 +582,14 @@ async def delete_c2profile_parameter_value_instance(request, instance_name, user
                 & ((C2ProfileParametersInstance.callback == None))
             )
         )
+        parameters_found = False
         for p in params:
             await db_objects.delete(p)
-        return json({"status": "success"})
+            parameters_found = True
+        if parameters_found:
+            return json({"status": "success"})
+        else:
+            return json({"status": "error", "error": "Saved instance not found"})
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to get the c2 profile"})

@@ -1,2 +1,2 @@
 # pull in the appropriate language's payload container from itsafeaturemythic on dockerhub
-from itsafeaturemythic/csharp_payload:0.0.5
+from itsafeaturemythic/csharp_payload:0.0.6

@@ -18,7 +18,7 @@ class LsCommand(CommandBase):
     description = "List contents of specified directory."
     version = 1
     is_exit = False
-    is_file_browse = True
+    is_file_browse = False
     is_process_list = False
     is_download_file = False
     is_remove_file = False

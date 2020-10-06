@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker3.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <div class="card border border-dark shadow" id="c2profiles_table" style="margin-top:5px">
     <div class="card-header border border-dark bg-header text-white shadow">
         <h2 style="display:inline-block"><span class="operator">Global C2 Profile</span> Configurations</h2>
@@ -81,7 +82,7 @@
                               {% if view_mode != 'spectator' %}
                               <button class="dropdown-item" @click="create_new_parameter_instance_button(p)">Create Instance</button>
                               {% endif %}
-                              <button class="dropdown-item" @click="edit_parameter_instance_button(p)">View/Edit Instance</button>
+                              <button class="dropdown-item" @click="edit_parameter_instance_button(p)">View/Delete Instance</button>
                           </div>
                      </div>
                 </td>
@@ -217,7 +218,6 @@
                                 Randomization Regex - On each instance, a new value matching the below regex will be generated:
                                  <input class="form-control" disabled type="text" :value="i.format_string" v-model="i.format_string" style="width:100%">
                             </template>
-
                         </td>
                     </tr>
                 </table>
@@ -271,6 +271,59 @@
                                     <select class="form-control" v-model="i.parameter">
                                         <option v-for="o in i.default_value.split('\n')" :value="o">[[o]]</option>
                                     </select>
+                                </template>
+                                <template v-else-if="i.parameter_type === 'Date'">
+                                    <div class='input-group date' data-provide="datepicker" :id="'newparaminst' + i.id" data-date-format="yyyy-mm-dd" data-date-today-highlight="true" data-date-autoclose="true" onchange="instances_table.update(event)">
+                                        <input type="text" class="form-control" :value="i.parameter" v-model="i.parameter">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-sm btn{{config['outline-buttons']}}secondary"><i class="far fa-calendar-alt fa-2x"></i></button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template v-else-if="i.parameter_type === 'Array'">
+                                    <template v-if="!passing_requirements(i)">
+                                        <font color="indianred"><b>(Bad Value)</b></font>
+                                    </template>
+                                    <div v-for="(e, index) in i.parameter">
+                                        <div class="input-group">
+                                            <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="remove_array_element(i, index) "><i class="far fa-trash-alt"></i></button>
+                                            <input type="text" class="form-control" v-model="i.parameter[index]" :value="i.parameter[index]">
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_array_element(i.parameter)"><i class="fa fa-plus"></i></button>
+                                </template>
+                                <template v-else-if="i.parameter_type === 'Dictionary'">
+                                    <template v-for="(o, index) in i.parameter">
+                                        <div class="input-group">
+                                            <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="remove_dict_element(i, index)"><i class="far fa-trash-alt"></i></button>
+                                            <button disabled class="btn btn-sm btn-secondary">Key:</button>
+                                            <template v-if="o['custom']">
+                                                <input type="text" :value="o['key']" class="text form-control" v-model="i.parameter[index]['key']">
+                                            </template>
+                                            <template v-else>
+                                                <input disabled :value="o['name']" class="text form-control">
+                                            </template>
+                                            <button disabled class="btn btn-sm btn-secondary">Value:</button>
+                                            <input type="text" class="form-control" :value="o['value']" v-model="o['value']">
+                                        </div>
+                                    </template>
+                                    <template v-if="can_add_more(i)">
+                                        <div class="input-group">
+                                            <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_dict_element(i)"><i class="fa fa-plus"></i></button>
+                                            <button disabled class="btn btn-sm btn-secondary">New key of type:</button>
+                                            <select v-model="i['new_key']" class="form-control">
+                                                <option v-for="o in add_options(i)" :value="o">
+                                                    <template v-if="o === '*'">
+                                                        Custom
+                                                    </template>
+                                                    <template v-else>
+                                                        [[ o ]]
+                                                    </template>
+                                                </option>
+                                            </select>
+
+                                        </div>
+                                    </template>
                                 </template>
                             </td>
                         </tr>
@@ -327,13 +380,65 @@
                                         <option v-for="o in i.default_value.split('\n')" :value="o">[[o]]</option>
                                     </select>
                                 </template>
+                                <template v-else-if="i.parameter_type === 'Date'">
+                                    <div class='input-group date' data-provide="datepicker" data-date-format="yyyy-mm-dd" data-date-today-highlight="true" data-date-autoclose="true">
+                                        <input class="form-control" :value="i.parameter" v-model="i.parameter">
+                                        <div class="input-group-append">
+                                            <button disabled class="btn btn-sm btn{{config['outline-buttons']}}secondary"><i class="far fa-calendar-alt fa-2x"></i></button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template v-else-if="i.parameter_type === 'Array'">
+                                    <template v-if="!passing_requirements(i)">
+                                        <font color="indianred"><b>(Bad Value)</b></font>
+                                    </template>
+                                    <div v-for="(e, index) in i.parameter">
+                                        <div class="input-group">
+                                            <button disabled class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="remove_array_element(i, index) "><i class="far fa-trash-alt"></i></button>
+                                            <input type="text" class="form-control" v-model="i.parameter[index]" :value="i.parameter[index]">
+                                        </div>
+                                    </div>
+                                    <button disabled class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_array_element(i.parameter)"><i class="fa fa-plus"></i></button>
+                                </template>
+                                <template v-else-if="i.parameter_type === 'Dictionary'">
+                                    <template v-for="(o, index) in i.parameter">
+                                        <div class="input-group">
+                                            <button disabled class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="remove_dict_element(i, index)"><i class="far fa-trash-alt"></i></button>
+                                            <button disabled class="btn btn-sm btn-secondary">Key:</button>
+                                            <template v-if="o['custom']">
+                                                <input type="text" :value="o['key']" class="text form-control" v-model="i.parameter[index]['key']">
+                                            </template>
+                                            <template v-else>
+                                                <input disabled :value="o['name']" class="text form-control">
+                                            </template>
+                                            <button disabled class="btn btn-sm btn-secondary">Value:</button>
+                                            <input type="text" class="form-control" :value="o['value']">
+                                        </div>
+                                    </template>
+                                    <template v-if="can_add_more(i)">
+                                        <div class="input-group">
+                                            <button disabled class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_dict_element(i)"><i class="fa fa-plus"></i></button>
+                                            <button disabled class="btn btn-sm btn-secondary">New key of type:</button>
+                                            <select disabled v-model="i['new_key']" class="form-control">
+                                                <option v-for="o in add_options(i)" :value="o">
+                                                    <template v-if="o === '*'">
+                                                        Custom
+                                                    </template>
+                                                    <template v-else>
+                                                        [[ o ]]
+                                                    </template>
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </template>
+                                </template>
                             </td>
                         </tr>
                     </table>
             </div>
             <div class="modal-footer">
             <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-            <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="profileEditInstanceSubmit">Submit</button>
+            <button class="btn btn{{config['outline-buttons']}}danger" data-dismiss="modal" id="profileEditInstanceSubmit">Delete</button>
             </div>
         </div>
         </div>
@@ -389,5 +494,7 @@
 {% endblock %}
 
 {% block body_config %}
-
+.datepicker {
+    background-color: white;
+}
 {% endblock %}

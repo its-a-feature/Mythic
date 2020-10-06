@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker3.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <div id="payloadCreation" style="margin-top:5px">
     <div class="card">
         <div class="card-header bg-header border border-dark shadow text-white">
@@ -66,6 +68,59 @@
                                             <select class="form-control" v-model="value.parameter">
                                                 <option v-for="o in value.default_value.split('\n')" :value="o">[[o]]</option>
                                             </select>
+                                        </template>
+                                        <template v-else-if="value.parameter_type === 'Date'">
+                                            <div class='input-group date' data-provide="datepicker" data-date-format="yyyy-mm-dd" data-date-today-highlight="true" data-date-autoclose="true" :id="'newparaminst' + value.id" onchange="profile_parameters_table.update(event)">
+                                                <input class="form-control" :value="value.parameter" v-model="value.parameter">
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-sm btn{{config['outline-buttons']}}secondary"><i class="far fa-calendar-alt fa-2x"></i></button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <template v-else-if="value.parameter_type === 'Array'">
+                                            <template v-if="!passing_requirements(value)">
+                                                <font color="indianred"><b>(Bad Value)</b></font>
+                                            </template>
+                                            <div v-for="(e, i) in value.parameter">
+                                                <div class="input-group">
+                                                    <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="remove_array_element(value, i) "><i class="far fa-trash-alt"></i></button>
+                                                    <input type="text" class="form-control" v-model="value.parameter[i]" :value="value.parameter[i]">
+                                                </div>
+                                            </div>
+                                            <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_array_element(value.parameter)"><i class="fa fa-plus"></i></button>
+                                        </template>
+                                        <template v-else-if="value.parameter_type === 'Dictionary'">
+                                            <template v-for="(o, i) in value.parameter">
+                                                <div class="input-group">
+                                                    <button class="btn btn-sm btn{{config['outline-buttons']}}danger" @click="remove_dict_element(value, i)"><i class="far fa-trash-alt"></i></button>
+                                                    <button disabled class="btn btn-sm btn-secondary">Key:</button>
+                                                    <template v-if="o['custom']">
+                                                        <input type="text" :value="o['key']" class="text form-control" v-model="value.parameter[i]['key']">
+                                                    </template>
+                                                    <template v-else>
+                                                        <input disabled :value="o['name']" class="text form-control">
+                                                    </template>
+                                                    <button disabled class="btn btn-sm btn-secondary">Value:</button>
+                                                    <input type="text" class="form-control" :value="o['value']">
+                                                </div>
+                                            </template>
+                                            <template v-if="can_add_more(value)">
+                                                <div class="input-group">
+                                                    <button class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_dict_element(value)"><i class="fa fa-plus"></i></button>
+                                                    <button disabled class="btn btn-sm btn-secondary">New key of type:</button>
+                                                    <select v-model="value['new_key']" class="form-control">
+                                                        <option v-for="o in add_options(value)" :value="o">
+                                                            <template v-if="o === '*'">
+                                                                Custom
+                                                            </template>
+                                                            <template v-else>
+                                                                [[ o ]]
+                                                            </template>
+                                                        </option>
+                                                    </select>
+
+                                                </div>
+                                            </template>
                                         </template>
                                     </td>
                                 </tr>
@@ -168,5 +223,7 @@
 {% endblock %}
 
 {% block body_config %}
-
+.datepicker {
+    background-color: white;
+}
 {% endblock %}

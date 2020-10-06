@@ -42,9 +42,6 @@
                             Enable Browser Script
                         </template>
                     </a>
-                    <template v-if="task.params != task.original_params">
-                        <a class="dropdown-item" href="#" data-toggle="tooltip" title="View server-modified parameters" @click="toggle_show_params(task)"><i class="fas fa-eye"></i> View Modified Params</a>
-                    </template>
                 </div>
             </div>
              <p :key="'mutedtext' + task.id" class="card-text" style="margin:0;display:inline-block"><small class="text-muted">

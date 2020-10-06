@@ -513,7 +513,7 @@ class customC2 extends baseC2{
             chunk_num = file_data['chunk_num'];
             total_chunks = file_data['total_chunks'];
             total_data.appendData($.NSData.alloc.initWithBase64Encoding($(file_data['chunk_data'])));
-            data = {"action": "upload", "file_id": file_id, "chunk_size": this.chunk_size, "chunk_num": chunk_num + 1};
+            data = {"action": "upload", "file_id": file_id, "chunk_size": this.chunk_size, "chunk_num": chunk_num + 1, "task_id": task.id};
         }while(chunk_num < total_chunks);
       return total_data;
     }catch(error){

@@ -4,6 +4,56 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import unpad, pad
 from Crypto.PublicKey import RSA
 import base64
+import ujson as json
+
+
+async def encrypt_message(message: dict, enc_metadata: dict, uuid: str, with_uuid: bool = True) -> str:
+    return await encrypt_bytes_normalized(json.dumps(message).encode(), enc_metadata, uuid, with_uuid)
+
+
+async def encrypt_bytes_normalized(message: bytes, enc_metadata: dict, uuid: str, with_uuid: bool = True) -> str:
+    if enc_metadata["type"] is None:
+        # this means there's no encryption going on or Mythic isn't supposed to encrypt
+        if with_uuid:
+            return base64.b64encode((uuid.encode() + message)).decode()
+        else:
+            return base64.b64encode(message).decode()
+    else:
+        if enc_metadata["type"] == "AES256":
+            enc_data = await encrypt_AES256(
+                data=message, key=enc_metadata["enc_key"]
+            )
+            if with_uuid:
+                return base64.b64encode(uuid.encode() + enc_data).decode()
+            else:
+                return base64.b64encode(enc_data).decode()
+        else:
+            # we don't recognize the type specified
+            return ""
+
+
+async def decrypt_message(message: bytes, enc_metadata: dict, with_uuid: bool = True, return_json: bool = True) -> dict:
+    if with_uuid:
+        message = message[36:]
+    if enc_metadata["type"] is not None:
+        if enc_metadata["type"] == "AES256":
+            decrypted = await decrypt_AES256(
+                data=message, key=enc_metadata["dec_key"]
+            )
+            # print(decrypted)
+            if return_json:
+                decrypted = json.loads(decrypted)
+        else:
+            if return_json:
+                decrypted = {}
+            else:
+                decrypted = b''
+    else:
+        if return_json:
+            decrypted = json.loads(message)
+        else:
+            decrypted = message
+    return decrypted
 
 
 async def hash_SHA512(data) -> str:

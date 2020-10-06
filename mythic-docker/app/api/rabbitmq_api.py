@@ -4,7 +4,7 @@ import app.database_models.model as db_model
 import aio_pika
 import asyncio
 import base64
-import json
+import ujson as json
 import sys
 import os
 from sanic.log import logger
@@ -12,6 +12,12 @@ from app.crypto import hash_SHA1, hash_MD5
 from functools import partial
 import traceback
 import uuid
+import app.crypto as crypt
+from app.api.operation_api import send_all_operations_message
+
+
+# Keep track of sending sync requests to containers so we don't go crazy
+sync_tasks = {}
 
 
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
@@ -36,53 +42,27 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 operation_query.where(db_model.Operation.complete == False)
             )
             if status["status"] == "success":
-                if status["name"] != pieces[2]:
-                    logger.warning(
-                        "Imported C2 {} from container {}".format(
-                            status["name"], pieces[2]
-                        )
-                    )
-                logger.info(
-                    "Successfully updated database from docker code for {}".format(
-                        pieces[2]
-                    )
-                )
-                for o in operations:
-                    await db_objects.create(
-                        db_model.OperationEventLog,
-                        operator=operator,
-                        level="info",
-                        operation=o,
-                        message="Successfully Sync-ed database with {} C2 files".format(
+                sync_tasks.pop(pieces[2], None)
+                await send_all_operations_message("Successfully Sync-ed database with {} C2 files".format(
                             pieces[2]
-                        ),
-                    )
-                # for a successful checkin, we need to find all wrapper payload types and get them to re-check in
+                        ), "info")
+                # for a successful checkin, we need to find all non-wrapper payload types and get them to re-check in
                 query = await db_model.payloadtype_query()
                 pts = await db_objects.execute(
                     query.where(db_model.PayloadType.wrapper == False)
                 )
                 sync_operator = "" if operator is None else operator.username
                 for pt in pts:
-                    await send_pt_rabbitmq_message(
-                        pt.ptype, "sync_classes", "", sync_operator
-                    )
+                    if pt.ptype not in sync_tasks:
+                        sync_tasks[pt.ptype] = True
+                        await send_pt_rabbitmq_message(
+                            pt.ptype, "sync_classes", "", sync_operator
+                        )
             else:
-                logger.error(
-                    "Failed to update database from docker code for {}: {}".format(
-                        pieces[2], status["error"]
-                    )
-                )
-                for o in operations:
-                    await db_objects.create(
-                        db_model.OperationEventLog,
-                        operator=operator,
-                        level="info",
-                        operation=o,
-                        message="Failed Sync-ed database with {} C2 files: {}".format(
+                sync_tasks.pop(pieces[2], None)
+                await send_all_operations_message("Failed Sync-ed database with {} C2 files: {}".format(
                             pieces[2], status["error"]
-                        ),
-                    )
+                        ), "warning")
         if pieces[1] == "status":
             try:
                 query = await db_model.c2profile_query()
@@ -207,6 +187,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             operator_query,
                             username=base64.b64decode(pieces[5]).decode(),
                         )
+                    sync_tasks.pop(pieces[2], None)
                     if pieces[4] == "success":
                         from app.api.payloadtype_api import import_payload_type_func
 
@@ -215,27 +196,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 json.loads(message.body.decode()), operator
                             )
                             if status["status"] == "success":
-                                if pieces[2] != status["ptype"]:
-                                    logger.warning(
-                                        "Imported ptype {} from container {}".format(
-                                            status["ptype"], pieces[2]
-                                        )
-                                    )
-                                logger.info(
-                                    "Successfully updated database from docker code for {}".format(
-                                        pieces[2]
-                                    )
-                                )
-                                for o in operations:
-                                    await db_objects.create(
-                                        db_model.OperationEventLog,
-                                        operator=operator,
-                                        level="info",
-                                        operation=o,
-                                        message="Successfully Sync-ed database with {} payload files".format(
+                                await send_all_operations_message("Successfully Sync-ed database with {} payload files".format(
                                             pieces[2]
-                                        ),
-                                    )
+                                        ), "info")
                                 # for a successful checkin, we need to find all wrapper payload types and get them to re-check in
                                 if status["wrapper"] is False:
                                     query = await db_model.payloadtype_query()
@@ -248,57 +211,23 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                         "" if operator is None else operator.username
                                     )
                                     for pt in pts:
-                                        await send_pt_rabbitmq_message(
-                                            pt.ptype, "sync_classes", "", sync_operator
-                                        )
+                                        if pt.ptype not in sync_tasks:
+                                            sync_tasks[pt.ptype] = True
+                                            await send_pt_rabbitmq_message(
+                                                pt.ptype, "sync_classes", "", sync_operator
+                                            )
                             else:
-                                logger.error(
-                                    "Failed to update database from docker code for {}: {}".format(
-                                        pieces[2], status["error"]
-                                    )
-                                )
-                                for o in operations:
-                                    await db_objects.create(
-                                        db_model.OperationEventLog,
-                                        operator=operator,
-                                        level="info",
-                                        operation=o,
-                                        message="Failed Sync-ed database with {} payload files: {}".format(
+                                await send_all_operations_message("Failed Sync-ed database with {} payload files: {}".format(
                                             pieces[2], status["error"]
-                                        ),
-                                    )
+                                        ), "warning")
                         except Exception as i:
-                            logger.error(
-                                "Failed to update database from syncing classes: {}".format(
-                                    str(i)
-                                )
-                            )
-                            for o in operations:
-                                await db_objects.create(
-                                    db_model.OperationEventLog,
-                                    operator=operator,
-                                    level="warning",
-                                    operation=o,
-                                    message="Failed Sync-ed database with {} payload files: {}".format(
+                            await send_all_operations_message("Failed Sync-ed database with {} payload files: {}".format(
                                         pieces[2], status["error"]
-                                    ),
-                                )
+                                    ), "warning")
                     else:
-                        logger.error(
-                            "Failed to get new payload and command info from container for {}: {}".format(
-                                pieces[2], message.body.decode()
-                            )
-                        )
-                        for o in operations:
-                            await db_objects.create(
-                                db_model.OperationEventLog,
-                                operator=operator,
-                                level="warning",
-                                operation=o,
-                                message="Failed getting information for payload {} with error: {}".format(
+                        await send_all_operations_message("Failed getting information for payload {} with error: {}".format(
                                     pieces[2], message.body.decode()
-                                ),
-                            )
+                                ), "warning")
             except Exception as e:
                 logger.exception("Exception in rabbit_pt_callback: " + str(e))
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
@@ -643,33 +572,21 @@ async def control_socks(request):
 
 
 async def encrypt(callback_uuid: str, data: bytes, with_uuid: bool):
-    from app.crypto import encrypt_AES256
     from app.api.callback_api import get_encryption_data
     enc_key = await get_encryption_data(callback_uuid)
-    if enc_key["type"] is not None:
-        if enc_key["type"] == "AES256":
-            enc_message = await encrypt_AES256(
-                data, enc_key["enc_key"],
-            )
-        else:
-            callback_query = await db_model.callback_query()
-            callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
-            await db_objects.create(
-                db_model.OperationEventLog,
-                level="warning",
-                operation=callback.operation,
-                message="Payload or C2 profile tried to have Mythic encrypt a message of type: {}, but Mythic doesn't know that type".format(enc_key["type"]),
-            )
-            enc_message = data
-    else:
-        enc_message = data
-    if with_uuid:
-        message = base64.b64encode(
-            callback_uuid.encode() + enc_message
-        ).decode()
-    else:
-        message = base64.b64encode(enc_message).decode()
+    message = await crypt.encrypt_bytes_normalized(data, enc_key, callback_uuid, with_uuid)
+    if message == "":
+        callback_query = await db_model.callback_query()
+        callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
+        await db_objects.create(
+            db_model.OperationEventLog,
+            level="warning",
+            operation=callback.operation,
+            message="Payload or C2 profile tried to have Mythic encrypt a message of type: {}, but Mythic doesn't know that type".format(
+                enc_key["type"]),
+        )
     return message
+
 
 async def encrypt_bytes(request):
     # {
@@ -702,50 +619,19 @@ async def encrypt_bytes_c2_rpc(request):
 
 
 async def decrypt(callback_uuid: str, data: bytes, with_uuid: bool):
-    from app.crypto import decrypt_AES256
     from app.api.callback_api import get_encryption_data
     dec_key = await get_encryption_data(callback_uuid)
-    if with_uuid:
-        # this means that the message is Mythic standard and has the UUID+message format
-        if dec_key["type"] is not None:
-            if dec_key["type"] == "AES256":
-                dec_message = await decrypt_AES256(
-                    data[36:], dec_key["dec_key"]
-                )
-            else:
-                callback_query = await db_model.callback_query()
-                callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
-                await db_objects.create(
-                    db_model.OperationEventLog,
-                    level="warning",
-                    operation=callback.operation,
-                    message="Payload or C2 profile tried to have Mythic decrypt a message of type: {}, but Mythic doesn't know that type".format(
-                        dec_key["type"]),
-                )
-                dec_message = data[36:]
-        else:
-            dec_message = data[36:]
-    else:
-        # this means it's just a blob of encrypted data
-        if dec_key["type"] is not None:
-            if dec_key["type"] == "AES256":
-                dec_message = await decrypt_AES256(
-                    data,
-                    dec_key["dec_key"],
-                )
-            else:
-                callback_query = await db_model.callback_query()
-                callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
-                await db_objects.create(
-                    db_model.OperationEventLog,
-                    level="warning",
-                    operation=callback.operation,
-                    message="Payload or C2 profile tried to have Mythic decrypt a message of type: {}, but Mythic doesn't know that type".format(
-                        dec_key["type"]),
-                )
-                dec_message = data
-        else:
-            dec_message = data
+    dec_message = await crypt.decrypt_message(data, dec_key, with_uuid, False)
+    if dec_message == b'' or dec_message == {}:
+        callback_query = await db_model.callback_query()
+        callback = await db_objects.get(callback_query, agent_callback_id=callback_uuid)
+        await db_objects.create(
+            db_model.OperationEventLog,
+            level="warning",
+            operation=callback.operation,
+            message="Payload or C2 profile tried to have Mythic decrypt a message of type: {}, but Mythic doesn't know that type".format(
+                dec_key["type"]),
+        )
     return base64.b64encode(dec_message).decode()
 
 

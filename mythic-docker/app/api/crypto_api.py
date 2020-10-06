@@ -2,7 +2,7 @@ from app import db_objects
 from app.database_models.model import StagingInfo
 import base64
 import app.crypto as crypt
-import json as js
+import ujson as js
 from sanic.log import logger
 from uuid import uuid4
 

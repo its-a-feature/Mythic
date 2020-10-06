@@ -24,7 +24,7 @@ class LibinjectArguments(TaskArguments):
 
 class LibinjectCommand(CommandBase):
     cmd = "libinject"
-    needs_admin = False
+    needs_admin = True
     help_cmd = "libinject"
     description = "Inject a library from on-host into a process."
     version = 1
@@ -39,7 +39,10 @@ class LibinjectCommand(CommandBase):
     attackmapping = ["T1055"]
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
-        return task
+        if task.callback.integrity_level <= 2:
+            raise Exception("Error: the libinject command requires elevated privileges")
+        else:
+            return task
 
     async def process_response(self, response: AgentResponse):
         pass

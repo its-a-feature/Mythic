@@ -85,7 +85,7 @@ async def add_event_message(request, user):
             db_model.OperationEventLog,
             operator=operator,
             operation=operation,
-            message=data["message"],
+            message=data["message"].encode(),
             level=data["level"],
         )
         return json({"status": "success", **msg.to_json()})

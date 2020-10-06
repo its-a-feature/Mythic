@@ -165,7 +165,7 @@ then
   exit 1
 else
   echo -e "${GREEN}[+]${NC} Successfully connected to endpoint"
-  echo -e "${GREEN}[+]${NC} Apfell containers succssfully started!"
+  echo -e "${GREEN}[+]${NC} Mythic containers succssfully started!"
 fi
 echo -e "${BLUE}[*]${NC} use ./status_check.sh to check status of docker containers"
 echo -e "${BLUE}[*]${NC} use ./display_output.sh [container name] to display the output of that container"

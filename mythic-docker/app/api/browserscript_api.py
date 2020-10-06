@@ -3,7 +3,7 @@ from sanic_jwt.decorators import inject_user, scoped
 import app.database_models.model as db_model
 from sanic.response import json
 from sanic.exceptions import abort
-import json as js
+import ujson as js
 import base64
 from sanic.log import logger
 

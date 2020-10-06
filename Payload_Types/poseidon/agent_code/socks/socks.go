@@ -125,38 +125,24 @@ func readFromApfell(fromMythicSocksChannel chan structs.SocksMsg, toMythicSocksC
 }
 func connectToProxy(channelMap *mutexMap, channelId int32, toMythicSocksChannel chan structs.SocksMsg, data []byte){
     r := bytes.NewReader(data)
+    //fmt.Printf("got connect request: %v, %v\n", data, channelId)
     header := []byte{0, 0, 0}
-    if len(data) <= 1{
-        go removeMutexMap(channelMap, channelId, nil)
-        return
-    }
 	if _, err := r.Read(header); err != nil {
-		fmt.Printf("Failed to get command version: %v\n", err)
-        if err != nil {
-		    errorMsg := err.Error()
-		    resp := HostUnreachable
-		    if strings.Contains(errorMsg, "refused") {
-			    resp = ConnectionRefused
-		    } else if strings.Contains(errorMsg, "network is unreachable") {
-			    resp = NetworkUnreachable
-		    }
-            bytesToSend := SendReply(nil, resp, nil)
-            msg := structs.SocksMsg{}
-	        msg.ServerId = channelId
-	        msg.Data = base64.StdEncoding.EncodeToString(bytesToSend)
-	        toMythicSocksChannel <- msg
-            go removeMutexMap(channelMap, channelId, nil)
-            return
-	    }
-	}
-	// Ensure we are compatible
-	if header[0] != uint8(5) {
-		fmt.Printf("Unsupported header version: %v\n", header[0])
-	    resp := HostUnreachable
-        bytesToSend := SendReply(nil, resp, nil)
+        bytesToSend := SendReply(nil, ServerFailure, nil)
         msg := structs.SocksMsg{}
         msg.ServerId = channelId
         msg.Data = base64.StdEncoding.EncodeToString(bytesToSend)
+        toMythicSocksChannel <- msg
+        go removeMutexMap(channelMap, channelId, nil)
+        return
+	}
+	// Ensure we are compatible
+	if header[0] != uint8(5) {
+	    fmt.Printf("new channel id with bad header: %v\n", channelId)
+		fmt.Printf("Unsupported header version: %v\n", header)
+        msg := structs.SocksMsg{}
+        msg.ServerId = channelId
+        msg.Data = "LTE="
         toMythicSocksChannel <- msg
         go removeMutexMap(channelMap, channelId, nil)
         return
@@ -165,13 +151,12 @@ func connectToProxy(channelMap *mutexMap, channelId int32, toMythicSocksChannel 
     //fmt.Printf("%v\n", r)
 	dest, err := ReadAddrSpec(r)
 	if err != nil {
-        fmt.Printf("Failed to read addr spec: %v, len: %d\n", err, len(data))
-        if bytes.Compare(data, []byte{5, 1, 0, 1}) == 0 || bytes.Compare(data, []byte{5, 2, 0, 2}) == 0{
-            msg := structs.SocksMsg{}
-	        msg.ServerId = channelId
-	        msg.Data = base64.StdEncoding.EncodeToString([]byte{uint8(5), uint8(0)})
-	        toMythicSocksChannel <- msg
-        }
+        //fmt.Printf("Failed to read addr spec: %v, len: %d\n", err, len(data))
+        bytesToSend := SendReply(nil, AddrTypeNotSupported, nil)
+        msg := structs.SocksMsg{}
+        msg.ServerId = channelId
+        msg.Data = base64.StdEncoding.EncodeToString(bytesToSend)
+        toMythicSocksChannel <- msg
         go removeMutexMap(channelMap, channelId, nil)
 		return
 	}
@@ -188,9 +173,9 @@ func connectToProxy(channelMap *mutexMap, channelId int32, toMythicSocksChannel 
 	client := &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 65432}
     request.RemoteAddr = &AddrSpec{IP: client.IP, Port: client.Port}
 	if request.DestAddr.FQDN != "" {
-        fmt.Printf("about to resolve fqdn\n")
+        //fmt.Printf("about to resolve fqdn\n")
         addr, err := net.ResolveIPAddr("ip", request.DestAddr.FQDN)
-        fmt.Printf("got an IP address\n")
+        //fmt.Printf("got an IP address\n")
 		if err != nil {
             bytesToSend := SendReply(nil, HostUnreachable, nil)
             msg := structs.SocksMsg{}
@@ -223,7 +208,7 @@ func connectToProxy(channelMap *mutexMap, channelId int32, toMythicSocksChannel 
 	        msg.ServerId = channelId
 	        msg.Data = base64.StdEncoding.EncodeToString(bytesToSend)
 	        toMythicSocksChannel <- msg
-		    fmt.Printf("Connect to %v failed: %v\n", request.DestAddr, errorMsg)
+		    fmt.Printf("Connect to %v failed: %v, %v\n", request.DestAddr, errorMsg, data)
             go removeMutexMap(channelMap, channelId, nil)
             return
 	    }
@@ -240,13 +225,13 @@ func connectToProxy(channelMap *mutexMap, channelId int32, toMythicSocksChannel 
 	    go writeToProxy(target, channelId, channelMap, toMythicSocksChannel)
         go readFromProxy(target, toMythicSocksChannel, channelId, channelMap)
 	default:
-        fmt.Printf("In command switch, hit default case\n")
+        //fmt.Printf("In command switch, hit default case\n")
         bytesToSend := SendReply(nil, CommandNotSupported, nil)
         msg := structs.SocksMsg{}
         msg.ServerId = channelId
         msg.Data = base64.StdEncoding.EncodeToString(bytesToSend)
 	    toMythicSocksChannel <- msg
-		fmt.Printf("Unsupported command: %v\n", request.Command)
+		fmt.Printf("Unsupported command: %v, %v\n", request.Command, channelId)
         go removeMutexMap(channelMap, channelId, nil)
         return
 	}
@@ -264,24 +249,11 @@ func readFromProxy(conn net.Conn, toMythicSocksChannel chan structs.SocksMsg, ch
 
 	    if err != nil {
 	        //fmt.Println("Error reading from remote proxy: ", err.Error())
-            errorMsg := err.Error()
-		    resp := HostUnreachable
-		    if strings.Contains(errorMsg, "refused") {
-			    resp = ConnectionRefused
-		    } else if strings.Contains(errorMsg, "network is unreachable") {
-			    resp = NetworkUnreachable
-		    }
-            bytesToSend := SendReply(nil, resp, nil)
             msg := structs.SocksMsg{}
 	        msg.ServerId = channelId
-            if strings.Contains(errorMsg, "EOF"){
-                msg.Data = "LTE=" //base64 of -1
-                //fmt.Printf("Set message from proxy endpoint to apfell as ''\n")
-            }else{
-                msg.Data = base64.StdEncoding.EncodeToString(bytesToSend)
-                //fmt.Printf("Set message from proxy endpoint to apfell as %v\n", resp)
-            }
+            msg.Data = "LTE=" //base64 of -1
 	        toMythicSocksChannel <- msg
+	        //fmt.Printf("closing from bad proxy read: %v, %v\n", err.Error(), channelId)
             go removeMutexMap(channelMap, channelId, conn)
             return
 	    }
@@ -308,31 +280,20 @@ func writeToProxy(conn net.Conn, channelId int32, channelMap *mutexMap, toMythic
         if bytes.Compare(bufOut,exitMsg) ==0{
             //fmt.Printf("got close from proxychains side, closing connection\n")
             w.Flush()
+            //fmt.Printf("closing from goserver saying so: %v\n", channelId)
             go removeMutexMap(channelMap, channelId, conn)
             return //break out of this so we can close the connection and be done
         }
 	    _, err := w.Write(bufOut)
 	    if err != nil {
             //fmt.Println("Error writting to proxy: ", err.Error())
-            errorMsg := err.Error()
-		    resp := HostUnreachable
-		    if strings.Contains(errorMsg, "refused") {
-			    resp = ConnectionRefused
-		    } else if strings.Contains(errorMsg, "network is unreachable") {
-			    resp = NetworkUnreachable
-		    }
-            bytesToSend := SendReply(nil, resp, nil)
             msg := structs.SocksMsg{}
 	        msg.ServerId = channelId
-	        if strings.Contains(errorMsg, "EOF"){
-                msg.Data = "LTE=" //base64 of -1
-                //fmt.Printf("Set message from proxy endpoint to apfell as ''\n")
-            }else{
-                //fmt.Printf("Set message from proxy endpoint to apfell as %v\n", resp)
-                msg.Data = base64.StdEncoding.EncodeToString(bytesToSend)
-            }
+            msg.Data = "LTE=" //base64 of -1
 	        toMythicSocksChannel <- msg
-            break
+	        //fmt.Printf("closing from bad proxy write: %v\n", channelId)
+	        go removeMutexMap(channelMap, channelId, conn)
+            return
         }
         w.Flush()
         //fmt.Printf("total written to proxy: %d\n", totalWritten)

@@ -3,7 +3,7 @@ function(task, responses){
     try{
         let status = JSON.parse(responses[0]['response']);
         if(status.hasOwnProperty('agent_file_id')){
-        	let file_name = task['params'];
+        	let file_name = status['filename'];
 		      return "<div class='card'><div class='card-header border border-dark shadow'>Finished Downloading <span class='display'>" + escapeHTML(file_name) + "</span>. Click <a href='/api/v1.4/files/download/" + status['agent_file_id'] + "'>here</a> to download</div></div>";
 	    	}
     }catch(error){

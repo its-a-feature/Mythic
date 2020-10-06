@@ -1,6 +1,6 @@
 from app import mythic, db_objects, use_ssl
 import aiopg
-import json as js
+import ujson as js
 import asyncio
 from app.database_models.model import (
     Callback,
@@ -2697,7 +2697,7 @@ async def ws_events_current_operation(request, ws, user):
                         events = []
                         for i in initial_events:
                             op_msg = i.to_json()
-                            if op_msg["operator"] == "null":
+                            if op_msg["operator"] is None:
                                 op_msg["operator"] = "Mythic"
                             events.append(op_msg)
                         await ws.send(js.dumps(events))
@@ -2709,7 +2709,7 @@ async def ws_events_current_operation(request, ws, user):
                                 t = await db_objects.get(query, id=id)
                                 if t.operation == operation:
                                     op_msg = t.to_json()
-                                    if op_msg["operator"] == "null":
+                                    if op_msg["operator"] is None:
                                         op_msg["operator"] = "Mythic"
                                     await ws.send(js.dumps(op_msg))
                             except asyncio.QueueEmpty as e:

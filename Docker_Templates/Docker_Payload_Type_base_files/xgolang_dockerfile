@@ -84,13 +84,15 @@ RUN \
   \
   $BOOTSTRAP_PURE
 
-RUN mkdir /Mythic_service 2>/dev/null
-COPY ["payload_service.sh", "/Mythic_service/payload_service.sh"]
-RUN chmod +x /Mythic_service/payload_service.sh
-WORKDIR /Mythic_service/
-
 ENV GOROOT /usr/local/go
 ENV GOPATH /go/src:/go/src/poseidon
 
+RUN go get github.com/google/shlex \
+    github.com/kbinani/screenshot \
+    github.com/tmc/scp \
+    github.com/xorrior/keyctl \
+    golang.org/x/crypto/ssh \
+    golang.org/x/sync/semaphore \
+    github.com/gorilla/websocket
 
-ENTRYPOINT ["/Mythic_service/payload_service.sh"]
+ENTRYPOINT ["/Mythic/mythic/payload_service.sh"]

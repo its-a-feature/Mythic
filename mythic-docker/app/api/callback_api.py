@@ -1,5 +1,5 @@
-from app import mythic, db_objects, keep_logs
-from sanic.response import json, raw, text
+from app import mythic, db_objects
+from sanic.response import json, text
 from app.database_models.model import (
     Callback,
     Task,
@@ -14,12 +14,13 @@ from math import ceil
 import requests
 import base64
 from sanic.log import logger
-import json as js
+import ujson as js
 import app.crypto as crypt
 from app.api.task_api import get_agent_tasks
 from app.api.response_api import post_agent_response
 from app.api.file_api import download_agent_file
 from app.api.crypto_api import staging_rsa, staging_dh
+from app.api.operation_api import send_all_operations_message
 import urllib.parse
 from datetime import datetime
 from dijkstar import Graph, find_path
@@ -57,7 +58,9 @@ async def get_all_callbacks(request, user):
 
 # format of cached_keys:
 #   {
-#       "UUID": raw key
+#       "type": None or string type,
+#       "enc_key": None or raw bytes of encryption key
+#       "dec_key": None or raw bytes of decryption key
 #   }
 cached_keys = {}
 
@@ -85,9 +88,6 @@ async def get_agent_message(request):
                 level="warning",
                 message=f"Failed to find message in body, cookies, or query args from {request.host} as {request.method} method with headers:\n {request.headers}",
             )
-        logger.exception(
-            f"Failed to find data for an agent message in body, cookies, or query args in {request.method} message (details in event feed)"
-        )
         return text("", 404)
     message, code = await parse_agent_message(data, request)
     return text(message, code)
@@ -121,7 +121,7 @@ async def get_encryption_data(UUID):
                         query.where(db_model.PayloadC2Profiles.payload == payload)
                     )
                     for c in c2_profiles:
-                        if c.c2_profile.mythic_encrypts is False:
+                        if c.c2_profile.mythic_encrypts is False and not c.c2_profile.is_p2p:
                             cached_keys[UUID] = {
                                 "enc_key": None,
                                 "type": None,
@@ -198,92 +198,51 @@ async def get_encryption_data(UUID):
 
 
 # returns a base64 encoded response message
-async def parse_agent_message(data, request):
+async def parse_agent_message(data: str, request):
     try:
         decoded = base64.b64decode(data)
-        # print(decoded)
+        #print(decoded)
     except Exception as e:
-        query = await db_model.operation_query()
-        operations = await db_objects.execute(query)
-        for o in operations:
-            await db_objects.create(
-                db_model.OperationEventLog,
-                operation=o,
-                level="warning",
-                message=f"Failed to base64 decode message: {str(data)}\nfrom {request.host} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
-            )
-        logger.exception(
-            "Failed to base64 decode the agent message (details in event log)"
-        )
+        await send_all_operations_message(f"Failed to base64 decode message: {str(data)}\nfrom {request.host} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
+                                          "warning")
         return "", 404
     try:
         UUID = decoded[:36].decode()  # first 36 characters are the UUID
         # print(UUID)
     except Exception as e:
-        query = await db_model.operation_query()
-        operations = await db_objects.execute(query)
-        for o in operations:
-            await db_objects.create(
-                db_model.OperationEventLog,
-                operation=o,
-                level="warning",
-                message=f"Failed to get UUID in first 36 bytes for base64 input: {str(data)}\nfrom {request.host} as {request.method} method, URL {request.url} with headers: \n{request.headers}",
-            )
-        logger.exception(
-            "Failed to get a UUID in the first 36 bytes (details in event log)"
-        )
+        await send_all_operations_message(f"Failed to get UUID in first 36 bytes for base64 input: {str(data)}\nfrom {request.host} as {request.method} method, URL {request.url} with headers: \n{request.headers}",
+                                          "warning")
         return "", 404
     try:
         enc_key = await get_encryption_data(UUID)
         # print(enc_key)
     except Exception as e:
-        query = await db_model.operation_query()
-        operations = await db_objects.execute(query)
-        for o in operations:
-            await db_objects.create(
-                db_model.OperationEventLog,
-                operation=o,
-                level="warning",
-                message=f"Failed to correlate UUID to something mythic knows: {UUID}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
-            )
-        logger.exception(
-            "Failed to correlate UUID to something Mythic knows (details in event log)"
-        )
+        await send_all_operations_message(f"Failed to correlate UUID to something mythic knows: {UUID}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
+                                          "warning")
         return "", 404
     # now we have cached_keys[UUID] is the right AES key to use with this payload, now to decrypt
     decrypted = None
     try:
         # print(decoded[36:])
         # print(enc_key)
-
-        if enc_key["type"] is not None:
-            if enc_key["type"] == "AES256":
-                decrypted = await crypt.decrypt_AES256(
-                    data=decoded[36:], key=enc_key["dec_key"]
-                )
-                # print(decrypted)
-            decrypted = js.loads(decrypted)
-        else:
-            decrypted = js.loads(decoded[36:])
-        # print(decrypted)
+        decrypted = await crypt.decrypt_message(decoded, enc_key)
+        #if enc_key["type"] is not None:
+        #    if enc_key["type"] == "AES256":
+        #        decrypted = await crypt.decrypt_AES256(
+        #            data=decoded[36:], key=enc_key["dec_key"]
+        #        )
+        #        # print(decrypted)
+        #    decrypted = js.loads(decrypted)
+        #else:
+        #    decrypted = js.loads(decoded[36:])
+        print(decrypted)
     except Exception as e:
-        query = await db_model.operation_query()
-        operations = await db_objects.execute(query)
         if decrypted is not None:
             msg = str(decrypted)
         else:
             msg = str(decoded)
-        for o in operations:
-            await db_objects.create(
-                db_model.OperationEventLog,
-                operation=o,
-                level="warning",
-                message=f"Failed to decrypt/load message: {str(msg)}\nfrom {request.host} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
-            )
-        logger.exception(
-            "Failed to decrypt or parse plaintext JSON message (details in event log)"
-        )
-
+        await send_all_operations_message(f"Failed to decrypt/load message: {str(msg)}\nfrom {request.host} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
+                                          "warning")
         return "", 404
     """
     JSON({
@@ -297,7 +256,7 @@ async def parse_agent_message(data, request):
     """
     try:
         if "action" not in decrypted:
-            logger.exception("Missing 'action' in parsed JSON")
+            await send_all_operations_message("Missing 'action' in parsed JSON", "warning")
             return "", 404
         # now to parse out what we're doing, everything is decrypted at this point
         # shuttle everything out to the appropriate api files for processing
@@ -365,7 +324,7 @@ async def parse_agent_message(data, request):
         elif decrypted["action"] == "update_info":
             response_data = await update_callback(decrypted, UUID)
         else:
-            logger.exception("Unknown action:" + str(decrypted["action"]))
+            await send_all_operations_message("Unknown action:" + str(decrypted["action"]), "warning")
             return "", 404
         # now that we have the right response data, format the response message
         if (
@@ -380,35 +339,29 @@ async def parse_agent_message(data, request):
                 # handle messages for all of the delegates
                 for d_uuid in d:
                     # process the delegate message recursively
-                    del_message = await parse_agent_message(d[d_uuid], request)
-                    # store the response to send back
-                    response_data["delegates"].append({d_uuid: del_message})
+                    del_message, status = await parse_agent_message(d[d_uuid], request)
+                    if status == 200:
+                        # store the response to send back
+                        response_data["delegates"].append({d_uuid: del_message})
         #   special encryption will be handled by the appropriate stager call
         # base64 ( UID + ENC(response_data) )
-        # print(response_data)
-        if enc_key["type"] is None:
-            return (
-                base64.b64encode((UUID + js.dumps(response_data)).encode()).decode(),
-                200,
-            )
-        else:
-            if enc_key["type"] == "AES256":
-                enc_data = await crypt.encrypt_AES256(
-                    data=js.dumps(response_data).encode(), key=enc_key["enc_key"]
-                )
-                return base64.b64encode(UUID.encode() + enc_data).decode(), 200
+        #print(js.dumps(response_data))
+        final_msg = await crypt.encrypt_message(response_data, enc_key, UUID)
+        #if enc_key["type"] is None:
+        #    return (
+        #        base64.b64encode((UUID + js.dumps(response_data)).encode()).decode(),
+        #        200,
+        #    )
+        #else:
+        #    if enc_key["type"] == "AES256":
+        #        enc_data = await crypt.encrypt_AES256(
+        #            data=js.dumps(response_data).encode(), key=enc_key["enc_key"]
+        #        )
+        #        return base64.b64encode(UUID.encode() + enc_data).decode(), 200
+        return final_msg, 200
     except Exception as e:
-        query = await db_model.operation_query()
-        operations = await db_objects.execute(query)
-        for o in operations:
-            await db_objects.create(
-                db_model.OperationEventLog,
-                operation=o,
-                level="warning",
-                message=f"Exception dealing with message: {str(decoded)}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
-            )
-        logger.exception("Error parsing agent message: " + str(e))
-        print(e)
+        await send_all_operations_message(f"Exception dealing with message: {str(decoded)}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
+                                          "warning")
         return "", 404
 
 
@@ -466,7 +419,7 @@ async def create_callback_func(data, request):
         pcallback = payload.pcallback
     except Exception as e:
         print(e)
-        return {}
+        return {"status": "error", "error": "payload not found by uuid"}
     if "integrity_level" not in data:
         data["integrity_level"] = 2  # default medium integrity level
     if "os" not in data:
@@ -478,6 +431,8 @@ async def create_callback_func(data, request):
     if "external_ip" not in data:
         if "x-forwarded-for" in request.headers:
             data["external_ip"] = request.headers["x-forwarded-for"].split(",")[-1]
+        elif "X-Forwarded-For" in request.headers:
+            data["external_ip"] = request.headers["X-Forwarded-For"].split(",")[-1]
         else:
             data["external_ip"] = None
     if "extra_info" not in data:
@@ -1095,13 +1050,18 @@ async def start_socks(port: int, callback: Callback, task: Task):
 async def stop_socks(callback: Callback, operator):
     if callback.id in cached_socks:
         try:
-            cached_socks[callback.id]["process"].kill()
+            cached_socks[callback.id]["thread"].exit()
         except:
             pass
         try:
             cached_socks[callback.id]["socket"].close()
         except:
             pass
+        try:
+            cached_socks[callback.id]["process"].terminate()
+        except:
+            pass
+
         del cached_socks[callback.id]
     try:
         port = callback.port
@@ -1175,19 +1135,21 @@ async def start_all_socks_after_restart():
 
 async def send_socks_data(data, callback: Callback):
     try:
+        total_msg = b''
         for d in data:
             if callback.id in cached_socks:
                 msg = js.dumps(d).encode()
-                # print("******* SENDING DATA BACK TO SOCKS *****")
-                # print(msg)
+                print("******* SENDING DATA BACK TO PROXYCHAINS *****")
+                print(msg)
                 msg = int.to_bytes(len(msg), 4, "big") + msg
+                total_msg += msg
                 # cached_socks[callback.id]['socket'].sendall(int.to_bytes(len(msg), 4, "big"))
-                cached_socks[callback.id]["socket"].sendall(msg)
             else:
-                print("****** NO CACHED SOCKS *******")
+                print("****** NO CACHED SOCKS, MUST BE CLOSED *******")
+        cached_socks[callback.id]["socket"].sendall(total_msg)
         return {"status": "success"}
     except Exception as e:
-        #print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
+        print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
         return {"status": "error", "error": str(e)}
 
 
@@ -1201,6 +1163,9 @@ async def get_socks_data(callback: Callback):
                     #print("Just got socks data to give to agent")
                 except:
                     break
+    if len(data) > 0:
+        print("******* SENDING THE FOLLOWING TO THE AGENT ******")
+        print(data)
     return data
 
 
@@ -1240,6 +1205,7 @@ def thread_read_socks(port: int, callback_id: int) -> None:
             # print("got socks data from user")
             try:
                 cached_socks[callback_id]["queue"].append(js.loads(msg.decode()))
+                print("just read from proxychains and added to queue for agent to pick up")
             except Exception as d:
                 print(
                     "*" * 10

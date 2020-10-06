@@ -30,11 +30,12 @@ refresh_tokens = (
 
 # pulled from janic_jwt issue discussion: https://github.com/ahopkins/sanic-jwt/issues/158
 class MyConfig(Configuration):
-    def get_verify_exp(self, request):
+    def get_verify_exp(self, request=None):
         """
         If the request is with the "apitoken", then we do not want to check for expiration
         """
-        return "apitoken" not in request.headers
+        if request:
+            return "apitoken" not in request.headers
 
 
 class MyAuthentication(Authentication):
@@ -56,7 +57,6 @@ class MyAuthentication(Authentication):
         not be touched. In this case, we are trying to break the rules a bit to handle
         a unique use case: handle both expirable and non-expirable tokens.
         """
-
         if "apitoken" in request.headers:
             # Extract the apitoken from the headers
             apitoken = request.headers.get("apitoken")
@@ -185,7 +185,7 @@ class MyAuthentication(Authentication):
                         token_value=request.headers.get("apitoken"),
                     )
                 except Exception as d:
-                    raise e
+                    raise d
                 if not token.active:
                     # allows us to not allow inactive tokens
                     raise exceptions.AuthenticationFailed("Token is no longer active")

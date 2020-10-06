@@ -42,6 +42,7 @@ import (
 	"triagedirectory"
 	"unsetenv"
 	"xpc"
+	"list_entitlements"
 )
 
 const (
@@ -190,6 +191,7 @@ func main() {
 		"xpc":             35,
 		"socks":           36,
 		"listtasks":       37,
+		"list_entitlements": 38,
 		"none":            NONE_CODE,
 	}
 
@@ -587,6 +589,9 @@ func main() {
 				case 37:
 					go listtasks.Run(task.Tasks[j])
 					break
+				case 38:
+				    go list_entitlements.Run(task.Tasks[j])
+				    break
 				case NONE_CODE:
 					// No tasks, do nothing
 					break

@@ -1,0 +1,5 @@
+From python:3.8-buster
+RUN mkdir /Mythic
+WORKDIR /Mythic
+COPY ["requirements.txt", "/Mythic/requirements.txt"]
+RUN pip install -r /Mythic/requirements.txt

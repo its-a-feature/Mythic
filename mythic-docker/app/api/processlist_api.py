@@ -1,12 +1,10 @@
 from app import mythic, db_objects
 from sanic.response import json
 from sanic_jwt.decorators import scoped, inject_user
-import datetime
 import app.database_models.model as db_model
 import sys
 from sanic.exceptions import abort
-from urllib.parse import unquote_plus
-import json as js
+import ujson as js
 import base64
 
 # This gets all responses in the database
@@ -226,7 +224,7 @@ async def add_proc(tree, p):
         while procs:
             cur_tree = procs[0]
             procs = procs[1:]  # remove the current one from the array
-            if p["parent_process_id"] in cur_tree:
+            if "parent_process_id" in p and p["parent_process_id"] in cur_tree:
                 cur_tree[p["parent_process_id"]]["children"][p["process_id"]] = {
                     "children": {},
                     **p,

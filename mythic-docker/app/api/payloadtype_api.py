@@ -453,7 +453,7 @@ async def import_payload_type_func(ptype, operator):
                                 c2_profile=c2_profile,
                             )
                     except Exception as e:
-                        print("Failed to associated c2 profile with payload type")
+                        #print("Failed to associated c2 profile with payload type")
                         continue  # just try to get the next c2_profile
                 # delete any mappings that used to exist but are no longer listed by the agent
                 for k, v in current_c2_dict.items():

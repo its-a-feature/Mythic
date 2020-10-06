@@ -691,3 +691,15 @@ async def update_disabled_commands_profile(request, user):
                 "error": "failed to create disabled command profile: " + str(e),
             }
         )
+
+
+async def send_all_operations_message(message: str, level: str):
+    query = await db_model.operation_query()
+    operations = await db_objects.execute(query)
+    for o in operations:
+        await db_objects.create(
+            db_model.OperationEventLog,
+            operation=o,
+            level=level,
+            message=message,
+        )

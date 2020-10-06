@@ -15,7 +15,7 @@ from app.api.file_api import (
     download_file_to_disk_func,
 )
 from app.api.credential_api import create_credential_func
-import json as js
+import ujson as js
 import datetime
 import app.database_models.model as db_model
 import sys
@@ -244,12 +244,10 @@ async def post_agent_response(agent_message, UUID):
             try:
                 query = await db_model.task_query()
                 task = await db_objects.get(query, agent_task_id=task_id)
-                query = await db_model.callback_query()
-                callback = await db_objects.get(query, id=task.callback.id)
                 # update the callback's last checkin time since it just posted a response
-                callback.last_checkin = datetime.datetime.utcnow()
-                callback.active = True  # always set this to true regardless of what it was before because it's clearly active
-                await db_objects.update(callback)  # update the last checkin time
+                task.callback.last_checkin = datetime.datetime.utcnow()
+                task.callback.active = True  # always set this to true regardless of what it was before because it's clearly active
+                await db_objects.update(task.callback)  # update the last checkin time
             except Exception as e:
                 logger.exception("Failed to find callback or task: " + str(e))
                 response_message["responses"].append(
@@ -274,123 +272,133 @@ async def post_agent_response(agent_message, UUID):
                         await db_objects.create(
                             db_model.ProcessList,
                             task=task,
-                            host=callback.host,
+                            host=task.callback.host,
                             process_list=parsed_response["user_output"].encode(
                                 "unicode-escape"
                             ),
-                            operation=callback.operation,
+                            operation=task.callback.operation,
                         )
                 try:
-                    if "completed" in parsed_response and parsed_response["completed"]:
-                        task.completed = True
-                        json_return_info = {**json_return_info, "status": "success"}
+                    if "completed" in parsed_response:
+                        if parsed_response["completed"]:
+                            task.completed = True
+                            json_return_info = {**json_return_info, "status": "success"}
+                        parsed_response.pop("completed", None)
                     if "user_output" in parsed_response:
                         final_output += str(parsed_response["user_output"])
-                    if (
-                        "file_browser" in parsed_response
-                        and parsed_response["file_browser"] != {}
-                        and parsed_response["file_browser"] is not None
-                    ):
-                        # load this information into filebrowserobj entries for later parsing
-                        from app.api.file_browser_api import (
-                            store_response_into_filebrowserobj,
-                        )
-
-                        status = await store_response_into_filebrowserobj(
-                            callback.operation, task, parsed_response["file_browser"]
-                        )
-                        json_return_info = {**json_return_info, **status}
+                        parsed_response.pop("user_output", None)
+                    if "file_browser" in parsed_response:
+                        if (
+                            parsed_response["file_browser"] != {}
+                            and parsed_response["file_browser"] is not None
+                        ):
+                            # load this information into filebrowserobj entries for later parsing
+                            from app.api.file_browser_api import (
+                                store_response_into_filebrowserobj,
+                            )
+                            status = await store_response_into_filebrowserobj(
+                                task.callback.operation, task, parsed_response["file_browser"]
+                            )
+                            json_return_info = {**json_return_info, **status}
+                        parsed_response.pop("file_browser", None)
                     if "removed_files" in parsed_response:
                         # an agent is reporting back that a file was removed from disk successfully
-                        filebrowserquery = await db_model.filebrowserobj_query()
-                        for f in parsed_response["removed_files"]:
-                            if "host" not in f or f["host"] == "":
-                                f["host"] = callback.host
-                            # we want to see if there's a filebrowserobj that matches up with the removed files
-                            try:
-                                fobj = await db_objects.get(
-                                    filebrowserquery,
-                                    operation=callback.operation,
-                                    host=f["host"].encode("unicode-escape"),
-                                    full_path=f["path"].encode("unicode-escape"),
-                                    deleted=False,
-                                )
-                                fobj.deleted = True
-                                await db_objects.update(fobj)
-                            except Exception as e:
-                                pass
-                    if (
-                        "total_chunks" in parsed_response
-                        and str(parsed_response["total_chunks"]) != ""
-                    ):
-                        # we're about to create a record in the db for a file that's about to be send our way
-                        parsed_response["task"] = task.id
-                        rsp = await create_filemeta_in_database_func(parsed_response)
-                        if rsp["status"] == "success":
-                            # update the response to indicate we've created the file meta data
-                            rsp.pop(
-                                "status", None
-                            )  # remove the status key from the dictionary
-                            download_data = (
-                                js.dumps(
-                                    rsp,
-                                    sort_keys=True,
-                                    indent=2,
-                                    separators=(",", ": "),
-                                )
-                                .encode("unicode-escape", errors="backslashreplace")
-                                .decode("utf-8", errors="backslashreplace")
-                            )
-                            await db_objects.create(
-                                Response, task=task, response=download_data
-                            )
-                            json_return_info = {
-                                **json_return_info,
-                                "file_id": rsp["agent_file_id"],
-                            }
-                        else:
-                            final_output += rsp["error"]
-                            json_return_info = {
-                                **json_return_info,
-                                "status": "error",
-                                "error": rsp["error"],
-                            }
-                    if (
-                        "chunk_data" in parsed_response
-                        and str(parsed_response["chunk_data"]) != ""
-                    ):
                         if (
-                            "file_id" not in parsed_response
-                            and "file_id" in json_return_info
+                            parsed_response["removed_files"] is not None
+                            and parsed_response["removed_files"] != []
                         ):
-                            # allow agents to post the initial chunk data with initial metadata
-                            parsed_response["file_id"] = json_return_info["file_id"]
-                        rsp = await download_file_to_disk_func(parsed_response)
-                        if rsp["status"] == "error":
-                            final_output += rsp["error"]
-                        else:
-                            # we successfully got a chunk and updated the FileMeta object, so just move along
-                            json_return_info = {**json_return_info, "status": "success"}
+                            filebrowserquery = await db_model.filebrowserobj_query()
+                            for f in parsed_response["removed_files"]:
+                                if "host" not in f or f["host"] == "":
+                                    f["host"] = task.callback.host
+                                # we want to see if there's a filebrowserobj that matches up with the removed files
+                                try:
+                                    fobj = await db_objects.get(
+                                        filebrowserquery,
+                                        operation=task.callback.operation,
+                                        host=f["host"].encode("unicode-escape"),
+                                        full_path=f["path"].encode("unicode-escape"),
+                                        deleted=False,
+                                    )
+                                    fobj.deleted = True
+                                    await db_objects.update(fobj)
+                                except Exception as e:
+                                    pass
+                        parsed_response.pop("removed_files", None)
+                    if "total_chunks" in parsed_response:
+                        # we're about to create a record in the db for a file that's about to be send our way
+                        if str(parsed_response["total_chunks"]) != "":
+                            parsed_response["task"] = task.id
+                            rsp = await create_filemeta_in_database_func(parsed_response)
+                            parsed_response.pop("task", None)
+                            if rsp["status"] == "success":
+                                # update the response to indicate we've created the file meta data
+                                rsp.pop("status", None)
+                                download_data = (
+                                    js.dumps(
+                                        rsp,
+                                        sort_keys=True,
+                                        indent=2,
+                                    )
+                                    .encode("unicode-escape", errors="backslashreplace")
+                                    .decode("utf-8", errors="backslashreplace")
+                                )
+                                await db_objects.create(
+                                    Response, task=task, response=download_data
+                                )
+                                json_return_info = {
+                                    **json_return_info,
+                                    "file_id": rsp["agent_file_id"],
+                                }
+                            else:
+                                final_output += rsp["error"]
+                                json_return_info = {
+                                    **json_return_info,
+                                    "status": "error",
+                                    "error": rsp["error"],
+                                }
+                        parsed_response.pop("total_chunks", None)
+                        parsed_response.pop("is_screenshot", None)
+                        parsed_response.pop("full_path", None)
+                        parsed_response.pop("host", None)
+                    if "chunk_data" in parsed_response:
+                        if str(parsed_response["chunk_data"]) != "":
+                            if (
+                                "file_id" not in parsed_response
+                                and "file_id" in json_return_info
+                            ):
+                                # allow agents to post the initial chunk data with initial metadata
+                                parsed_response["file_id"] = json_return_info["file_id"]
+                            rsp = await download_file_to_disk_func(parsed_response)
+                            if rsp["status"] == "error":
+                                final_output += rsp["error"]
+                            else:
+                                # we successfully got a chunk and updated the FileMeta object, so just move along
+                                json_return_info = {**json_return_info, "status": "success"}
                         parsed_response.pop("chunk_num", None)
                         parsed_response.pop("file_id", None)
                         parsed_response.pop("chunk_data", None)
+                        parsed_response.pop("full_path", None)
                     if (
                         "window_title" in parsed_response
-                        and "user" in parsed_response
-                        and "keystrokes" in parsed_response
+                        or "user" in parsed_response
+                        or "keystrokes" in parsed_response
                     ):
                         if (
-                            parsed_response["window_title"] is None
+                            "window_title" not in parsed_response
+                            or parsed_response["window_title"] is None
                             or parsed_response["window_title"] == ""
                         ):
                             parsed_response["window_title"] = "UNKNOWN"
                         if (
-                            parsed_response["user"] is None
+                            "user" not in parsed_response
+                            or parsed_response["user"] is None
                             or parsed_response["user"] == ""
                         ):
                             parsed_response["user"] = "UNKNOWN"
                         if (
-                            parsed_response["keystrokes"] is None
+                            "keystrokes" not in parsed_response
+                            or parsed_response["keystrokes"] is None
                             or parsed_response["keystrokes"] == ""
                         ):
                             json_return_info = {
@@ -404,85 +412,82 @@ async def post_agent_response(agent_message, UUID):
                                 task=task,
                                 window=parsed_response["window_title"],
                                 keystrokes=parsed_response["keystrokes"],
-                                operation=callback.operation,
+                                operation=task.callback.operation,
                                 user=parsed_response["user"],
                             )
                             json_return_info = {**json_return_info, "status": "success"}
                         parsed_response.pop("window_title", None)
                         parsed_response.pop("user", None)
                         parsed_response.pop("keystrokes", None)
-                    if (
-                        "credentials" in parsed_response
-                        and str(parsed_response["credentials"]) != ""
-                    ):
-                        total_creds_added = 0
-                        total_repeats = 0
-                        for cred in parsed_response["credentials"]:
-                            cred["task"] = task
-                            new_cred_status = await create_credential_func(
-                                task.operator, callback.operation, cred
-                            )
-                            if (
-                                new_cred_status["status"] == "success"
-                                and new_cred_status["new"]
-                            ):
-                                total_creds_added = total_creds_added + 1
-                            elif new_cred_status["status"] == "success":
-                                total_repeats = total_repeats + 1
+                    if "credentials" in parsed_response:
+                        if str(parsed_response["credentials"]) != "":
+                            total_creds_added = 0
+                            total_repeats = 0
+                            for cred in parsed_response["credentials"]:
+                                cred["task"] = task
+                                new_cred_status = await create_credential_func(
+                                    task.operator, task.callback.operation, cred
+                                )
+                                if (
+                                    new_cred_status["status"] == "success"
+                                    and new_cred_status["new"]
+                                ):
+                                    total_creds_added = total_creds_added + 1
+                                elif new_cred_status["status"] == "success":
+                                    total_repeats = total_repeats + 1
                         # final_output += "\nAdded {} new credentials\n".format(str(total_creds_added))
                         parsed_response.pop("credentials", None)
-                    if (
-                        "artifacts" in parsed_response
-                        and str(parsed_response["artifacts"]) != ""
-                    ):
+                    if "artifacts" in parsed_response:
                         # now handle the case where the agent is reporting back artifact information
-                        for artifact in parsed_response["artifacts"]:
-                            try:
+                        if str(parsed_response["artifacts"]) != "":
+                            for artifact in parsed_response["artifacts"]:
                                 try:
-                                    query = await db_model.artifact_query()
-                                    base_artifact = await db_objects.get(
-                                        query, name=artifact["base_artifact"]
+                                    try:
+                                        query = await db_model.artifact_query()
+                                        base_artifact = await db_objects.get(
+                                            query, name=artifact["base_artifact"]
+                                        )
+                                    except Exception as e:
+                                        base_artifact = await db_objects.create(
+                                            Artifact,
+                                            name=artifact["base_artifact"],
+                                            description="Auto created from task {}".format(
+                                                task.id
+                                            ),
+                                        )
+                                    # you can report back multiple artifacts at once, no reason to make separate C2 requests
+                                    await db_objects.create(
+                                        TaskArtifact,
+                                        task=task,
+                                        artifact_instance=str(artifact["artifact"]),
+                                        artifact=base_artifact,
+                                        host=task.callback.host,
                                     )
+                                    # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
+                                    json_return_info = {
+                                        **json_return_info,
+                                        "status": "success",
+                                    }
                                 except Exception as e:
-                                    base_artifact = await db_objects.create(
-                                        Artifact,
-                                        name=artifact["base_artifact"],
-                                        description="Auto created from task {}".format(
-                                            task.id
-                                        ),
+                                    final_output += (
+                                        "\nFailed to work with artifact: "
+                                        + str(artifact)
+                                        + " due to: "
+                                        + str(e)
                                     )
-                                # you can report back multiple artifacts at once, no reason to make separate C2 requests
-                                await db_objects.create(
-                                    TaskArtifact,
-                                    task=task,
-                                    artifact_instance=str(artifact["artifact"]),
-                                    artifact=base_artifact,
-                                    host=task.callback.host,
-                                )
-                                # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
-                                json_return_info = {
-                                    **json_return_info,
-                                    "status": "success",
-                                }
-                            except Exception as e:
-                                final_output += (
-                                    "\nFailed to work with artifact: "
-                                    + str(artifact)
-                                    + " due to: "
-                                    + str(e)
-                                )
-                                json_return_info = {
-                                    **json_return_info,
-                                    "status": "error",
-                                    "error": final_output,
-                                }
+                                    json_return_info = {
+                                        **json_return_info,
+                                        "status": "error",
+                                        "error": final_output,
+                                    }
                         parsed_response.pop("artifacts", None)
-                    if (
-                        "status" in parsed_response
-                        and parsed_response["status"] != ""
-                        and parsed_response["status"] is not None
-                    ):
-                        task.status = str(parsed_response["status"]).lower()
+                    if "status" in parsed_response:
+                        if parsed_response["status"] != "" and parsed_response["status"] is not None:
+                            task.status = str(parsed_response["status"]).lower()
+                            if task.status != "error":
+                                task.status = "processed"
+                            if task.status_timestamp_processed is None:
+                                task.status_timestamp_processed = datetime.datetime.utcnow()
                         parsed_response.pop("status", None)
                     if (
                         "full_path" in parsed_response
@@ -507,7 +512,7 @@ async def post_agent_response(agent_message, UUID):
                                     complete=file_meta.complete,
                                     path=file_meta.path,
                                     full_remote_path=parsed_response["full_path"],
-                                    operation=callback.operation,
+                                    operation=task.callback.operation,
                                     md5=file_meta.md5,
                                     sha1=file_meta.sha1,
                                     temp_file=False,
@@ -539,52 +544,27 @@ async def post_agent_response(agent_message, UUID):
                             )
                         parsed_response.pop("full_path", None)
                         parsed_response.pop("file_id", None)
-                    if (
-                        "edges" in parsed_response
-                        and parsed_response["edges"] != ""
-                        and parsed_response["edges"] != []
-                    ):
-                        try:
-                            from app.api.callback_api import add_p2p_route
+                    if "edges" in parsed_response:
+                        if parsed_response["edges"] != "" and parsed_response["edges"] != []:
+                            try:
+                                from app.api.callback_api import add_p2p_route
 
-                            rsp = await add_p2p_route(
-                                parsed_response["edges"], callback, task
-                            )
-                        except Exception as e:
-                            print(str(e))
-                            rsp = {"status": "error", "error": str(e)}
-                        json_return_info = {**json_return_info, **rsp}
-                        parsed_response.pop("edges", None)
-                    if (
-                        "commands" in parsed_response
-                        and parsed_response["commands"] != []
-                        and parsed_response["commands"] is not None
-                    ):
-                        # the agent is reporting back that it has commands that are loaded/unloaded
-                        from app.api.callback_api import load_commands_func
-                        for c in parsed_response["commands"]:
-                            rsp = await load_commands_func(command_dict=c, callback=callback, task=task)
+                                rsp = await add_p2p_route(
+                                    parsed_response["edges"], task.callback, task
+                                )
+                            except Exception as e:
+                                print(str(e))
+                                rsp = {"status": "error", "error": str(e)}
                             json_return_info = {**json_return_info, **rsp}
-                    # go through to make sure we remove blank fields that were sent
-                    parsed_response.pop("full_path", None)
-                    parsed_response.pop("status", None)
-                    parsed_response.pop("commands", None)
-                    parsed_response.pop("completed", None)
-                    parsed_response.pop("is_screenshot", None)
-                    parsed_response.pop("error", None)
-                    parsed_response.pop("total_chunks", None)
-                    parsed_response.pop("chunk_num", None)
-                    parsed_response.pop("chunk_data", None)
-                    parsed_response.pop("file_id", None)
-                    parsed_response.pop("credentials", None)
-                    parsed_response.pop("artifacts", None)
-                    parsed_response.pop("edges", None)
-                    parsed_response.pop("window_title", None)
-                    parsed_response.pop("keystrokes", None)
-                    parsed_response.pop("user", None)
-                    parsed_response.pop("user_output", None)
-                    parsed_response.pop("file_browser", None)
-                    parsed_response.pop("removed_files", None)
+                        parsed_response.pop("edges", None)
+                    if "commands" in parsed_response:
+                        if parsed_response["commands"] != [] and parsed_response["commands"] is not None:
+                            # the agent is reporting back that it has commands that are loaded/unloaded
+                            from app.api.callback_api import load_commands_func
+                            for c in parsed_response["commands"]:
+                                rsp = await load_commands_func(command_dict=c, callback=task.callback, task=task)
+                                json_return_info = {**json_return_info, **rsp}
+                        parsed_response.pop("commands", None)
                 except Exception as e:
                     print(sys.exc_info()[-1].tb_lineno)
                     final_output += (
@@ -605,7 +585,9 @@ async def post_agent_response(agent_message, UUID):
                 print(str(e))
                 pass
             # echo back any values that the agent sent us that don't match something we're expecting
+            print(json_return_info)
             json_return_info = {**json_return_info, **parsed_response}
+            print(json_return_info)
             if final_output != "":
                 # if we got here, then we did some sort of meta processing
                 resp = await db_objects.create(
@@ -613,10 +595,6 @@ async def post_agent_response(agent_message, UUID):
                     task=task,
                     response=final_output.encode("unicode-escape"),
                 )
-            if task.status != "error":
-                task.status = "processed"
-            if task.status_timestamp_processed is None:
-                task.status_timestamp_processed = datetime.datetime.utcnow()
             task.timestamp = datetime.datetime.utcnow()
             await db_objects.update(task)
             response_message["responses"].append(json_return_info)

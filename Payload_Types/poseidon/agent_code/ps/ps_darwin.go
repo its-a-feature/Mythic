@@ -123,7 +123,7 @@ func (p *DarwinProcess) BundleID() string {
 }
 
 func findProcess(pid int) (Process, error) {
-	ps, err := processes()
+	ps, err := Processes()
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func findProcess(pid int) (Process, error) {
 	return nil, nil
 }
 
-func processes() ([]Process, error) {
+func Processes() ([]Process, error) {
 	buf, err := darwinSyscall()
 	if err != nil {
 		return nil, err

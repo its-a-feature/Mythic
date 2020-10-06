@@ -58,10 +58,10 @@ task_t taskForPidWrapper(pid_t pid)
     mach_msg_type_number_t    psetCount;
     kr = host_processor_sets (host_priv, psets, &psetCount);
     kr = host_processor_set_priv(host_priv, psDefault, &psDefault_control);
-    if (kr != KERN_SUCCESS) { fprintf(stderr, "host_processor_set_priv failed with error %x\n", kr);  mach_error("host_processor_set_priv",kr); exit(1);}
+    if (kr != KERN_SUCCESS) { fprintf(stderr, "host_processor_set_priv failed with error %x\n", kr);  mach_error("host_processor_set_priv",kr); return 0;}
     numTasks=1000;
     kr = processor_set_tasks(psDefault_control, &tasks, &numTasks);
-    if (kr != KERN_SUCCESS) { fprintf(stderr,"processor_set_tasks failed with error %x\n",kr); exit(1); }
+    if (kr != KERN_SUCCESS) { fprintf(stderr,"processor_set_tasks failed with error %x\n",kr);return 0; }
     for (i = 0; i < numTasks; i++)
     {
         char name[128];
@@ -89,7 +89,7 @@ int inject(pid_t pid, char* lib)
     remoteTask = taskForPidWrapper(pid);
     if (remoteTask == NULL)
     {
-        exit(1);
+        return (-2);
     }
     mach_vm_address_t remoteStack64 = (vm_address_t) NULL;
     mach_vm_address_t remoteCode64 = (vm_address_t) NULL;

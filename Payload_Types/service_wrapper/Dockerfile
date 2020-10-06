@@ -1,1 +1,1 @@
-from itsafeaturemythic/csharp_payload:0.0.5
+From itsafeaturemythic/csharp_payload:0.0.6

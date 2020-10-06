@@ -3,7 +3,6 @@ from sanic.response import json
 from app.database_models.model import Command, CommandParameters, ATTACKCommand
 from sanic_jwt.decorators import scoped, inject_user
 from urllib.parse import unquote_plus
-import json as js
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 

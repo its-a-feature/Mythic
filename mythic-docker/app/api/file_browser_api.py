@@ -3,10 +3,9 @@ from sanic.response import json
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
-from sanic.log import logger
 from pathlib import PureWindowsPath, PurePosixPath
 import sys
-import json as js
+import ujson as js
 import treelib
 from peewee import fn
 from math import ceil

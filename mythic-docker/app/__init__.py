@@ -5,8 +5,8 @@ from peewee_asyncext import PooledPostgresqlExtDatabase
 from sanic_jwt import Initialize
 from ipaddress import ip_network
 from logging import Formatter
-import json
-import os
+import ujson as json
+import asyncio
 
 # --------------------------------------------
 # --------------------------------------------
@@ -45,6 +45,8 @@ max_log_count = (
     1  # if log_size > 0, rotate and make a max of max_log_count files to hold logs
 )
 # custom loop to pass to db manager
+uvloop.install()
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 dbloop = uvloop.new_event_loop()
 mythic_db = PooledPostgresqlExtDatabase(
     db_name,
@@ -53,8 +55,10 @@ mythic_db = PooledPostgresqlExtDatabase(
     host="127.0.0.1",
     max_connections=10000,
     register_hstore=False,
+    autorollback=True,
+    autocommit=True
 )
-mythic_db.connect_async(loop=dbloop)
+#mythic_db.connect_async(loop=dbloop)
 db_objects = Manager(mythic_db, loop=dbloop)
 
 mythic_logging = log.LOGGING_CONFIG_DEFAULTS
@@ -178,7 +182,7 @@ session = {}
 
 @mythic.middleware("request")
 async def add_session(request):
-    request["session"] = session
+    request.ctx.session = session
 
 
 Initialize(

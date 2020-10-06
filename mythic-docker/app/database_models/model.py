@@ -91,7 +91,7 @@ class Operator(p.Model):
     last_login = p.DateTimeField(default=None, null=True)
     # option to simply de-activate an account instead of delete it so you keep all your relational data intact
     active = p.BooleanField(null=False, default=True)
-    current_operation = p.ForeignKeyField(p.DeferredRelation("Operation"), null=True)
+    current_operation = p.DeferredForeignKey("Operation", null=True)
     ui_config = p.TextField(null=False, default=dark_config)
     view_utc_time = p.BooleanField(null=False, default=False)
     deleted = p.BooleanField(null=False, default=False)
@@ -103,22 +103,19 @@ class Operator(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "current_operation":
-                    r[k] = getattr(self, k).name
-                    r["current_operation_id"] = getattr(self, k).id
-                elif k != "password" and "default" not in k:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
-        if "last_login" in r and r["last_login"] is not None:
-            r["last_login"] = r["last_login"].strftime("%m/%d/%Y %H:%M:%S")
-        else:
-            # just indicate that account created, but they never logged in
-            r["last_login"] = ""
+        r = {
+            "id": getattr(self, "id"),
+            "username": self.username,
+            "admin": self.admin,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "last_login": self.last_login.strftime("%m/%d/%Y %H:%M:%S") if self.last_login is not None else "",
+            "active": self.active,
+            "current_operation": self.current_operation.name if self.current_operation is not None else None,
+            "current_operation_id": self.current_operation.id if self.current_operation is not None else None,
+            "ui_config": self.ui_config,
+            "view_utc_time": self.view_utc_time,
+            "deleted": self.deleted
+        }
         return r
 
     def __str__(self):
@@ -157,17 +154,21 @@ class PayloadType(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "wrapped_payload_type":
-                    r[k] = getattr(self, k).ptype
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "ptype": self.ptype,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "file_extension": self.file_extension,
+            "wrapper": self.wrapper,
+            "supported_os": self.supported_os,
+            "last_heartbeat": self.last_heartbeat.strftime("%m/%d/%Y %H:%M:%S"),
+            "container_running": self.container_running,
+            "service": self.service,
+            "author": self.author,
+            "note": self.note,
+            "supports_dynamic_loading": self.supports_dynamic_loading,
+            "deleted": self.deleted
+        }
         if getattr(self, "build_parameters") is not None:
             r["build_parameters"] = [
                 x.to_json()
@@ -176,8 +177,6 @@ class PayloadType(p.Model):
             ]
         else:
             r["build_parameters"] = []
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
-        r["last_heartbeat"] = r["last_heartbeat"].strftime("%m/%d/%Y %H:%M:%S")
         return r
 
     def __str__(self):
@@ -188,23 +187,17 @@ class WrappedPayloadTypes(p.Model):
     # which payload type does the wrapping
     wrapper = p.ForeignKeyField(PayloadType, null=False)
     # which payload type is wrapped
-    wrapped = p.ForeignKeyField(PayloadType, related_name="wrapped", null=False)
+    wrapped = p.ForeignKeyField(PayloadType, backref="wrapped", null=False)
 
     class Meta:
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "wrapper":
-                    r[k] = getattr(self, k).ptype
-                elif k == "wrapped":
-                    r[k] = getattr(self, k).ptype
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "wrapper": self.wrapper.ptype,
+            "wrapped": self.wrapped.ptype
+        }
         return r
 
     def __str__(self):
@@ -218,7 +211,7 @@ class BuildParameter(p.Model):
     parameter_type = p.TextField(null=False, default="None")
     description = p.TextField(null=False, default="")
     # associated payload type
-    payload_type = p.ForeignKeyField(PayloadType, related_name="build_parameters")
+    payload_type = p.ForeignKeyField(PayloadType, backref="build_parameters")
     required = p.BooleanField(default=True)
     verifier_regex = p.TextField(default="", null=False)
     deleted = p.BooleanField(default=False)
@@ -229,15 +222,17 @@ class BuildParameter(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "payload_type":
-                    r[k] = getattr(self, k).ptype
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "name": self.name,
+            "parameter_type": self.parameter_type,
+            "description": self.description,
+            "payload_type": self.payload_type.ptype,
+            "required": self.required,
+            "verifier_regex": self.verifier_regex,
+            "deleted": self.deleted,
+            "parameter": self.parameter
+        }
         return r
 
     def __str__(self):
@@ -279,16 +274,24 @@ class Command(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "payload_type":
-                    r[k] = getattr(self, k).ptype
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "needs_admin": self.needs_admin,
+            "help_cmd": self.help_cmd,
+            "description": self.description,
+            "cmd": self.cmd,
+            "payload_type": self.payload_type.ptype,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "version": self.version,
+            "is_exit": self.is_exit,
+            "is_file_browse": self.is_file_browse,
+            "is_process_list": self.is_process_list,
+            "is_download_file": self.is_download_file,
+            "is_remove_file": self.is_remove_file,
+            "is_upload_file": self.is_upload_file,
+            "author": self.author,
+            "deleted": self.deleted
+        }
         return r
 
     def __str__(self):
@@ -297,7 +300,7 @@ class Command(p.Model):
 
 # these parameters are used to create an easily parsible JSON 'params' field for the agent to utilize
 class CommandParameters(p.Model):
-    command = p.ForeignKeyField(Command)
+    command = p.ForeignKeyField(Command, null=False)
     # what is the name of the parameter (what is displayed in the UI and becomes dictionary key)
     name = p.TextField(null=False)
     # String, Boolean, Number, Array, Choice, ChoiceMultiple, Credential, File, PayloadList, AgentConnect
@@ -307,6 +310,7 @@ class CommandParameters(p.Model):
     choices = p.TextField(null=False, default="")
     required = p.BooleanField(null=False, default=False)
     description = p.TextField(null=False, default="")
+    # if the action is related to payloads or linking agents, you can limit the options to only agents you want
     supported_agents = p.TextField(null=False, default="")
 
     class Meta:
@@ -314,21 +318,19 @@ class CommandParameters(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if (
-                    k == "command"
-                    and getattr(self, k) is not None
-                    and getattr(self, k) != "null"
-                ):
-                    r[k] = getattr(self, k).id
-                    r["cmd"] = getattr(self, k).cmd
-                    r["payload_type"] = getattr(self, k).payload_type.ptype
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "command": self.command.id,
+            "cmd": self.command.cmd,
+            "payload_type": self.command.payload_type.ptype,
+            "name": self.name,
+            "type": self.type,
+            "default_value": self.default_value,
+            "choices": self.choices,
+            "required": self.required,
+            "description": self.description,
+            "supported_agents": self.supported_agents
+        }
         return r
 
     def __str__(self):
@@ -350,15 +352,14 @@ class Operation(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "admin":
-                    r[k] = getattr(self, k).username
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "name": self.name,
+            "admin": self.admin.username,
+            "complete": self.complete,
+            "AESPSK": self.AESPSK,
+            "webhook": self.webhook
+        }
         return r
 
     def __str__(self):
@@ -377,17 +378,13 @@ class DisabledCommandsProfile(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "command":
-                    r[k] = getattr(self, k).cmd
-                    r["command_id"] = getattr(self, k).id
-                    r["payload_type"] = getattr(self, k).payload_type.ptype
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "name": self.name,
+            "command": self.command.cmd,
+            "command_id": self.command.id,
+            "payload_type": self.command.payload_type.ptype
+        }
         return r
 
     def __str__(self):
@@ -404,21 +401,14 @@ class DisabledCommands(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "command":
-                    r[k] = getattr(self, k).cmd
-                    r["command_id"] = getattr(self, k).id
-                    r["payload_type"] = getattr(self, k).payload_type.ptype
-                elif k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "command": self.command.cmd,
+            "command_id": self.command.id,
+            "payload_type": self.command.payload_type.ptype,
+            "operator": self.operator.username,
+            "operation": self.operation.name
+        }
         return r
 
     def __str__(self):
@@ -439,20 +429,14 @@ class OperatorOperation(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "base_disabled_commands":
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "operator": self.operator.username,
+            "operation": self.operation.name,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "base_disabled_commands": self.base_disabled_commands.name,
+            "view_mode": self.view_mod
+        }
         return r
 
     def __str__(self):
@@ -485,14 +469,20 @@ class C2Profile(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
-        r["last_heartbeat"] = r["last_heartbeat"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "name": self.name,
+            "description": self.description,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "running": self.running,
+            "last_heartbeat": self.last_heartbeat.strftime("%m/%d/%Y %H:%M:%S"),
+            "container_running": self.container_running,
+            "author": self.author,
+            "is_p2p": self.is_p2p,
+            "is_server_routed": self.is_server_routed,
+            "mythic_encrypts": self.mythic_encrypts,
+            "deleted": self.deleted
+        }
         return r
 
     def __str__(self):
@@ -511,20 +501,14 @@ class PayloadTypeC2Profile(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "payload_type":
-                    r[k] = getattr(self, k).ptype
-                    r["payload_type_id"] = getattr(self, k).id
-                elif k == "c2_profile":
-                    r[k] = getattr(self, k).name
-                    r["c2_profile_id"] = getattr(self, k).id
-                    r["c2_profile_description"] = getattr(self, k).description
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "payload_type": self.payload_type.ptype,
+            "payload_type_id": self.payload_type.id,
+            "c2_profile": self.c2_profile.name,
+            "c2_profile_id": self.c2_profile.id,
+            "c2_profile_description": self.c2_profile.description
+        }
         return r
 
     def __str__(self):
@@ -544,10 +528,10 @@ class Payload(p.Model):
     payload_type = p.ForeignKeyField(PayloadType, null=False)
     # this will signify if a current callback made / spawned a new callback that's checking in
     #   this helps track how we're getting callbacks (which payloads/tags/parents/operators)
-    pcallback = p.ForeignKeyField(p.DeferredRelation("Callback"), null=True)
+    pcallback = p.DeferredForeignKey("Callback", null=True)
     # c2_profile = p.ForeignKeyField(C2Profile, null=False)  # identify which C2 profile is being used
     operation = p.ForeignKeyField(Operation, null=False)
-    wrapped_payload = p.ForeignKeyField(p.DeferredRelation("Payload"), null=True)
+    wrapped_payload = p.ForeignKeyField("self", null=True)
     deleted = p.BooleanField(null=False, default=False)
     # if the payload is in the build process: building, success, error
     build_container = p.TextField(null=False)
@@ -558,35 +542,32 @@ class Payload(p.Model):
     callback_alert = p.BooleanField(null=False, default=True)
     # when dealing with auto-generated payloads for lateral movement or spawning new callbacks
     auto_generated = p.BooleanField(null=False, default=False)
-    task = p.ForeignKeyField(p.DeferredRelation("Task"), null=True)
-    file_id = p.ForeignKeyField(p.DeferredRelation("FileMeta"), null=True)
+    task = p.DeferredForeignKey("Task", null=True)
+    file_id = p.DeferredForeignKey("FileMeta", null=True)
 
     class Meta:
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "pcallback":
-                    r[k] = getattr(self, k).id
-                elif k == "payload_type":
-                    r[k] = getattr(self, k).ptype
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "wrapped_payload":
-                    r[k] = getattr(self, k).uuid
-                elif k == "task" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).to_json()
-                elif k == "file_id" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).to_json()
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "uuid": self.uuid,
+            "tag": self.tag,
+            "operator": self.operator.username,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "payload_type": self.payload_type.ptype,
+            "pcallback": self.pcallback.id if self.pcallback is not None else None,
+            "operation": self.operation.name,
+            "wrapped_payload": self.wrapped_payload.uuid if self.wrapped_payload is not None else None,
+            "deleted": self.deleted,
+            "build_container": self.build_container,
+            "build_phase": self.build_phase,
+            "build_message": self.build_message,
+            "callback_alert": self.callback_alert,
+            "auto_generated": self.auto_generated,
+            "task": self.task.to_json() if self.task is not None else None,
+            "file_id": self.file_id.to_json() if self.file_id is not None else None
+        }
         return r
 
     def __str__(self):
@@ -596,30 +577,25 @@ class Payload(p.Model):
 # this is an instance of a payload
 class PayloadOnHost(p.Model):
     host = p.TextField(null=False)
-    payload = p.ForeignKeyField(Payload)
+    payload = p.ForeignKeyField(Payload, null=False)
     deleted = p.BooleanField(default=False, null=False)
-    operation = p.ForeignKeyField(Operation)
+    operation = p.ForeignKeyField(Operation, null=False)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
-    task = p.ForeignKeyField(p.DeferredRelation("Task"), null=True)
+    task = p.DeferredForeignKey("Task", null=True)
 
     class Meta:
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "payload":
-                    r[k] = getattr(self, k).to_json()
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "task" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).to_json()
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "host": self.host,
+            "payload": self.payload.to_json(),
+            "deleted": self.deleted,
+            "operation": self.operation.name,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "task": self.task.to_json() if self.task is not None else None
+        }
         return r
 
     def __str__(self):
@@ -636,17 +612,12 @@ class BuildParameterInstance(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "payload":
-                    r[k] = getattr(self, k).uuid
-                elif k == "build_parameter":
-                    r[k] = getattr(self, k).to_json()
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "build_parameter": self.build_parameter.to_json(),
+            "payload": self.payload.uuid,
+            "parameter": self.parameter
+        }
         return r
 
     def __str__(self):
@@ -668,18 +639,13 @@ class PayloadCommand(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "payload":
-                    r[k] = getattr(self, k).uuid
-                elif k == "command":
-                    r[k] = getattr(self, k).cmd
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "payload": self.payload.uuid,
+            "command": self.command.cmd,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "version": self.version
+        }
         return r
 
     def __str__(self):
@@ -689,7 +655,7 @@ class PayloadCommand(p.Model):
 #  C2 profiles will have various parameters that need to be stamped in at payload creation time
 #    this will specify the name and value to look for
 class C2ProfileParameters(p.Model):
-    c2_profile = p.ForeignKeyField(C2Profile)
+    c2_profile = p.ForeignKeyField(C2Profile, null=False)
     # what the parameter is called. ex: Callback address
     description = p.TextField(null=False)
     name = p.TextField(null=False)  # what the stamping should look for. ex: XXXXX
@@ -706,15 +672,18 @@ class C2ProfileParameters(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "c2_profile":
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "c2_profile": self.c2_profile.name,
+            "description": self.description,
+            "name": self.name,
+            "default_value": self.default_value,
+            "randomize": self.randomize,
+            "format_string": self.format_string,
+            "parameter_type": self.parameter_type,
+            "required": self.required,
+            "verifier_regex": self.verifier_regex
+        }
         return r
 
     def __str__(self):
@@ -734,14 +703,14 @@ class Callback(p.Model):
     operator = p.ForeignKeyField(Operator, null=False)
     active = p.BooleanField(default=True, null=False)
     # keep track of the parent callback from this one
-    pcallback = p.ForeignKeyField(p.DeferredRelation("Callback"), null=True)
+    pcallback = p.DeferredForeignKey("Callback", null=True)
     # what payload is associated with this callback
     registered_payload = p.ForeignKeyField(Payload, null=False)
     integrity_level = p.IntegerField(null=True, default=2)
     # an operator can lock a callback to themselves so that other users cannot issue commands as well
     locked = p.BooleanField(default=False)
     locked_operator = p.ForeignKeyField(
-        Operator, null=True, related_name="locked_operator"
+        Operator, null=True, backref="locked_operator"
     )
     operation = p.ForeignKeyField(Operation, null=False)
     # the following information comes from the c2 profile if it wants to provide some form of encryption
@@ -756,7 +725,7 @@ class Callback(p.Model):
     domain = p.TextField(null=True)
     # associated socks information
     port = p.IntegerField(null=True)
-    socks_task = p.ForeignKeyField(p.DeferredRelation("Task"), null=True)
+    socks_task = p.DeferredForeignKey("Task", null=True)
     # if you need to define extra context for a callback, like a webshell, supply that here
     extra_info = p.TextField(null=False, default="")
     # store information about sleep interval/jitter/waking hours/etc here
@@ -766,45 +735,36 @@ class Callback(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "pcallback":
-                    r[k] = getattr(self, k).id
-                elif k == "operator":
-                    r[k] = getattr(self, k).username
-                elif (
-                    k == "registered_payload"
-                    and getattr(self, k) is not None
-                    and getattr(self, k) != "null"
-                ):
-                    r[k] = getattr(self, k).uuid
-                    r["payload_type"] = getattr(self, k).payload_type.ptype
-                    r["payload_type_id"] = getattr(self, k).payload_type.id
-                    r["payload_description"] = getattr(self, k).tag
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif (
-                    k == "locked_operator"
-                    and getattr(self, k) is not None
-                    and getattr(self, k) != "null"
-                ):
-                    r[k] = getattr(self, k).username
-                # we don't need to include these things all over the place, explicitly ask for them for more control
-                elif (
-                    k == "encryption_key"
-                    or k == "decryption_key"
-                    or k == "encryption_type"
-                ):
-                    pass
-                elif k == "socks_task":
-                    r[k] = getattr(self, k).id
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["init_callback"] = r["init_callback"].strftime("%m/%d/%Y %H:%M:%S")
-        r["last_checkin"] = r["last_checkin"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "agent_callback_id": self.agent_callback_id,
+            "init_callback": self.init_callback.strftime("%m/%d/%Y %H:%M:%S"),
+            "last_checkin": self.last_checkin.strftime("%m/%d/%Y %H:%M:%S"),
+            "user": self.user,
+            "host": self.host,
+            "pid": self.pid,
+            "ip": self.ip,
+            "external_ip": self.external_ip,
+            "description": self.description,
+            "operator": self.operator.username,
+            "active": self.active,
+            "pcallback": self.pcallback.id if self.pcallback is not None else None,
+            "registered_payload": self.registered_payload.uuid,
+            "payload_type": self.registered_payload.payload_type.ptype,
+            "payload_type_id": self.registered_payload.payload_type.id,
+            "payload_description": self.registered_payload.tag,
+            "integrity_level": self.integrity_level,
+            "locked": self.locked,
+            "locked_operator": self.locked_operator.username if self.locked_operator is not None else None,
+            "operation": self.operation.name,
+            "os": self.os,
+            "architecture": self.architecture,
+            "domain": self.domain,
+            "port": self.port,
+            "socks_task": self.socks_task.id if self.socks_task is not None else None,
+            "extra_info": self.extra_info,
+            "sleep_info": self.sleep_info
+        }
         return r
 
     def __str__(self):
@@ -820,17 +780,11 @@ class PayloadC2Profiles(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "payload":
-                    r[k] = getattr(self, k).uuid
-                elif k == "c2_profile":
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "payload": self.payload.uuid,
+            "c2_profile": self.c2_profile.name
+        }
         return r
 
     def __str__(self):
@@ -845,17 +799,11 @@ class CallbackC2Profiles(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "callback":
-                    r[k] = getattr(self, k).id
-                elif k == "c2_profile":
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "callback": self.callback.id,
+            "c2_profile": self.c2_profile.name
+        }
         return r
 
     def __str__(self):
@@ -868,13 +816,13 @@ class CallbackC2Profiles(p.Model):
 #   This holds the specific values used in the C2ProfileParameters and which payload they're associated with
 # If we want to save a collection off for repeated use, payload will be null, but instance_name and operation are set
 class C2ProfileParametersInstance(p.Model):
-    c2_profile_parameters = p.ForeignKeyField(C2ProfileParameters)
+    c2_profile_parameters = p.ForeignKeyField(C2ProfileParameters, null=False)
     c2_profile = p.ForeignKeyField(C2Profile)
     # this is the final value the user specified
     value = p.TextField(null=False)
     # the specific payload instance these values apply to
     payload = p.ForeignKeyField(
-        Payload, null=True, related_name="payload_profile_parameters"
+        Payload, null=True, backref="payload_profile_parameters"
     )
     # name the group of parameter instances if we want to save off values for later
     instance_name = p.TextField(null=True)
@@ -884,7 +832,7 @@ class C2ProfileParametersInstance(p.Model):
     # when keeping track of which profile instances are in a given callback, set the callback variable
     # if this is just tracking what's in a payload, callback will be null
     callback = p.ForeignKeyField(
-        Callback, null=True, related_name="callback_profile_parameters"
+        Callback, null=True, backref="callback_profile_parameters"
     )
 
     class Meta:
@@ -895,33 +843,22 @@ class C2ProfileParametersInstance(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if (
-                    k == "c2_profile_parameters"
-                    and getattr(self, k) is not None
-                    and getattr(self, k) != "null"
-                ):
-                    r["name"] = getattr(self, k).name
-                    r["default_value"] = getattr(self, k).default_value
-                    r["required"] = getattr(self, k).required
-                    r["randomize"] = getattr(self, k).randomize
-                    r["verifier_regex"] = getattr(self, k).verifier_regex
-                    r["parameter_type"] = getattr(self, k).parameter_type
-                    r["description"] = getattr(self, k).description
-                elif k == "payload":
-                    r[k] = getattr(self, k).uuid
-                elif k == "operation" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).name
-                elif k == "callback" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).id
-                elif k == "c2_profile":
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "name": self.c2_profile_parameters.name,
+            "default_value": self.c2_profile_parameters.default_value,
+            "required": self.c2_profile_parameters.required,
+            "randomize": self.c2_profile_parameters.randomize,
+            "verifier_regex": self.c2_profile_parameters.verifier_regex,
+            "parameter_type": self.c2_profile_parameters.parameter_type,
+            "description": self.c2_profile_parameters.description,
+            "c2_profile": self.c2_profile.name,
+            "value": self.value,
+            "payload": self.payload.uuid if self.payload is not None else None,
+            "instance_name": self.instance_name,
+            "operation": self.operation.name if self.operation is not None else None,
+            "callback": self.callback.id if self.callback is not None else None
+        }
         return r
 
     def __str__(self):
@@ -944,21 +881,14 @@ class LoadedCommands(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "command":
-                    r[k] = getattr(self, k).cmd
-                    r["version"] = getattr(self, k).version
-                elif k == "callback":
-                    r[k] = getattr(self, k).id
-                elif k == "operator":
-                    r[k] = getattr(self, k).username
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "command": self.command.cmd,
+            "version": self.version,
+            "callback": self.callback.id,
+            "operator": self.operator.username,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+        }
         return r
 
     def __str__(self):
@@ -993,7 +923,7 @@ class Task(p.Model):
     comment = p.TextField(null=False, default="")
     # the user that added the above comment
     comment_operator = p.ForeignKeyField(
-        Operator, related_name="comment_operator", null=True
+        Operator, backref="comment_operator", null=True
     )
     completed = p.BooleanField(null=False, default=False)
 
@@ -1001,53 +931,25 @@ class Task(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "callback":
-                    r[k] = getattr(self, k).id
-                    r["operation"] = getattr(self, k).operation.name
-                elif k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "command":
-                    if getattr(self, k) and getattr(self, k) != "null":
-                        r[k] = getattr(self, k).cmd
-                        r["command_id"] = getattr(self, k).id
-                elif k == "comment_operator":
-                    if getattr(self, k) and getattr(self, k) != "null":
-                        r[k] = getattr(self, k).username
-                    else:
-                        r[k] = "null"
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
-        if r["status_timestamp_preprocessing"] is not None:
-            r["status_timestamp_preprocessing"] = r[
-                "status_timestamp_preprocessing"
-            ].strftime("%m/%d/%Y %H:%M:%S")
-        if (
-            "status_timestamp_submitted" in r
-            and r["status_timestamp_submitted"] is not None
-        ):
-            r["status_timestamp_submitted"] = r["status_timestamp_submitted"].strftime(
-                "%m/%d/%Y %H:%M:%S"
-            )
-        if (
-            "status_timestamp_processing" in r
-            and r["status_timestamp_processing"] is not None
-        ):
-            r["status_timestamp_processing"] = r[
-                "status_timestamp_processing"
-            ].strftime("%m/%d/%Y %H:%M:%S")
-        if (
-            "status_timestamp_processed" in r
-            and r["status_timestamp_processed"] is not None
-        ):
-            r["status_timestamp_processed"] = r["status_timestamp_processed"].strftime(
-                "%m/%d/%Y %H:%M:%S"
-            )
+        r = {
+            "id": getattr(self, "id"),
+            "agent_task_id": self.agent_task_id,
+            "command": self.command.cmd if self.command is not None else None,
+            "command_id": self.command.id if self.command is not None else None,
+            "status_timestamp_preprocessing": self.status_timestamp_preprocessing.strftime("%m/%d/%Y %H:%M:%S"),
+            "status_timestamp_submitted": self.status_timestamp_submitted.strftime("%m/%d/%Y %H:%M:%S") if self.status_timestamp_submitted is not None else None,
+            "status_timestamp_processing": self.status_timestamp_processing.strftime("%m/%d/%Y %H:%M:%S") if self.status_timestamp_processing is not None else None,
+            "status_timestamp_processed": self.status_timestamp_processed.strftime("%m/%d/%Y %H:%M:%S") if self.status_timestamp_processed is not None else None,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "callback": self.callback.id,
+            "operation": self.callback.operation.name,
+            "operator": self.operator.username,
+            "status": self.status,
+            "original_params": self.original_params,
+            "comment": self.comment,
+            "comment_operator": self.comment_operator.username if self.comment_operator is not None else None,
+            "completed": self.completed
+        }
         return r
 
     def __str__(self):
@@ -1063,24 +965,14 @@ class Response(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "task":
-                    r[k] = (getattr(self, k)).to_json()
-                elif k == "response":
-                    r[k] = (
-                        bytes(getattr(self, k))
-                        .decode("unicode-escape", errors="backslashreplace")
+        r = {
+            "id": getattr(self, "id"),
+            "response": bytes(getattr(self, "response")).decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                else:
-                    r[k] = getattr(self, k)
-            except Exception as e:
-                print(str(e))
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "task": self.task.to_json()
+        }
         return r
 
     def __str__(self):
@@ -1098,12 +990,13 @@ class ATTACK(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "t_num": self.t_num,
+            "name": self.name,
+            "os": self.os,
+            "tactic": self.tactic
+        }
         return r
 
     def __str__(self):
@@ -1118,19 +1011,13 @@ class ATTACKCommand(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "attack":
-                    r["t_num"] = getattr(self, k).t_num
-                    r["attack_name"] = getattr(self, k).name
-                elif k == "command":
-                    r[k] = getattr(self, k).cmd
-                    r["command_id"] = getattr(self, k).id
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "t_num": self.attack.t_num,
+            "attack_name": self.attack.name,
+            "command": self.command.cmd,
+            "command_id": self.command.id
+        }
         return r
 
     def __str__(self):
@@ -1145,20 +1032,14 @@ class ATTACKTask(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "attack":
-                    r[k] = getattr(self, k).t_num
-                    r["attack_name"] = getattr(self, k).name
-                elif k == "task":
-                    r[k] = getattr(self, k).id
-                    r["task_command"] = getattr(self, k).command.cmd
-                    r["task_params"] = getattr(self, k).params
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "attack": self.attack.t_num,
+            "attack_name": self.attack.name,
+            "task": self.task.id,
+            "task_command": self.task.command.cmd,
+            "task_params": self.task.original_params
+        }
         return r
 
     def __str__(self):
@@ -1184,29 +1065,22 @@ class Credential(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "task":
-                    if getattr(self, k) != "null" and getattr(self, k) is not None:
-                        r[k] = getattr(self, k).id
-                        r["task_command"] = getattr(self, k).command.cmd
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "credential":
-                    r[k] = (
-                        bytes(getattr(self, k))
-                        .decode("unicode-escape", errors="backslashreplace")
+        r = {
+            "id": getattr(self, "id"),
+            "type": self.type,
+            "task": self.task.id if self.task is not None else None,
+            "task_command": self.task.command.cmd if self.task is not None else None,
+            "account": self.account,
+            "realm": self.realm,
+            "operation": self.operation.name,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "credential": bytes(getattr(self, "credential")).decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "operator": self.operator.username,
+            "comment": self.comment,
+            "deleted": self.deleted
+        }
         return r
 
     def __str__(self):
@@ -1215,10 +1089,10 @@ class Credential(p.Model):
 
 class Keylog(p.Model):
     # if you know the task, you know who, where, when, etc
-    task = p.ForeignKeyField(Task)  # what command caused this to exist
+    task = p.ForeignKeyField(Task, null=False)  # what command caused this to exist
     keystrokes = p.BlobField(null=False)  # what did you actually capture
     # if possible, what's the window title for where these keystrokes happened
-    window = p.TextField()
+    window = p.TextField(null=False, default="UNKOWN")
     # when did we get these keystrokes?
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
     operation = p.ForeignKeyField(Operation, null=False)
@@ -1229,31 +1103,19 @@ class Keylog(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if (
-                    k == "task"
-                    and getattr(self, k) is not None
-                    and getattr(self, k) != "null"
-                ):
-                    r[k] = getattr(self, k).id
-                    r["host"] = getattr(self, k).callback.host
-                    r["callback"] = {"id": getattr(self, k).callback.id}
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "keystrokes":
-                    r[k] = (
-                        bytes(getattr(self, k))
-                        .decode("unicode-escape", errors="backslashreplace")
+        r = {
+            "id": getattr(self, "id"),
+            "task": self.task.id,
+            "host": self.task.callback.host,
+            "callback": {"id": self.task.callback.id},
+            "keystrokes": bytes(getattr(self, "keystrokes")).decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "window": self.window,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "operation": self.operation.name,
+            "user": self.user
+        }
         return r
 
     def __str__(self):
@@ -1270,20 +1132,15 @@ class Artifact(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "name" or k == "description":
-                    r[k] = (
-                        bytes(getattr(self, k))
-                        .decode("unicode-escape", errors="backslashreplace")
+        r = {
+            "id": getattr(self, "id"),
+            "name": bytes(getattr(self, "name")).decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
+            "description": bytes(getattr(self, "description")).decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
                         .decode()
-                    )
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        }
         return r
 
     def __str__(self):
@@ -1303,44 +1160,19 @@ class TaskArtifact(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "artifact_instance":
-                    r[k] = (
-                        bytes(getattr(self, k))
-                        .decode("unicode-escape", errors="backslashreplace")
+        r = {
+            "id": getattr(self, "id"),
+            "task_id": self.task.id if self.task is not None else -1,
+            "task": self.task.original_params if self.task is not None else "",
+            "command": self.task.command.cmd if self.task is not None else "Manual Entry",
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "artifact_instance": bytes(getattr(self, "artifact_instance")).decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                elif k == "task":
-                    if getattr(self, k) is not None and getattr(self, k) != "null":
-                        r["task_id"] = getattr(self, k).id
-                        r["task"] = getattr(self, k).params
-                        r["command"] = getattr(self, k).command.cmd
-                    else:
-                        r[k] = ""
-                        r["task_id"] = -1
-                        r["command"] = "Manual Entry"
-                elif k == "artifact":
-                    if getattr(self, k) is not None and getattr(self, k) != "null":
-                        r["artifact_template"] = bytes(getattr(self, k).name).decode()
-                    else:
-                        r[k] = "null"
-                elif k == "operation":
-                    if getattr(self, k) is not None and getattr(self, k) != "null":
-                        r[k] = getattr(self, k).name
-                    else:
-                        r[k] = "null"
-                elif k == "host":
-                    if k not in r:
-                        r[k] = getattr(self, k)
-                else:
-                    r[k] = getattr(self, k)
-            except Exception as e:
-                print(str(e))
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "artifact_template": bytes(getattr(self, "artifact").name).decode(),
+            "operation": self.operation.name if self.operation is not None else None,
+            "host": self.host
+        }
         return r
 
     def __str__(self):
@@ -1360,12 +1192,13 @@ class StagingInfo(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "session_id": self.session_id,
+            "session_key": self.session_key,
+            "staging_uuid": self.staging_uuid,
+            "payload_uuid": self.payload_uuid
+        }
         return r
 
     def __str__(self):
@@ -1384,16 +1217,14 @@ class APITokens(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "operator":
-                    r[k] = getattr(self, k).username
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "token_type": self.token_type,
+            "token_value": self.token_value,
+            "active": self.active,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "operator": self.operator.username
+        }
         return r
 
     def __str__(self):
@@ -1425,26 +1256,21 @@ class BrowserScript(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "operator":
-                    r[k] = (
-                        getattr(self, k).username
-                        if getattr(self, k) is not None
-                        else ""
-                    )
-                elif k == "command" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).cmd
-                    r["payload_type"] = getattr(self, k).payload_type.ptype
-                    r["command_id"] = getattr(self, k).id
-                elif k == "payload_type":
-                    r[k] = getattr(self, k).ptype
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["creation_time"] = r["creation_time"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "operator": self.operator.username if self.operator is not None else "",
+            "script": self.script,
+            "command": self.command.cmd if self.command is not None else None,
+            "payload_type": self.payload_type.ptype if self.payload_type is not None else None,
+            "command_id": self.command.id if self.command is not None else None,
+            "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
+            "name": self.name,
+            "active": self.active,
+            "author": self.author,
+            "user_modified": self.user_modified,
+            "container_version": self.container_version,
+            "container_version_author": self.container_version_author
+        }
         return r
 
     def __str__(self):
@@ -1462,17 +1288,11 @@ class BrowserScriptOperation(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "browserscript":
-                    r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
+        r = {
+            "id": getattr(self, "id"),
+            "browserscript": json.dumps(self.browserscript.to_json()),
+            "operation": self.operation.name
+        }
         return r
 
     def __str__(self):
@@ -1495,27 +1315,18 @@ class ProcessList(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "task":
-                    r[k] = getattr(self, k).id
-                    r["callback"] = getattr(self, k).callback.id
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "process_list":
-                    r[k] = (
-                        bytes(getattr(self, k))
+        r = {
+            "id": getattr(self, "id"),
+            "task": self.task.id,
+            "callback": self.task.callback.id,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "host": self.host,
+            "process_list": bytes(getattr(self, "process_list"))
                         .decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                else:
-                    r[k] = getattr(self, k)
-            except Exception as e:
-                print(str(e))
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "operation": self.operation.name
+        }
         return r
 
     def __str__(self):
@@ -1532,7 +1343,7 @@ class FileBrowserObj(p.Model):
     # this is the name of this file/folder
     name = p.BlobField(null=False)
     # this is the parent object
-    parent = p.ForeignKeyField(p.DeferredRelation("FileBrowserObj"), null=True)
+    parent = p.ForeignKeyField('self', null=True)
     # this is the full path for the parent folder
     # we need this to enable faster searching and better context
     parent_path = p.BlobField(null=False, default="")
@@ -1551,31 +1362,38 @@ class FileBrowserObj(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "task":
-                    r[k] = getattr(self, k).id
-                    r["callback"] = getattr(self, k).callback.id
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif (
-                    k == "host" or k == "name" or k == "parent_path" or k == "full_path"
-                ):
-                    r[k] = (
-                        bytes(getattr(self, k))
+        r = {
+            "id": getattr(self, "id"),
+            "task": self.task.id,
+            "callback": self.task.callback.id,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "operation": self.operation.name,
+            "host": bytes(getattr(self, "host"))
                         .decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                elif k == "parent" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).id
-                else:
-                    r[k] = getattr(self, k)
-            except Exception as e:
-                print("exception in filebrowserobj to_json: " + str(e))
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "permissions": self.permissions,
+            "name": bytes(getattr(self, "name"))
+                        .decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
+            "parent": self.parent.id if self.parent is not None else None,
+            "parent_path": bytes(getattr(self, "parent_path"))
+                        .decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
+            "full_path": bytes(getattr(self, "full_path"))
+                        .decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
+            "access_time": self.access_time,
+            "modify_time": self.modify_time,
+            "comment": self.comment,
+            "is_file": self.is_file,
+            "size": self.size,
+            "success": self.success,
+            "deleted": self.deleted
+        }
         return r
 
     def __str__(self):
@@ -1601,7 +1419,7 @@ class FileMeta(p.Model):
     is_payload = p.BooleanField(null=False, default=False)
     is_screenshot = p.BooleanField(null=False, default=False)
     is_download_from_agent = p.BooleanField(default=False)
-    file_browser = p.ForeignKeyField(FileBrowserObj, null=True, related_name="files")
+    file_browser = p.ForeignKeyField(FileBrowserObj, null=True, backref="files")
     filename = p.TextField(null=False, default="")
     delete_after_fetch = p.BooleanField(null=False, default=True)
     operation = p.ForeignKeyField(Operation, null=False)
@@ -1616,27 +1434,31 @@ class FileMeta(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if (
-                    k == "task"
-                    and getattr(self, k) is not None
-                    and getattr(self, k) != "null"
-                ):
-                    r[k] = getattr(self, k).id
-                    r["cmd"] = getattr(self, k).command.cmd
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "file_browser":
-                    r[k] = getattr(self, k).id
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+        r = {
+            "id": getattr(self, "id"),
+            "agent_file_id": self.agent_file_id,
+            "total_chunks": self.total_chunks,
+            "chunks_received": self.chunks_received,
+            "chunk_size": self.chunk_size,
+            "task": self.task.id if self.task is not None else None,
+            "cmd": self.task.command.cmd if self.task is not None else None,
+            "complete": self.complete,
+            "path": self.path,
+            "full_remote_path": self.full_remote_path,
+            "host": self.host,
+            "is_payload": self.is_payload,
+            "is_screenshot": self.is_screenshot,
+            "is_download_from_agent": self.is_download_from_agent,
+            "file_browser": self.file_browser.id if self.file_browser is not None else None,
+            "filename": self.filename,
+            "delete_after_fetch": self.delete_after_fetch,
+            "operation": self.operation.name,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "deleted": self.deleted,
+            "operator": self.operator.username if self.operator is not None else None,
+            "md5": self.md5,
+            "sha1": self.sha1
+        }
         return r
 
     def __str__(self):
@@ -1657,25 +1479,19 @@ class OperationEventLog(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "operator":
-                    r[k] = getattr(self, k).username
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "message":
-                    r[k] = (
-                        bytes(getattr(self, k))
+        r = {
+            "id": getattr(self, "id"),
+            "operator": self.operator.username if self.operator is not None else None,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "message":  bytes(getattr(self, "message"))
                         .decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["timestamp"] = r["timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "operation": self.operation.name,
+            "level": self.level,
+            "deleted": self.deleted,
+            "resolved": self.resolved
+        }
         return r
 
     def __str__(self):
@@ -1689,9 +1505,9 @@ class CallbackGraphEdge(p.Model):
     end_timestamp = p.DateTimeField(null=True)  # when did the connection stop
     operation = p.ForeignKeyField(Operation, null=False)
     # source node for the relationship
-    source = p.ForeignKeyField(Callback, related_name="source", null=False)
+    source = p.ForeignKeyField(Callback, backref="source", null=False)
     # destination node for the relationship
-    destination = p.ForeignKeyField(Callback, related_name="destination", null=False)
+    destination = p.ForeignKeyField(Callback, backref="destination", null=False)
     # 1 is src->dst, 2 is dst->src, 3 is src<->dst
     direction = p.IntegerField(null=False)
     # metadata about the connection, JSON string
@@ -1699,43 +1515,30 @@ class CallbackGraphEdge(p.Model):
     # which c2 profile does this connection belong to
     c2_profile = p.ForeignKeyField(C2Profile, null=False)
     # which task added the connection
-    task_start = p.ForeignKeyField(Task, related_name="task_start", null=True)
+    task_start = p.ForeignKeyField(Task, backref="task_start", null=True)
     # which task ended the connection
-    task_end = p.ForeignKeyField(Task, related_name="task_end", null=True)
+    task_end = p.ForeignKeyField(Task, backref="task_end", null=True)
 
     class Meta:
         database = mythic_db
 
     def to_json(self):
-        r = {}
-        for k in self._data.keys():
-            try:
-                if k == "source":
-                    r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-                elif k == "destination":
-                    r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-                elif k == "operation":
-                    r[k] = getattr(self, k).name
-                elif k == "c2_profile":
-                    r[k] = getattr(self, k).name
-                elif k == "task_start" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).id
-                elif k == "task_end" and getattr(self, k) is not None:
-                    r[k] = getattr(self, k).id
-                elif k == "metadata":
-                    r[k] = (
-                        bytes(getattr(self, k))
+        r = {
+            "id": getattr(self, "id"),
+            "start_timestamp": self.start_timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "end_timestamp": self.end_timestamp.strftime("%m/%d/%Y %H:%M:%S") if self.end_timestamp is not None else None,
+            "operation": self.operation.name,
+            "source": json.dumps(self.source.to_json()),
+            "destination": json.dumps(self.destination.to_json()),
+            "direction": self.direction,
+            "metadata": bytes(getattr(self, "metadata"))
                         .decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
-                        .decode()
-                    )
-                else:
-                    r[k] = getattr(self, k)
-            except:
-                r[k] = json.dumps(getattr(self, k), default=lambda o: o.to_json())
-        r["start_timestamp"] = r["start_timestamp"].strftime("%m/%d/%Y %H:%M:%S")
-        if r["end_timestamp"] is not None:
-            r["end_timestamp"] = r["end_timestamp"].strftime("%m/%d/%Y %H:%M:%S")
+                        .decode(),
+            "c2_profile": self.c2_profile.name,
+            "task_start": self.task_start.id if self.task_start is not None else None,
+            "task_end": self.task_end.id if self.task_end is not None else None
+        }
         return r
 
     def __str__(self):
@@ -1757,11 +1560,12 @@ async def payloadtype_query():
 
 async def wrappedpayloadtypes_query():
     wrapped = PayloadType.alias()
+    wrapper = PayloadType.alias()
     return (
-        WrappedPayloadTypes.select(WrappedPayloadTypes, PayloadType, wrapped)
-        .join(PayloadType)
+        WrappedPayloadTypes.select(WrappedPayloadTypes, wrapper, wrapped)
+        .join(wrapped, on=(WrappedPayloadTypes.wrapped == wrapped.id),)
         .switch(WrappedPayloadTypes)
-        .join(wrapped)
+        .join(wrapper, on=(WrappedPayloadTypes.wrapper == wrapper.id),)
         .switch(WrappedPayloadTypes)
     )
 
@@ -1819,9 +1623,11 @@ async def payloadtypec2profile_query():
 
 async def payload_query():
     wrap_alias = Payload.alias()
+    fm_operation = Operation.alias()
+    fm_operator = Operator.alias()
     return (
         Payload.select(
-            Payload, Operator, PayloadType, Operation, wrap_alias, Task, FileMeta
+            Payload, Operator, PayloadType, Operation, wrap_alias, Task, FileMeta, fm_operation, fm_operator
         )
         .join(Operator)
         .switch(Payload)
@@ -1841,6 +1647,15 @@ async def payload_query():
         .join(Task, p.JOIN.LEFT_OUTER)
         .switch(Payload)
         .join(FileMeta, p.JOIN.LEFT_OUTER)
+        .join(
+            fm_operation,
+            p.JOIN.LEFT_OUTER,
+        )
+        .switch(FileMeta)
+        .join(
+            fm_operator,
+            p.JOIN.LEFT_OUTER
+        )
         .switch(Payload)
     )
 
@@ -1893,7 +1708,7 @@ async def c2profileparametersinstance_query():
         .switch(C2ProfileParametersInstance)
         .join(Operation, p.JOIN.LEFT_OUTER)
         .switch(C2ProfileParametersInstance)
-        .join(Callback, p.JOIN_LEFT_OUTER)
+        .join(Callback, p.JOIN.LEFT_OUTER)
         .switch(C2ProfileParametersInstance)
     )
 
@@ -1903,7 +1718,7 @@ async def callback_query():
     loperator = Operator.alias()
     return (
         Callback.select(
-            Callback, Operator, Payload, Operation, PayloadType, calias, loperator
+            Callback, Operator, Payload, Operation, PayloadType, calias, loperator, Task
         )
         .join(Operator)
         .switch(Callback)
@@ -1917,8 +1732,13 @@ async def callback_query():
         .switch(Callback)
         .join(
             loperator,
-            p.JOIN_LEFT_OUTER,
+            p.JOIN.LEFT_OUTER,
             on=(Callback.locked_operator).alias("locked_operator"),
+        )
+        .switch(Callback)
+        .join(
+            Task,
+            p.JOIN.LEFT_OUTER
         )
         .switch(Callback)
     )
@@ -1999,7 +1819,7 @@ async def task_query():
         )
         .switch(Task)
         .join(Command, p.JOIN.LEFT_OUTER)
-        .join(PayloadType, p.JOIN_LEFT_OUTER)
+        .join(PayloadType, p.JOIN.LEFT_OUTER)
         .switch(Task)
     )
 
@@ -2029,12 +1849,15 @@ async def response_query():
 
 async def filemeta_query():
     return (
-        FileMeta.select(FileMeta, Operation, Operator, Task, FileBrowserObj)
+        FileMeta.select(FileMeta, Operation, Operator, Task, FileBrowserObj, Callback, Command)
         .join(Operation)
         .switch(FileMeta)
         .join(Operator, p.JOIN.LEFT_OUTER)
         .switch(FileMeta)
         .join(Task, p.JOIN.LEFT_OUTER)
+        .join(Callback, p.JOIN.LEFT_OUTER)
+        .switch(Task)
+        .join(Command, p.JOIN.LEFT_OUTER)
         .switch(FileMeta)
         .join(FileBrowserObj, p.JOIN.LEFT_OUTER)
         .switch(FileMeta)
@@ -2155,8 +1978,8 @@ async def browserscriptoperation_query():
             Operator,
         )
         .join(BrowserScript)
-        .join(Command, p.JOIN_LEFT_OUTER)
-        .join(PayloadType, p.JOIN_LEFT_OUTER)
+        .join(Command, p.JOIN.LEFT_OUTER)
+        .join(PayloadType, p.JOIN.LEFT_OUTER)
         .switch(BrowserScript)
         .join(Operator)
         .switch(BrowserScriptOperation)
@@ -2185,7 +2008,7 @@ async def filebrowserobj_query():
         .switch(FileBrowserObj)
         .join(Operation)
         .switch(FileBrowserObj)
-        .join(parent, p.JOIN_LEFT_OUTER, on=(FileBrowserObj.parent).alias("parent"))
+        .join(parent, p.JOIN.LEFT_OUTER, on=(FileBrowserObj.parent).alias("parent"))
         .switch(FileBrowserObj)
     )
 
@@ -2193,7 +2016,7 @@ async def filebrowserobj_query():
 async def operationeventlog_query():
     return (
         OperationEventLog.select(OperationEventLog, Operator, Operation)
-        .join(Operator, p.JOIN_LEFT_OUTER)
+        .join(Operator, p.JOIN.LEFT_OUTER)
         .switch(OperationEventLog)
         .join(Operation)
         .switch(OperationEventLog)
@@ -2202,29 +2025,31 @@ async def operationeventlog_query():
 
 async def callbackgraphedge_query():
     destination = Callback.alias()
+    source = Callback.alias()
     task_end = Task.alias()
+    task_start = Task.alias()
     return (
         CallbackGraphEdge.select(
             CallbackGraphEdge,
-            Callback,
+            source,
             destination,
             Operation,
-            Task,
+            task_start,
             task_end,
             C2Profile,
         )
-        .join(Callback)
+        .join(source, on=(CallbackGraphEdge.source == source.id))
         .switch(CallbackGraphEdge)
-        .join(destination, on=(CallbackGraphEdge.destination).alias("destination"))
+        .join(destination, on=(CallbackGraphEdge.destination == destination.id))
         .switch(CallbackGraphEdge)
         .join(Operation)
         .switch(CallbackGraphEdge)
-        .join(Task, p.JOIN_LEFT_OUTER)
+        .join(task_start, p.JOIN.LEFT_OUTER, on=(CallbackGraphEdge.task_start == task_start.id))
         .switch(CallbackGraphEdge)
         .join(
             task_end,
             p.JOIN.LEFT_OUTER,
-            on=(CallbackGraphEdge.task_end).alias("task_end"),
+            on=(CallbackGraphEdge.task_end == task_end.id),
         )
         .switch(CallbackGraphEdge)
         .join(C2Profile)
@@ -2470,3 +2295,14 @@ CallbackGraphEdge.create_table(True)
 pg_register_newinserts()
 pg_register_updates()
 pg_register_deletes()
+try:
+    Payload._schema.create_foreign_key(Payload.pcallback)
+    Payload._schema.create_foreign_key(Payload.wrapped_payload)
+    Payload._schema.create_foreign_key(Payload.task)
+    Payload._schema.create_foreign_key(Payload.file_id)
+    Operator._schema.create_foreign_key(Operator.current_operation)
+    PayloadOnHost._schema.create_foreign_key(PayloadOnHost.task)
+    Callback._schema.create_foreign_key(Callback.pcallback)
+    Callback._schema.create_foreign_key(Callback.socks_task)
+except Exception as e:
+    pass

@@ -2,6 +2,11 @@ document.title = "C2 Profile Management";
 var profiles = []; //all profiles data
 var finished_profiles = false;
 var parameters = [];
+Date.prototype.addDays = function(days) {
+    let date = new Date(this.valueOf());
+    date.setDate(date.getDate() + parseInt(days));
+    return date;
+}
 var profile_parameters_table = new Vue({
     el: '#profileEditParametersTable',
     data: {
@@ -85,6 +90,7 @@ var payloads_table = new Vue({
             // first clear the current profileEditParametersTable
             instances_table.current_parameters = [];
             instances_table.current_name = "";
+            instances_table.is_creating = true;
             // then see if there are any parameters already created for this profile
             let values = httpGetSync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/parameters");
             values = JSON.parse(values);
@@ -93,6 +99,41 @@ var payloads_table = new Vue({
                     let inst = values['c2profileparameters'][i];
                     if (inst['parameter_type'] === 'ChooseOne') {
                         inst['parameter'] = inst['default_value'].split("\n")[0];
+                    } else if(inst['parameter_type'] === "Date") {
+                        if(inst['default_value'] === ""){
+                            inst['default_value'] = 1;
+                        }
+                        inst['parameter'] = (new Date()).addDays(inst['default_value']).toISOString().slice(0,10);
+                    } else if(inst['parameter_type'] === "Array"){
+                        if( inst['default_value'] === ""){
+                            inst['parameter'] = [];
+                        }else{
+                            inst['parameter'] = JSON.parse(inst['default_value']);
+                        }
+                    } else if(inst['parameter_type'] === "Dictionary"){
+                        let config_dict = JSON.parse(inst['default_value']);
+                        let options = [];
+                        let default_params = [];
+                        config_dict.forEach(function(e){
+                            let current = 0;
+                            if(e["default_show"]){
+                                current = 1;
+                                default_params.push({
+                                    "name": e["name"],
+                                    "key": e["name"],
+                                    "value": e["default_value"],
+                                    "custom": false
+                                });
+                            }
+                            options.push({
+                                "name": e["name"],
+                                "max": e["max"],
+                                "current": current
+                            });
+                        });
+                        inst['options'] = options;
+                        inst['parameter'] = default_params;
+                        inst['new_key'] = instances_table.add_options(inst)[0];
                     } else {
                         inst['parameter'] = inst['default_value'];
                     }
@@ -118,6 +159,7 @@ var payloads_table = new Vue({
         edit_parameter_instance_button: function (p) {
             instances_table.current_parameters = [];
             instances_table.c2_profile = p.name;
+            instances_table.is_creating = false;
             if (instances_table.instance_options().length === 0) {
                 alertTop("warning", "No instances created for this C2 Profile");
                 return;
@@ -128,13 +170,20 @@ var payloads_table = new Vue({
             //    this will be in the form of a Vue object we modify
             $('#profileEditInstanceModal').modal('show');
             $('#profileEditInstanceSubmit').unbind('click').click(function () {
-                // We now have a mix of old, new, modified, and deleted parameters
-                let data = {'instance_name': instances_table.current_name};
-                for (let i = 0; i < instances_table.current_parameters.length; i++) {
-                    data[instances_table.current_parameters[i]['name']] = instances_table.current_parameters[i]['parameter'];
-                }
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/parameter_instances", create_new_parameter_instance_callback, "POST", data);
-            });
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/parameter_instances/" + instances_table.current_name, (response)=>{
+                    try {
+                        let data = JSON.parse(response);
+                        if (data['status'] === 'success') {
+                            alertTop("info", "Deleted");
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/parameter_instances", get_parameter_instance_callback, "GET", null);
+                        } else {
+                            alertTop("warning", data['error']);
+                        }
+                    } catch (error) {
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "DELETE", null);
+                });
         },
         configure_server: function (p) {
             profile_files_modal.profile_name = p.name;
@@ -158,11 +207,7 @@ var payloads_table = new Vue({
                 }, "POST", {"code": btoa(profile_files_modal.code)});
             });
         },
-        sync_profile_button: function (p) {
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/files/sync", (response) => {
-                console.log(response);
-            }, "GET", null);
-        }
+
     },
     computed: {
         saved_instances: function () {
@@ -187,8 +232,13 @@ function passing_requirements(val) {
         return true
     }
     let regex = RegExp(val['verifier_regex']);
-    if (Object.prototype.hasOwnProperty.call(val,'value')) {
-        return regex.test(val['value']);
+    if(val.parameter_type === "Array"){
+        for(let i = 0; i < val['parameter'].length; i++){
+            if(!regex.test(val['parameter'][i])){
+                return false;
+            }
+        }
+        return true;
     } else {
         return regex.test(val['parameter']);
     }
@@ -235,6 +285,7 @@ function get_parameter_instance_callback(response) {
                 }
             }
         });
+        instances_table.$forceUpdate();
         payloads_table.$forceUpdate();
     } catch (error) {
         alertTop("danger", "Session expired, please refresh");
@@ -506,7 +557,8 @@ var instances_table = new Vue({
         instances: [],
         current_parameters: [],  // for creating a new instance
         current_name: "",  // for creating a new instance
-        c2_profile: ""
+        c2_profile: "",
+        is_creating: false,
     },
     methods: {
         delete_instance: function (i) {
@@ -516,57 +568,114 @@ var instances_table = new Vue({
             let data = JSON.stringify(i);
             download_from_memory(i.instance_name + ".json", btoa(data));
         },
-        import_instance: function () {
-            $('#importInstanceModal').modal('show');
-            $('#importInstanceSubmit').unbind('click').click(function () {
-                let file = document.getElementById('importInstanceFile');
-                let filedata = file.files[0];
-                let fileReader = new FileReader();
-                fileReader.onload = function (fileLoadedEvent) {
-                    try {
-                        let i = JSON.parse(fileLoadedEvent.target.result);
-                        instances_table.current_parameters = [];
-                        instances_table.current_name = i.instance_name + " copy";
-                        i.values.forEach((x) => {
-                            instances_table.current_parameters.push({
-                                "description": x.description,
-                                "name": x.name,
-                                "default_value": x.value
-                            });
-                        });
-                        // for each one we get back, create a new row
-                        //    this will be in the form of a Vue object we modify
-                        $('#profileCreateInstanceModal').modal('show');
-                        $('#profileCreateInstanceModal').on('shown.bs.modal', function () {
-                            instances_table.current_parameters.forEach((x) => {
-                                adjust_size(document.getElementById(x.key));
-                            });
-                        });
-                        $('#profileCreateInstanceSubmit').unbind('click').click(function () {
-                            // We now have a mix of old, new, modified, and deleted parameters
-                            let data = {'instance_name': instances_table.current_name};
-                            for (let j = 0; j < instances_table.current_parameters.length; j++) {
-                                data[instances_table.current_parameters[j]['name']] = instances_table.current_parameters[j]['hint'];
-                            }
-                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + i.c2_profile + "/parameter_instances", create_new_parameter_instance_callback, "POST", data);
-                        });
-                    } catch (error) {
-                        alertTop("danger", "Failed to import file: " + error.toString());
-                    }
-                };
-                fileReader.readAsText(filedata, "UTF-8");
-                file.value = file.defaultValue;
-            });
-        },
         instance_options: function () {
             return this.instances.filter(x => x.c2_profile === instances_table.c2_profile);
-        }
+        },
+        add_array_element: function(element){
+          element.push("");
+        },
+        remove_array_element: function(element, index){
+          element.parameter.splice(index, 1);
+        },
+        update: function(val){
+            for(let i = 0; i < this.current_parameters.length; i++){
+                let curID = "newparaminst" + this.current_parameters[i]['id'];
+                if(curID === val.target.parentElement.id){
+                    this.current_parameters[i]['parameter'] = val.target.value;
+                    return;
+                }
+            }
+        },
+        can_add_more: function(element){
+            for(let i = 0; i < element['options'].length; i++){
+                if(element['options'][i]["max"] < 0 || element['options'][i]['current'] < element['options'][i]["max"]){
+                    return true;
+                }
+            }
+            return false;
+        },
+        add_options: function(element){
+            let options = [];
+            for(let i = 0; i < element['options'].length; i++){
+                if(element['options'][i]["max"] < 0 || element['options'][i]['current'] < element['options'][i]["max"]){
+                    options.push(element['options'][i]["name"])
+                }
+            }
+            return options;
+        },
+        add_dict_element: function(element){
+            for(let i = 0; i < element['options'].length; i++){
+                if(element['options'][i]["name"] === element['new_key']){
+                    element['options'][i]["current"] += 1;
+                    element['parameter'].push({
+                         "name": element['options'][i]["name"],
+                         "key": "",
+                         "value": element['options'][i]["default_value"],
+                         "custom": element['options'][i]["name"] === "*"
+                    });
+                    let new_opt = this.add_options(element);
+                    if( new_opt.length > 0){
+                        element['new_key'] = new_opt[0];
+                    }
+                    return;
+                }
+            }
+        },
+        remove_dict_element: function(element, index){
+            for(let i = 0; i < element['options'].length; i++) {
+                if(element['options'][i]['name'] === element['parameter'][index]['name']){
+                    //only add one count back if the max isn't < 0
+                    if(element['options'][i]['max'] > 0){
+                        element['options'][i]['current'] -= 1;
+                    }
+                    element['parameter'].splice(index, 1);
+                    return;
+                }
+            }
+        },
     },
     watch: {
         current_name: function (val) {
+            if(this.is_creating){return}
+            instances_table.current_parameters = [];
             for (let i = 0; i < this.instances.length; i++) {
                 if (this.instances[i]['instance_name'] === val) {
-                    this.current_parameters = Object.assign([], this.instances[i]['values']);
+                    for (let j = 0; j < this.instances[i]['values'].length; j++) {
+                        let inst = this.instances[i]['values'][j];
+                        if(inst['parameter_type'] === "Array"){
+                            inst['parameter'] = JSON.parse(inst['value']);
+                        } else if(inst['parameter_type'] === "Dictionary"){
+                            let config_dict = JSON.parse(inst['value']);
+                            let options = [];
+                            let default_params = [];
+                            config_dict.forEach(function(e){
+                                if( e["name"] === "*"){
+                                    default_params.push({
+                                        "name": e["key"],
+                                        "key": e["key"],
+                                        "value": e["value"],
+                                        "custom": false
+                                    });
+                                }else{
+                                    default_params.push({
+                                        "name": e["name"],
+                                        "key": e["key"],
+                                        "value": e["value"],
+                                        "custom": false
+                                    });
+                                }
+
+
+                            });
+                            inst['options'] = options;
+                            inst['parameter'] = default_params;
+                            inst['new_key'] = "";
+                        } else {
+                            inst['parameter'] = inst['value'];
+                        }
+                        instances_table.current_parameters.push(inst);
+                    }
+                    //this.current_parameters = Object.assign([], this.instances[i]['values']);
                     instances_table.current_parameters.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
                 }
             }

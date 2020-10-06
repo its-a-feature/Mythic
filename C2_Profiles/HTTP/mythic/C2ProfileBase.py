@@ -1,10 +1,14 @@
 from enum import Enum
 from abc import abstractmethod
+import json
 
 
 class ParameterType(Enum):
     String = "String"
     ChooseOne = "ChooseOne"
+    Array = "Array"
+    Date = "Date"
+    Dictionary = "Dictionary"
 
 
 class C2ProfileParameter:
@@ -28,16 +32,18 @@ class C2ProfileParameter:
         self.required = required
         self.verifier_regex = verifier_regex
         self.choices = choices
-        if self.parameter_type == ParameterType.String:
-            self.default_value = default_value
-        elif choices is not None:
+        self.default_value = ""
+        if self.parameter_type == ParameterType.ChooseOne and choices is not None:
             self.default_value = "\n".join(choices)
+        else:
+            self.default_value = default_value
+
 
     def to_json(self):
         return {
             "name": self.name,
             "description": self.description,
-            "default_value": self.default_value,
+            "default_value": self.default_value if self.parameter_type not in [ParameterType.Array, ParameterType.Dictionary] else json.dumps(self.default_value),
             "randomize": self.randomize,
             "format_string": self.format_string,
             "required": self.required,

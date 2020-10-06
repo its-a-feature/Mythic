@@ -5,7 +5,7 @@ from sanic_jwt.decorators import scoped, inject_user
 from fpdf import FPDF, HTMLMixin
 import sys
 from sanic.exceptions import abort
-import json as js
+import ujson as js
 from app.crypto import hash_MD5, hash_SHA1
 import uuid
 
@@ -281,13 +281,13 @@ async def get_all_data(operation, pdf, config):
                     command = (
                         task.command.cmd
                         + " "
-                        + task_json["params"]
+                        + task_json["original_params"]
                         .encode("unicode-escape", errors="backslashreplace")
                         .decode("utf-8", errors="backslash-replace")
                     )
                 else:
                     command = (
-                        task_json["params"]
+                        task_json["original_params"]
                         .encode("unicode-escape", errors="backslashreplace")
                         .decode("utf-8", errors="backslash-replace")
                     )

@@ -1,5 +1,10 @@
 document.title = "Payload Creation";
 var all_payload_type_data = {};
+Date.prototype.addDays = function(days) {
+    let date = new Date(this.valueOf());
+    date.setDate(date.getDate() + parseInt(days));
+    return date;
+}
 var profile_parameters_table = new Vue({
     el: '#payloadCreation',
     data: {
@@ -208,11 +213,84 @@ var profile_parameters_table = new Vue({
         },
         passing_requirements: function (val) {
             let regex = RegExp(val['verifier_regex']);
-            return regex.test(val['parameter']);
+            if(val.parameter_type === "Array"){
+                for(let i = 0; i < val['parameter'].length; i++){
+                    if(!regex.test(val['parameter'][i])){
+                        return false;
+                    }
+                }
+                return true;
+            }else{
+                return regex.test(val['parameter']);
+            }
         },
         passing_payload_requirements: function (val) {
             let regex = RegExp(val['verifier_regex']);
             return regex.test(val['value']);
+        },
+        update: function(val){
+            for(let i = 0; i < this.c2_profile_list.length; i++){
+                for(let j = 0; j < this.c2_profile_list[i]['c2_profile_parameters'].length; j++){
+                    let curID = "newparaminst" + this.c2_profile_list[i]['c2_profile_parameters'][j]['id'];
+                    if(curID === val.target.parentElement.id){
+                        this.c2_profile_list[i]['c2_profile_parameters'][j]['parameter'] = val.target.value;
+                        return;
+                    }
+                }
+            }
+        },
+        add_array_element: function(element){
+          element.push("");
+        },
+        remove_array_element: function(element, index){
+          element.parameter.splice(index, 1);
+        },
+        can_add_more: function(element){
+            for(let i = 0; i < element['options'].length; i++){
+                if(element['options'][i]["max"] < 0 || element['options'][i]['current'] < element['options'][i]["max"]){
+                    return true;
+                }
+            }
+            return false;
+        },
+        add_options: function(element){
+            let options = [];
+            for(let i = 0; i < element['options'].length; i++){
+                if(element['options'][i]["max"] < 0 || element['options'][i]['current'] < element['options'][i]["max"]){
+                    options.push(element['options'][i]["name"])
+                }
+            }
+            return options;
+        },
+        add_dict_element: function(element){
+            for(let i = 0; i < element['options'].length; i++){
+                if(element['options'][i]["name"] === element['new_key']){
+                    element['options'][i]["current"] += 1;
+                    element['parameter'].push({
+                         "name": element['options'][i]["name"],
+                         "key": "",
+                         "value": element['options'][i]["default_value"],
+                         "custom": element['options'][i]["name"] === "*"
+                    });
+                    let new_opt = this.add_options(element);
+                    if( new_opt.length > 0){
+                        element['new_key'] = new_opt[0];
+                    }
+                    return;
+                }
+            }
+        },
+        remove_dict_element: function(element, index){
+            for(let i = 0; i < element['options'].length; i++) {
+                if(element['options'][i]['name'] === element['parameter'][index]['name']){
+                    //only add one count back if the max isn't < 0
+                    if(element['options'][i]['max'] > 0){
+                        element['options'][i]['current'] -= 1;
+                    }
+                    element['parameter'].splice(index, 1);
+                    return;
+                }
+            }
         },
         filtered_c2_options: function (profile) {
             let new_options = [{"name": ' Select One...', "payload_types": []}];
@@ -275,6 +353,41 @@ var profile_parameters_table = new Vue({
                                             let inst = data['c2profileparameters'][i];
                                             if (inst['parameter_type'] === 'ChooseOne') {
                                                 inst['parameter'] = inst['default_value'].split("\n")[0];
+                                            } else if(inst['parameter_type'] === "Date") {
+                                                if(inst['default_value'] === ""){
+                                                    inst['default_value'] = 1;
+                                                }
+                                                inst['parameter'] = (new Date()).addDays(inst['default_value']).toISOString().slice(0,10);
+                                            } else if(inst['parameter_type'] === "Array"){
+                                                if( inst['default_value'] === ""){
+                                                    inst['parameter'] = [];
+                                                }else{
+                                                    inst['parameter'] = JSON.parse(inst['default_value']);
+                                                }
+                                            } else if(inst['parameter_type'] === "Dictionary"){
+                                                let config_dict = JSON.parse(inst['default_value']);
+                                                let options = [];
+                                                let default_params = [];
+                                                config_dict.forEach(function(e){
+                                                    let current = 0;
+                                                    if(e["default_show"]){
+                                                        current = 1;
+                                                        default_params.push({
+                                                            "name": e["name"],
+                                                            "key": e["name"],
+                                                            "value": e["default_value"],
+                                                            "custom": false
+                                                        });
+                                                    }
+                                                    options.push({
+                                                        "name": e["name"],
+                                                        "max": e["max"],
+                                                        "current": current
+                                                    });
+                                                });
+                                                inst['options'] = options;
+                                                inst['parameter'] = default_params;
+                                                inst['new_key'] = profile_parameters_table.add_options(inst)[0];
                                             } else {
                                                 inst['parameter'] = inst['default_value'];
                                             }
@@ -332,13 +445,19 @@ var profile_parameters_table = new Vue({
                                 //populate the boxes based on the parameter instance
                                 profile_parameters_table.c2_profile_list[index].c2_profile_parameters.forEach(function (y) {
                                     if (x.name === y.name) {
-                                        y.parameter = x.value;
-                                        profile_parameters_table.$forceUpdate();
                                         if (y.parameter_type === 'String') {
+                                            y.parameter = x.value;
+                                            profile_parameters_table.$forceUpdate();
                                             setTimeout(() => { // setTimeout to put this into event queue
                                                 // executed after render
                                                 adjust_size(document.getElementById(y.name));
                                             }, 0);
+                                        } else if(y.parameter_type === "Array"){
+                                            y.parameter = JSON.parse(x.value);
+                                        } else if(y.parameter_type === "Dictionary"){
+                                            y.parameter = JSON.parse(x.value);
+                                        } else{
+                                            y.parameter = x.value;
                                         }
                                         //console.log("just set: " + JSON.stringify(y));
                                     }
@@ -347,11 +466,51 @@ var profile_parameters_table = new Vue({
                         } else {
                             profile_parameters_table.c2_profile_list[index].c2_profile_parameters.forEach(function (x) {
                                 //clear the text boxes for all the parameters so they auto fill with the hints again
-                                if (x.parameter_type === 'ChooseOne') {
-                                    x.parameter = x.default_value.split('\n')[0];
+                                if (x['parameter_type'] === 'ChooseOne') {
+                                    x['parameter'] = x['default_value'].split("\n")[0];
+                                } else if(x['parameter_type'] === "Date") {
+                                    if(x['default_value'] === ""){
+                                        x['default_value'] = 1;
+                                    }
+                                    x['parameter'] = (new Date()).addDays(x['default_value']).toISOString().slice(0,10);
+                                } else if(x['parameter_type'] === "Array"){
+                                    let arr = JSON.parse(x['default_value']);
+                                    if( arr === ""){
+                                        x['parameter'] = [];
+                                    }else{
+                                        x['parameter'] = arr;
+                                    }
+                                } else if(x['parameter_type'] === "Dictionary"){
+                                    let config_dict = JSON.parse(x['default_value']);
+                                    let options = [];
+                                    let default_params = [];
+                                    config_dict.forEach(function(e){
+                                        let current = 0;
+                                        if(e["default_show"]){
+                                            current = 1;
+                                            default_params.push({
+                                                "name": e["name"],
+                                                "key": e["name"],
+                                                "value": e["default_value"],
+                                                "custom": false
+                                            });
+                                        }
+                                        options.push({
+                                            "name": e["name"],
+                                            "max": e["max"],
+                                            "current": current
+                                        });
+                                    });
+                                    x['options'] = options;
+                                    x['parameter'] = default_params;
+                                    x['new_key'] = profile_parameters_table.add_options(x)[0];
                                 } else {
-                                    x.parameter = x.default_value;
+                                    x['parameter'] = x['default_value'];
+                                    profile_parameters_table.$nextTick(function () {
+                                        adjust_size(document.getElementById(x.name));
+                                    });
                                 }
+                                profile_parameters_table.$forceUpdate();
                             });
 
                         }

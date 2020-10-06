@@ -542,7 +542,7 @@ namespace Atlas
             public string id { get; set; }
             public string status { get; set; }
 
-            public static string CheckInResponseFormat = @"{{""status"": ""{0}"", ""id"": ""{1}"", ""action"": ""{2}""}}";
+            public static string CheckInResponseFormat = @"{{""status"":""{0}"",""id"":""{1}"",""action"":""{2}""}}";
 
             public static List<string> Parse(string data, string format)
             {
@@ -598,7 +598,7 @@ namespace Atlas
                 tasks = new List<Task>();
             }
 
-            public static string GetTaskingResponseFormat = @"{{""action"": ""{0}"", ""tasks"": {1}}}";
+            public static string GetTaskingResponseFormat = @"{{""action"":""{0}"",""tasks"":{1}}}";
 
             public static List<string> Parse(string data, string format)
             {
@@ -666,7 +666,7 @@ namespace Atlas
                 responses = new List<Response>();
             }
 
-            public static string PostResponseResponseFormat = @"{{""action"": ""{0}"", ""responses"": {1}}}";
+            public static string PostResponseResponseFormat = @"{{""action"":""{0}"",""responses"":{1}}}";
 
             public static List<string> Parse(string data, string format)
             {
@@ -699,7 +699,7 @@ namespace Atlas
             public string id { get; set; }
             public string timestamp { get; set; }
 
-            public static string TaskFormat = @"{{""command"": ""{0}"", ""parameters"": ""{1}"", ""id"": ""{2}"", ""timestamp"": {3}}}";
+            public static string TaskFormat = @"{{""command"":""{0}"",""parameters"":""{1}"",""id"":""{2}"",""timestamp"":{3}}}";
 
             public static List<string> Parse(string data, string format)
             {
@@ -738,7 +738,7 @@ namespace Atlas
                         parseList = Task.Parse(task + "}", TaskFormat.Replace("{{", "{").Replace("}}", "}"));
                         if (parseList[0] == "")
                         {
-                            string format = @"{{""command"": ""{0}"", ""parameters"": ""{1}"", ""id"": ""{2}"", ""timestamp"": {3}}}";
+                            string format = @"{{""command"":""{0}"",""parameters"":""{1}"",""id"":""{2}"",""timestamp"":{3}}}";
                             parseList = Task.Parse(task, format.Replace("{{", "{").Replace("}}", "}"));
                         }
                     }
@@ -747,7 +747,7 @@ namespace Atlas
                         parseList = Task.Parse(task + "}", TaskFormat.Replace("{{", "{").Replace("}}", "}"));
                         if (parseList[0] == "")
                         {
-                            string format = @"{{""command"": ""{0}"", ""parameters"": ""{1}"", ""id"": ""{2}"", ""timestamp"": {3}}}";
+                            string format = @"{{""command"":""{0}"",""parameters"":""{1}"",""id"":""{2}"",""timestamp"":{3}}}";
                             parseList = Task.Parse(task, format.Replace("{{", "{").Replace("}}", "}"));
                         }
                     }
@@ -772,17 +772,16 @@ namespace Atlas
             public string user_output { get; set; }
             public string status { get; set; }
             public string completed { get; set; }
-            public string error { get; set; }
             public int? total_chunks { get; set; }
             public string full_path { get; set; }
             public int? chunk_num { get; set; }
             public string chunk_data { get; set; }
             public string file_id { get; set; }
 
-            public string JsonFormat = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":{3},""error"":""{4}"",""total_chunks"":{5},""full_path"":""{6}"",""chunk_num"":{7},""chunk_data"":""{8}"",""file_id"":""{9}""}}";
-            public string JsonFormat1 = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":""{3}"",""error"":""{4}"",""total_chunks"":""{5}"",""full_path"":""{6}"",""chunk_num"":{7},""chunk_data"":""{8}"",""file_id"":""{9}""}}";
-            public string JsonFormat2 = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":""{3}"",""error"":""{4}"",""total_chunks"":{5},""full_path"":""{6}"",""chunk_num"":""{7}"",""chunk_data"":""{8}"",""file_id"":""{9}""}}";
-            public string JsonFormat3 = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":""{3}"",""error"":""{4}"",""total_chunks"":""{5}"",""full_path"":""{6}"",""chunk_num"":""{7}"",""chunk_data"":""{8}"",""file_id"":""{9}""}}";
+            public string JsonFormat = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":{3},""total_chunks"":{4},""full_path"":""{5}"",""chunk_num"":{6},""chunk_data"":""{7}"",""file_id"":""{8}""}}";
+            public string JsonFormat1 = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":""{3}"",""total_chunks"":""{4}"",""full_path"":""{5}"",""chunk_num"":{6},""chunk_data"":""{7}"",""file_id"":""{8}""}}";
+            public string JsonFormat2 = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":""{3}"",""total_chunks"":{4},""full_path"":""{5}"",""chunk_num"":""{6}"",""chunk_data"":""{7}"",""file_id"":""{8}""}}";
+            public string JsonFormat3 = @"{{""task_id"":""{0}"",""user_output"":""{1}"",""status"":""{2}"",""completed"":""{3}"",""total_chunks"":""{4}"",""full_path"":""{5}"",""chunk_num"":""{6}"",""chunk_data"":""{7}"",""file_id"":""{8}""}}";
 
             public static string ToJson(TaskResponse task_response)
             {
@@ -794,10 +793,6 @@ namespace Atlas
                 if (task_response.completed == null)
                 {
                     task_response.completed = "";
-                }
-                if (task_response.error == null)
-                {
-                    task_response.error = "";
                 }
                 if (task_response.status == null)
                 {
@@ -844,17 +839,16 @@ namespace Atlas
                     task_response.file_id = "";
                 }
                 return String.Format(
-                    Format,
-                    JavaScriptStringEncode(task_response.task_id),
-                    JavaScriptStringEncode(task_response.user_output),
-                    JavaScriptStringEncode(task_response.status),
-                    JavaScriptStringEncode(task_response.completed),
-                    JavaScriptStringEncode(task_response.error),
-                    JavaScriptStringEncode(total_chunks),
-                    JavaScriptStringEncode(task_response.full_path),
-                    JavaScriptStringEncode(chunk_num),
-                    JavaScriptStringEncode(task_response.chunk_data),
-                    JavaScriptStringEncode(task_response.file_id)
+                Format,
+                JavaScriptStringEncode(task_response.task_id),
+                JavaScriptStringEncode(task_response.user_output),
+                JavaScriptStringEncode(task_response.status),
+                JavaScriptStringEncode(task_response.completed),
+                JavaScriptStringEncode(total_chunks),
+                JavaScriptStringEncode(task_response.full_path),
+                JavaScriptStringEncode(chunk_num),
+                JavaScriptStringEncode(task_response.chunk_data),
+                JavaScriptStringEncode(task_response.file_id)
                 );
             }
         }
@@ -866,9 +860,9 @@ namespace Atlas
             public string error { get; set; }
             public string file_id { get; set;}
 
-            public static string ResponseSuccessFormat = @"{{""status"": ""{0}"", ""task_id"": ""{1}""}}";
-            public static string ResponseErrorFormat = @"{{""status"": ""{0}"", ""task_id"": ""{1}"", ""error"": ""{2}""}}";
-            public static string ResponseDownloadFormat = @"{{""status"": ""{0}"", ""task_id"": ""{1}"", ""file_id"": ""{2}""}}";
+            public static string ResponseSuccessFormat = @"{{""status"":""{0}"",""task_id"":""{1}""}}";
+            public static string ResponseErrorFormat = @"{{""status"":""{0}"",""task_id"":""{1}"",""error"":""{2}""}}";
+            public static string ResponseDownloadFormat = @"{{""status"":""{0}"",""task_id"":""{1}"",""file_id"":""{2}""}}";
 
             public static List<string> ParseSuccess(string data, string format)
             {
@@ -1028,7 +1022,7 @@ namespace Atlas
             public string args { get; set; }
             public string assembly_id { get; set; }
 
-            public static string RunAssemblyFormat = @"""assembly_id"": ""{0}"", ""args"": ""{1}""";
+            public static string RunAssemblyFormat = @"""assembly_id"":""{0}"",""args"":""{1}""";
 
             public static List<string> Parse(string data, string format)
             {
@@ -1063,7 +1057,7 @@ namespace Atlas
             public string full_path { get; set; }
             public string task_id { get; set; }
 
-            public string JsonFormat = @"{{""action"":""{0}"",""chunk_size"":{1},""file_id"":""{2}"",""chunk_num"":{3}, ""full_path"": ""{4}"",""task_id"":""{5}""}}";
+            public string JsonFormat = @"{{""action"":""{0}"",""chunk_size"":{1},""file_id"":""{2}"",""chunk_num"":{3},""full_path"":""{4}"",""task_id"":""{5}""}}";
 
             public static string ToJson(Upload upload)
             {
@@ -1088,7 +1082,7 @@ namespace Atlas
             public string file_id { get; set; }
             public string task_id { get; set; }
 
-            public static string UploadResponseFormat = @"{{""action"": ""{0}"", ""total_chunks"": {1}, ""chunk_num"": {2}, ""chunk_data"": ""{3}"", ""file_id"": ""{4}"", ""task_id"": ""{5}""}}";
+            public static string UploadResponseFormat = @"{{""action"":""{0}"",""total_chunks"":{1},""chunk_num"":{2},""chunk_data"":""{3}"",""file_id"":""{4}"",""task_id"":""{5}""}}";
 
             public static List<string> Parse(string data, string format)
             {
@@ -1163,7 +1157,7 @@ namespace Atlas
             public string bin_path { get; set; }
             public int parent_process_id { get; set; }
 
-            public string ProcessFormat = @"{{""process_id"": {0}, ""architecture"": ""{1}"", ""name"": ""{2}"", ""user"": ""{3}"", ""bin_path"": ""{4}"", ""parent_process_id"": {5}}}";
+            public string ProcessFormat = @"{{""process_id"":{0},""architecture"":""{1}"",""name"":""{2}"",""user"":""{3}"",""bin_path"":""{4}"",""parent_process_id"":{5}}}";
 
             public static string ToJson(Process process)
             {
@@ -1214,7 +1208,7 @@ namespace Atlas
             public string timestamp { get; set; }
             public string IsDir { get; set; }
 
-            public string ListFormat = @"{{""file_name"": ""{0}"", ""size"": {1}, ""timestamp"": ""{2}"", ""IsDir"": {3}}}";
+            public string ListFormat = @"{{""file_name"":""{0}"",""size"":{1},""timestamp"":""{2}"",""IsDir"":{3}}}";
 
             public static string ToJson(FileSystemEntry listing)
             {
@@ -1234,7 +1228,7 @@ namespace Atlas
             public string file_id { get; set; }
             public string task_id { get; set; }
 
-            public static string DownloadResponseFormat = @"{{""status"": ""{0}"", ""file_id"": ""{1}"", ""task_id"": ""{2}""}}";
+            public static string DownloadResponseFormat = @"{{""status"":""{0}"",""file_id"":""{1}"",""task_id"":""{2}""}}";
 
             public static List<string> Parse(string data, string format)
             {
@@ -1290,7 +1284,7 @@ namespace Atlas
             public string session_id { get; set; }
 
 
-            public static string JsonFormat = @"{{""uuid"": ""{0}"", ""session_key"": ""{1}"", ""action"": ""{2}"", ""session_id"": ""{3}""}}";
+            public static string JsonFormat = @"{{""uuid"":""{0}"",""session_key"":""{1}"",""action"":""{2}"",""session_id"":""{3}""}}";
 
             public static List<string> Parse(string data, string format)
             {
