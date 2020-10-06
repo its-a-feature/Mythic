@@ -4,27 +4,21 @@
 
 char* runjs(char *s) {
     @try {
-        NSString *codeString = [NSString stringWithUTF8String:s];
-        OSALanguage *lang = [OSALanguage languageForName:@"JavaScript"];
-        OSAScript *script = [[OSAScript alloc] initWithSource:codeString language:lang];
-        NSDictionary *__autoreleasing compileError = @{};
+            NSString *codeString = [NSString stringWithUTF8String:s];
+            OSALanguage *lang = [OSALanguage languageForName:@"JavaScript"];
+            OSAScript *script = [[OSAScript alloc] initWithSource:codeString language:lang];
 
-        [script compileAndReturnError:nil];
+            NSDictionary *__autoreleasing runError =nil;
+            NSAppleEventDescriptor* res = [script executeAndReturnError:&runError];
 
-        if ([compileError count] > 0) {
-            NSString *res = compileError[@"OSAScriptErrorMessageKey"];
-            return [res UTF8String];
-        }
+            if ([runError count] > 0) {
 
-        NSDictionary *__autoreleasing runError = @{};
-        NSAppleEventDescriptor* res = [script executeAndReturnError:nil];
-
-        if ([runError count] > 0) {
-
-            NSString *result = runError[@"OSAScriptErrorMessageKey"];
-            return [result UTF8String];
-        }
-        return [[res stringValue] UTF8String];
+                NSString *result = runError[@"OSAScriptErrorMessageKey"];
+                return [result UTF8String];
+            }
+            NSString* fmtString = [NSString stringWithFormat:@"%@", res];
+            char* output = [fmtString UTF8String];
+            return output;
     } @catch (NSException *exception) {
         return [[exception reason] UTF8String];
     }

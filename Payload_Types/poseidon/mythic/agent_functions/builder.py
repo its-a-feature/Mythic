@@ -104,8 +104,13 @@ class Poseidon(PayloadType):
                     resp.message = "Created payload!\n"
                 else:
                     temp_uuid = str(uuid.uuid4())
-                    shutil.make_archive(temp_uuid, "zip", "/build")
-                    resp.payload = open(temp_uuid + ".zip", "rb").read()
+                    file1 = open(
+                        "/go/src/poseidon/src/sharedlib-darwin-linux.c", "r"
+                    ).read()
+                    with open("/build/sharedlib-darwin-linux.c", "w") as f:
+                        f.write(file1)
+                    shutil.make_archive(f"{agent_build_path}/{temp_uuid}", "zip", "/build")
+                    resp.payload = open(f"{agent_build_path}/{temp_uuid}" + ".zip", "rb").read()
                     resp.message = "Created a zip archive of files!\n"
                 resp.status = BuildStatus.Success
             else:
