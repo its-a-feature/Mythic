@@ -9,7 +9,7 @@ class ListEntitlementsArguments(TaskArguments):
             "pid": CommandParameter(
                 name="pid",
                 type=ParameterType.Number,
-                description="PID of process to query",
+                description="PID of process to query (-1 for all)",
             )
         }
 
@@ -19,9 +19,9 @@ class ListEntitlementsArguments(TaskArguments):
 
 class ListEntitlementCommand(CommandBase):
     cmd = "list_entitlements"
-    needs_admin = True
+    needs_admin = False
     help_cmd = "list_entitlements"
-    description = "Use CSOps Syscall to list the entitlements for processes"
+    description = "Use CSOps Syscall to list the entitlements for processes (-1 for all processes)"
     version = 1
     is_exit = False
     is_file_browse = False
@@ -32,6 +32,7 @@ class ListEntitlementCommand(CommandBase):
     author = "@its_a_feature_"
     argument_class = ListEntitlementsArguments
     attackmapping = []
+    browser_script = BrowserScript(script_name="list_entitlements", author="@its_a_feature_")
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         return task
