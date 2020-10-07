@@ -79,7 +79,7 @@ async def create_operator(request, user):
         success = {"status": "success"}
         new_user = new_operator.to_json()
         # try to get the browser script code to auto load for the new operator
-        await set_default_scripts(new_user)
+        await set_default_scripts(new_operator)
         # print(result)
         return response.json({**success, **new_user})
     except Exception as e:
