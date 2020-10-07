@@ -1022,7 +1022,7 @@ namespace Atlas
             public string args { get; set; }
             public string assembly_id { get; set; }
 
-            public static string RunAssemblyFormat = @"""assembly_id"":""{0}"",""args"":""{1}""";
+            public static string RunAssemblyFormat = @"""assembly_id"": ""{0}"", ""args"": ""{1}""";
 
             public static List<string> Parse(string data, string format)
             {
