@@ -23,6 +23,7 @@ from sanic.exceptions import abort
 from math import ceil
 from sanic.log import logger
 from peewee import fn
+from app.api.siem_logger import log_to_siem
 
 
 # This gets all responses in the database
@@ -283,6 +284,7 @@ async def post_agent_response(agent_message, UUID):
                         if parsed_response["completed"]:
                             task.completed = True
                             json_return_info = {**json_return_info, "status": "success"}
+                            await log_to_siem(task.to_json(), mythic_object="task_completed")
                         parsed_response.pop("completed", None)
                     if "user_output" in parsed_response:
                         final_output += str(parsed_response["user_output"])
@@ -415,6 +417,7 @@ async def post_agent_response(agent_message, UUID):
                                 operation=task.callback.operation,
                                 user=parsed_response["user"],
                             )
+                            await log_to_siem(rsp.to_json(), mythic_object="keylog_new")
                             json_return_info = {**json_return_info, "status": "success"}
                         parsed_response.pop("window_title", None)
                         parsed_response.pop("user", None)
@@ -456,13 +459,14 @@ async def post_agent_response(agent_message, UUID):
                                             ),
                                         )
                                     # you can report back multiple artifacts at once, no reason to make separate C2 requests
-                                    await db_objects.create(
+                                    art = await db_objects.create(
                                         TaskArtifact,
                                         task=task,
                                         artifact_instance=str(artifact["artifact"]),
                                         artifact=base_artifact,
                                         host=task.callback.host,
                                     )
+                                    await log_to_siem(art.to_json(), mythic_object="artifact_new")
                                     # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
                                     json_return_info = {
                                         **json_return_info,
@@ -595,6 +599,7 @@ async def post_agent_response(agent_message, UUID):
                     task=task,
                     response=final_output.encode("unicode-escape"),
                 )
+                await log_to_siem(resp.to_json(), mythic_object="response_new")
             task.timestamp = datetime.datetime.utcnow()
             await db_objects.update(task)
             response_message["responses"].append(json_return_info)

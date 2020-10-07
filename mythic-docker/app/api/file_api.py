@@ -14,6 +14,7 @@ import uuid
 from sanic.log import logger
 from math import ceil
 from pathlib import Path, PureWindowsPath
+from app.api.siem_logger import log_to_siem
 
 
 @mythic.route(mythic.config["API_BASE"] + "/files", methods=["GET"])
@@ -100,7 +101,6 @@ async def download_file(request, id):
 # this is the function for the 'upload' action of file from Mythic to agent
 async def download_agent_file(data, cid):
     if "task_id" not in data:
-        logger.exception("Associated task does not exist is not specified")
         return {
             "action": "upload",
             "total_chunks": 0,
@@ -113,9 +113,6 @@ async def download_agent_file(data, cid):
         query = await db_model.filemeta_query()
         file_meta = await db_objects.get(query, agent_file_id=data["file_id"])
     except Exception as e:
-        logger.exception(
-            "Failed to find file in download_agent_file: " + data["file_id"]
-        )
         return {
             "action": "upload",
             "total_chunks": 0,
@@ -376,6 +373,10 @@ async def create_filemeta_in_database_func(data):
             is_download_from_agent=True,
             host=data["host"],
         )
+        if filemeta.is_screenshot:
+            await log_to_siem(task.to_json(), mythic_object="file_screenshot")
+        else:
+            await log_to_siem(task.to_json(), mythic_object="file_upload")
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
         return {"status": "error", "error": "failed to create file"}
@@ -449,7 +450,7 @@ async def create_filemeta_in_database_manual(request, user):
             filename, file_meta.agent_file_id
         ),
     )
-
+    await log_to_siem(file_meta.to_json(), mythic_object="file_manual_upload")
     return json({"status": "success", **file_meta.to_json()})
 
 
@@ -482,6 +483,7 @@ async def download_file_to_disk_func(data):
                 contents = open(file_meta.path, "rb").read()
                 file_meta.md5 = await hash_MD5(contents)
                 file_meta.sha1 = await hash_SHA1(contents)
+                await log_to_siem(file_meta.to_json(), mythic_object="file_download")
             await db_objects.update(file_meta)
     except Exception as e:
         print("Failed to save chunk to disk: " + str(e))

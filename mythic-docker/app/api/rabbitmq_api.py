@@ -14,6 +14,7 @@ import traceback
 import uuid
 import app.crypto as crypt
 from app.api.operation_api import send_all_operations_message
+from app.api.siem_logger import log_to_siem
 
 
 # Keep track of sending sync requests to containers so we don't go crazy
@@ -145,6 +146,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     payload.build_phase = agent_message["status"]
                     payload.build_message = agent_message["message"]
                     await db_objects.update(payload)
+                    await log_to_siem(payload.to_json(), mythic_object="payload_new")
                 elif pieces[3] == "command_transform":
                     query = await db_model.task_query()
                     task = await db_objects.get(query, id=pieces[5])
@@ -172,12 +174,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             task.status = pieces[4]
                         task.status_timestamp_submitted = task.timestamp
                         await db_objects.update(task)
+                        await log_to_siem(task.to_json(), mythic_object="task_new")
                         await add_command_attack_to_task(task, task.command)
                 elif pieces[3] == "sync_classes":
-                    operation_query = await db_model.operation_query()
-                    operations = await db_objects.execute(
-                        operation_query.where(db_model.Operation.complete == False)
-                    )
                     if pieces[5] == "" or pieces[5] is None:
                         # this was an auto sync from starting a container
                         operator = None
@@ -336,6 +335,7 @@ async def register_file(request):
             is_screenshot=request["is_screenshot"],
             is_download_from_agent=request["is_download"],
         )
+        await log_to_siem(new_file_meta.to_json(), mythic_object="file_upload")
         return {"status": "success", "response": new_file_meta.to_json()}
     except Exception as e:
         return {"status": "error", "error": str(e)}
@@ -722,7 +722,7 @@ async def register_artifact(request):
     try:
         if "host" not in request or request["host"] is None or request["host"] == "":
             request["host"] = task.callback.host
-        await db_objects.create(
+        art = await db_objects.create(
             db_model.TaskArtifact,
             task=task,
             artifact_instance=request["artifact_instance"],
@@ -730,6 +730,7 @@ async def register_artifact(request):
             host=request["host"],
             operation=task.callback.operation,
         )
+        await log_to_siem(art.to_json(), mythic_object="artifact_new")
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": "failed to create task artifact: " + str(e)}
@@ -888,12 +889,13 @@ async def add_event_message(request):
             operation_query.where(db_model.Operation.complete == False)
         )
         for o in operations:
-            await db_objects.create(
+            msg = await db_objects.create(
                 db_model.OperationEventLog,
                 level=request["level"],
                 operation=o,
                 message=request["message"],
             )
+            await log_to_siem(msg.to_json(), mythic_object="eventlog_new")
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
@@ -939,12 +941,13 @@ async def add_command_attack_to_task(task, command):
                 # try to get the query, if it doens't exist, then create it in the exception
                 await db_objects.get(query, task=task, attack=attack.attack)
             except Exception as e:
-                await db_objects.create(
+                attack = await db_objects.create(
                     db_model.ATTACKTask, task=task, attack=attack.attack
                 )
+                await log_to_siem(attack.to_json(), mythic_object="task_mitre_attack")
     except Exception as e:
-        logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        # print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        #logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         raise e
 
 

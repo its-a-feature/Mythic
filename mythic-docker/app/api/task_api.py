@@ -22,6 +22,7 @@ from app.api.rabbitmq_api import send_pt_rabbitmq_message
 from sanic.exceptions import abort
 from math import ceil
 from sanic.log import logger
+from app.api.siem_logger import log_to_siem
 
 
 # This gets all tasks in the database
@@ -850,7 +851,8 @@ async def add_command_attack_to_task(task, command):
                 # try to get the query, if it doens't exist, then create it in the exception
                 await db_objects.get(query, task=task, attack=attack.attack)
             except Exception as e:
-                await db_objects.create(ATTACKTask, task=task, attack=attack.attack)
+                attack = await db_objects.create(ATTACKTask, task=task, attack=attack.attack)
+                await log_to_siem(attack.to_json(), mythic_object="task_mitre_attack")
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         raise e
@@ -1112,6 +1114,7 @@ async def add_comment_to_task(request, tid, user):
                 task.comment = data["comment"]
                 task.comment_operator = operator
                 await db_objects.update(task)
+                await log_to_siem(task.to_json(), mythic_object="task_comment")
                 return json({"status": "success", "task": task.to_json()})
             else:
                 return json(
@@ -1156,6 +1159,7 @@ async def remove_task_comment(request, tid, user):
             task.comment = ""
             task.comment_operator = operator
             await db_objects.update(task)
+            await log_to_siem(task.to_json(), mythic_object="task_comment")
             return json({"status": "success", "task": task.to_json()})
         else:
             return json(

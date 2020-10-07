@@ -22,5 +22,6 @@ from app.api import (
     processlist_api,
     event_message_api,
     proxies_api,
+    siem_logger
 )
 from app.api import payloadonhost_api, file_browser_api

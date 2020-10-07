@@ -5,6 +5,7 @@ import app.database_models.model as db_model
 from sanic.exceptions import abort
 from math import ceil
 from peewee import fn
+from app.api.siem_logger import log_to_siem
 
 
 async def get_old_event_alerts(user):
@@ -88,6 +89,7 @@ async def add_event_message(request, user):
             message=data["message"].encode(),
             level=data["level"],
         )
+        await log_to_siem(msg.to_json(), mythic_object="eventlog_new")
         return json({"status": "success", **msg.to_json()})
     except Exception as e:
         return json({"status": "error", "error": str(e)})
@@ -128,6 +130,7 @@ async def edit_event_message(request, user, eid):
                     msg.resolved = data["resolved"]
                 if "level" in data and data["level"] in ["info", "warning"]:
                     msg.level = data["level"]
+                await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")
                 await db_objects.update(msg)
             else:
                 return json(
@@ -169,6 +172,7 @@ async def remove_event_messagse(request, user):
                 or operation.name in user["admin_operations"]
             ):
                 msg.deleted = True
+                await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")
                 await db_objects.update(msg)
             else:
                 not_authorized = True

@@ -4,9 +4,9 @@ from peewee_async import Manager
 from peewee_asyncext import PooledPostgresqlExtDatabase
 from sanic_jwt import Initialize
 from ipaddress import ip_network
-from logging import Formatter
 import ujson as json
 import asyncio
+import logging
 
 # --------------------------------------------
 # --------------------------------------------
@@ -23,16 +23,17 @@ allowed_ip_blocks = config[
 use_ssl = config["use_ssl"]
 server_header = config["server_header"]
 log_size = config[
-    "log_size"
+    "web_log_size"
 ]  # grows indefinitely (0), or specify a max size in Bytes (1MB). If 0, will not rotate!
 keep_logs = config[
-    "keep_logs"
+    "web_keep_logs"
 ]  # set to false for speed improvement, but no logs will be kept
 # don't start the following c2_profile docker containers when starting mythic
 excluded_c2_profiles = config["excluded_c2_profiles"]
 # don't start the following payload_type docker containers when starting mythic
 excluded_payload_types = config["excluded_payload_types"]
 documentation_port = config["documentation_container_port"]
+siem_log_name = config["siem_log_name"]
 # --------------------------------------------
 # --------------------------------------------
 listen_ip = (
@@ -64,9 +65,9 @@ db_objects = Manager(mythic_db, loop=dbloop)
 mythic_logging = log.LOGGING_CONFIG_DEFAULTS
 
 
-class RootLogFormatter(Formatter):
+class RootLogFormatter(logging.Formatter):
     def __init__(self, **kwargs):
-        Formatter.__init__(self, kwargs)
+        logging.Formatter.__init__(self, kwargs)
 
     def format(self, record):
         # print(record.__dict__)
@@ -82,9 +83,9 @@ class RootLogFormatter(Formatter):
         return formattedjson
 
 
-class AccessLogFormatter(Formatter):
+class AccessLogFormatter(logging.Formatter):
     def __init__(self, **kwargs):
-        Formatter.__init__(self, kwargs)
+        logging.Formatter.__init__(self, kwargs)
 
     def format(self, record):
         # print(record.__dict__)

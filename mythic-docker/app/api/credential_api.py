@@ -4,6 +4,7 @@ from app.database_models.model import Credential
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+from app.api.siem_logger import log_to_siem
 
 
 @mythic.route(
@@ -108,6 +109,7 @@ async def create_credential_func(operator, operation, data):
                 operator=operator,
                 comment=data["comment"],
             )
+            await log_to_siem(cred.to_json(), mythic_object="credential_new")
     else:
         try:
             query = await db_model.credential_query()
@@ -134,6 +136,7 @@ async def create_credential_func(operator, operation, data):
                 operator=operator,
                 comment=data["comment"],
             )
+            await log_to_siem(cred.to_json(), mythic_object="credential_new")
     return {**status, **cred.to_json()}
 
 
@@ -212,7 +215,7 @@ async def update_credential_func(cred, data):
         if "comment" in data:
             cred.comment = data["comment"]
         await db_objects.update(cred)
-
+        await log_to_siem(cred.to_json(), mythic_object="credential_modified")
         return {"status": "success", **cred.to_json()}
     except Exception as e:
         return {"status": "error", "error": str(e)}
