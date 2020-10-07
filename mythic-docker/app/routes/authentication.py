@@ -39,7 +39,7 @@ class MyConfig(Configuration):
 
 
 class MyAuthentication(Authentication):
-    def _verify(
+    async def _verify(
         self,
         request,
         return_payload=False,
@@ -63,7 +63,7 @@ class MyAuthentication(Authentication):
 
             try:
                 with cache_request(request):
-                    payload = self._decode(apitoken, verify=verify)
+                    payload = await self._decode(apitoken, verify=verify)
             except Exception as e:
                 print("Failed to decode apitoken")
                 if return_payload:
@@ -85,7 +85,7 @@ class MyAuthentication(Authentication):
                 return False, 401, "Auth Error"
         else:
             with cache_request(request):
-                return super()._verify(
+                return await super()._verify(
                     request=request,
                     return_payload=return_payload,
                     verify=verify,
