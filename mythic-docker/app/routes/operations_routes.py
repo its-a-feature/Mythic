@@ -26,19 +26,20 @@ async def get_scripts(user):
             )
         )
         for s in operator_scripts:
-            if s.command is not None:
-                scripts_to_add[s.command.id] = s.script
-            else:
-                support_scripts_to_add[s.payload_type.ptype.lower() + "_" + s.name] = (
-                    '"'
-                    + s.payload_type.ptype.lower()
-                    + "_"
-                    + s.name
-                    + '":'
-                    + base64.b64decode(s.script).decode("utf-8")
-                    + ","
-                )
-                # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+            if s.script != "":
+                if s.command is not None:
+                    scripts_to_add[s.command.id] = s.script
+                else:
+                    support_scripts_to_add[s.payload_type.ptype.lower() + "_" + s.name] = (
+                        '"'
+                        + s.payload_type.ptype.lower()
+                        + "_"
+                        + s.name
+                        + '":'
+                        + base64.b64decode(s.script).decode("utf-8")
+                        + ","
+                    )
+                    # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
         # get scripts assigned to the operation
         operation_query = await db_model.browserscriptoperation_query()
         operation_scripts = await db_objects.execute(
@@ -47,25 +48,26 @@ async def get_scripts(user):
             )
         )
         for s in operation_scripts:
-            if s.browserscript.command is not None:
-                scripts_to_add[s.browserscript.command.id] = (
-                    '"' + s.browserscript.script + "'"
-                )  # will overwrite a user script if it existed, which is what we want
-            else:
-                support_scripts_to_add[
-                    s.browserscript.payload_type.ptype.lower()
-                    + "_"
-                    + s.browserscript.name
-                ] = (
-                    '"'
-                    + s.browserscript.payload_type.ptype.lower()
-                    + "_"
-                    + s.browserscript.name
-                    + '":'
-                    + base64.b64decode(s.browserscript.script).decode("utf-8")
-                    + ","
-                )
-                # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
+            if s.browserscript.script != "":
+                if s.browserscript.command is not None:
+                    scripts_to_add[s.browserscript.command.id] = (
+                        '"' + s.browserscript.script + "'"
+                    )  # will overwrite a user script if it existed, which is what we want
+                else:
+                    support_scripts_to_add[
+                        s.browserscript.payload_type.ptype.lower()
+                        + "_"
+                        + s.browserscript.name
+                    ] = (
+                        '"'
+                        + s.browserscript.payload_type.ptype.lower()
+                        + "_"
+                        + s.browserscript.name
+                        + '":'
+                        + base64.b64decode(s.browserscript.script).decode("utf-8")
+                        + ","
+                    )
+                    # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
         for s, v in scripts_to_add.items():
             browser_scripts += (
                 '"' + str(s) + '":' + base64.b64decode(v).decode("utf-8") + ","
