@@ -31,6 +31,7 @@ from _collections import deque
 import threading
 from time import sleep as tsleep
 import socket
+from app.api.siem_logger import log_to_siem
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/", methods=["GET"])
@@ -548,6 +549,7 @@ async def create_callback_func(data, request):
         print(e)
         return {"status": "error", "error": "Failed to create callback: " + str(e)}
     status = {"status": "success"}
+    await log_to_siem(cal.to_json(), mythic_object="callback_new")
     if cal.operation.webhook and cal.registered_payload.callback_alert:
         # if we have a webhook, send a message about the new callback
         try:
