@@ -94,7 +94,7 @@ async def create_credential_func(operator, operation, data):
                 deleted=False,
                 realm=data["realm"],
                 operation=operation,
-                credential=data["credential"],
+                credential=data["credential"].encode(),
             )
             status["new"] = False
         except Exception as e:
@@ -105,7 +105,7 @@ async def create_credential_func(operator, operation, data):
                 account=data["account"],
                 realm=data["realm"],
                 operation=operation,
-                credential=data["credential"],
+                credential=data["credential"].encode(),
                 operator=operator,
                 comment=data["comment"],
             )
@@ -120,7 +120,7 @@ async def create_credential_func(operator, operation, data):
                 deleted=False,
                 realm=data["realm"],
                 operation=operation,
-                credential=data["credential"],
+                credential=data["credential"].encode(),
             )
             status["new"] = False
         except Exception as e:
@@ -132,7 +132,7 @@ async def create_credential_func(operator, operation, data):
                 task=data["task"],
                 realm=data["realm"],
                 operation=operation,
-                credential=data["credential"],
+                credential=data["credential"].encode(),
                 operator=operator,
                 comment=data["comment"],
             )
@@ -209,7 +209,7 @@ async def update_credential_func(cred, data):
         if "realm" in data:
             cred.realm = data["realm"]
         if "credential" in data and data["credential"] != "":
-            cred.credential = data["credential"]
+            cred.credential = data["credential"].encode()
         if "account" in data:
             cred.account = data["account"]
         if "comment" in data:
