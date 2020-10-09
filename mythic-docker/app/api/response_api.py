@@ -462,7 +462,7 @@ async def post_agent_response(agent_message, UUID):
                                     art = await db_objects.create(
                                         TaskArtifact,
                                         task=task,
-                                        artifact_instance=str(artifact["artifact"]),
+                                        artifact_instance=str(artifact["artifact"]).encode(),
                                         artifact=base_artifact,
                                         host=task.callback.host,
                                     )

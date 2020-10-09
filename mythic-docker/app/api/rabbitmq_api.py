@@ -725,7 +725,7 @@ async def register_artifact(request):
         art = await db_objects.create(
             db_model.TaskArtifact,
             task=task,
-            artifact_instance=request["artifact_instance"],
+            artifact_instance=request["artifact_instance"].encode(),
             artifact=artifact,
             host=request["host"],
             operation=task.callback.operation,

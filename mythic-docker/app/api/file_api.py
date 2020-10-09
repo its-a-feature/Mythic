@@ -375,8 +375,6 @@ async def create_filemeta_in_database_func(data):
         )
         if filemeta.is_screenshot:
             await log_to_siem(task.to_json(), mythic_object="file_screenshot")
-        else:
-            await log_to_siem(task.to_json(), mythic_object="file_upload")
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
         return {"status": "error", "error": "failed to create file"}
@@ -483,7 +481,8 @@ async def download_file_to_disk_func(data):
                 contents = open(file_meta.path, "rb").read()
                 file_meta.md5 = await hash_MD5(contents)
                 file_meta.sha1 = await hash_SHA1(contents)
-                await log_to_siem(file_meta.to_json(), mythic_object="file_download")
+                if not file_meta.is_screenshot:
+                    await log_to_siem(file_meta.to_json(), mythic_object="file_download")
             await db_objects.update(file_meta)
     except Exception as e:
         print("Failed to save chunk to disk: " + str(e))
