@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class HostnameArguments(TaskArguments):
@@ -28,6 +29,10 @@ class HostnameCommand(CommandBase):
     argument_class = HostnameArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.NSHost.currentHost.names",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

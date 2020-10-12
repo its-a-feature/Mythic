@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class ClipboardArguments(TaskArguments):
@@ -46,6 +47,16 @@ class ClipboardCommand(CommandBase):
     browser_script = BrowserScript(script_name="clipboard", author="@its_a_feature_")
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        if task.args.get_arg("data") != "":
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="$.NSPasteboard.generalPasteboard.setStringForType",
+                artifact_type="API Called",
+            )
+        else:
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="$.NSPasteboard.generalPasteboard.dataForType",
+                artifact_type="API Called",
+            )
         return task
 
     async def process_response(self, response: AgentResponse):

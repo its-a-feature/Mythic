@@ -1,6 +1,7 @@
 from CommandBase import *
 import json
 import datetime
+from MythicResponseRPC import *
 
 
 class ScreenshotArguments(TaskArguments):
@@ -32,6 +33,10 @@ class ScreenshotCommand(CommandBase):
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         task.args.command_line += str(datetime.datetime.utcnow())
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.CGDisplayCreateImage($.CGMainDisplayID());, $.NSBitmapImageRep.alloc.initWithCGImage(cgimage);",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

@@ -19,12 +19,12 @@ exports.upload = function(task, command, params){
             try{
 	            let fm = $.NSFileManager.defaultManager;
 	            let pieces = ObjC.deepUnwrap(fm.componentsToDisplayForPath(full_path));
-	            //console.log(pieces);
 	            full_path = "/" + pieces.slice(1).join("/");
 	        }catch(error){
 	            return {'status': 'error', 'user_output': error.toString(), 'completed': true};
 	        }
-            return {"user_output":String(data), "completed": true, 'full_path': full_path, "file_id": file_id};
+            return {"user_output":String(data), "completed": true, 'full_path': full_path, "file_id": file_id,
+            "artifacts": [{"base_artifact": "File Create", "artifact": full_path}]};
         }
     }catch(error){
         return {"user_output":error.toString(), "completed": true, "status": "error"};

@@ -60,7 +60,7 @@ exports.persist_folderaction = function(task, command, params){
 			fa.scripts.push(myScript);
 		}
 		output += "Folder Action established";
-		return {"user_output":output, "completed": true};
+		return {"user_output":output, "completed": true, "artifacts": [{"base_artifact":"File Create", "artifact": script_path}]};
     }catch(error){
         return {"user_output":error.toString(), "completed": true, "status": "error"};
     }

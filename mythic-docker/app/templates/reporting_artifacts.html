@@ -23,7 +23,6 @@
                 <th onclick="sort_table(this)" class="sticky-top" style="width:5rem"><b>Task </b></th>
                 <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Host </b></th>
                 <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Command </b></th>
-                <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Parameters </b></th>
                 <th onclick="sort_table(this)" class="sticky-top" style="text-align:left"><b>Artifact </b></th>
             </tr>
         <!-- Repeat this for each base artifact -->
@@ -39,7 +38,6 @@
                 </td>
                 <td>[[ artifact.host ]]</td>
                 <td>[[ artifact.command ]]</td>
-                <td>[[ artifact.task.substring(0,500) ]]</td>
                 <td>[[artifact.artifact_template]]: [[ artifact.artifact_instance.substring(0,500) ]]</td>
             </tr>
         <!-- End of the repeating -->

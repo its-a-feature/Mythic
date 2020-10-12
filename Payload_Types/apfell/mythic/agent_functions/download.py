@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class DownloadArguments(TaskArguments):
@@ -38,6 +39,10 @@ class DownloadCommand(CommandBase):
     browser_script = BrowserScript(script_name="download", author="@its_a_feature_")
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.NSFileHandle.fileHandleForReadingAtPath, readDataOfLength",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

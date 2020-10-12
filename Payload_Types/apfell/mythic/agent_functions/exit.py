@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class ExitArguments(TaskArguments):
@@ -28,6 +29,10 @@ class ExitCommand(CommandBase):
     argument_class = ExitArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.NSApplication.sharedApplication.terminate",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class TerminalsSendArguments(TaskArguments):
@@ -52,6 +53,16 @@ class TerminalsSendCommand(CommandBase):
     argument_class = TerminalsSendArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="{}".format(
+                task.args.get_arg("command"),
+            ),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="Target Application of Terminal",
+            artifact_type="AppleEvent Sent",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

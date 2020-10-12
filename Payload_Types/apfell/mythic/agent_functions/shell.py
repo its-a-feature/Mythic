@@ -44,7 +44,11 @@ WARNING! THIS IS SINGLE THREADED, IF YOUR COMMAND HANGS, THE AGENT HANGS!
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         resp = await MythicResponseRPC(task).register_artifact(
-            artifact_instance="sh -c {}".format(task.args.get_arg("command")),
+            artifact_instance="/bin/sh -c {}".format(task.args.get_arg("command")),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="{}".format(task.args.get_arg("command")),
             artifact_type="Process Create",
         )
         return task

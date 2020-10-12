@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class ChromeBookmarksArguments(TaskArguments):
@@ -28,6 +29,10 @@ class ChromeBookmarksCommand(CommandBase):
     argument_class = ChromeBookmarksArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="Target Application of Chrome",
+            artifact_type="AppleEvent Sent",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class LaunchAppArguments(TaskArguments):
@@ -41,6 +42,12 @@ class LaunchAppCommand(CommandBase):
     argument_class = LaunchAppArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="xpcproxy {}".format(
+                task.args.get_arg("bundle"),
+            ),
+            artifact_type="Process Create",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

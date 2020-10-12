@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class AddUserArguments(TaskArguments):
@@ -108,6 +109,81 @@ class AddUserCommand(CommandBase):
     attackmapping = ["T1136", "T1169"]
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        if task.args.get_arg("hidden"):
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="dscl . create /Users/{} IsHidden 1".format(task.args.get_arg("user")),
+                artifact_type="Process Create",
+            )
+        else:
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="dscl . create /Users/{}".format(task.args.get_arg("user")),
+                artifact_type="Process Create",
+            )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="dscl . create /Users/{} UniqueID {}".format(
+                task.args.get_arg("user"),
+                task.args.get_arg("uniqueid")
+            ),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="dscl . create /Users/{} PrimaryGroupID {}".format(
+                task.args.get_arg("user"),
+                task.args.get_arg("primarygroupid")
+            ),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="dscl . create /Users/{} NFSHomeDirectory \"{}\"".format(
+                task.args.get_arg("user"),
+                task.args.get_arg("homedir")
+            ),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="dscl . create /Users/{} RealName \"{}\"".format(
+                task.args.get_arg("user"),
+                task.args.get_arg("realname")
+            ),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="dscl . create /Users/{} UserShell {}".format(
+                task.args.get_arg("user"),
+                task.args.get_arg("usershell")
+            ),
+            artifact_type="Process Create",
+        )
+        if task.args.get_arg("admin"):
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="dseditgroup -o edit -a {} -t user admin".format(task.args.get_arg("user")),
+                artifact_type="Process Create",
+            )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="dscl . passwd /Users/{} \"{}\"".format(
+                task.args.get_arg("user"),
+                task.args.get_arg("password")
+            ),
+            artifact_type="Process Create",
+        )
+        if task.args.get_arg("createprofile"):
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="mkdir \"{}\"".format(task.args.get_arg("homedir")),
+                artifact_type="Process Create",
+            )
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="cp -R \"/System/Library/User Template/English.lproj/\" \"{}\"".format(
+                    task.args.get_arg("homedir")
+                ),
+                artifact_type="Process Create",
+            )
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="chown -R {}:staff \"{}\"".format(
+                    task.args.get_arg("user"),
+                    task.args.get_arg("homedir")
+                ),
+                artifact_type="Process Create",
+            )
         return task
 
     async def process_response(self, response: AgentResponse):

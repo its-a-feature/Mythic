@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class ShellElevatedArguments(TaskArguments):
@@ -60,6 +61,26 @@ WARNING! THIS IS SINGLE THREADED, IF YOUR COMMAND HANGS, THE AGENT HANGS!
     argument_class = ShellElevatedArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="/usr/libexec/security_authtrampoline /System/Library/ScriptingAdditions/StandardAdditions.osax/Contents/MacOS/uid auth 15 /System/Library/ScriptingAdditions/StandardAdditions.osax/Contents/MacOS/uid /bin/sh -c {}".format(task.args.get_arg("command")),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="/System/Library/ScriptingAdditions/StandardAdditions.osax/Contents/MacOS/uid /System/Library/ScriptingAdditions/StandardAdditions.osax/Contents/MacOS/uid /bin/sh -c {}".format(task.args.get_arg("command")),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="/System/Library/ScriptingAdditions/StandardAdditions.osax/Contents/MacOS/uid /bin/sh -c {}".format(task.args.get_arg("command")),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="/bin/sh -c {}".format(task.args.get_arg("command")),
+            artifact_type="Process Create",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="{}".format(task.args.get_arg("command")),
+            artifact_type="Process Create",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

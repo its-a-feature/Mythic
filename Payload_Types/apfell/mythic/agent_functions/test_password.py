@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class TestPasswordArguments(TaskArguments):
@@ -46,6 +47,14 @@ class TestPasswordCommand(CommandBase):
     argument_class = TestPasswordArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.CBIdentity.identityWithNameAuthority",
+            artifact_type="API Called",
+        )
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="user.authenticateWithPassword",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class PersistLoginItemAllUsersArguments(TaskArguments):
@@ -45,6 +46,10 @@ class PersistLoginItemAllUsersCommand(CommandBase):
     argument_class = PersistLoginItemAllUsersArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.LSSharedFileListCreate, $.LSSharedFileListSetAuthorization, $.LSSharedFileListInsertItemURL",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

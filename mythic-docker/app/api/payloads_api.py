@@ -586,7 +586,7 @@ async def create_payload_func(data, user):
     try:
         if "tag" not in data:
             data["tag"] = (
-                data["payload_type"] + " payload created by " + user["username"]
+                "Created by " + user["username"] + " at " + datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S") + " UTC"
             )
         # first we need to register the payload
         rsp = await register_new_payload_func(data, user)

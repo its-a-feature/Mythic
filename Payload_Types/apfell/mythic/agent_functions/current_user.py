@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class CurrentUserArguments(TaskArguments):
@@ -43,6 +44,16 @@ class CurrentUserCommand(CommandBase):
     argument_class = CurrentUserArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        if task.args.get_arg("method") == "jxa":
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="Target Application of System Events",
+                artifact_type="AppleEvent Sent",
+            )
+        else:
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="NSUserName, NSFullUserName, NSHomeDirectory",
+                artifact_type="API Called",
+            )
         return task
 
     async def process_response(self, response: AgentResponse):

@@ -41,7 +41,7 @@ class UploadCommand(CommandBase):
     is_upload_file = False
     author = ""
     argument_class = UploadArguments
-    attackmapping = ["T1132", "T1030", "T1041"]
+    attackmapping = ["T1132", "T1030"]
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         filename = json.loads(task.original_params)["assembly_id"]

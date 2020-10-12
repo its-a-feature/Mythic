@@ -10,7 +10,7 @@ exports.spawn_drop_and_execute = function(task, command, params){
         let path = "/usr/bin/osascript";
         let result = write_data_to_file(file, temp_file);
         if(result !== "file written"){return {"user_output": result, "completed": true, "status": 'error'};}
-        else{artifacts.push({"base_artifact": "File Write", "artifact": temp_file});}
+        else{artifacts.push({"base_artifact": "File Create", "artifact": temp_file});}
         let args = ['-l','JavaScript', temp_file, '&'];
         try{
             let pipe = $.NSPipe.pipe;

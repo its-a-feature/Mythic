@@ -448,15 +448,15 @@ async def post_agent_response(agent_message, UUID):
                                     try:
                                         query = await db_model.artifact_query()
                                         base_artifact = await db_objects.get(
-                                            query, name=artifact["base_artifact"]
+                                            query, name=artifact["base_artifact"].encode()
                                         )
                                     except Exception as e:
                                         base_artifact = await db_objects.create(
                                             Artifact,
-                                            name=artifact["base_artifact"],
+                                            name=artifact["base_artifact"].encode(),
                                             description="Auto created from task {}".format(
                                                 task.id
-                                            ),
+                                            ).encode(),
                                         )
                                     # you can report back multiple artifacts at once, no reason to make separate C2 requests
                                     art = await db_objects.create(

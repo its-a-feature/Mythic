@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class PwdArguments(TaskArguments):
@@ -28,6 +29,10 @@ class PwdCommand(CommandBase):
     argument_class = PwdArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="fileManager.currentDirectoryPath",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

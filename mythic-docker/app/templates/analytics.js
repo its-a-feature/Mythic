@@ -389,7 +389,6 @@ function BarChart(xTitle, yTitle){
           if(!height) throw new Error("Bar Chart height must be defined.");
 
           selection.each(function(data) {
-
             width = document.getElementById("task_graph_div").clientWidth;
             let element_width = width/80;
             xAxis = xAxis.ticks(width/80).tickFormat(d3.timeFormat("%m-%d-%Y:%H"));
@@ -530,6 +529,7 @@ function donutChart() {
 
             // ===========================================================================================
             // Set up constructors for making donut. See https://github.com/d3/d3-shape/blob/master/README.md
+            width = d3.select(this)._groups[0][0].clientWidth;
             let radius = Math.min(width, height) / 2;
 
             // creates a new pie generator

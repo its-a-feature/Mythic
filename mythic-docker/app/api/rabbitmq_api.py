@@ -716,9 +716,9 @@ async def register_artifact(request):
 
         # first try to look for the artifact type, if it doesn't exist, create it
         query = await db_model.artifact_query()
-        artifact = await db_objects.get(query, name=request["artifact"])
+        artifact = await db_objects.get(query, name=request["artifact"].encode())
     except Exception as e:
-        artifact = await db_objects.create(db_model.Artifact, name=request["artifact"])
+        artifact = await db_objects.create(db_model.Artifact, name=request["artifact"].encode())
     try:
         if "host" not in request or request["host"] is None or request["host"] == "":
             request["host"] = task.callback.host

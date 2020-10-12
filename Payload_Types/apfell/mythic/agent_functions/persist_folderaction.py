@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class PersistFolderactionArguments(TaskArguments):
@@ -63,6 +64,10 @@ class PersistFolderactionCommand(CommandBase):
     argument_class = PersistFolderactionArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="Target Application of System Events",
+            artifact_type="AppleEvent Sent",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

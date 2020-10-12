@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class PlistArguments(TaskArguments):
@@ -48,6 +49,10 @@ class PlistCommand(CommandBase):
     argument_class = PlistArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.NSMutableDictionary.alloc.initWithContentsOfFile, fileManager.attributesOfItemAtPathError",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

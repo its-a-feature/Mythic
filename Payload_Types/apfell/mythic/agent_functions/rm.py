@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class RmArguments(TaskArguments):
@@ -46,6 +47,10 @@ class RmCommand(CommandBase):
     argument_class = RmArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="fileManager.removeItemAtPathError",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

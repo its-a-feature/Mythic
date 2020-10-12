@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class ListUsersArguments(TaskArguments):
@@ -36,7 +37,7 @@ class ListUsersArguments(TaskArguments):
 class ListUsersCommand(CommandBase):
     cmd = "list_users"
     needs_admin = False
-    help_cmd = 'list_users: {"method": api, "gid": 0} or {"groups": true}'
+    help_cmd = 'list_users'
     description = "This uses JXA to list the non-service user accounts on the system. You can specify a GID to look at the users of a certain group or you can specify 'groups' to be true and enumerate users by groups"
     version = 1
     is_exit = False
@@ -50,6 +51,16 @@ class ListUsersCommand(CommandBase):
     argument_class = ListUsersArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        if task.args.get_arg("gid") < 0:
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="$.CSGetLocalIdentityAuthority, $.CSIdentityQueryCreate, $.CSIdentityQueryExecute",
+                artifact_type="API Called",
+            )
+        else:
+            resp = await MythicResponseRPC(task).register_artifact(
+                artifact_instance="$.CBIdentityAuthority.defaultIdentityAuthority, $.CBGroupIdentity.groupIdentityWithPosixGIDAuthority",
+                artifact_type="API Called",
+            )
         return task
 
     async def process_response(self, response: AgentResponse):

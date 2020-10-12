@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class CdArguments(TaskArguments):
@@ -40,6 +41,10 @@ class CdCommand(CommandBase):
     attackmapping = ["T1083"]
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="fileManager.changeCurrentDirectoryPath",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

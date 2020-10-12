@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class CatArguments(TaskArguments):
@@ -40,6 +41,10 @@ class CatCommand(CommandBase):
     attackmapping = ["T1081", "T1106"]
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="$.NSString.stringWithContentsOfFileEncodingError",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

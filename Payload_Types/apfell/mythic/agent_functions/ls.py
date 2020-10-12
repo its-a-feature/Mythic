@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class LsArguments(TaskArguments):
@@ -47,6 +48,10 @@ class LsCommand(CommandBase):
     browser_script = BrowserScript(script_name="ls", author="@its_a_feature_")
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="fileManager.attributesOfItemAtPathError, fileManager.contentsOfDirectoryAtPathError",
+            artifact_type="API Called",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

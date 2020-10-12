@@ -1,5 +1,6 @@
 from CommandBase import *
 import json
+from MythicResponseRPC import *
 
 
 class RunArguments(TaskArguments):
@@ -45,6 +46,13 @@ class RunCommand(CommandBase):
     argument_class = RunArguments
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
+        resp = await MythicResponseRPC(task).register_artifact(
+            artifact_instance="{} {}".format(
+                task.args.get_arg("path"),
+                " ".join(task.args.get_arg("args"))
+            ),
+            artifact_type="Process Create",
+        )
         return task
 
     async def process_response(self, response: AgentResponse):

