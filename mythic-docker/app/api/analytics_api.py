@@ -97,12 +97,21 @@ async def analytics_callback_analysis_api(request, user):
         return json({"status": "error", "error": "failed to get artifact templates"})
     users = {}
     hosts = {}
+    timings = []
     for c in callbacks:
         if c.host not in hosts:
-            hosts[c.host] = c.to_json()
+            hosts[c.host] = {"count": 1}
+        else:
+            hosts[c.host]["count"] += 1
         if c.user not in users:
-            users[c.user] = c.to_json()
-    return json({"status": "success", "users": users, "hosts": hosts})
+            users[c.user] = {"count": 1}
+        else:
+            users[c.user]["count"] += 1
+        timings.append({"date": c.init_callback.strftime("%m/%d/%Y %H:%M:%S"),
+                        "count": 1})
+    hosts = [{"name": k, "count": v["count"]} for k,v in hosts.items()]
+    users = [{"name": k, "count": v["count"]} for k, v in users.items()]
+    return json({"status": "success", "users": users, "hosts": hosts, "timings": timings})
 
 
 @mythic.route(
@@ -125,6 +134,7 @@ async def analytics_artifact_overview_api(request, user):
         return json({"status": "error", "error": "failed to get current operation"})
     output = {
         "artifact_counts": {"total_count": 0},
+        "artifact_payloads": {},
         "files": {
             "manual_uploads": {"total_count": 0, "operators": {}},
             "staged_files": 0,
@@ -147,30 +157,32 @@ async def analytics_artifact_overview_api(request, user):
         )
     )
     for t in artifact_tasks:
-        if t.task is not None:  # this was automatically reported by a task
-            artifact_name = bytes(t.artifact.name).decode()
-            if artifact_name not in output["artifact_counts"]:
-                output["artifact_counts"][artifact_name] = {
-                    "agent_reported": 0,
-                    "manual": 0,
-                }
-            output["artifact_counts"][artifact_name]["agent_reported"] += 1
-        else:
-            artifact_name = bytes(t.artifact.name).decode()
-            if artifact_name not in output["artifact_counts"]:
-                output["artifact_counts"][artifact_name] = {
-                    "agent_reported": 0,
-                    "manual": 0,
-                }
-            output["artifact_counts"][artifact_name]["manual"] += 1
-        output["artifact_counts"]["total_count"] += 1
-    for t in manual_tasks:
-        if bytes(t.artifact.name).decode() not in output["artifact_counts"]:
-            output["artifact_counts"][bytes(t.artifact.name).decode()] = {
+        artifact_name = bytes(t.artifact.name).decode()
+        if artifact_name not in output["artifact_counts"]:
+            output["artifact_counts"][artifact_name] = {
                 "agent_reported": 0,
                 "manual": 0,
             }
-        output["artifact_counts"][bytes(t.artifact.name).decode()]["manual"] += 1
+        if t.task is not None:  # this was automatically reported by a task
+            output["artifact_counts"][artifact_name]["agent_reported"] += 1
+            if artifact_name not in output["artifact_payloads"]:
+                output["artifact_payloads"][artifact_name] = {}
+            if t.task.command.payload_type.ptype not in output["artifact_payloads"][artifact_name]:
+                output["artifact_payloads"][artifact_name][t.task.command.payload_type.ptype] = {}
+            if t.task.command.cmd not in output["artifact_payloads"][artifact_name][t.task.command.payload_type.ptype]:
+                output["artifact_payloads"][artifact_name][t.task.command.payload_type.ptype][t.task.command.cmd] = 0
+            output["artifact_payloads"][artifact_name][t.task.command.payload_type.ptype][t.task.command.cmd] += 1
+        else:
+            output["artifact_counts"][artifact_name]["manual"] += 1
+        output["artifact_counts"]["total_count"] += 1
+    for t in manual_tasks:
+        artifact_name = bytes(t.artifact.name).decode()
+        if artifact_name not in output["artifact_counts"]:
+            output["artifact_counts"][artifact_name] = {
+                "agent_reported": 0,
+                "manual": 0,
+            }
+        output["artifact_counts"][artifact_name]["manual"] += 1
         output["artifact_counts"]["total_count"] += 1
 
     query = await db_model.filemeta_query()
@@ -211,6 +223,86 @@ async def analytics_artifact_overview_api(request, user):
             output["files"]["upload_files"]["operators"][f.operator.username] += 1
             output["files"]["upload_files"]["total_count"] += 1
     return json({"status": "success", "output": output})
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/analytics/task_frequency", methods=["GET"]
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def analytics_task_frequency_api(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user["current_operation"])
+    except Exception as e:
+        return json(
+            {"status": "error", "error": "failed to find operation"}
+        )
+    query = await db_model.task_query()
+    tasks = await db_objects.execute(query.where(Callback.operation == operation))
+    output = []
+    for t in tasks:
+        output.append({"date": t.status_timestamp_preprocessing.strftime("%m/%d/%Y %H:%M:%S"),
+                       "count": 1})
+    return json({"status": "success", "output": output})
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/analytics/event_frequency", methods=["GET"]
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def analytics_event_frequency_api(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user["current_operation"])
+    except Exception as e:
+        return json(
+            {"status": "error", "error": "failed to find operation"}
+        )
+    query = await db_model.operationeventlog_query()
+    events = await db_objects.execute(query.where(db_model.OperationEventLog.operation == operation))
+    output = {"Deleted Events": 0, "Warning Events": 0, "Mythic Events": 0, "Resolved Events": 0}
+    operator_specific = {"Mythic Events": {"warning": 0, "info": 0}}
+    timings = []
+    for e in events:
+        if e.deleted:
+            output["Deleted Events"] += 1
+        if e.level == "warning":
+            output["Warning Events"] += 1
+        if e.resolved:
+            output["Resolved Events"] += 1
+        if e.operator is None:
+            output["Mythic Events"] += 1
+            operator_specific["Mythic Events"][e.level] += 1
+        else:
+            if e.operator.username not in output:
+                output[e.operator.username] = 0
+            output[e.operator.username] += 1
+            if e.operator.username not in operator_specific:
+                operator_specific[e.operator.username] = {"warning": 0, "info": 0}
+            operator_specific[e.operator.username][e.level] += 1
+        timings.append({"date": e.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+                       "count": 1})
+    output = [{"name": k, "count": v} for k,v in output.items()]
+    for k,v in operator_specific.items():
+        operator_specific[k] = [{"name": "warning", "count": v["warning"]},
+                                {"name": "info", "count": v["info"]}]
+    return json({"status": "success", "output": output, "timings": timings, "operators": operator_specific})
 
 
 # ------------------ endpoint for getting access or  debugging logs ------------------

@@ -286,9 +286,9 @@ async def delete_filemeta_in_database(request, user, id):
         os.remove(filemeta.path)
         await db_objects.create(
             db_model.OperationEventLog,
-            operator=operator,
+            operator=None,
             operation=operation,
-            message="{} deleted".format(filemeta.path.split("/")[-1]),
+            message="{} deleted {} from Shared File Hosting".format(operator.username, filemeta.filename),
         )
     except Exception as e:
         pass
@@ -442,10 +442,10 @@ async def create_filemeta_in_database_manual(request, user):
     await db_objects.update(file_meta)
     await db_objects.create(
         db_model.OperationEventLog,
-        operator=operator,
+        operator=None,
         operation=operation,
-        message="{} hosted with UID {}".format(
-            filename, file_meta.agent_file_id
+        message="{} hosted {} with UID {}".format(
+            operator.username, filename, file_meta.agent_file_id
         ),
     )
     await log_to_siem(file_meta.to_json(), mythic_object="file_manual_upload")
