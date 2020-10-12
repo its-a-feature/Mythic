@@ -13,7 +13,8 @@ var artifact_overview = new Vue({
     el: '#artifactOverview',
     data: {
         artifacts: {"artifact_counts": 0},
-        payload_frequencies: ""
+        payload_frequencies: "",
+        selected_artifact: ""
     },
     delimiters: ['[[', ']]']
 });
@@ -186,35 +187,38 @@ function update_artifact_overview(response){
                     artifact_overview.payload_frequencies = [];
                     artifact_overview.$forceUpdate();
                     if (artifact_overview.artifacts["artifact_payloads"].hasOwnProperty(data2.data.name)) {
-                        let inner_donuts = donutChart()
-                            .width(660)
-                            .height(330)
-                            .cornerRadius(3) // sets how rounded the corners are on each slice
-                            .padAngle(0.015) // effectively dictates the gap between slices
-                            .variable('count')
-                            .category('name');
-                        let new_data = [];
-                        let i = 0;
-                        for(const [p, v] of Object.entries(artifact_overview.artifacts["artifact_payloads"][data2.data.name])){
-                            let inner_data = []; // specific entries for a payload type
-                            for(const[c, n] of Object.entries(v)){
-                                inner_data.push({"name": c, "count": n});
-                            }
-                            new_data.push({"id": i, "name": p, "values": inner_data});
-                            i++;
-                        }
-                        artifact_overview.payload_frequencies = new_data;
-                        artifact_overview.$forceUpdate();
+                        artifact_overview.selected_artifact = data2.data.name;
                         Vue.nextTick().then(function () {
-                            for(let i = 0; i < new_data.length; i++){
-                                d3.select('#payload_command_usage_' + artifact_overview.payload_frequencies[i]['id'])
-                                .datum(artifact_overview.payload_frequencies[i]['values'])
-                                .call(inner_donuts); // draw chart in div
+                            let inner_donuts = donutChart()
+                                .width(660)
+                                .height(330)
+                                .cornerRadius(3) // sets how rounded the corners are on each slice
+                                .padAngle(0.015) // effectively dictates the gap between slices
+                                .variable('count')
+                                .category('name');
+                            let new_data = [];
+                            let i = 0;
+                            for (const [p, v] of Object.entries(artifact_overview.artifacts["artifact_payloads"][data2.data.name])) {
+                                let inner_data = []; // specific entries for a payload type
+                                for (const [c, n] of Object.entries(v)) {
+                                    inner_data.push({"name": c, "count": n});
+                                }
+                                new_data.push({"id": i, "name": p, "values": inner_data});
+                                i++;
                             }
+                            artifact_overview.payload_frequencies = new_data;
+                            artifact_overview.$forceUpdate();
+                            Vue.nextTick().then(function () {
+                                for (let i = 0; i < new_data.length; i++) {
+                                    d3.select('#payload_command_usage_' + artifact_overview.payload_frequencies[i]['id'])
+                                        .datum(artifact_overview.payload_frequencies[i]['values'])
+                                        .call(inner_donuts); // draw chart in div
+                                }
+                            });
                         });
                     }
                     else{
-                        event_analysis.operator = "";
+                        artifact_overview.selected_artifact = "";
                     }
                 });
             let target_artifact_data = [];

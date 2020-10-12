@@ -70,7 +70,7 @@
         <div class="card-columns" style="column-count:3">
             <template v-for="p in payload_frequencies">
                 <div class="card bg-card-body border border-dark shadow">
-                    <div class="card-header shadow border border-dark"><h6>[[ p['name'] ]]</h6></div>
+                    <div class="card-header shadow border border-dark"><h6>[[ p['name'] ]] - [[ selected_artifact ]]</h6></div>
                     <div :id="'payload_command_usage_' + p['id']" class="payload_artifact_specific"></div>
                 </div>
             </template>
