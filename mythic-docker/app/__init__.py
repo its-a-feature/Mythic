@@ -11,29 +11,26 @@ import logging
 # --------------------------------------------
 # --------------------------------------------
 config = json.loads(open("./config.json", "r").read())
-mythic_admin_user = config["mythic_admin_user"]
-mythic_admin_password = config["mythic_admin_password"]
-default_operation_name = config["default_operation_name"]
-listen_port = str(config["listen_port"])
-ssl_cert_path = config["ssl_cert_path"]
-ssl_key_path = config["ssl_key_path"]
-allowed_ip_blocks = config[
-    "allowed_ip_blocks"
-]  # only allow connections from these IPs to the /login and /register pages
-use_ssl = config["use_ssl"]
-server_header = config["server_header"]
-log_size = config[
-    "web_log_size"
-]  # grows indefinitely (0), or specify a max size in Bytes (1MB). If 0, will not rotate!
-keep_logs = config[
-    "web_keep_logs"
-]  # set to false for speed improvement, but no logs will be kept
+mythic_admin_user = config["mythic_admin_user"] if "mythic_admin_user" in config else "mythic_admin"
+mythic_admin_password = config["mythic_admin_password"] if "mythic_admin_password" in config else "mythic_password"
+default_operation_name = config["default_operation_name"] if "default_operation_name" in config else "Operation Chimera"
+listen_port = str(config["listen_port"]) if "listen_port" in config else "7443"
+ssl_cert_path = config["ssl_cert_path"] if "ssl_cert_path" in config else "./app/ssl/mythic-cert.pem"
+ssl_key_path = config["ssl_key_path"] if "ssl_key_path" in config else "./app/ssl/mythic-ssl.key"
+# only allow connections from these IPs to the /login and /register pages
+allowed_ip_blocks = config["allowed_ip_blocks"] if "allowed_ip_blocks" in config else ["0.0.0.0/0"]
+use_ssl = config["use_ssl"] if "use_ssl" in config else True
+server_header = config["server_header"] if "server_header" in config else "nginx 1.2"
+# grows indefinitely (0), or specify a max size in Bytes (1MB). If 0, will not rotate!
+log_size = config["web_log_size"] if "web_log_size" in config else 1024000
+# set to false for speed improvement, but no logs will be kept
+keep_logs = config["web_keep_logs"] if "web_keep_logs" in config else True
 # don't start the following c2_profile docker containers when starting mythic
-excluded_c2_profiles = config["excluded_c2_profiles"]
+excluded_c2_profiles = config["excluded_c2_profiles"] if "excluded_c2_profiles" in config else []
 # don't start the following payload_type docker containers when starting mythic
-excluded_payload_types = config["excluded_payload_types"]
-documentation_port = config["documentation_container_port"]
-siem_log_name = config["siem_log_name"]
+excluded_payload_types = config["excluded_payload_types"] if "excluded_payload_types" in config else []
+documentation_port = config["documentation_container_port"] if "documentation_container_port" in config else "8080"
+siem_log_name = config["siem_log_name"] if "siem_log_name" in config else ""
 # --------------------------------------------
 # --------------------------------------------
 listen_ip = (
