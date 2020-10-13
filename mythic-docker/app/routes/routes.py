@@ -228,7 +228,7 @@ class Register(BaseEndpoint):
                 for o in operations:
                     await db_objects.create(
                         db_model.OperationEventLog,
-                        operator=user,
+                        operator=None,
                         operation=o,
                         message="New user {} created".format(user.username),
                     )

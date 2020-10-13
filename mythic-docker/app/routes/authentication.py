@@ -153,8 +153,7 @@ class MyAuthentication(Authentication):
             )
             operations = []
             if (
-                user_json["current_operation"] != ""
-                and user_json["current_operation"] != "null"
+                user.current_operation is not None
             ):
                 links["current_operation"] = user.current_operation.name
             else:
