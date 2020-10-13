@@ -270,6 +270,17 @@
                           <template v-if="config.file_id!==undefined">[[config.file_id.sha1]]</template>
                       </td>
                   </tr>
+                <tr>
+                    <td style="padding-left:10px">Download File ID</td>
+                      <td >
+                          <template v-if="config.file_id!==undefined">
+                              [[config.file_id.agent_file_id]]<br>
+                              <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/' + config.file_id.agent_file_id">
+                                  {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/[[ config.file_id.agent_file_id  ]]
+                              </a>
+                          </template>
+                      </td>
+                </tr>
             </table>
             </div>
               <div class="modal-footer">
