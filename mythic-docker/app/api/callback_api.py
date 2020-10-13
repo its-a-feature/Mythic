@@ -87,7 +87,7 @@ async def get_agent_message(request):
                 db_model.OperationEventLog,
                 operation=o,
                 level="warning",
-                message=f"Failed to find message in body, cookies, or query args from {request.host} as {request.method} method with headers:\n {request.headers}",
+                message=f"Failed to find message in body, cookies, or query args from {request.socket} as {request.method} method with headers:\n {request.headers}",
             )
         return text("", 404)
     message, code = await parse_agent_message(data, request)
@@ -204,21 +204,21 @@ async def parse_agent_message(data: str, request):
         decoded = base64.b64decode(data)
         #print(decoded)
     except Exception as e:
-        await send_all_operations_message(f"Failed to base64 decode message: {str(data)}\nfrom {request.host} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
+        await send_all_operations_message(f"Failed to base64 decode message: {str(data)}\nfrom {request.socket} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
                                           "warning")
         return "", 404
     try:
         UUID = decoded[:36].decode()  # first 36 characters are the UUID
         # print(UUID)
     except Exception as e:
-        await send_all_operations_message(f"Failed to get UUID in first 36 bytes for base64 input: {str(data)}\nfrom {request.host} as {request.method} method, URL {request.url} with headers: \n{request.headers}",
+        await send_all_operations_message(f"Failed to get UUID in first 36 bytes for base64 input: {str(data)}\nfrom {request.socket} as {request.method} method, URL {request.url} with headers: \n{request.headers}",
                                           "warning")
         return "", 404
     try:
         enc_key = await get_encryption_data(UUID)
         # print(enc_key)
     except Exception as e:
-        await send_all_operations_message(f"Failed to correlate UUID to something mythic knows: {UUID}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
+        await send_all_operations_message(f"Failed to correlate UUID to something mythic knows: {UUID}\nfrom {request.socket} as {request.method} method with headers: \n{request.headers}",
                                           "warning")
         return "", 404
     # now we have cached_keys[UUID] is the right AES key to use with this payload, now to decrypt
@@ -242,7 +242,7 @@ async def parse_agent_message(data: str, request):
             msg = str(decrypted)
         else:
             msg = str(decoded)
-        await send_all_operations_message(f"Failed to decrypt/load message: {str(msg)}\nfrom {request.host} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
+        await send_all_operations_message(f"Failed to decrypt/load message: {str(msg)}\nfrom {request.socket} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
                                           "warning")
         return "", 404
     """

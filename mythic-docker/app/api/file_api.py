@@ -15,6 +15,7 @@ from sanic.log import logger
 from math import ceil
 from pathlib import Path, PureWindowsPath
 from app.api.siem_logger import log_to_siem
+from app.api.operation_api import send_all_operations_message
 
 
 @mythic.route(mythic.config["API_BASE"] + "/files", methods=["GET"])
@@ -77,6 +78,8 @@ async def download_file(request, id):
         file_meta = await db_objects.get(query, agent_file_id=id)
     except Exception as e:
         print(e)
+        await send_all_operations_message(level="warning",
+                                          message=f"Attempt to download file ID {id} through, but file not known.\nMetadata: From {request.socket} with headers: {request.headers}\nURL: {request.url}")
         return json({"status": "error", "error": "file not found"})
     # now that we have the file metadata, get the file if it's done downloading
     if not file_meta.deleted:
