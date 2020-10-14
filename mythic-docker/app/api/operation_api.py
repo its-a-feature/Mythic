@@ -203,17 +203,18 @@ async def update_operation(request, user, op):
                         map = await db_objects.get(
                             OperatorOperation, operator=operator, operation=operation
                         )
-                        map.view_mode = new_member["view_mode"]
-                        await db_objects.update(map)
-                        await db_objects.create(
-                            db_model.OperationEventLog,
-                            operation=operation,
-                            message="{} updated {} view mode to {}".format(
-                                modifier.username,
-                                operator.username,
-                                new_member["view_mode"],
-                            ),
-                        )
+                        if map.view_mode != new_member["view_mode"]:
+                            map.view_mode = new_member["view_mode"]
+                            await db_objects.update(map)
+                            await db_objects.create(
+                                db_model.OperationEventLog,
+                                operation=operation,
+                                message="{} updated {} view mode to {}".format(
+                                    modifier.username,
+                                    operator.username,
+                                    new_member["view_mode"],
+                                ),
+                            )
                     except Exception as e:
                         map = await db_objects.create(
                             OperatorOperation,

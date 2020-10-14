@@ -124,21 +124,27 @@ async def edit_event_message(request, user, eid):
                 or msg.operator == operator
                 or operation.name in user["admin_operations"]
             ):
-                if "message" in data:
-                    msg.message = data["message"]
                 if "resolved" in data:
                     msg.resolved = data["resolved"]
+                if "message" in data:
+                    msg.message = data["message"]
                 if "level" in data and data["level"] in ["info", "warning"]:
                     msg.level = data["level"]
                 await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")
                 await db_objects.update(msg)
             else:
-                return json(
-                    {
-                        "status": "error",
-                        "error": "You must be the author of the message, a global admin, or operation admin to edit that message",
-                    }
-                )
+                if "resolved" in data and data["resolved"] != msg.resolved:
+                    msg.resolved = data["resolved"]
+                    await db_objects.update(msg)
+                    await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")
+                else:
+                    return json(
+                        {
+                            "status": "error",
+                            "error": "You must be the author of the message, a global admin, or operation admin to edit that message",
+                        }
+                    )
+
         return json({"status": "success", **msg.to_json()})
     except Exception as e:
         return json({"status": "error", "error": str(e)})
