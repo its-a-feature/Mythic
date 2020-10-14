@@ -40,14 +40,7 @@
                 <tr>
                     <td style="text-align:left;width:7em">&nbsp;&nbsp;<b><a :href="t.href" target="_blank">[[t.id]]</a></b></td>
                     <td style="text-align:left">
-                        <template v-if="t.params != t.original_params">
-                            Original: [[t.command]] [[t.original_params.substring(0,500)]]<br>
-                            Transformed: [[t.command]] [[t.params.substring(0,500)]]
-                        </template>
-                        <template v-else>
-                            [[t.command]] [[t.params.substring(0,500)]]
-                        </template>
-
+                            [[t.command]] [[t.original_params ]]
                     </td>
                     <td style="text-align:left">
                         <template v-for="a in t.attack">
@@ -215,7 +208,6 @@ ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" B
                                 </td>
                                 <td style="text-align:left">Task: <b><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + cmd.task" target="_blank">[[cmd.task]]</a></b>, [[cmd.task_command]] [[cmd.task_params.substring(0,200)]]</td>
                             </template>
-
                         </tr>
                     </table>
                     </div><br>
