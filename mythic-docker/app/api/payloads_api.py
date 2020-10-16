@@ -355,7 +355,7 @@ async def register_new_payload_func(data, user):
                                 p["c2_profile_parameters"][param.name] = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
                             else:
                                 p["c2_profile_parameters"][param.name] = (
-                                            datetime.utcnow() + timedelta(days=param.default_value)
+                                            datetime.utcnow() + timedelta(days=int(param.default_value))
                                 ).strftime("%Y-%m-%d")
                         elif param.parameter_type == "Dictionary":
                             # default for a dictionary type is to just display all those that have "default_show" to true
