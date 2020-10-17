@@ -400,6 +400,7 @@ async def manage_browser_scripts(request, user):
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
+        current_operation=user["current_operation"]
     )
     return response.html(content)
 

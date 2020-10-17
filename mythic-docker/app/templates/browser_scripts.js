@@ -78,7 +78,7 @@ var scripts = new Vue({
         },
         toggle_operation: function(s){
             if(!this.is_in_operation(s)){
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s['id'], register_script_callback, "PUT", {"operation": "{{current_operation}}"});
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s['id'], register_script_callback, "PUT", {"operation": "{{current_operation|e}}"});
             }
             else{
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/browser_scripts/" + s['id'], register_script_callback, "PUT", {"operation": ""});
