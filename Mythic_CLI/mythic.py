@@ -4654,6 +4654,20 @@ class Mythic:
             resp.response = EventMessage(resp.response)
         return resp
 
+    async def remove_event_messages(self, messages: List) -> MythicResponse:
+        """
+        Update event message for the current operation
+        :return:
+        """
+        url = "{}{}:{}/api/v{}/event_message/delete".format(
+            self._http, self.server_ip, self._server_port, self._server_api_version
+        )
+        msgs = [m.id for m in messages]
+        resp = await self.post_json(url, data={"messages": msgs})
+        if resp.response_code == 200 and resp.status == "success":
+            resp.response = EventMessage(resp.response)
+        return resp
+
     # ============= CUSTOM HELPER FUNCTIONS ======================
 
     async def login(self):
