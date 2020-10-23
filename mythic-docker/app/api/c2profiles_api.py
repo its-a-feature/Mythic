@@ -14,6 +14,7 @@ from app.api.rabbitmq_api import send_c2_rabbitmq_message
 from sanic.exceptions import abort
 from exrex import getone
 import uuid
+from app.api.operation_api import send_all_operations_message
 
 
 # Get all the currently registered profiles
@@ -401,6 +402,10 @@ async def update_c2_profile(request, profile, user):
         data = request.json
         if "container_running" in data:
             c2profile.container_running = data["container_running"]
+            if not c2profile.container_running:
+                c2profile.running = False
+                await send_all_operations_message(message=f"C2 Profile {c2profile.name} has stopped",
+                                                  level="info")
             await db_objects.update(c2profile)
         return json(c2profile.to_json())
     except Exception as e:

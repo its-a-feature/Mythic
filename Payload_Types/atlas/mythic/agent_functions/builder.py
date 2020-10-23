@@ -13,7 +13,7 @@ class Atlas(PayloadType):
     author = "@Airzero24"
     supported_os = [SupportedOS.Windows]
     wrapper = False
-    wrapped_payloads = []
+    wrapped_payloads = ["service_wrapper"]
     note = """This payload uses C# to target Windows hosts with the .NET framework installed. For more information and a more detailed README, check out: https://github.com/airzero24/Atlas"""
     supports_dynamic_loading = False
     build_parameters = {

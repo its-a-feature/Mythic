@@ -68,11 +68,15 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
             try:
                 query = await db_model.c2profile_query()
                 profile = await db_objects.get(query, name=pieces[2], deleted=False)
-                if pieces[3] == "running":
+                if pieces[3] == "running" and not profile.running:
                     profile.running = True
-                else:
+                    await db_objects.update(profile)
+                    await send_all_operations_message(message=f"C2 Profile {profile.name} has started", level="info")
+                elif pieces[3] == "stopped" and profile.running:
                     profile.running = False
-                await db_objects.update(profile)
+                    await db_objects.update(profile)
+                    await send_all_operations_message(message=f"C2 Profile {profile.name} has stopped", level="warning")
+                # otherwise we got a status that matches the current status, just move on
             except Exception as e:
                 logger.exception(
                     "Exception in rabbit_c2_callback (status): {}, {}".format(
@@ -966,7 +970,8 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 except Exception as e:
                     if pieces[2] not in sync_tasks:
                         sync_tasks[pieces[2]] = True
-                        print("Sending sync message to {}".format(pieces[2]))
+                        await send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
+                                                          level="info")
                         await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
                     return
                 if (
@@ -974,7 +979,10 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                     < datetime.datetime.utcnow() + datetime.timedelta(seconds=-30)
                     or not profile.container_running
                 ):
-                    profile.running = False  # container just started, clearly the inner service isn't running
+                    if profile.running:
+                        await send_all_operations_message(message=f"{profile.name}'s internal server stopped",
+                                                          level="warning")
+                        profile.running = False  # container just started, clearly the inner service isn't running
                     # print("setting running to false")
                 profile.container_running = True
                 profile.last_heartbeat = datetime.datetime.utcnow()
@@ -991,6 +999,8 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 except Exception as e:
                     if pieces[2] not in sync_tasks:
                         sync_tasks[pieces[2]] = True
+                        await send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
+                                                          level="info")
                         await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "")
         except Exception as e:
             logger.exception(

@@ -243,47 +243,48 @@ async def sync_container_file_for_payload_type(request, ptype, user):
 async def import_payload_type_func(ptype, operator):
     try:
         if "author" not in ptype:
-            ptype["author"] = operator.username
+            ptype["author"] = operator.username if operator is not None else ""
         if "note" not in ptype:
             ptype["note"] = ""
-        if ptype["ptype"] == "":
-            return {ptype["ptype"]: "payload type must not be empty"}
-        elif "ptype" not in ptype:
-            return {"": "must supply a ptype field"}
+        if "ptype" not in ptype or ptype["ptype"] == "":
+            return {"status": "error", "error": "payload type must not be empty"}
         query = await db_model.payloadtype_query()
-        if ptype["wrapper"]:
-            try:
-                payload_type = await db_objects.get(query, ptype=ptype["ptype"])
-                payload_type.wrapper = True
-                payload_type.supported_os = ptype["supported_os"]
-                payload_type.file_extension = ptype["file_extension"]
-                payload_type.author = ptype["author"]
-                payload_type.note = ptype["note"]
-                payload_type.supports_dynamic_loading = ptype[
-                    "supports_dynamic_loading"
-                ]
-            except Exception as e:
-                payload_type = await db_objects.create(
-                    PayloadType,
-                    ptype=ptype["ptype"],
-                    wrapper=True,
-                    supported_os=ptype["supported_os"],
-                    file_extension=ptype["file_extension"],
-                    author=ptype["author"],
-                    note=ptype["note"],
-                    supports_dynamic_loading=ptype["supports_dynamic_loading"],
-                )
+        try:
+            payload_type = await db_objects.get(query, ptype=ptype["ptype"])
+            payload_type.wrapper = ptype["wrapper"]
+            payload_type.supported_os = ptype["supported_os"]
+            payload_type.file_extension = ptype["file_extension"]
+            payload_type.author = ptype["author"]
+            payload_type.note = ptype["note"]
+            payload_type.supports_dynamic_loading = ptype[
+                "supports_dynamic_loading"
+            ]
+        except Exception as e:
+            payload_type = await db_objects.create(
+                PayloadType,
+                ptype=ptype["ptype"],
+                wrapper=ptype["ptype"],
+                supported_os=ptype["supported_os"],
+                file_extension=ptype["file_extension"],
+                author=ptype["author"],
+                note=ptype["note"],
+                supports_dynamic_loading=ptype["supports_dynamic_loading"],
+            )
+        if not ptype["wrapper"]:
             # now deal with all of the wrapped payloads mentioned
             wrapper_query = await db_model.wrappedpayloadtypes_query()
+            # get the list of wrapper combinations associated with the current payload type
             current_wrapped = await db_objects.execute(
                 wrapper_query.where(
-                    db_model.WrappedPayloadTypes.wrapper == payload_type
+                    db_model.WrappedPayloadTypes.wrapped == payload_type
                 )
             )
+            # current_wrapped has list of wrapper->this_payload_type that currently exist in Mythic
             for cw in current_wrapped:
                 found = False
+                # ptype["wrapped"] is a list of wrappers we support
                 for ptw in ptype["wrapped"]:
-                    if ptw == cw.wrapped.ptype:
+                    if ptw == cw.wrapper.ptype:
                         ptype["wrapped"].remove(ptw)
                         found = True
                         break
@@ -296,34 +297,12 @@ async def import_payload_type_func(ptype, operator):
                     wrapped = await db_objects.get(query, ptype=ptw)
                     await db_objects.create(
                         db_model.WrappedPayloadTypes,
-                        wrapper=payload_type,
-                        wrapped=wrapped,
+                        wrapper=wrapped,
+                        wrapped=payload_type,
                     )
                 except Exception as e:
                     print(e)
                     pass
-        else:
-            try:
-                payload_type = await db_objects.get(query, ptype=ptype["ptype"])
-                payload_type.supported_os = ptype["supported_os"]
-                payload_type.file_extension = ptype["file_extension"]
-                payload_type.author = ptype["author"]
-                payload_type.note = ptype["note"]
-                payload_type.supports_dynamic_loading = ptype[
-                    "supports_dynamic_loading"
-                ]
-                await db_objects.update(payload_type)
-            except Exception as e:
-                payload_type = await db_objects.create(
-                    PayloadType,
-                    ptype=ptype["ptype"],
-                    wrapper=False,
-                    supported_os=ptype["supported_os"],
-                    file_extension=ptype["file_extension"],
-                    author=ptype["author"],
-                    note=ptype["note"],
-                    supports_dynamic_loading=ptype["supports_dynamic_loading"],
-                )
         try:
             payload_type.creation_time = datetime.datetime.utcnow()
             await db_objects.update(payload_type)
@@ -425,7 +404,6 @@ async def import_payload_type_func(ptype, operator):
                                 author=support_script["author"],
                                 container_version_author=support_script["author"],
                             )
-
             # now that we have the payload type, start processing the commands and their parts
             await import_command_func(payload_type, operator, ptype["commands"])
             if "c2_profiles" in ptype:

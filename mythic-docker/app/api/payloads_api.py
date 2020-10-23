@@ -20,6 +20,7 @@ import ujson as js
 from datetime import datetime, timedelta
 from sanic.exceptions import abort
 from app.api.rabbitmq_api import send_c2_rabbitmq_message
+from app.api.operation_api import send_all_operations_message
 
 
 @mythic.route(mythic.config["API_BASE"] + "/payloads/", methods=["GET"])
@@ -319,6 +320,7 @@ async def register_new_payload_func(data, user):
                     await send_c2_rabbitmq_message(
                         c2_profile.name, "start", "", user["username"]
                     )
+                    await send_all_operations_message(message=f"Starting {c2_profile.name} C2 Profile", level="info")
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 return {

@@ -15,7 +15,7 @@ class ServiceWrapper(PayloadType):
     author = "@its_a_feature_"
     supported_os = [SupportedOS.Windows]
     wrapper = True
-    wrapped_payloads = ["atlas", "Apollo"]
+    wrapped_payloads = []
     note = "This is a wrapper payload that takes in Raw shellcode and generates a .NET Service binary. The service does not perform any injection."
     supports_dynamic_loading = False
     build_parameters = {
