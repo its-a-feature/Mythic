@@ -242,6 +242,7 @@ async def sync_container_file_for_payload_type(request, ptype, user):
 
 async def import_payload_type_func(ptype, operator):
     try:
+        print(ptype)
         if "author" not in ptype:
             ptype["author"] = operator.username if operator is not None else ""
         if "note" not in ptype:
@@ -263,7 +264,7 @@ async def import_payload_type_func(ptype, operator):
             payload_type = await db_objects.create(
                 PayloadType,
                 ptype=ptype["ptype"],
-                wrapper=ptype["ptype"],
+                wrapper=ptype["wrapper"],
                 supported_os=ptype["supported_os"],
                 file_extension=ptype["file_extension"],
                 author=ptype["author"],
