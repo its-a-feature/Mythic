@@ -202,12 +202,12 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 await send_all_operations_message("Successfully Sync-ed database with {} payload files".format(
                                             pieces[2]
                                         ), "info")
-                                # for a successful checkin, we need to find all wrapper payload types and get them to re-check in
-                                if status["wrapper"] is False:
+                                # for a successful checkin, we need to find all normal payload types and get them to re-check in
+                                if status["wrapper"]:
                                     query = await db_model.payloadtype_query()
                                     pts = await db_objects.execute(
                                         query.where(
-                                            db_model.PayloadType.wrapper == True
+                                            db_model.PayloadType.wrapper == False
                                         )
                                     )
                                     sync_operator = (
@@ -216,6 +216,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     for pt in pts:
                                         if pt.ptype not in sync_tasks:
                                             sync_tasks[pt.ptype] = True
+                                            print("got sync from {}, sending sync to {}".format(pieces[2], pt.ptype))
                                             await send_pt_rabbitmq_message(
                                                 pt.ptype, "sync_classes", "", sync_operator
                                             )
