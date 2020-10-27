@@ -3712,7 +3712,9 @@ class Mythic:
                     if o.name == operation.name:
                         resp.response = o
                         return resp
-            return resp
+            print("[-] Failed to find operation")
+            await json_print(resp)
+            return None
         else:
             url = "{}{}:{}/api/v{}/operations/{}".format(
                 self._http,

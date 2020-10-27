@@ -7,9 +7,6 @@ exports.upload = function(task, command, params){
         if(config.hasOwnProperty('file') && config['file'] !== ""){
             data = C2.upload(task, config['file'], "");
             file_id = config['file']
-        }else if(config.hasOwnProperty('file_id') && config['file_id'] !== ""){
-            data = C2.upload(task, config['file_id'], "");
-            file_id = config['file_id'];
         }
         if(typeof data === "string"){
             return {"user_output":String(data), "completed": true, "status": "error"};
@@ -19,6 +16,9 @@ exports.upload = function(task, command, params){
             try{
 	            let fm = $.NSFileManager.defaultManager;
 	            let pieces = ObjC.deepUnwrap(fm.componentsToDisplayForPath(full_path));
+	            if(pieces === undefined){
+	                return {'status': 'error', 'user_output': String(data), 'completed': true};
+                }
 	            full_path = "/" + pieces.slice(1).join("/");
 	        }catch(error){
 	            return {'status': 'error', 'user_output': error.toString(), 'completed': true};

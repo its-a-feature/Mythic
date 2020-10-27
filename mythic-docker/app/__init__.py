@@ -7,6 +7,7 @@ from ipaddress import ip_network
 import ujson as json
 import asyncio
 import logging
+import uuid
 
 # --------------------------------------------
 # --------------------------------------------
@@ -127,7 +128,7 @@ mythic_logging["loggers"]["sanic.root"]["handlers"].append("rotating_root_log")
 mythic = Sanic(__name__, strict_slashes=False, log_config=mythic_logging)
 mythic.config[
     "WTF_CSRF_SECRET_KEY"
-] = "really secure super secret key here, and change me!"
+] = str(uuid.uuid4()) + str(uuid.uuid4())
 mythic.config["SERVER_IP_ADDRESS"] = "127.0.0.1"
 mythic.config["SERVER_PORT"] = listen_port
 mythic.config["DB_USER"] = db_user
@@ -195,7 +196,7 @@ Initialize(
     scopes_enabled=True,
     add_scopes_to_payload=app.routes.authentication.add_scopes_to_payload,
     scopes_name="scope",
-    secret="mythic_secret jwt for signing here",
+    secret=str(uuid.uuid4()) + str(uuid.uuid4()),
     url_prefix="/",
     class_views=my_views,
     path_to_authenticate="/auth",

