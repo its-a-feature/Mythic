@@ -141,7 +141,7 @@ if(does_file_exist("/etc/krb5.conf")){
     contents = contents.split("\n");
     for(let j = 0; j < contents.length; j++){
         if(contents[j].includes("default_realm")){
-            domain = contents[j].split("=").trim();
+            domain = contents[j].split("=")[0].trim();
         }
     }
 }
