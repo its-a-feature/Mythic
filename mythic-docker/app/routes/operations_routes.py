@@ -219,6 +219,7 @@ async def keylogs(request, user):
         ws="wss" if use_ssl else "ws",
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
+        current_operation=user["current_operation"],
         view_mode=user["view_mode"],
     )
     return response.html(content)

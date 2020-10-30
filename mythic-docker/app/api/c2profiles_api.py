@@ -15,6 +15,7 @@ from sanic.exceptions import abort
 from exrex import getone
 import uuid
 from app.api.operation_api import send_all_operations_message
+from app.crypto import create_key_AES256
 
 
 # Get all the currently registered profiles
@@ -319,7 +320,7 @@ async def get_c2profile_parameters(request, info, user):
         for p in parameters:
             p_json = p.to_json()
             if p_json["name"] == "AESPSK":
-                p_json["default_value"] = operation.AESPSK
+                p_json["default_value"] = await create_key_AES256()
             if p_json["randomize"]:
                 # generate a random value based on the associated format_string variable
                 p_json["default_value"] = await generate_random_format_string(

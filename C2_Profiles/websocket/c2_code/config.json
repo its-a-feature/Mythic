@@ -6,5 +6,5 @@
     "websocketuri": "socket",
     "defaultpage": "index.html",
     "logfile": "server.log",
-    "debug": true
+    "debug": false
 }

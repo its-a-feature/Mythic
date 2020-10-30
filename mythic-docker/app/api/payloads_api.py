@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from sanic.exceptions import abort
 from app.api.rabbitmq_api import send_c2_rabbitmq_message
 from app.api.operation_api import send_all_operations_message
+from app.crypto import create_key_AES256
 
 
 @mythic.route(mythic.config["API_BASE"] + "/payloads/", methods=["GET"])
@@ -338,7 +339,7 @@ async def register_new_payload_func(data, user):
                         if param.name == "AESPSK":
                             p["c2_profile_parameters"][
                                 param.name
-                            ] = payload.operation.AESPSK
+                            ] = await create_key_AES256()
                         elif param.randomize:
                             # generate a random value based on the associated format_string variable
                             from app.api.c2profiles_api import (
