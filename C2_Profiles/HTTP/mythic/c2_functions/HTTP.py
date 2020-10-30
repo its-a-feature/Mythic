@@ -92,7 +92,7 @@ class HTTP(C2Profile):
         ),
         C2ProfileParameter(
             name="proxy_pass",
-            description="Proxy Username",
+            description="Proxy Password",
             default_value="",
             required=False,
         ),
