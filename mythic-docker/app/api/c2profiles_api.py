@@ -673,5 +673,5 @@ async def import_c2_profile_func(data, operator):
         # print("Associated new params for profile: {}-{}".format(param['name'], data['name']))
     #  anything left in curr_parameters_dict we need to delete
     for k, v in curr_parameters_dict.items():
-        await db_objects.delete(v)
+        await db_objects.delete(v, recursive=True)
     return {"status": "success", "new": new_profile, **profile.to_json()}

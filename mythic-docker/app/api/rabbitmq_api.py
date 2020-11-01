@@ -43,6 +43,7 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 await send_all_operations_message("Failed Sync-ed database with {} C2 files: {}".format(
                     pieces[2], str(e)
                 ), "warning")
+                return
             operation_query = await db_model.operation_query()
             operations = await db_objects.execute(
                 operation_query.where(db_model.Operation.complete == False)
