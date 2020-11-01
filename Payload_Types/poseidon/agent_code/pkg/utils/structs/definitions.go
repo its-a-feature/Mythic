@@ -8,35 +8,41 @@ import (
 
 // Defaultconfig - C2 Profile configuration for the default profile
 type Defaultconfig struct {
-	KEYX       string   `json:"keyx"`
-	Key     string   `json:"key"`
-	BaseURL    string   `json:"baseurl"`
-	UserAgent  string   `json:"useragent"`
-	Sleep      int   `json:"sleep"`
-	HostHeader string   `json:"hostheader"`
-	Jitter     int      `json:"jitter"`
+	KEYX          string `json:"keyx"`
+	Key           string `json:"key"`
+	BaseURL       string `json:"baseurl"`
+	PostURI       string `json:"post_uri"`
+	GetURI        string `json:"get_uri"`
+	QueryPathName string `json:"query_path_name"`
+	ProxyURL      string `json:"proxy_url"`
+	ProxyUser     string `json:"proxy_user"`
+	ProxyPass     string `json:"proxy_pass"`
+	UserAgent     string `json:"useragent"`
+	Sleep         int    `json:"sleep"`
+	HostHeader    string `json:"hostheader"`
+	Jitter        int    `json:"jitter"`
 }
 
 // Websocketconfig - C2 Profile configuration for the websocket profile
 type Websocketconfig struct {
-	KEYX       string   `json:"keyx"`
-	Key     string   `json:"key"`
-	BaseURL    string   `json:"baseurl"`
-	UserAgent  string   `json:"useragent"`
-	Sleep      int   `json:"sleep"`
-	HostHeader string   `json:"hostheader"`
-	Jitter     int      `json:"jitter"`
-	Endpoint   string   `json:"endpoint"`
+	KEYX       string `json:"keyx"`
+	Key        string `json:"key"`
+	BaseURL    string `json:"baseurl"`
+	UserAgent  string `json:"useragent"`
+	Sleep      int    `json:"sleep"`
+	HostHeader string `json:"hostheader"`
+	Jitter     int    `json:"jitter"`
+	Endpoint   string `json:"endpoint"`
 }
 
 // Slackconfig - C2 Profile configuration for the slack profile
 type Slackconfig struct {
-	KEYX       string   `json:"keyx"`
-	Key     string   `json:"key"`
-	Sleep      int   `json:"sleep"`
-	Jitter     int      `json:"jitter"`
-	ApiKey	  string 	`json:"apikey"`
-	ChannelID string 	`json:"channelid"`
+	KEYX      string `json:"keyx"`
+	Key       string `json:"key"`
+	Sleep     int    `json:"sleep"`
+	Jitter    int    `json:"jitter"`
+	ApiKey    string `json:"apikey"`
+	ChannelID string `json:"channelid"`
 }
 
 // Struct definition for CheckIn messages
@@ -111,46 +117,46 @@ type TaskResponseMessage struct {
 	Action    string            `json:"action"`
 	Responses []json.RawMessage `json:"responses"`
 	Delegates []json.RawMessage `json:"delegates"`
-	Socks     []SocksMsg         `json:"socks"`
+	Socks     []SocksMsg        `json:"socks"`
 }
 
 type Response struct {
-	TaskID     string `json:"task_id"`
-	UserOutput string `json:"user_output"`
-	Completed  bool   `json:"completed"`
-	Status     string `json:"status"`
-	FileBrowser DirectoryEntries `json:"file_browser"`
-	RemovedFiles []RmFiles `json:"removed_files,omitempty"`
+	TaskID       string           `json:"task_id"`
+	UserOutput   string           `json:"user_output"`
+	Completed    bool             `json:"completed"`
+	Status       string           `json:"status"`
+	FileBrowser  DirectoryEntries `json:"file_browser"`
+	RemovedFiles []RmFiles        `json:"removed_files,omitempty"`
 }
 
 type PermissionJSON struct {
-    Permissions string `json:"permissions"`
+	Permissions string `json:"permissions"`
 }
 
 type RmFiles struct {
-    Path string `json:"path"`
-    Host string `json:"host"`
+	Path string `json:"path"`
+	Host string `json:"host"`
 }
 
 type DirectoryEntries struct {
-	Files []FileData `json:"files"`
-    IsFile       bool   `json:"is_file"`
-    Permissions  PermissionJSON `json:"permissions"`
-    Filename     string `json:"name"`
-    ParentPath   string `json:"parent_path"`
-    Success      bool   `json:"success"`
-    FileSize     int64  `json:"size"`
-	LastModified string `json:"modify_time"`
-	LastAccess   string `json:"access_time"`
+	Files        []FileData     `json:"files"`
+	IsFile       bool           `json:"is_file"`
+	Permissions  PermissionJSON `json:"permissions"`
+	Filename     string         `json:"name"`
+	ParentPath   string         `json:"parent_path"`
+	Success      bool           `json:"success"`
+	FileSize     int64          `json:"size"`
+	LastModified string         `json:"modify_time"`
+	LastAccess   string         `json:"access_time"`
 }
 
 type FileData struct {
-    IsFile       bool   `json:"is_file"`
-    Permissions  PermissionJSON `json:"permissions"`
-	Filename     string `json:"name"`
-	FileSize     int64  `json:"size"`
-	LastModified string `json:"modify_time"`
-	LastAccess   string `json:"access_time"`
+	IsFile       bool           `json:"is_file"`
+	Permissions  PermissionJSON `json:"permissions"`
+	Filename     string         `json:"name"`
+	FileSize     int64          `json:"size"`
+	LastModified string         `json:"modify_time"`
+	LastAccess   string         `json:"access_time"`
 }
 
 type TaskResponseMessageResponse struct {
@@ -171,10 +177,10 @@ type UserOutput struct {
 
 // Struct definitions for file downloads and uploads
 type FileDownloadInitialMessage struct {
-	NumChunks int    `json:"total_chunks"`
-	TaskID    string `json:"task_id"`
-	FullPath  string `json:"full_path"`
-	IsScreenshot bool `json:"is_screenshot"`
+	NumChunks    int    `json:"total_chunks"`
+	TaskID       string `json:"task_id"`
+	FullPath     string `json:"full_path"`
+	IsScreenshot bool   `json:"is_screenshot"`
 }
 
 type FileDownloadInitialMessageResponse struct {
@@ -195,7 +201,7 @@ type FileUploadChunkMessage struct {
 	FileID    string `json:"file_id"`
 	ChunkNum  int    `json:"chunk_num"`
 	FullPath  string `json:"full_path"`
-	TaskID string `json:"task_id"`
+	TaskID    string `json:"task_id"`
 }
 
 type FileUploadChunkMessageResponse struct {
@@ -203,7 +209,7 @@ type FileUploadChunkMessageResponse struct {
 	TotalChunks int    `json:"total_chunks"`
 	ChunkNum    int    `json:"chunk_num"`
 	ChunkData   string `json:"chunk_data"`
-    FileID    string `json:"file_id"`
+	FileID      string `json:"file_id"`
 }
 
 //Message - struct definition for external C2 messages
@@ -282,10 +288,11 @@ type CheckInStruct struct {
 	UUID           string `json:"uuid"`
 	IntegrityLevel int    `json:"integrity_level"`
 }
+
 // Struct for dealing with Socks messages
-type SocksMsg struct{
-	ServerId	int32 	`json:"server_id"`
-	Data		string 	`json:"data"`
+type SocksMsg struct {
+	ServerId int32  `json:"server_id"`
+	Data     string `json:"data"`
 }
 
 // MonitorStop tells the job that it needs to wait for a kill signal.
