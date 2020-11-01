@@ -79,9 +79,17 @@ class HTTP(C2Profile):
             required=True,
         ),
         C2ProfileParameter(
-            name="proxy_url",
-            description="Proxy URL",
+            name="proxy_host",
+            description="Proxy Host",
             default_value="",
+            required=False,
+            verifier_regex="^$|^(http|https):\/\/[a-zA-Z0-9]+",
+        ),
+        C2ProfileParameter(
+            name="proxy_port",
+            description="Proxy Port",
+            default_value="",
+            verifier_regex="^$|^[0-9]+$",
             required=False,
         ),
         C2ProfileParameter(
