@@ -287,12 +287,16 @@
                         <th></th>
                         <th><b>Config Key</b></th>
                         <th><b>Config Value</b></th>
+                        <th><b>Config Color</b></th>
                     </tr>
                     <template v-for="entry in config">
                         <tr>
                             <td><button class="btn btn{{config['outline-buttons']}}danger" @click="remove_key_config(entry.key)"><i class="fas fa-trash-alt"></i></button></td>
                             <td><input type="text" class="form-control" v-model="entry.key" :value="entry.key" size="40"></td>
-                            <td><input type="text" class="form-control" v-model="entry.value" :valye="entry.value"></td>
+                            <td><input type="text" class="form-control" v-model="entry.value" :value="entry.value"></td>
+                            <td>
+                                <div :style="'width:40px;height:40px;background-color:' + entry.value"></div>
+                            </td>
                         </tr>
                     </template>
                 </table>

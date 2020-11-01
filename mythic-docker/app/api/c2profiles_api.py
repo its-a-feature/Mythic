@@ -602,6 +602,7 @@ async def delete_c2profile_parameter_value_instance(request, instance_name, user
 
 
 async def import_c2_profile_func(data, operator):
+    new_profile = False
     try:
         if "author" not in data:
             data["author"] = operator.username
@@ -618,6 +619,7 @@ async def import_c2_profile_func(data, operator):
         await db_objects.update(profile)
     except Exception as e:
         # this means the profile doesn't exit yet, so we need to create it
+        new_profile = True
         if "is_p2p" not in data:
             data["is_p2p"] = False
         if "is_server_routed" not in data:
@@ -672,4 +674,4 @@ async def import_c2_profile_func(data, operator):
     #  anything left in curr_parameters_dict we need to delete
     for k, v in curr_parameters_dict.items():
         await db_objects.delete(v)
-    return {"status": "success", **profile.to_json()}
+    return {"status": "success", "new": new_profile, **profile.to_json()}

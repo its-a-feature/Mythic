@@ -16,6 +16,7 @@ from sanic.log import logger
 from peewee import fn
 import shortuuid
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
+import ujson as js
 
 
 # payloadtypes aren't inherent to an operation
@@ -241,6 +242,7 @@ async def sync_container_file_for_payload_type(request, ptype, user):
 
 
 async def import_payload_type_func(ptype, operator):
+    new_payload = False
     try:
         print(ptype)
         if "author" not in ptype:
@@ -261,6 +263,7 @@ async def import_payload_type_func(ptype, operator):
                 "supports_dynamic_loading"
             ]
         except Exception as e:
+            new_payload = True
             payload_type = await db_objects.create(
                 PayloadType,
                 ptype=ptype["ptype"],
@@ -437,7 +440,7 @@ async def import_payload_type_func(ptype, operator):
                 # delete any mappings that used to exist but are no longer listed by the agent
                 for k, v in current_c2_dict.items():
                     await db_objects.delete(v)
-            return {"status": "success", **payload_type.to_json()}
+            return {"status": "success", "new": new_payload, **payload_type.to_json()}
         except Exception as e:
             logger.exception("exception on importing payload type")
             return {"status": "error", "error": str(e)}
@@ -593,7 +596,10 @@ async def import_command_func(payload_type, operator, command_list):
                     )
                     cmd_param.type = param["type"]
                     if "default_value" in param and param["default_value"] is not None:
-                        cmd_param.default_value = param["default_value"]
+                        if cmd_param.type == "Array":
+                            cmd_param.default_value = js.dumps(param["default_value"])
+                        else:
+                            cmd_param.default_value = param["default_value"]
                     if (
                         "supported_agents" in param
                         and param["supported_agents"] is not None

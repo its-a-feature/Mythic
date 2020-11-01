@@ -45,13 +45,6 @@ class Atlas(PayloadType):
             required=False,
             description="Require Certificate Pinning",
         ),
-        "query_param": BuildParameter(
-            name="query_param",
-            parameter_type=BuildParameterType.String,
-            description="query parameter for GET requests",
-            default_value="id",
-            required=False,
-        ),
         "default_proxy": BuildParameter(
             name="default_proxy",
             parameter_type=BuildParameterType.ChooseOne,
@@ -59,27 +52,6 @@ class Atlas(PayloadType):
             default_value="true",
             required=False,
             description="Use the default proxy on the system",
-        ),
-        "proxy_address": BuildParameter(
-            name="proxy_address",
-            parameter_type=BuildParameterType.String,
-            required=False,
-            default_value="",
-            description="Manually specify a proxy address",
-        ),
-        "proxy_user": BuildParameter(
-            name="proxy_user",
-            parameter_type=BuildParameterType.String,
-            required=False,
-            default_value="",
-            description="Manually specify proxy user",
-        ),
-        "proxy_password": BuildParameter(
-            name="proxy_password",
-            parameter_type=BuildParameterType.String,
-            required=False,
-            default_value="",
-            description="Manually specify proxy password",
         ),
         "output_type": BuildParameter(
             name="output_type",
@@ -105,17 +77,9 @@ class Atlas(PayloadType):
             copy_tree(self.agent_code_path, agent_build_path.name)
             file1 = open("{}/Config.cs".format(agent_build_path.name), "r").read()
             file1 = file1.replace("%UUID%", self.uuid)
-            file1 = file1.replace("%PARAM%", self.get_parameter("query_param"))
             file1 = file1.replace("%CHUNK_SIZE%", self.get_parameter("chunk_size"))
             file1 = file1.replace(
                 "%DEFAULT_PROXY%", self.get_parameter("default_proxy")
-            )
-            file1 = file1.replace(
-                "%PROXY_ADDRESS%", self.get_parameter("proxy_address")
-            )
-            file1 = file1.replace("%PROXY_USER%", self.get_parameter("proxy_user"))
-            file1 = file1.replace(
-                "%PROXY_PASSWORD%", self.get_parameter("proxy_password")
             )
             profile = None
             for c2 in self.c2info:

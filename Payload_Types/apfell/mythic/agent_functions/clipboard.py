@@ -8,9 +8,10 @@ class ClipboardArguments(TaskArguments):
         super().__init__(command_line)
         self.args = {
             "types": CommandParameter(
-                name="types",
+                name="Clipboard Types",
                 type=ParameterType.Array,
                 required=False,
+                default_value=["public.utf8-plain-text"],
                 description="Types of clipboard data to retrieve, defaults to public.utf8-plain-text",
             ),
             "data": CommandParameter(

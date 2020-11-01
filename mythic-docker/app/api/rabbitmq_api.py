@@ -24,7 +24,7 @@ sync_tasks = {}
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
-        # print(" [x] %r:%r" % (message.routing_key,message.body))
+        print(" [x] %r:%r" % (message.routing_key,message.body))
         if pieces[4] == "sync_classes":
             if pieces[5] == "":
                 operator = None
@@ -35,9 +35,14 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 )
             from app.api.c2profiles_api import import_c2_profile_func
 
-            status = await import_c2_profile_func(
-                json.loads(message.body.decode()), operator
-            )
+            try:
+                status = await import_c2_profile_func(
+                    json.loads(message.body.decode()), operator
+                )
+            except Exception as e:
+                await send_all_operations_message("Failed Sync-ed database with {} C2 files: {}".format(
+                    pieces[2], str(e)
+                ), "warning")
             operation_query = await db_model.operation_query()
             operations = await db_objects.execute(
                 operation_query.where(db_model.Operation.complete == False)
@@ -48,17 +53,18 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                             pieces[2]
                         ), "info")
                 # for a successful checkin, we need to find all non-wrapper payload types and get them to re-check in
-                query = await db_model.payloadtype_query()
-                pts = await db_objects.execute(
-                    query.where(db_model.PayloadType.wrapper == False)
-                )
-                sync_operator = "" if operator is None else operator.username
-                for pt in pts:
-                    if pt.ptype not in sync_tasks:
-                        sync_tasks[pt.ptype] = True
-                        await send_pt_rabbitmq_message(
-                            pt.ptype, "sync_classes", "", sync_operator
-                        )
+                if status["new"]:
+                    query = await db_model.payloadtype_query()
+                    pts = await db_objects.execute(
+                        query.where(db_model.PayloadType.wrapper == False)
+                    )
+                    sync_operator = "" if operator is None else operator.username
+                    for pt in pts:
+                        if pt.ptype not in sync_tasks:
+                            sync_tasks[pt.ptype] = True
+                            await send_pt_rabbitmq_message(
+                                pt.ptype, "sync_classes", "", sync_operator
+                            )
             else:
                 sync_tasks.pop(pieces[2], None)
                 await send_all_operations_message("Failed Sync-ed database with {} C2 files: {}".format(
@@ -202,8 +208,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 await send_all_operations_message("Successfully Sync-ed database with {} payload files".format(
                                             pieces[2]
                                         ), "info")
-                                # for a successful checkin, we need to find all normal payload types and get them to re-check in
-                                if status["wrapper"]:
+                                if status["wrapper"] and status["new"]:
                                     query = await db_model.payloadtype_query()
                                     pts = await db_objects.execute(
                                         query.where(

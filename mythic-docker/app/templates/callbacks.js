@@ -1582,7 +1582,10 @@ var task_data = new Vue({
                                 "Command Help", false);
                             return;
                         } else if (params.length === 0) {
-                            alertTop("info", "Usage: help {command_name}", 2);
+                            alertTop("info", "<b>Usage: </b> help {command_name}" +
+                                "<br><b>Note: </b>All commands for " + callbacks[data['cid']]['payload_type'] +
+                                " can be found in the <a target='_blank' href=\"http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/\" style='color:darkblue'> Help Container</a>", 0,
+                                "Command Help", false);
                             return;
                         }
                     }
@@ -1663,7 +1666,15 @@ var task_data = new Vue({
                                 if (param.choices.length > 0) {
                                     param.choice_value = param.choices.split("\n")[0];
                                 }
-                                //param.string_value = param.hint;
+                                if(param.type === "Array"){
+                                    param.array_value = JSON.parse(param.default_value);
+                                }else if(param.type === "String"){
+                                    param.string_value = param.default_value;
+                                }else if(param.type === "Number"){
+                                    param.number_value = param.default_value;
+                                }else if(param.type === "Boolean"){
+                                    param.boolean_value = param.default_value;
+                                }
                                 //console.log(param);
                                 if (param.name in last_vals) {
                                     //lets set the appropriate param value to the old value
@@ -2702,6 +2713,19 @@ var params_table = new Vue({
         payloadonhost: {},
     },
     methods: {
+        restore_default_values: function(){
+            for(let i = 0; i < this.command_params.length; i ++){
+                if(this.command_params[i].type === "Array"){
+                    this.command_params[i].array_value = JSON.parse(this.command_params[i].default_value);
+                }else if(this.command_params[i].type === "String"){
+                    this.command_params[i].string_value = this.command_params[i].default_value;
+                }else if(this.command_params[i].type === "Number"){
+                    this.command_params[i].number_value = this.command_params[i].default_value;
+                }else if(this.command_params[i].type === "Boolean"){
+                    this.command_params[i].boolean_value = this.command_params[i].default_value;
+                }
+            }
+        },
         command_params_add_array_element: function (param) {
             param.array_value.push('');
         },
@@ -3765,7 +3789,13 @@ function timeConversion(millisec) {
     let minutes = Math.trunc(((millisec / (1000 * 60))) % 60);
     let hours = Math.trunc(((millisec / (1000 * 60 * 60))) % 24);
     let days = Math.trunc(((millisec / (1000 * 60 * 60 * 24))) % 365);
-    return days + ":" + hours + ":" + minutes + ":" + seconds;
+    let output = "";
+    if(days > 0){ output += days + "d";}
+    if(hours > 0){ output += hours + "h";}
+    if(minutes > 0){ output += minutes + "m";}
+    output += seconds + "s";
+    return output;
+    //return days + ":" + hours + ":" + minutes + ":" + seconds;
 }
 /* eslint-enable no-unused-vars */
 function generate_background_color() {

@@ -282,10 +282,14 @@ class TaskArguments(metaclass=ABCMeta):
     def load_args_from_json_string(self, command_line: str):
         temp_dict = json.loads(command_line)
         for k, v in temp_dict.items():
-            self.args[k].value = v
+            for k2,v2 in self.args.items():
+                if v2.name == k:
+                    v2.value = v
 
     async def verify_required_args_have_values(self):
         for k, v in self.args.items():
+            if v.value is None:
+                v.value = v.default_value
             if v.required and v.value is None:
                 raise ValueError("Required arg {} has no value".format(k))
 

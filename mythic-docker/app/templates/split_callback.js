@@ -57,7 +57,9 @@ var callback_table = new Vue({
                                 " can be found in the <a target='_blank' href=\"http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/\" style='color:darkblue'> Help Container</a>", 0, "Command Help", false);
                             return;
                         } else if (params.length === 0) {
-                            alertTop("info", "Usage: help {command_name}", 2);
+                            alertTop("info", "<b>Usage: </b> help {command_name}" +
+                                "<br><b>Note: </b>All commands for " + this.callbacks[data['id']]['payload_type'] +
+                                " can be found in the <a target='_blank' href=\"http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/\" style='color:darkblue'> Help Container</a>", 0, "Command Help", false);
                             return;
                         }
                     }
@@ -124,7 +126,15 @@ var callback_table = new Vue({
                                 if (param.choices.length > 0) {
                                     param.choice_value = param.choices.split("\n")[0];
                                 }
-                                //param.string_value = param.hint;
+                                if(param.type === "Array"){
+                                    param.array_value = JSON.parse(param.default_value);
+                                }else if(param.type === "String"){
+                                    param.string_value = param.default_value;
+                                }else if(param.type === "Number"){
+                                    param.number_value = param.default_value;
+                                }else if(param.type === "Boolean"){
+                                    param.boolean_value = param.default_value;
+                                }
                                 if (param.type === 'PayloadList') {
                                     // we only want to add to param.payloads things from params_table.payloads that match the supported_agent types listed
                                     let supported_agents = param.supported_agents.split("\n");
@@ -201,7 +211,7 @@ var callback_table = new Vue({
                                         file_data[param_name] = document.getElementById('fileparam' + param_name).files[0];
                                         param_data[param_name] = "FILEUPLOAD";
                                         document.getElementById('fileparam' + param_name).value = "";
-                                        console.log(document.getElementById('fileparam' + param_name));
+                                        //console.log(document.getElementById('fileparam' + param_name));
                                     } else if (params_table.command_params[k]['type'] === 'PayloadList') {
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['payloadlist_value'];
                                     } else if (params_table.command_params[k]['type'] === 'AgentConnect') {
@@ -298,13 +308,6 @@ var callback_table = new Vue({
             }, "GET", null);
 
         },
-        toggle_show_params: function (task) {
-            if (task.show_params) {
-                Vue.set(task, 'show_params', false);
-            } else {
-                Vue.set(task, 'show_params', true);
-            }
-        },
         toggle_comment: function (task) {
             if (task.comment_visible) {
                 Vue.set(task, 'comment_visible', false);
@@ -371,7 +374,8 @@ var callback_table = new Vue({
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + $('#callback_options_select').val() + "/all_tasking", get_all_tasking_callback, "GET", null);
         },
         remove_callback: function (callback) {
-            Vue.delete(this.callbacks, callback.id);
+            this.callbacks[callback.id]['websocket'].close();
+            delete this.callbacks[callback.id];
         },
         apply_filter: function (task) {
             // determine if the specified task should be displayed based on the task_filters set
@@ -446,7 +450,7 @@ function get_all_tasking_callback(response) {
             temp['type'] = 'callback';
             Vue.nextTick().then(function () {
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + data['payload_type_id'] + "/commands", register_new_command_info, "GET", null);
-                startwebsocket_callback(data['id']);
+                callback_table.callbacks[data['id']]['websocket'] = startwebsocket_callback(data['id']);
             });
         } else {
             alertTop("danger", data['error']);
@@ -465,7 +469,6 @@ function register_new_command_info(response) {
             delete data['status'];
             data['commands'].push({"cmd": "help", "params": []});
             data['commands'].push({"cmd": "set", "params": []});
-            data['commands'].push({"cmd": "tasks", "params": []});
             data['commands'].push({"cmd": "clear", "params": []});
             callback_table.ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
             let autocomplete_commands = [];
@@ -603,6 +606,7 @@ function startwebsocket_callback(cid) {
     ws.onerror = function (event) {
         wsonerror(event);
     };
+    return ws;
 }
 
 function add_comment_callback(response) {
@@ -638,6 +642,19 @@ var params_table = new Vue({
         payloadonhost: {},
     },
     methods: {
+        restore_default_values: function(){
+            for(let i = 0; i < this.command_params.length; i ++){
+                if(this.command_params[i].type === "Array"){
+                    this.command_params[i].array_value = JSON.parse(this.command_params[i].default_value);
+                }else if(this.command_params[i].type === "String"){
+                    this.command_params[i].string_value = this.command_params[i].default_value;
+                }else if(this.command_params[i].type === "Number"){
+                    this.command_params[i].number_value = this.command_params[i].default_value;
+                }else if(this.command_params[i].type === "Boolean"){
+                    this.command_params[i].boolean_value = this.command_params[i].default_value;
+                }
+            }
+        },
         command_params_add_array_element: function (param) {
             param.array_value.push('');
         },

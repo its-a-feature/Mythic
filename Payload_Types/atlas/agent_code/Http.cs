@@ -464,7 +464,7 @@ namespace Atlas
             Config.Servers = Config.Servers.OrderBy(s=>s.count).ToList();
             try
             {
-                result = client.DownloadString(Config.Servers[0].domain + Config.Url);
+                result = client.DownloadString(Config.Servers[0].domain + Config.GetUrl);
                 return result;
             }
             catch
@@ -504,7 +504,7 @@ namespace Atlas
             Config.Servers = Config.Servers.OrderBy(s => s.count).ToList();
             try
             {
-                result = client.UploadString(Config.Servers[0].domain + Config.Url, B64Data);
+                result = client.UploadString(Config.Servers[0].domain + Config.PostUrl, B64Data);
                 return result;
             }
             catch

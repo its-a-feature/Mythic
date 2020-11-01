@@ -13,13 +13,14 @@ namespace Atlas
         public static int Sleep = Int32.Parse("callback_interval");
         public static int Jitter = Int32.Parse("callback_jitter");
         public static string KillDate = "killdate";
-        public static string Param = "%PARAM%";
+        public static string Param = "query_path_name";
         public static int ChunkSize = Int32.Parse("%CHUNK_SIZE%");
         public static bool DefaultProxy = bool.Parse("%DEFAULT_PROXY%");
-        public static string ProxyAddress = "%PROXY_ADDRESS%";
-        public static string ProxyUser = "%PROXY_USER%";
-        public static string ProxyPassword = "%PROXY_PASSWORD%";
-        public static string Url = "/api/v1.4/agent_message";
+        public static string ProxyAddress = "proxy_url:proxy_port";
+        public static string ProxyUser = "proxy_user";
+        public static string ProxyPassword = "proxy_pass";
+        public static string GetUrl = "/get_uri";
+        public static string PostUrl = "/post_uri";
 
 #if (Default_PSK || DEFAULT_EKE)
         public static string Psk = "AESPSK";

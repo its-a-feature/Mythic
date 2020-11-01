@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block body %}
-<div style="resize: both; overflow:auto; display:block;margin-top:5px" id="callback_table">
+<div style="resize: both; overflow:auto; display:block;margin-top:5px" class="card bg-card-body" id="callback_table">
     <div class="input-group">
+        <button type="button" class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_callback_to_table()"><i class="fas fa-plus"></i> Add Callback to Page</button>
         <select class="form-control" id="callback_options_select"><option v-for="c in callback_options" :key="c.id" :value="c.id">[[c.id]]: [[c.user]]@[[c.host]] ([[c.pid]]) - [[c.description]]</option></select>
-        <button type="button" class="btn btn-sm btn{{config['outline-buttons']}}success" @click="add_callback_to_table()">Split Callback</button>
     </div>
     <template v-for="callback in callbacks">
         <div class="card border border-dark shadow bg-card-body" :style="'display: inline-block;padding:2px;width:' + (100/Object.keys(callbacks).length) + '%'">
@@ -23,7 +23,7 @@
                 <transition-group>
                     <div class="card bg-card-body border border-dark shadow" v-for="task in callback.tasks" :key="task.id" :id="'task' + task.id"  v-if="apply_filter(task)" style="word-wrap: break-word;margin:1px">
                         <transition-group>
-                        <div class="card-header border-dark bg-header-dark" :key="'headera' + task.id" style="position:-webkit-sticky;position:static;top:0;padding-bottom:0;padding-top:0px;padding-left:0;white-space:nowrap;overflow-x:auto;max-width:100%">
+                        <div class="card-header border-dark bg-header-dark" :key="'headera' + task.id" style="position:-webkit-sticky;position:sticky;top:0;padding-bottom:0;padding-top:0px;padding-left:0;white-space:nowrap;overflow-x:auto;max-width:100%">
                             <transition-group>
                              <button v-if="task.comment != '' && task.comment_visible" :key="'keya' + task.id" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_comment(task)" style="padding:0px 4px;margin-left:2px;margin-top:2px;border:0"><i class="fas fa-trash-alt"></i></button>
                              <p v-if="task.comment != '' && task.comment_visible" :key="'keyb' + task.id" class="card-text" style="margin:0;display:inline-block">
@@ -189,13 +189,14 @@
 <b>Description:</b>[[cmd.description]]
 <b>Help:</b> [[cmd.help_cmd]]
 <b>Needs Admin Permissions: <span :style="cmd.needs_admin ? 'color:indianred' : ''">[[cmd.needs_admin]]</span></b></pre>
+                  <button class="btn btn-sm btn{{config['outline-buttons']}}info" @click="restore_default_values()">Restore Default Values</button>
                 <table id="paramsTable" class="table table-striped {{config['table-color']}} shadow border border-dark" style="width:100%">
                     <tr>
                         <th style="padding:10px;margin:10px;text-align:center;width:15rem">Parameter</th>
                         <th style="text-align:left">Value</th>
                     </tr>
                     <tr v-for="param in command_params" :key="param.id">
-                        <td style="text-align:center">
+                        <td style="padding:10px;margin:10px;text-align:left">
                             <div class="tooltip">[[param.name]]<span v-if="param.required">
                                 <br><b style="color:indianred">Required</b>
                             </span>

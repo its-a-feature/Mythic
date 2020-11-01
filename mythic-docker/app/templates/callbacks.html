@@ -4,7 +4,7 @@
 <!-- http://bl.ocks.org/fancellu/2c782394602a93921faff74e594d1bb1 -->
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <div id="wrapper">
-<div style="overflow:auto; display:block; height:calc(30vh); margin-top:5px" class="card border-dark bg-card-body" id="callback_table">
+<div style="overflow-y:auto; display:block; height:calc(30vh); margin-top:5px" class="card border-dark bg-card-body" id="callback_table">
     <div class="card-header bg-header text-white" style="margin:0">
         <span><h4 style="display:inline-block">Current <span class="operator">Callbacks</span></h4></span>
         <span style="display:inline-block; float:right">
@@ -26,7 +26,7 @@
     </div>
     <template v-if="view_selection === 'table view'">
          <table class="table table-striped {{config['table-color']}} border border-dark shadow table-condensed" style="padding:0;margin:0;">
-            <tr class="sticky-top" >
+            <tr>
                 <th class="sticky-top" style="width:3rem;text-align:center"><input type="checkbox" @click="check_all_callbacks()" id="all_callback_checkbox"></th>
                 <th @click="sort_callbacks('id')" class="sticky-top" style="width:7rem;text-align: left;padding-left:0">
                     Callback <i v-if="sort == 'id'" :class="sort == 'id' && direction == 1 ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
@@ -958,7 +958,7 @@
 [[cmd.description]]
 <b>Help:</b> [[cmd.help_cmd]]
 <b>Needs Admin Permissions: <span :style="cmd.needs_admin ? 'color:indianred' : ''">[[cmd.needs_admin]]</span></b></pre>
-
+                  <button class="btn btn-sm btn{{config['outline-buttons']}}info" @click="restore_default_values()">Restore Default Values</button>
                 <table id="paramsTable" class="table table-striped {{config['table-color']}} shadow border border-dark" style="width:100%">
                     <tr>
                         <th style="padding:10px;margin:10px;width:15rem">Parameter</th>
