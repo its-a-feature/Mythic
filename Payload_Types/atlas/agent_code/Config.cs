@@ -16,7 +16,7 @@ namespace Atlas
         public static string Param = "query_path_name";
         public static int ChunkSize = Int32.Parse("%CHUNK_SIZE%");
         public static bool DefaultProxy = bool.Parse("%DEFAULT_PROXY%");
-        public static string ProxyAddress = "proxy_url:proxy_port";
+        public static string ProxyAddress = "proxy_host:proxy_port";
         public static string ProxyUser = "proxy_user";
         public static string ProxyPassword = "proxy_pass";
         public static string GetUrl = "/get_uri";

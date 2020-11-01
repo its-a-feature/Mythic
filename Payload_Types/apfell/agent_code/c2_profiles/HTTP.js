@@ -20,7 +20,7 @@ class customC2 extends baseC2{
 		this.getURI = "get_uri";
 		this.postURI = "post_uri";
 		this.queryPathName = "query_path_name";
-		this.proxyURL = "proxy_url";
+		this.proxyURL = "proxy_host";
 		this.proxyPort = "proxy_port";
 		this.proxyUser = "proxy_user";
 		this.proxyPassword = "proxy_pass";
