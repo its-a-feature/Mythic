@@ -109,12 +109,7 @@ var callback_table = new Vue({
             }, 0);
 
             //set the autocomplete for the input field
-            let autocomplete_commands = [];
-            for (let i = 0; i < task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']].length; i++) {
-                autocomplete_commands.push(task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i].cmd);
-            }
-            autocomplete_commands.sort((a, b) => (b > a) ? -1 : ((a > b) ? 1 : 0));
-            autocomplete(document.getElementById("commandline"), autocomplete_commands);
+            autocomplete(document.getElementById("commandline"), meta[callback.id]['commands']);
             meta[callback.id]['badges'] = 0;
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'] + "/all_tasking", get_all_tasking_callback, "GET", null);
         },
@@ -1909,12 +1904,7 @@ var task_data = new Vue({
             Vue.set(metadata, 'badges', 0);
             Vue.set(callback_table.callbacks[metadata['id']], 'selected', true);
             //set the autocomplete for the input field
-            let autocomplete_commands = [];
-            for (let i = 0; i < this.ptype_cmd_params[callbacks[metadata.id]['payload_type']].length; i++) {
-                autocomplete_commands.push(this.ptype_cmd_params[callbacks[metadata.id]['payload_type']][i].cmd);
-            }
-            autocomplete_commands.sort((a, b) => (b > a) ? -1 : ((a > b) ? 1 : 0));
-            autocomplete(document.getElementById("commandline"), autocomplete_commands);
+            autocomplete(document.getElementById("commandline"), meta[metadata['id']]['commands']);
             Vue.nextTick().then(function () {
                 $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
             });
@@ -3518,14 +3508,38 @@ function startwebsocket_callback(cid) {
                 add_new_response(data, true);
             } else if (data['channel'].includes("filemeta")) {
                 add_new_filemeta(data);
-            } else {
+            } else if (data['channel'].includes("loadedcommand")){
+                update_loaded_commands(data);
+            } else{
                 console.log("Unknown message from server: " + event.data);
             }
         }
     };
     return ws;
 }
-
+function update_loaded_commands(data){
+    if (!Object.prototype.hasOwnProperty.call(meta[data['callback']], 'commands')) {
+        meta[data['callback']]['commands'] = [];
+    }
+    if(data['channel'].includes("new")){
+        meta[data['callback']]['commands'].push({"name": data['command'], "version": data["version"]});
+        meta[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+    }else if(data['channel'].includes("updated")){
+        for(let i = 0; i < meta[data['callback']]['commands'].length; i++){
+            if(meta[data['callback']]['commands'][i]["name"] === data["command"]){
+                meta[data['callback']]['commands'][i]["version"] = data["version"];
+                return;
+            }
+        }
+    } else{
+        for(let i = 0; i < meta[data['callback']]['commands'].length; i++){
+            if(meta[data['callback']]['commands'][i]["name"] === data["command"]){
+                delete meta[data['callback']]['commands'][i];
+                return;
+            }
+        }
+    }
+}
 function add_new_filemeta(data) {
     if (data['is_screenshot']) {
         if (!Object.prototype.hasOwnProperty.call(meta[data['callback_id']], 'images')) {
@@ -3571,21 +3585,21 @@ function autocomplete(inp, arr) {
         /*append the DIV element as a child of the autocomplete container:*/
         this.parentNode.appendChild(a);
         /*for each item in the array...*/
-        for (i = 0; i < arr.length; i++) {
+        for (i = 0; i < meta[task_data.input_field_placeholder['cid']]["commands"].length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if (arr[i].toUpperCase().includes(val.toUpperCase())) {
+            if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase())) {
                 /*create a DIV element for each matching element:*/
-                if (arr[i].length > longest) {
-                    longest = arr[i].length;
+                if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length > longest) {
+                    longest = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length;
                 }
                 b = document.createElement("DIV");
                 /*make the matching letters bold:*/
-                let start = arr[i].toUpperCase().indexOf(val.toUpperCase());
-                b.innerHTML = arr[i].substr(0, start);
-                b.innerHTML += "<strong><span class='matching'>" + arr[i].substr(start, val.length) + "</span></strong>";
-                b.innerHTML += arr[i].substr(val.length + start);
+                let start = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase().indexOf(val.toUpperCase());
+                b.innerHTML = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].substr(0, start);
+                b.innerHTML += "<strong><span class='matching'>" + meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].substr(start, val.length) + "</span></strong>";
+                b.innerHTML += meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].substr(val.length + start);
                 /*insert a input field that will hold the current array item's value:*/
-                b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                b.innerHTML += "<input type='hidden' value='" + meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"] + "'>";
                 /*execute a function when someone clicks on the item value (DIV element):*/
                 b.addEventListener("click", function () {
                     /*insert the value for the autocomplete text field:*/
@@ -3790,9 +3804,9 @@ function timeConversion(millisec) {
     let hours = Math.trunc(((millisec / (1000 * 60 * 60))) % 24);
     let days = Math.trunc(((millisec / (1000 * 60 * 60 * 24))) % 365);
     let output = "";
-    if(days > 0){ output += days + "d";}
-    if(hours > 0){ output += hours + "h";}
-    if(minutes > 0){ output += minutes + "m";}
+    if(days !== 0){ output += days + "d";}
+    if(hours !== 0){ output += hours + "h";}
+    if(minutes !== 0){ output += minutes + "m";}
     output += seconds + "s";
     return output;
     //return days + ":" + hours + ":" + minutes + ":" + seconds;

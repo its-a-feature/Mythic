@@ -17,7 +17,7 @@
                         </span>
                     </th>
                     <th style="width:3rem">Delete</th>
-                    <th onclick="sort_table(this)" style="width:12rem">Time</th>
+                    <th onclick="sort_table(this, 'date')" style="width:12rem">Time</th>
                     <th onclick="sort_table(this)" style="width:6rem;text-align:left">Task</th>
                     <th onclick="sort_table(this)" style="width:16rem">Host</th>
                     <th onclick="sort_table(this)" style="width:8rem">Operator</th>
@@ -83,7 +83,7 @@
             <table class="table table-striped {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
                 <tr>
                     <th style="width:2rem">Delete</th>
-                    <th onclick="sort_table(this)" style="width:12rem">Time</th>
+                    <th onclick="sort_table(this, 'date')" style="width:12rem">Time</th>
                     <th onclick="sort_table(this)" style="width:6rem">Task</th>
                     <th onclick="sort_table(this)" style="width:16rem">Host</th>
                     <th onclick="sort_table(this)" style="width:8rem">Operator</th>

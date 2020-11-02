@@ -2220,6 +2220,7 @@ def pg_register_deletes():
         "disabledcommands",
         "browserscriptoperation",
         "credential",
+        "loadedcommands",
         "wrappedpayloadtypes",
     ]
     for table in updates:

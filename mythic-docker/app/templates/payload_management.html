@@ -15,7 +15,7 @@
                 <th onclick="sort_table(this)" style="text-align:left"><b>Description</b></th>
                 <th onclick="sort_table(this)" style="text-align:left;width:10rem"><b>Creator</b></th>
                 <th onclick="sort_table(this)" style="text-align:left;width:10rem"><b>Payload Type</b></th>
-                <th style="width:12rem;text-align:center" onclick="sort_table(this)"><b>Creation Time</b></th>
+                <th style="width:12rem;text-align:center" onclick="sort_table(this, 'date')"><b>Creation Time</b></th>
             </tr>
         <!-- Repeat this for each payload -->
             <tr v-for="p in payloads" :key="p.creation_time" v-show="!p.deleted">
@@ -45,7 +45,7 @@
                         <button class="btn btn{{config['outline-buttons']}}danger btn-sm" disabled type="button"><i class="fas fa-ban fa-lg"></i></button>
                     </template>
                     <template v-else>
-                        <a class="btn btn{{config['outline-buttons']}}success btn-sm" type="button" :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/' + p.uuid"><i class="fas fa-download fa-lg"></i></a>
+                        <a class="btn btn{{config['outline-buttons']}}success btn-sm" :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/' + p.uuid"><i class="fas fa-download fa-lg"></i></a>
                     </template>
                     </td>
                 <td style="text-align:center">

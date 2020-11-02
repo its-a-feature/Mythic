@@ -726,6 +726,9 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                     await cur.execute('LISTEN "newresponse";')
                     await cur.execute('LISTEN "newfilemeta";')
                     await cur.execute('LISTEN "updatedfilemeta";')
+                    await cur.execute('LISTEN "newloadedcommands";')
+                    await cur.execute('LISTEN "updatedloadedcommands";')
+                    await cur.execute('LISTEN "deletedloadedcommands";')
                     if user["current_operation"] != "":
                         # before we start getting new things, update with all of the old data
                         query = await db_model.operation_query()
@@ -739,6 +742,12 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                         taskquery = await db_model.task_query()
                         filemetaquery = await db_model.filemeta_query()
                         responsequery = await db_model.response_query()
+                        loadedcommandsquery = await db_model.loadedcommands_query()
+                        cur_loaded = await db_objects.execute(loadedcommandsquery.where(
+                            (db_model.LoadedCommands.callback == callback)
+                        ))
+                        for c in cur_loaded:
+                            await ws.send(js.dumps({**c.to_json(), "channel": "newloadedcommand"}))
                         await ws.send("")
                         # now pull off any new callbacks we got queued up while processing the old data
                         while True:
@@ -768,6 +777,15 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                                         obj_json["callback_id"] = obj.task.callback.id
                                     else:
                                         obj_json["callback_id"] = 0
+                                elif "loadedcommand" in msg.channel:
+                                    if "deleted" in msg.channel:
+                                        obj_json = js.loads(msg.payload)
+                                        obj_json["callback"] = obj_json["callback_id"]
+                                        obj_json["channel"] = "deletedloadedcommand"
+                                    else:
+                                        obj = await db_objects.get(loadedcommandsquery,
+                                                                   id=id, callback=callback)
+                                        obj_json = obj.to_json()
                                 else:
                                     obj = await db_objects.get(responsequery, id=id)
                                     if obj.task.callback.id != callback.id:

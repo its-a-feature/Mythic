@@ -471,15 +471,11 @@ function register_new_command_info(response) {
             data['commands'].push({"cmd": "set", "params": []});
             data['commands'].push({"cmd": "clear", "params": []});
             callback_table.ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
-            let autocomplete_commands = [];
-            for (let i = 0; i < data['commands'].length; i++) {
-                autocomplete_commands.push(data['commands'][i].cmd);
-            }
             for (let id in callback_table.callbacks) {
                 if (callback_table.callbacks[id]['payload_type'] === data['commands'][0]['payload_type']) {
                     //console.log("about to set autocomplete for " + id + ":" + data['commands'][0]['payload_type']);
                     //input = document.getElementById("commandline:" + data['commands'][0]['payload_type'] + ":" + id);
-                    autocomplete(document.getElementById("commandline:" + data['commands'][0]['payload_type'] + ":" + id), autocomplete_commands);
+                    autocomplete(document.getElementById("commandline:" + data['commands'][0]['payload_type'] + ":" + id), callback_table.callbacks[id]["commands"]);
                 }
             }
         } else {
@@ -597,6 +593,8 @@ function startwebsocket_callback(cid) {
                 add_new_task(data);
             } else if (data['channel'].includes("response")) {
                 add_new_response(data, true);
+            } else if (data['channel'].includes("loadedcommand")){
+                update_loaded_commands(data);
             }
         }
     }
@@ -607,6 +605,30 @@ function startwebsocket_callback(cid) {
         wsonerror(event);
     };
     return ws;
+}
+
+function update_loaded_commands(data){
+    if (!Object.prototype.hasOwnProperty.call(callback_table.callbacks[data['callback']], 'commands')) {
+        callback_table.callbacks[data['callback']]['commands'] = [];
+    }
+    if(data['channel'].includes("new")){
+        callback_table.callbacks[data['callback']]['commands'].push({"name": data['command'], "version": data["version"]});
+        callback_table.callbacks[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+    }else if(data['channel'].includes("updated")){
+        for(let i = 0; i < callback_table.callbacks[data['callback']]['commands'].length; i++){
+            if(callback_table.callbacks[data['callback']]['commands'][i]["name"] === data["command"]){
+                callback_table.callbacks[data['callback']]['commands'][i]["version"] = data["version"];
+                return;
+            }
+        }
+    } else{
+        for(let i = 0; i < callback_table.callbacks[data['callback']]['commands'].length; i++){
+            if(callback_table.callbacks[data['callback']]['commands'][i]["name"] === data["command"]){
+                delete callback_table.callbacks[data['callback']]['commands'][i];
+                return;
+            }
+        }
+    }
 }
 
 function add_comment_callback(response) {
@@ -1099,21 +1121,21 @@ function autocomplete(inp, arr) {
         /*append the DIV element as a child of the autocomplete container:*/
         this.parentNode.appendChild(a);
         /*for each item in the array...*/
-        for (i = 0; i < arr.length; i++) {
+        for (i = 0; i < callback_table.callbacks[callback_id]["commands"].length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if (arr[i].toUpperCase().includes(val.toUpperCase())) {
+            if (callback_table.callbacks[callback_id]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase())) {
                 /*create a DIV element for each matching element:*/
-                if (arr[i].length > longest) {
-                    longest = arr[i].length;
+                if (callback_table.callbacks[callback_id]["commands"][i]["name"].length > longest) {
+                    longest = callback_table.callbacks[callback_id]["commands"][i]["name"].length;
                 }
                 b = document.createElement("DIV");
                 /*make the matching letters bold:*/
-                let start = arr[i].toUpperCase().indexOf(val.toUpperCase());
-                b.innerHTML = arr[i].substr(0, start);
-                b.innerHTML += "<strong><span class='matching'>" + arr[i].substr(start, val.length) + "</span></strong>";
-                b.innerHTML += arr[i].substr(val.length + start);
+                let start = callback_table.callbacks[callback_id]["commands"][i]["name"].toUpperCase().indexOf(val.toUpperCase());
+                b.innerHTML = callback_table.callbacks[callback_id]["commands"][i]["name"].substr(0, start);
+                b.innerHTML += "<strong><span class='matching'>" + callback_table.callbacks[callback_id]["commands"][i]["name"].substr(start, val.length) + "</span></strong>";
+                b.innerHTML += callback_table.callbacks[callback_id]["commands"][i]["name"].substr(val.length + start);
                 /*insert a input field that will hold the current array item's value:*/
-                b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                b.innerHTML += "<input type='hidden' value='" + callback_table.callbacks[callback_id]["commands"][i]["name"] + "'>";
                 /*execute a function when someone clicks on the item value (DIV element):*/
                 b.addEventListener("click", function () {
                     /*insert the value for the autocomplete text field:*/

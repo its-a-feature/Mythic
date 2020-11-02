@@ -8,12 +8,12 @@
         <div class="bg-card-body-l2">
             <table class="table table-striped {{config['table-color']}} border border-dark shadow table-condensed" style="margin-bottom: 0">
             <tr>
-                <th style="text-align:left" onclick="sort_table(this)">Task</th>
+                <th style="text-align:left" onclick="sort_table(this, 'int')">Task</th>
                 <th style="text-align:left" onclick="sort_table(this)">Host</th>
                 <th style="text-align:left" onclick="sort_table(this)">Operator</th>
-                <th style="text-align:left">Timestamp</th>
+                <th style="text-align:left" onclick="sort_table(this, 'date')">Timestamp</th>
                 <th style="text-align:left" onclick="sort_table(this)">Completed</th>
-                <th style="text-align:left" onclick="sort_table(this)">Callback</th>
+                <th style="text-align:left" onclick="sort_table(this, 'int')">Callback</th>
                 <th style="text-align:left">Comment</th>
                 <th style="text-align:center">View</th>
                 <th style="text-align:center">Download</th>
