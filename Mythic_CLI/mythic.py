@@ -3485,30 +3485,23 @@ class Mythic:
                         response_code=resp.status, raw_response=await resp.json()
                     )
         except OSError as o:
-            print(o)
+            #print(o)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(o)}
             )
         except Exception as e:
-            print(e)
+            #print(e)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(e)}
             )
 
     async def get_file(self, url) -> bytes:
         headers = self.get_headers()
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers, ssl=False) as resp:
-                    data = await resp.read()
-                    return data
-                    # return (resp.status, await resp.json())
-        except OSError as o:
-            print(o)
-            return None
-        except Exception as e:
-            print(e)
-            return None
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, ssl=False) as resp:
+                data = await resp.read()
+                return data
+
 
     async def put_json(self, url, data) -> MythicResponse:
         headers = self.get_headers()
@@ -3521,12 +3514,10 @@ class Mythic:
                         response_code=resp.status, raw_response=await resp.json()
                     )
         except OSError as o:
-            print(o)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(o)}
             )
         except Exception as e:
-            print(e)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(e)}
             )
@@ -3542,12 +3533,10 @@ class Mythic:
                         response_code=resp.status, raw_response=await resp.json()
                     )
         except OSError as o:
-            print(o)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(o)}
             )
         except Exception as e:
-            print(e)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(e)}
             )
@@ -3561,12 +3550,10 @@ class Mythic:
                         response_code=resp.status, raw_response=await resp.json()
                     )
         except OSError as o:
-            print(o)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(o)}
             )
         except Exception as e:
-            print(e)
             return MythicResponse(
                 response_code=0, raw_response={"status": "error", "error": str(e)}
             )
@@ -3577,8 +3564,7 @@ class Mythic:
         try:
             await json_print(data)
         except Exception as e:
-            print("Failed to decode json data: " + str(e))
-            return None
+            raise Exception("Failed to decode json data: " + str(e))
 
     async def cast_data(self, data):
         try:
@@ -3612,13 +3598,9 @@ class Mythic:
             elif "agent_callback_id" in json_data:
                 return Callback(**json_data)
             else:
-                print("not casting")
-                print(json_data)
-                return None
-                # print(json.dumps(json_data, indent=2))
+                raise Exception("Unknown Mythic Object: " + json.dumps(json_data, indent=2))
         except Exception as e:
-            print("Failed to decode json data: " + str(e))
-            return None
+            raise Exception("Failed to decode json data: " + str(e))
 
     async def thread_output_helper(
         self, url, callback_function=None, timeout=None
@@ -3634,14 +3616,14 @@ class Mythic:
                     try:
                         if timeout > 0 and (time() - start >= timeout):
                             raise Exception(
-                                "\n[-] Timeout in listening on websocket endpoint: {}".format(
+                                "Timeout in listening on websocket endpoint: {}".format(
                                     url
                                 )
                             )
                         msg = await ws.receive()
                         if msg.data is None:
                             raise Exception(
-                                "\n[-] Got no data from websocket: {}".format(str(msg))
+                                "Got no data from websocket: {}".format(str(msg))
                             )
                         if msg.data != "":
                             task = asyncio.get_event_loop().create_task(
@@ -3649,14 +3631,9 @@ class Mythic:
                             )
                             asyncio.ensure_future(task)
                     except Exception as e:
-                        print(
-                            "Got exception reading from websocket, exiting websocket: "
-                            + str(e)
-                        )
-                        return None
+                        raise Exception("Got exception reading from websocket, exiting websocket: " + str(e))
         except Exception as e:
-            print("Failed to get websocket connection: " + str(e))
-            return None
+            raise Exception("Failed to get websocket connection: " + str(e))
 
     async def stream_output(self, url, callback_function, timeout) -> asyncio.Task:
         task = asyncio.get_event_loop().create_task(
@@ -3705,16 +3682,13 @@ class Mythic:
         Gets information about the current user
         """
         if operation.id is None:
-            # need to get the operator's ID first, which means we need to get all operators and match the username
             resp = await self.get_all_operations()
             if resp.response_code == 200 and resp.status == "success":
                 for o in resp.response:
                     if o.name == operation.name:
                         resp.response = o
                         return resp
-            print("[-] Failed to find operation")
-            await json_print(resp)
-            return None
+            raise Exception("Failed to find operation: " + json.dumps(resp, indent=2, default=lambda o: o.to_json()))
         else:
             url = "{}{}:{}/api/v{}/operations/{}".format(
                 self._http,
@@ -3852,7 +3826,7 @@ class Mythic:
                     if o["username"] == operator.username:
                         resp.response = Operator(**o)
                         return resp
-                print("[-] Active operator not found")
+                raise Exception("Operator not found: " + json.dumps(resp, indent=2, default=lambda o: o.to_json()))
             return resp
         else:
             url = "{}{}:{}/api/v{}/operators/{}".format(
@@ -3879,13 +3853,12 @@ class Mythic:
             url, data={"username": operator.username, "password": operator.password}
         )
         if resp.response_code == 200 and resp.status == "success":
-            await json_print(resp)
             resp.response = Operator(**resp.response)
         elif resp.status == "error":
             resp = await self.get_operator(operator)
             if resp.status == "success":
                 return resp
-            print("[-] Unable to create operator and no active operator found")
+            raise Exception("Unable to create operator and no active operator found: " + json.dumps(resp, indent=2, default=lambda o: o.to_json()))
         return resp
 
     async def update_operator(self, operator: Operator) -> MythicResponse:
@@ -4082,7 +4055,6 @@ class Mythic:
                     )
                 else:
                     resp.response = status
-        await json_print(resp)
         return resp
 
     async def get_one_payload_info(
@@ -4330,12 +4302,10 @@ class Mythic:
                             response_code=resp.status, raw_response=await resp.json()
                         )
             except OSError as o:
-                print(o)
                 return MythicResponse(
                     response_code=0, raw_response={"status": "error", "error": str(o)}
                 )
             except Exception as e:
-                print(e)
                 return MythicResponse(
                     response_code=0, raw_response={"status": "error", "error": str(e)}
                 )
@@ -4356,12 +4326,10 @@ class Mythic:
                             response_code=resp.status, raw_response=await resp.json()
                         )
             except OSError as o:
-                print(o)
                 return MythicResponse(
                     response_code=0, raw_response={"status": "error", "error": str(o)}
                 )
             except Exception as e:
-                print(e)
                 return MythicResponse(
                     response_code=0, raw_response={"status": "error", "error": str(e)}
                 )
@@ -4684,7 +4652,7 @@ class Mythic:
             self._refresh_token = resp.response["refresh_token"]
             return resp
         else:
-            print("Failed to login")
+            raise Exception("Failed to log in: " + json.dumps(resp, indent=2, default=lambda o: o.to_json()))
             sys.exit(1)
 
     async def set_or_create_apitoken(self, token_type="User"):
@@ -4738,11 +4706,9 @@ class Mythic:
                             ):
                                 return task
                     except Exception as e:
-                        print("exception in wait_for_task_status_change: " + str(e))
-                        return None
+                        raise Exception("Exception while waiting for task status change: " + str(e))
         except Exception as e:
-            print("exception in wait_for_task_status_change outer: " + str(e))
-            return None
+            raise Exception("Exception in outer try/catch while waiting for task status change: " + str(e))
 
     async def wait_for_payload_status_change(self, payload_uuid, status, timeout=None):
         """
@@ -4780,11 +4746,9 @@ class Mythic:
                             ):
                                 return payload
                     except Exception as e:
-                        print("exception in wait_for_payload_status_change: " + str(e))
-                        return None
+                        raise Exception("Exception while waiting for payload status change: " + str(e))
         except Exception as e:
-            print("exception in wait_for_payload_status_change outer: " + str(e))
-            return None
+            raise Exception("Exception in outer try/catch while waiting for payload status change: " + str(e))
 
     # ============= WEBSOCKET NOTIFICATION FUNCTIONS ===============
 
@@ -4874,12 +4838,9 @@ class Mythic:
                             if rsp.task.status == "error" or rsp.task.completed == True:
                                 return responses
                     except Exception as e:
-                        print("exception in gather_task_responses: " + str(e))
-                        # await ws.close()
-                        return responses
+                        raise Exception("Exception while gathering responses: " + str(e))
         except Exception as e:
-            print("exception in gather_task_responses outer: " + str(e))
-            return responses
+            raise Exception("Exception in our try/catch while gathering responses: " + str(e))
 
     async def listen_for_all_files(self, callback_function=None, timeout=None):
         """
