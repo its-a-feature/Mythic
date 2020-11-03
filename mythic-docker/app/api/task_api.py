@@ -798,6 +798,7 @@ async def add_all_payload_info(payload):
         rabbit_message["build_parameters"] = cached_payload_info[payload.uuid][
             "build_parameters"
         ]
+        rabbit_message["commands"] = cached_payload_info[payload.uuid]["commands"]
         rabbit_message["c2info"] = cached_payload_info[payload.uuid]["c2info"]
     else:
         cached_payload_info[payload.uuid] = {}
@@ -836,6 +837,13 @@ async def add_all_payload_info(payload):
             )
         rabbit_message["c2info"] = c2_profile_parameters
         cached_payload_info[payload.uuid]["c2info"] = c2_profile_parameters
+        commands_query = await db_model.payloadcommand_query()
+        stamped_commands = await db_objects.execute(commands_query.where(
+            db_model.PayloadCommand.payload == payload
+        ))
+        commands = [c.command.cmd for c in stamped_commands]
+        rabbit_message["commands"] = commands
+        cached_payload_info[payload.uuid]["commands"] = commands
     return rabbit_message
 
 

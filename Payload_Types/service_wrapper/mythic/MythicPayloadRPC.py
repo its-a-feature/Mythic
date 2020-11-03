@@ -21,7 +21,9 @@ class MythicPayloadRPCResponse(RPCResponse):
                 self.contents = payload.response["contents"]
             self.build_phase = payload.response["build_phase"]
             self.agent_file_id = payload.response["file_id"]["agent_file_id"]
+            self.filename = payload.response["file_id"]["filename"]
             self.c2info = payload.response["c2info"]
+            self.commands = payload.response["commands"]
             self.build_parameters = payload.response["build_parameters"]
         else:
             self.uuid = None
@@ -37,7 +39,9 @@ class MythicPayloadRPCResponse(RPCResponse):
             self.contents = None
             self.build_phase = None
             self.agent_file_id = None
+            self.filename = None
             self.c2info = None
+            self.commands = None
             self.build_parameters = None
 
     @property
@@ -159,6 +163,29 @@ class MythicPayloadRPCResponse(RPCResponse):
     def build_parameters(self, build_parameters):
         self._build_parameters = build_parameters
 
+    def set_profile_parameter_value(self,
+                                    c2_profile: str,
+                                    parameter_name: str,
+                                    value: any):
+        if self.c2info is None:
+            raise Exception("Can't set value when c2 info is None")
+        for c2 in self.c2info:
+            if c2["name"] == c2_profile:
+                c2["parameters"][parameter_name] = value
+                return
+        raise Exception("Failed to find c2 name")
+
+    def set_build_parameter_value(self,
+                                  parameter_name: str,
+                                  value: any):
+        if self.build_parameters is None:
+            raise Exception("Can't set value when build parameters are None")
+        for param in self.build_parameters:
+            if param["name"] == parameter_name:
+                param["value"] = value
+                return
+        self.build_parameters.append({"name": parameter_name, "value": value})
+
 
 class MythicPayloadRPC(MythicBaseRPC):
     async def get_payload_by_uuid(self, uuid: str) -> MythicPayloadRPCResponse:
@@ -182,6 +209,77 @@ class MythicPayloadRPC(MythicBaseRPC):
                 "destination_host": destination_host,
                 "wrapped_payload": wrapped_payload,
                 "description": description,
+            }
+        )
+        return MythicPayloadRPCResponse(resp)
+
+    async def build_payload_from_parameters(self,
+                                            payload_type: str,
+                                            c2_profiles: list,
+                                            commands: list,
+                                            build_parameters: list,
+                                            filename: str = None,
+                                            tag: str = None,
+                                            destination_host: str = None,
+                                            wrapped_payload: str = None) -> MythicPayloadRPCResponse:
+        """
+        :param payload_type: String value of a payload type name
+        :param c2_profiles: List of c2 dictionaries of the form:
+        { "c2_profile": "HTTP",
+          "c2_profile_parameters": {
+            "callback_host": "https://domain.com",
+            "callback_interval": 20
+          }
+        }
+        :param filename: String value of the name of the resulting payload
+        :param tag: Description for the payload for the active callbacks page
+        :param commands: List of string names for the commands that should be included
+        :param build_parameters: List of build parameter dictionaries of the form:
+        {
+          "name": "version", "value": 4.0
+        }
+        :param destination_host: String name of the host where the payload will go
+        :param wrapped_payload: If payload_type is a wrapper, wrapped payload UUID
+        :return:
+        """
+        resp = await self.call(
+            {
+                "action": "build_payload_from_parameters",
+                "task_id": self.task_id,
+                "payload_type": payload_type,
+                "c2_profiles": c2_profiles,
+                "filename": filename,
+                "tag": tag,
+                "commands": commands,
+                "build_parameters": build_parameters,
+                "destination_host": destination_host,
+                "wrapped_payload": wrapped_payload
+            }
+        )
+        return MythicPayloadRPCResponse(resp)
+
+
+    async def build_payload_from_MythicPayloadRPCResponse(self,
+                                                          resp: MythicPayloadRPCResponse,
+                                                          destination_host: str = None) -> MythicPayloadRPCResponse:
+        c2_list = []
+        for c2 in resp.c2info:
+            c2_list.append({
+                "c2_profile": c2["name"],
+                "c2_profile_parameters": c2["parameters"]
+            })
+        resp = await self.call(
+            {
+                "action": "build_payload_from_parameters",
+                "task_id": self.task_id,
+                "payload_type": resp.payload_type,
+                "c2_profiles": c2_list,
+                "filename": resp.filename,
+                "tag": resp.tag,
+                "commands": resp.commands,
+                "build_parameters": resp.build_parameters,
+                "destination_host": destination_host,
+                "wrapped_payload": resp.wrapped_payload
             }
         )
         return MythicPayloadRPCResponse(resp)
