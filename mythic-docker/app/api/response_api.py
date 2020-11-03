@@ -332,9 +332,9 @@ async def post_agent_response(agent_message, UUID):
                         parsed_response.pop("removed_files", None)
                     if "total_chunks" in parsed_response:
                         # we're about to create a record in the db for a file that's about to be send our way
-                        if parsed_response["total_chunks"] is not None and\
-                                parsed_response["total_chunks"] >= 0 and\
-                                str(parsed_response["total_chunks"]) != "":
+                        if parsed_response["total_chunks"] is not None and \
+                                str(parsed_response["total_chunks"]) != "" and\
+                                parsed_response["total_chunks"] >= 0:
                             parsed_response["task"] = task.id
                             rsp = await create_filemeta_in_database_func(parsed_response)
                             parsed_response.pop("task", None)
