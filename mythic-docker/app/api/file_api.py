@@ -337,11 +337,11 @@ async def create_filemeta_in_database_func(data):
         is_screenshot = False
         if task.command.cmd == "screencapture" or task.command.cmd == "screenshot":
             is_screenshot = True
-        if "is_screenshot" in data:
+        if "is_screenshot" in data and data["is_screenshot"] is not None:
             is_screenshot = data["is_screenshot"]
-        if "full_path" not in data:
+        if "full_path" not in data or data["full_path"] is None:
             data["full_path"] = ""
-        if "host" not in data:
+        if "host" not in data or data["host"] is None:
             data["host"] = task.callback.host
             # check and see if there's a filebrowserobj that matches our full path
         query = await db_model.filebrowserobj_query()

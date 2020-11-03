@@ -283,11 +283,11 @@ async def post_agent_response(agent_message, UUID):
                     if "completed" in parsed_response:
                         if parsed_response["completed"]:
                             task.completed = True
-                            json_return_info = {**json_return_info, "status": "success"}
                             await log_to_siem(task.to_json(), mythic_object="task_completed")
                         parsed_response.pop("completed", None)
                     if "user_output" in parsed_response:
-                        final_output += str(parsed_response["user_output"])
+                        if parsed_response["user_output"] is not None:
+                            final_output += str(parsed_response["user_output"])
                         parsed_response.pop("user_output", None)
                     if "file_browser" in parsed_response:
                         if (
@@ -301,13 +301,16 @@ async def post_agent_response(agent_message, UUID):
                             status = await store_response_into_filebrowserobj(
                                 task.callback.operation, task, parsed_response["file_browser"]
                             )
-                            json_return_info = {**json_return_info, **status}
+                            if status["status"] == "error":
+                                json_return_info["status"] = "error"
+                                json_return_info["error"] = json_return_info["error"] + " " + status["error"] if "error" in json_return_info else status["error"]
                         parsed_response.pop("file_browser", None)
                     if "removed_files" in parsed_response:
                         # an agent is reporting back that a file was removed from disk successfully
                         if (
                             parsed_response["removed_files"] is not None
                             and parsed_response["removed_files"] != []
+                            and parsed_response["removed_files"] != ""
                         ):
                             filebrowserquery = await db_model.filebrowserobj_query()
                             for f in parsed_response["removed_files"]:
@@ -329,7 +332,9 @@ async def post_agent_response(agent_message, UUID):
                         parsed_response.pop("removed_files", None)
                     if "total_chunks" in parsed_response:
                         # we're about to create a record in the db for a file that's about to be send our way
-                        if str(parsed_response["total_chunks"]) != "":
+                        if parsed_response["total_chunks"] is not None and\
+                                parsed_response["total_chunks"] >= 0 and\
+                                str(parsed_response["total_chunks"]) != "":
                             parsed_response["task"] = task.id
                             rsp = await create_filemeta_in_database_func(parsed_response)
                             parsed_response.pop("task", None)
@@ -354,17 +359,15 @@ async def post_agent_response(agent_message, UUID):
                                 }
                             else:
                                 final_output += rsp["error"]
-                                json_return_info = {
-                                    **json_return_info,
-                                    "status": "error",
-                                    "error": rsp["error"],
-                                }
+                                json_return_info["status"] = "error"
+                                json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                                    "error"] if "error" in json_return_info else rsp["error"]
                         parsed_response.pop("total_chunks", None)
                         parsed_response.pop("is_screenshot", None)
                         parsed_response.pop("full_path", None)
                         parsed_response.pop("host", None)
                     if "chunk_data" in parsed_response:
-                        if str(parsed_response["chunk_data"]) != "":
+                        if parsed_response["chunk_data"] is not None and str(parsed_response["chunk_data"]) != "":
                             if (
                                 "file_id" not in parsed_response
                                 and "file_id" in json_return_info
@@ -373,18 +376,17 @@ async def post_agent_response(agent_message, UUID):
                                 parsed_response["file_id"] = json_return_info["file_id"]
                             rsp = await download_file_to_disk_func(parsed_response)
                             if rsp["status"] == "error":
+                                json_return_info["status"] = "error"
+                                json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                                    "error"] if "error" in json_return_info else rsp["error"]
                                 final_output += rsp["error"]
-                            else:
-                                # we successfully got a chunk and updated the FileMeta object, so just move along
-                                json_return_info = {**json_return_info, "status": "success"}
                         parsed_response.pop("chunk_num", None)
                         parsed_response.pop("file_id", None)
                         parsed_response.pop("chunk_data", None)
                         parsed_response.pop("full_path", None)
                     if (
-                        "window_title" in parsed_response
-                        or "user" in parsed_response
-                        or "keystrokes" in parsed_response
+                        "keystrokes" in parsed_response and parsed_response["keystrokes"] is not None
+                        and parsed_response["keystrokes"] != ""
                     ):
                         if (
                             "window_title" not in parsed_response
@@ -398,32 +400,20 @@ async def post_agent_response(agent_message, UUID):
                             or parsed_response["user"] == ""
                         ):
                             parsed_response["user"] = "UNKNOWN"
-                        if (
-                            "keystrokes" not in parsed_response
-                            or parsed_response["keystrokes"] is None
-                            or parsed_response["keystrokes"] == ""
-                        ):
-                            json_return_info = {
-                                **json_return_info,
-                                "status": "error",
-                                "error": "keylogging response has no keystrokes",
-                            }
-                        else:
-                            rsp = await db_objects.create(
-                                Keylog,
-                                task=task,
-                                window=parsed_response["window_title"],
-                                keystrokes=parsed_response["keystrokes"],
-                                operation=task.callback.operation,
-                                user=parsed_response["user"],
-                            )
-                            await log_to_siem(rsp.to_json(), mythic_object="keylog_new")
-                            json_return_info = {**json_return_info, "status": "success"}
+                        rsp = await db_objects.create(
+                            Keylog,
+                            task=task,
+                            window=parsed_response["window_title"],
+                            keystrokes=parsed_response["keystrokes"],
+                            operation=task.callback.operation,
+                            user=parsed_response["user"],
+                        )
+                        await log_to_siem(rsp.to_json(), mythic_object="keylog_new")
                         parsed_response.pop("window_title", None)
                         parsed_response.pop("user", None)
                         parsed_response.pop("keystrokes", None)
                     if "credentials" in parsed_response:
-                        if str(parsed_response["credentials"]) != "":
+                        if parsed_response["credentials"] is not None and str(parsed_response["credentials"]) != "":
                             total_creds_added = 0
                             total_repeats = 0
                             for cred in parsed_response["credentials"]:
@@ -442,7 +432,7 @@ async def post_agent_response(agent_message, UUID):
                         parsed_response.pop("credentials", None)
                     if "artifacts" in parsed_response:
                         # now handle the case where the agent is reporting back artifact information
-                        if str(parsed_response["artifacts"]) != "":
+                        if parsed_response["artifacts"] is not None and str(parsed_response["artifacts"]) != "":
                             for artifact in parsed_response["artifacts"]:
                                 try:
                                     try:
@@ -468,10 +458,6 @@ async def post_agent_response(agent_message, UUID):
                                     )
                                     await log_to_siem(art.to_json(), mythic_object="artifact_new")
                                     # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
-                                    json_return_info = {
-                                        **json_return_info,
-                                        "status": "success",
-                                    }
                                 except Exception as e:
                                     final_output += (
                                         "\nFailed to work with artifact: "
@@ -479,17 +465,12 @@ async def post_agent_response(agent_message, UUID):
                                         + " due to: "
                                         + str(e)
                                     )
-                                    json_return_info = {
-                                        **json_return_info,
-                                        "status": "error",
-                                        "error": final_output,
-                                    }
+                                    json_return_info["status"] = "error"
+                                    json_return_info["error"] = json_return_info["error"] + " " + str(e) if "error" in json_return_info else str(e)
                         parsed_response.pop("artifacts", None)
                     if "status" in parsed_response:
                         if parsed_response["status"] != "" and parsed_response["status"] is not None:
                             task.status = str(parsed_response["status"]).lower()
-                            if task.status != "error":
-                                task.status = "processed"
                             if task.status_timestamp_processed is None:
                                 task.status_timestamp_processed = datetime.datetime.utcnow()
                         parsed_response.pop("status", None)
@@ -498,6 +479,8 @@ async def post_agent_response(agent_message, UUID):
                         and "file_id" in parsed_response
                         and parsed_response["file_id"] != ""
                         and parsed_response["full_path"] != ""
+                        and parsed_response["full_path"] is not None
+                        and parsed_response["file_id"] is not None
                     ):
                         # updating the full_path field of a file object after the initial checkin for it
                         try:
@@ -549,7 +532,8 @@ async def post_agent_response(agent_message, UUID):
                         parsed_response.pop("full_path", None)
                         parsed_response.pop("file_id", None)
                     if "edges" in parsed_response:
-                        if parsed_response["edges"] != "" and parsed_response["edges"] != []:
+                        if parsed_response["edges"] != "" and parsed_response["edges"] != [] \
+                                and parsed_response["edges"] is not None:
                             try:
                                 from app.api.callback_api import add_p2p_route
 
@@ -558,8 +542,8 @@ async def post_agent_response(agent_message, UUID):
                                 )
                             except Exception as e:
                                 print(str(e))
-                                rsp = {"status": "error", "error": str(e)}
-                            json_return_info = {**json_return_info, **rsp}
+                                json_return_info["status"] = "error"
+                                json_return_info["error"] = json_return_info["error"] + " " + str(e) if "error" in json_return_info else str(e)
                         parsed_response.pop("edges", None)
                     if "commands" in parsed_response:
                         if parsed_response["commands"] != [] and parsed_response["commands"] is not None:
@@ -567,7 +551,10 @@ async def post_agent_response(agent_message, UUID):
                             from app.api.callback_api import load_commands_func
                             for c in parsed_response["commands"]:
                                 rsp = await load_commands_func(command_dict=c, callback=task.callback, task=task)
-                                json_return_info = {**json_return_info, **rsp}
+                                if rsp["status"] == "error":
+                                    json_return_info["status"] = "error"
+                                    json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                                        "error"] if "error" in json_return_info else rsp["error"]
                         parsed_response.pop("commands", None)
                 except Exception as e:
                     print(sys.exc_info()[-1].tb_lineno)
@@ -579,17 +566,14 @@ async def post_agent_response(agent_message, UUID):
                         + "\nOriginal Output:\n"
                         + str(r)
                     )
-                    json_return_info = {
-                        **json_return_info,
-                        "status": "error",
-                        "error": str(e),
-                    }
+                    json_return_info["status"] = "error"
+                    json_return_info["error"] = json_return_info["error"] + " " + str(e) if "error" in json_return_info else str(e)
             except Exception as e:
                 # response is not json, so just process it as normal
                 print(str(e))
                 pass
             # echo back any values that the agent sent us that don't match something we're expecting
-            print(json_return_info)
+            print(parsed_response)
             json_return_info = {**json_return_info, **parsed_response}
             print(json_return_info)
             if final_output != "":
@@ -615,6 +599,7 @@ async def post_agent_response(agent_message, UUID):
         "socks" in agent_message
         and agent_message["socks"] != ""
         and agent_message["socks"] != []
+        and agent_message["socks"] is not None
     ):
         from app.api.callback_api import send_socks_data
 
