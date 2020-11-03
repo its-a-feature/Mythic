@@ -30,6 +30,7 @@ var callback_table = new Vue({
         callbacks,
         filter: "",
         sort: "id",
+        size: 30,
         direction: -1,
         selected_node: undefined,
         view_selection: "table view",
@@ -60,6 +61,15 @@ var callback_table = new Vue({
         }
     },
     methods: {
+        adjust_pane_sizes: function(){
+            $('#editPanesTop').val(this.size);
+            $('#editPanesBottom').val(task_data.size);
+            $('#editPanesModal').modal('show');
+            $('#editPanesSubmit').unbind('click').click(function () {
+                callback_table.size = $('#editPanesTop').val();
+                task_data.size = $('#editPanesBottom').val();
+            });
+        },
         deselect_all_but_callback: function (callback) {
             Object.keys(task_data.meta).forEach(function (key) {
                 if (key !== "file_browser") {
@@ -1547,7 +1557,8 @@ var task_data = new Vue({
         path: "",
         callback: -1,
         file_browser_permissions: {},
-        file_browser_history_files: []
+        file_browser_history_files: [],
+        size: 50
     },
     methods: {
         task_button: function (data) {
@@ -3621,7 +3632,17 @@ function autocomplete(inp, arr) {
             try {
                 //we want to close the autocomplete menu and fill in with the top-most element
                 if (currentFocus === -1) {
-                    task_data.input_field = x[0].textContent;
+                    let val = "";
+                    for(let j = 0; j < x.length; j++){
+                        if(task_data.input_field.toLowerCase() === x[j].textContent.toLowerCase()){
+                            val = x[j].textContent;
+                            break;
+                        }
+                    }
+                    if(val === ""){
+                        val = x[0].textContent;
+                    }
+                    task_data.input_field = val;
                 } else {
                     task_data.input_field = x[currentFocus].textContent;
                 }
@@ -3647,9 +3668,19 @@ function autocomplete(inp, arr) {
         } else if (e.keyCode === 27 && x !== null) {
             closeAllLists();
         } else if (e.keyCode === 13 && x !== null && x.length > 0) {
+            //user hit enter
             if (currentFocus === -1) {
-                //console.log(x);
-                task_data.input_field = x[0].textContent;
+                let val = "";
+                for(let j = 0; j < x.length; j++){
+                    if(task_data.input_field.toLowerCase() === x[j].textContent.toLowerCase()){
+                        val = x[j].textContent;
+                        break;
+                    }
+                }
+                if(val === ""){
+                    val = x[0].textContent;
+                }
+                task_data.input_field = val;
                 e.preventDefault();
                 closeAllLists("");
                 e.stopImmediatePropagation();

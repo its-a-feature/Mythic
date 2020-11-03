@@ -33,9 +33,8 @@ var callback_table = new Vue({
         task_button: function (data) {
             //submit the input_field data as a task, need to know the current callback id though
             //first check if there are any active auto-complete tabs. If there are, we won't submit.
-            let autocomplete_list = document.getElementById(data.id + 'commandlineautocomplete-list');
+            let autocomplete_list = document.getElementById(data.id + "autocomplete-list");
             if (autocomplete_list !== null && autocomplete_list.hasChildNodes()) {
-                alertTop("warning", "submission error");
                 return;
             }
             let task = this.callbacks[data.id].input_field.trim().split(" ");
@@ -1158,7 +1157,17 @@ function autocomplete(inp, arr) {
             try {
                 //we want to close the autocomplete menu and fill in with the top-most element
                 if (currentFocus === -1) {
-                    callback_table.callbacks[callback_id]['input_field'] = x[0].textContent;
+                    let val = "";
+                    for(let j = 0; j < x.length; j++){
+                        if(callback_table.callbacks[callback_id]['input_field'].toLowerCase() === x[j].textContent.toLowerCase()){
+                            val = x[j].textContent;
+                            break;
+                        }
+                    }
+                    if(val === ""){
+                        val = x[0].textContent;
+                    }
+                    callback_table.callbacks[callback_id]['input_field'] = val;
                 } else {
                     callback_table.callbacks[callback_id]['input_field'] = x[currentFocus].textContent;
                 }
@@ -1171,22 +1180,31 @@ function autocomplete(inp, arr) {
             //keycode UP arrow
             if (x.length > 0) {
                 currentFocus--;
-                addActive(x);
+                addActive(x, callback_id);
                 e.stopImmediatePropagation();
             }
         } else if (e.keyCode === 40 && x !== null) {
             //keycode DOWN arrow
             if (x.length > 0) {
                 currentFocus++;
-                addActive(x);
+                addActive(x, callback_id);
                 e.stopImmediatePropagation();
             }
         } else if (e.keyCode === 27 && x !== null) {
             closeAllLists();
         } else if (e.keyCode === 13 && x !== null && x.length > 0) {
             if (currentFocus === -1) {
-                //console.log(x);
-                callback_table.callbacks[callback_id]['input_field'] = x[0].textContent;
+                let val = "";
+                for(let j = 0; j < x.length; j++){
+                    if(callback_table.callbacks[callback_id]['input_field'].toLowerCase() === x[j].textContent.toLowerCase()){
+                        val = x[j].textContent;
+                        break;
+                    }
+                }
+                if(val === ""){
+                    val = x[0].textContent;
+                }
+                callback_table.callbacks[callback_id]['input_field'] = val;
                 e.preventDefault();
                 closeAllLists("");
                 e.stopImmediatePropagation();
@@ -1199,7 +1217,7 @@ function autocomplete(inp, arr) {
         }
     });
 
-    function addActive(x) {
+    function addActive(x, callback_id) {
         /*a function to classify an item as "active":*/
         if (!x) return false;
         /*start by removing the "active" class on all items:*/
@@ -1208,7 +1226,6 @@ function autocomplete(inp, arr) {
         if (currentFocus < 0) currentFocus = (x.length - 1);
         /*add class "autocomplete-active":*/
         x[currentFocus].classList.add("autocomplete-active");
-        let callback_id = this.id.split(":")[2];
         callback_table.callbacks[callback_id]['input_field'] = x[currentFocus].getElementsByTagName("input")[0].value;
     }
 

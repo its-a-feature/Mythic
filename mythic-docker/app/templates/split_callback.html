@@ -91,7 +91,7 @@
             <div class="input-group mb-3">
                 <input :id="'commandline:' + callback.payload_type + ':' + callback.id" type="text" class="form-control" v-model="callback.input_field"
                        :placeholder="callback.input_field_placeholder" aria-describedby="basic-addon1"
-                       @keyup.enter="task_button(callback)" @keyup.up="cmd_history_up(callback)" @keyup.down="cmd_history_down(callback)"
+                       @keydown.enter="task_button(callback)" @keyup.up="cmd_history_up(callback)" @keyup.down="cmd_history_down(callback)"
                        style="position:relative;display:inline-block"
                 >
                 <span class="btn-group" style="position:relative">

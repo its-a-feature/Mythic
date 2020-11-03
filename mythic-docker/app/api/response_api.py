@@ -573,9 +573,9 @@ async def post_agent_response(agent_message, UUID):
                 print(str(e))
                 pass
             # echo back any values that the agent sent us that don't match something we're expecting
-            print(parsed_response)
+            #print(parsed_response)
             json_return_info = {**json_return_info, **parsed_response}
-            print(json_return_info)
+            #print(json_return_info)
             if final_output != "":
                 # if we got here, then we did some sort of meta processing
                 resp = await db_objects.create(
