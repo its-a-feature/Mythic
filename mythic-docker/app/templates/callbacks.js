@@ -68,6 +68,22 @@ var callback_table = new Vue({
             $('#editPanesSubmit').unbind('click').click(function () {
                 callback_table.size = $('#editPanesTop').val();
                 task_data.size = $('#editPanesBottom').val();
+                if (callback_table.view_selection === "graph view") {
+                    $('#rect').css('height', 'calc(' + callback_table.size + 'vh)');
+                    $('#d3_selectable_force_directed_graph').css('height', 'calc(' + callback_table.size + 'vh)');
+                    let parentWidth = d3.select('svg').node().parentNode.clientWidth;
+                    let parentHeight = d3.select('svg').node().parentNode.clientHeight;
+                    let svg = d3.select('svg').attr('width', parentWidth).attr('height', parentHeight);
+                    callback_table.graph_node_update();
+                }
+                if (callback_table.view_selection === "tree view") {
+                    $('#rect').css('height', 'calc(' + callback_table.size + 'vh)');
+                    $('#d3_selectable_force_directed_graph').css('height', 'calc(' + callback_table.size + 'vh)');
+                    let parentWidth = d3.select('svg').node().parentNode.clientWidth;
+                    let parentHeight = d3.select('svg').node().parentNode.clientHeight;
+                    let svg = d3.select('svg').attr('width', parentWidth).attr('height', parentHeight);
+                    callback_table.tree_node_update();
+                }
             });
         },
         deselect_all_but_callback: function (callback) {
@@ -964,13 +980,17 @@ var callback_table = new Vue({
                     this.graph_view_pieces.simulation = undefined;
                 }
                 if (imp === 'table view') {
-                    $('#callback_table').css('height', 'calc(30vh)');
-                    $('#bottom-tabs-content').css("height", "calc(51vh)");
+                    callback_table.size = 30;
+                    task_data.size = 51;
+                    //$('#callback_table').css('height', 'calc(30vh)');
+                    //$('#bottom-tabs-content').css("height", "calc(51vh)");
                 } else if (imp === "graph view") {
-                    $('#callback_table').css('height', 'calc(51vh)');
-                    $('#rect').css('height', 'calc(45vh)');
-                    $('#d3_selectable_force_directed_graph').css('height', 'calc(45vh)');
-                    $('#bottom-tabs-content').css("height", "calc(30vh)");
+                    callback_table.size = 51;
+                    task_data.size = 30;
+                    //$('#callback_table').css('height', 'calc(51vh)');
+                    //$('#rect').css('height', 'calc(45vh)');
+                    //$('#d3_selectable_force_directed_graph').css('height', 'calc(45vh)');
+                   // $('#bottom-tabs-content').css("height", "calc(30vh)");
                     this.graph_view_pieces.selected_label_watcher = this.$watch(['graph_view_pieces', 'selected_node_labels'].join('.'), () => {
                         this.graph_node_update();
                     });
@@ -1094,10 +1114,12 @@ var callback_table = new Vue({
                         });
                     }, 0);
                 } else if (imp === 'tree view') {
-                    $('#callback_table').css('height', 'calc(51vh)');
-                    $('#rect').css('height', 'calc(45vh)');
-                    $('#d3_selectable_force_directed_graph').css('height', 'calc(45vh)');
-                    $('#bottom-tabs-content').css("height", "calc(30vh)");
+                    callback_table.size = 51;
+                    task_data.size = 30;
+                    //$('#callback_table').css('height', 'calc(51vh)');
+                    //$('#rect').css('height', 'calc(45vh)');
+                    //$('#d3_selectable_force_directed_graph').css('height', 'calc(45vh)');
+                   // $('#bottom-tabs-content').css("height", "calc(30vh)");
                     this.tree_view_pieces.selected_label_watcher = this.$watch(['tree_view_pieces', 'selected_node_labels'].join('.'), () => {
                         this.tree_node_update();
                     });
@@ -1207,7 +1229,7 @@ function add_edge_for_graph_view(event) {
     cb['source'] = cb['tmp_src']['id'];
     cb['target'] = JSON.parse(cb['destination'])['id'];
     if ("name" in cb) {
-        console.log("adding c2 node and edge");
+        //console.log("adding c2 node and edge");
         // add the c2 node
         let found_s = false;
         let found_d = false;
@@ -1370,51 +1392,6 @@ function add_edge_for_tree_view(event) {
     }
 }
 
-// ------- HANDLE A DRAG BAR IN THE MIDDLE OF THE SCREEN FOR ADJUSTING SIZE ----------
-// http://jsfiddle.net/Le8rjs52/
-var dragging = false;
-$('#dragbar').mousedown(function (e) {
-    e.preventDefault();
-    dragging = true;
-    let main = $('#bottom-data');
-    let ghostbar = $('<div>',
-        {
-            id: 'ghostbar',
-            css: {
-                width: main.outerWidth(),
-                top: e.pageY,
-                left: main.offset().left,
-                height: "3px",
-                cursor: "col-resize"
-            }
-        }).appendTo('#wrapper');
-
-    $(document).mousemove(function (ev) {
-        ghostbar.css("top", (ev.pageY + 2));
-    });
-});
-$(document).mouseup(function (e) {
-    if (dragging) {
-        let percentage = ((e.pageY - $('#wrapper').offset().top) / $('#wrapper').height()) * 100;
-        let mainPercentage = 100 - percentage;
-        //console.log(percentage);
-        //console.log(mainPercentage);
-        $('#callback_table').css("height", "calc(" + (percentage * 83) / 100 + "vh)");
-        $('#rect').css("height", "calc(" + (percentage * 74) / 100 + "vh)");
-        $('#d3_selectable_force_directed_graph').css("height", "calc(" + (percentage * 74) / 100 + "vh)");
-        $('#bottom-tabs-content').css("height", "calc(" + (mainPercentage * 83) / 100 + "vh)");
-        $('#ghostbar').remove();
-        $(document).unbind('mousemove');
-        if (callback_table.view_selection === "graph view") {
-            callback_table.graph_node_update();
-        }
-        if (callback_table.view_selection === "tree view") {
-            callback_table.tree_node_update();
-        }
-        dragging = false;
-    }
-});
-// ---------- END DRAG BAR ADJUSTMENT -------------------------
 var group_modify = new Vue({
     el: '#group_modify',
     delimiters: ['[[', ']]'],

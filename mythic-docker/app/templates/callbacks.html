@@ -118,7 +118,7 @@
                 <td >[[ callback.os]] ([[callback.architecture]])</td>
                 <td >[[ callback.description]]</td>
                 <td >[[ callback.pid  ]]</td>
-                <td><img :src="'/static/' + callback.payload_type + '.svg'" style="height:30px"></td>
+                <td><img :src="'/static/' + callback.payload_type + '.svg'" style="height:30px" data-toggle="tooltip" :title="callback.payload_type"></td>
         </tr>
         <!-- End of the repeating -->
         </table>
@@ -274,7 +274,6 @@
         </div>
     </template>
 </div>
-<div id="dragbar" style="height:3px;width:100%;cursor:row-resize;background-color:black"></div>
 <div class="card" id="bottom-data" style="display:flex;">
     <!-- Tabs at the bottom of the screen - just the names at the top though-->
     <ul class="nav nav-tabs" role="tablist" id="bottom-tabs">
@@ -1170,11 +1169,11 @@
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
               <div class="modal-body">
-                  Adjust the height percentages of the top and bottom panes (can be greater than 100%).
+                  Adjust the height percentages of the top and bottom panes (can be greater than 100%). This percentage is based on the height of your browser. I.e. a value of 100 means that the associated pane takes up 100% of your browser screen height, and you need to scroll to see the rest of the content.
                   <table class="table table-striped {{config['table-color']}} border border-dark shadow table-condensed" style="padding:0;margin:0;">
                     <tr>
                         <th>Pane</th>
-                        <th>Height %</th>
+                        <th>Height % of vertical screen size</th>
                     </tr>
                       <tr>
                           <td style="padding-left:10px">Top</td>
