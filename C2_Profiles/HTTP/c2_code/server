@@ -18,8 +18,12 @@ async def print_flush(message):
     sys.stdout.flush()
 
 
-async def server_error_handler(request, exception):
-    return await html("Error: Requested URL {} not found".format(request.url), status=404, headers=config[request.app.name]['headers'])
+def server_error_handler(request, exception):
+    if request is None:
+        print("Invalid HTTP Method - Likely HTTPS trying to talk to HTTP")
+        sys.stdout.flush()
+        return html("Error: Failed to process request", status=500, headers={})
+    return html("Error: Requested URL {} not found".format(request.url), status=404, headers=config[request.app.name]['headers'])
 
 
 async def agent_message(request, **kwargs):
@@ -42,9 +46,13 @@ async def agent_message(request, **kwargs):
             response = requests.get(config['mythic_address'] + "?{}".format(request.query_string), verify=False, data=request.body, cookies=request.cookies, headers=request.headers)
         return raw(response.content, headers=config[request.app.name]['headers'], status=response.status_code)
     except Exception as e:
+        if request is None:
+            await print_flush("Invalid HTTP Method - Likely HTTPS trying to talk to HTTP")
+            return server_error_handler(request, e)
         if config[request.app.name]['debug']:
             await print_flush("error in agent_message: {}".format(str(e)))
-        return await no_match(request, NotFound)
+        return server_error_handler(request, e)
+
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from app import mythic, db_objects
+from app import mythic, db_objects, keep_logs
 from sanic.response import json, text
 from app.database_models.model import (
     Callback,
@@ -261,6 +261,8 @@ async def parse_agent_message(data: str, request):
             return "", 404
         # now to parse out what we're doing, everything is decrypted at this point
         # shuttle everything out to the appropriate api files for processing
+        if keep_logs:
+            logger.info("Agent -> Mythic: " + js.dumps(decrypted))
         # print(decrypted)
         response_data = {}
         if decrypted["action"] == "get_tasking":
@@ -346,7 +348,8 @@ async def parse_agent_message(data: str, request):
                         response_data["delegates"].append({d_uuid: del_message})
         #   special encryption will be handled by the appropriate stager call
         # base64 ( UID + ENC(response_data) )
-        #print(js.dumps(response_data))
+        if keep_logs:
+            logger.info("Mythic -> Agent: " + js.dumps(response_data))
         final_msg = await crypt.encrypt_message(response_data, enc_key, UUID)
         #if enc_key["type"] is None:
         #    return (
