@@ -66,6 +66,9 @@ class Poseidon(PayloadType):
                 f.write(file1)
             c2 = self.c2info[0]
             profile = c2.get_c2profile()["name"]
+            if profile not in self.c2_profiles:
+                resp.message = "Invalid c2 profile name specified"
+                return resp
             file1 = open(
                 "{}/c2_profiles/{}.go".format(agent_build_path, profile), "r"
             ).read()
@@ -81,9 +84,9 @@ class Poseidon(PayloadType):
             command += (
                 "xgo -tags={} --targets={}/{} -buildmode={} -out poseidon .".format(
                     profile,
-                    self.get_parameter("os"),
+                    "darwin" if self.get_parameter("os") == "darwin" else "linux",
                     "amd64",
-                    self.get_parameter("mode"),
+                    "default" if self.get_parameter("mode") == "default" else "c-archive",
                 )
             )
             proc = await asyncio.create_subprocess_shell(

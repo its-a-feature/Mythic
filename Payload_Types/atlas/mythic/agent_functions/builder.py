@@ -104,10 +104,10 @@ class Atlas(PayloadType):
             if self.get_parameter("cert_pinning") is False:
                 defines.append("CERT_FALSE")
             command = 'nuget restore ; msbuild -p:TargetFrameworkVersion=v{} -p:OutputType="{}" -p:Configuration="{}" -p:Platform="{}" -p:DefineConstants="{}"'.format(
-                self.get_parameter("version"),
+                "3.5" if self.get_parameter("version") == "3.5" else "4.0",
                 "WinExe",
                 "Release",
-                self.get_parameter("arch"),
+                "x86" if self.get_parameter("arch") == "x86" else "x64",
                 " ".join(defines),
             )
             proc = await asyncio.create_subprocess_shell(
