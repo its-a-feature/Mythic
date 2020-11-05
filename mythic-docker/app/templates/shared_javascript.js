@@ -1,5 +1,6 @@
 // This page has all of the shared javascript functions used across a variety of pages
 /* eslint-disable no-redeclare,no-unused-vars */
+var mythic_endpoint = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}";
 function httpGetAsync(theUrl, callback, method, data) {
     try {
         let xhr = new XMLHttpRequest();

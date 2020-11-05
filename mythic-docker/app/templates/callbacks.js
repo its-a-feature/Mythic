@@ -2373,11 +2373,24 @@ var task_data = new Vue({
             });
         },
         view_file_data: function (data) {
-            try {
-                this.file_browser_permissions = JSON.parse(data['permissions']);
-            } catch (error) {
-                this.file_browser_permissions = {"Permissions": data['permissions']};
-            }
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/filebrowserobj/" + data['id'] + "/permissions", (response)=>{
+                    try{
+                        let perms = JSON.parse(response);
+                        if(perms['status'] === "success"){
+                            try {
+                                this.file_browser_permissions = JSON.parse(perms['permissions']);
+                            } catch (error) {
+                                this.file_browser_permissions = {"Permissions": perms['permissions']};
+                            }
+                        }else{
+                            alertTop("warning", "Failed to fetch permissions: " + perms['error']);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "GET", null);
+
             $('#fileBrowserPermissions').modal('show');
         },
         view_download_history: function (data) {
@@ -2652,7 +2665,7 @@ function startwebsocket_processlist(cid) {
                     Vue.set(meta[key], 'process_list_data', data['process_list']);
                     Vue.set(meta[key], 'process_list_tree', data['tree_list']);
                     task_data.$forceUpdate();
-                    alertTop("success", "Updated process list on " + data['process_list']['host']);
+                    //alertTop("success", "Updated process list on " + data['process_list']['host']);
                 }
             });
         }
@@ -3322,7 +3335,7 @@ function startwebsocket_newkeylogs() {
             let rsp = JSON.parse(event.data);
             //console.log(rsp);
             let key_stroke_alert = rsp['keystrokes'];
-            alertTop("success", key_stroke_alert, 2, "New Keylog from " + rsp['task']);
+            //alertTop("success", key_stroke_alert, 2, "New Keylog from " + rsp['task']);
             //console.log(rsp);
             if (task_data.meta[rsp['callback']['id']]['keylogs'] === true) {
                 //only try to update a view if the view is actually open
@@ -3542,17 +3555,11 @@ function add_new_filemeta(data) {
         for (let i = 0; i < meta[data['callback_id']]['images'].length; i++) {
             if (meta[data['callback_id']]['images'][i]['id'] === data['id']) {
                 Vue.set(meta[data['callback_id']]['images'], i, Object.assign({}, meta[data['callback_id']]['images'][i], data));
-                if (data['complete']) {
-                    alertTop("success", "Finished getting screenshot in callback " + data['callback_id']);
-                } else {
-                    alertTop("info", "Received new screenshot chunk", 4);
-                }
                 return;
             }
         }
         data['remote_path'] = "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/screencaptures/" + data['agent_file_id'];
         meta[data['callback_id']]['images'].push(data);
-        alertTop("info", "Started new screenshot...", 1);
     }
 }
 
@@ -3987,9 +3994,6 @@ function startwebsocket_filebrowser() {
             if (!initial_group_done) {
                 Vue.set(meta, "file_browser", data);
             } else {
-                if (data['callback'] !== undefined) {
-                    alertTop("info", "Updating file browsing data from callback: " + data['callback']);
-                }
                 // now we have streaming updates and need to merge them in
                 //console.log(data);
                 // first step is to find the right host
