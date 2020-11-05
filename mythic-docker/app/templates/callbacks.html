@@ -3,8 +3,7 @@
 {% block body %}
 <!-- http://bl.ocks.org/fancellu/2c782394602a93921faff74e594d1bb1 -->
 <script src="https://d3js.org/d3.v4.min.js"></script>
-<div id="wrapper">
-<div :style="'overflow-y:auto; display:block; height:calc(' + size + 'vh); margin-top:5px'" class="card border-dark bg-card-body" id="callback_table">
+<div style="display:block; margin-top:5px" class="card border-dark bg-card-body" id="callback_table">
     <div class="card-header bg-header text-white" style="margin:0">
         <span><h4 style="display:inline-block">Active <span class="operator">Callbacks</span></h4></span>
         <span style="display:inline-block; float:right">
@@ -28,6 +27,7 @@
         </span>
     </div>
     <template v-if="view_selection === 'table view'">
+        <div :style="'height:calc(' + size + 'vh);overflow-y:auto'">
          <table class="table table-striped {{config['table-color']}} border border-dark shadow table-condensed" style="padding:0;margin:0;">
             <tr>
                 <th class="sticky-top" style="width:3rem;text-align:center"><input type="checkbox" @click="check_all_callbacks()" id="all_callback_checkbox"></th>
@@ -122,9 +122,10 @@
         </tr>
         <!-- End of the repeating -->
         </table>
+        </div>
     </template>
     <template v-else>
-        <div style="width:20%;display:inline-block;height:calc(45vh)">
+        <div :style="'width:20%;display:inline-block;height:calc(' + size + 'vh)'">
             <div class="card border-0 shadow">
                 <div class="card-header bg-header border border-dark shadow text-white">
                     <template v-if="selected_node === undefined">
@@ -269,7 +270,7 @@
                 </div>
             </div>
         </div>
-        <div id="d3_selectable_force_directed_graph" style="width: 80%; height: calc(45vh);float:right" class="card border-0 shadow">
+        <div id="d3_selectable_force_directed_graph" :style="'width: 80%;float:right;height:calc(' + size + 'vh)'" class="card border-0 shadow">
             <svg id="d3_svg"/>
         </div>
     </template>
@@ -768,7 +769,6 @@
          </div>
     </div>
     <!-- END POPOVER FOR EDITING TASKING FILTER -->
-</div>
 </div>
 
 <!-- THIS IS OUR MODAL FOR VIEW_LOADED_COMMANDS -->

@@ -30,7 +30,7 @@ var callback_table = new Vue({
         callbacks,
         filter: "",
         sort: "id",
-        size: 30,
+        size: 25,
         direction: -1,
         selected_node: undefined,
         view_selection: "table view",
@@ -980,7 +980,7 @@ var callback_table = new Vue({
                     this.graph_view_pieces.simulation = undefined;
                 }
                 if (imp === 'table view') {
-                    callback_table.size = 30;
+                    callback_table.size = 25;
                     task_data.size = 51;
                     //$('#callback_table').css('height', 'calc(30vh)');
                     //$('#bottom-tabs-content').css("height", "calc(51vh)");
