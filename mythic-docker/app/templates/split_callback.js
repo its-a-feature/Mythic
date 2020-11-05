@@ -246,7 +246,16 @@ var callback_table = new Vue({
 
                         } else {
                             //somebody knows what they're doing or a command just doesn't have parameters, send it off
-                            //if it is a test command we can go ahead and send it down (since it would be skipped by the above)
+                            if(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length !== 0){
+                                for (let j = 0; j < this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length; j++) {
+                                    if(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]["type"] === "File" && this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]["required"]){
+                                        alertTop("warning", "Required file uploads must happen through popup", 6);
+                                        this.callbacks[data['id']].input_field = command;
+                                        callback_table.task_button(this.callbacks[data['id']]);
+                                        return;
+                                    }
+                                }
+                            }
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['id'], post_task_callback_func, "POST",
                                 {"command": command, "params": params});
 

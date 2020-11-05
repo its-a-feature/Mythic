@@ -1857,6 +1857,17 @@ var task_data = new Vue({
                             });
                         } else {
                             //somebody knows what they're doing or a command just doesn't have parameters, send it off
+                            // first check to make sure we're not trying to submit text in place of required file parameter
+                            if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length !== 0){
+                                for (let j = 0; j < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length; j++) {
+                                    if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]["type"] === "File" && this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]["required"]){
+                                        alertTop("warning", "Required file uploads must happen through popup", 6);
+                                        task_data.input_field = command;
+                                        task_data.task_button(task_data.input_field_placeholder);
+                                        return;
+                                    }
+                                }
+                            }
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'], post_task_callback_func, "POST",
                                 {"command": command, "params": params});
 
