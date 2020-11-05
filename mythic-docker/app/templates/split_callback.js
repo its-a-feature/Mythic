@@ -149,6 +149,8 @@ var callback_table = new Vue({
                                             }
                                         }
                                     }
+                                    param.payloads.sort((a, b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
+                                    param['payloadlist_value'] = param.payloads.length > 0 ? param.payloads[0].uuid : "";
                                 }
                                 params_table.command_params.push(param);
                             }

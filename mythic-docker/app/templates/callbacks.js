@@ -1469,6 +1469,10 @@ function view_callback_info(response) {
                 }
                 data['path'] = min;
             }
+            data["loaded_commands"].sort((a, b) => (a.command > b.command) ? 1 : ((b.command > a.command) ? -1 : 0));
+            for(const [k,v] of Object.entries(data["c2_profiles"])){
+                data["c2_profiles"][k].sort((a, b) => (a.description > b.description) ? 1 : ((b.description > a.description) ? -1 : 0));
+            }
             callback_info_modal.info = data;
             $('#CallbackInfoModal').modal('show');
             callback_info_modal.$forceUpdate();
@@ -1759,6 +1763,8 @@ var task_data = new Vue({
                                             }
                                         }
                                     }
+                                    param.payloads.sort((a, b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
+                                    param['payloadlist_value'] = param.payloads.length > 0 ? param.payloads[0].uuid : "";
                                 }
                                 params_table.command_params.push(param);
                             }

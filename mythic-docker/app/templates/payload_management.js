@@ -34,7 +34,12 @@ var payloads_table = new Vue({
                     let data = JSON.parse(response);
                     if (data['status'] === "success") {
                         if (!build_message) {
+                            console.log(data);
                             //Vue.set(payload_config_vue.config, "wrapped", false);
+                            data["commands"].sort((a, b) => (a.cmd > b.cmd) ? 1 : ((b.cmd > a.cmd) ? -1 : 0));
+                            for(const [k,v] of Object.entries(data["c2_profiles"])){
+                                data["c2_profiles"][k].sort((a, b) => (a.description > b.description) ? 1 : ((b.description > a.description) ? -1 : 0));
+                            }
                             Vue.set(payload_config_vue.config, "file_id", data['file_id']);
                             Vue.set(payload_config_vue.config, "commands", data['commands']);
                             Vue.set(payload_config_vue.config, "c2_profiles", data['c2_profiles']);
