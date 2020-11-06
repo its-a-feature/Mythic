@@ -38,6 +38,7 @@ var callback_table = new Vue({
         high_integrity_color: "red",
         disconnected_color: "orange",
         children_color: "#32DFEC",
+        started_filebrowser_websocket: false,
         graph_view_pieces: {
             simulation: undefined,
             node: undefined,
@@ -205,6 +206,11 @@ var callback_table = new Vue({
             }, 0);
         },
         show_file_browser: function (callback) {
+            if( !this.started_filebrowser_websocket){
+                startwebsocket_filebrowser();
+                alertTop("info", "Started streaming file browser data...");
+                this.started_filebrowser_websocket = true;
+            }
             Vue.set(meta[callback.id], 'file_browser', true);
             this.deselect_all_but_callback(callback);
             Vue.set(meta[callback.id], 'file_browser_selected', true);
@@ -2474,7 +2480,6 @@ var task_data = new Vue({
         },
         double_click_row: function (data) {
             if (data.hasOwnProperty("children") && data.children !== undefined) {
-                console.log(data);
                 task_data.setBrowserTableData(data['data'], data['children']);
                 task_data.$forceUpdate();
             } else {
@@ -4071,7 +4076,7 @@ function startwebsocket_filebrowser() {
     };
 }
 
-startwebsocket_filebrowser();
+
 
 function add_update_file_browser(search, element) {
     //recursive base case
