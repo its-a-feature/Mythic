@@ -555,6 +555,7 @@
                 <div class="card border border-dark shadow bg-card-body-l1">
                    <browser-menu v-for="v in Object.keys(meta.file_browser)"
                      :children="meta.file_browser[v].children"
+                     :parent="meta.file_browser[v]"
                      :depth="0"
                      :data="meta.file_browser[v].data"
                      :host="meta.file_browser[v].data.host"

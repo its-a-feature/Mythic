@@ -2610,6 +2610,7 @@ Vue.component('browser-menu', {
         '    <browser-menu \n' +
         '      v-if="showChildren"\n' +
         '      v-for="node in children" \n' +
+        '      :parent="this"\n' +
         '      :children="Object.values(node)[0].children" \n' +
         '      :data="Object.values(node)[0].data"\n' +
         '      :depth="depth + 1"   \n' +
@@ -2617,7 +2618,7 @@ Vue.component('browser-menu', {
         '    >\n' +
         '    </browser-menu>\n' +
         '  </div>',
-    props: ['children', 'depth', 'data', 'host'],
+    props: ['children', 'depth', 'data', 'host', 'parent'],
     data() {
         return {
             showChildren: true,
@@ -2649,7 +2650,8 @@ Vue.component('browser-menu', {
         },
         test() {
             if(this.data.is_file){
-                alertTop("info", "Cannot view children of files, only folders.");
+                task_data.setBrowserTableData(this.$parent.data, this.$parent.children);
+                task_data.$forceUpdate();
                 return;
             }
             if(this.children !== undefined){
@@ -2657,6 +2659,8 @@ Vue.component('browser-menu', {
                 task_data.$forceUpdate();
             }else{
                 alertTop("info", "Children of folder unknown");
+                task_data.setBrowserTableData(this.$parent.data, this.$parent.children);
+                task_data.$forceUpdate();
             }
 
         },
