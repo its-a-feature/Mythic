@@ -258,7 +258,6 @@ class MythicPayloadRPC(MythicBaseRPC):
         )
         return MythicPayloadRPCResponse(resp)
 
-
     async def build_payload_from_MythicPayloadRPCResponse(self,
                                                           resp: MythicPayloadRPCResponse,
                                                           destination_host: str = None) -> MythicPayloadRPCResponse:
@@ -280,6 +279,25 @@ class MythicPayloadRPC(MythicBaseRPC):
                 "build_parameters": resp.build_parameters,
                 "destination_host": destination_host,
                 "wrapped_payload": resp.wrapped_payload
+            }
+        )
+        return MythicPayloadRPCResponse(resp)
+
+    async def register_payload_on_host(self,
+                                       uuid: str,
+                                       host: str):
+        """
+        Register a payload on a host for linking purposes
+        :param uuid:
+        :param host:
+        :return:
+        """
+        resp = await self.call(
+            {
+                "action": "register_payload_on_host",
+                "task_id": self.task_id,
+                "uuid": uuid,
+                "host": host
             }
         )
         return MythicPayloadRPCResponse(resp)

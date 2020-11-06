@@ -160,8 +160,8 @@ async def callback(message: aio_pika.IncomingMessage):
                     )
             except Exception as e:
                 await send_status(
-                    "Error while creating/running create_tasking: "
-                    + str(traceback.format_exc()),
+                    "[-] Mythic error while creating/running create_tasking: \n"
+                    + str(e),
                     "command_transform",
                     "error.{}".format(pieces[4]),
                     username,

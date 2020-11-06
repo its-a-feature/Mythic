@@ -16,6 +16,7 @@ from math import ceil
 from pathlib import Path, PureWindowsPath
 from app.api.siem_logger import log_to_siem
 from app.api.operation_api import send_all_operations_message
+from app.api.file_browser_api import add_upload_file_to_file_browser
 
 
 @mythic.route(mythic.config["API_BASE"] + "/files", methods=["GET"])
@@ -135,7 +136,7 @@ async def download_agent_file(data, cid):
         if file_meta.task is None or file_meta.task != task:
             # this means the file was hosted on the mythic server and is being pulled down by an agent
             # or means that another task is pulling down a file that was generated from a different task
-            await db_objects.create(
+            fm = await db_objects.create(
                 db_model.FileMeta,
                 task=task,
                 total_chunks=file_meta.total_chunks,
@@ -152,6 +153,9 @@ async def download_agent_file(data, cid):
                 operator=task.operator,
                 host=file_meta.host,
             )
+            await add_upload_file_to_file_browser(fm.operation, fm.task, fm,
+                                                  {"host": fm.host,
+                                                   "full_path": fm.full_remote_path})
         else:
             # this file_meta is already associated with a task, check if it's the same
             if file_meta.full_remote_path is None or file_meta.full_remote_path == "":
@@ -167,7 +171,10 @@ async def download_agent_file(data, cid):
                         file_meta.file_browser = fb_object
                         await db_objects.update(file_meta)
                 except Exception as e:
-                    pass
+                    # no associated file meta object, so create one
+                    await add_upload_file_to_file_browser(file_meta.operation, file_meta.task,
+                                                          file_meta, {"host": file_meta.host,
+                                                                      "full_path": file_meta.full_remote_path})
             else:
                 file_meta.full_remote_path = (
                     file_meta.full_remote_path + "," + data["full_path"]
@@ -341,7 +348,7 @@ async def create_filemeta_in_database_func(data):
             is_screenshot = data["is_screenshot"]
         if "full_path" not in data or data["full_path"] is None:
             data["full_path"] = ""
-        if "host" not in data or data["host"] is None:
+        if "host" not in data or data["host"] is None or data["host"] == "":
             data["host"] = task.callback.host
             # check and see if there's a filebrowserobj that matches our full path
         query = await db_model.filebrowserobj_query()
@@ -368,13 +375,13 @@ async def create_filemeta_in_database_func(data):
             complete=complete,
             operation=operation,
             operator=task.operator,
-            full_remote_path=data["full_path"],
+            full_remote_path=data["full_path"].encode("unicode-escape"),
             delete_after_fetch=False,
             is_screenshot=is_screenshot,
             file_browser=file_browser,
             filename=filename.name,
             is_download_from_agent=True,
-            host=data["host"],
+            host=data["host"].encode("unicode-escape"),
         )
         if filemeta.is_screenshot:
             await log_to_siem(task.to_json(), mythic_object="file_screenshot")
@@ -478,6 +485,14 @@ async def download_file_to_disk_func(data):
         async with db_objects.atomic():
             file_meta = await db_objects.get(query, agent_file_id=data["file_id"])
             file_meta.chunks_received = file_meta.chunks_received + 1
+            if "host" in data and data["host"] is not None and data["host"] != "":
+                file_meta.host = data["host"].encode("unicode-escape")
+            if "full_path" in data and data["full_path"] is not None and data["full_path"] != "":
+                file_meta.full_remote_path = data["full_path"].encode("unicode-escape")
+                if file_meta.file_browser is None:
+                    await add_upload_file_to_file_browser(file_meta.operation, file_meta.task, file_meta,
+                                                          {"host": file_meta.host,
+                                                           "full_path": file_meta.full_remote_path})
             # print("received chunk num {}".format(data['chunk_num']))
             if file_meta.chunks_received == file_meta.total_chunks:
                 file_meta.complete = True

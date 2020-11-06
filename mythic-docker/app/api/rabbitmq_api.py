@@ -276,6 +276,8 @@ async def rabbit_pt_rpc_callback(
                 response = await register_artifact(request)
             elif request["action"] == "build_payload_from_parameters":
                 response = await build_payload_from_parameters(request)
+            elif request["action"] == "register_payload_on_host":
+                response = await register_payload_on_host(request)
             else:
                 response = {"status": "error", "error": "unknown action"}
             response = json.dumps(response).encode()
@@ -329,12 +331,14 @@ async def register_file(request):
         code = base64.b64decode(request["file"])
         code_file.write(code)
         code_file.close()
+        size = os.stat(path).st_size
         md5 = await hash_MD5(code)
         sha1 = await hash_SHA1(code)
         new_file_meta = await db_objects.create(
             db_model.FileMeta,
             total_chunks=1,
             chunks_received=1,
+            chunk_size=size,
             complete=True,
             path=str(path),
             operation=task.callback.operation,
@@ -787,6 +791,27 @@ async def register_artifact(request):
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": "failed to create task artifact: " + str(e)}
+
+
+async def register_payload_on_host(request):
+    # {"action": "register_payload_on_host",
+    # "task_id": self.task_id,
+    # "host": host,
+    # "uuid": payload uuid
+    # })
+    try:
+        task_query = await db_model.task_query()
+        task = await db_objects.get(task_query, id=request["task_id"])
+    except Exception as e:
+        return {"status": "error", "error": "failed to find task"}
+    try:
+        payloadquery = await db_model.payload_query()
+        payload = await db_objects.get(payloadquery, uuid=request["uuid"], operation=task.operation)
+        payload_on_host = await db_objects.create(db_model.PayloadOnHost, payload=payload,
+                                                  host=request["host"].encode(), operation=task.operation, task=task)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find payload"}
 
 
 async def rabbit_c2_rpc_callback(

@@ -249,7 +249,7 @@ var callback_table = new Vue({
                             if(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length !== 0){
                                 for (let j = 0; j < this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length; j++) {
                                     if(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]["type"] === "File" && this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]["required"]){
-                                        alertTop("warning", "Required file uploads must happen through popup", 6);
+                                        alertTop("warning", "This command requires files to be uploaded through a dialog box.", 6);
                                         this.callbacks[data['id']].input_field = command;
                                         callback_table.task_button(this.callbacks[data['id']]);
                                         return;

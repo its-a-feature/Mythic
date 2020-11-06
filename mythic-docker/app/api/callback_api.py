@@ -236,7 +236,7 @@ async def parse_agent_message(data: str, request):
         #    decrypted = js.loads(decrypted)
         #else:
         #    decrypted = js.loads(decoded[36:])
-        print(decrypted)
+        #print(decrypted)
     except Exception as e:
         if decrypted is not None:
             msg = str(decrypted)

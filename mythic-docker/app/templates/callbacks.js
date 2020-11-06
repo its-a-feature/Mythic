@@ -1861,7 +1861,7 @@ var task_data = new Vue({
                             if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length !== 0){
                                 for (let j = 0; j < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length; j++) {
                                     if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]["type"] === "File" && this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]["required"]){
-                                        alertTop("warning", "Required file uploads must happen through popup", 6);
+                                        alertTop("warning", "This command requires files to be uploaded through a dialog box.", 6);
                                         task_data.input_field = command;
                                         task_data.task_button(task_data.input_field_placeholder);
                                         return;
@@ -2473,11 +2473,16 @@ var task_data = new Vue({
             }
         },
         double_click_row: function (data) {
-            if ("children" in data) {
+            if (data.hasOwnProperty("children") && data.children !== undefined) {
+                console.log(data);
                 task_data.setBrowserTableData(data['data'], data['children']);
                 task_data.$forceUpdate();
             } else {
-                alertTop("info", "No subfolders to enter");
+                if(data.data.is_file){
+                    alertTop("info", "Cannot view children of files, only folders.");
+                }else{
+                    alertTop("info", "Children of folder unknown");
+                }
             }
         }
     },
@@ -2643,10 +2648,17 @@ Vue.component('browser-menu', {
             this.showChildren = !this.showChildren;
         },
         test() {
-            //if(this.data.is_file){return;}
-            //console.log(this.children);
-            task_data.setBrowserTableData(this.data, this.children);
-            task_data.$forceUpdate();
+            if(this.data.is_file){
+                alertTop("info", "Cannot view children of files, only folders.");
+                return;
+            }
+            if(this.children !== undefined){
+                task_data.setBrowserTableData(this.data, this.children);
+                task_data.$forceUpdate();
+            }else{
+                alertTop("info", "Children of folder unknown");
+            }
+
         },
         get_latest_download_path() {
             return "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + this.data['files'][0]['agent_file_id'];
@@ -4016,7 +4028,7 @@ function startwebsocket_filebrowser() {
                         "data": {
                             "name": data['host'],
                             "host": data['host']
-                        }, "children": []
+                        }, "children": undefined
                     };
                 }
                 // what if we're adding a new top level root
@@ -4031,7 +4043,7 @@ function startwebsocket_filebrowser() {
                     }
                     // if we get here, we have a root element that's new, so add it
                     let new_data = {};
-                    new_data[data['name']] = {"data": data, "children": []};
+                    new_data[data['name']] = {"data": data, "children": undefined};
                     meta['file_browser'][data['host']]['children'].push(new_data);
                     task_data.$forceUpdate();
                 } else {
@@ -4067,24 +4079,25 @@ function add_update_file_browser(search, element) {
         return true;
     }
     //we aren't in the base case, so let's iterate through the current item's children
-    if (element['children'] === undefined) {
-        if (!element['is_file']) {
-            Vue.set(element, 'children', []);
+    if (element['children'] !== undefined) {
+        for (let i = 0; i < element['children'].length; i++) {
+            //console.log("search item");
+            //console.log(element['children'][i]);
+            let result = add_update_file_browser(search, Object.values(element['children'][i])[0]);
+            if (result) {
+                //short circuit the path here, if we found it and added/updated, just exit all the recursion
+                return true;
+            }
         }
     }
-    for (let i = 0; i < element['children'].length; i++) {
-        //console.log("search item");
-        //console.log(element['children'][i]);
-        let result = add_update_file_browser(search, Object.values(element['children'][i])[0]);
-        if (result) {
-            //short circuit the path here, if we found it and added/updated, just exit all the recursion
-            return true;
-        }
-    }
+
     //if we get here, and parent is true, then we are the parent and failed to find the child, so we need to add it
     if (element['data']['id'] === search['parent']) {
         let new_data = {};
-        new_data[search['name']] = {"data": search, "children": []};
+        new_data[search['name']] = {"data": search, "children": undefined};
+        if(element['children'] === undefined){
+            element['children'] = [];
+        }
         element['children'].push(new_data);
         return true;
     } else {

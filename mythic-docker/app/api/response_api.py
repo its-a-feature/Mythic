@@ -24,6 +24,7 @@ from math import ceil
 from sanic.log import logger
 from peewee import fn
 from app.api.siem_logger import log_to_siem
+from app.api.file_browser_api import add_upload_file_to_file_browser
 
 
 # This gets all responses in the database
@@ -364,8 +365,6 @@ async def post_agent_response(agent_message, UUID):
                                     "error"] if "error" in json_return_info else rsp["error"]
                         parsed_response.pop("total_chunks", None)
                         parsed_response.pop("is_screenshot", None)
-                        parsed_response.pop("full_path", None)
-                        parsed_response.pop("host", None)
                     if "chunk_data" in parsed_response:
                         if parsed_response["chunk_data"] is not None and str(parsed_response["chunk_data"]) != "":
                             if (
@@ -381,34 +380,30 @@ async def post_agent_response(agent_message, UUID):
                                     "error"] if "error" in json_return_info else rsp["error"]
                                 final_output += rsp["error"]
                         parsed_response.pop("chunk_num", None)
-                        parsed_response.pop("file_id", None)
                         parsed_response.pop("chunk_data", None)
-                        parsed_response.pop("full_path", None)
-                    if (
-                        "keystrokes" in parsed_response and parsed_response["keystrokes"] is not None
-                        and parsed_response["keystrokes"] != ""
-                    ):
-                        if (
-                            "window_title" not in parsed_response
-                            or parsed_response["window_title"] is None
-                            or parsed_response["window_title"] == ""
-                        ):
-                            parsed_response["window_title"] = "UNKNOWN"
-                        if (
-                            "user" not in parsed_response
-                            or parsed_response["user"] is None
-                            or parsed_response["user"] == ""
-                        ):
-                            parsed_response["user"] = "UNKNOWN"
-                        rsp = await db_objects.create(
-                            Keylog,
-                            task=task,
-                            window=parsed_response["window_title"],
-                            keystrokes=parsed_response["keystrokes"],
-                            operation=task.callback.operation,
-                            user=parsed_response["user"],
-                        )
-                        await log_to_siem(rsp.to_json(), mythic_object="keylog_new")
+                    if "keystrokes" in parsed_response:
+                        if parsed_response["keystrokes"] is not None and parsed_response["keystrokes"] != "":
+                            if (
+                                "window_title" not in parsed_response
+                                or parsed_response["window_title"] is None
+                                or parsed_response["window_title"] == ""
+                            ):
+                                parsed_response["window_title"] = "UNKNOWN"
+                            if (
+                                "user" not in parsed_response
+                                or parsed_response["user"] is None
+                                or parsed_response["user"] == ""
+                            ):
+                                parsed_response["user"] = "UNKNOWN"
+                            rsp = await db_objects.create(
+                                Keylog,
+                                task=task,
+                                window=parsed_response["window_title"],
+                                keystrokes=parsed_response["keystrokes"],
+                                operation=task.callback.operation,
+                                user=parsed_response["user"],
+                            )
+                            await log_to_siem(rsp.to_json(), mythic_object="keylog_new")
                         parsed_response.pop("window_title", None)
                         parsed_response.pop("user", None)
                         parsed_response.pop("keystrokes", None)
@@ -486,19 +481,24 @@ async def post_agent_response(agent_message, UUID):
                         try:
                             query = await db_model.filemeta_query()
                             file_meta = await db_objects.get(
-                                query, agent_file_id=parsed_response["file_id"]
+                                query, agent_file_id=parsed_response["file_id"], operation=task.callback.operation
                             )
+                            if "host" in parsed_response and parsed_response["host"] is not None and parsed_response["host"] != "":
+                                host = parsed_response["host"]
+                            else:
+                                host = task.callback.host
                             if file_meta.task is None or file_meta.task != task:
                                 # print("creating new file")
                                 f = await db_objects.create(
                                     db_model.FileMeta,
                                     task=task,
+                                    host=host.encode("unicode-escape"),
                                     total_chunks=file_meta.total_chunks,
                                     chunks_received=file_meta.chunks_received,
                                     chunk_size=file_meta.chunk_size,
                                     complete=file_meta.complete,
                                     path=file_meta.path,
-                                    full_remote_path=parsed_response["full_path"],
+                                    full_remote_path=parsed_response["full_path"].encode("unicode-escape"),
                                     operation=task.callback.operation,
                                     md5=file_meta.md5,
                                     sha1=file_meta.sha1,
@@ -506,9 +506,7 @@ async def post_agent_response(agent_message, UUID):
                                     deleted=False,
                                     operator=task.operator,
                                 )
-                                # print(f)
                             else:
-                                # print("updating file")
                                 if (
                                     file_meta.full_remote_path is None
                                     or file_meta.full_remote_path == ""
@@ -522,7 +520,12 @@ async def post_agent_response(agent_message, UUID):
                                         + ","
                                         + parsed_response["full_path"]
                                     )
+                                if host != file_meta.host:
+                                    file_meta.host = host.encode("unicode-escape")
                                 await db_objects.update(file_meta)
+                                await add_upload_file_to_file_browser(task.callback.operation, task, file_meta,
+                                                                      {"host": host,
+                                                                       "full_path": parsed_response["full_path"]})
                         except Exception as e:
                             print(str(e))
                             logger.exception(
@@ -531,6 +534,7 @@ async def post_agent_response(agent_message, UUID):
                             )
                         parsed_response.pop("full_path", None)
                         parsed_response.pop("file_id", None)
+                        parsed_response.pop("host", None)
                     if "edges" in parsed_response:
                         if parsed_response["edges"] != "" and parsed_response["edges"] != [] \
                                 and parsed_response["edges"] is not None:
@@ -556,6 +560,9 @@ async def post_agent_response(agent_message, UUID):
                                     json_return_info["error"] = json_return_info["error"] + " " + rsp[
                                         "error"] if "error" in json_return_info else rsp["error"]
                         parsed_response.pop("commands", None)
+                    parsed_response.pop("full_path", None)
+                    parsed_response.pop("host", None)
+                    parsed_response.pop("file_id", None)
                 except Exception as e:
                     print(sys.exc_info()[-1].tb_lineno)
                     final_output += (

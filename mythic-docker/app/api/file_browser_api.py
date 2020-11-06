@@ -227,6 +227,34 @@ async def store_response_into_filebrowserobj(operation, task, response):
         return {"status": "error", "error": str(e)}
 
 
+async def add_upload_file_to_file_browser(operation, task, file, data):
+    data["is_file"] = True
+    data["permissions"] = {}
+    data["success"] = True
+    data["access_time"] = ""
+    data["modify_time"] = ""
+    data["size"] = file.chunk_size
+    data["files"] = []
+    if data["full_path"][0] == "/":
+        full_path = PurePosixPath(data["full_path"])
+    else:
+        full_path = PureWindowsPath(data["full_path"])
+    data["name"] = full_path.name
+    data["parent_path"] = str(full_path.parents[0])
+    if "host" not in data:
+        data["host"] = file.host
+    await store_response_into_filebrowserobj(operation, task, data)
+    try:
+        fbo_query = await db_model.filebrowserobj_query()
+        fbo = await db_objects.get(fbo_query, operation=operation,
+                                   host=data["host"].encode("unicode-escape"),
+                                   full_path=data["full_path"].encode("unicode-escape"))
+        file.file_browser = fbo
+    except Exception as e:
+        print(str(e))
+        return
+
+
 async def create_and_check_parents(operation, task, response):
     #  start at the top and make the root node if necessary, then recursively go down the path
     #  should return as the immediate parent the last entry we make (if any)
@@ -490,7 +518,7 @@ async def get_filebrowsobj_permissions(request, user, fid):
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_filebrowsobj_permissions_by_path(request, user, fid):
+async def get_filebrowsobj_permissions_by_path(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,

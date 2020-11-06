@@ -31,14 +31,7 @@ class ServiceWrapper(PayloadType):
             choices=["x64", "Any CPU"],
             default_value="x64",
             description="Target architecture",
-        ),
-        "config": BuildParameter(
-            name="config",
-            parameter_type=BuildParameterType.ChooseOne,
-            choices=["Release"],
-            default_value="Release",
-            description="Configuration",
-        ),
+        )
     }
     c2_profiles = []
 
@@ -49,9 +42,9 @@ class ServiceWrapper(PayloadType):
         try:
             command = "nuget restore; msbuild"
             command += " -p:TargetFrameworkVersion=v{} -p:OutputType=WinExe -p:Configuration='{}' -p:Platform='{}'".format(
-                self.get_parameter("version"),
-                self.get_parameter("config"),
-                self.get_parameter("arch"),
+                "3.5" if self.get_parameter("version") == "3.5" else "4.0",
+                "Release",
+                "x64" if self.get_parameter("arch") == "x64" else "Any CPU",
             )
             agent_build_path = tempfile.TemporaryDirectory(suffix=self.uuid).name
             # shutil to copy payload files over
@@ -67,7 +60,7 @@ class ServiceWrapper(PayloadType):
             with open(str(working_path), "rb") as f:
                 header = f.read(2)
                 if header == b"\x4d\x5a":  # checking for MZ header of PE files
-                    resp.message = "Supplied payload is a PE instead of raw shellcode. Create an Atlas payload with an output type of Raw"
+                    resp.message = "Supplied payload is a PE instead of raw shellcode."
                     return resp
             proc = await asyncio.create_subprocess_shell(
                 command,
@@ -84,7 +77,7 @@ class ServiceWrapper(PayloadType):
                 PurePath(agent_build_path)
                 / "WindowsService1"
                 / "bin"
-                / self.get_parameter("config")
+                / "Release"
                 / "WindowsService1.exe"
             )
             output_path = str(output_path)

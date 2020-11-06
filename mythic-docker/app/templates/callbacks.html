@@ -457,8 +457,8 @@
         </div>
         <!-- END REPEAT -->
         <!-- REPEAT FOR PROCESS LIST INFORMATION -->
-        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.process_list" :id="'process_list' + metadata.id">
-            <span style="display:inline-block;width:25%;height: calc(48vh);overflow-y:scroll">
+        <div v-for="metadata in meta" role="tabpanel" :style="'margin:0;height:calc(' + size + 'vh)'" class="tab-pane" v-if="metadata.process_list" :id="'process_list' + metadata.id">
+            <span :style="'display:inline-block;width:25%;height:92%;overflow-y:scroll'">
                 <div class="card border border-dark shadow bg-card-body-l1"  v-if="metadata.hasOwnProperty('process_list_tree')">
                    <tree-menu v-for="v in metadata.process_list_tree"
                      :children="v.children"
@@ -470,7 +470,7 @@
                    </tree-menu>
                 </div>
             </span>
-            <span style="display:inline-block;width:75%;margin:0;padding:0;height: calc(48vh);overflow-y:scroll;float:right">
+            <span :style="'display:inline-block;width:75%;margin:0;padding:0;overflow-y:scroll;float:right;height:92%'">
                 <table class="table table-striped {{config['table-color']}} table-condensed bg-card-body-l2 shadow border border-dark" style="margin-bottom:0;white-space:nowrap;table-layout:fixed;overflow:auto;">
                     <tr>
                         <template v-if="metadata.hasOwnProperty('process_list_data') && metadata['process_list_data'].hasOwnProperty('process_list') && metadata['process_list_data']['diff']">
@@ -550,8 +550,8 @@
         </div>
         <!-- END REPEAT-->
         <!-- REPEAT FOR BROWSER LIST INFORMATION -->
-        <div v-for="metadata in meta" role="tabpanel" class="tab-pane" v-if="metadata.file_browser" :id="'file_browser' + metadata.id">
-            <span style="display:inline-block;width:25%;height: calc(50.5vh);overflow-y:scroll">
+        <div v-for="metadata in meta" role="tabpanel" :style="'margin:0;height:calc(' + size + 'vh)'" class="tab-pane" v-if="metadata.file_browser" :id="'file_browser' + metadata.id">
+            <span :style="'display:inline-block;width:25%;margin:0;height: calc(' + size + 'vh);overflow-y:scroll'">
                 <div class="card border border-dark shadow bg-card-body-l1">
                    <browser-menu v-for="v in Object.keys(meta.file_browser)"
                      :children="meta.file_browser[v].children"
@@ -562,13 +562,13 @@
                    </browser-menu>
                 </div>
             </span>
-            <span style="display:inline-block;width:75%;margin:0;padding:0;height: calc(50vh);overflow-y:scroll;float:right">
+            <span :style="'display:inline-block;width:75%;margin:0;padding:0;height:calc(' + size + 'vh);overflow-y:scroll;float:right;'">
                 <div class="input-group" style="width:auto">
                     <input type="text" class="form-control col-3" placeholder="localhost" v-model="host" autocomplete="off">
                     <input type="text" class="form-control" v-model="path" autocomplete="off">
                     <button class="btn input-group-append btn-sm btn{{config['outline-buttons']}}primary" @click="task_list_file_refresh()">List</button>
                     <button class="btn input-group-append btn-sm btn{{config['outline-buttons']}}primary" @click="task_file_upload()">Upload</button>
-                    <input disabled type="text" class="form-control col-1" placeholder="Task Callback:" >
+                    <input disabled type="text" class="form-control col-1" placeholder="Callback:" >
                     <input type="number" class="form-control col-1" v-model="callback" autocomplete="off">
                 </div>
                 <table class="table table-striped {{config['table-color']}} table-condensed bg-card-body-l2 shadow border border-dark" style="margin-bottom:0;white-space:nowrap;overflow:scroll;">
