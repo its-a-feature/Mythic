@@ -4037,7 +4037,7 @@ function startwebsocket_filebrowser() {
                         "data": {
                             "name": data['host'],
                             "host": data['host']
-                        }, "children": undefined
+                        }, "children": []
                     };
                 }
                 // what if we're adding a new top level root
@@ -4085,6 +4085,7 @@ function add_update_file_browser(search, element) {
         Object.assign(element['data'],
             element['data'],
             search);
+        task_data.$forceUpdate();
         return true;
     }
     //we aren't in the base case, so let's iterate through the current item's children
@@ -4108,6 +4109,7 @@ function add_update_file_browser(search, element) {
             element['children'] = [];
         }
         element['children'].push(new_data);
+        task_data.$forceUpdate();
         return true;
     } else {
         return false;
