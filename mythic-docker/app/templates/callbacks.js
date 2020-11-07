@@ -2486,7 +2486,7 @@ var task_data = new Vue({
                 if(data.data.is_file){
                     alertTop("info", "Cannot view children of files, only folders.");
                 }else{
-                    alertTop("info", "Children of folder unknown");
+                    alertTop("info", "Children of folder unknown.");
                 }
             }
         }
@@ -2613,8 +2613,9 @@ Vue.component('browser-menu', {
         '      </div>\n' +
         '    </div>\n' +
         '    <browser-menu \n' +
-        '      v-if="showChildren"\n' +
+        '      v-show="showChildren"\n' +
         '      v-for="node in children" \n' +
+        '      :key="Object.values(node)[0].data.id" \n' +
         '      :parent="this"\n' +
         '      :children="Object.values(node)[0].children" \n' +
         '      :data="Object.values(node)[0].data"\n' +
@@ -2640,13 +2641,13 @@ Vue.component('browser-menu', {
         },
         labelClasses() {
             let cls = "";
-            if (this.children !== undefined && this.children.length > 0) {
+            if (this.children !== undefined) {
                 cls += ' has-children ';
             }
             return cls;
         },
         indent() {
-            //rreturn { transform: `translate(${this.depth * 30}px)`}
+            //return { transform: `translate(${this.depth * 30}px)`}
         }
     },
     methods: {
@@ -2661,13 +2662,12 @@ Vue.component('browser-menu', {
             }
             if(this.children !== undefined){
                 task_data.setBrowserTableData(this.data, this.children);
-                task_data.$forceUpdate();
+                this.$forceUpdate();
             }else{
-                alertTop("info", "Children of folder unknown");
+                alertTop("info", "Children of folder unknown, showing parent folder instead.");
                 task_data.setBrowserTableData(this.$parent.data, this.$parent.children);
-                task_data.$forceUpdate();
+                this.$forceUpdate();
             }
-
         },
         get_latest_download_path() {
             return "{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + this.data['files'][0]['agent_file_id'];
@@ -4027,18 +4027,17 @@ function startwebsocket_filebrowser() {
                 Vue.set(meta, "file_browser", data);
             } else {
                 // now we have streaming updates and need to merge them in
-                //console.log(data);
                 // first step is to find the right host
                 if (data['host'] === undefined || data['host'].length === 0) {
                     return
                 }
                 if (!Object.prototype.hasOwnProperty.call(meta['file_browser'], data['host'])) {
-                    meta['file_browser'][data['host']] = {
+                    Vue.set(meta["file_browser"], data["host"], {
                         "data": {
                             "name": data['host'],
                             "host": data['host']
                         }, "children": []
-                    };
+                    });
                 }
                 // what if we're adding a new top level root
                 if (data['parent'] === null) {
@@ -4047,12 +4046,13 @@ function startwebsocket_filebrowser() {
                             Object.assign(meta['file_browser'][data['host']]['children'][i][data['name']]['data'],
                                 meta['file_browser'][data['host']]['children'][i]['data'],
                                 data);
-                            break;
+                            task_data.$forceUpdate();
+                            return;
                         }
                     }
                     // if we get here, we have a root element that's new, so add it
                     let new_data = {};
-                    new_data[data['name']] = {"data": data, "children": undefined};
+                    new_data[data['name']] = {"data": data, "children": []};
                     meta['file_browser'][data['host']]['children'].push(new_data);
                     task_data.$forceUpdate();
                 } else {
@@ -4061,7 +4061,7 @@ function startwebsocket_filebrowser() {
                 }
                 setTimeout(() => { // setTimeout to put this into event queue
                     // executed after render
-                   task_data.$forceUpdate();
+                    task_data.$forceUpdate();
                 }, 0);
             }
         } else {
@@ -4088,11 +4088,10 @@ function add_update_file_browser(search, element) {
         task_data.$forceUpdate();
         return true;
     }
+    if(element["is_file"]){return false;}
     //we aren't in the base case, so let's iterate through the current item's children
     if (element['children'] !== undefined) {
         for (let i = 0; i < element['children'].length; i++) {
-            //console.log("search item");
-            //console.log(element['children'][i]);
             let result = add_update_file_browser(search, Object.values(element['children'][i])[0]);
             if (result) {
                 //short circuit the path here, if we found it and added/updated, just exit all the recursion
@@ -4106,7 +4105,7 @@ function add_update_file_browser(search, element) {
         let new_data = {};
         new_data[search['name']] = {"data": search, "children": undefined};
         if(element['children'] === undefined){
-            element['children'] = [];
+            Vue.set(element, "children", []);
         }
         element['children'].push(new_data);
         task_data.$forceUpdate();

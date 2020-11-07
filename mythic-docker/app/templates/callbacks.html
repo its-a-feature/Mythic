@@ -553,9 +553,9 @@
         <div v-for="metadata in meta" role="tabpanel" :style="'margin:0;height:calc(' + size + 'vh)'" class="tab-pane" v-if="metadata.file_browser" :id="'file_browser' + metadata.id">
             <span :style="'display:inline-block;width:25%;margin:0;height: calc(' + size + 'vh);overflow-y:scroll'">
                 <div class="card border border-dark shadow bg-card-body-l1">
-                   <browser-menu v-for="v in Object.keys(meta.file_browser)"
+                   <browser-menu v-for="v in Object.keys(meta.file_browser)" :key="meta.file_browser[v].data.id"
                      :children="meta.file_browser[v].children"
-                     :parent="meta.file_browser[v]"
+                     :parent="undefined"
                      :depth="0"
                      :data="meta.file_browser[v].data"
                      :host="meta.file_browser[v].data.host"
@@ -586,10 +586,10 @@
                                 <i class="far fa-file"></i>
                             </template>
                             <template v-else>
-                                <i class="fas fa-folder" :style="(Object.values(f)[0]['children'] !== undefined && Object.values(f)[0]['children'].length > 0) ? 'color:#f1d592' : ''"></i>
+                                <i class="fas fa-folder" :style="Object.values(f)[0].children !== undefined ? 'color:#f1d592' : ''"></i>
                             </template>
                             <template v-if="Object.values(f)[0].data.deleted">
-                                <i class="fas fa-trash-alt" style="text-decoration:line-through">[[Object.values(f)[0].data.name]] (deleted from target)</i>
+                                <span style="text-decoration:line-through">[[Object.values(f)[0].data.name]] (deleted from target)</span>
                             </template>
                             <template v-else>
                                 [[Object.values(f)[0].data.name]]
