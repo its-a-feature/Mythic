@@ -13,8 +13,8 @@ var live_feed = new Vue({
         apply_filter: function (e) {
             if (this.filter.includes(":")) {
                 let pieces = this.filter.split(":");
-                if (pieces[0] in e) {
-                    return e[pieces[0]].toString().includes(pieces[1]);
+                if (pieces[0].toLowerCase() in e) {
+                    return e[pieces[0].toLowerCase()].toString().includes(pieces[1]);
                 } else {
                     return false;
                 }

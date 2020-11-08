@@ -1,22 +1,21 @@
 {% extends "base.html" %}
 {% block body %}
-<img src="/static/dark.png" style="opacity:0.05;position:absolute;width:99%;height:100%">
-    <div style="position:absolute; top:20%; left:35%">
-        <img src="/static/red_blue_login.png" style="width:482px;height:377px">
+<div style="position:absolute; top:20%; left:35%">
+        <img src="/static/red_blue_login.png" style="height:calc(40vh)" class="center">
         <form action="" method="post">
         {{ errors.token_errors }}
-        <span style="color: red;">{{ errors.username_errors }}</span>
+            <span style="color: darkred;"><b>{{ errors.username_errors }}</b></span>
     {{ form.csrf_token }}
         <table>
             <tr style="vertical-align:middle">
-                <td style="vertical-align:bottom;padding-left:35px"><h4 style="color:white">Username</h4></td>
-                <td style="vertical-align:middle">{{form.username(size=32, class_="form-control")}}
+                <td style="vertical-align:bottom"><h4 style="color:white">Username</h4></td>
+                <td style="vertical-align:middle; padding-left:10px">{{form.username(size=32, class_="form-control")}}
                     <br>
                 </td>
             </tr>
             <tr>
-                <td style="vertical-align:bottom;padding-left:35px"><h4 style="color:white">Password</h4></td>
-                <td>{{form.password(size=32, class_="form-control")}}
+                <td style="vertical-align:bottom"><h4 style="color:white">Password</h4></td>
+                <td style="padding-left:10px">{{form.password(size=32, class_="form-control")}}
                     <br>
                 </td>
             </tr>
@@ -36,15 +35,22 @@
 {% block body_config %}
 body{
     background:  linear-gradient(135deg, transparent 0%,#646f80 70%, #122443 100%);
-    width:100%;
+    width:100vw;
     height:100vh;
     background-size: cover;
     color: white;
+    padding:0;
+    margin:0;
 }
 input[type=text]{
     border: 1px solid white;
 }
 input[type=password]{
     border: 1px solid white;
+}
+.center {
+    display:block;
+    margin-left:auto;
+    margin-right:auto
 }
 {% endblock %}

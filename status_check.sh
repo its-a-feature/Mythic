@@ -4,8 +4,8 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-echo "Core mythic services:  mythic_server, mythic_postgres, mythic_rabbitmq"
-docker ps -a --filter name=mythic_server --filter name=mythic_postgres --filter name=mythic_rabbitmq
+echo "Core mythic services:  mythic_server, mythic_postgres, mythic_rabbitmq, documentation"
+docker ps -a --filter name=mythic_server --filter name=mythic_postgres --filter name=mythic_rabbitmq --filter name=documentation
 echo ""
 echo "C2_Profile endpoints"
 profiles=(./C2_Profiles/*)

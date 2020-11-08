@@ -2,7 +2,7 @@
 {% block body_config %}
 body{
     background:  linear-gradient(135deg, transparent 0%,#646f80 70%, #122443 100%);
-    width:100%;
+    width:10vw;
     height:100vh;
     background-size: cover;
     color: white;
@@ -16,9 +16,8 @@ input[type=password]{
 }
 {% endblock %}
 {% block body %}
-<img src="/static/dark.png" style="opacity:0.05;position:absolute;width:99%;height:100%">
 <div style="position:absolute; top:20%; left:35%">
-    <img src="/static/red_blue_login.png" style="width:40%;height:40%">
+    <img src="/static/red_blue_login.png" style="height:calc(40vh)" class="center">
     <form action="" method="post">
         {% for error in form.username.errors %}
             <span style="color: red;">[{{ error }}]</span>

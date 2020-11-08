@@ -399,7 +399,7 @@ var profile_parameters_table = new Vue({
                                                 });
                                             }
                                         }
-                                        profile_parameters_table.c2_profile_list[index].c2_profile_parameters.sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+                                        profile_parameters_table.c2_profile_list[index].c2_profile_parameters.sort((a, b) => (b.description > a.description) ? -1 : ((a.description > b.description) ? 1 : 0));
                                         // we also need to populate the dropdown for the payload_type side
 
                                         $('#c2_instance' + index).prop('hidden', true);
@@ -562,7 +562,7 @@ var profile_parameters_table = new Vue({
                 // potentially get the create transforms for the payload type
                 profile_parameters_table.payload_parameters = [];
                 profile_parameters_table.payload_parameters = all_payload_type_data[val]['build_parameters'];
-                profile_parameters_table.payload_parameters.sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+                profile_parameters_table.payload_parameters.sort((a, b) => (b.description > a.description) ? -1 : ((a.description > b.description) ? 1 : 0));
                 for (let i in profile_parameters_table.payload_parameters) {
                     if (profile_parameters_table.payload_parameters[i]['parameter_type'] === "ChooseOne") {
                         profile_parameters_table.payload_parameters[i]['choices'] = profile_parameters_table.payload_parameters[i]['parameter'].split("\n");

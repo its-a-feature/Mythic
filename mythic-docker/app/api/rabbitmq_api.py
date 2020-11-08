@@ -24,7 +24,7 @@ sync_tasks = {}
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
-        print(" [x] %r:%r" % (message.routing_key,message.body))
+        # print(" [x] %r:%r" % (message.routing_key,message.body))
         if pieces[4] == "sync_classes":
             if pieces[5] == "":
                 operator = None
