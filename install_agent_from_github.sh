@@ -73,40 +73,70 @@ then
   echo -e "${BLUE}[*]${NC} Skipping the Payload Type folder"
 else
   echo -e "${BLUE}[*]${NC} Copying the Payload Type folder"
-  cp -R ./temp/Payload_Type/* ./Payload_Types/
-  echo -e "${GREEN}[+]${NC} Successfully copied the Payload Type folder"
+  if [ "$(ls -A ./temp/Payload_Type/)" ]; then
+    cp -R ./temp/Payload_Type/* ./Payload_Types/
+    find ./temp/Payload_Type/ -name "payload_service.sh" -exec chmod +x {} \;
+    echo -e "${GREEN}[+]${NC} Successfully copied the Payload Type folder"
+  else
+    echo -e "${BLUE}[+]${NC} Payload Type folder is empty"
+  fi
+
 fi
 if $exclude_documentation_payload
 then
   echo -e "${BLUE}[*]${NC} Skipping the Payload Type's documentation folder"
 else
   echo -e "${BLUE}[*]${NC} Copying the Payload Type's documentation folder"
-  cp -R ./temp/documentation-payload/* ./documentation-docker/content/Agents/
+  if [ "$(ls -A ./temp/documentation-payload/)" ]; then
+    cp -R ./temp/documentation-payload/* ./documentation-docker/content/Agents/
+    echo -e "${GREEN}[+]${NC} Successfully copied the Payload Type's documentation folder"
+  else
+    echo -e "${BLUE}[+]${NC} Payload Type's documentation folder is empty"
+  fi
   echo -e "${BLUE}[*]${NC} Copying the Wrapper documentation folder"
-  cp -R ./temp/documentation-wrapper/* ./documentation-docker/content/Wrappers/
-  echo -e "${GREEN}[+]${NC} Successfully copied the Wrapper's documentation folder"
+  if [ "$(ls -A ./temp/documentation-wrapper/)" ]; then
+    cp -R ./temp/documentation-wrapper/* ./documentation-docker/content/Wrappers/
+    echo -e "${GREEN}[+]${NC} Successfully copied the Wrapper's documentation folder"
+  else
+    echo -e "${BLUE}[+]${NC} Payload Type's documentation folder is empty"
+  fi
+
 fi
 if $exclude_c2_profiles
 then
   echo -e "${BLUE}[*]${NC} Skipping the C2 Profile folder"
 else
   echo -e "${BLUE}[*]${NC} Copying the C2 Profile folder"
-  cp -R ./temp/C2_Profiles/* ./C2_Profiles/
-  echo -e "${GREEN}[+]${NC} Successfully copied the C2 Profiles folder"
+  if [ "$(ls -A ./temp/C2_Profiles/)" ]; then
+    cp -R ./temp/C2_Profiles/* ./C2_Profiles/
+    echo -e "${GREEN}[+]${NC} Successfully copied the C2 Profiles folder"
+  else
+    echo -e "${BLUE}[+]${NC} C2 Profiles' folder is empty"
+  fi
 fi
 if $exclude_documentation_c2
 then
   echo -e "${BLUE}[*]${NC} Skipping the C2 Profile's documentation folder"
 else
   echo -e "${BLUE}[*]${NC} Copying the C2 Profile's documentation folder"
-  cp -R ./temp/documentation-c2/* "./documentation-docker/content/C2 Profiles/"
+  if [ "$(ls -A ./temp/documentation-c2/)" ]; then
+    cp -R ./temp/documentation-c2/* "./documentation-docker/content/C2 Profiles/"
+    echo -e "${GREEN}[+]${NC} Successfully copied the C2 Profiles documentation folder"
+  else
+    echo -e "${BLUE}[+]${NC} C2 Profiles documentation folder is empty"
+  fi
 fi
 if $exclude_agent_icons
 then
   echo -e "${BLUE}[*]${NC} Skipping the Payload Type's agent icon folder"
 else
   echo -e "${BLUE}[*]${NC} Copying the Payload Type's agent icon folder"
-  cp -R ./temp/agent_icons/* "./mythic-docker/app/static/"
+  if [ "$(ls -A ./temp/documentation-c2/)" ]; then
+    cp -R ./temp/agent_icons/* "./mythic-docker/app/static/"
+    echo -e "${GREEN}[+]${NC} Successfully copied the Payload Type's icon folder"
+  else
+    echo -e "${BLUE}[+]${NC} Payload Type's agent icon folder is empty"
+  fi
 fi
 echo -e "${BLUE}[*]${NC} Removing temp directory"
 rm -rf temp
