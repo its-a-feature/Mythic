@@ -3533,6 +3533,7 @@ startwebsocket_callback_graphedges();
 function startwebsocket_callback(cid) {
     // get updated information about our callback
     let ws = new WebSocket('{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/unified_callback/' + cid);
+    meta[cid]['commands'] = [];
     ws.onmessage = function (event) {
         if (event.data === "no_operation") {
             alertTop("warning", "No operation selected");
