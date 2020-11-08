@@ -68,7 +68,7 @@ A note about debugging:
 
 ### Profile Options
 #### Base64 of a 32-byte AES Key
-Base64 value of the AES pre-shared key to use for communication with the agent. This will be auto-populated with a static key for the operation, but you can also replace this with the base64 of any 32 bytes you want. If you don't want to use encryption here, blank out this value.
+Base64 value of the AES pre-shared key to use for communication with the agent. This will be auto-populated with a random key per payload, but you can also replace this with the base64 of any 32 bytes you want. If you don't want to use encryption here, blank out this value.
 
 #### User Agent
 This is the user-agent string the agent will use when making HTTP requests.
@@ -93,6 +93,24 @@ Date for the agent to automatically exit, typically the after an assessment is f
 
 #### Perform Key Exchange
 T or F for if you want to perform a key exchange with the Mythic Server. When this is true, the agent uses the key specified by the base64 32Byte key to send an initial message to the Mythic server with a newly generated RSA public key. If this is set to `F`, then the agent tries to just use the base64 of the key as a static AES key for encryption. If that key is also blanked out, then the requests will all be in plaintext.
+
+#### Get Request URI
+The URI to use when performing a get request such as `index`. A leading `/` is used automatically to separate this value from the end of the callback host value.
+
+#### Name of the endpoint before the query string
+This is the query parameter name used in Get requests. For example, if this is `q` and the get request URI is `index`, then a request might look like `http://domain.com/index?q=someback64here`.
+
+#### Proxy Host
+If you need to manually specify a proxy endpoint, do that here. This follows the same format as the callback host.
+
+#### Proxy Password
+If you need to authenticate to the proxy endpoint, specify the password here.
+
+#### Proxy Username
+If you need to authenticate to the proxy endpoint, specify the username here.
+
+#### Proxy Port
+If you need to manually specify a proxy endpoint, this is where you specify the associated port number.
 
 ## OPSEC
 
