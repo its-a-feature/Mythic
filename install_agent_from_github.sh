@@ -139,6 +139,6 @@ else
   fi
 fi
 echo -e "${BLUE}[*]${NC} Removing temp directory"
-#rm -rf temp
+rm -rf temp
 echo -e "${GREEN}[+]${NC} Successfully installed the remote agent!"
 echo -e "${BLUE}[+]${NC} Restart Mythic via ./start_mythic.sh for the new agent to be pulled in!"
