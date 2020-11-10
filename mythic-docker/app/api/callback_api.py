@@ -90,7 +90,7 @@ async def get_agent_message(request):
                 message=f"Failed to find message in body, cookies, or query args from {request.socket} as {request.method} method with headers:\n {request.headers}",
             )
         return text("", 404)
-    message, code = await parse_agent_message(data, request)
+    message, code, new_callback, msg_uuid = await parse_agent_message(data, request)
     return text(message, code)
     # return text(await parse_agent_message(data, request))
 
@@ -200,27 +200,29 @@ async def get_encryption_data(UUID):
 
 # returns a base64 encoded response message
 async def parse_agent_message(data: str, request):
+    new_callback = ""
+    agent_uuid = ""
     try:
         decoded = base64.b64decode(data)
         #print(decoded)
     except Exception as e:
         await send_all_operations_message(f"Failed to base64 decode message: {str(data)}\nfrom {request.socket} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
                                           "warning")
-        return "", 404
+        return "", 404, new_callback, agent_uuid
     try:
         UUID = decoded[:36].decode()  # first 36 characters are the UUID
         # print(UUID)
     except Exception as e:
         await send_all_operations_message(f"Failed to get UUID in first 36 bytes for base64 input: {str(data)}\nfrom {request.socket} as {request.method} method, URL {request.url} with headers: \n{request.headers}",
                                           "warning")
-        return "", 404
+        return "", 404, new_callback, agent_uuid
     try:
         enc_key = await get_encryption_data(UUID)
         # print(enc_key)
     except Exception as e:
         await send_all_operations_message(f"Failed to correlate UUID to something mythic knows: {UUID}\nfrom {request.socket} as {request.method} method with headers: \n{request.headers}",
                                           "warning")
-        return "", 404
+        return "", 404, new_callback, agent_uuid
     # now we have cached_keys[UUID] is the right AES key to use with this payload, now to decrypt
     decrypted = None
     try:
@@ -244,7 +246,7 @@ async def parse_agent_message(data: str, request):
             msg = str(decoded)
         await send_all_operations_message(f"Failed to decrypt/load message: {str(msg)}\nfrom {request.socket} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
                                           "warning")
-        return "", 404
+        return "", 404, new_callback, agent_uuid
     """
     JSON({
         "action": "", //staging-rsa, staging-dh, staging-psk, get_tasking ...
@@ -256,9 +258,10 @@ async def parse_agent_message(data: str, request):
     })
     """
     try:
+
         if "action" not in decrypted:
             await send_all_operations_message("Missing 'action' in parsed JSON", "warning")
-            return "", 404
+            return "", 404, new_callback, agent_uuid
         # now to parse out what we're doing, everything is decrypted at this point
         # shuttle everything out to the appropriate api files for processing
         if keep_logs:
@@ -272,13 +275,17 @@ async def parse_agent_message(data: str, request):
             delegates = await get_routable_messages(callback, callback.operation)
             if delegates is not None:
                 response_data["delegates"] = delegates
+            agent_uuid = UUID
         elif decrypted["action"] == "post_response":
             response_data = await post_agent_response(decrypted, UUID)
+            agent_uuid = UUID
         elif decrypted["action"] == "upload":
             response_data = await download_agent_file(decrypted, UUID)
+            agent_uuid = UUID
         elif decrypted["action"] == "delegate":
             # this is an agent message that is just requesting or forwarding along delegate messages
             # this is common in server_routed traffic after the first hop in the mesh
+            agent_uuid = UUID
             pass
         elif decrypted["action"] == "checkin":
             if cached_keys[UUID]["type"] is not None:
@@ -303,6 +310,8 @@ async def parse_agent_message(data: str, request):
                 ):
                     decrypted["encryption_type"] = "AES256"
             response_data = await create_callback_func(decrypted, request)
+            if response_data["status"] == "success":
+                new_callback = response_data["id"]
         elif decrypted["action"] == "staging_rsa":
             response_data, staging_info = await staging_rsa(decrypted, UUID)
             if staging_info is not None:
@@ -312,7 +321,7 @@ async def parse_agent_message(data: str, request):
                     "type": "AES256",
                 }
             else:
-                return "", 404
+                return "", 404, new_callback, UUID
             # staging is it's own thing, so return here instead of following down
         elif decrypted["action"] == "staging_dh":
             response_data, staging_info = await staging_dh(decrypted, UUID)
@@ -323,12 +332,13 @@ async def parse_agent_message(data: str, request):
                     "type": "AES256",
                 }
             else:
-                return "", 404
+                return "", 404, new_callback, UUID
         elif decrypted["action"] == "update_info":
             response_data = await update_callback(decrypted, UUID)
+            agent_uuid = UUID
         else:
             await send_all_operations_message("Unknown action:" + str(decrypted["action"]), "warning")
-            return "", 404
+            return "", 404, new_callback, ""
         # now that we have the right response data, format the response message
         if (
             "delegates" in decrypted
@@ -340,12 +350,23 @@ async def parse_agent_message(data: str, request):
                 response_data["delegates"] = []
             for d in decrypted["delegates"]:
                 # handle messages for all of the delegates
+                # d is {"UUID1": agentMessage}
                 for d_uuid in d:
                     # process the delegate message recursively
-                    del_message, status = await parse_agent_message(d[d_uuid], request)
+                    # iterate over the keys in d, typically just one
+                    del_message, status, del_new_callback, del_uuid = await parse_agent_message(d[d_uuid], request)
                     if status == 200:
                         # store the response to send back
-                        response_data["delegates"].append({d_uuid: del_message})
+                        if del_new_callback == "" and del_uuid == d_uuid:
+                            # the delegate message didn't cause a new callback
+                            # and the delegate message's UUID is the same as the one reported
+                            response_data["delegates"].append({d_uuid: del_message})
+                        else:
+                            # a new callback was created based on the delegate message, report it back
+                            # or the message wasn't involved in staging (i.e. it was a callback uuid)
+                            #   but the UUID specified is different than the actual, send an update parameter
+                            response_data["delegates"].append({del_new_callback: del_message,
+                                                               d_uuid: del_new_callback})
         #   special encryption will be handled by the appropriate stager call
         # base64 ( UID + ENC(response_data) )
         if keep_logs:
@@ -362,11 +383,11 @@ async def parse_agent_message(data: str, request):
         #            data=js.dumps(response_data).encode(), key=enc_key["enc_key"]
         #        )
         #        return base64.b64encode(UUID.encode() + enc_data).decode(), 200
-        return final_msg, 200
+        return final_msg, 200, new_callback, UUID
     except Exception as e:
         await send_all_operations_message(f"Exception dealing with message: {str(decoded)}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
                                           "warning")
-        return "", 404
+        return "", 404, new_callback, UUID
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/", methods=["POST"])

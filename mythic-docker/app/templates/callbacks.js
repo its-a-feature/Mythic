@@ -1841,9 +1841,11 @@ var task_data = new Vue({
                                         if (params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['type'] === 'payload') {
                                             //param_data[params_table.command_params[k]['name']]['agent_uuid'] = params_table.payloadonhost[params_table.command_params[k]['agentconnect_host']][params_table.command_params[k]['agentconnect_payload']]['payload']['uuid'];
                                             param_data[params_table.command_params[k]['name']]['agent_uuid'] = params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['payload']['uuid'];
+                                            param_data[params_table.command_params[k]['name']]['callback_uuid'] = "";
                                         } else {
                                             //param_data[params_table.command_params[k]['name']]['agent_uuid'] = params_table.payloadonhost[params_table.command_params[k]['agentconnect_host']][params_table.command_params[k]['agentconnect_payload']]['agent_callback_id'];
-                                            param_data[params_table.command_params[k]['name']]['agent_uuid'] = params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['agent_callback_id'];
+                                            param_data[params_table.command_params[k]['name']]['callback_uuid'] = params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['agent_callback_id'];
+                                            param_data[params_table.command_params[k]['name']]['agent_uuid'] = params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['registered_payload'];
                                         }
                                         if (params_table.command_params[k]['agentconnect_c2profile'] === -1) {
                                             // they didn't select a specific c2 profile, so send the list
