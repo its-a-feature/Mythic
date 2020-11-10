@@ -357,16 +357,20 @@ async def parse_agent_message(data: str, request):
                     del_message, status, del_new_callback, del_uuid = await parse_agent_message(d[d_uuid], request)
                     if status == 200:
                         # store the response to send back
-                        if del_new_callback == "" and del_uuid == d_uuid:
-                            # the delegate message didn't cause a new callback
-                            # and the delegate message's UUID is the same as the one reported
-                            response_data["delegates"].append({d_uuid: del_message})
-                        else:
-                            # a new callback was created based on the delegate message, report it back
-                            # or the message wasn't involved in staging (i.e. it was a callback uuid)
-                            #   but the UUID specified is different than the actual, send an update parameter
+                        if del_new_callback != "":
+                            # the delegate message caused a new callback, to report the changing UUID
                             response_data["delegates"].append({del_new_callback: del_message,
                                                                d_uuid: del_new_callback})
+                        elif del_uuid != "" and del_uuid != d_uuid:
+                            # there is no new callback
+                            # the delegate is a callback (not staging) and the callback uuid != uuid in the message
+                            # so send an update message with the rightful callback uuid so the agent can update
+                            response_data["delegates"].append({del_uuid: del_message,
+                                                               d_uuid: del_uuid})
+                        else:
+                            # there's no new callback and the delegate message isn't a full callback yet
+                            # so just proxy through the UUID since it's in some form of staging
+                            response_data["delegates"].append({d_uuid: del_message})
         #   special encryption will be handled by the appropriate stager call
         # base64 ( UID + ENC(response_data) )
         if keep_logs:
