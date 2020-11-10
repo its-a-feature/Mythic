@@ -1169,9 +1169,13 @@ class TaskArtifact(p.Model):
             "artifact_instance": bytes(getattr(self, "artifact_instance")).decode("unicode-escape", errors="backslashreplace")
                         .encode("utf-8", errors="backslashreplace")
                         .decode(),
-            "artifact_template": bytes(getattr(self, "artifact").name).decode(),
+            "artifact_template": bytes(getattr(self, "artifact").name).decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
             "operation": self.operation.name if self.operation is not None else None,
-            "host": self.host
+            "host": str(self.host).encode().decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
         }
         return r
 
@@ -1444,8 +1448,12 @@ class FileMeta(p.Model):
             "cmd": self.task.command.cmd if self.task is not None else None,
             "complete": self.complete,
             "path": self.path,
-            "full_remote_path": str(self.full_remote_path),
-            "host": str(self.host),
+            "full_remote_path": str(self.full_remote_path).encode().decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
+            "host": str(self.host).encode().decode("unicode-escape", errors="backslashreplace")
+                        .encode("utf-8", errors="backslashreplace")
+                        .decode(),
             "is_payload": self.is_payload,
             "is_screenshot": self.is_screenshot,
             "is_download_from_agent": self.is_download_from_agent,

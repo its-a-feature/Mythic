@@ -442,6 +442,7 @@ async def create_filemeta_in_database_manual(request, user):
         delete_after_fetch=False,
         filename=filename,
     )
+    os.makedirs("./app/files/", exist_ok=True)
     path = "./app/files/{}".format(file_meta.agent_file_id)
     code_file = open(path, "wb")
     code_file.write(code)

@@ -25,6 +25,7 @@ from sanic.log import logger
 from peewee import fn
 from app.api.siem_logger import log_to_siem
 from app.api.file_browser_api import add_upload_file_to_file_browser
+import asyncio
 
 
 # This gets all responses in the database
@@ -299,12 +300,9 @@ async def post_agent_response(agent_message, UUID):
                             from app.api.file_browser_api import (
                                 store_response_into_filebrowserobj,
                             )
-                            status = await store_response_into_filebrowserobj(
+                            asyncio.create_task(store_response_into_filebrowserobj(
                                 task.callback.operation, task, parsed_response["file_browser"]
-                            )
-                            if status["status"] == "error":
-                                json_return_info["status"] = "error"
-                                json_return_info["error"] = json_return_info["error"] + " " + status["error"] if "error" in json_return_info else status["error"]
+                            ))
                         parsed_response.pop("file_browser", None)
                     if "removed_files" in parsed_response:
                         # an agent is reporting back that a file was removed from disk successfully
