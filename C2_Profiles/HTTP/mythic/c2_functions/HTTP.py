@@ -74,7 +74,7 @@ class HTTP(C2Profile):
         ),
         C2ProfileParameter(
             name="query_path_name",
-            description="Name of the endpoint before the query string",
+            description="Name of the query parameter",
             default_value="q",
             required=True,
         ),
