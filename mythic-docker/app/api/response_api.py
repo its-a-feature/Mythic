@@ -433,23 +433,23 @@ async def post_agent_response(agent_message, UUID):
                                     try:
                                         query = await db_model.artifact_query()
                                         base_artifact = await db_objects.get(
-                                            query, name=artifact["base_artifact"].encode()
+                                            query, name=artifact["base_artifact"].encode("unicode-escape")
                                         )
                                     except Exception as e:
                                         base_artifact = await db_objects.create(
                                             Artifact,
-                                            name=artifact["base_artifact"].encode(),
+                                            name=artifact["base_artifact"].encode("unicode-escape"),
                                             description="Auto created from task {}".format(
                                                 task.id
-                                            ).encode(),
+                                            ).encode("unicode-escape"),
                                         )
                                     # you can report back multiple artifacts at once, no reason to make separate C2 requests
                                     art = await db_objects.create(
                                         TaskArtifact,
                                         task=task,
-                                        artifact_instance=str(artifact["artifact"]).encode(),
+                                        artifact_instance=str(artifact["artifact"]).encode("unicode-escape"),
                                         artifact=base_artifact,
-                                        host=task.callback.host,
+                                        host=task.callback.host.encode("unicode-escape"),
                                     )
                                     await log_to_siem(art.to_json(), mythic_object="artifact_new")
                                     # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
@@ -497,7 +497,7 @@ async def post_agent_response(agent_message, UUID):
                                     chunks_received=file_meta.chunks_received,
                                     chunk_size=file_meta.chunk_size,
                                     complete=file_meta.complete,
-                                    path=file_meta.path,
+                                    path=file_meta.path.encode("unicode-escape"),
                                     full_remote_path=parsed_response["full_path"].encode("unicode-escape"),
                                     operation=task.callback.operation,
                                     md5=file_meta.md5,
@@ -513,13 +513,13 @@ async def post_agent_response(agent_message, UUID):
                                 ):
                                     file_meta.full_remote_path = parsed_response[
                                         "full_path"
-                                    ]
+                                    ].encode("unicode-escape")
                                 else:
                                     file_meta.full_remote_path = (
                                         file_meta.full_remote_path
                                         + ","
                                         + parsed_response["full_path"]
-                                    )
+                                    ).encode("unicode-escape")
                                 if host != file_meta.host:
                                     file_meta.host = host.encode("unicode-escape")
                                 await db_objects.update(file_meta)
