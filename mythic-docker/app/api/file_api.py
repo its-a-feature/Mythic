@@ -358,7 +358,7 @@ async def create_filemeta_in_database_func(data):
                 fb_object = await db_objects.get(
                     query,
                     full_path=data["full_path"].encode("unicode-escape"),
-                    host=data["host"].encode("unicode-escape"),
+                    host=data["host"],
                 )
                 file_browser = fb_object
         except Exception as e:
@@ -381,7 +381,7 @@ async def create_filemeta_in_database_func(data):
             file_browser=file_browser,
             filename=filename.name,
             is_download_from_agent=True,
-            host=data["host"].encode("unicode-escape"),
+            host=data["host"],
         )
         if filemeta.is_screenshot:
             await log_to_siem(task.to_json(), mythic_object="file_screenshot")
@@ -486,7 +486,7 @@ async def download_file_to_disk_func(data):
             file_meta = await db_objects.get(query, agent_file_id=data["file_id"])
             file_meta.chunks_received = file_meta.chunks_received + 1
             if "host" in data and data["host"] is not None and data["host"] != "":
-                file_meta.host = data["host"].encode("unicode-escape")
+                file_meta.host = data["host"]
             if "full_path" in data and data["full_path"] is not None and data["full_path"] != "":
                 file_meta.full_remote_path = data["full_path"].encode("unicode-escape")
                 if file_meta.file_browser is None:
