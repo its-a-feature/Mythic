@@ -75,7 +75,7 @@ else
   echo -e "${BLUE}[*]${NC} Copying the Payload Type folder"
   if [ "$(ls ./temp/Payload_Type/)" ]; then
     cp -R ./temp/Payload_Type/* ./Payload_Types/
-    find ./temp/Payload_Type/ -name "payload_service.sh" -exec chmod +x {} \;
+    find ./Payload_Types/ -name "payload_service.sh" -exec chmod +x {} \;
     echo -e "${GREEN}[+]${NC} Successfully copied the Payload Type folder"
   else
     echo -e "${BLUE}[+]${NC} Payload Type folder is empty"
