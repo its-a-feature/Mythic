@@ -79,7 +79,7 @@ then
   echo -e "${BLUE}[*]${NC} Skipping the Payload Type folder"
 else
   find ./temp/Payload_Type/ -maxdepth 1 -type d | grep -vE "Payload_Type/$" > ./temp/payloads.txt
-  sed -i 's/\.temp\/Payload_Type\//\.\/Payload_Type\//g' ./temp/payloads.txt
+  sed -i 's/\.\/temp\/Payload_Type\//\.\/Payload_Types\//g' ./temp/payloads.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
     if [ "$(ls $p)" ]; then
@@ -114,7 +114,7 @@ else
   echo -e "${BLUE}[*]${NC} Copying the Payload Type's documentation folder"
   if [ "$(ls ./temp/documentation-payload/)" ]; then
     find ./temp/documentation-payload/ -maxdepth 1 -type d | grep -vE "documentation-payload/$" > ./temp/documentation.txt
-    sed -i 's/\.temp\/documentation-payload\//\.\/documentation-docker\/content\/Agents\//g' ./temp/documentation.txt
+    sed -i 's/\.\/temp\/documentation-payload\//\.\/documentation-docker\/content\/Agents\//g' ./temp/documentation.txt
     while read p; do
       type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
       if [ "$(ls $p)" ]; then
@@ -152,7 +152,7 @@ then
 else
   # Out with the old
   find ./temp/C2_Profiles/ -maxdepth 1 -type d | grep -vE "C2_Profiles/$" > ./temp/C2Profiles.txt
-  sed -i 's/\.temp\/C2_Profiles\//\.\/C2_Profiles\//g' ./temp/C2Profiles.txt
+  sed -i 's/\.\/temp\/C2_Profiles\//\.\/C2_Profiles\//g' ./temp/C2Profiles.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
     if [ "$(ls $p)" ]; then
@@ -185,7 +185,7 @@ then
 else
   # Out with the old
   find ./temp/documentation-c2/ -maxdepth 1 -type d | grep -vE "documentation-c2/$" > ./temp/c2documentation.txt
-  sed -i 's/\.temp\/documentation-c2\//\.\/documentation-docker\/content\/C2 Profiles\//g' ./temp/c2documentation.txt
+  sed -i 's/\.\/temp\/documentation-c2\//\.\/documentation-docker\/content\/C2 Profiles\//g' ./temp/c2documentation.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
     if [ "$(ls $p)" ]; then
@@ -218,7 +218,7 @@ then
 else
   # Out with the old
   find ./temp/agent_icons/ -type f -not -name ".keep" | grep -vE "agent_icons/$" > ./temp/agent_icons.txt
-  sed -i 's/\.temp\/agent_icons\//\.\/mythic-docker\/app\/static\//g' ./temp/agent_icons.txt
+  sed -i 's/\.\/temp\/agent_icons\//\.\/mythic-docker\/app\/static\//g' ./temp/agent_icons.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
     if [ "$(ls $p)" ]; then
