@@ -31,6 +31,10 @@ fi
 echo -e "${BLUE}[*]${NC} Making 'temp' folder"
 
 agent_name=`echo "$1" | rev | cut -d "/" -f 1 | rev`
+if [ -z "$agent_name" ]; then
+    echo "${RED}[-]${NC} No agent name could be parsed from the Github link provided: $1"
+    exit 1
+fi
 echo -e "${BLUE}[*]${NC} Removing all instances of $agent_name"
 find . -name $agent_name -type d -exec rm -rf {} \;
 mkdir temp
