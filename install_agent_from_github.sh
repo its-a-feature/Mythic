@@ -29,6 +29,10 @@ if ! which git > /dev/null; then
   fi
 fi
 echo -e "${BLUE}[*]${NC} Making 'temp' folder"
+
+agent_name=`echo "$1" | rev | cut -d "/" -f 1 | rev`
+echo -e "${BLUE}[*]${NC} Removing all instances of $agent_name"
+find . -name $agent_name -type d -exec rm -rf {} \;
 mkdir temp
 echo -e "${BLUE}[*]${NC} Pulling down remote repo via git"
 git clone --recurse-submodules --single-branch $1 temp
