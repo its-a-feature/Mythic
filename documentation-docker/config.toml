@@ -32,11 +32,11 @@ languageName = "English"
 [[Languages.en.menu.shortcuts]]
 name = "<i class='fab fa-fw fa-github'></i> GitHub repo"
 identifier = "ds"
-url = "https://github.com/its-a-feature/Apfell"
+url = "https://github.com/its-a-feature/Mythic"
 weight = 10
 
 [[Languages.en.menu.shortcuts]]
 name = "<i class='fas fa-fw fa-bookmark'></i> Mythic Documentation"
 identifier = "hugodoc"
-url = "https://docs.apfell.net/"
+url = "https://docs.mythic-c2.net/"
 weight = 20

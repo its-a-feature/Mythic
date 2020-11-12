@@ -672,6 +672,8 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             # it's not registered, so check the free clear tasking
             if data["command"] == "clear":
                 # this means we're going to be clearing out some tasks depending on our access levels
+                if "params" not in data:
+                    data["params"] = ""
                 task = await db_objects.create(
                     Task,
                     callback=cb,
@@ -695,7 +697,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                             + ": "
                             + t["command"]
                             + " "
-                            + t["params"]
+                            + t["original_params"]
                         )
                     await db_objects.create(Response, task=task, response=rsp)
                     return {"status": "success", **task.to_json()}

@@ -521,9 +521,10 @@ async def post_agent_response(agent_message, UUID):
                                 if host != file_meta.host:
                                     file_meta.host = host.encode("unicode-escape")
                                 await db_objects.update(file_meta)
-                                await add_upload_file_to_file_browser(task.callback.operation, task, file_meta,
-                                                                      {"host": host,
-                                                                       "full_path": parsed_response["full_path"]})
+                                if file_meta.full_path != "":
+                                    await add_upload_file_to_file_browser(task.callback.operation, task, file_meta,
+                                                                          {"host": host,
+                                                                           "full_path": parsed_response["full_path"]})
                         except Exception as e:
                             print(str(e))
                             logger.exception(

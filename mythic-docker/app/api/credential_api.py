@@ -49,7 +49,7 @@ async def create_credential(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json({"status": "error", "error": "Spectators cannot add credentials"})
     if user["current_operation"] != "":
         try:

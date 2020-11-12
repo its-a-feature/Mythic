@@ -109,11 +109,12 @@
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
              <div class="modal-body">
-                 Changes go away when you leave the page and are only viewable to you.
+                 Filter displayed tasks by the operator who entered them, the task number, and/or the command itself.<br>
+                 These filters are only visible to you and will disappear when you leave the page.
                  <table class="table-striped {{config['table-color']}} table" style="width:100%">
                     <tr>
                         <th style="width:7rem">Component</th>
-                        <th style="width:4rem">Filter</th>
+                        <th style="width:4rem">Enabled</th>
                         <th>Values</th>
                     </tr>
                     <tr>
@@ -126,7 +127,7 @@
                         </td>
                     </tr>
                      <tr>
-                         <td>Task</td>
+                         <td>Task Number</td>
                          <td><span class="material-switch pull-right"><input class="form-control" type="checkbox" :checked="task_filters['task']['active']" v-model="task_filters['task']['active']" id="task_filter_task"><label for="task_filter_task" class="btn-warning"></label></span></td>
                         <td>
                             <template v-if="task_filters['task']['active']">
@@ -142,6 +143,13 @@
                             <template v-if="task_filters['command']['active']">
                                 <input class="form-control" v-model="task_filters['command']['cmd']" type="text" placeholder="Command includes..." style="width:100%">
                             </template>
+                        </td>
+                     </tr>
+                     <tr>
+                         <td>Has Comment</td>
+                         <td><span class="material-switch pull-right"><input class="form-control" type="checkbox" :checked="task_filters['comment']['active']" v-model="task_filters['comment']['active']" id="task_filter_comment"><label for="task_filter_comment" class="btn-warning"></label></span></td>
+                        <td>
+                            Only show tasks with comments
                         </td>
                      </tr>
                 </table>

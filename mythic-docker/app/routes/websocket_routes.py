@@ -913,8 +913,8 @@ async def ws_payloads_current_operation(request, ws, user):
                         payloads = await db_objects.execute(
                             query.where(
                                 (Payload.operation == operation)
-                                & (Payload.deleted == False)
-                                & (Payload.auto_generated == False)
+                                #& (Payload.deleted == False)
+                                #& (Payload.auto_generated == False)
                             ).order_by(Payload.id)
                         )
                         for p in payloads:
@@ -1362,13 +1362,15 @@ async def ws_commands(request, ws):
 
 # basic info of just new commmands for the payload types page
 @mythic.websocket("/ws/commands")
+@inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def ws_commands(request, ws):
+async def ws_commands(request, ws, user):
     if not await valid_origin_header(request):
         return
-
+    if user["current_operation"] == "":
+        return
     try:
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:

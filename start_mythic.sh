@@ -141,6 +141,14 @@ then
       exit 1
     fi
 fi
+if [ "$(ls -A postgres-docker/database/)" ]; then
+  echo -e "${BLUE}[*]${NC} Database exists already"
+else
+  postgres_password=$(tr -cd '[:alnum:]' < /dev/urandom | fold -w30 | head -n1)
+  base_replace="POSTGRES_PASSWORD=super_secret_mythic_user_password"
+  echo -e "${BLUE}[*]${NC} Replacing static database password with randomized one"
+  sed -i "s/$base_replace/POSTGRES_PASSWORD=$postgres_password/g" .env
+fi
 # start the main mythic components
 docker-compose up --build -d
 if [ $? -ne 0 ]

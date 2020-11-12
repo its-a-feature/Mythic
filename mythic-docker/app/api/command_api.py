@@ -19,6 +19,8 @@ async def get_all_commands(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of a current operation to see this"})
     all_commands = []
     query = await db_model.command_query()
     commands = await db_objects.execute(
@@ -50,6 +52,8 @@ async def check_command(request, user, ptype, cmd):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of a current operation to see this"})
     status = {"status": "success"}
     cmd = unquote_plus(cmd)
     try:
@@ -97,6 +101,8 @@ async def get_all_parameters_for_command(request, user, id):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of a current operation to see this"})
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -124,6 +130,8 @@ async def get_all_attack_mappings_for_command(request, user, id):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of a current operation to see this"})
     try:
         query = await db_model.command_query()
         command = await db_objects.get(query, id=id)
@@ -149,7 +157,7 @@ async def remove_attack_mapping_for_command(request, user, id, t_num):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {"status": "error", "error": "Spectators cannot remove MITRE mappings"}
         )
@@ -181,7 +189,7 @@ async def create_attack_mappings_for_command(request, user, id, t_num):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {"status": "error", "error": "Spectators cannot add MITRE mappings"}
         )
@@ -217,7 +225,7 @@ async def adjust_attack_mappings_for_command(request, user, id, t_num):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {"status": "error", "error": "Spectators cannot modify MITRE mappings"}
         )

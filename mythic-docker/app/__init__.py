@@ -8,6 +8,7 @@ import ujson as json
 import asyncio
 import logging
 import uuid
+import os
 
 # --------------------------------------------
 # --------------------------------------------
@@ -39,7 +40,7 @@ listen_ip = (
 )
 db_name = "mythic_db"
 db_user = "mythic_user"
-db_pass = "super_secret_mythic_user_password"
+db_pass = os.environ['POSTGRES_PASSWORD']
 max_log_count = (
     1  # if log_size > 0, rotate and make a max of max_log_count files to hold logs
 )

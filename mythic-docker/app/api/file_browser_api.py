@@ -54,54 +54,17 @@ async def get_filebrowser_tree_for_operation(operation_name):
     try:
         query = await db_model.filebrowserobj_query()
         objs = await db_objects.execute(
-            query.where(db_model.FileBrowserObj.operation == operation)
-        )
-        output = {}
-        roots = []
-        sorted_obj = []
-        for o in objs:
-            ojson = o.to_json()
-            ojson["files"] = []
-            try:
-                for f in o.files:
-                    fjson = f.to_json()
-                    if f.task is not None and f.task.comment != "":
-                        fjson["comment"] = f.task.comment
-                    ojson["files"].append(fjson)
-            except Exception as e:
-                pass
-            if ojson["parent"] is None:
-                roots.append(ojson)
-            else:
-                sorted_obj.append(ojson)
-        sorted_obj = sorted(sorted_obj, key=lambda i: i["parent"])
-        for r in roots:
-            # print(r)
-            if r["host"] not in output:
-                output[r["host"]] = {}
-            # this is a root level node, there can be multiple
-            output[r["host"]][r["name"]] = treelib.Tree()
-            # print("adding root")
-            # print(r)
-            output[r["host"]][r["name"]].create_node(r["name"], r["id"], data=r)
-        # print(output)
-        # print("now to add in the children")
-        for o in sorted_obj:
-            for k, v in output[o["host"]].items():
-                if o["parent_path"].startswith(k):
-                    # print("trying to add")
-                    # print(o)
-                    output[o["host"]][k].create_node(
-                        o["name"], o["id"], parent=o["parent"], data=o
-                    )
+            query.where(
+                (db_model.FileBrowserObj.operation == operation) &
+                (db_model.FileBrowserObj.is_file == False) &
+                (db_model.FileBrowserObj.parent == None)
+        ))
         final_output = {}
-        for k, v in output.items():
-            final_output[k] = {
-                "children": [],
-                "data": {"host": k, "is_file": False, "name": k},
-            }
-            for root, t in v.items():
-                final_output[k]["children"].append(js.loads(t.to_json(with_data=True)))
+        for e in objs:
+            e_json = e.to_json()
+            if e_json["host"] not in final_output:
+                final_output[e_json["host"]] = []
+            final_output[e_json["host"]].append(e_json)
         return {"status": "success", "output": final_output}
     except Exception as e:
         print(e)
@@ -119,7 +82,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
             "status": "error",
             "error": "Failed to parse and handle file browser objects",
         }
-    if "host" not in response:
+    if "host" not in response or response["host"] == "" or response["host"] is None:
         response["host"] = task.callback.host
     # now that we have the immediate parent and all parent hierarchy create, deal with current obj and sub objects
     try:
@@ -223,11 +186,14 @@ async def store_response_into_filebrowserobj(operation, task, response):
         return {"status": "success"}
     except Exception as e:
         print(sys.exc_info()[-1].tb_lineno)
-        print(e)
+        print("file_browser_api.py: " + str(e))
         return {"status": "error", "error": str(e)}
 
 
 async def add_upload_file_to_file_browser(operation, task, file, data):
+
+    if "full_path" not in data or data["full_path"] is None or data["full_path"] == "":
+        return
     data["is_file"] = True
     data["permissions"] = {}
     data["success"] = True
@@ -241,17 +207,18 @@ async def add_upload_file_to_file_browser(operation, task, file, data):
         full_path = PureWindowsPath(data["full_path"])
     data["name"] = full_path.name
     data["parent_path"] = str(full_path.parents[0])
-    if "host" not in data:
+    if "host" not in data or data["host"] is None or data["host"] == "":
         data["host"] = file.host
-    await store_response_into_filebrowserobj(operation, task, data)
     try:
+        await store_response_into_filebrowserobj(operation, task, data)
         fbo_query = await db_model.filebrowserobj_query()
         fbo = await db_objects.get(fbo_query, operation=operation,
                                    host=data["host"].encode("unicode-escape"),
                                    full_path=data["full_path"].encode("unicode-escape"))
         file.file_browser = fbo
     except Exception as e:
-        print(str(e))
+        print(sys.exc_info()[-1].tb_lineno)
+        print("file_browser_api.py: " + str(e))
         return
 
 
@@ -323,7 +290,7 @@ async def create_and_check_parents(operation, task, response):
         return parent_obj
     except Exception as e:
         print(sys.exc_info()[-1].tb_lineno)
-        print(e)
+        print("file_browser_api.py: " + str(e))
         return None
 
 
@@ -543,3 +510,42 @@ async def get_filebrowsobj_permissions_by_path(request, user):
                 "error": "failed to find that file browsing object in your current operation",
             }
         )
+
+
+@mythic.route(mythic.config["API_BASE"] + "/filebrowserobj/<fid:int>/files", methods=["GET"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_filebrowsobj_files(request, user, fid):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user["current_operation"])
+        query = await db_model.filebrowserobj_query()
+        files = await db_objects.execute(query.where(
+            (db_model.FileBrowserObj.operation == operation) &
+            (db_model.FileBrowserObj.parent == fid)
+        ))
+    except Exception as e:
+        return json(
+            {
+                "status": "error",
+                "error": "failed to find that file browsing object in your current operation",
+            }
+        )
+    try:
+        output = []
+        for f in files:
+            f_json = f.to_json()
+            if f.is_file:
+                output.append({f_json["name"]: {"data": f_json}})
+            else:
+                output.append({f_json["name"]: {"data": f_json,  "children": []}})
+        return json({"status": "success", "files": output})
+    except Exception as e:
+        return json({"status": "error", "error": str(e)})

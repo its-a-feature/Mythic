@@ -32,6 +32,7 @@ import threading
 from time import sleep as tsleep
 import socket
 from app.api.siem_logger import log_to_siem
+import sys
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/", methods=["GET"])
@@ -264,8 +265,8 @@ async def parse_agent_message(data: str, request):
             return "", 404, new_callback, agent_uuid
         # now to parse out what we're doing, everything is decrypted at this point
         # shuttle everything out to the appropriate api files for processing
-        if keep_logs:
-            logger.info("Agent -> Mythic: " + js.dumps(decrypted))
+        #if keep_logs:
+        #    logger.info("Agent -> Mythic: " + js.dumps(decrypted))
         # print(decrypted)
         response_data = {}
         if decrypted["action"] == "get_tasking":
@@ -321,7 +322,7 @@ async def parse_agent_message(data: str, request):
                     "type": "AES256",
                 }
             else:
-                return "", 404, new_callback, UUID
+                return "", 404, new_callback, agent_uuid
             # staging is it's own thing, so return here instead of following down
         elif decrypted["action"] == "staging_dh":
             response_data, staging_info = await staging_dh(decrypted, UUID)
@@ -332,13 +333,13 @@ async def parse_agent_message(data: str, request):
                     "type": "AES256",
                 }
             else:
-                return "", 404, new_callback, UUID
+                return "", 404, new_callback, agent_uuid
         elif decrypted["action"] == "update_info":
             response_data = await update_callback(decrypted, UUID)
             agent_uuid = UUID
         else:
             await send_all_operations_message("Unknown action:" + str(decrypted["action"]), "warning")
-            return "", 404, new_callback, ""
+            return "", 404, new_callback, agent_uuid
         # now that we have the right response data, format the response message
         if (
             "delegates" in decrypted
@@ -373,8 +374,9 @@ async def parse_agent_message(data: str, request):
                             response_data["delegates"].append({d_uuid: del_message})
         #   special encryption will be handled by the appropriate stager call
         # base64 ( UID + ENC(response_data) )
-        if keep_logs:
-            logger.info("Mythic -> Agent: " + js.dumps(response_data))
+        #if keep_logs:
+        #    logger.info("Mythic -> Agent: " + js.dumps(response_data))
+        #print(response_data)
         final_msg = await crypt.encrypt_message(response_data, enc_key, UUID)
         #if enc_key["type"] is None:
         #    return (
@@ -387,11 +389,13 @@ async def parse_agent_message(data: str, request):
         #            data=js.dumps(response_data).encode(), key=enc_key["enc_key"]
         #        )
         #        return base64.b64encode(UUID.encode() + enc_data).decode(), 200
-        return final_msg, 200, new_callback, UUID
+        return final_msg, 200, new_callback, agent_uuid
     except Exception as e:
+        print(sys.exc_info()[-1].tb_lineno)
+        print("callback.py: " + str(e))
         await send_all_operations_message(f"Exception dealing with message: {str(decoded)}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
                                           "warning")
-        return "", 404, new_callback, UUID
+        return "", 404, new_callback, agent_uuid
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/", methods=["POST"])
@@ -405,7 +409,7 @@ async def create_manual_callback(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {"status": "error", "error": "Spectators cannot create manual callbacks"}
         )
@@ -992,7 +996,7 @@ async def remove_graph_edge(request, id, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {"status": "error", "error": "Spectators cannot remove graph edges"}
         )
@@ -1169,17 +1173,17 @@ async def send_socks_data(data, callback: Callback):
         for d in data:
             if callback.id in cached_socks:
                 msg = js.dumps(d).encode()
-                print("******* SENDING DATA BACK TO PROXYCHAINS *****")
-                print(msg)
+                #print("******* SENDING DATA BACK TO PROXYCHAINS *****")
+                #print(msg)
                 msg = int.to_bytes(len(msg), 4, "big") + msg
                 total_msg += msg
                 # cached_socks[callback.id]['socket'].sendall(int.to_bytes(len(msg), 4, "big"))
-            else:
-                print("****** NO CACHED SOCKS, MUST BE CLOSED *******")
+            #else:
+                #print("****** NO CACHED SOCKS, MUST BE CLOSED *******")
         cached_socks[callback.id]["socket"].sendall(total_msg)
         return {"status": "success"}
     except Exception as e:
-        print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
+        #print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
         return {"status": "error", "error": str(e)}
 
 
@@ -1193,9 +1197,9 @@ async def get_socks_data(callback: Callback):
                     #print("Just got socks data to give to agent")
                 except:
                     break
-    if len(data) > 0:
-        print("******* SENDING THE FOLLOWING TO THE AGENT ******")
-        print(data)
+    #if len(data) > 0:
+        #print("******* SENDING THE FOLLOWING TO THE AGENT ******")
+        #print(data)
     return data
 
 
@@ -1222,27 +1226,12 @@ def thread_read_socks(port: int, callback_id: int) -> None:
             elif len(size) == 0:
                 tsleep(1)
                 continue
-            else:
-                print(
-                    "############# only got {} bytes ############".format(
-                        str(len(size))
-                    )
-                )
             # print("now trying to read in: {} bytes".format(str(size)))
             msg = sock.recv(size)
-            if len(msg) < size:
-                print("########### didn't read the full size ########")
-            # print("got socks data from user")
             try:
                 cached_socks[callback_id]["queue"].append(js.loads(msg.decode()))
-                print("just read from proxychains and added to queue for agent to pick up")
+                #print("just read from proxychains and added to queue for agent to pick up")
             except Exception as d:
-                print(
-                    "*" * 10
-                    + "Got exception from appending data to cached_socks"
-                    + "*" * 10
-                )
-                print(d)
                 if callback_id not in cached_socks:
                     #print("*" * 10 + "Got closing socket" + "*" * 10)
                     sock.close()
@@ -1339,7 +1328,7 @@ async def update_callback_web(request, id, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json({"status": "error", "error": "Spectators cannot update callbacks"})
     data = request.json
     try:
@@ -1492,7 +1481,7 @@ async def remove_callback(request, id, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {"status": "error", "error": "Spectators cannot make callbacks inactive"}
         )
@@ -1561,7 +1550,7 @@ async def get_callback_keys(request, user, id):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json({"status": "error", "error": "Spectators cannot get callback keys"})
     try:
         query = await db_model.operation_query()

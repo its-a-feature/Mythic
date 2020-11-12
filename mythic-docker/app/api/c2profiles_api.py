@@ -107,7 +107,7 @@ async def start_c2profile(request, info, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {"status": "error", "error": "Spectators cannot start c2 profiles"}
             )
@@ -134,7 +134,7 @@ async def stop_c2profile(request, info, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json({"status": "error", "error": "Spectators cannot stop c2 profiles"})
     return await stop_c2profile_func(info, user["username"])
 
@@ -164,7 +164,7 @@ async def status_c2profile(request, info, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {"status": "error", "error": "Spectators cannot query c2 profiles"}
             )
@@ -201,6 +201,8 @@ async def download_container_file_for_c2profiles(request, info, user):
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of an operation to see this"})
     try:
         status = await send_c2_rabbitmq_message(
             profile.name, "get_config", "", user["username"]
@@ -225,7 +227,7 @@ async def upload_container_file_for_c2profiles(request, info, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {
                     "status": "error",
@@ -263,7 +265,7 @@ async def delete_c2profile(request, info, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {"status": "error", "error": "Spectators cannot delete c2 profiles"}
             )
@@ -390,7 +392,7 @@ async def update_c2_profile(request, profile, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {"status": "error", "error": "Spectators cannot modify c2 profiles"}
             )
@@ -430,7 +432,7 @@ async def save_c2profile_parameter_value_instance(request, info, user):
         )
     data = request.json  # all of the name,value pairs instances we want to save
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {
                     "status": "error",
@@ -568,7 +570,7 @@ async def delete_c2profile_parameter_value_instance(request, instance_name, user
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {
                 "status": "error",

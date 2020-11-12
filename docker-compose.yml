@@ -9,6 +9,8 @@ services:
                 labels:
                         NAME: "mythic_postgres"
                 restart: on-failure
+                environment:
+                        POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
         rabbitmq:
                 build: ./rabbitmq-docker
                 container_name: mythic_rabbitmq
@@ -27,6 +29,8 @@ services:
                  - ./mythic-docker:/Mythic
                 labels:
                         NAME: "mythic_server"
+                environment:
+                       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
                 depends_on:
                  - postgres
                  - rabbitmq

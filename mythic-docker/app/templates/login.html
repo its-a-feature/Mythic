@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block body %}
 <div style="position:absolute; top:20%; left:35%">
+    {% if successful_creation %}
+    <div class="alert alert-success" role="alert">
+        Successfully created a new user! An admin must activate your account before you can log in.
+    </div>
+    {% endif %}
         <img src="/static/red_blue_login.png" style="height:calc(40vh)" class="center">
         <form action="" method="post">
         {{ errors.token_errors }}

@@ -4,7 +4,7 @@ from jinja2 import Environment, PackageLoader
 from sanic_jwt.decorators import scoped, inject_user
 from app.routes.routes import respect_pivot
 
-env = Environment(loader=PackageLoader("app", "templates"))
+env = Environment(loader=PackageLoader("app", "templates"), autoescape=True)
 
 
 @mythic.route("/payloads/", methods=["GET"])

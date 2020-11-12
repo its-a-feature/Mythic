@@ -4,6 +4,13 @@
     <div class="card-header shadow border border-dark bg-header text-white">
         <h2 style="display:inline-block">Created <span class="operator">Payloads</span></h2>
         <button style="float:right" class="btn btn{{config['outline-buttons']}}danger btn-md" onclick="delete_selected_function()">Delete all Selected</button>
+        <template v-if="view_auto_generated">
+            <button style="float:right" class="btn btn{{config['outline-buttons']}}info btn-md" @click="toggle_auto_generated()">Hide Ephemeral</button>
+        </template>
+        <template v-else>
+            <button style="float:right" class="btn btn{{config['outline-buttons']}}success btn-md" @click="toggle_auto_generated()">Show Ephemeral</button>
+        </template>
+
     </div>
         <table class="table table-condensed table-striped {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
             <tr>
@@ -14,21 +21,30 @@
                 <th onclick="sort_table(this)" style="text-align:left"><b>File</b></th>
                 <th onclick="sort_table(this)" style="text-align:left"><b>Description</b></th>
                 <th onclick="sort_table(this)" style="text-align:left;width:10rem"><b>Creator</b></th>
-                <th onclick="sort_table(this)" style="text-align:left;width:10rem"><b>Payload Type</b></th>
+                <th onclick="sort_table(this)" style="text-align:center;width:10rem"><b>Payload Type</b></th>
+                <template v-if="view_auto_generated">
+                    <th onclick="sort_table(this, 'int')" style="text-align:center;width:10rem">
+                        <b>Task</b>
+                    </th>
+                </template>
                 <th style="width:12rem;text-align:center" onclick="sort_table(this, 'date')"><b>Creation Time</b></th>
             </tr>
         <!-- Repeat this for each payload -->
-            <tr v-for="p in payloads" :key="p.creation_time" v-show="!p.deleted">
+            <tr v-for="p in payloads" :key="p.creation_time" v-show="p.auto_generated == false || view_auto_generated">
                 <td style="text-align:center">
                     <input style="padding-right:10px" type="checkbox" v-model="p.checked"> <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(p)" ><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td style="text-align:center">
-                    <div class="dropdown" style="display:inline">
+                    <template v-if="p.auto_generated">
+                        <button style="float:right" class="btn btn{{config['outline-buttons']}}secondary btn-sm" @click="show_parameters_button(p, false)">View Config</button>
+                    </template>
+                    <template v-else>
+                        <div class="dropdown" style="display:inline">
                             <button class="btn btn{{config['outline-buttons']}}secondary dropdown-toggle btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"  :data-target="p.uuid">
                             <i class="fas fa-edit"> Payload Actions</i>
                           </button>
                           <div class="dropdown-menu" :id="p.uuid">
-                                <button type="button" class="dropdown-item" @click="edit_filename(p)">Rename File</button>
+                              <button type="button" class="dropdown-item" @click="edit_filename(p)">Rename File</button>
                               <button type="button" class="dropdown-item" @click="edit_description(p)">Edit Description</button>
                               <button type="button" class="dropdown-item" @click="update_callback_alert(p)">
                                   <template v-if="p.callback_alert">Stop Alerting to new Callbacks</template>
@@ -38,10 +54,12 @@
                               <button type="button" class="dropdown-item" @click="show_parameters_button(p, true)">View Build Message</button>
                               <button type="button" class="dropdown-item" @click="register_manual_callback(p)">Manually Register Callback</button>
                           </div>
-                     </div>
+                        </div>
+                    </template>
+
 		        </td>
                 <td style="text-align:center">
-                    <template v-if="p.deleted || p.build_phase !== 'success'">
+                    <template v-if="p.deleted || p.build_phase !== 'success' || p.auto_generated">
                         <button class="btn btn{{config['outline-buttons']}}danger btn-sm" disabled type="button"><i class="fas fa-ban fa-lg"></i></button>
                     </template>
                     <template v-else>
@@ -62,7 +80,14 @@
                 <td>[[ p['file_id']['filename'] ]]</td>
                 <td>[[ p.tag ]]</td>
                 <td>[[ p.operator ]]</td>
-                <td style="text-align:left">[[ p['payload_type'] ]]</td>
+                <td style="text-align:center">[[ p['payload_type'] ]]</td>
+                <template v-if="view_auto_generated">
+                    <td style="text-align:center">
+                        <template v-if="p.task !== null">
+                            <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + p['task']['id']" target="_blank">[[ p['task']['id'] ]]</a>
+                        </template>
+                    </td>
+                </template>
                 <td style="text-align:center">[[ toLocalTime(p.creation_time) ]]</td>
             </tr>
         <!-- End of the repeating -->

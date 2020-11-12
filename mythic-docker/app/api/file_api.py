@@ -316,6 +316,7 @@ async def create_filemeta_in_database_func(data):
         operation = task.callback.operation
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
+        print("file_api.py")
         return {"status": "error", "error": "failed to find task"}
     try:
         if "full_path" in data and data["full_path"] != "":
@@ -387,6 +388,7 @@ async def create_filemeta_in_database_func(data):
             await log_to_siem(task.to_json(), mythic_object="file_screenshot")
     except Exception as e:
         print("{} {}".format(str(sys.exc_info()[-1].tb_lineno), str(e)))
+        print("file_api.py")
         return {"status": "error", "error": "failed to create file"}
     status = {"status": "success"}
     return {**status, **filemeta.to_json()}

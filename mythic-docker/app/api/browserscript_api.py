@@ -72,7 +72,7 @@ async def create_browserscript(request, user):
     except Exception as e:
         return json({"status": "error", "error": "failed to parse json"})
     pieces = {}
-    if user["view_mode"] == "spectator":
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
         return json(
             {"status": "error", "error": "Spectators cannot create browserscripts"}
         )
@@ -143,7 +143,7 @@ async def modify_browserscript(request, user, bid):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {"status": "error", "error": "Spectators cannot modify browser scripts"}
             )
@@ -317,7 +317,7 @@ async def remove_browserscript(request, user, bid):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        if user["view_mode"] == "spectator":
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
             return json(
                 {"status": "error", "error": "Spectators cannot remove browser scripts"}
             )
@@ -360,6 +360,10 @@ async def import_browserscript(request, user):
         abort(
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator" or user["current_operation"] == "":
+        return json(
+            {"status": "error", "error": "Spectators cannot modify browser scripts"}
         )
     # get json data
     try:

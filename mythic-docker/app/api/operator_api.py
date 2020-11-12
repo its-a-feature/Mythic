@@ -60,6 +60,8 @@ async def create_operator(request, user):
     data = request.json
     if user["view_mode"] == "spectator":
         return json({"status": "error", "error": "Spectators cannot create users"})
+    if not user["admin"]:
+        return json({"status": "error", "error": "Only admins can create new users"})
     if "username" not in data or data["username"] == "":
         return json({"status": "error", "error": '"username" field is required'})
     if not isinstance(data["username"], str) or not len(data["username"]):
@@ -70,11 +72,10 @@ async def create_operator(request, user):
             }
         )
     password = await crypto.hash_SHA512(data["password"])
-    admin = False  # cannot create a user initially as admin
     # we need to create a new user
     try:
         new_operator = await db_objects.create(
-            Operator, username=data["username"], password=password, admin=admin
+            Operator, username=data["username"], password=password, admin=False
         )
         success = {"status": "success"}
         new_user = new_operator.to_json()
@@ -237,6 +238,8 @@ async def remove_operator(request, oid, user):
         return json({"status": "error", "error": "failed to find operator"})
     try:
         op.deleted = True
+        op.active = False
+        op.admin = False
         await db_objects.update(op)
         success = {"status": "success"}
         return json({**success, **op.to_json()})

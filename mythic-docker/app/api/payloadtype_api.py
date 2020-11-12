@@ -31,6 +31,8 @@ async def get_all_payloadtypes(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of an operation to view this"})
     query = await db_model.payloadtype_query()
     wrapquery = await db_model.wrappedpayloadtypes_query()
     payloads = await db_objects.execute(
@@ -80,6 +82,8 @@ async def get_one_payloadtype(request, user, ptype):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
+        if user["current_operation"] == "":
+            return json({"status": "error", "error": "Must be part of an operation to view this"})
         query = await db_model.payloadtype_query()
         payloadtype = await db_objects.get(query, id=ptype)
         query = await db_model.buildparameter_query()
@@ -121,6 +125,8 @@ async def update_one_payloadtype(request, user, ptype):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
+        if user["current_operation"] == "":
+            return json({"status": "error", "error": "Not part of an operation"})
         query = await db_model.payloadtype_query()
         payloadtype = await db_objects.get(query, id=ptype)
         data = request.json
@@ -190,6 +196,8 @@ async def get_commands_for_payloadtype(request, user, ptype):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of a current operation to see this"})
     try:
         query = await db_model.payloadtype_query()
         payloadtype = await db_objects.get(query, id=ptype)

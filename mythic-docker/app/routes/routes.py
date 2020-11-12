@@ -41,7 +41,7 @@ import glob
 from app.api.callback_api import start_all_socks_after_restart
 import sys
 
-env = Environment(loader=PackageLoader("app", "templates"))
+env = Environment(loader=PackageLoader("app", "templates"), autoescape=True)
 
 
 async def respect_pivot(my_links, request):
@@ -87,6 +87,7 @@ class Login(BaseEndpoint):
     async def get(self, request):
         form = LoginForm(request)
         errors = {}
+        successful_creation = request.args.pop("success", False)
         errors["username_errors"] = "<br>".join(form.username.errors)
         errors["password_errors"] = "<br>".join(form.password.errors)
         template = env.get_template("login.html")
@@ -94,6 +95,7 @@ class Login(BaseEndpoint):
             links=await respect_pivot(links, request),
             form=form,
             errors=errors,
+            successful_creation=successful_creation,
             config={},
             view_utc_time=False,
             http="https" if use_ssl else "http",
@@ -112,7 +114,7 @@ class Login(BaseEndpoint):
                 user = await db_objects.get(query, username=username)
                 if await user.check_password(password):
                     if not user.active:
-                        form.username.errors = ["account is deactivated, cannot log in"]
+                        form.username.errors = ["Account is not active, cannot log in"]
                     else:
                         try:
                             user.last_login = datetime.datetime.utcnow()
@@ -219,10 +221,8 @@ class Register(BaseEndpoint):
             # we need to create a new user
             try:
                 user = await db_objects.create(
-                    Operator, username=username, password=password
+                    Operator, username=username, password=password, admin=False, active=False
                 )
-                user.last_login = datetime.datetime.utcnow()
-                await db_objects.update(user)  # update the last login time to be now
                 query = await db_model.operation_query()
                 operations = await db_objects.execute(query)
                 for o in operations:
@@ -233,47 +233,18 @@ class Register(BaseEndpoint):
                         message="New user {} created".format(user.username),
                     )
                 await set_default_scripts(user)
-                # print(result)
-                # generate JWT token to be stored in a cookie
-                access_token, output = await self.responses.get_access_token_output(
-                    request,
-                    {"user_id": user.id, "auth": "cookie"},
-                    self.config,
-                    self.instance,
-                )
-                refresh_token = await self.instance.auth.generate_refresh_token(
-                    request, {"user_id": user.id, "auth": "cookie"}
-                )
-                output.update({self.config.refresh_token_name(): refresh_token})
-                # we want to make sure to store access/refresh token in JS before moving into the rest of the app
-                template = env.get_template("register.html")
-                content = template.render(
-                    links=await respect_pivot(links, request),
-                    form=form,
-                    errors=errors,
-                    access_token=access_token,
-                    refresh_token=refresh_token,
-                    config={},
-                    view_utc_time=False,
-                    http="https" if use_ssl else "http",
-                    ws="wss" if use_ssl else "ws",
-                )
-                resp = response.html(content)
-                resp.cookies[self.config.cookie_access_token_name()] = access_token
-                resp.cookies[self.config.cookie_access_token_name()]["httponly"] = True
-                resp.cookies[self.config.cookie_refresh_token_name()] = refresh_token
-                resp.cookies[self.config.cookie_refresh_token_name()]["httponly"] = True
-                return resp
+                return response.redirect("/login?success=true")
             except Exception as e:
                 # failed to insert into database
                 print(e)
-                form.username.errors = ["Username already exists"]
+                form.username.errors = ["Failed to create user"]
         errors["username_errors"] = "<br>".join(form.username.errors)
         template = env.get_template("register.html")
         content = template.render(
             links=await respect_pivot(links, request),
             form=form,
             errors=errors,
+            successful_creation=False,
             config={},
             view_utc_time=False,
             http="https" if use_ssl else "http",

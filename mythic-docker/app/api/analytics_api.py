@@ -320,6 +320,8 @@ async def get_access_log_data(request, user):
     entries = 1000
     page = 1
     total_entries = 0
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part an of operation to view this"})
     try:
         if request.method == "POST":
             data = request.json
@@ -369,7 +371,10 @@ async def get_access_log_data(request, user):
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
 async def download_access_log_data(request, user):
-    if os.path.exists("mythic_access.log"):
-        return await file("mythic_access.log", filename="mythic_access.log")
+    if user["current_operation"] != "":
+        if os.path.exists("mythic_access.log"):
+            return await file("mythic_access.log", filename="mythic_access.log")
+        else:
+            return json({"status": "error", "error": "file does not exist"})
     else:
-        return json({"status": "error", "error": "file does not exist"})
+        return json({"status": "error", "error": "Only an admin"})

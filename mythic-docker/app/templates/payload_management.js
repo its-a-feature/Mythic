@@ -4,7 +4,8 @@ var payloads = []; //all services data
 var payloads_table = new Vue({
     el: '#payloads_table',
     data: {
-        payloads
+        payloads,
+        view_auto_generated: false
     },
     methods: {
         delete_button: function (p) {
@@ -130,6 +131,9 @@ var payloads_table = new Vue({
 
                 }, "PUT", {"description": edit_payload_vue.edit_value});
             });
+        },
+        toggle_auto_generated: function(){
+            this.view_auto_generated = !this.view_auto_generated;
         }
     },
     delimiters: ['[[', ']]']
@@ -266,6 +270,7 @@ function startwebsocket_payloads() {
         } else if (event.data !== "") {
             let pdata = JSON.parse(event.data);
             if (pdata['deleted'] === false) {
+                console.log(pdata);
                 for (let i = 0; i < payloads_table.payloads.length; i++) {
                     if (pdata['id'] === payloads_table.payloads[i]['id']) {
                         //just update the data

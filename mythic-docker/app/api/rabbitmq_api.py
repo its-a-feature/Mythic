@@ -1086,6 +1086,12 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
 # just listen for c2 heartbeats and update the database as necessary
 async def start_listening():
     logger.debug("starting to consume rabbitmq messages")
+    task = None
+    task2 = None
+    task3 = None
+    task4 = None
+    task5 = None
+    tasks = [task, task2, task3, task4, task5]
     try:
         task = asyncio.ensure_future(connect_and_consume_c2())
         task2 = asyncio.ensure_future(connect_and_consume_heartbeats())
@@ -1094,6 +1100,9 @@ async def start_listening():
         task5 = asyncio.ensure_future(connect_and_consume_c2_rpc())
         await asyncio.wait_for([task, task2, task3, task4, task5], None)
     except Exception as e:
+        for t in tasks:
+            if t is not None:
+                task.cancel()
         await asyncio.sleep(3)
 
 
