@@ -55,7 +55,7 @@ namespace Atlas
                 string last_result = Crypto.Decrypt(new_result);
 #endif
 #if DEFAULT
-                Utils.CheckInResponse CheckInResponse = Utils.CheckInResponse.FromJson(new_result);
+                Utils.CheckInResponse CheckInResponse = Utils.CheckInResponse.FromJson(Encoding.UTF8.GetString(Convert.FromBase64String(new_result)).Substring(36));
 #elif (DEFAULT_PSK || DEFAULT_EKE)
                 Utils.CheckInResponse CheckInResponse = Utils.CheckInResponse.FromJson(last_result);
 #endif
