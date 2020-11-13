@@ -1628,6 +1628,7 @@ var task_data = new Vue({
                                             last_vals = JSON.parse(meta[data['cid']]['history'][j]['params']);
                                         } catch (error) {
                                             console.log(error.toString());
+                                            console.log("error in parsing last_vals");
                                             last_vals = {};
                                         }
                                         break;
@@ -1661,7 +1662,9 @@ var task_data = new Vue({
                                     param.choice_value = param.choices.split("\n")[0];
                                 }
                                 if(param.type === "Array"){
-                                    param.array_value = JSON.parse(param.default_value);
+                                    if(param.default_value.length > 0){
+                                        param.array_value = JSON.parse(param.default_value);
+                                    }
                                 }else if(param.type === "String"){
                                     param.string_value = param.default_value;
                                 }else if(param.type === "Number"){
@@ -2804,7 +2807,12 @@ var params_table = new Vue({
         restore_default_values: function(){
             for(let i = 0; i < this.command_params.length; i ++){
                 if(this.command_params[i].type === "Array"){
-                    this.command_params[i].array_value = JSON.parse(this.command_params[i].default_value);
+                    if(this.command_params[i].default_value.length > 0){
+                        this.command_params[i].array_value = JSON.parse(this.command_params[i].default_value);
+                    }
+                    else{
+                        this.command_params[i].array_value = [];
+                    }
                 }else if(this.command_params[i].type === "String"){
                     this.command_params[i].string_value = this.command_params[i].default_value;
                 }else if(this.command_params[i].type === "Number"){
