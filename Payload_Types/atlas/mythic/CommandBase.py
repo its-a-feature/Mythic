@@ -57,6 +57,7 @@ class CommandParameter:
             self.value = default_value
         else:
             self.value = value
+        self.default_value = default_value
         self.supported_agents = supported_agents if supported_agents is not None else []
 
     @property
