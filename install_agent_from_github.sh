@@ -71,8 +71,6 @@ then
   echo -e "${RED}[-]${NC} Failed to find exclude_agent_icons"
   exit 1
 fi
-# Determine a previous install and if found, remove it.
-agent_name=`echo "$1" | rev | cut -d "/" -f 1 | rev`
 
 if $exclude_payload_type
 then
