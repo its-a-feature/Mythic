@@ -8,10 +8,15 @@ class LsArguments(TaskArguments):
         self.args = {}
 
     async def parse_arguments(self):
+        self.add_arg("file_browser", False, type=ParameterType.Boolean)
         if len(self.command_line) > 0:
             if self.command_line[0] == "{":
                 tmp_json = json.loads(self.command_line)
                 self.command_line = tmp_json["path"] + "/" + tmp_json["file"]
+                self.add_arg("file_browser", True, type=ParameterType.Boolean)
+            self.add_arg("path", self.command_line)
+        else:
+            self.add_arg("path", ".")
 
 
 class LsCommand(CommandBase):
@@ -29,6 +34,7 @@ class LsCommand(CommandBase):
     author = "@xorrior"
     argument_class = LsArguments
     attackmapping = ["T1083"]
+    browser_script = BrowserScript(script_name="ls", author="@its_a_feature_")
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         return task
