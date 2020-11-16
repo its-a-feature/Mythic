@@ -34,10 +34,10 @@ mkdir temp
 echo -e "${BLUE}[*]${NC} Pulling down remote repo via git"
 if [ $# -eq 2 ]
 then
-        echo "Installing From Branch: $2"
+        echo -e "${BLUE}[*]${NC} Installing From Branch: $2"
         git clone --recurse-submodules --single-branch --branch $2 $1 temp
 else
-        echo "Installing From master"
+        echo -e "${BLUE}[*]${NC} Installing From master"
         git clone --recurse-submodules --single-branch $1 temp
 fi
 if [ $? -ne 0 ]
