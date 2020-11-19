@@ -45,7 +45,7 @@ func main() {
 func startClientPort(channelMap *mutexMap, mythicChannel chan []byte, wg *sync.WaitGroup){
 	// listen for connections from operator's proxychains connections
 	
-	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	l, err := net.Listen(CONN_TYPE, "0.0.0.0:"+CONN_PORT)
     if err != nil {
         fmt.Println("Error listening:", err.Error())
         wg.Done()
