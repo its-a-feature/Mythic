@@ -87,8 +87,8 @@ else
   sed -i 's/\.\/temp\/Payload_Type\//\.\/Payload_Types\//g' ./temp/payloads.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
-    if [ "$(ls $p)" ]; then
-      rm -r $p;
+    if [ -d "$p" ]; then
+      rm -r $p > /dev/null;
       if [[ $? -eq 0 ]]
       then
         echo -e "${GREEN}[+]${NC} Removed previously installed Payload Type: $type_name"
@@ -96,7 +96,7 @@ else
         echo -e "${RED}[-]${NC} Failed to remove previously installed Payload Type: $type_name"
       fi
     else
-      echo -e "${BLUE}[*]${NC} Payload type folder does not contain Payload Type: $p. Skipping!"
+      echo -e "${BLUE}[*]${NC} No old Payload Type content for $type_name to remove."
     fi
   done < ./temp/payloads.txt
   echo -e "${BLUE}[*]${NC} Copying the Payload Type folder"
@@ -122,8 +122,8 @@ else
     sed -i 's/\.\/temp\/documentation-payload\//\.\/documentation-docker\/content\/Agents\//g' ./temp/documentation.txt
     while read p; do
       type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
-      if [ "$(ls $p)" ]; then
-        rm -r $p;
+      if [ -d "$p" ]; then
+        rm -r $p > /dev/null;
         if [[ $? -eq 0 ]]
         then
           echo -e "${GREEN}[+]${NC} Removed previously installed documentation for: $type_name"
@@ -131,7 +131,7 @@ else
           echo -e "${RED}[-]${NC} Failed to remove previously installed documentation for: $type_name"
         fi
       else
-        echo -e "${BLUE}[*]${NC} No documentation found for $type_name. Skipping!"
+        echo -e "${BLUE}[*]${NC} No old documentation found for $type_name to remove."
       fi
     done < ./temp/documentation.txt
     # In with the new
@@ -141,13 +141,12 @@ else
     echo -e "${BLUE}[+]${NC} Payload Type's documentation folder is empty"
   fi
   echo -e "${BLUE}[*]${NC} Copying the Wrapper documentation folder"
-  if [ "$(ls ./temp/documentation-wrapper/)" ]; then
+  if [ -d "./temp/documentation-wrapper/" ] && [ "$(ls ./temp/documentation-wrapper/)" ]; then
     cp -R ./temp/documentation-wrapper/* ./documentation-docker/content/Wrappers/
     echo -e "${GREEN}[+]${NC} Successfully copied the Wrapper's documentation folder"
   else
-    echo -e "${BLUE}[+]${NC} Payload Type's documentation folder is empty"
+    echo -e "${BLUE}[+]${NC} Payload Type's wrapper documentation folder is empty"
   fi
-
 fi
 
 # Copy C2 Profiles
@@ -160,8 +159,8 @@ else
   sed -i 's/\.\/temp\/C2_Profiles\//\.\/C2_Profiles\//g' ./temp/C2Profiles.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
-    if [ "$(ls $p)" ]; then
-      rm -r $p;
+    if [ -d "$p" ]; then
+      rm -r $p > /dev/null;
       if [[ $? -eq 0 ]]
       then
         echo -e "${GREEN}[+]${NC} Removed previously installed C2 Profile: $type_name"
@@ -169,7 +168,7 @@ else
         echo -e "${RED}[-]${NC} Failed to remove previously installed C2 Profile: $type_name"
       fi
     else
-      echo -e "${BLUE}[*]${NC} No C2 Profile installed with name: $type_name. Skipping!"
+      echo -e "${BLUE}[*]${NC} No old C2 Profile for $type_name found to remove."
     fi
   done < ./temp/C2Profiles.txt
 
@@ -193,8 +192,8 @@ else
   sed -i 's/\.\/temp\/documentation-c2\//\.\/documentation-docker\/content\/C2 Profiles\//g' ./temp/c2documentation.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
-    if [ "$(ls $p)" ]; then
-      rm -r $p;
+    if [ -d "$p" ]; then
+      rm -r $p > /dev/null;
       if [[ $? -eq 0 ]]
       then
         echo -e "${GREEN}[+]${NC} Removed previously installed documentation for profile: $type_name"
@@ -202,7 +201,7 @@ else
         echo -e "${RED}[-]${NC} Failed to remove previously installed documentation for profile: $type_name"
       fi
     else
-      echo -e "${BLUE}[*]${NC} No documentation found for $type_name. Skipping!"
+      echo -e "${BLUE}[*]${NC} No old documentation found for $type_name to remove."
     fi
   done < ./temp/c2documentation.txt
 
@@ -226,8 +225,8 @@ else
   sed -i 's/\.\/temp\/agent_icons\//\.\/mythic-docker\/app\/static\//g' ./temp/agent_icons.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
-    if [ "$(ls $p)" ]; then
-      rm -r $p;
+    if [ -f "$p" ]; then
+      rm $p > /dev/null;
       if [[ $? -eq 0 ]]
       then
         echo -e "${GREEN}[+]${NC} Removed icon: $type_name"
@@ -235,7 +234,7 @@ else
         echo -e "${RED}[-]${NC} Failed to remove icon: $type_name"
       fi
     else
-      echo -e "${BLUE}[*]${NC} No agent icons found for $type_name. Skipping!"
+      echo -e "${BLUE}[*]${NC} No old agent icons found for $type_name to remove."
     fi
   done < ./temp/agent_icons.txt
 
