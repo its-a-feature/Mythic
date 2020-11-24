@@ -1,56 +1,55 @@
-version: '2.4'
+version: "2.4"
 services:
-        postgres:
-                build: ./postgres-docker
-                container_name: mythic_postgres
-                network_mode: host
-                volumes:
-                 - ./postgres-docker/database:/var/lib/postgresql/data
-                labels:
-                        NAME: "mythic_postgres"
-                restart: on-failure
-                environment:
-                        POSTGRES_DB: "${POSTGRES_DB}"
-                        POSTGRES_USER: "${POSTGRES_USER}"
-                        POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-        rabbitmq:
-                build: ./rabbitmq-docker
-                container_name: mythic_rabbitmq
-                network_mode: host
-                volumes:
-                 - ./rabbitmq-docker/storage:/var/lib/rabbitmq
-                labels:
-                        NAME: "mythic_rabbitmq"
-                restart: on-failure
-                # Commented out until we can update the base image
-                #environment:
-                #        RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER}"
-                #        RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
-                #        RABBITMQ_DEFAULT_VHOST: "${RABBITMQ_VHOST}"
-                #mem_limit: 512M
-        mythic:
-                build: ./mythic-docker
-                network_mode: host
-                container_name: mythic_server
-                volumes:
-                 - ./mythic-docker:/Mythic
-                labels:
-                        NAME: "mythic_server"
-                environment:
-                        POSTGRES_HOST: "${POSTGRES_HOST}"
-                        POSTGRES_PORT: "${POSTGRES_PORT}"
-                        POSTGRES_DB: "${POSTGRES_DB}"
-                        POSTGRES_USER: "${POSTGRES_USER}"
-                        POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-                        RABBITMQ_HOST: "${RABBITMQ_HOST}"
-                        RABBITMQ_PORT: "${RABBITMQ_PORT}"
-                        RABBITMQ_USER: "${RABBITMQ_USER}"
-                        RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
-                        RABBITMQ_VHOST: "${RABBITMQ_VHOST}"
-                        DEBUG: "${DEBUG}"
-                depends_on:
-                 - postgres
-                 - rabbitmq
-                restart: on-failure
-                command: ["/bin/bash", "/Mythic/start_mythic_server.sh"]
-
+    postgres:
+        build: ./postgres-docker
+        container_name: mythic_postgres
+        network_mode: host
+        volumes:
+            - ./postgres-docker/database:/var/lib/postgresql/data
+        labels:
+            NAME: "mythic_postgres"
+        restart: on-failure
+        environment:
+            POSTGRES_DB: "${POSTGRES_DB}"
+            POSTGRES_USER: "${POSTGRES_USER}"
+            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    rabbitmq:
+        build: ./rabbitmq-docker
+        container_name: mythic_rabbitmq
+        network_mode: host
+        volumes:
+            - ./rabbitmq-docker/storage:/var/lib/rabbitmq
+        labels:
+            NAME: "mythic_rabbitmq"
+        restart: on-failure
+        # Commented out until we can update the base image
+        #environment:
+        #        RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER}"
+        #        RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
+        #        RABBITMQ_DEFAULT_VHOST: "${RABBITMQ_VHOST}"
+        #mem_limit: 512M
+    mythic:
+        build: ./mythic-docker
+        network_mode: host
+        container_name: mythic_server
+        volumes:
+            - ./mythic-docker:/Mythic
+        labels:
+            NAME: "mythic_server"
+        environment:
+            POSTGRES_HOST: "${POSTGRES_HOST}"
+            POSTGRES_PORT: "${POSTGRES_PORT}"
+            POSTGRES_DB: "${POSTGRES_DB}"
+            POSTGRES_USER: "${POSTGRES_USER}"
+            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+            RABBITMQ_HOST: "${RABBITMQ_HOST}"
+            RABBITMQ_PORT: "${RABBITMQ_PORT}"
+            RABBITMQ_USER: "${RABBITMQ_USER}"
+            RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+            RABBITMQ_VHOST: "${RABBITMQ_VHOST}"
+            DEBUG: "${DEBUG}"
+        depends_on:
+            - postgres
+            - rabbitmq
+        restart: on-failure
+        command: ["/bin/bash", "/Mythic/start_mythic_server.sh"]
