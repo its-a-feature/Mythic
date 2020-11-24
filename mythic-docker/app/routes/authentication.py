@@ -203,7 +203,7 @@ class MyAuthentication(Authentication):
             }
         except exceptions.AuthenticationFailed as e:
             msg = "Authentication failed in retrieve_user (user ID: {}). {}"
-            logger.into(msg.format(user_id, str(e)))
+            logger.info(msg.format(user_id, str(e)))
             raise e
         except Exception as e:
             logger.error("Error in retrieve user:" + str(e))
