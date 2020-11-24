@@ -10,6 +10,8 @@ services:
                         NAME: "mythic_postgres"
                 restart: on-failure
                 environment:
+                        POSTGRES_DB: "${POSTGRES_DB}"
+                        POSTGRES_USER: "${POSTGRES_USER}"
                         POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
         rabbitmq:
                 build: ./rabbitmq-docker
@@ -20,6 +22,11 @@ services:
                 labels:
                         NAME: "mythic_rabbitmq"
                 restart: on-failure
+                # Commented out until we can update the base image
+                #environment:
+                #        RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER}"
+                #        RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
+                #        RABBITMQ_DEFAULT_VHOST: "${RABBITMQ_VHOST}"
                 #mem_limit: 512M
         mythic:
                 build: ./mythic-docker
@@ -30,10 +37,20 @@ services:
                 labels:
                         NAME: "mythic_server"
                 environment:
-                       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+                        POSTGRES_HOST: "${POSTGRES_HOST}"
+                        POSTGRES_PORT: "${POSTGRES_PORT}"
+                        POSTGRES_DB: "${POSTGRES_DB}"
+                        POSTGRES_USER: "${POSTGRES_USER}"
+                        POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+                        RABBITMQ_HOST: "${RABBITMQ_HOST}"
+                        RABBITMQ_PORT: "${RABBITMQ_PORT}"
+                        RABBITMQ_USER: "${RABBITMQ_USER}"
+                        RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+                        RABBITMQ_VHOST: "${RABBITMQ_VHOST}"
+                        DEBUG: "${DEBUG}"
                 depends_on:
                  - postgres
                  - rabbitmq
                 restart: on-failure
-                command: ["./wait-for-postgres.sh", "127.0.0.1:5432", "--", "python", "/Mythic/server.py"]
+                command: ["/bin/bash", "/Mythic/start_mythic_server.sh"]
 

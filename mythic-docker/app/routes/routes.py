@@ -2,7 +2,6 @@ from app import (
     mythic,
     db_objects,
     links,
-    use_ssl,
     server_header,
     mythic_admin_password,
     mythic_admin_user,
@@ -76,8 +75,8 @@ async def index(request, user):
         current_operation=user["current_operation"],
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        http="https",
+        ws="wss",
     )
 
     return response.html(content)
@@ -98,8 +97,8 @@ class Login(BaseEndpoint):
             successful_creation=successful_creation,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            http="https",
+            ws="wss",
         )
         return response.html(content)
 
@@ -152,8 +151,8 @@ class Login(BaseEndpoint):
                                 form=form,
                                 errors=errors,
                                 access_token=access_token,
-                                http="https" if use_ssl else "http",
-                                ws="wss" if use_ssl else "ws",
+                                http="https",
+                                ws="wss",
                                 refresh_token=refresh_token,
                                 config={},
                                 view_utc_time=False,
@@ -174,13 +173,14 @@ class Login(BaseEndpoint):
                             ] = True
                             return resp
                         except Exception as e:
-                            print("post login error:" + str(e))
+                            logger.error("post login error:" + str(e))
                             errors["validate_errors"] = "failed to update login time"
                 else:
+                    logger.info("Invalid password for user " + username)
                     form.username.errors = ["Username or password invalid"]
             except Exception as e:
-                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                form.username.errors = ["username or password invalid"]
+                logger.info(f"Unable to login as the user {username}. " + str(e))
+                form.username.errors = ["Username or password invalid"]
         errors["username_errors"] = "<br>".join(form.username.errors)
         errors["password_errors"] = "<br>".join(form.password.errors)
         template = env.get_template("login.html")
@@ -190,8 +190,8 @@ class Login(BaseEndpoint):
             errors=errors,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            http="https",
+            ws="wss",
         )
         return response.html(content)
 
@@ -207,8 +207,8 @@ class Register(BaseEndpoint):
             errors=errors,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            http="https",
+            ws="wss",
         )
         return response.html(content)
 
@@ -236,7 +236,7 @@ class Register(BaseEndpoint):
                 return response.redirect("/login?success=true")
             except Exception as e:
                 # failed to insert into database
-                print(e)
+                logger.error("Failed to insert user into database: " + str(e))
                 form.username.errors = ["Failed to create user"]
         errors["username_errors"] = "<br>".join(form.username.errors)
         template = env.get_template("register.html")
@@ -247,8 +247,8 @@ class Register(BaseEndpoint):
             successful_creation=False,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            http="https",
+            ws="wss",
         )
         return response.html(content)
 
@@ -298,14 +298,14 @@ async def settings(request, user):
         content = template.render(
             links=await respect_pivot(links, request),
             name=user["username"],
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            http="https",
+            ws="wss",
             config=user["ui_config"],
             view_utc_time=user["view_utc_time"],
         )
         return response.html(content)
     except Exception as e:
-        print(e)
+        logger.error(e)
         return json({"status": "error", "error": "Failed to find operator"})
 
 
@@ -403,14 +403,14 @@ async def initial_setup():
     # create mythic_admin
     operators = await db_objects.execute(Operator.select())
     if len(operators) != 0:
-        print("Users already exist, aborting initial install")
+        logger.info("Users already exist, aborting initial install")
         await start_all_socks_after_restart()
         return
     password = await crypto.hash_SHA512(mythic_admin_password)
     admin, created = await db_objects.get_or_create(
         Operator, username=mythic_admin_user, password=password, admin=True, active=True
     )
-    print("Created Admin")
+    logger.info("Created Admin")
     # create default operation
     AES_PSK = await create_key_AES256()
     operation, created = await db_objects.get_or_create(
@@ -420,20 +420,20 @@ async def initial_setup():
         complete=False,
         AESPSK=AES_PSK,
     )
-    print("Created Operation")
+    logger.info("Created Operation")
     await db_objects.get_or_create(
         OperatorOperation, operator=admin, operation=operation
     )
     admin.current_operation = operation
     await db_objects.update(admin)
-    print("Registered Admin with the default operation")
-    print("Started parsing ATT&CK data...")
+    logger.info("Registered Admin with the default operation")
+    logger.info("Started parsing ATT&CK data...")
     file = open("./app/default_files/other_info/attack.json", "r")
     attack = js.load(file)  # this is a lot of data and might take a hot second to load
     for obj in attack["techniques"]:
         await db_objects.create(ATTACK, **obj)
     file.close()
-    print("Created all ATT&CK entries")
+    logger.info("Created all ATT&CK entries")
     file = open("./app/default_files/other_info/artifacts.json", "r")
     artifacts_file = js.load(file)
     for artifact in artifacts_file["artifacts"]:
@@ -441,14 +441,14 @@ async def initial_setup():
             Artifact, name=artifact["name"], description=artifact["description"]
         )
     file.close()
-    print("Created all base artifacts")
+    logger.info("Created all base artifacts")
     for base_file in glob.iglob("./app/default_files/c2_profiles/*"):
         file = open(base_file, "r")
         c2 = js.load(file)
-        print("parsed {}".format(base_file))
+        logger.debug("parsed {}".format(base_file))
         # await import_c2_profile_func(c2, admin)
-    print("Created all C2 Profiles")
-    print("Successfully finished initial setup")
+    logger.info("Created all C2 Profiles")
+    logger.info("Successfully finished initial setup")
 
 
 # /static serves out static images and files

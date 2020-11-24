@@ -13,18 +13,7 @@ then
   echo -e "${RED}[-]${NC} Failed to find server_port"
   exit 1
 fi
-use_ssl=`jq ".use_ssl" "mythic-docker/config.json"`
-if [[ $? -ne 0  ]]
-then
-  echo -e "${RED}[-]${NC} Failed to find use_ssl"
-  exit 1
-fi
-if [[ "$use_ssl" == "true" ]]
-  then
-    use_ssl="https"
-  else
-    use_ssl="http"
-fi
+
 containsElement () {
   local e match="$1"
   shift
@@ -56,7 +45,7 @@ startContainer(){
         echo -e "${GREEN}[+]${NC} Successfully built $p's container"
       fi
       docker container prune --filter label=name="$tag" -f
-      output=`docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="$use_ssl://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag" 2>&1`
+      output=`docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="https://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag" 2>&1`
       if [ $? -ne 0 ]
       then
         echo -e "${BLUE}[*]${NC} C2 Profile, $p, is already running. Stopping it..."
@@ -64,7 +53,7 @@ startContainer(){
         output=`docker stop "$tag" 2>/dev/null`
         output=`docker container rm $(docker container ps -aq --filter name="$tag") 2>/dev/null`
         echo -e "${BLUE}[*]${NC} Now trying to start it again..."
-        docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="$use_ssl://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag"
+        docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="https://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag"
         if [ $? -ne 0 ]
         then
           echo -e "${RED}[-]${NC} Failed to start $p's container. Aborting"

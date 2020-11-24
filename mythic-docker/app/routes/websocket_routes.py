@@ -1,4 +1,4 @@
-from app import mythic, db_objects, use_ssl
+from app import mythic, db_objects
 import aiopg
 import ujson as js
 import asyncio
@@ -13,6 +13,7 @@ from app.database_models.model import (
     TaskArtifact,
 )
 from sanic_jwt.decorators import scoped, inject_user
+from sanic.log import logger
 import app.database_models.model as db_model
 import aio_pika
 import sys
@@ -3067,14 +3068,10 @@ async def ws_file_browser_objects(request, ws, user):
 # CHECK ORIGIN HEADERS FOR WEBSOCKETS
 async def valid_origin_header(request):
     if "origin" in request.headers:
-        if use_ssl:
-            if request.headers["origin"] == "https://{}".format(
-                request.headers["host"]
-            ):
-                return True
-        else:
-            if request.headers["origin"] == "http://{}".format(request.headers["host"]):
-                return True
+        if request.headers["origin"] == "https://{}".format(
+            request.headers["host"]
+        ):
+            return True
         return False
     elif "apitoken" in request.headers:
         return True

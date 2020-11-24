@@ -5,14 +5,15 @@
   "listen_port": 7443,
   "ssl_cert_path": "./app/ssl/mythic-cert.pem",
   "ssl_key_path": "./app/ssl/mythic-ssl.key",
-  "allowed_ip_blocks": ["0.0.0.0/0"],
-  "use_ssl": true,
+  "allowed_ip_blocks": [
+    "0.0.0.0/0"
+  ],
   "server_header": "nginx 1.2",
   "web_log_size": 1024000,
   "web_keep_logs": true,
   "siem_log_name": "",
-  "excluded_c2_profiles": [ ],
-  "excluded_payload_types": [ ],
+  "excluded_c2_profiles": [],
+  "excluded_payload_types": [],
   "start_documentation_container": true,
   "documentation_container_port": 8080
 }

@@ -10,7 +10,7 @@ from app.database_models.model import (
 import datetime
 import json
 from sanic_jwt import Authentication, Configuration
-
+from sanic.log import logger
 
 from contextlib import contextmanager
 from sanic_jwt.cache import to_cache, clear_cache
@@ -65,7 +65,7 @@ class MyAuthentication(Authentication):
                 with cache_request(request):
                     payload = await self._decode(apitoken, verify=verify)
             except Exception as e:
-                print("Failed to decode apitoken")
+                logger.error("Failed to decode apitoken")
                 if return_payload:
                     return {}
                 return False, 401, "Auth Error"
@@ -76,12 +76,12 @@ class MyAuthentication(Authentication):
             request_kwargs = request_kwargs or {}
             user = request_kwargs.get("user")
             if not user:
-                print("retrieve_user lookup failed in request_kwargs")
+                logger.error("retrieve_user lookup failed in request_kwargs")
                 return False, 401, "Auth Error"
             if user["apitoken_active"]:
                 return True, 200, "Success"
             else:
-                print("Token no longer active")
+                logger.error("Token no longer active")
                 return False, 401, "Auth Error"
         else:
             with cache_request(request):
@@ -106,10 +106,10 @@ class MyAuthentication(Authentication):
         try:
             query = await operator_query()
             user = await db_objects.get(query, username=username)
-            # print("in authenticate, the user: " + str(user))
+            # logger.debug("in authenticate, the user: " + str(user))
             # user = await db_objects.get(Operator, username=username)
         except Exception as e:
-            print("invalid username")
+            logger.info("invalid username: " + username)
             raise exceptions.AuthenticationFailed("Incorrect username or password")
         if not user.active:
             raise exceptions.AuthenticationFailed("Account is deactivated")
@@ -118,13 +118,13 @@ class MyAuthentication(Authentication):
                 user.last_login = datetime.datetime.now()
                 await db_objects.update(user)
                 # now we have successful authentication, return appropriately
-                # print("success authentication")
+                # logger.debug("success authentication")
                 return {"user_id": user.id, "username": user.username, "auth": "user"}
             except Exception as e:
-                print("failed to update user in authenticate")
+                logger.error("failed to update user in authenticate")
                 raise exceptions.AuthenticationFailed("Failed to authenticate")
         else:
-            print("invalid password")
+            logger.info("invalid password for the user " + username)
             raise exceptions.AuthenticationFailed("Incorrect username or password")
 
     async def retrieve_user(self, request, payload, *args, **kwargs):
@@ -144,7 +144,7 @@ class MyAuthentication(Authentication):
                 user = await db_objects.get(query, id=user_id)
                 if not user.active:
                     # this allows us to reject apitokens of user that have been deactivated
-                    print("User is not active, failing authentication")
+                    logger.info("User is not active, failing authentication")
                     raise exceptions.AuthenticationFailed("User is not active")
             user_json = user.to_json()
             query = await operatoroperation_query()
@@ -202,10 +202,11 @@ class MyAuthentication(Authentication):
                 "admin_operations": admin_ops,
             }
         except exceptions.AuthenticationFailed as e:
-            print("got authentication failed in retrieve_user. {}".format(str(e)))
+            msg = "Authentication failed in retrieve_user (user ID: {}). {}"
+            logger.into(msg.format(user_id, str(e)))
             raise e
         except Exception as e:
-            print("Error in retrieve user:" + str(e))
+            logger.error("Error in retrieve user:" + str(e))
             raise exceptions.AuthenticationFailed("Auth Error")
 
 
@@ -222,8 +223,9 @@ async def add_scopes_to_payload(user, *args, **kwargs):
         query = await operator_query()
         dbuser = await db_objects.get(query, id=user["user_id"])
     except Exception as e:
-        print(e)
+        logger.error(e)
         return []
+    
     try:
         query = await operatoroperation_query()
         operationsmap = await db_objects.execute(
@@ -237,7 +239,7 @@ async def add_scopes_to_payload(user, *args, **kwargs):
             scopes.append(map.operation.name)
         return scopes
     except Exception as e:
-        print(e)
+        logger.error(e)
         return []
 
 
@@ -250,7 +252,7 @@ async def store_refresh_token(user_id, refresh_token, *args, **kwargs):
 
 
 async def retrieve_refresh_token(request, user_id, *args, **kwargs):
-    # print("requested refresh token for: " + str(user_id))
+    # logger.debug("requested refresh token for: " + str(user_id))
     if user_id in refresh_tokens:
         return refresh_tokens[user_id]
     return None

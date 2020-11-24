@@ -1,4 +1,4 @@
-from app import db_objects
+from app import mythic, db_objects
 import datetime
 import app.database_models.model as db_model
 import aio_pika
@@ -222,7 +222,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     for pt in pts:
                                         if pt.ptype not in sync_tasks:
                                             sync_tasks[pt.ptype] = True
-                                            print("got sync from {}, sending sync to {}".format(pieces[2], pt.ptype))
+                                            logger.debug("got sync from {}, sending sync to {}".format(pieces[2], pt.ptype))
                                             await send_pt_rabbitmq_message(
                                                 pt.ptype, "sync_classes", "", sync_operator
                                             )
@@ -1085,7 +1085,10 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
 
 # just listen for c2 heartbeats and update the database as necessary
 async def start_listening():
-    logger.debug("starting to consume rabbitmq messages")
+    logger.debug("Waiting for RabbitMQ to start...")
+    await wait_for_rabbitmq()
+
+    logger.debug("Starting to consume rabbitmq messages")
     task = None
     task2 = None
     task3 = None
@@ -1106,16 +1109,42 @@ async def start_listening():
         await asyncio.sleep(3)
 
 
+async def mythic_rabbitmq_connection():
+    logger.debug("Logging into RabbitMQ with {}@{}:{}/{}".format(
+         mythic.config["RABBITMQ_USER"],
+         mythic.config['RABBITMQ_HOST'],
+         mythic.config['RABBITMQ_PORT'],
+         mythic.config['RABBITMQ_VHOST']))
+
+    return await aio_pika.connect_robust(
+                host=mythic.config["RABBITMQ_HOST"],
+                port=mythic.config["RABBITMQ_PORT"],
+                login=mythic.config["RABBITMQ_USER"],
+                password=mythic.config["RABBITMQ_PASSWORD"],
+                virtualhost=mythic.config["RABBITMQ_VHOST"],
+                timeout=5
+            )
+
+async def wait_for_rabbitmq():
+    connection = None
+    while connection is None:
+        try:
+            connection = await mythic_rabbitmq_connection()
+        except (ConnectionError, ConnectionRefusedError) as c:
+            logger.info("Waiting for RabbitMQ port to come online. Trying again in 2 seconds...")
+        except Exception as e:
+            logger.info("Waiting for RabbitMQ service to come online. Trying again in 2 seconds...")
+        await asyncio.sleep(2)
+    
+    await connection.close()
+    logger.info("RabbitMQ is online")
+
+
 async def connect_and_consume_c2():
     connection = None
     while connection is None:
         try:
-            connection = await aio_pika.connect_robust(
-                host="127.0.0.1",
-                login="mythic_user",
-                password="mythic_password",
-                virtualhost="mythic_vhost",
-            )
+            connection = await mythic_rabbitmq_connection()
             channel = await connection.channel()
             # declare our exchange
             await channel.declare_exchange(
@@ -1127,7 +1156,7 @@ async def connect_and_consume_c2():
             await queue.bind(exchange="mythic_traffic", routing_key="c2.status.#")
 
             await channel.set_qos(prefetch_count=50)
-            logger.info(" [*] Waiting for messages in connect_and_consume_c2.")
+            logger.info("Waiting for messages in connect_and_consume_c2.")
             try:
                 task = queue.consume(rabbit_c2_callback)
                 result = await asyncio.wait_for(task, None)
@@ -1150,12 +1179,7 @@ async def connect_and_consume_pt():
     connection = None
     while connection is None:
         try:
-            connection = await aio_pika.connect_robust(
-                host="127.0.0.1",
-                login="mythic_user",
-                password="mythic_password",
-                virtualhost="mythic_vhost",
-            )
+            connection = await mythic_rabbitmq_connection()
             channel = await connection.channel()
             # declare our exchange
             await channel.declare_exchange(
@@ -1166,7 +1190,7 @@ async def connect_and_consume_pt():
             # bind the queue to the exchange so we can actually catch messages
             await queue.bind(exchange="mythic_traffic", routing_key="pt.status.#")
             await channel.set_qos(prefetch_count=50)
-            logger.info(" [*] Waiting for messages in connect_and_consume_pt.")
+            logger.info("Waiting for messages in connect_and_consume_pt.")
             try:
                 task = queue.consume(rabbit_pt_callback)
                 result = await asyncio.wait_for(task, None)
@@ -1189,17 +1213,12 @@ async def connect_and_consume_rpc():
     connection = None
     while connection is None:
         try:
-            connection = await aio_pika.connect_robust(
-                host="127.0.0.1",
-                login="mythic_user",
-                password="mythic_password",
-                virtualhost="mythic_vhost",
-            )
+            connection = await mythic_rabbitmq_connection()
             channel = await connection.channel()
             # get a random queue that only the mythic server will use to listen on to catch all heartbeats
             queue = await channel.declare_queue("rpc_queue")
             await channel.set_qos(prefetch_count=50)
-            logger.info(" [*] Waiting for messages in connect_and_consume_rpc.")
+            logger.info("Waiting for messages in connect_and_consume_rpc.")
             try:
                 task = queue.consume(
                     partial(rabbit_pt_rpc_callback, channel.default_exchange)
@@ -1224,17 +1243,12 @@ async def connect_and_consume_c2_rpc():
     connection = None
     while connection is None:
         try:
-            connection = await aio_pika.connect_robust(
-                host="127.0.0.1",
-                login="mythic_user",
-                password="mythic_password",
-                virtualhost="mythic_vhost",
-            )
+            connection = await mythic_rabbitmq_connection()
             channel = await connection.channel()
             # get a random queue that only the mythic server will use to listen on to catch all heartbeats
             queue = await channel.declare_queue("c2rpc_queue")
             await channel.set_qos(prefetch_count=50)
-            logger.info(" [*] Waiting for messages in connect_and_consume_rpc.")
+            logger.info("Waiting for messages in connect_and_consume_rpc.")
             try:
                 task = queue.consume(
                     partial(rabbit_c2_rpc_callback, channel.default_exchange)
@@ -1261,12 +1275,7 @@ async def connect_and_consume_heartbeats():
     connection = None
     while connection is None:
         try:
-            connection = await aio_pika.connect_robust(
-                host="127.0.0.1",
-                login="mythic_user",
-                password="mythic_password",
-                virtualhost="mythic_vhost",
-            )
+            connection = await mythic_rabbitmq_connection()
             channel = await connection.channel()
             # declare our exchange
             await channel.declare_exchange(
@@ -1277,7 +1286,7 @@ async def connect_and_consume_heartbeats():
             # bind the queue to the exchange so we can actually catch messages
             await queue.bind(exchange="mythic_traffic", routing_key="*.heartbeat.#")
             await channel.set_qos(prefetch_count=20)
-            logger.info(" [*] Waiting for messages in connect_and_consume_heartbeats.")
+            logger.info("Waiting for messages in connect_and_consume_heartbeats.")
             try:
                 task = queue.consume(rabbit_heartbeat_callback)
                 result = await asyncio.wait_for(task, None)
@@ -1298,12 +1307,7 @@ async def connect_and_consume_heartbeats():
 
 async def send_c2_rabbitmq_message(name, command, message_body, username):
     try:
-        connection = await aio_pika.connect(
-            host="127.0.0.1",
-            login="mythic_user",
-            password="mythic_password",
-            virtualhost="mythic_vhost",
-        )
+        connection = await mythic_rabbitmq_connection()
         channel = await connection.channel()
         # declare our exchange
         exchange = await channel.declare_exchange(
@@ -1329,12 +1333,7 @@ async def send_c2_rabbitmq_message(name, command, message_body, username):
 
 async def send_pt_rabbitmq_message(payload_type, command, message_body, username):
     try:
-        connection = await aio_pika.connect(
-            host="127.0.0.1",
-            login="mythic_user",
-            password="mythic_password",
-            virtualhost="mythic_vhost",
-        )
+        connection = await mythic_rabbitmq_connection()
         channel = await connection.channel()
         # declare our exchange
         exchange = await channel.declare_exchange(

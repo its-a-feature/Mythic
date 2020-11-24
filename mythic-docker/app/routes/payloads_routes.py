@@ -1,4 +1,4 @@
-from app import mythic, links, use_ssl
+from app import mythic, links
 from sanic import response
 from jinja2 import Environment, PackageLoader
 from sanic_jwt.decorators import scoped, inject_user
@@ -15,8 +15,8 @@ async def payloads_creation(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        http="https",
+        ws="wss",
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -32,8 +32,8 @@ async def wrappers_creation(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        http="https",
+        ws="wss",
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -49,8 +49,8 @@ async def instantiate_c2profile(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        http="https",
+        ws="wss",
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],

@@ -9,6 +9,7 @@ import asyncio
 import logging
 import uuid
 import os
+import time
 
 # --------------------------------------------
 # --------------------------------------------
@@ -21,7 +22,6 @@ ssl_cert_path = config["ssl_cert_path"] if "ssl_cert_path" in config else "./app
 ssl_key_path = config["ssl_key_path"] if "ssl_key_path" in config else "./app/ssl/mythic-ssl.key"
 # only allow connections from these IPs to the /login and /register pages
 allowed_ip_blocks = config["allowed_ip_blocks"] if "allowed_ip_blocks" in config else ["0.0.0.0/0"]
-use_ssl = config["use_ssl"] if "use_ssl" in config else True
 server_header = config["server_header"] if "server_header" in config else "nginx 1.2"
 # grows indefinitely (0), or specify a max size in Bytes (1MB). If 0, will not rotate!
 log_size = config["web_log_size"] if "web_log_size" in config else 1024000
@@ -38,12 +38,18 @@ siem_log_name = config["siem_log_name"] if "siem_log_name" in config else ""
 listen_ip = (
     "0.0.0.0"  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
 )
-db_name = "mythic_db"
-db_user = "mythic_user"
+
+db_host = os.environ['POSTGRES_HOST']
+db_port = os.environ['POSTGRES_PORT']
+db_name = os.environ['POSTGRES_DB']
+db_user = os.environ['POSTGRES_USER']
 db_pass = os.environ['POSTGRES_PASSWORD']
+debugging_enabled = os.environ['DEBUG'] != 'False'
+
 max_log_count = (
     1  # if log_size > 0, rotate and make a max of max_log_count files to hold logs
 )
+
 # custom loop to pass to db manager
 uvloop.install()
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -52,13 +58,14 @@ mythic_db = PooledPostgresqlExtDatabase(
     db_name,
     user=db_user,
     password=db_pass,
-    host="127.0.0.1",
+    host=db_host,
+    port=db_port,
     max_connections=10000,
     register_hstore=False,
     autorollback=True,
     autocommit=True
 )
-#mythic_db.connect_async(loop=dbloop)
+
 db_objects = Manager(mythic_db, loop=dbloop)
 
 mythic_logging = log.LOGGING_CONFIG_DEFAULTS
@@ -132,14 +139,24 @@ mythic.config[
 ] = str(uuid.uuid4()) + str(uuid.uuid4())
 mythic.config["SERVER_IP_ADDRESS"] = "127.0.0.1"
 mythic.config["SERVER_PORT"] = listen_port
+
+mythic.config["DB_HOST"] = db_host
+mythic.config["DB_PORT"] = db_port
 mythic.config["DB_USER"] = db_user
 mythic.config["DB_PASS"] = db_pass
 mythic.config["DB_NAME"] = db_name
 mythic.config[
     "DB_POOL_CONNECT_STRING"
-] = "dbname='{}' user='{}' password='{}' host='127.0.0.1'".format(
-    mythic.config["DB_NAME"], mythic.config["DB_USER"], mythic.config["DB_PASS"]
+] = "dbname='{}' user='{}' password='{}' host='{}' port={}".format(
+    mythic.config["DB_NAME"], mythic.config["DB_USER"], mythic.config["DB_PASS"], mythic.config["DB_HOST"], mythic.config["DB_PORT"]
 )
+
+mythic.config["RABBITMQ_HOST"] = os.environ["RABBITMQ_HOST"]
+mythic.config["RABBITMQ_PORT"] = os.environ["RABBITMQ_PORT"]
+mythic.config["RABBITMQ_USER"] = os.environ["RABBITMQ_USER"]
+mythic.config["RABBITMQ_PASSWORD"] = os.environ["RABBITMQ_PASSWORD"]
+mythic.config["RABBITMQ_VHOST"] = os.environ["RABBITMQ_VHOST"]
+
 mythic.config["API_VERSION"] = "1.4"
 mythic.config["API_BASE"] = "/api/v" + mythic.config["API_VERSION"]
 mythic.config["REQUEST_MAX_SIZE"] = 1000000000
@@ -153,20 +170,13 @@ links = {
     "api_base": mythic.config["API_BASE"],
 }
 
-if use_ssl:
-    links["WEB_BASE"] = (
-        "https://"
-        + mythic.config["SERVER_IP_ADDRESS"]
-        + ":"
-        + mythic.config["SERVER_PORT"]
-    )
-else:
-    links["WEB_BASE"] = (
-        "http://"
-        + mythic.config["SERVER_IP_ADDRESS"]
-        + ":"
-        + mythic.config["SERVER_PORT"]
-    )
+links["WEB_BASE"] = (
+    "https://"
+    + mythic.config["SERVER_IP_ADDRESS"]
+    + ":"
+    + mythic.config["SERVER_PORT"]
+)
+
 links["DOCUMENTATION_PORT"] = documentation_port
 import app.routes
 import app.api
@@ -210,3 +220,6 @@ Initialize(
     retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token,
     login_redirect_url="/login",
 )
+
+
+

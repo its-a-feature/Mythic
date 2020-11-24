@@ -252,7 +252,6 @@ async def sync_container_file_for_payload_type(request, ptype, user):
 async def import_payload_type_func(ptype, operator):
     new_payload = False
     try:
-        #print(ptype)
         if "author" not in ptype:
             ptype["author"] = operator.username if operator is not None else ""
         if "note" not in ptype:
@@ -315,6 +314,8 @@ async def import_payload_type_func(ptype, operator):
                 except Exception as e:
                     print(e)
                     pass
+        
+        
         try:
             payload_type.creation_time = datetime.datetime.utcnow()
             await db_objects.update(payload_type)
@@ -483,7 +484,7 @@ async def import_payload_type_func(ptype, operator):
                     await db_objects.delete(v)
             return {"status": "success", "new": new_payload, **payload_type.to_json()}
         except Exception as e:
-            logger.exception("exception on importing payload type")
+            logger.exception("exception on importing payload type. Payload: " + str(payload_type))
             return {"status": "error", "error": str(e)}
     except Exception as e:
         logger.exception("failed to import a payload type: " + str(e))
