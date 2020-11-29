@@ -19,7 +19,7 @@ async def print_flush(message):
 
 
 async def server_error_handler(request, exception):
-    return await html("Error: Requested URL {} not found".format(request.url), status=404, headers=config[request.app.name]['headers'])
+    return html("Error: Requested URL {} not found".format(request.url), status=404, headers=config[request.app.name]['headers'])
 
 
 async def agent_message(request, **kwargs):
