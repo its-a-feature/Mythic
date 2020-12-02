@@ -879,7 +879,7 @@ async def get_tasking(request):
         from app.api.callback_api import get_agent_tasks, get_routable_messages
 
         response_data = await get_agent_tasks(decrypted, callback)
-        delegates = await get_routable_messages(callback, callback.operation)
+        delegates = await get_routable_messages(callback)
         if delegates is not None:
             response_data["delegates"] = delegates
         from app.crypto import encrypt_AES256
