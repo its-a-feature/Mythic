@@ -205,7 +205,7 @@ async def parse_agent_message(data: str, request):
     agent_uuid = ""
     try:
         decoded = base64.b64decode(data)
-        #print(decoded)
+        # print(decoded)
     except Exception as e:
         await send_all_operations_message(f"Failed to base64 decode message: {str(data)}\nfrom {request.socket} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
                                           "warning")
@@ -241,11 +241,12 @@ async def parse_agent_message(data: str, request):
         #    decrypted = js.loads(decoded[36:])
         #print(decrypted)
     except Exception as e:
+        # print(str(e))
         if decrypted is not None:
             msg = str(decrypted)
         else:
             msg = str(decoded)
-        await send_all_operations_message(f"Failed to decrypt/load message: {str(msg)}\nfrom {request.socket} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
+        await send_all_operations_message(f"Failed to decrypt/load message with error: {str(e)}\n {str(msg)}\nfrom {request.socket} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
                                           "warning")
         return "", 404, new_callback, agent_uuid
     """
@@ -273,7 +274,7 @@ async def parse_agent_message(data: str, request):
             query = await db_model.callback_query()
             callback = await db_objects.get(query, agent_callback_id=UUID)
             response_data = await get_agent_tasks(decrypted, callback)
-            delegates = await get_routable_messages(callback, callback.operation)
+            delegates = await get_routable_messages(callback)
             if delegates is not None:
                 response_data["delegates"] = delegates
             agent_uuid = UUID
@@ -376,7 +377,7 @@ async def parse_agent_message(data: str, request):
         # base64 ( UID + ENC(response_data) )
         #if keep_logs:
         #    logger.info("Mythic -> Agent: " + js.dumps(response_data))
-        #print(response_data)
+        # print(response_data)
         final_msg = await crypt.encrypt_message(response_data, enc_key, UUID)
         #if enc_key["type"] is None:
         #    return (
@@ -761,7 +762,7 @@ async def update_callback(data, UUID):
 current_graphs = {}
 
 
-async def get_routable_messages(requester, operation):
+async def get_routable_messages(requester):
     # are there any messages sitting in the database in the "submitted" stage that have routes from the requester
     # 1. get all CallbackGraphEdge entries that have an end_timestamp of Null (they're still active)
     # 2. feed into dijkstar and do shortest path
@@ -769,6 +770,7 @@ async def get_routable_messages(requester, operation):
     # 4.   if there's tasking, wrap it up in a message:
     #        content is the same of that of a "get_tasking" reply with a a -1 request
     delegates = []
+    operation = requester.operation
     if operation.name not in current_graphs:
         await update_graphs(operation)
     if current_graphs[operation.name].edge_count == 0:
@@ -1919,14 +1921,14 @@ async def path_to_callback(callback):
     try:
         await update_non_directed_graphs(callback.operation)
         if current_non_directed_graphs[callback.operation.name].edge_count == 0:
-            print("no edges")
+            #print("no edges")
             return []  # graph for this operation has no edges
         try:
             path = find_path(
                 current_non_directed_graphs[callback.operation.name], callback, "Mythic"
             )
         except NoPathError:
-            print("no path")
+            #print("no path")
             return []
         return path.nodes
     except Exception as e:

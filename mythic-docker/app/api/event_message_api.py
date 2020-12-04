@@ -86,7 +86,7 @@ async def add_event_message(request, user):
             db_model.OperationEventLog,
             operator=operator,
             operation=operation,
-            message=data["message"].encode(),
+            message=data["message"].encode('unicode-escape'),
             level=data["level"],
         )
         await log_to_siem(msg.to_json(), mythic_object="eventlog_new")
@@ -127,7 +127,7 @@ async def edit_event_message(request, user, eid):
                 if "resolved" in data:
                     msg.resolved = data["resolved"]
                 if "message" in data:
-                    msg.message = data["message"]
+                    msg.message = data["message"].encode('unicode-escape')
                 if "level" in data and data["level"] in ["info", "warning"]:
                     msg.level = data["level"]
                 await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")

@@ -397,7 +397,7 @@ async def post_agent_response(agent_message, UUID):
                                 Keylog,
                                 task=task,
                                 window=parsed_response["window_title"],
-                                keystrokes=parsed_response["keystrokes"],
+                                keystrokes=parsed_response["keystrokes"].encode("unicode-escape"),
                                 operation=task.callback.operation,
                                 user=parsed_response["user"],
                             )
@@ -521,7 +521,7 @@ async def post_agent_response(agent_message, UUID):
                                 if host != file_meta.host:
                                     file_meta.host = host.encode("unicode-escape")
                                 await db_objects.update(file_meta)
-                                if file_meta.full_path != "":
+                                if file_meta.full_remote_path != "":
                                     await add_upload_file_to_file_browser(task.callback.operation, task, file_meta,
                                                                           {"host": host,
                                                                            "full_path": parsed_response["full_path"]})
@@ -549,7 +549,7 @@ async def post_agent_response(agent_message, UUID):
                                 json_return_info["error"] = json_return_info["error"] + " " + str(e) if "error" in json_return_info else str(e)
                         parsed_response.pop("edges", None)
                     if "commands" in parsed_response:
-                        if parsed_response["commands"] != [] and parsed_response["commands"] is not None:
+                        if parsed_response["commands"] != [] and parsed_response["commands"] is not None and parsed_response["commands"] != "":
                             # the agent is reporting back that it has commands that are loaded/unloaded
                             from app.api.callback_api import load_commands_func
                             for c in parsed_response["commands"]:

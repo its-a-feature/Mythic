@@ -35,8 +35,9 @@ async def get_all_payloadtypes(request, user):
         return json({"status": "error", "error": "Must be part of an operation to view this"})
     query = await db_model.payloadtype_query()
     wrapquery = await db_model.wrappedpayloadtypes_query()
-    payloads = await db_objects.execute(
-        query.where(db_model.PayloadType.deleted == False)
+    payloads = await db_objects.prefetch(
+        query.where(db_model.PayloadType.deleted == False),
+        db_model.BuildParameter.select().where(db_model.BuildParameter.deleted == False)
     )
     pt_c2_query = await db_model.payloadtypec2profile_query()
     plist = []
@@ -50,7 +51,7 @@ async def get_all_payloadtypes(request, user):
             )
         )
         pt_json = pt.to_json()
-        pt_json["build_parameters"] = [bp.to_json() for bp in build_params]
+        # pt_json["build_parameters"] = [bp.to_json() for bp in build_params]
         if pt.wrapper:
             wrapped_types = await db_objects.execute(
                 wrapquery.where(db_model.WrappedPayloadTypes.wrapper == pt)
@@ -85,14 +86,9 @@ async def get_one_payloadtype(request, user, ptype):
         if user["current_operation"] == "":
             return json({"status": "error", "error": "Must be part of an operation to view this"})
         query = await db_model.payloadtype_query()
-        payloadtype = await db_objects.get(query, id=ptype)
-        query = await db_model.buildparameter_query()
-        build_parameters = await db_objects.execute(
-            query.where(
-                (db_model.BuildParameter.payload_type == payloadtype)
-                & (db_model.BuildParameter.deleted == False)
-            )
-        )
+        payloadtype = await db_objects.prefetch(query.where(db_model.PayloadType.id == ptype),
+                                                db_model.BuildParameter.select().where(db_model.BuildParameter.deleted == False))
+        payloadtype = payloadtype[0]
         # get the list of c2 profiles the payload supports
         pt_c2_query = await db_model.payloadtypec2profile_query()
         pt_c2 = await db_objects.execute(
@@ -107,7 +103,6 @@ async def get_one_payloadtype(request, user, ptype):
         {
             "status": "success",
             **payloadtype.to_json(),
-            "build_parameters": [bp.to_json() for bp in build_parameters],
             "c2_profiles": c2_profiles,
         }
     )
@@ -258,9 +253,11 @@ async def import_payload_type_func(ptype, operator):
             ptype["note"] = ""
         if "ptype" not in ptype or ptype["ptype"] == "":
             return {"status": "error", "error": "payload type must not be empty"}
-        query = await db_model.payloadtype_query()
+        ptquery = await db_model.payloadtype_query()
+        build_param_query = await db_model.buildparameter_query()
         try:
-            payload_type = await db_objects.get(query, ptype=ptype["ptype"])
+            payload_type = await db_objects.prefetch(ptquery.where(db_model.PayloadType.ptype == ptype["ptype"]), build_param_query)
+            payload_type = payload_type[0]
             payload_type.wrapper = ptype["wrapper"]
             payload_type.supported_os = ptype["supported_os"]
             payload_type.file_extension = ptype["file_extension"]
@@ -305,7 +302,7 @@ async def import_payload_type_func(ptype, operator):
             # if there's anything left in ptype['wrapped'], then we need to try to add them
             for ptw in ptype["wrapped"]:
                 try:
-                    wrapped = await db_objects.get(query, ptype=ptw)
+                    wrapped = await db_objects.get(ptquery, ptype=ptw)
                     await db_objects.create(
                         db_model.WrappedPayloadTypes,
                         wrapper=wrapped,
@@ -482,6 +479,9 @@ async def import_payload_type_func(ptype, operator):
                 # delete any mappings that used to exist but are no longer listed by the agent
                 for k, v in current_c2_dict.items():
                     await db_objects.delete(v)
+            payload_type = await db_objects.prefetch(ptquery.where(db_model.PayloadType.ptype == ptype["ptype"]),
+                                                     build_param_query)
+            payload_type = payload_type[0]
             return {"status": "success", "new": new_payload, **payload_type.to_json()}
         except Exception as e:
             logger.exception("exception on importing payload type. Payload: " + str(payload_type))
@@ -655,6 +655,8 @@ async def import_command_func(payload_type, operator, command_list):
                 except:  # param doesn't exist yet, so create it
                     if "default_value" not in param or param["default_value"] is None:
                         param["default_value"] = ""
+                    elif param["type"] == "Array":
+                        param["default_value"] = js.dumps(param["default_value"])
                     await db_objects.create(CommandParameters, command=command, **param)
             for k, v in current_param_dict.items():
                 await db_objects.delete(v)
@@ -923,7 +925,10 @@ async def import_command_func(payload_type, operator, command_list):
                 )
                 cmd_param.type = param["type"]
                 if "default_value" in param and param["default_value"] is not None:
-                    cmd_param.default_value = param["default_value"]
+                    if cmd_param.type == "Array":
+                        cmd_param.default_value = js.dumps(param["default_value"])
+                    else:
+                        cmd_param.default_value = param["default_value"]
                 if (
                     "supported_agents" in param
                     and param["supported_agents"] is not None
@@ -937,6 +942,8 @@ async def import_command_func(payload_type, operator, command_list):
             except:  # param doesn't exist yet, so create it
                 if "default_value" not in param or param["default_value"] is None:
                     param["default_value"] = ""
+                elif param["type"] == "Array":
+                    param["default_value"] = js.dumps(param["default_value"])
                 await db_objects.create(CommandParameters, command=command, **param)
         for k, v in current_param_dict.items():
             await db_objects.delete(v)

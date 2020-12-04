@@ -1256,10 +1256,10 @@ async def ws_payloadtypes(request, ws):
                         await db_model.wrappedpayloadtypes_query()
                     )
                     build_params_query = await db_model.buildparameter_query()
-                    payloadtypes = await db_objects.execute(
+                    payloadtypes = await db_objects.prefetch(
                         query.where(db_model.PayloadType.deleted == False).order_by(
                             PayloadType.id
-                        )
+                        ), db_model.BuildParameter.select().where(db_model.BuildParameter.deleted == False)
                     )
                     for p in payloadtypes:
                         wrappedpayloadtypes = await db_objects.execute(
@@ -1287,8 +1287,11 @@ async def ws_payloadtypes(request, ws):
                             if "deleted" in msg.channel:
                                 await ws.send("")
                             else:
-                                p = await db_objects.get(query, id=id, deleted=False)
-                                await ws.send(js.dumps(p.to_json()))
+                                p = await db_objects.prefetch(query.where(
+                                    (PayloadType.id == id) & (PayloadType.deleted == False)
+                                ), db_model.BuildParameter.select().where(db_model.BuildParameter.deleted == False))
+                                for element in p:
+                                    await ws.send(js.dumps(element.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
                             await ws.send(
@@ -2648,12 +2651,13 @@ async def ws_process_list(request, ws, user, cid):
                             query, operation=operation, id=cid
                         )
                         # now pull off any new tasks we got queued up while processing the old data
+                        query = await db_model.processlist_query()
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
                                 process_list = await db_objects.get(
-                                    db_model.ProcessList,
+                                    query,
                                     id=id,
                                     operation=operation,
                                     host=callback.host,
@@ -3018,14 +3022,15 @@ async def ws_file_browser_objects(request, ws, user):
                                         filequery, id=id, operation=operation
                                     )
                                     if i.file_browser is not None:
-                                        i = await db_objects.get(
-                                            query,
-                                            id=i.file_browser,
-                                            operation=operation,
+                                        j = await db_objects.prefetch(
+                                            query.where(
+                                                (db_model.FileBrowserObj.id == i.file_browser) &
+                                                (db_model.FileBrowserObj.operation == operation)),
+                                            filequery.where(db_model.FileMeta.file_browser == i.file_browser)
                                         )
                                         ij = i.to_json()
                                         ij["files"] = []
-                                        for f in i.files:
+                                        for f in j[0].files:
                                             fjson = f.to_json()
                                             if (
                                                 f.task is not None
@@ -3037,12 +3042,15 @@ async def ws_file_browser_objects(request, ws, user):
                                         ij = i.to_json()
                                         ij["files"] = []
                                 else:
-                                    i = await db_objects.get(
-                                        query, id=id, operation=operation
+                                    i = await db_objects.prefetch(
+                                        query.where(
+                                            (db_model.FileBrowserObj.id == id) &
+                                            (db_model.FileBrowserObj.operation == operation)),
+                                        filequery
                                     )
-                                    ij = i.to_json()
+                                    ij = i[0].to_json()
                                     ij["files"] = []
-                                    for f in i.files:
+                                    for f in i[0].files:
                                         fjson = f.to_json()
                                         if f.task is not None and f.task.comment != "":
                                             fjson["comment"] = f.task.comment

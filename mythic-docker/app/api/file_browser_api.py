@@ -342,6 +342,7 @@ async def search_filebrowsobj(request, user):
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user["current_operation"])
         query = await db_model.filebrowserobj_query()
+        file_query = await db_model.filemeta_query()
     except Exception as e:
         return json(
             {
@@ -369,7 +370,7 @@ async def search_filebrowsobj(request, user):
         )
         if "page" not in data:
             # allow a blanket search to still be performed
-            responses = await db_objects.execute(
+            responses = await db_objects.prefetch(
                 query.where(
                     (db_model.FileBrowserObj.operation == operation)
                     & (
@@ -384,8 +385,9 @@ async def search_filebrowsobj(request, user):
                         )
                     )
                 )
-                .distinct()
-                .order_by(db_model.FileBrowserObj.full_path)
+                #.distinct()
+                .order_by(db_model.FileBrowserObj.full_path),
+                file_query
             )
             data["page"] = 1
             data["size"] = count
@@ -408,7 +410,7 @@ async def search_filebrowsobj(request, user):
                 data["page"] = ceil(count / data["size"])
                 if data["page"] == 0:
                     data["page"] = 1
-            responses = await db_objects.execute(
+            responses = await db_objects.prefetch(
                 query.where(
                     (db_model.FileBrowserObj.operation == operation)
                     & (
@@ -423,9 +425,10 @@ async def search_filebrowsobj(request, user):
                         )
                     )
                 )
-                .distinct()
+                #.distinct()
                 .order_by(db_model.FileBrowserObj.full_path)
-                .paginate(data["page"], data["size"])
+                .paginate(data["page"], data["size"]),
+                file_query
             )
         output = []
         for r in responses:
@@ -525,12 +528,13 @@ async def get_filebrowsobj_files(request, user, fid):
         )
     try:
         query = await db_model.operation_query()
+        file_query = await db_model.filemeta_query()
         operation = await db_objects.get(query, name=user["current_operation"])
         query = await db_model.filebrowserobj_query()
-        files = await db_objects.execute(query.where(
+        files = await db_objects.prefetch(query.where(
             (db_model.FileBrowserObj.operation == operation) &
             (db_model.FileBrowserObj.parent == fid)
-        ))
+        ), file_query)
     except Exception as e:
         return json(
             {
@@ -542,6 +546,15 @@ async def get_filebrowsobj_files(request, user, fid):
         output = []
         for f in files:
             f_json = f.to_json()
+            f_json["files"] = []
+            for fm_file in f.files:
+                fjson = fm_file.to_json()
+                if (
+                        fm_file.task is not None
+                        and fm_file.task.comment != ""
+                ):
+                    fjson["comment"] = f.task.comment
+                f_json["files"].append(fjson)
             if f.is_file:
                 output.append({f_json["name"]: {"data": f_json}})
             else:

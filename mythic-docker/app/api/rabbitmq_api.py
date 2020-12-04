@@ -44,10 +44,6 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     pieces[2], str(e)
                 ), "warning")
                 return
-            operation_query = await db_model.operation_query()
-            operations = await db_objects.execute(
-                operation_query.where(db_model.Operation.complete == False)
-            )
             if status["status"] == "success":
                 sync_tasks.pop(pieces[2], None)
                 await send_all_operations_message("Successfully Sync-ed database with {} C2 files".format(
@@ -200,7 +196,6 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     sync_tasks.pop(pieces[2], None)
                     if pieces[4] == "success":
                         from app.api.payloadtype_api import import_payload_type_func
-
                         try:
                             status = await import_payload_type_func(
                                 json.loads(message.body.decode()), operator
@@ -879,7 +874,7 @@ async def get_tasking(request):
         from app.api.callback_api import get_agent_tasks, get_routable_messages
 
         response_data = await get_agent_tasks(decrypted, callback)
-        delegates = await get_routable_messages(callback, callback.operation)
+        delegates = await get_routable_messages(callback)
         if delegates is not None:
             response_data["delegates"] = delegates
         from app.crypto import encrypt_AES256
@@ -1062,17 +1057,21 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 profile.last_heartbeat = datetime.datetime.utcnow()
                 await db_objects.update(profile)
             elif pieces[0] == "pt":
-                query = await db_model.payloadtype_query()
+                ptquery = await db_model.payloadtype_query()
                 try:
                     payload_type = await db_objects.get(
-                        query, ptype=pieces[2], deleted=False
+                        ptquery, ptype=pieces[2], deleted=False
                     )
                     payload_type.container_running = True
                     payload_type.last_heartbeat = datetime.datetime.utcnow()
                     await db_objects.update(payload_type)
                 except Exception as e:
                     if pieces[2] not in sync_tasks:
+                        # don't know the ptype, but haven't sent a sync request either, wait for an auto sync
                         sync_tasks[pieces[2]] = True
+                    else:
+                        # don't know the ptype and haven't seen an auto sync, force a sync
+                        sync_tasks.pop(pieces[2], None)
                         await send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
                                                           level="info")
                         await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "")
