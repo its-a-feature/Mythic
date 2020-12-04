@@ -1466,12 +1466,15 @@ function view_callback_info(response) {
                         min.push({"component": "Mythic", "value": "Mythic"});
                         continue
                     }
-                    let info = JSON.parse(data['path'][i]);
-                    if ("name" in info) {
-                        min.push({"component": "C2 Profile", "value": info.name});
-                    } else {
-                        min.push({"component": "Callback", "value": info.id});
+                    if(data['path'][i].length > 0){
+                        let info = JSON.parse(data['path'][i]);
+                        if ("name" in info) {
+                            min.push({"component": "C2 Profile", "value": info.name});
+                        } else {
+                            min.push({"component": "Callback", "value": info.id});
+                        }
                     }
+
                 }
                 data['path'] = min;
             }
@@ -1486,6 +1489,8 @@ function view_callback_info(response) {
             alertTop("danger", data['error']);
         }
     } catch (error) {
+        console.log(response);
+        console.log(error.toString());
         alertTop("danger", "session expired, refresh please");
     }
 }

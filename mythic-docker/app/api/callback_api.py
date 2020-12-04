@@ -1921,14 +1921,14 @@ async def path_to_callback(callback):
     try:
         await update_non_directed_graphs(callback.operation)
         if current_non_directed_graphs[callback.operation.name].edge_count == 0:
-            print("no edges")
+            #print("no edges")
             return []  # graph for this operation has no edges
         try:
             path = find_path(
                 current_non_directed_graphs[callback.operation.name], callback, "Mythic"
             )
         except NoPathError:
-            print("no path")
+            #print("no path")
             return []
         return path.nodes
     except Exception as e:

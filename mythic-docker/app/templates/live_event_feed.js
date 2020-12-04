@@ -84,7 +84,7 @@ var live_feed = new Vue({
             }, "PUT", {"resolved": !data['resolved']});
         },
         message_rows: function (msg) {
-            return (msg.match(/\n/g) || '').length + 1
+            return (msg.match(/\n/g) || '').length + 2
         },
         delete_in_view: function () {
             let messages = [];

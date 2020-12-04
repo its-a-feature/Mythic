@@ -170,11 +170,10 @@ class PayloadType(p.Model):
             "deleted": self.deleted
         }
         if getattr(self, "build_parameters") is not None:
-            r["build_parameters"] = [
-                x.to_json()
-                for x in getattr(self, "build_parameters")
-                if x.deleted is False
-            ]
+            r["build_parameters"] = []
+            for x in self.build_parameters:
+                if x.deleted is False:
+                    r["build_parameters"].append(x.to_json())
         else:
             r["build_parameters"] = []
         return r
@@ -768,7 +767,7 @@ class Callback(p.Model):
         return r
 
     def __str__(self):
-        return json.dumps(self.to_json())
+        return "" #json.dumps(self.to_json())
 
 
 class PayloadC2Profiles(p.Model):
@@ -1563,7 +1562,14 @@ async def operator_query():
 
 
 async def payloadtype_query():
-    return PayloadType.select(PayloadType)
+    ptype = PayloadType.alias()
+    return (
+        PayloadType.select(PayloadType, BuildParameter, ptype)
+        .join(ptype, on=(ptype.id == PayloadType.id))
+        .join(BuildParameter, join_type=p.JOIN.LEFT_OUTER, on=(BuildParameter.payload_type == ptype.id))
+        .switch(PayloadType)
+    )
+
 
 
 async def wrappedpayloadtypes_query():
@@ -1669,9 +1675,23 @@ async def payload_query():
 
 
 async def payloadonhost_query():
+    file_op = Operation.alias()
+    pay_op = Operation.alias()
+    pay_operator = Operator.alias()
     return (
-        PayloadOnHost.select(PayloadOnHost, Payload, Operation, Task)
+        PayloadOnHost.select(PayloadOnHost, Payload, Operation, Task, Operator, FileMeta, file_op, pay_op, PayloadType,
+                             pay_operator)
         .join(Payload)
+        .join(FileMeta, p.JOIN.LEFT_OUTER)
+        .join(Operator, p.JOIN.LEFT_OUTER)
+        .switch(FileMeta)
+        .join(file_op, p.JOIN.LEFT_OUTER)
+        .switch(Payload)
+        .join(pay_op, p.JOIN.LEFT_OUTER)
+        .switch(Payload)
+        .join(PayloadType, p.JOIN.LEFT_OUTER)
+        .switch(Payload)
+        .join(pay_operator, p.JOIN.LEFT_OUTER)
         .switch(PayloadOnHost)
         .join(Operation)
         .switch(PayloadOnHost)
@@ -1699,16 +1719,19 @@ async def c2profileparameters_query():
 
 
 async def c2profileparametersinstance_query():
+    parameters_profile = C2Profile.alias()
     return (
         C2ProfileParametersInstance.select(
             C2ProfileParametersInstance,
             C2ProfileParameters,
+            parameters_profile,
             C2Profile,
             Payload,
             Operation,
             Callback,
         )
         .join(C2ProfileParameters)
+        .join(parameters_profile)
         .switch(C2ProfileParametersInstance)
         .join(C2Profile)
         .switch(C2ProfileParametersInstance)
@@ -1726,13 +1749,14 @@ async def callback_query():
     loperator = Operator.alias()
     return (
         Callback.select(
-            Callback, Operator, Payload, Operation, PayloadType, calias, loperator, Task
+            Callback, Operator, Payload, FileMeta, Operation, PayloadType, calias, loperator, Task
         )
         .join(Operator)
         .switch(Callback)
         .join(Payload)
         .join(PayloadType)
         .switch(Payload)
+        .join(FileMeta)
         .switch(Callback)
         .join(Operation)
         .switch(Callback)
@@ -1810,13 +1834,24 @@ async def disabledcommands_query():
 
 async def task_query():
     comment_operator = Operator.alias()
+    callback_operator = Operator.alias()
+    callback_lock_operator = Operator.alias()
+    callback_payload_type = PayloadType.alias()
+    callback_payload = Payload.alias()
     return (
         Task.select(
-            Task, Callback, Operator, comment_operator, Operation, Command, PayloadType
+            Task, Callback, Operator, comment_operator, Operation, Command, PayloadType, callback_operator,
+            callback_lock_operator, callback_payload_type, callback_payload
         )
         .join(Callback)
         .join(Operation)
         .switch(Callback)
+        .join(callback_operator)
+        .switch(Callback)
+        .join(callback_lock_operator, p.JOIN.LEFT_OUTER, on=(Callback.locked_operator == callback_lock_operator.id))
+        .switch(Callback)
+        .join(callback_payload)
+        .join(callback_payload_type)
         .switch(Task)
         .join(Operator)
         .switch(Task)
@@ -2036,6 +2071,16 @@ async def callbackgraphedge_query():
     source = Callback.alias()
     task_end = Task.alias()
     task_start = Task.alias()
+    dest_operation = Operation.alias()
+    dest_payloadtype = PayloadType.alias()
+    dest_payload = Payload.alias()
+    dest_operator = Operator.alias()
+    dest_locked_operator = Operator.alias()
+    source_operation = Operation.alias()
+    source_payloadtype = PayloadType.alias()
+    source_payload = Payload.alias()
+    source_operator = Operator.alias()
+    source_locked_operator = Operator.alias()
     return (
         CallbackGraphEdge.select(
             CallbackGraphEdge,
@@ -2045,10 +2090,36 @@ async def callbackgraphedge_query():
             task_start,
             task_end,
             C2Profile,
+            dest_operation,
+            dest_payloadtype,
+            dest_payload,
+            dest_operator,
+            dest_locked_operator,
+            source_operation,
+            source_payloadtype,
+            source_payload,
+            source_operator,
+            source_locked_operator
         )
         .join(source, on=(CallbackGraphEdge.source == source.id))
+        .join(source_operation)
+        .switch(source)
+        .join(source_payload)
+        .join(source_payloadtype)
+        .switch(source)
+        .join(source_operator)
+        .switch(source)
+        .join(source_locked_operator, p.JOIN.LEFT_OUTER, on=(source.locked_operator == source_locked_operator.id))
         .switch(CallbackGraphEdge)
         .join(destination, on=(CallbackGraphEdge.destination == destination.id))
+        .join(dest_operation)
+        .switch(destination)
+        .join(dest_payload)
+        .join(dest_payloadtype)
+        .switch(destination)
+        .join(dest_operator)
+        .switch(destination)
+        .join(dest_locked_operator, p.JOIN.LEFT_OUTER, on=(destination.locked_operator == dest_locked_operator.id))
         .switch(CallbackGraphEdge)
         .join(Operation)
         .switch(CallbackGraphEdge)

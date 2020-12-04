@@ -602,8 +602,11 @@ async def get_screencapture(request, user, id):
     except Exception as e:
         print("error in get_screencapture: " + str(e))
         return json({"status": "error", "error": "failed to find callback"})
-    if file_meta.operation.name in user["operations"]:
-        return await file(file_meta.path, filename=file_meta.filename)
+    try:
+        if file_meta.operation.name in user["operations"]:
+            return await file(file_meta.path, filename=file_meta.filename)
+    except Exception as e:
+        return json({"status": "error", "error": "failed to read screenshot from disk"})
     else:
         return json(
             {
