@@ -18,15 +18,18 @@ class ShellElevatedArguments(TaskArguments):
                 description="Use supplied creds or prompt the user for creds",
             ),
             "user": CommandParameter(
-                name="user", type=ParameterType.Credential_Account
+                name="user", type=ParameterType.Credential_Account,
+                required=False
             ),
             "credential": CommandParameter(
-                name="credential", type=ParameterType.Credential_Value
+                name="credential", type=ParameterType.Credential_Value,
+                required=False
             ),
             "prompt": CommandParameter(
                 name="prompt",
                 type=ParameterType.String,
                 description="What prompt to display to the user when asking for creds",
+                required=False
             ),
         }
 
