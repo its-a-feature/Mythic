@@ -625,7 +625,7 @@ async def control_socks(request):
     return {"status": "error", "error": "unknown socks tasking"}
 
 
-def control_rportfwd(request):
+async def control_rportfwd(request):
     task_query = await db_model.task_query()
     task = await db_objects.get(task_query, id=request["task_id"])
     if "start" in request:
