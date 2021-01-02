@@ -1014,8 +1014,238 @@ async def remove_graph_edge(request, id, user):
         return json({"status": "error", "error": "Failed to update: " + str(e)})
 
 
-cached_socks = {}
+cached_rportfwd = {}
+callback_port = {}
 
+async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, task: Task):
+    try:
+        if port in callback_port:
+            return {"status": "error", "error": "Port Forward already started on that port"}
+    except:
+        # we're not using this port, so we can use it
+        pass
+
+    server_address = ('0.0.0.0', port)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(server_address)
+    cached_rportfwd[callback] = {}
+    cached_rportfwd[callback][port] = {
+        "connections": [],
+        #list of dictionary: connection, thread_read, queue
+        "thread_handle": threading.Thread(
+            target=thread_handle_connections,
+            kwargs={"port": port,"sock": sock, "callback_id": callback.id},
+        ),
+        "state": 1,
+        "sock":sock,
+        "rport": rport,
+        "rip": rip,
+    }
+    callback_port[port] = callback
+    #callback.port = port
+    #callback.rportfwd_task = task
+    await db_objects.update(callback)
+    cached_rportfwd[callback.id][port]["thread_handle"].start()
+    await db_objects.create(
+        db_model.OperationEventLog,
+        operator=task.operator,
+        operation=callback.operation,
+        message="Started Port Forward proxy on port {} in callback {}".format(
+            str(port), str(callback.id)
+        ),
+    )
+    # print("started rportfwd")
+    return {"status": "success"}
+
+async def stop_rportfwd(port: int, callback: Callback, operator):
+    if callback.id in cached_rportfwd:
+        if port in cached_rportfwd[callback.id]:
+            cached_rportfwd[callback.id][port]["state"] = 0
+        try:
+            cached_rportfwd[callback.id][port]["thread_handle"].exit()
+        except:
+            pass
+        try:
+            cached_socks[callback.id][port]["sock"].close()
+        except:
+            pass
+        try:
+            for connection in cached_socks[callback.id][port]["connections"]:
+                connection["thread_read"].exit()
+                connection["connection"].close()
+        except:
+            pass
+
+        del cached_rportfwd[callback.id][port]
+        if bool(cached_rportfwd[callback.id]):
+            del cached_rportfwd[callback.id]
+
+        del callback_port[port]
+
+    try:
+        await db_objects.create(
+            db_model.OperationEventLog,
+            operator=operator,
+            operation=callback.operation,
+            message="Stopped socks proxy on port {} in callback {}".format(
+                str(port), str(callback.id)
+            ),
+        )
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": "failed to find socks instance: " + str(e)}
+
+
+async def flush_rportfwd(callback: Callback, operator):
+    if callback.id in cached_socks:
+        try:
+            cached_socks[callback.id]["thread"].exit()
+        except:
+            pass
+        try:
+            cached_socks[callback.id]["socket"].close()
+        except:
+            pass
+        try:
+            cached_socks[callback.id]["process"].terminate()
+        except:
+            pass
+
+        del cached_socks[callback.id]
+    try:
+        port = callback.port
+        callback.port = None
+        await db_objects.update(callback)
+        await db_objects.create(
+            db_model.OperationEventLog,
+            operator=operator,
+            operation=callback.operation,
+            message="Stopped rportfwd proxy on port {} in callback {}".format(
+                str(port), str(callback.id)
+            ),
+        )
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": "failed to find rportfwd instance: " + str(e)}
+
+
+def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
+    sock.listen(1)
+
+    id = 0
+
+    while cached_rportfwd[callback_id][port]["state"] == 1:
+        connection, client_address = sock.accept()
+        conn_sock = {
+            "connection": connection,
+            "thread_read": threading.Thread(
+                target=thread_read_rportfwd,
+                kwargs={"port": port,"connection": connection,id: int, callback_id: int},
+            ),
+            "queue": deque(),
+        }
+        cached_rportfwd[callback_id][port]["connections"].append(conn_sock)
+        cached_rportfwd[callback_id][port]["connections"]["thread_read"].start()
+        id = id + 1
+        sleep(1)
+
+
+
+def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int) -> None:
+    while True:
+        #print("in thread loop")
+        try:
+            buf = b""
+            data = connection.recv(1024)
+            while data:
+                buf += data
+            # print("now trying to read in: {} bytes".format(str(size)))
+            try:
+                cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(base64.b64encode(buf))
+                #print("reading from portfwd")
+            except Exception as d:
+                if port not in cached_rportfwd[callback_id]:
+                    #print("*" * 10 + "Got closing socket" + "*" * 10)
+                    connection.close()
+                    #print("thread exiting")
+                    return
+        except Exception as e:
+            #print("*" * 10 + "Got exception from reading socket data" + "*" * 10)
+            print(e)
+            if port not in cached_rportfwd[callback_id]:
+                #print("*" * 10 + "Got closing socket" + "*" * 10)
+                connection.close()
+                #print("thread exiting")
+                return
+            tsleep(1)
+
+
+async def get_rportfwd_data(callback: Callback):
+
+    dict_conn = {}
+    for port in cached_rportfwd[callback.id]:
+        id = 0
+        rport = cached_rportfwd[callback.id][port]["rport"]
+        rip = cached_rportfwd[callback.id][port]["rip"]
+        for connection in cached_rportfwd[callback.id][port]["connections"]:
+            max_dequeu = 100
+            deq = 0
+            while (len(connection["queue"]) > 0 and deq < max_dequeu):
+                dict_conn[str(port)] = {}
+                dict_conn[str(port)][str(rport)] = {}
+                dict_conn[str(port)][str(rport)][str(rip)] = {}
+                dict_conn[str(port)][str(rport)][str(rip)][str(id)] = []
+                dict_conn[str(port)][str(rport)][str(rip)][str(id)].append(connection["queue"].popleft())
+                deq = deq + 1
+                #deque the rest for the next time, this avoids hanging connections
+            id = id+1
+
+    # if len(data) > 0:
+    # print("******* SENDING THE FOLLOWING TO THE AGENT ******")
+    # print(data)
+    #json data in format:
+    # {"9090":{"445":{"10.0.0.1":{
+    #           "1":["base64Str","base64Str","base64Str"]
+    #           "2":["base64Str","base64Str","base64Str"]
+    #           "3":["base64Str","base64Str","base64Str"]
+    #         }}}
+    #  "9091":{"3389":{"10.0.0.2":{
+    #           "1":["base64Str","base64Str","base64Str"]
+    #           "2":["base64Str","base64Str","base64Str"]
+    #           "3":["base64Str","base64Str","base64Str"]
+    #         }}}
+    #   }
+    #}
+    dict_conn = json.dumps(dict_conn)
+    default_struct = []
+    return default_struct.append(dict_conn)
+
+
+async def send_rportfwds_data(data, callback: Callback):
+    #data = agent_message["rportfwd"]
+    try:
+        for arr_pos in data:
+            for port in arr_pos:
+                for rport in data[port]:
+                    for rip in data[port][rport]:
+                        id = 0
+                        for i in data[port][rport][rip]:
+                            total_msg = b''
+                            for d in i:
+                                if callback.id in cached_rportfwd:
+                                    msg = base64.decodebytes(d)
+                                    cached_rportfwd[callback.id][port]["connections"][id]["connection"].sendall(msg)
+                                    # cached_socks[callback.id]['socket'].sendall(int.to_bytes(len(msg), 4, "big"))
+                                #else:
+                                    #print("****** NO CACHED PORTFWD, MUST BE CLOSED *******")
+        return {"status": "success"}
+    except Exception as e:
+        #print("******** EXCEPTION IN SEND RPORTFWD DATA *****\n{}".format(str(e)))
+        return {"status": "error", "error": str(e)}
+
+
+
+cached_socks = {}
 
 async def start_socks(port: int, callback: Callback, task: Task):
     # print("starting socks")
@@ -1030,6 +1260,7 @@ async def start_socks(port: int, callback: Callback, task: Task):
     except:
         # we're not using this port, so we can use it
         pass
+
     # now actually start the binary
     # f = open("socks_logs.txt", "w")
     process = subprocess.Popen(
@@ -1107,13 +1338,13 @@ async def stop_socks(callback: Callback, operator):
             db_model.OperationEventLog,
             operator=operator,
             operation=callback.operation,
-            message="Stopped socks proxy on port {} in callback {}".format(
+            message="Stopped rportfwd proxy on port {} in callback {}".format(
                 str(port), str(callback.id)
             ),
         )
         return {"status": "success"}
     except Exception as e:
-        return {"status": "error", "error": "failed to find socks instance: " + str(e)}
+        return {"status": "error", "error": "failed to find rportfwd instance: " + str(e)}
 
 
 async def start_all_socks_after_restart():
@@ -1222,6 +1453,7 @@ def thread_read_socks(port: int, callback_id: int) -> None:
         #print("in thread loop")
         try:
             # print("about to get size")
+            #need to parse size
             size = sock.recv(4)
             if len(size) == 4:
                 size = int.from_bytes(size, "big")
