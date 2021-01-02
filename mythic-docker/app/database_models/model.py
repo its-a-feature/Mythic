@@ -725,7 +725,6 @@ class Callback(p.Model):
     # associated socks information
     port = p.IntegerField(null=True)
     socks_task = p.DeferredForeignKey("Task", null=True)
-    rportfwd_task = p.DeferredForeignKey("Task", null=True)
     # if you need to define extra context for a callback, like a webshell, supply that here
     extra_info = p.TextField(null=False, default="")
     # store information about sleep interval/jitter/waking hours/etc here
