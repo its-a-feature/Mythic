@@ -1181,7 +1181,9 @@ def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int
 
 
 async def get_rportfwd_data(callback: Callback):
-
+    default_struct = []
+    if (bool(cached_rportfwd) == False):
+        return default_struct
     dict_conn = {}
     for port in cached_rportfwd[callback.id]:
         id = 0
@@ -1217,7 +1219,6 @@ async def get_rportfwd_data(callback: Callback):
     #   }
     #}
     dict_conn = json.dumps(dict_conn)
-    default_struct = []
     return default_struct.append(dict_conn)
 
 
