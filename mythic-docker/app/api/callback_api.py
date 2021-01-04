@@ -1028,8 +1028,8 @@ async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, ta
     server_address = ('0.0.0.0', port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(server_address)
-    cached_rportfwd[callback] = {}
-    cached_rportfwd[callback][port] = {
+    cached_rportfwd[callback.id] = {}
+    cached_rportfwd[callback.id][port] = {
         "connections": [],
         #list of dictionary: connection, thread_read, queue
         "thread_handle": threading.Thread(
