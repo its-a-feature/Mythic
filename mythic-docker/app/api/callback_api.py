@@ -1146,7 +1146,7 @@ def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
             "queue": deque(),
         }
         cached_rportfwd[callback_id][port]["connections"].append(conn_sock)
-        cached_rportfwd[callback_id][port]["connections"]["thread_read"].start()
+        cached_rportfwd[callback_id][port]["connections"][id]["thread_read"].start()
         id = id + 1
         sleep(1)
 
