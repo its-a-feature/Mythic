@@ -1,6 +1,6 @@
 from app import mythic, db_objects, keep_logs
-import json as jsonlib
 from sanic.response import json, text
+import json as jsonlib
 from app.database_models.model import (
     Callback,
     Task,
@@ -1132,7 +1132,6 @@ async def flush_rportfwd(callback: Callback, operator):
 
 def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
     sock.listen(1)
-
     id = 0
 
     while cached_rportfwd[callback_id][port]["state"] == 1:
@@ -1141,7 +1140,7 @@ def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
             "connection": connection,
             "thread_read": threading.Thread(
                 target=thread_read_rportfwd,
-                kwargs={"port": port,"connection": connection,id: int, callback_id: int},
+                kwargs={"port": port,"connection": connection, "id": id, "callback_id": callback_id},
             ),
             "queue": deque(),
         }
@@ -1202,9 +1201,9 @@ async def get_rportfwd_data(callback: Callback):
                     dict_conn[str(port)][str(rport)][str(rip)][str(id)] = []
                     dict_conn[str(port)][str(rport)][str(rip)][str(id)].append(connection["queue"].popleft())
                     deq = deq + 1
-                    #deque the rest for the next time, this avoids hanging connections
+                #deque the rest for the next time, this avoids hanging connections
                 id = id+1
-
+        
     # if len(data) > 0:
     # print("******* SENDING THE FOLLOWING TO THE AGENT ******")
     # print(data)
