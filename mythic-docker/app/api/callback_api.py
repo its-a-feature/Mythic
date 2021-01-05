@@ -1191,18 +1191,19 @@ async def get_rportfwd_data(callback: Callback):
         id = 0
         rport = cached_rportfwd[callback.id][port]["rport"]
         rip = cached_rportfwd[callback.id][port]["rip"]
-        for connection in cached_rportfwd[callback.id][port]["connections"]:
-            max_dequeu = 100
-            deq = 0
-            while (len(connection["queue"]) > 0 and deq < max_dequeu):
-                dict_conn[str(port)] = {}
-                dict_conn[str(port)][str(rport)] = {}
-                dict_conn[str(port)][str(rport)][str(rip)] = {}
-                dict_conn[str(port)][str(rport)][str(rip)][str(id)] = []
-                dict_conn[str(port)][str(rport)][str(rip)][str(id)].append(connection["queue"].popleft())
-                deq = deq + 1
-                #deque the rest for the next time, this avoids hanging connections
-            id = id+1
+        if len(cached_rportfwd[callback.id][port]["connections"]) > 0:
+            for connection in cached_rportfwd[callback.id][port]["connections"]:
+                max_dequeu = 100
+                deq = 0
+                while (len(connection["queue"]) > 0 and deq < max_dequeu):
+                    dict_conn[str(port)] = {}
+                    dict_conn[str(port)][str(rport)] = {}
+                    dict_conn[str(port)][str(rport)][str(rip)] = {}
+                    dict_conn[str(port)][str(rport)][str(rip)][str(id)] = []
+                    dict_conn[str(port)][str(rport)][str(rip)][str(id)].append(connection["queue"].popleft())
+                    deq = deq + 1
+                    #deque the rest for the next time, this avoids hanging connections
+                id = id+1
 
     # if len(data) > 0:
     # print("******* SENDING THE FOLLOWING TO THE AGENT ******")
@@ -1220,9 +1221,11 @@ async def get_rportfwd_data(callback: Callback):
     #         }}}
     #   }
     #}
+    if(bool(dict_conn) == False):
+        return default_struct
     dict_conn = jsonlib.dumps(dict_conn)
-    return default_struct.append(dict_conn)
-
+    default_struct.append(dict_conn)
+    return default_struct
 
 async def send_rportfwds_data(data, callback: Callback):
     #data = agent_message["rportfwd"]
