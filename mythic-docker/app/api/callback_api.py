@@ -1,4 +1,5 @@
 from app import mythic, db_objects, keep_logs
+import json as jsonlib
 from sanic.response import json, text
 from app.database_models.model import (
     Callback,
@@ -1218,7 +1219,7 @@ async def get_rportfwd_data(callback: Callback):
     #         }}}
     #   }
     #}
-    dict_conn = json.dumps(dict_conn)
+    dict_conn = jsonlib.dumps(dict_conn)
     return default_struct.append(dict_conn)
 
 
