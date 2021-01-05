@@ -1162,7 +1162,8 @@ def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int
                 data = connection.recv(1024)
             # print("now trying to read in: {} bytes".format(str(size)))
             try:
-                cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(base64.b64encode(buf))
+                if buf:
+                    cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(base64.b64encode(buf))
                 #print("reading from portfwd")
             except Exception as d:
                 if port not in cached_rportfwd[callback_id]:
