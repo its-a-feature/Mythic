@@ -1159,6 +1159,7 @@ def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int
             buf = b""
             data = connection.recv(1024)
             while data:
+                data = connection.recv(1024)
                 buf += data
             # print("now trying to read in: {} bytes".format(str(size)))
             try:
