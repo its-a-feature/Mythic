@@ -1155,16 +1155,13 @@ def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int
     while True:
         #print("in thread loop")
         try:
-            buf = b""
             data = connection.recv(1024)
-            while data:
-                buf += data
+            while (data and cached_rportfwd[callback_id][port]["state"] == 1):
+                cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(base64.b64encode(data))
                 data = connection.recv(1024)
-            # print("now trying to read in: {} bytes".format(str(size)))
+                # print("now trying to read in: {} bytes".format(str(size)))
             try:
-                if buf != b"":
-                    cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(base64.b64encode(buf))
-                #print("reading from portfwd")
+                connection.close()
             except Exception as d:
                 if port not in cached_rportfwd[callback_id]:
                     #print("*" * 10 + "Got closing socket" + "*" * 10)
