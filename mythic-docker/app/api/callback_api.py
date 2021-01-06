@@ -1228,9 +1228,10 @@ async def get_rportfwd_data(callback: Callback):
 
 async def send_rportfwds_data(data, callback: Callback):
     #data = agent_message["rportfwd"]
+    data = data[0]
     try:
-        for arr_pos in data:
-            for port in arr_pos:
+        for data_key in data:
+            for port in data[data_key]:
                 for rport in data[port]:
                     for rip in data[port][rport]:
                         id = 0
