@@ -1237,7 +1237,7 @@ async def send_rportfwds_data(data, callback: Callback):
                         id = 0
                         for i in data[data_key][port][rport][rip]:
                             total_msg = b''
-                            for d in i:
+                            for d in data[data_key][port][rport][rip][i]:
                                 if callback.id in cached_rportfwd:
                                     msg = base64.decodebytes(d)
                                     cached_rportfwd[callback.id][port]["connections"][id]["connection"].sendall(msg)
