@@ -1232,10 +1232,10 @@ async def send_rportfwds_data(data, callback: Callback):
     try:
         for data_key in data:
             for port in data[data_key]:
-                for rport in data[port]:
-                    for rip in data[port][rport]:
+                for rport in data[data_key][port]:
+                    for rip in data[data_key][port][rport]:
                         id = 0
-                        for i in data[port][rport][rip]:
+                        for i in data[data_key][port][rport][rip]:
                             total_msg = b''
                             for d in i:
                                 if callback.id in cached_rportfwd:
