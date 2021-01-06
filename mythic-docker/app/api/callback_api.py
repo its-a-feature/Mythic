@@ -1157,7 +1157,9 @@ def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int
         try:
             data = connection.recv(1024)
             while (data and cached_rportfwd[callback_id][port]["state"] == 1):
-                cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(base64.b64encode(data))
+                data = base64.b64encode(data)
+                data = data.decode('ascii')
+                cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(data)
                 data = connection.recv(1024)
                 # print("now trying to read in: {} bytes".format(str(size)))
             try:
