@@ -1239,7 +1239,7 @@ async def send_rportfwds_data(data, callback: Callback):
                             total_msg = b''
                             for d in data[data_key][port][rport][rip][i]:
                                 if callback.id in cached_rportfwd:
-                                    msg = base64.decodebytes(d)
+                                    msg = base64.b64decode(d)
                                     cached_rportfwd[callback.id][port]["connections"][id]["connection"].sendall(msg)
                                     # cached_socks[callback.id]['socket'].sendall(int.to_bytes(len(msg), 4, "big"))
                                 #else:
