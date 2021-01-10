@@ -630,18 +630,16 @@ async def control_rportfwd(request):
     task = await db_objects.get(task_query, id=request["task_id"])
     if "start" in request:
         from app.api.callback_api import start_rportfwd
-
         resp = await start_rportfwd(request["port"],request["rport"],request["rip"], task.callback, task)
         return resp
     if "stop" in request:
         from app.api.callback_api import stop_rportfwd
-
-        resp = await stop_rportfwd(request["port"], task.callback, task.operator)
+        resp = await stop_rportfwd(request["port"], task.callback, task)
         return resp
     if "flush" in request:
         from app.api.callback_api import flush_rportfwd
 
-        resp = await flush_rportfwd(task.callback, task.operator)
+        resp = await flush_rportfwd(task.callback, task)
         return resp
     return {"status": "error", "error": "unknown rportfwd tasking"}
 
