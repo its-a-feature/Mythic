@@ -3351,7 +3351,6 @@ class Mythic:
             self._apitoken = apitoken
         else:
             self._apitoken = APIToken(token_value=apitoken)
-        self._apitoken = apitoken
         self._access_token = access_token
         self._refresh_token = refresh_token
         self._server_ip = server_ip
