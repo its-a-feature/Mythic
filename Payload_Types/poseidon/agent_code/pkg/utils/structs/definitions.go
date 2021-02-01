@@ -14,7 +14,8 @@ type Defaultconfig struct {
 	PostURI       string `json:"post_uri"`
 	GetURI        string `json:"get_uri"`
 	QueryPathName string `json:"query_path_name"`
-	ProxyURL      string `json:"proxy_url"`
+	ProxyHost     string `json:"proxy_host"`
+	ProxyPort     string `json:"proxy_port"`
 	ProxyUser     string `json:"proxy_user"`
 	ProxyPass     string `json:"proxy_pass"`
 	UserAgent     string `json:"useragent"`
