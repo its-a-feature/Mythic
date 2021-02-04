@@ -1675,7 +1675,15 @@ var task_data = new Vue({
                                 }else if(param.type === "Number"){
                                     param.number_value = param.default_value;
                                 }else if(param.type === "Boolean"){
-                                    param.boolean_value = param.default_value;
+                                    if(typeof param.default_value === "string"){
+                                        try{
+                                            param.boolean_value = JSON.parse(param.default_value.toLowerCase());
+                                        }catch(error){
+                                            console.log(error);
+                                            param.boolean_value = false;
+                                        }
+                                    }
+                                	else{param.boolean_value = param.default_value;}
                                 }
                                 //console.log(param);
                                 if (param.name in last_vals) {
