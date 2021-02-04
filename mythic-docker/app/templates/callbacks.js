@@ -2831,7 +2831,15 @@ var params_table = new Vue({
                 }else if(this.command_params[i].type === "Number"){
                     this.command_params[i].number_value = this.command_params[i].default_value;
                 }else if(this.command_params[i].type === "Boolean"){
-                    this.command_params[i].boolean_value = this.command_params[i].default_value;
+                    if(typeof  this.command_params[i].default_value === "string"){
+		                try{
+		                    this.command_params[i].boolean_value = JSON.parse( this.command_params[i].default_value.toLowerCase());
+		                }catch(error){
+		                    console.log(error);
+		                    this.command_params[i].boolean_value = false;
+		                }
+		            }
+	        	    else{this.command_params[i].boolean_value =  this.command_params[i].default_value;}
                 }
             }
         },
