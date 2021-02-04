@@ -149,6 +149,8 @@ type DirectoryEntries struct {
 	FileSize     int64          `json:"size"`
 	LastModified string         `json:"modify_time"`
 	LastAccess   string         `json:"access_time"`
+	User         string         `json:"user"`
+	Group        string         `json:"group"`
 }
 
 type FileData struct {
@@ -158,6 +160,8 @@ type FileData struct {
 	FileSize     int64          `json:"size"`
 	LastModified string         `json:"modify_time"`
 	LastAccess   string         `json:"access_time"`
+	User         string         `json:"user"`
+	Group        string         `json:"group"`
 }
 
 type TaskResponseMessageResponse struct {
