@@ -1,4 +1,8 @@
 #! /bin/bash
+
+# Set working directory for unattended starts
+cd "${0%/*}"
+
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 GREEN='\033[1;32m'
