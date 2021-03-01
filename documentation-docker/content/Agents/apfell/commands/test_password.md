@@ -36,11 +36,15 @@ test_password username password
 
 - T1110  
 ## Detailed Summary
-Uses the Collaboration and CoreServices Frameworks to test a local username/password combination.
+Uses the OpenDirectory Framework to test a local username/password combination.
 ```JavaScript
-let user = $.CBIdentity.identityWithNameAuthority($(username), authority);
+let session = $.ODSession.defaultSession;
+let sessionType = 0x2201 // $.kODNodeTypeAuthentication
+let recType = $.kODRecordTypeUsers 
+let node = $.ODNode.nodeWithSessionTypeError(session, sessionType, $());
+let user = node.recordWithRecordTypeNameAttributesError(recType,$(username), $(), $())
 if(user.js !== undefined){
-    if(user.authenticateWithPassword($(password))){
+    if(user.verifyPasswordError($(password),$())){
         return {"user_output":"Successful authentication", "completed": true};
     }
     else{
