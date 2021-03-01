@@ -68,7 +68,7 @@ Add a local user to the system by wrapping the Apple binary, dscl.
 - Required Value: False  
 - Default Value: Jamf Support User  
 
-#### usernane
+#### username
 
 - Description: POSIX username for account  
 - Required Value: False  
