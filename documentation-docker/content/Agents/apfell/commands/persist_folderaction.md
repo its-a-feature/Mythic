@@ -12,6 +12,8 @@ Use Folder Actions to persist a compiled script on disk. You can either specify 
 - Version: 1  
 - Author: @its_a_feature_  
 
+{{% notice warning %}} In Mojave+ (10.14+) this will cause a popup the first time asking for permission for your process to access System Events. {{% /notice %}}
+
 ### Arguments
 
 #### code
