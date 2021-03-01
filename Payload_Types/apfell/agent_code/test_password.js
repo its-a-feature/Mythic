@@ -1,7 +1,9 @@
 exports.test_password = function(task, command, params){
-    ObjC.import('Collaboration');
-    ObjC.import('CoreServices');
-    let authority = $.CBIdentityAuthority.defaultIdentityAuthority;
+    ObjC.import("OpenDirectory");
+    let session = $.ODSession.defaultSession;
+    let sessionType = 0x2201 // $.kODNodeTypeAuthentication
+    let recType = $.kODRecordTypeUsers 
+    let node = $.ODNode.nodeWithSessionTypeError(session, sessionType, $());
     let username = apfell.user;
     let password = "";
     if(params.length > 0){
@@ -14,9 +16,9 @@ exports.test_password = function(task, command, params){
         }
         // if no password is supplied, try an empty password
     }
-    let user = $.CBIdentity.identityWithNameAuthority($(username), authority);
+    let user = node.recordWithRecordTypeNameAttributesError(recType,$(username), $(), $())
     if(user.js !== undefined){
-        if(user.authenticateWithPassword($(password))){
+        if(user.verifyPasswordError($(password),$())){
             return {"user_output":"Successful authentication", "completed": true};
         }
         else{
