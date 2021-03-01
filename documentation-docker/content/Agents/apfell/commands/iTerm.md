@@ -12,6 +12,8 @@ Read the contents of all open iTerm tabs if iTerms is open, otherwise just infor
 - Version: 1  
 - Author: @its_a_feature_  
 
+{{% notice warning %}} In Mojave+ (10.14+) this will cause a popup the first time asking for permission for your process to access iTerm. {{% /notice %}}
+
 ### Arguments
 
 ## Usage
