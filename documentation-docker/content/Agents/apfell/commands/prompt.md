@@ -25,7 +25,7 @@ Create a custom prompt to ask the user for credentials where you can provide tit
 
 - Description: full path to .icns file to use  
 - Required Value: False  
-- Default Value: "/System/Library/CoreServices/Software Update.app/Contents/Resources/SoftwareUpdate.icns"  
+- Default Value: "/System/Library/PreferencePanes/SoftwareUpdate.prefPane/Contents/Resources/SoftwareUpdate.icns"  
 
 #### text
 
