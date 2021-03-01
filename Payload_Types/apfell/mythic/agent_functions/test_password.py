@@ -48,11 +48,11 @@ class TestPasswordCommand(CommandBase):
 
     async def create_tasking(self, task: MythicTask) -> MythicTask:
         resp = await MythicResponseRPC(task).register_artifact(
-            artifact_instance="$.CBIdentity.identityWithNameAuthority",
+            artifact_instance="$.ODNode.nodeWithSessionTypeError, recordWithRecordTypeNameAttributesError",
             artifact_type="API Called",
         )
         resp = await MythicResponseRPC(task).register_artifact(
-            artifact_instance="user.authenticateWithPassword",
+            artifact_instance="user.verifyPasswordError",
             artifact_type="API Called",
         )
         return task
