@@ -22,13 +22,13 @@ Add a local user to the system by wrapping the Apple binary, dscl.
 
 #### passwd
 
-- Description: password of the user that will execute the commands  
+- Description: password of the user that will execute the commands. For dropdown menu: Must be present under Credentials operational view.  
 - Required Value: True  
 - Default Value: None  
 
 #### user
 
-- Description: username that will execute the commands  
+- Description: username that will execute the commands. For dropdown menu: Must be present under Credentials operational view.  
 - Required Value: True  
 - Default Value: None  
 
