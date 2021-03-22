@@ -1,6 +1,6 @@
 from app import mythic, db_objects
 from app.database_models.model import FileMeta, Callback, Task, Command
-from sanic.response import json, file
+from sanic.response import json, file_stream
 import base64
 from sanic_jwt.decorators import scoped, inject_user
 import os
@@ -86,7 +86,7 @@ async def download_file(request, id):
     # now that we have the file metadata, get the file if it's done downloading
     if not file_meta.deleted:
         try:
-            return await file(file_meta.path, filename=bytes(file_meta.filename).decode('utf-8'))
+            return await file_stream(file_meta.path, filename=bytes(file_meta.filename).decode('utf-8'))
         except Exception as e:
             print("File not found: {}".format(str(e)))
             return json(
@@ -117,7 +117,7 @@ async def download_file_direct(request, id):
     # now that we have the file metadata, get the file if it's done downloading
     if not file_meta.deleted:
         try:
-            return await file(file_meta.path, filename=bytes(file_meta.filename).decode("utf-8"))
+            return await file_stream(file_meta.path, filename=bytes(file_meta.filename).decode("utf-8"))
         except Exception as e:
             print("File not found: {}".format(str(e)))
             return json(
@@ -654,7 +654,7 @@ async def get_screencapture(request, user, id):
         return json({"status": "error", "error": "failed to find callback"})
     try:
         if file_meta.operation.name in user["operations"]:
-            return await file(file_meta.path, filename=bytes(file_meta.filename).decode("utf-8"))
+            return await file_stream(file_meta.path, filename=bytes(file_meta.filename).decode("utf-8"))
     except Exception as e:
         return json({"status": "error", "error": "failed to read screenshot from disk"})
     else:

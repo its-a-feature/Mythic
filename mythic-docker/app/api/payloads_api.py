@@ -1,5 +1,5 @@
 from app import mythic, db_objects
-from sanic.response import json, file
+from sanic.response import json, file_stream
 from app.database_models.model import (
     Payload,
     C2ProfileParameters,
@@ -754,7 +754,7 @@ async def get_payload(request, uuid, user):
         return json({"status": "error", "error": "payload not found"})
     if payload.operation.name in user["operations"]:
         try:
-            return await file(payload.file.path, filename=bytes(payload.file.filename).decode("utf-8"))
+            return await file_stream(payload.file.path, filename=bytes(payload.file.filename).decode("utf-8"))
         except Exception as e:
             print(e)
             return json({"status": "error", "error": "failed to open payload"})
