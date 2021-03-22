@@ -2,7 +2,7 @@
 
 {% block body %}
 <!-- http://bl.ocks.org/fancellu/2c782394602a93921faff74e594d1bb1 -->
-<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="/static/d3.js"></script>
 <div style="display:block; margin-top:5px" class="card border-dark bg-card-body" id="callback_table">
     <div class="card-header bg-header text-white" style="margin:0">
         <span><h4 style="display:inline-block">Active <span class="operator">Callbacks</span></h4></span>
@@ -338,7 +338,13 @@
                          <hr v-if="task.comment != '' && task.comment_visible" :key="'keyd' + task.id" style="margin-bottom: 0;margin-top:6px">
                          <div class="btn-group dropup" :key="'statusdropdown' + task.id" style="display:inline-block">
                              <template v-if="task.badges > 0"><span style="padding:5px 10px 5px 10px" class="badge badge-danger pull-right">[[task.badges]]</span></template>
-                            <template v-if="task.completed == true && task.status != 'error'">
+                             <template v-if="task.opsec_pre_blocked === true && task.opsec_pre_bypassed === false">
+                                 <button class="btn btn{{config['outline-buttons']}}warning btn-sm dropdown-toggle" style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">OPSEC BLOCKED (PRE)</span></button>
+                             </template>
+                             <template v-else-if="task.opsec_post_blocked === true && task.opsec_post_bypassed === false">
+                                 <button class="btn btn{{config['outline-buttons']}}warning btn-sm dropdown-toggle" style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">OPSEC BLOCKED (POST)</span></button>
+                             </template>
+                            <template v-else-if="task.completed == true && task.status != 'error'">
                                 <button class="btn btn{{config['outline-buttons']}}success btn-sm dropdown-toggle" style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">completed</span></button>
                             </template>
                             <template v-else-if="task.status == 'processed'">
@@ -365,6 +371,18 @@
                                         Enable Browser Script
                                     </template>
                                 </a>
+                                <a class="dropdown-item" href="#" data-toggle="tooltip" title="View Stdout/Stderr for task" @click="view_stdout_stderr(task)"><i class="fas fa-info-circle"></i>View Task Stdout/Stderr</a>
+                                <a class="dropdown-item" href="#" data-toggle="tooltip" title="View All Parameters for task" @click="view_all_parameters(task)"><i class="fas fa-info-circle"></i>View All Parameters</a>
+                                <template v-if="task.opsec_pre_blocked !== null || task.opsec_post_blocked !== null">
+                                    <a class="dropdown-item" href="#" data-toggle="tooltip" title="View OPSEC block info" @click="view_opsec_block(task)"><i class="fas fa-info-circle"></i>View OPSEC Message</a>
+                                </template>
+                                <template v-if="task.opsec_pre_blocked && task.opsec_pre_bypassed === false">
+                                    <a class="dropdown-item" href="#" data-toggle="tooltip" title="submit bypass request" @click="submit_opsec_bypass_request(task)"><i class="fas fa-info-circle"></i>Submit Bypass Request ([[task.opsec_pre_bypass_role]])</a>
+                                </template>
+                                <template v-else-if="task.opsec_post_blocked && task.opsec_post_bypassed === false">
+                                    <a class="dropdown-item" href="#" data-toggle="tooltip" title="submit bypass request" @click="submit_opsec_bypass_request(task)"><i class="fas fa-info-circle"></i>Submit Bypass Request ([[task.opsec_post_bypass_role]])</a>
+                                </template>
+
                             </div>
                         </div>
                          <p :key="'mutedtext' + task.id" class="card-text" style="margin:0;padding-left:5px; display:inline-block"><small class="text-muted">
@@ -375,7 +393,7 @@
                          <br :key="'br' + task.id">
                          <a :key="'toggleoutput' + task.id" class="btn btn-link" type="button" style="border:0;padding:0 0 5px 5px" data-toggle="collapse" :data-target="'#cardbody' + task.id" aria-expanded="false" :aria-controls="'cardbody' + task.id" @click="toggle_arrow(task)"><i :id="'color-arrow' + task.id" class="fas fa-plus fa-xs" data-toggle="tooltip" title="view / hide task output"></i></a>
                             <div style="display:inline-block" :key="'taskcommand' + task.id"><b>&nbsp;[[task.command]]&nbsp;</b></div>
-                         <div style="display:inline-block" :key="'taskparams' + task.id">[[task.original_params]]</div>
+                         <div style="display:inline-block" :key="'taskparams' + task.id">[[task.display_params]]</div>
                         </transition-group>
                     </div>
                     <div :key="'outputcontent' + task.id" class="collapse" :id="'cardbody' + task.id" >
@@ -569,15 +587,22 @@
                     <input disabled type="text" class="form-control col-1" placeholder="Callback:" >
                     <input type="number" class="form-control col-1" v-model="callback" autocomplete="off">
                 </div>
-                <table class="table table-striped {{config['table-color']}} table-condensed bg-card-body-l2 shadow border border-dark" style="margin-bottom:0;white-space:nowrap;overflow:scroll;">
+                <table class="table table-striped {{config['table-color']}} table-condensed bg-card-body-l2 shadow border border-dark" style="margin-bottom:0;overflow:auto;word-wrap:break-word;table-layout:fixed">
                     <tr>
                         <th onclick="sort_table(this)">Name</th>
                         <th onclick="sort_table(this)" style="width:7rem">Size</th>
                         <th onclick="sort_table(this)" style="width:14rem">Modify Time</th>
-                        <th onclick="sort_table(this)" style="width:20rem">Comment</th>
-                        <th style="width:4rem;padding-right:10px">Actions</th>
+                        <th onclick="sort_table(this)" style="width:30rem">Comment</th>
+                        <th style="width:7rem">Actions</th>
                     </tr>
-                    <tr v-for="f in folder.children" @dblclick="double_click_row(Object.values(f)[0])">
+                    <tr @dblclick="move_up_folder_ui(folder)">
+                        <td>..</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td><button class="btn input-group-append btn-sm btn{{config['outline-buttons']}}primary" @click="move_up_folder_ui(folder)">Up <i class="fas fa-level-up-alt"></i></button></td>
+                    </tr>
+                    <tr v-for="f in folder.children" @dblclick="double_click_row(Object.values(f)[0], folder)">
                         <td style="padding-left:10px">
                             <template v-if="Object.values(f)[0].data.is_file">
                                 <i class="far fa-file"></i>
@@ -604,9 +629,7 @@
                         </td>
                         <td>[[Object.values(f)[0].data.size]]</td>
                         <td>[[Object.values(f)[0].data.modify_time]]</td>
-                        <td>
-                            <input type="text" class="form-control" v-model="Object.values(f)[0].data.comment" v-on:input="update_file_browser_comment_live(Object.values(f)[0].data)">
-                        </td>
+                        <td><pre>[[Object.values(f)[0].data.comment]]</pre></td>
                         <td>
                             <div class="dropdown" style="display:inline">
                                 <button class="btn btn{{config['outline-buttons']}}secondary dropdown-toggle btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"  :data-target="folder.data.id + 'action'">
@@ -615,10 +638,10 @@
                               <div class="dropdown-menu" :id="folder.data.id + 'action'">
                                   <button class="dropdown-item"  @click="view_file_data(Object.values(f)[0].data)">View Permissions</button>
                                   <button class="dropdown-item"  @click="view_download_history(Object.values(f)[0].data)">Download History</button>
+                                  <button class="dropdown-item"  @click="update_file_browser_comment_live(Object.values(f)[0].data)">Add Comment</button>
                                   <div class="dropdown-divider"></div>
                                   <button class="dropdown-item"  @click="task_list_file(Object.values(f)[0].data)">Task a File Listing</button>
                                   <button class="dropdown-item"  @click="task_download_file(Object.values(f)[0].data)">Task a Download</button>
-                                  <button class="dropdown-item"  @click="task_remove_file(Object.values(f)[0].data)">Task a File Delete</button>
                               </div>
                             </div>
                         </td>
@@ -703,6 +726,11 @@
     </div>
     <div class="bg-card-footer border border-dark" style="margin:0;padding:5px;width:100%" id="panel-footer-input-group">
         <div class="input-group" style="margin:0!important;padding:5px">
+            <template v-if="callback_tokens.length > 0">
+                <select v-model="selected_token">
+                    <option v-for="(t, index) in callback_tokens" :value="t.token.TokenId">[[index + 1]]:[[t.token.TokenId]]</option>
+                </select>
+            </template>
             <input id="commandline" type="text" class="form-control" v-model="input_field"
                    :placeholder="input_field_placeholder.data" aria-describedby="basic-addon1"
                    @keydown.enter="task_button(input_field_placeholder)" @keyup.up="cmd_history_up()" @keyup.down="cmd_history_down()"
@@ -938,7 +966,7 @@
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
-                <h3>Add / Edit Comment</h3>
+                <h3 id="commentModalTitle">Add / Edit Comment</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             Shift+Enter to add a new line, Enter to submit
@@ -1023,12 +1051,12 @@
                             </span>
                             <span v-else-if="param.type == 'Choice'">
                                 <select class="form-control" v-model="param.choice_value">
-                                    <option v-for="opt in param.choices.split('\n')" :value="opt">[[opt]]</option>
+                                    <option v-for="opt in param.choices" :value="opt">[[opt]]</option>
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'ChoiceMultiple'">
                                 <select class="form-control" multiple v-model="param.choicemultiple_value">
-                                    <option v-for="opt in param.choices.split('\n')" :value="opt">[[opt]]</option>
+                                    <option v-for="opt in param.choices" :value="opt">[[opt]]</option>
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'Boolean'">
@@ -1052,6 +1080,11 @@
                                     <option v-for="p in param.payloads" :value="p.uuid">[[ p.payload_list_selection ]] </option>
                                 </select>
                             </span>
+                            <span v-else-if="param.type === 'LinkInfo'">
+                                <select class="form-control" v-model="param.links_value">
+                                    <option v-for="p in param.links" :value="p">Callback [[ p.source.id ]] -> Callback [[ p.destination.id ]] ( [[ p.c2_profile ]] ) - [[ p.end_timestamp === null ? "Active": "Dead"]] </option>
+                                </select>
+                            </span>
                             <span v-else-if="param.type == 'AgentConnect'">
                                 <table class="table table-striped {{config['table-color']}} shadow border border-dark" style="margin-bottom:0">
                                     <tbody mode="out-in" is="transition-group">
@@ -1062,7 +1095,7 @@
                                             </td>
                                         </tr>
                                         <tr key="3" v-if="param.manually_add_payloadonhost">
-                                            <td>Template</td>
+                                            <td>Payload</td>
                                             <td>
                                                 <select class="form-control" v-model="param.manually_add_payloadonhost_template">
                                                     <option v-for="p in payloads" :value="p.uuid">[[ p.payload_list_selection]]</option>

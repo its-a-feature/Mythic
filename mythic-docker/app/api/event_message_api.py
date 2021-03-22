@@ -6,6 +6,7 @@ from sanic.exceptions import abort
 from math import ceil
 from peewee import fn
 from app.api.siem_logger import log_to_siem
+import uuid
 
 
 async def get_old_event_alerts(user):
@@ -86,8 +87,9 @@ async def add_event_message(request, user):
             db_model.OperationEventLog,
             operator=operator,
             operation=operation,
-            message=data["message"].encode('unicode-escape'),
+            message=data["message"],
             level=data["level"],
+            source=str(uuid.uuid4())
         )
         await log_to_siem(msg.to_json(), mythic_object="eventlog_new")
         return json({"status": "success", **msg.to_json()})
@@ -127,7 +129,7 @@ async def edit_event_message(request, user, eid):
                 if "resolved" in data:
                     msg.resolved = data["resolved"]
                 if "message" in data:
-                    msg.message = data["message"].encode('unicode-escape')
+                    msg.message = data["message"]
                 if "level" in data and data["level"] in ["info", "warning"]:
                     msg.level = data["level"]
                 await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")

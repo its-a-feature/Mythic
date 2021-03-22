@@ -157,7 +157,7 @@ async def analytics_artifact_overview_api(request, user):
         )
     )
     for t in artifact_tasks:
-        artifact_name = bytes(t.artifact.name).decode()
+        artifact_name = t.artifact.name
         if artifact_name not in output["artifact_counts"]:
             output["artifact_counts"][artifact_name] = {
                 "agent_reported": 0,
@@ -176,7 +176,7 @@ async def analytics_artifact_overview_api(request, user):
             output["artifact_counts"][artifact_name]["manual"] += 1
         output["artifact_counts"]["total_count"] += 1
     for t in manual_tasks:
-        artifact_name = bytes(t.artifact.name).decode()
+        artifact_name = t.artifact.name
         if artifact_name not in output["artifact_counts"]:
             output["artifact_counts"][artifact_name] = {
                 "agent_reported": 0,

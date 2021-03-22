@@ -10,6 +10,7 @@ RUN Python-3.8.6/configure --with-ensurepip=install
 RUN make -j8
 RUN make altinstall
 RUN python3.8 -m pip install aio_pika
+RUN python3.8 -m pip install mythic-payloadtype-container
 
 RUN mkdir -p "/Windows/assembly/GAC_MSIL/System.Management.Automation/1.0.0.0__31bf3856ad364e35"
 COPY ["System.Management.Automation.dll", "/Windows/assembly/GAC_MSIL/System.Management.Automation/1.0.0.0__31bf3856ad364e35/System.Management.Automation.dll"]

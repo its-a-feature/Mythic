@@ -3,6 +3,9 @@ RED='\033[1;31m'
 NC='\033[0m' # No Color
 GREEN='\033[1;32m'
 BLUE='\033[1;34m'
+# Set working directory for unattended starts
+cd "${0%/*}"
+
 if [ "$EUID" -ne 0 ]
   then echo -e "${RED}[-]${NC} Please run as root"
   exit
@@ -20,12 +23,11 @@ startContainer(){
     if [ $? -ne 0 ]
     then
       echo -e "${RED}[-]${NC} Failed to find 'realpath' command. Aborting"
-      exit 1
+      return 1
     fi
     p=$(echo "${p/.\/Payload_Types\//}")
     tag=$(echo "$p" | tr '[:upper:]' '[:lower:]')
     tag=$(echo "${tag/' '/}")
-    tag=$(echo "${tag/'_'/}")
     if [ -d "$realpath" ]
     then
       # only try to do this if the specified directory actually exists
@@ -34,12 +36,12 @@ startContainer(){
       if [ $? -ne 0 ]
       then
         echo -e "${RED}[-]${NC} Failed to build $p's container. Aborting"
-        exit 1
+        return 1
       else
         echo -e "${GREEN}[+]${NC} Successfully built $p's container"
       fi
       docker container prune --filter label=name="$tag" -f
-      output=`docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" "$tag" 2>&1`
+      output=`docker run --log-driver json-file --log-opt max-size=10m --log-opt max-file=1 --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" "$tag" 2>&1`
       if [ $? -ne 0 ]
       then
         echo -e "${BLUE}[*]${NC} Payload Type, $p, is already running. Stopping it..."
@@ -47,11 +49,11 @@ startContainer(){
         output=`docker stop "$tag" 2>/dev/null`
         output=`docker container rm $(docker container ps -aq --filter name="$tag") 2>/dev/null`
         echo -e "${BLUE}[*]${NC} Now trying to start it again..."
-        docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" "$tag"
+        docker run --log-driver json-file --log-opt max-size=10m --log-opt max-file=1 --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" "$tag"
         if [ $? -ne 0 ]
         then
           echo -e "${RED}[-]${NC} Failed to start $p's container. Aborting"
-          exit 1
+          return 1
         else
           echo -e "${GREEN}[+]${NC} Successfully started $p's container"
         fi

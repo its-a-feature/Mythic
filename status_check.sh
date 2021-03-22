@@ -4,8 +4,8 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-echo "Core mythic services:  mythic_server, mythic_postgres, mythic_rabbitmq, documentation"
-docker ps -a --filter name=mythic_server --filter name=mythic_postgres --filter name=mythic_rabbitmq --filter name=documentation
+echo "Core mythic services:  mythic_server, mythic_postgres, mythic_rabbitmq, mythic_documentation, mythic_react"
+docker ps -a --filter name=mythic_server --filter name=mythic_postgres --filter name=mythic_rabbitmq --filter name=documentation --filter name=mythic_graphql --filter name=mythic_nginx --filter name=mythic_react
 echo ""
 echo "C2_Profile endpoints"
 profiles=(./C2_Profiles/*)
@@ -16,7 +16,6 @@ do
 	p=$(echo "${p/.\/C2_Profiles\//}")
 	tag=$(echo "$p" | tr '[:upper:]' '[:lower:]')
         tag=$(echo "${tag/' '/}")
-        tag=$(echo "${tag/'_'/}")
 	if [ -d "$realpath" ]
 	then
 		filter_string=$(echo "$filter_string --filter name=^/$tag\$")
@@ -33,7 +32,6 @@ do
 	p=$(echo "${p/.\/Payload_Types\//}")
 	tag=$(echo "$p" | tr '[:upper:]' '[:lower:]')
         tag=$(echo "${tag/' '/}")
-        tag=$(echo "${tag/'_'/}")
 	if [ -d "$realpath" ]
 	then
 		filter_string=$(echo "$filter_string --filter name=^/$tag\$")

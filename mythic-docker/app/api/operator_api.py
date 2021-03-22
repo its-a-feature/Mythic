@@ -9,6 +9,7 @@ from sanic_jwt import scoped
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from app.api.browserscript_api import set_default_scripts
+from uuid import uuid4
 
 
 @mythic.route(mythic.config["API_BASE"] + "/operators/", methods=["GET"])
@@ -71,11 +72,59 @@ async def create_operator(request, user):
                 "error": '"username" must be string with at least one character',
             }
         )
-    password = await crypto.hash_SHA512(data["password"])
+    salt = str(uuid4())
+    if len(data["password"]) < 12:
+        return json({"status": "error", "error": "password must be at least 12 characters long"})
+    password = await crypto.hash_SHA512(salt + data["password"])
     # we need to create a new user
     try:
         new_operator = await db_objects.create(
-            Operator, username=data["username"], password=password, admin=False
+            Operator, username=data["username"], password=password, admin=False, salt=salt, active=True
+        )
+        success = {"status": "success"}
+        new_user = new_operator.to_json()
+        # try to get the browser script code to auto load for the new operator
+        await set_default_scripts(new_operator)
+        # print(result)
+        return response.json({**success, **new_user})
+    except Exception as e:
+        return json({"status": "error", "error": "failed to add user: " + str(e)})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/create_operator", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def create_operator_graphql(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    data = request.json
+    data = data["input"]["input"]
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot create users"})
+    if not user["admin"]:
+        return json({"status": "error", "error": "Only admins can create new users"})
+    if "username" not in data or data["username"] == "":
+        return json({"status": "error", "error": '"username" field is required'})
+    if not isinstance(data["username"], str) or not len(data["username"]):
+        return json(
+            {
+                "status": "error",
+                "error": '"username" must be string with at least one character',
+            }
+        )
+    salt = str(uuid4())
+    password = await crypto.hash_SHA512(salt + data["password"])
+    if len(data["password"]) < 12:
+        return json({"status": "error", "error": "password must be at least 12 characters long"})
+    # we need to create a new user
+    try:
+        new_operator = await db_objects.create(
+            Operator, username=data["username"], password=password, admin=False, salt=salt, active=True
         )
         success = {"status": "success"}
         new_user = new_operator.to_json()
@@ -164,7 +213,9 @@ async def update_operator(request, oid, user):
             )
         data = request.json
         if "password" in data:
-            op.password = await crypto.hash_SHA512(data["password"])
+            if len(data["password"]) < 12:
+                return json({"status": "error", "error": "password must be at least 12 characters long"})
+            op.password = await crypto.hash_SHA512(op.salt + data["password"])
         if (
             "admin" in data and user["admin"]
         ):  # only a current admin can make somebody an admin

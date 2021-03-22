@@ -3,36 +3,23 @@ from app import (
     dbloop,
     mythic_db,
     db_objects,
-    use_ssl,
-    listen_port,
     listen_ip,
-    ssl_cert_path,
-    ssl_key_path,
+    listen_port,
     keep_logs,
+    debugging_enabled,
 )
 import asyncio
-import ssl
 from app.api.rabbitmq_api import start_listening
+import traceback
+
 
 if __name__ == "__main__":
     try:
         asyncio.set_event_loop(dbloop)
-        if use_ssl:
-            context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
-            context.load_cert_chain(ssl_cert_path, keyfile=ssl_key_path)
-            server = mythic.create_server(
+        server = mythic.create_server(
                 host=listen_ip,
                 port=listen_port,
-                ssl=context,
-                debug=False,
-                return_asyncio_server=True,
-                access_log=keep_logs,
-            )
-        else:
-            server = mythic.create_server(
-                host=listen_ip,
-                port=listen_port,
-                debug=False,
+                debug=debugging_enabled,
                 return_asyncio_server=True,
                 access_log=keep_logs,
             )
@@ -50,11 +37,11 @@ if __name__ == "__main__":
 
         task.add_done_callback(callback)
 
-        db_objects.database.allow_sync = True  # logging.WARNING
+        db_objects.database.allow_sync = True #logging.WARNING # = True  # logging.WARNING
         try:
             loop.run_until_complete(mythic_db.connect_async(loop=dbloop))
             loop.run_forever()
         except Exception as e:
             loop.stop()
     except Exception as e:
-        print(e)
+        traceback.print_exc()

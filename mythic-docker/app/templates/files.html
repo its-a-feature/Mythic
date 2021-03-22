@@ -4,8 +4,12 @@
     <div style="overflow-y:auto; max-height:calc(45vh)" class="card bg-card-body border border-dark shadow" >
         <div class="card-header bg-header text-white border border-dark shadow" >
             <span class="operator" style="display:inline-block"><h2>Downloads</h2></span>
-            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('downloads')"><i class="fas fa-file-export"></i> Export Metadata</button>
-            <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}success" @click="zip_selected_files()"><i class="fas fa-file-archive"></i> Zip & Download selected</button>
+            <div style="display:inline-block; float: right; margin:5px">
+                <input style="float:right;color:white;display: inline-block" class="form-control" type="text" size="50rem" placeholder="filter by filename" id="filter-downloads" v-model="filter_downloads">
+            </div>
+            <button style="float:right;margin:5px; display: inline-block" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('downloads')"><i class="fas fa-file-export"></i> Export Metadata</button>
+            <button style="float:right;margin:5px;display: inline-block" class="btn btn-md btn{{config['outline-buttons']}}success" @click="zip_selected_files()"><i class="fas fa-file-archive"></i> Zip & Download selected</button>
+
         </div>
         <div class="card-body bg-card-body border border-dark shadow" style="padding:0;margin:0">
             <table class="table table-striped {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
@@ -26,7 +30,7 @@
                     <th style="width:6rem;">Download</th>
                     <th style="width:4rem;">Info</th>
                 </tr>
-                <tr v-for="(file,i) in hosts.downloads">
+                <tr v-for="(file,i) in hosts.downloads" v-if="apply_filter_downloads(file)">
                     <template v-if="file.complete">
                         <td style="padding-top:10px;padding-left:10px">
                             <span class="material-switch pull-right">
@@ -77,6 +81,9 @@
     <div style="overflow-y:auto;  max-height:calc(45vh)" class="card bg-card-body border border-dark shadow">
         <div class="card-header bg-header border border-dark shadow" >
             <h2 style="display:inline-block"><span class="display">Uploads</span> to disk</h2>
+            <div style="display:inline-block; float: right; margin:5px">
+                <input style="float:right;color:white;display: inline-block" class="form-control" type="text" size="50rem" placeholder="filter by filename" id="filter-uploads" v-model="filter_uploads">
+            </div>
             <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('uploads')"><i class="fas fa-file-export"></i> Export Metadata</button>
         </div>
         <div class="card-body bg-card-body border border-dark shadow" style="padding:0">
@@ -93,7 +100,7 @@
                     <th style="width:6rem">Download</th>
                     <th style="width:4rem">Info</th>
                 </tr>
-                <tr v-for="(file,i) in hosts.uploads" :key="file.id" v-if="file.host != 'MANUAL FILE UPLOAD'">
+                <tr v-for="(file,i) in hosts.uploads" :key="file.id" v-if="file.host != 'MANUAL FILE UPLOAD' && apply_filter_uploads(file)">
                     <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-lg" @click="delete_file(file.id)" ></i></button></td>
                     <td>[[toLocalTime(file.timestamp)]]</td>
                     <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + file.task" target="_blank"><b>[[file.task]]</b></a></td>

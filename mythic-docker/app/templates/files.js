@@ -2,9 +2,17 @@ document.title = "Files";
 var files_div = new Vue({
     el: '#files_div',
     data: {
-        hosts: {"uploads": [], "downloads": []}
+        hosts: {"uploads": [], "downloads": []},
+        filter_downloads: "",
+        filter_uploads: ""
     },
     methods: {
+        apply_filter_downloads: function (e) {
+            return e["full_remote_path"].includes(this.filter_downloads);
+        },
+        apply_filter_uploads: function (e) {
+            return e["full_remote_path"].includes(this.filter_uploads) || e["upload"]["remote_path"].includes(this.filter_uploads);
+        },
         delete_file: function (file_id) {
             alertTop("info", "deleting...", 1);
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/" + file_id, delete_file_callback, "DELETE", null);

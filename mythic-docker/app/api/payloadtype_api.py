@@ -15,7 +15,6 @@ from sanic.exceptions import abort
 from sanic.log import logger
 from peewee import fn
 import shortuuid
-from app.api.rabbitmq_api import send_pt_rabbitmq_message
 import ujson as js
 
 
@@ -43,15 +42,7 @@ async def get_all_payloadtypes(request, user):
     plist = []
     wrappers = []
     for pt in payloads:
-        build_query = await db_model.buildparameter_query()
-        build_params = await db_objects.execute(
-            build_query.where(
-                (db_model.BuildParameter.payload_type == pt)
-                & (db_model.BuildParameter.deleted == False)
-            )
-        )
         pt_json = pt.to_json()
-        # pt_json["build_parameters"] = [bp.to_json() for bp in build_params]
         if pt.wrapper:
             wrapped_types = await db_objects.execute(
                 wrapquery.where(db_model.WrappedPayloadTypes.wrapper == pt)
@@ -214,36 +205,6 @@ async def get_commands_for_payloadtype(request, user, ptype):
     return json({**status, "commands": all_commands})
 
 
-@mythic.route(
-    mythic.config["API_BASE"] + "/payloadtypes/<ptype:int>/files/sync", methods=["GET"]
-)
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def sync_container_file_for_payload_type(request, ptype, user):
-    if user["auth"] not in ["access_token", "apitoken"]:
-        abort(
-            status_code=403,
-            message="Cannot access via Cookies. Use CLI or access via JS in browser",
-        )
-    try:
-        if user["view_mode"] == "spectator":
-            return json({"status": "error", "error": "Spectators cannot sync files"})
-        query = await db_model.payloadtype_query()
-        payload_type = await db_objects.get(query, id=ptype)
-    except Exception as e:
-        print(e)
-        return json({"status": "error", "error": "failed to find C2 Profile"})
-    try:
-        status = await send_pt_rabbitmq_message(
-            payload_type.ptype, "sync_classes", "", user["username"]
-        )
-        return json(status)
-    except Exception as e:
-        return json({"status": "error", "error": "failed finding the file: " + str(e)})
-
-
 async def import_payload_type_func(ptype, operator):
     new_payload = False
     try:
@@ -254,6 +215,8 @@ async def import_payload_type_func(ptype, operator):
             ptype["note"] = ""
         if "ptype" not in ptype or ptype["ptype"] == "":
             return {"status": "error", "error": "payload type must not be empty"}
+        if "mythic_encrypts" not in ptype or ptype["mythic_encrypts"] is None or ptype["mythic_encrypts"] == "":
+            ptype["mythic_encrypts"] = True
         ptquery = await db_model.payloadtype_query()
         build_param_query = await db_model.buildparameter_query()
         try:
@@ -267,6 +230,8 @@ async def import_payload_type_func(ptype, operator):
             payload_type.supports_dynamic_loading = ptype[
                 "supports_dynamic_loading"
             ]
+            payload_type.mythic_encrypts = ptype["mythic_encrypts"]
+            payload_type.translation_container = ptype["translation_container"] if "translation_container" in ptype else None
         except Exception as e:
             new_payload = True
             payload_type = await db_objects.create(
@@ -278,6 +243,8 @@ async def import_payload_type_func(ptype, operator):
                 author=ptype["author"],
                 note=ptype["note"],
                 supports_dynamic_loading=ptype["supports_dynamic_loading"],
+                mythic_encrypts=ptype["mythic_encrypts"],
+                translation_container=ptype["translation_container"] if "translation_container" in ptype else None
             )
         if not ptype["wrapper"]:
             # now deal with all of the wrapped payloads mentioned
@@ -483,7 +450,7 @@ async def import_payload_type_func(ptype, operator):
             payload_type = payload_type[0]
             return {"status": "success", "new": new_payload, **payload_type.to_json()}
         except Exception as e:
-            logger.exception("exception on importing payload type")
+            logger.exception("exception on importing payload type {}".format(payload_type.ptype))
             return {"status": "error", "error": str(e)}
     except Exception as e:
         logger.exception("failed to import a payload type: " + str(e))
@@ -622,8 +589,12 @@ async def import_command_func(payload_type, operator, command_list):
             command.is_download_file = cmd["is_download_file"]
             command.is_remove_file = cmd["is_remove_file"]
             command.is_upload_file = cmd["is_upload_file"]
+            command.is_link = cmd["is_link"]
             command.author = cmd["author"]
+            command.attributes = js.dumps(cmd["attributes"])
+            await add_update_opsec_for_command(command, cmd)
             await db_objects.update(command)
+
             query = await db_model.commandparameters_query()
             current_params = await db_objects.execute(
                 query.where((db_model.CommandParameters.command == command))
@@ -646,9 +617,13 @@ async def import_command_func(payload_type, operator, command_list):
                         and param["supported_agents"] is not None
                     ):
                         cmd_param.supported_agents = param["supported_agents"]
+                    cmd_param.supported_agent_build_parameters = js.dumps(param["supported_agent_build_parameters"])
                     cmd_param.description = param["description"]
                     cmd_param.choices = param["choices"]
                     cmd_param.required = param["required"]
+                    cmd_param.choice_filter_by_command_attributes = js.dumps(param["choice_filter_by_command_attributes"])
+                    cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
+                    cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
                     await db_objects.update(cmd_param)
                     current_param_dict.pop(param["name"], None)
                 except:  # param doesn't exist yet, so create it
@@ -656,6 +631,7 @@ async def import_command_func(payload_type, operator, command_list):
                         param["default_value"] = ""
                     elif param["type"] == "Array":
                         param["default_value"] = js.dumps(param["default_value"])
+                    param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
                     await db_objects.create(CommandParameters, command=command, **param)
             for k, v in current_param_dict.items():
                 await db_objects.delete(v)
@@ -891,7 +867,10 @@ async def import_command_func(payload_type, operator, command_list):
             command.is_download_file = cmd["is_download_file"]
             command.is_remove_file = cmd["is_remove_file"]
             command.is_upload_file = cmd["is_upload_file"]
+            command.is_link = cmd["is_link"]
             command.author = cmd["author"]
+            command.attributes = js.dumps(cmd["attributes"])
+            await add_update_opsec_for_command(command, cmd)
             await db_objects.update(command)
         except Exception as e:  # this means that the command doesn't already exist
             command = await db_objects.create(
@@ -909,7 +888,11 @@ async def import_command_func(payload_type, operator, command_list):
                 is_remove_file=cmd["is_remove_file"],
                 is_upload_file=cmd["is_upload_file"],
                 author=cmd["author"],
+                is_link=cmd["is_link"],
+                attributes=js.dumps(cmd["attributes"])
             )
+            await add_update_opsec_for_command(command, cmd)
+            await db_objects.update(command)
         # now to process the parameters
         query = await db_model.commandparameters_query()
         current_params = await db_objects.execute(
@@ -936,6 +919,10 @@ async def import_command_func(payload_type, operator, command_list):
                 cmd_param.description = param["description"]
                 cmd_param.choices = param["choices"]
                 cmd_param.required = param["required"]
+                cmd_param.supported_agent_build_parameters = js.dumps(param["supported_agent_build_parameters"])
+                cmd_param.choice_filter_by_command_attributes = js.dumps(param["choice_filter_by_command_attributes"])
+                cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
+                cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
                 await db_objects.update(cmd_param)
                 current_param_dict.pop(param["name"], None)
             except:  # param doesn't exist yet, so create it
@@ -943,6 +930,8 @@ async def import_command_func(payload_type, operator, command_list):
                     param["default_value"] = ""
                 elif param["type"] == "Array":
                     param["default_value"] = js.dumps(param["default_value"])
+                param["choice_filter_by_command_attributes"] = js.dumps(param["choice_filter_by_command_attributes"])
+                param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
                 await db_objects.create(CommandParameters, command=command, **param)
         for k, v in current_param_dict.items():
             await db_objects.delete(v)
@@ -1014,3 +1003,24 @@ async def import_command_func(payload_type, operator, command_list):
                         author=cmd["browser_script"]["author"],
                         container_version_author=cmd["browser_script"]["author"],
                     )
+
+
+async def add_update_opsec_for_command(command, data):
+    if command.opsec is not None:
+        if data["opsec"] == {}:
+            # we're wanting to just remove the opsec component
+            command.opsec = None
+        else:
+            command.opsec.injection_method = data["opsec"]["injection_method"]
+            command.opsec.process_creation = data["opsec"]["process_creation"]
+            command.opsec.authentication = data["opsec"]["authentication"]
+            await db_objects.update(command.opsec)
+    elif data["opsec"] == {}:
+        return
+    else:
+        # command.opsec is None and we have "opsec" data to register
+        try:
+            opsec = await db_objects.create(db_model.CommandOPSEC, **data["opsec"])
+            command.opsec = opsec
+        except Exception as e:
+            logger.warning("Failed to create OPSEC for command: " + str(e))

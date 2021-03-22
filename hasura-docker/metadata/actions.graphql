@@ -1,0 +1,186 @@
+type Mutation {
+  createAPIToken (
+    tokenType: String!
+  ): createAPITokenResponse!
+}
+
+
+type Mutation {
+  createOperator (
+    input: OperatorInput!
+  ): OperatorOutput!
+}
+
+
+type Mutation {
+  createPayload (
+    payloadDefinition: String!
+  ): createPayloadOutput!
+}
+
+
+type Mutation {
+  createRandom (
+    format_string: String!
+  ): randomOutput
+}
+
+
+type Mutation {
+  createTask (
+    command: String!
+    params: String!
+    files: String
+    callback_id: Int!
+  ): createTaskOutput
+}
+
+
+type Query {
+  downloadContainerFile (
+    id: Int
+    filename: String!
+  ): ContainerFile
+}
+
+
+type Query {
+  getProfileOutput (
+    id: Int!
+  ): ProfileOutput
+}
+
+
+type Mutation {
+  requestOpsecBypass (
+    task_id: Int!
+  ): BypassOutput
+}
+
+
+type Mutation {
+  startStopProfile (
+    id: Int!
+    action: String
+  ): startStopOutput
+}
+
+
+type Mutation {
+  updateCallback (
+    input: updateCallbackInput!
+  ): updateCallbackOutput
+}
+
+
+type Mutation {
+  uploadContainerFile (
+    id: Int!
+    file_path: String!
+    data: String!
+  ): uploadContainerOutput
+}
+
+
+
+
+input OperatorInput {
+  username : String!
+  password : String!
+}
+
+input CreatePayloadInput {
+  input_string : String!
+}
+
+input updateCallbackInput {
+  callback_id : Int!
+  active : Boolean
+  locked : Boolean
+  description : String
+}
+
+type createAPITokenResponse {
+  tokenValue : String!
+  id : Int!
+}
+
+type OperatorOutput {
+  username : String
+  id : Int
+  active : Boolean
+  view_utc_time : Boolean
+  creation_time : String
+  last_login : String
+  deleted : Boolean
+  status : String!
+  error : String
+  admin : Boolean
+  current_operation : String
+  current_operation_id : Int
+  ui_config : String
+}
+
+type createPayloadOutput {
+  status : String!
+  error : String
+  uuid : String
+}
+
+type randomOutput {
+  status : String!
+  error : String
+  random : String
+}
+
+type startStopOutput {
+  status : String!
+  error : String
+  output : String
+  version : String
+}
+
+type ProfileOutput {
+  status : String!
+  error : String
+  output : String
+  version : String
+}
+
+type ContainerFile {
+  status : String!
+  filename : String
+  data : String
+  error : String
+  version : String
+}
+
+type uploadContainerOutput {
+  status : String!
+  error : String
+  filename : String
+  version : String
+}
+
+type SampleOutput {
+  status : String!
+  error : String
+  id : Int
+}
+
+type createTaskOutput {
+  status : String!
+  error : String
+  id : Int
+}
+
+type BypassOutput {
+  status : String!
+  error : String
+}
+
+type updateCallbackOutput {
+  status : String!
+  error : String
+}
+

@@ -151,6 +151,7 @@ var profile_parameters_table = new Vue({
             if (this.tag !== "") {
                 data['tag'] = this.tag;
             }
+            data["selected_os"] = this.selected_os;
             for (let j = 0; j < this.c2_profile_list.length; j++) {
                 // now get the c2 profile values into a dictionary
                 let c2_profile_parameters_dict = {};
@@ -268,8 +269,8 @@ var profile_parameters_table = new Vue({
                     element['options'][i]["current"] += 1;
                     element['parameter'].push({
                          "name": element['options'][i]["name"],
-                         "key": "",
-                         "value": element['options'][i]["default_value"],
+                         "key": element['options'][i]["name"] === "*" ? "" : element['options'][i]["name"],
+                         "value": element['options'][i]["default_value"] ? element['options'][i]["default_value"] : "",
                          "custom": element['options'][i]["name"] === "*"
                     });
                     let new_opt = this.add_options(element);
@@ -661,11 +662,11 @@ function startwebsocket_rabbitmq_build_finished() {
                 if (data['build_phase'] === "success") {
                     clearTop();
                     alertTop("success", "<b>Build Message:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid']
-                        + "<br><a class='btn btn-info' href='{{links.payload_management}}'>Manage Payload</a><a class='btn btn-info' href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + data['uuid'] + "'>Download Payload</a>", 0, "Success! Your agent, " + data['file_id']['filename'] + ", was successfully built.", false);
+                        + "<br><a class='btn btn-info' href='{{links.payload_management}}'>Manage Payload</a><a class='btn btn-info' href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + data['uuid'] + "'>Download Payload</a>", 0, "Success! Your agent, " + data['file']['filename'] + ", was successfully built.", false);
                     global_uuids[data['uuid']] = true;
                 } else if (data['build_phase'] === "error") {
                     clearTop();
-                    alertTop("danger", data['build_message'], 0, "Uh oh, something went wrong.");
+                    alertTop("danger", data['build_error'] === "" ? data["build_message"] : data["build_error"], 0, "Uh oh, something went wrong.");
                     global_uuids[data['uuid']] = true;
                 }
             }

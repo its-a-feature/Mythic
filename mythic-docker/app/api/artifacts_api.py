@@ -388,10 +388,10 @@ async def create_artifact_task_manually(request, user):
         task_artifact = await db_objects.create(
             TaskArtifact,
             task=task,
-            artifact_instance=data["artifact_instance"].encode("unicode-escape"),
+            artifact_instance=data["artifact_instance"].encode(),
             artifact=artifact,
             operation=operation,
-            host=data["host"].encode("unicode-escape"),
+            host=data["host"].encode(),
         )
         return json({"status": "success", **task_artifact.to_json()})
     except Exception as e:

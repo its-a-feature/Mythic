@@ -12,8 +12,6 @@ fi
 echo -e "${BLUE}[*]${NC} Stopping Mythic"
 ./stop_mythic.sh
 
-# remove the container so we can remove the volume
-docker container rm mythic_rabbitmq
 if [ -d "./rabbitmq-docker/storage" ]; then
   rm -rf "./rabbitmq-docker/storage/"
   echo -e "${GREEN}[+]${NC} Removed ./rabbitmq-docker/storage files"

@@ -1,5 +1,5 @@
 from app import mythic, db_objects, keep_logs
-from sanic.response import json, text
+from sanic.response import json, raw
 from app.database_models.model import (
     Callback,
     Task,
@@ -11,16 +11,17 @@ from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from math import ceil
-import requests
+import aiohttp
 import base64
 from sanic.log import logger
 import ujson as js
 import app.crypto as crypt
-from app.api.task_api import get_agent_tasks
+from app.api.task_api import get_agent_tasks, update_edges_from_checkin
 from app.api.response_api import post_agent_response
 from app.api.file_api import download_agent_file
-from app.api.crypto_api import staging_rsa, staging_dh
+from app.api.crypto_api import staging_rsa
 from app.api.operation_api import send_all_operations_message
+from app.api.rabbitmq_api import MythicBaseRPC
 import urllib.parse
 from datetime import datetime
 from dijkstar import Graph, find_path
@@ -33,6 +34,8 @@ from time import sleep as tsleep
 import socket
 from app.api.siem_logger import log_to_siem
 import sys
+import asyncio
+import uuid
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/", methods=["GET"])
@@ -58,109 +61,168 @@ async def get_all_callbacks(request, user):
         return json([])
 
 
-# format of cached_keys:
-#   {
-#       "type": None or string type,
-#       "enc_key": None or raw bytes of encryption key
-#       "dec_key": None or raw bytes of decryption key
-#   }
+@mythic.route(mythic.config["API_BASE"] + "/callbacks/<id:int>/edges", methods=["GET"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_all_edges_for_callback(request, user, id):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["current_operation"] != "":
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user["current_operation"])
+        query = await db_model.callback_query()
+        callback = await db_objects.get(query, id=id, operation=operation)
+        query = await db_model.callbackgraphedge_query()
+        edges = await db_objects.execute(query.where(
+            (db_model.CallbackGraphEdge.source == callback) |
+            (db_model.CallbackGraphEdge.destination == callback)
+        ))
+        c2instquery = await db_model.c2profileparametersinstance_query()
+        edge_info = []
+        for edge in edges:
+            if edge.c2_profile.is_p2p:
+                info = edge.to_json()
+                c2instances = await db_objects.execute(c2instquery.where(
+                    (db_model.C2ProfileParametersInstance.callback == edge.destination) &
+                    (db_model.C2ProfileParametersInstance.c2_profile == edge.c2_profile)
+                ))
+                info["c2_parameters"] = [{"name": c.c2_profile_parameters.name, "value": c.value} for c in c2instances]
+                edge_info.append(info)
+        return json(edge_info)
+    else:
+        return json([])
+
+
 cached_keys = {}
+translator_rpc = MythicBaseRPC()
 
 
 @mythic.route(mythic.config["API_BASE"] + "/agent_message", methods=["GET", "POST"])
 async def get_agent_message(request):
     # get the raw data first
+    profile = None
+    data = None
+    if "Mythic" in request.headers:
+        profile = request.headers["Mythic"]
+    else:
+        asyncio.create_task(send_all_operations_message(
+            message=f"Failed to find Mythic header in headers: \n{request.headers}",
+            level="warning", source="get_agent_message"))
+        return raw(b"", 404)
     if request.body != b"":
         data = request.body
         # print("Body: " + str(data))
     elif len(request.cookies) != 0:
-        keys = request.cookies.items()
-        data = request.cookies[keys[0]]
+        for key, val in request.cookies.items():
+            if data is None:
+                data = val
         # print("Cookies: " + str(data))
     elif len(request.query_args) != 0:
         data = urllib.parse.unquote(request.query_args[0][1])
         # print("Query: " + str(data))
     else:
-        query = await db_model.operation_query()
-        operations = await db_objects.execute(query)
-        for o in operations:
-            await db_objects.create(
-                db_model.OperationEventLog,
-                operation=o,
-                level="warning",
-                message=f"Failed to find message in body, cookies, or query args from {request.socket} as {request.method} method with headers:\n {request.headers}",
+        asyncio.create_task(send_all_operations_message(
+            message=f"Failed to find message in body, cookies, or query args from {request.method} and {request.url} with headers:\n {request.headers}",
+            level="warning", source="get_agent_message"))
+        return raw(b"", 404)
+    message, code, new_callback, msg_uuid = await parse_agent_message(data, request, profile)
+    return raw(message, code)
+
+
+async def get_payload_c2_info(payload_uuid=None, payload=None):
+    if payload_uuid is not None:
+        query = await db_model.payload_query()
+        payload = await db_objects.get(query, uuid=payload_uuid)
+    query = await db_model.payloadc2profiles_query()
+    c2_profiles = await db_objects.execute(
+        query.where(db_model.PayloadC2Profiles.payload == payload)
+    )
+    c2info = {}
+    instance_query = await db_model.c2profileparametersinstance_query()
+    for c in c2_profiles:
+        c2info[c.c2_profile.name] = {
+            "is_p2p": c.c2_profile.is_p2p,
+            "mythic_encrypts": payload.payload_type.mythic_encrypts,
+            "translation_container": payload.payload_type.translation_container,
+            "profile": c.c2_profile.name
+        }
+        c2_params = await db_objects.execute(
+            instance_query.where(
+                (db_model.C2ProfileParametersInstance.payload == payload) &
+                (db_model.C2ProfileParametersInstance.c2_profile == c.c2_profile)
             )
-        return text("", 404)
-    message, code, new_callback, msg_uuid = await parse_agent_message(data, request)
-    return text(message, code)
-    # return text(await parse_agent_message(data, request))
+        )
+        for cp in c2_params:
+            # loop through all of the params associated with the payload and find ones that are crypt_type
+            #  currently doesn't really make sense to have more than one crypto_type parameter for this purpose
+            #  in a single c2 profile
+            if cp.c2_profile_parameters.crypto_type:
+                c2info[c.c2_profile.name] = {**c2info[c.c2_profile.name],
+                                             "enc_key": bytes(cp.enc_key) if cp.enc_key is not None else None,
+                                             "type": cp.value,
+                                             "dec_key": bytes(cp.dec_key) if cp.dec_key is not None else None,
+                                             "stage": "payload",
+                                             "profile": c.c2_profile.name,
+                                             "payload": payload
+                                             }
+        if "enc_key" not in c2info[c.c2_profile.name]:
+            # we didn't find a crypto_type parameter that matched something mythic knows where mythic
+            #   was also supposed to encrypt
+            c2info[c.c2_profile.name] = {**c2info[c.c2_profile.name],
+                                         "enc_key": None,
+                                         "type": "",
+                                         "dec_key": None,
+                                         "stage": "payload",
+                                         "profile": c.c2_profile.name,
+                                         "payload": payload
+                                         }
+    return c2info
 
 
-async def get_encryption_data(UUID):
+async def get_encryption_data(UUID: str, profile: str):
     # this function tries to retrieve a cached key for a given UUID
     # if the key doesn't exist, it queries the database for the key to use if one exists
-    if UUID not in cached_keys:
+    if UUID not in cached_keys or profile not in cached_keys[UUID]:
         # we need to look up the key to see if it exists
         try:
             # first check to see if it's some staging piece
             query = await db_model.staginginfo_query()
             staging_info = await db_objects.get(query, staging_uuid=UUID)
+            c2info = await get_payload_c2_info(payload_uuid=None, payload=staging_info.payload)
+            cached_keys[staging_info.payload.uuid] = c2info
             cached_keys[UUID] = {
-                "enc_key": base64.b64decode(staging_info.session_key),
-                "type": "AES256",
-                "dec_key": base64.b64decode(staging_info.session_key),
+                profile: {
+                    "enc_key": bytes(staging_info.enc_key) if staging_info.enc_key is not None else None,
+                    "type": staging_info.crypto_type,
+                    "dec_key": bytes(staging_info.dec_key) if staging_info.dec_key is not None else None,
+                    "stage": "staging",
+                    "is_p2p": c2info[profile]["is_p2p"],
+                    "translation_container": staging_info.payload.payload_type.translation_container,
+                    "mythic_encrypts": staging_info.payload.payload_type.mythic_encrypts,
+                    "profile": profile,
+                    "payload": staging_info.payload
+                }
             }
-            return cached_keys[UUID]
+
         except Exception as a:
             # if it's not a staging key, check if it's a payload uuid and get c2 profile AESPSK
             try:
                 query = await db_model.payload_query()
                 payload = await db_objects.get(query, uuid=UUID)
-                # a payload may or may not have an AESPSK parameter/key
-                try:
-                    query = await db_model.payloadc2profiles_query()
-                    c2_profiles = await db_objects.execute(
-                        query.where(db_model.PayloadC2Profiles.payload == payload)
-                    )
-                    for c in c2_profiles:
-                        if c.c2_profile.mythic_encrypts is False and not c.c2_profile.is_p2p:
-                            cached_keys[UUID] = {
-                                "enc_key": None,
-                                "type": None,
-                                "dec_key": None,
-                            }
-                            return cached_keys[UUID]
-                    query = await db_model.c2profileparametersinstance_query()
-                    c2_params = await db_objects.execute(
-                        query.where(
-                            db_model.C2ProfileParametersInstance.payload == payload
-                        )
-                    )
-                    for cp in c2_params:
-                        # loop through all of the params associated with the payload and find one with a key "AESPSK"
-                        if cp.c2_profile_parameters.name == "AESPSK":
-                            if cp.value == "":
-                                cached_keys[UUID] = {
-                                    "enc_key": None,
-                                    "type": None,
-                                    "dec_key": None,
-                                }
-                            else:
-                                cached_keys[UUID] = {
-                                    "enc_key": base64.b64decode(cp.value),
-                                    "type": "AES256",
-                                    "dec_key": base64.b64decode(cp.value),
-                                }
-                            return cached_keys[UUID]
-                except Exception as d:
-                    cached_keys[UUID] = {"enc_key": None, "type": None, "dec_key": None}
-                    return cached_keys[UUID]
-                if UUID not in cached_keys:
-                    # if we get to this point, we found it as a payload that doesn't have an AESPSK parameter, so set it to nonne
-                    cached_keys[UUID] = {"enc_key": None, "type": None, "dec_key": None}
-                    return cached_keys[UUID]
+                if payload.deleted:
+                    await send_all_operations_message(operation=payload.operation,
+                                            level="warning",
+                                            source="deleted_payload_checking_in" + payload.uuid,
+                                            message=f"Deleted payload checking in - {js.dumps(payload.to_json(), indent=4)}")
+                    raise Exception(FileNotFoundError)
+                cached_keys[UUID] = await get_payload_c2_info(None, payload)
             except Exception as b:
-                # finally check to see if it's agent checking in
+                # finally check to see if it's an agent checking in
                 try:
                     query = await db_model.callback_query()
                     callback = await db_objects.get(query, agent_callback_id=UUID)
@@ -168,101 +230,153 @@ async def get_encryption_data(UUID):
                     c2_profiles = await db_objects.execute(
                         query.where(db_model.CallbackC2Profiles.callback == callback)
                     )
+                    c2info = {}
                     for c in c2_profiles:
-                        if c.c2_profile.mythic_encrypts is False:
-                            cached_keys[UUID] = {
-                                "enc_key": None,
-                                "type": None,
-                                "dec_key": None,
-                            }
-                            return cached_keys[UUID]
-                    if callback.decryption_key is not None:
-                        cached_keys[UUID] = {
-                            "dec_key": base64.b64decode(callback.decryption_key),
-                            "type": callback.encryption_type,
-                            "enc_key": base64.b64decode(callback.encryption_key),
+                        c2info[c.c2_profile.name] = {
+                            "is_p2p": c.c2_profile.is_p2p,
+                            "translation_container": callback.registered_payload.payload_type.translation_container,
+                            "mythic_encrypts": callback.registered_payload.payload_type.mythic_encrypts,
+                            "dec_key": bytes(callback.dec_key) if callback.dec_key is not None else None,
+                            "type": callback.crypto_type,
+                            "enc_key": bytes(callback.enc_key) if callback.enc_key is not None else None,
+                            "stage": "callback",
+                            "payload": callback.registered_payload,
+                            "profile": c.c2_profile.name
                         }
-                    else:
-                        cached_keys[UUID] = {
-                            "enc_key": None,
-                            "type": None,
-                            "dec_key": None,
-                        }
-                    return cached_keys[UUID]
+                    cached_keys[UUID] = c2info
                 except Exception as c:
                     logger.exception(
                         "Failed to find UUID in staging, payload's with AESPSK c2 param, or callback"
                     )
                     raise c
-        return cached_keys[UUID]
+        return cached_keys[UUID][profile]
     else:
-        return cached_keys[UUID]
+        return cached_keys[UUID][profile]
 
 
 # returns a base64 encoded response message
-async def parse_agent_message(data: str, request):
+async def parse_agent_message(data: str, request, profile: str):
     new_callback = ""
     agent_uuid = ""
     try:
         decoded = base64.b64decode(data)
         # print(decoded)
     except Exception as e:
-        await send_all_operations_message(f"Failed to base64 decode message: {str(data)}\nfrom {request.socket} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
-                                          "warning")
+        asyncio.create_task(send_all_operations_message(message=f"Failed to base64 decode message from {request.method} URL {request.url} and with headers: \n{request.headers}",
+                                          level="warning", source="get_agent_message"))
         return "", 404, new_callback, agent_uuid
     try:
-        UUID = decoded[:36].decode()  # first 36 characters are the UUID
-        # print(UUID)
+        try:
+            UUID = decoded[:36].decode()  # first 36 characters are the UUID
+            UUID_length = 36
+            # print(UUID)
+        except Exception as e:
+            # if we get here, then we're not looking at a string-based UUID, check if it's a 16B representation
+            UUID = uuid.UUID(bytes_le=decoded[:16])
+            UUID = str(UUID)
+            UUID_length = 16
+
     except Exception as e:
-        await send_all_operations_message(f"Failed to get UUID in first 36 bytes for base64 input: {str(data)}\nfrom {request.socket} as {request.method} method, URL {request.url} with headers: \n{request.headers}",
-                                          "warning")
+        asyncio.create_task(send_all_operations_message(message=f"Failed to get UUID in first 36 or 16 bytes for base64 input with {request.method} method and URL {request.url} with headers: \n{request.headers}",
+                                          level="warning", source="get_agent_message"))
         return "", 404, new_callback, agent_uuid
     try:
-        enc_key = await get_encryption_data(UUID)
-        # print(enc_key)
+        enc_key = await get_encryption_data(UUID, profile)
     except Exception as e:
-        await send_all_operations_message(f"Failed to correlate UUID to something mythic knows: {UUID}\nfrom {request.socket} as {request.method} method with headers: \n{request.headers}",
-                                          "warning")
+        asyncio.create_task(send_all_operations_message(message=f"Failed to correlate UUID, {UUID}, to something mythic knows with {request.method} method with headers: \n{request.headers}",
+                                          level="warning", source="get_agent_message_uuid"))
         return "", 404, new_callback, agent_uuid
     # now we have cached_keys[UUID] is the right AES key to use with this payload, now to decrypt
+    if enc_key["stage"] == "callback":
+        asyncio.create_task(update_edges_from_checkin(UUID, profile))
     decrypted = None
     try:
         # print(decoded[36:])
-        # print(enc_key)
-        decrypted = await crypt.decrypt_message(decoded, enc_key)
-        #if enc_key["type"] is not None:
-        #    if enc_key["type"] == "AES256":
-        #        decrypted = await crypt.decrypt_AES256(
-        #            data=decoded[36:], key=enc_key["dec_key"]
-        #        )
-        #        # print(decrypted)
-        #    decrypted = js.loads(decrypted)
-        #else:
-        #    decrypted = js.loads(decoded[36:])
+        if enc_key["mythic_encrypts"]:
+            # mythic handles encryption/decryption, but maybe not parsing
+            if enc_key["translation_container"] is None:
+                # format is in standard mythic JSON, so parse the decrypted version normally
+                decrypted = await crypt.decrypt_message(decoded, enc_key, return_json=True, length=UUID_length)
+            else:
+                decrypted = await crypt.decrypt_message(decoded, enc_key, return_json=False, length=UUID_length)
+                # format isn't standard mythic JSON, after decrypting send to container for processing
+                decrypted, successfully_sent = await translator_rpc.call(message={
+                    "action": "translate_from_c2_format",
+                    "message": base64.b64encode(decrypted).decode(),
+                    "uuid": UUID,
+                    "profile": profile,
+                    "mythic_encrypts": enc_key["mythic_encrypts"],
+                    "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                    "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                    "type": enc_key["type"]
+                }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
+                if decrypted == b"":
+                    if successfully_sent:
+                        asyncio.create_task(send_all_operations_message(
+                            message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format. check the container's logs for error information",
+                            level="warning", source="translate_from_c2_format_success"))
+                    else:
+                        asyncio.create_task(send_all_operations_message(
+                            message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline",
+                            level="warning", source="translate_from_c2_format_error"))
+                    return "", 404, new_callback, agent_uuid
+                else:
+                    # we should get back JSON from the translation container
+                    decrypted = js.loads(decrypted)
+        else:
+            # mythic doesn't encrypt, so could already be decrypted or require a trip to a container
+            if enc_key["translation_container"] is None:
+                # there's no registered container, so the c2 profile must have taken care of it aready
+                decrypted = decoded
+            else:
+                # mythic doesn't encrypt and a container is specified, ship it off to the container for processing
+                decrypted, successfully_sent = await translator_rpc.call(message={
+                    "action": "translate_from_c2_format",
+                    "message": base64.b64encode(decoded).decode(),
+                    "uuid": UUID,
+                    "profile": profile,
+                    "mythic_encrypts": enc_key["mythic_encrypts"],
+                    "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                    "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                    "type": enc_key["type"]
+                }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
+                if decrypted == b"":
+                    if successfully_sent:
+                        asyncio.create_task(send_all_operations_message(
+                            message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format. check the container's logs for error information",
+                            level="warning", source="translate_from_c2_format_success"))
+                    else:
+                        asyncio.create_task(send_all_operations_message(
+                            message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline.",
+                            level="warning", source="translate_from_c2_format_error"))
+                    return "", 404, new_callback, agent_uuid
+                else:
+                    decrypted = js.loads(decrypted)
         #print(decrypted)
     except Exception as e:
-        # print(str(e))
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         if decrypted is not None:
             msg = str(decrypted)
         else:
             msg = str(decoded)
-        await send_all_operations_message(f"Failed to decrypt/load message with error: {str(e)}\n {str(msg)}\nfrom {request.socket} as {request.method} method with URL {request.url} with headers: \n{request.headers}",
-                                          "warning")
+        asyncio.create_task(send_all_operations_message(message=f"Failed to decrypt/load message with error: {str(e)}\n from {request.method} method with URL {request.url} with headers: \n{request.headers}",
+                                          level="warning", source="parse_agent_message_decrypt_load"))
         return "", 404, new_callback, agent_uuid
     """
     JSON({
-        "action": "", //staging-rsa, staging-dh, staging-psk, get_tasking ...
+        "action": "", //staging-rsa, get_tasking ...
                     //  staging_info stored in db on what step in the process
         "...": ... // JSON data relating to the action
         "delegates":[
-            {"UUID": base64(agentMessage from a forwarded agent)}
+            {"UUID": base64(agentMessage from a forwarded agent),
+            "c2_profile": "name of c2 profile used to connect the two agents"}
         ]
     })
     """
     try:
-
         if "action" not in decrypted:
-            await send_all_operations_message("Missing 'action' in parsed JSON", "warning")
+            asyncio.create_task(send_all_operations_message(message="Error in handling a callback message: Missing 'action' in parsed JSON",
+                                                            level="warning", source="no_action_in_message"))
             return "", 404, new_callback, agent_uuid
         # now to parse out what we're doing, everything is decrypted at this point
         # shuttle everything out to the appropriate api files for processing
@@ -270,11 +384,11 @@ async def parse_agent_message(data: str, request):
         #    logger.info("Agent -> Mythic: " + js.dumps(decrypted))
         # print(decrypted)
         response_data = {}
+        query = await db_model.callback_query()
         if decrypted["action"] == "get_tasking":
-            query = await db_model.callback_query()
             callback = await db_objects.get(query, agent_callback_id=UUID)
             response_data = await get_agent_tasks(decrypted, callback)
-            delegates = await get_routable_messages(callback)
+            delegates = await get_routable_messages(callback, request)
             if delegates is not None:
                 response_data["delegates"] = delegates
             agent_uuid = UUID
@@ -288,58 +402,49 @@ async def parse_agent_message(data: str, request):
             # this is an agent message that is just requesting or forwarding along delegate messages
             # this is common in server_routed traffic after the first hop in the mesh
             agent_uuid = UUID
-            pass
         elif decrypted["action"] == "checkin":
-            if cached_keys[UUID]["type"] is not None:
-                # we have encryption data when we're about to check in, so it's probably from staging
+            if enc_key["stage"] != "callback":
+                # checkin message with a staging uuid
                 if (
-                    "encryption_key" not in decrypted
-                    or decrypted["encryption_key"] == ""
+                    "enc_key" not in decrypted
+                    or decrypted["enc_key"] == ""
                 ):
-                    decrypted["encryption_key"] = base64.b64encode(
-                        enc_key["enc_key"]
-                    ).decode()
+                    decrypted["enc_key"] = enc_key["enc_key"]
                 if (
-                    "decryption_key" not in decrypted
-                    or decrypted["decryption_key"] == ""
+                    "dec_key" not in decrypted
+                    or decrypted["dec_key"] == ""
                 ):
-                    decrypted["decryption_key"] = base64.b64encode(
-                        enc_key["dec_key"]
-                    ).decode()
+                    decrypted["dec_key"] = enc_key["dec_key"]
                 if (
-                    "encryption_type" not in decrypted
-                    or decrypted["encryption_type"] == ""
+                    "crypto_type" not in decrypted
+                    or decrypted["crypto_type"] == ""
                 ):
-                    decrypted["encryption_type"] = "AES256"
-            response_data = await create_callback_func(decrypted, request)
-            if response_data["status"] == "success":
-                new_callback = response_data["id"]
+                    decrypted["crypto_type"] = enc_key["type"]
+            if enc_key["stage"] == "callback":
+                # if the UUID is for a callback doing a checkin message, just update the callback instead
+                await update_callback(decrypted, UUID)
+                response_data = {"action": "checkin", "status": "success", "id": UUID}
+                agent_uuid = UUID
+            else:
+                response_data = await create_callback_func(decrypted, request)
+                if response_data["status"] == "success":
+                    new_callback = response_data["id"]
         elif decrypted["action"] == "staging_rsa":
             response_data, staging_info = await staging_rsa(decrypted, UUID)
-            if staging_info is not None:
-                cached_keys[staging_info.staging_uuid] = {
-                    "enc_key": base64.b64decode(staging_info.session_key),
-                    "dec_key": base64.b64decode(staging_info.session_key),
-                    "type": "AES256",
-                }
-            else:
-                return "", 404, new_callback, agent_uuid
-            # staging is it's own thing, so return here instead of following down
-        elif decrypted["action"] == "staging_dh":
-            response_data, staging_info = await staging_dh(decrypted, UUID)
-            if staging_info is not None:
-                cached_keys[staging_info.staging_uuid] = {
-                    "enc_key": base64.b64decode(staging_info.session_key),
-                    "dec_key": base64.b64decode(staging_info.session_key),
-                    "type": "AES256",
-                }
-            else:
+            if staging_info is None:
                 return "", 404, new_callback, agent_uuid
         elif decrypted["action"] == "update_info":
             response_data = await update_callback(decrypted, UUID)
             agent_uuid = UUID
+        elif decrypted["action"] == "translation_staging":
+            response_data = await staging_translator(decrypted, enc_key)
+            if response_data is None:
+                return "", 404, new_callback, agent_uuid
+            else:
+                return response_data, 200, new_callback, agent_uuid
         else:
-            await send_all_operations_message("Unknown action:" + str(decrypted["action"]), "warning")
+            asyncio.create_task(send_all_operations_message(message="Unknown action:" + str(decrypted["action"]),
+                                                            level="warning", source="unknown_action_in_message"))
             return "", 404, new_callback, agent_uuid
         # now that we have the right response data, format the response message
         if (
@@ -352,51 +457,139 @@ async def parse_agent_message(data: str, request):
                 response_data["delegates"] = []
             for d in decrypted["delegates"]:
                 # handle messages for all of the delegates
-                # d is {"UUID1": agentMessage}
-                for d_uuid in d:
-                    # process the delegate message recursively
-                    # iterate over the keys in d, typically just one
-                    del_message, status, del_new_callback, del_uuid = await parse_agent_message(d[d_uuid], request)
-                    if status == 200:
-                        # store the response to send back
-                        if del_new_callback != "":
-                            # the delegate message caused a new callback, to report the changing UUID
-                            response_data["delegates"].append({del_new_callback: del_message,
-                                                               d_uuid: del_new_callback})
-                        elif del_uuid != "" and del_uuid != d_uuid:
-                            # there is no new callback
-                            # the delegate is a callback (not staging) and the callback uuid != uuid in the message
-                            # so send an update message with the rightful callback uuid so the agent can update
-                            response_data["delegates"].append({del_uuid: del_message,
-                                                               d_uuid: del_uuid})
-                        else:
-                            # there's no new callback and the delegate message isn't a full callback yet
-                            # so just proxy through the UUID since it's in some form of staging
-                            response_data["delegates"].append({d_uuid: del_message})
-        #   special encryption will be handled by the appropriate stager call
-        # base64 ( UID + ENC(response_data) )
-        #if keep_logs:
-        #    logger.info("Mythic -> Agent: " + js.dumps(response_data))
-        # print(response_data)
-        final_msg = await crypt.encrypt_message(response_data, enc_key, UUID)
-        #if enc_key["type"] is None:
-        #    return (
-        #        base64.b64encode((UUID + js.dumps(response_data)).encode()).decode(),
-        #        200,
-        #    )
-        #else:
-        #    if enc_key["type"] == "AES256":
-        #        enc_data = await crypt.encrypt_AES256(
-        #            data=js.dumps(response_data).encode(), key=enc_key["enc_key"]
-        #        )
-        #        return base64.b64encode(UUID.encode() + enc_data).decode(), 200
+                # d is {"message": agentMessage, "c2_profile": "profile name", "uuid": d_uuid}
+                # process the delegate message recursively
+                del_message, status, del_new_callback, del_uuid = await parse_agent_message(d["message"],
+                                                                                            request,
+                                                                                            d["c2_profile"])
+                if status == 200:
+                    # store the response to send back
+                    print("got delegate message: ")
+                    print(del_message)
+                    if not isinstance(del_message, str):
+                        del_message = del_message.decode()
+                    if del_new_callback != "":
+                        # the delegate message caused a new callback, to report the changing UUID
+                        asyncio.create_task(
+                            add_p2p_route(
+                                agent_message=[{
+                                        "source": UUID,
+                                        "destination": del_new_callback,
+                                        "direction": 1,
+                                        "metadata": "",
+                                        "action": "add",
+                                        "c2_profile": d["c2_profile"]
+                                }],
+                                callback=None,
+                                task=None)
+                        )
+                        response_data["delegates"].append({"message": del_message,
+                                                           "mythic_uuid": del_new_callback,
+                                                           "uuid": d["uuid"]})
+                    elif del_uuid != "" and del_uuid != d["uuid"]:
+                        # there is no new callback
+                        # the delegate is a callback (not staging) and the callback uuid != uuid in the message
+                        # so send an update message with the rightful callback uuid so the agent can update
+                        asyncio.create_task(
+                            add_p2p_route(
+                                agent_message=[{
+                                        "source": UUID,
+                                        "destination": del_uuid,
+                                        "direction": 1,
+                                        "metadata": "",
+                                        "action": "add",
+                                        "c2_profile": d["c2_profile"]
+                                    }],
+                                callback=None,
+                                task=None)
+                        )
+                        response_data["delegates"].append({"message": del_message,
+                                                           "uuid": d["uuid"],
+                                                           "mythic_uuid": del_uuid})
+                    else:
+                        # there's no new callback and the delegate message isn't a full callback yet
+                        # so just proxy through the UUID since it's in some form of staging
+                        response_data["delegates"].append({"message": del_message, "uuid": d["uuid"]})
+        #print("final message before going to containers:")
+        #print(response_data)
+        final_msg = await create_final_message_from_data_and_profile_info(response_data, enc_key, UUID, request)
+        if final_msg is None:
+            return "", 404, new_callback, agent_uuid
+        #print("finishing processing loop, returning: ")
+        #print(final_msg)
         return final_msg, 200, new_callback, agent_uuid
     except Exception as e:
-        print(sys.exc_info()[-1].tb_lineno)
-        print("callback.py: " + str(e))
-        await send_all_operations_message(f"Exception dealing with message: {str(decoded)}\nfrom {request.host} as {request.method} method with headers: \n{request.headers}",
-                                          "warning")
+        logger.warning(str(sys.exc_info()[-1].tb_lineno))
+        logger.warning("callback.py: " + str(e))
+        asyncio.create_task(send_all_operations_message(message=f"Exception dealing with message from {request.host} as {request.method} method with headers: \n{request.headers}\ncallback.py: {str(sys.exc_info()[-1].tb_lineno)} - {str(e)}",
+                                          level="warning", source="mythic_error_for_message_parsing"))
         return "", 404, new_callback, agent_uuid
+
+
+async def create_final_message_from_data_and_profile_info(response_data, enc_key, current_uuid, request):
+    if enc_key["translation_container"] is not None:
+        final_msg, successfully_sent = await translator_rpc.call(message={
+            "action": "translate_to_c2_format",
+            "message": response_data,
+            "profile": enc_key["profile"],
+            "mythic_encrypts": enc_key["mythic_encrypts"],
+            "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+            "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+            "uuid": current_uuid,
+            "type": enc_key["type"]
+        }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
+        # print("received from translate_to_c2_format: ")
+        # print(final_msg)
+        if final_msg == b"":
+            if successfully_sent:
+                asyncio.create_task(send_all_operations_message(
+                    message=f"Failed to have {enc_key['translation_container']} container process translate_to_c2_format with message: {str(response_data)}",
+                    level="warning", source="translate_to_c2_format_success"))
+            else:
+                asyncio.create_task(send_all_operations_message(
+                    message=f"Failed to have {enc_key['translation_container']} container process translate_to_c2_format, is it online?",
+                    level="warning", source="translate_to_c2_format_error"))
+            return None
+    else:
+        final_msg = js.dumps(response_data).encode()
+    if enc_key["mythic_encrypts"]:
+        # if mythic should encrypt this, encrypt it and do our normal stuff
+        # print(final_msg)
+        final_msg = await crypt.encrypt_message(final_msg, enc_key, current_uuid)
+        # print(final_msg)
+    elif enc_key["translation_container"] is None:
+        # if mythic shouldn't encrypt it and there's a container,
+        #     then the container should have already handled everything
+        # otherwise, there's no container and we shouldn't encrypt, so just concat and base64
+        final_msg = base64.b64encode((current_uuid.encode() + final_msg)).decode()
+    return final_msg
+
+
+async def staging_translator(final_msg, enc_key):
+    try:
+        # we got a message back, process it and store it for staging information in the future
+        await db_objects.create(db_model.StagingInfo,
+                                session_id=final_msg["session_id"],
+                                enc_key=base64.b64decode(final_msg["enc_key"]) if final_msg["enc_key"] is not None else None,
+                                dec_key=base64.b64decode(final_msg["dec_key"]) if final_msg["dec_key"] is not None else None,
+                                crypto_type=final_msg["type"],
+                                staging_uuid=final_msg["next_uuid"],
+                                payload=enc_key["payload"]
+                                )
+        return base64.b64decode(final_msg["message"])
+
+    except Exception as e:
+        asyncio.create_task(send_all_operations_message(
+            message=f"Failed to translator_staging response from {enc_key['translation_container']} container message: {str(final_msg)}",
+            level="warning", source="translator_staging_response_error"))
+        return None
+
+
+async def update_checkin_time(callback_uuid):
+    query = await db_model.callback_query()
+    callback = await db_objects.get(query, agent_callback_id=callback_uuid)
+    callback.last_checkin = datetime.utcnow()
+    await db_objects.update(callback)
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/", methods=["POST"])
@@ -416,15 +609,15 @@ async def create_manual_callback(request, user):
         )
     try:
         data = request.json
-        encryption = await get_encryption_data(data["uuid"])
+        encryption = await get_encryption_data(data["uuid"], data["profile"])
         if encryption['type'] is None:
-            data["encryption_type"] = ""
-            data["encryption_key"] = None
-            data["decryption_key"] = None
+            data["crypto_type"] = ""
+            data["enc_key"] = None
+            data["dec_key"] = None
         else:
-            data["encryption_type"] = encryption['type']
-            data["encryption_key"] = base64.b64encode(encryption['enc_key']).decode()
-            data["decryption_key"] = base64.b64encode(encryption['dec_key']).decode()
+            data["crypto_type"] = encryption['type']
+            data["enc_key"] = base64.b64encode(encryption['enc_key']).decode()
+            data["dec_key"] = base64.b64encode(encryption['dec_key']).decode()
         return json(await create_callback_func(data, request))
     except Exception as e:
         print(e)
@@ -471,6 +664,8 @@ async def create_callback_func(data, request):
             data["external_ip"] = None
     if "extra_info" not in data:
         data["extra_info"] = ""
+    if "sleep_info" not in data:
+        data["sleep_info"] = ""
     try:
         if payload.operation.complete:
             await db_objects.create(
@@ -480,6 +675,7 @@ async def create_callback_func(data, request):
                 message="Payload {} trying to checkin with data: {}".format(
                     payload.uuid, js.dumps(data)
                 ),
+                source=str(uuid.uuid4())
             )
             return {"status": "error", "error": "Failed to create callback"}
         else:
@@ -500,6 +696,7 @@ async def create_callback_func(data, request):
                 architecture=data["architecture"],
                 external_ip=data["external_ip"],
                 extra_info=data["extra_info"],
+                sleep_info=data["sleep_info"]
             )
             await db_objects.create(
                 db_model.OperationEventLog,
@@ -508,19 +705,20 @@ async def create_callback_func(data, request):
                 message="New Callback ({}) {}@{} with pid {}".format(
                     cal.id, cal.user, cal.host, str(cal.pid)
                 ),
+                source=str(uuid.uuid4())
             )
-            await db_objects.create(
+            await db_objects.get_or_create(
                 db_model.PayloadOnHost,
                 host=data["host"],
                 payload=payload,
                 operation=payload.operation,
             )
-        if "encryption_type" in data:
-            cal.encryption_type = data["encryption_type"]
-        if "decryption_key" in data:
-            cal.decryption_key = data["decryption_key"]
-        if "encryption_key" in data:
-            cal.encryption_key = data["encryption_key"]
+        if "crypto_type" in data:
+            cal.crypto_type = data["crypto_type"]
+        if "dec_key" in data:
+            cal.dec_key = data["dec_key"]
+        if "enc_key" in data:
+            cal.enc_key = data["enc_key"]
         await db_objects.update(cal)
         query = await db_model.payloadcommand_query()
         payload_commands = await db_objects.execute(
@@ -583,76 +781,27 @@ async def create_callback_func(data, request):
         return {"status": "error", "error": "Failed to create callback: " + str(e)}
     status = {"status": "success"}
     await log_to_siem(cal.to_json(), mythic_object="callback_new")
-    if cal.operation.webhook and cal.registered_payload.callback_alert:
+    if cal.operation.webhook != "" and cal.registered_payload.callback_alert:
         # if we have a webhook, send a message about the new callback
         try:
             if cal.integrity_level >= 3:
-                int_level = "high"
+                int_level = "HIGH"
             elif cal.integrity_level == 2:
-                int_level = "medium"
+                int_level = "MEDIUM"
             else:
-                int_level = "low"
-            message = {
-                "attachments": [
-                    {
-                        "color": "#b366ff",
-                        "blocks": [
-                            {
-                                "type": "section",
-                                "text": {
-                                    "type": "mrkdwn",
-                                    "text": "<!channel> You have a new Callback!",
-                                },
-                            },
-                            {"type": "divider"},
-                            {
-                                "type": "section",
-                                "fields": [
-                                    {
-                                        "type": "mrkdwn",
-                                        "text": "*Operation:*\n{}".format(
-                                            cal.operation.name
-                                        ),
-                                    },
-                                    {
-                                        "type": "mrkdwn",
-                                        "text": "*IP:*\n{}".format(cal.ip),
-                                    },
-                                    {
-                                        "type": "mrkdwn",
-                                        "text": "*Callback ID:*\n{}".format(cal.id),
-                                    },
-                                    {
-                                        "type": "mrkdwn",
-                                        "text": "*Type:*\n{}".format(
-                                            cal.registered_payload.payload_type.ptype
-                                        ),
-                                    },
-                                    {
-                                        "type": "mrkdwn",
-                                        "text": '*Description:*\n"{}"'.format(
-                                            cal.description
-                                        ),
-                                    },
-                                    {
-                                        "type": "mrkdwn",
-                                        "text": "*Operator:*\n{}".format(
-                                            cal.operator.username
-                                        ),
-                                    },
-                                    {
-                                        "type": "mrkdwn",
-                                        "text": "*Integrity Level*\n{}".format(
-                                            int_level
-                                        ),
-                                    },
-                                ],
-                            },
-                        ],
-                    }
-                ]
-            }
-            response = requests.post(cal.operation.webhook, json=message)
+                int_level = "LOW"
+            message = cal.operation.webhook_message.replace("{channel}", cal.operation.channel)
+            message = message.replace("{display_name}", cal.operation.display_name)
+            message = message.replace("{icon_emoji}", cal.operation.icon_emoji)
+            message = message.replace("{icon_url}", cal.operation.icon_url)
+            message = message.replace("{operation}", cal.operation.name)
+            message = message.replace("{callback}", str(cal.id))
+            message = message.replace("{ip}", str(cal.ip))
+            message = message.replace("{payload_type}", cal.registered_payload.payload_type.ptype)
+            message = message.replace("{description}", cal.description)
+            message = message.replace("{operator}", cal.operator.username)
+            message = message.replace("{integrity}", int_level)
+            asyncio.create_task(send_webhook_message(cal.operation.webhook, message))
         except Exception as e:
             logger.exception("Failed to send off webhook: " + str(e))
             print(str(e))
@@ -664,19 +813,30 @@ async def create_callback_func(data, request):
             "pid",
             "ip",
             "uuid",
+            "sleep_info",
             "integrity_level",
             "os",
             "domain",
             "architecture",
             "external_ip",
-            "encryption_type",
-            "decryption_key",
-            "encryption_key",
+            "crypto_type",
+            "enc_key",
+            "dec_key",
             "delegates",
             "extra_info",
         ]:
             status[k] = data[k]
     return {**status, "id": cal.agent_callback_id, "action": "checkin"}
+
+
+async def send_webhook_message(webhook, message):
+    try:
+        message = js.loads(message)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(webhook, json=message) as resp:
+                return await resp.text()
+    except Exception as e:
+        print("sending webhook message as json error: " + str(e))
 
 
 async def load_commands_func(command_dict, callback, task):
@@ -719,17 +879,6 @@ async def update_callback(data, UUID):
     query = await db_model.callback_query()
     cal = await db_objects.get(query, agent_callback_id=UUID)
     try:
-        if UUID not in cached_keys:
-            cached_keys[UUID] = {"type": None, "enc_key": None, "dec_key": None}
-        if "encryption_type" in data:
-            cal.encryption_type = data["encryption_type"]
-            cached_keys[UUID]["type"] = cal.encryption_type
-        if "encryption_key" in data:
-            cal.encryption_key = data["encryption_key"]
-            cached_keys[UUID]["enc_key"] = base64.b64decode(cal.encryption_key)
-        if "decryption_key" in data:
-            cal.decryption_key = data["decryption_key"]
-            cached_keys[UUID]["dec_key"] = base64.b64decode(cal.decryption_key)
         if "user" in data:
             cal.user = data["user"]
         if "ip" in data:
@@ -750,6 +899,10 @@ async def update_callback(data, UUID):
             cal.architecture = data["architecture"]
         if "pid" in data:
             cal.pid = data["pid"]
+        if "sleep_info" in data:
+            cal.sleep_info = data["sleep_info"]
+        if "description" in data:
+            cal.description = data["description"]
         await db_objects.update(cal)
         return {"action": "update_info", "status": "success"}
     except Exception as e:
@@ -758,118 +911,130 @@ async def update_callback(data, UUID):
         return {"action": "update_info", "status": "error", "error": str(e)}
 
 
+def cost_func(u, v, edge, prev_edge):
+    return 1
+
 # https://pypi.org/project/Dijkstar/
 current_graphs = {}
 
 
-async def get_routable_messages(requester):
+async def get_routable_messages(requester, request):
     # are there any messages sitting in the database in the "submitted" stage that have routes from the requester
     # 1. get all CallbackGraphEdge entries that have an end_timestamp of Null (they're still active)
     # 2. feed into dijkstar and do shortest path
     # 3. for each element in the shortest path, see if there's any tasking stored
     # 4.   if there's tasking, wrap it up in a message:
     #        content is the same of that of a "get_tasking" reply with a a -1 request
-    delegates = []
-    operation = requester.operation
-    if operation.name not in current_graphs:
-        await update_graphs(operation)
-    if current_graphs[operation.name].edge_count == 0:
-        return None  # graph for this operation has no edges
-    query = await db_model.task_query()
-    submitted_tasks = await db_objects.execute(
-        query.where(
-            (db_model.Task.status == "submitted")
-            & (db_model.Callback.operation == operation)
+    try:
+        delegates = []
+        operation = requester.operation
+        if operation.name not in current_graphs:
+            await update_graphs(operation)
+        if current_graphs[operation.name].edge_count == 0:
+            return None  # graph for this operation has no edges
+        query = await db_model.task_query()
+        submitted_tasks = await db_objects.execute(
+            query.where(
+                (db_model.Task.status == "submitted")
+                & (db_model.Callback.operation == operation)
+            )
         )
-    )
-    # print(len(submitted_tasks))
-    # this is a mapping of UUID to list of tasks that it'll get
-    temp_callback_tasks = {}
-    for t in submitted_tasks:
-        # print(t.to_json())
-        try:
-            path = find_path(current_graphs[operation.name], requester, t.callback)
-        except NoPathError:
-            # print("No path from {} to {}".format(requester.id, t.callback.id))
-            continue
-        if len(path.nodes) > 1 and path.nodes[-1] != requester:
-            # this means we have some sort of path longer than 1
-            # make a tasking message for this
+        # print(len(submitted_tasks))
+        # this is a mapping of UUID to list of tasks that it'll get
+        temp_callback_tasks = {}
+        for t in submitted_tasks:
             # print(t.to_json())
-            if path.nodes[-1].agent_callback_id in temp_callback_tasks:
-                temp_callback_tasks[path.nodes[-1].agent_callback_id]["tasks"].append(t)
-            else:
-                temp_callback_tasks[path.nodes[-1].agent_callback_id] = {
-                    "tasks": [t],
-                    "path": path.nodes[::-1],
-                }
-    # now actually construct the tasks
-    for k, v in temp_callback_tasks.items():
-        # print(k)
-        # print(v)
-        tasks = []
-        for t in v["tasks"]:
-            t.status = "processing"
-            t.status_timestamp_processing = datetime.utcnow()
-            t.timestamp = t.status_timestamp_processing
-            await db_objects.update(t)
-            tasks.append(
-                {
-                    "command": t.command.cmd,
-                    "parameters": t.params,
-                    "id": t.agent_task_id,
-                    "timestamp": t.timestamp.timestamp(),
-                }
-            )
-        # now that we have all the tasks we're going to send, make the message
-        message = {"action": "get_tasking", "tasks": tasks}
-        # now wrap this message up like it's going to be sent out, first level is just normal
-        enc_key = await get_encryption_data(v["path"][0].agent_callback_id)
-        if enc_key['type'] is None:
-            message = {
-                v["path"][0]
-                .agent_callback_id: base64.b64encode(
-                    (v["path"][0].agent_callback_id + js.dumps(message)).encode()
+            try:
+                path = find_path(current_graphs[operation.name], requester, t.callback, cost_func=cost_func)
+            except NoPathError:
+                # print("No path from {} to {}".format(requester.id, t.callback.id))
+                continue
+            if len(path.nodes) > 1 and path.nodes[-1] != requester:
+                # this means we have some sort of path longer than 1
+                # make a tasking message for this
+                # print(t.to_json())
+                if path.nodes[-1].agent_callback_id in temp_callback_tasks:
+                    temp_callback_tasks[path.nodes[-1].agent_callback_id]["tasks"].append(t)
+                else:
+                    temp_callback_tasks[path.nodes[-1].agent_callback_id] = {
+                        "tasks": [t],
+                        "path": path.nodes[::-1],
+                        "edges": path.edges[::-1]
+                    }
+        # now actually construct the tasks
+        for k, v in temp_callback_tasks.items():
+            print(k)
+            #print(v)
+            tasks = []
+            for t in v["tasks"]:
+                t.status = "processing"
+                t.status_timestamp_processing = datetime.utcnow()
+                t.timestamp = t.status_timestamp_processing
+                t.callback.last_checkin = datetime.utcnow()
+                await db_objects.update(t.callback)
+                await db_objects.update(t)
+                tasks.append(
+                    {
+                        "command": t.command.cmd,
+                        "parameters": t.params,
+                        "id": t.agent_task_id,
+                        "timestamp": t.timestamp.timestamp(),
+                    }
                 )
-                .decode()
-            }
+            # now that we have all the tasks we're going to send, make the message
+            message = {"action": "get_tasking", "tasks": tasks}
+            # now wrap this message up like it's going to be sent out, first level is just normal
+            print(v["edges"])
+            print(v["path"])
+            enc_key = await get_encryption_data(v["path"][0].agent_callback_id, v["edges"][0].c2_profile.name)
+            logger.info(
+                "Got encryption data for linked callback, about to send off {} to create_final_message".format(
+                    str(message)))
+            final_msg = await create_final_message_from_data_and_profile_info(message,
+                                                                              enc_key,
+                                                                              v["path"][0].agent_callback_id,
+                                                                              request)
+            if final_msg is None:
+                message = {}
+            else:
+                if not isinstance(final_msg, str):
+                    final_msg = final_msg.decode()
+                message = {
+                    "message": final_msg,
+                    "uuid": v["path"][0].agent_callback_id
+                }
+            # we don't need to do this wrapping for the last in the list since that's the egress node asking for tasking
+            for cal in v["edges"][1:]:
+                message = {"action": "get_tasking", "tasks": [], "delegates": [message]}
+                logger.info("destination agent: " + cal.destination.agent_callback_id)
+                logger.info("source agent: " + cal.source.agent_callback_id)
+                enc_key = await get_encryption_data(cal.destination.agent_callback_id, cal.c2_profile.name)
+                logger.info(
+                    "Got encryption data for linked callback in for loop, about to send off {} to create_final_message".format(
+                        str(message)))
+                final_msg = await create_final_message_from_data_and_profile_info(message,
+                                                                                  enc_key,
+                                                                                  cal.destination.agent_callback_id,
+                                                                                  request)
+                if final_msg is None:
+                    message = {}
+                else:
+                    if not isinstance(final_msg, str):
+                        final_msg = final_msg.decode()
+                    logger.info("setting final target uuid of message: " + cal.destination.agent_callback_id)
+                    message = {
+                        "message": final_msg,
+                        "uuid": cal.destination.agent_callback_id
+                    }
+            print(message)
+            delegates.append(message)
+        # print(delegates)
+        if len(delegates) == 0:
+            return None
         else:
-            enc_data = await crypt.encrypt_AES256(
-                data=js.dumps(message).encode(), key=enc_key['enc_key']
-            )
-            message = {
-                v["path"][0]
-                .agent_callback_id: base64.b64encode(
-                    v["path"][0].agent_callback_id.encode() + enc_data
-                )
-                .decode()
-            }
-        # for every other agent in the path though, their action is a delegate message
-        # we don't need to do this wrapping for the last in the list since that's the egress node asking for tasking
-        for cal in v["path"][1:-1]:
-            message = {"action": "get_tasking", "tasks": [], "delegates": [message]}
-            enc_key = await get_encryption_data(cal.agent_callback_id)
-            if enc_key['type'] is None:
-                message = {
-                    cal.agent_callback_id: base64.b64encode(
-                        (cal.agent_callback_id + js.dumps(message)).encode()
-                    ).decode()
-                }
-            else:
-                enc_data = await crypt.encrypt_AES256(
-                    data=js.dumps(message).encode(), key=enc_key['enc_key']
-                )
-                message = {
-                    cal.agent_callback_id: base64.b64encode(
-                        cal.agent_callback_id.encode() + enc_data
-                    ).decode()
-                }
-        delegates.append(message)
-    # print(delegates)
-    if len(delegates) == 0:
-        return None
-    else:
-        return delegates
+            return delegates
+    except Exception as e:
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + str(e))
 
 
 async def update_graphs(operation):
@@ -885,14 +1050,14 @@ async def update_graphs(operation):
         # dijkstra is directed, so if we have a bidirectional connection (type 3) account for that as well
         for e in available_edges:
             if e.source == e.destination:
-                temp.add_edge(e.source, e.c2_profile, 1)
+                temp.add_edge(e.source, e.c2_profile, e)
             elif e.direction == 1:
-                temp.add_edge(e.source, e.destination, 1)
+                temp.add_edge(e.source, e.destination, e)
             elif e.direction == 2:
-                temp.add_edge(e.destination, e.source, 1)
+                temp.add_edge(e.destination, e.source, e)
             elif e.direction == 3:
-                temp.add_edge(e.source, e.destination, 1)
-                temp.add_edge(e.destination, e.source, 1)
+                temp.add_edge(e.source, e.destination, e)
+                temp.add_edge(e.destination, e.source, e)
         query = await db_model.c2profile_query()
         profiles = await db_objects.execute(
             query.where(db_model.C2Profile.is_p2p == False)
@@ -917,71 +1082,62 @@ async def update_non_directed_graphs(operation):
                 & (db_model.CallbackGraphEdge.end_timestamp == None)
             )
         )
-        temp = Graph()
+        temp = Graph(undirected=True)
         # dijkstra is directed, so if we have a bidirectional connection (type 3) account for that as well
         for e in available_edges:
             if e.source == e.destination:
-                temp.add_edge(e.source, e.c2_profile, 1)
-                temp.add_edge(e.c2_profile, e.source, 1)
+                temp.add_edge(e.source, e.c2_profile, e)
             else:
-                temp.add_edge(e.source, e.destination, 1)
-                temp.add_edge(e.destination, e.source, 1)
+                temp.add_edge(e.source, e.destination, e)
         query = await db_model.c2profile_query()
         profiles = await db_objects.execute(
             query.where(db_model.C2Profile.is_p2p == False)
         )
         for p in profiles:
             temp.add_edge(p, "Mythic", 1)
-            temp.add_edge("Mythic", p, 1)
         current_non_directed_graphs[operation.name] = temp
     except Exception as e:
-        print(str(e))
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return
 
 
 async def add_non_directed_graphs(e):
     if e.source.operation.name not in current_non_directed_graphs:
-        current_non_directed_graphs[e.source.operation.name] = Graph()
+        current_non_directed_graphs[e.source.operation.name] = Graph(undirected=True)
     try:
         if e.source == e.destination:
             current_non_directed_graphs[e.source.operation.name].add_edge(
-                e.source, e.c2_profile, 1
-            )
-            current_non_directed_graphs[e.source.operation.name].add_edge(
-                e.c2_profile, e.source, 1
+                e.source, e.c2_profile, e
             )
         else:
             current_non_directed_graphs[e.source.operation.name].add_edge(
-                e.source, e.destination, 1
-            )
-            current_non_directed_graphs[e.source.operation.name].add_edge(
-                e.destination, e.source, 1
+                e.source, e.destination, e
             )
     except Exception as e:
-        print(str(e))
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return
 
 
 async def remove_non_directed_graphs(e):
     if e.source.operation.name not in current_non_directed_graphs:
-        current_non_directed_graphs[e.source.operation.name] = Graph()
+        current_non_directed_graphs[e.source.operation.name] = Graph(undirected=True)
     try:
+        if e.source not in current_non_directed_graphs[e.source.operation.name]:
+            current_non_directed_graphs[e.source.operation.name].add_node(e.source)
+        if e.destination not in current_non_directed_graphs[e.source.operation.name]:
+            current_non_directed_graphs[e.source.operation.name].add_node(e.destination)
+        if e.c2_profile not in current_non_directed_graphs[e.source.operation.name]:
+            current_non_directed_graphs[e.source.operation.name].add_node(e.c2_profile)
         if e.source == e.destination:
             current_non_directed_graphs[e.source.operation.name].remove_edge(
                 e.source, e.c2_profile
-            )
-            current_non_directed_graphs[e.source.operation.name].remove_edge(
-                e.c2_profile, e.source
             )
         else:
             current_non_directed_graphs[e.source.operation.name].remove_edge(
                 e.source, e.destination
             )
-            current_non_directed_graphs[e.source.operation.name].remove_edge(
-                e.destination, e.source
-            )
     except Exception as e:
-        print(str(e))
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return
 
 
@@ -1017,8 +1173,25 @@ async def remove_graph_edge(request, id, user):
 cached_socks = {}
 
 
+class SyncAsyncDeque(deque):
+    def __init__(self):
+        super().__init__()
+        self.not_empty = threading.Event()
+        self.not_empty.set()
+
+    def append(self, elem):
+        super().append(elem)
+        self.not_empty.set()
+
+    def pop(self):
+        self.not_empty.wait()  # Wait until not empty, or next append call
+        if not (len(super()) - 1):
+            self.not_empty.clear()
+        return super().popleft()
+
+
 async def start_socks(port: int, callback: Callback, task: Task):
-    # print("starting socks")
+    #print("starting socks")
     try:
         query = await db_model.callback_query()
         socks_instance = await db_objects.get(
@@ -1030,44 +1203,24 @@ async def start_socks(port: int, callback: Callback, task: Task):
     except:
         # we're not using this port, so we can use it
         pass
+    server_address = ("0.0.0.0", port)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind(server_address)
+    except Exception as e:
+        #print("failed to bind socket: " + str(e))
+        return {"status": "error", "error": "failed to bind to socket: " + str(e)}
     # now actually start the binary
-    # f = open("socks_logs.txt", "w")
-    process = subprocess.Popen(
-        ["./socks_server/goserver", str(port), str(port + 1)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    await sleep(3)
-    process.poll()
-    if process.returncode is not None:
-        stdout, stderr = process.communicate()
-        message = (
-            "Failed to start proxy on port "
-            + str(port)
-            + ". Got error code: "
-            + str(process.returncode)
-            + "\nstdout: "
-            + str(stdout)
-            + "\nstderr: "
-            + str(stderr)
-        )
-        await db_objects.create(
-            db_model.OperationEventLog,
-            operator=task.operator,
-            operation=callback.operation,
-            message=message,
-            level="error",
-        )
-        return {"status": "error", "error": "failed to start socks proxy"}
     callback.port = port
     callback.socks_task = task
     await db_objects.update(callback)
     cached_socks[callback.id] = {
-        "process": process,
-        "queue": deque(),
+        "socket": sock,
+        "queue": SyncAsyncDeque(),
+        "connections": {},
         "thread": threading.Thread(
             target=thread_read_socks,
-            kwargs={"port": port + 1, "callback_id": callback.id},
+            kwargs={"port": port, "callback_id": callback.id, "sock": sock},
         ),
     }
     cached_socks[callback.id]["thread"].start()
@@ -1090,14 +1243,19 @@ async def stop_socks(callback: Callback, operator):
         except:
             pass
         try:
+            for key,con in cached_socks[callback.id]["connections"].items():
+                try:
+                    con["connection"].shutdown(socket.SHUT_RDWR)
+                    con["connection"].close()
+                except Exception:
+                    print("failed to close a connection from proxychains")
+        except Exception:
+            print("exception in looping through connections")
+        try:
+            cached_socks[callback.id]["socket"].shutdown(socket.SHUT_RDWR)
             cached_socks[callback.id]["socket"].close()
         except:
             pass
-        try:
-            cached_socks[callback.id]["process"].terminate()
-        except:
-            pass
-
         del cached_socks[callback.id]
     try:
         port = callback.port
@@ -1116,76 +1274,38 @@ async def stop_socks(callback: Callback, operator):
         return {"status": "error", "error": "failed to find socks instance: " + str(e)}
 
 
-async def start_all_socks_after_restart():
-    query = await db_model.callback_query()
-    socks_instance = await db_objects.execute(
-        query.where(db_model.Callback.port != None)
-    )
-    for s in socks_instance:
-        # now actually start the binary
-        # f = open("socks_logs.txt", "w")
-        process = subprocess.Popen(
-            ["./socks_server/goserver", str(s.port), str(s.port + 1)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        await sleep(3)
-        process.poll()
-        if process.returncode is not None:
-            stdout, stderr = process.communicate()
-            message = (
-                "Failed to start proxy on port "
-                + str(s.port)
-                + ". Got error code: "
-                + str(process.returncode)
-                + "\nstdout: "
-                + str(stdout)
-                + "\nstderr: "
-                + str(stderr)
-            )
-            await db_objects.create(
-                db_model.OperationEventLog,
-                operator=s.socks_task.operator,
-                operation=s.operation,
-                message=message,
-                level="error",
-            )
-        cached_socks[s.id] = {
-            "process": process,
-            "queue": deque(),
-            "thread": threading.Thread(
-                target=thread_read_socks,
-                kwargs={"port": s.port + 1, "callback_id": s.id},
-            ),
-        }
-        cached_socks[s.id]["thread"].start()
-        await db_objects.create(
-            db_model.OperationEventLog,
-            operator=s.socks_task.operator,
-            operation=s.operation,
-            message="Started socks proxy on port {} in callback {}".format(
-                str(s.port), str(s.id)
-            ),
-        )
-
-
 async def send_socks_data(data, callback: Callback):
     try:
-        total_msg = b''
+        #print("******* SENDING THE FOLLOWING TO PROXYCHAINS *******")
+        #print(data)
         for d in data:
             if callback.id in cached_socks:
-                msg = js.dumps(d).encode()
-                #print("******* SENDING DATA BACK TO PROXYCHAINS *****")
-                #print(msg)
-                msg = int.to_bytes(len(msg), 4, "big") + msg
-                total_msg += msg
-                # cached_socks[callback.id]['socket'].sendall(int.to_bytes(len(msg), 4, "big"))
-            #else:
-                #print("****** NO CACHED SOCKS, MUST BE CLOSED *******")
-        cached_socks[callback.id]["socket"].sendall(total_msg)
+                if d["server_id"] in cached_socks[callback.id]["connections"]:
+                    conn = cached_socks[callback.id]["connections"][d["server_id"]]
+                    if d["exit"]:
+                        cached_socks[callback.id]["connections"].pop(d["server_id"], None)
+                        try:
+                            conn["connection"].shutdown(socket.SHUT_RDWR)
+                            conn["connection"].close()
+                        except Exception as d:
+                            #print("error trying to close connection that agent told me to close: " + str(d))
+                            pass
+                    else:
+                        conn["connection"].sendall(base64.b64decode(d["data"]))
+                else:
+                    # we don't have d["server_id"] tracked as an active connection, so unless they said to kill it, tell them to kill it
+                    #print("got message for something we aren't tracking")
+                    if not d["exit"]:
+                        #print("telling agent to kill connection")
+                        cached_socks[callback.id]["queue"].append({
+                            "exit": True,
+                            "server_id": d["server_id"],
+                            "data": ""
+                        })
         return {"status": "success"}
     except Exception as e:
         #print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
+        #print(cached_socks[callback.id]["connections"])
         return {"status": "error", "error": str(e)}
 
 
@@ -1195,59 +1315,69 @@ async def get_socks_data(callback: Callback):
         if callback.id in cached_socks:
             while True:
                 try:
+                    #print("agent picking up data from callback queue")
                     data.append(cached_socks[callback.id]["queue"].popleft())
-                    #print("Just got socks data to give to agent")
                 except:
                     break
-    #if len(data) > 0:
-        #print("******* SENDING THE FOLLOWING TO THE AGENT ******")
-        #print(data)
+    if len(data) > 0:
+        print("******* SENDING THE FOLLOWING TO THE AGENT ******")
+        print(data)
     return data
 
 
-def thread_read_socks(port: int, callback_id: int) -> None:
+# accept connections from proxychains clients
+def thread_read_socks(port: int, callback_id: int, sock: socket) -> None:
     # print(port)
     # print(callback_id)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Connect the socket to the port where the server is listening
-    server_address = ("localhost", port)
-    sock.connect(server_address)
-    # sock.settimeout(2)
+    sock.listen(1)
+    id = 1
     try:
-        cached_socks[callback_id]["socket"] = sock
-    except Exception as e:
-        sock.close()
-        return
-    while True:
-        #print("in thread loop")
-        try:
-            # print("about to get size")
-            size = sock.recv(4)
-            if len(size) == 4:
-                size = int.from_bytes(size, "big")
-            elif len(size) == 0:
-                tsleep(1)
-                continue
-            # print("now trying to read in: {} bytes".format(str(size)))
-            msg = sock.recv(size)
-            try:
-                cached_socks[callback_id]["queue"].append(js.loads(msg.decode()))
-                #print("just read from proxychains and added to queue for agent to pick up")
-            except Exception as d:
-                if callback_id not in cached_socks:
-                    #print("*" * 10 + "Got closing socket" + "*" * 10)
-                    sock.close()
-                    #print("thread exiting")
-                    return
-        except Exception as e:
-            #print("*" * 10 + "Got exception from reading socket data" + "*" * 10)
-            #print(e)
-            if callback_id not in cached_socks:
-                #print("*" * 10 + "Got closing socket" + "*" * 10)
-                sock.close()
-                #print("thread exiting")
-                return
-            tsleep(1)
+        #print("waiting to accept connections")
+        while callback_id in cached_socks:
+            connection, client_address = sock.accept()
+            #print("got new connection for " + str(id))
+            conn_sock = {
+                "connection": connection,
+                "thread_read": threading.Thread(
+                    target=thread_get_socks_data_from_connection,
+                    kwargs={"port": port, "connection": connection, "callback_id": callback_id, "connection_id": id}
+                ),
+
+            }
+            cached_socks[callback_id]["connections"][id] = conn_sock
+            cached_socks[callback_id]["connections"][id]["thread_read"].start()
+            id = id + 1
+    except Exception:
+        print("exception in accepting new socket connections!!!!!")
+
+
+def thread_get_socks_data_from_connection(port: int, connection: socket, callback_id: int, connection_id: int):
+    try:
+        #print("reading 4 bytes and sending 05 00")
+        data = connection.recv(4)
+        #print(str(data))
+        connection.sendall(b'\x05\x00')
+        #connection.settimeout(2)
+        #print("wait to read data from connection for: " + str(connection_id))
+        while connection_id in cached_socks[callback_id]["connections"] and data:
+            data = None
+            data = connection.recv(8192)
+            data = base64.b64encode(data).decode()
+            #print("++++++appending data to the queue")
+            cached_socks[callback_id]["queue"].append({
+                "exit": False,
+                "server_id": connection_id,
+                "data": data
+            })
+            #print("wait to read more data from connection for: " + str(connection_id))
+    except Exception:
+        #print("failed to read from proxychains client, sending exit to agent")
+        if callback_id in cached_socks and connection_id in cached_socks[callback_id]["connections"]:
+            cached_socks[callback_id]["queue"].append({
+                "exit": True,
+                "server_id": connection_id,
+                "data": ""
+            })
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/<id:int>", methods=["GET"])
@@ -1309,16 +1439,157 @@ async def get_one_callback(request, id, user):
         build_params = [t.to_json() for t in build_parameters]
         return_json["build_parameters"] = build_params
         return_json["payload_uuid"] = callback.registered_payload.uuid
-        return_json["payload_name"] = callback.registered_payload.file_id.filename
+        return_json["payload_name"] = callback.registered_payload.file.filename
         return_json["status"] = "success"
-        paths = await path_to_callback(callback)
-        return_json["path"] = [str(p) for p in paths]
+        paths = await path_to_callback(callback, "Mythic")
+        return_json["path"] = [str(p) if p == "Mythic" else js.dumps(p.to_json()) for p in paths]
         return json(return_json)
     except Exception as e:
-        print(e)
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json(
             {"status": "error", "error": "failed to get callback: " + str(e)}, 200
         )
+
+
+@mythic.route(mythic.config["API_BASE"] + "/update_callback_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def update_callback_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    # some commands can optionally upload files or indicate files for use
+    # if they are uploaded here, process them first and substitute the values with corresponding file_id numbers
+    if user["current_operation"] == "":
+        return json(
+            {"status": "error", "error": "Must be part of a current operation first"}
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot issue tasking"})
+    try:
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user["username"])
+    except Exception as e:
+        return json(
+            {
+                "status": "error",
+                "error": "failed to get the current user's info from the database",
+            }
+        )
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user["current_operation"])
+    except Exception as e:
+        return json({"status": "error", "error": "failed to get the current operation"})
+    try:
+        data = request.json["input"]["input"]
+        print(data)
+        query = await db_model.callback_query()
+        cb = await db_objects.get(query, id=data["callback_id"], operation=operation)
+        return json(await update_callback_active_lock(user, request, cb, data))
+    except Exception as e:
+        return json({"status": "error", "error": "failed to get callback: " + str(e)})
+
+
+async def update_callback_active_lock(user, request, cal, data):
+    if "description" in data:
+        if data["description"] == "reset":
+            # set the description back to what it was from the payload
+            cal.description = cal.registered_payload.tag
+        else:
+            cal.description = data["description"]
+    if "active" in data:
+        if data["active"]:
+            if not cal.active:
+                c2_query = await db_model.callbackc2profiles_query()
+                c2profiles = await db_objects.execute(
+                    c2_query.where(db_model.CallbackC2Profiles.callback == cal)
+                )
+                for c2 in c2profiles:
+                    if not c2.c2_profile.is_p2p:
+                        try:
+                            edge = await db_objects.get(
+                                db_model.CallbackGraphEdge,
+                                source=cal,
+                                destination=cal,
+                                c2_profile=c2.c2_profile,
+                                direction=1,
+                                end_timestamp=None,
+                                operation=cal.operation,
+                            )
+                        except Exception as d:
+                            print(d)
+                            edge = await db_objects.create(
+                                db_model.CallbackGraphEdge,
+                                source=cal,
+                                destination=cal,
+                                c2_profile=c2.c2_profile,
+                                direction=1,
+                                end_timestamp=None,
+                                operation=cal.operation,
+                            )
+                            await add_non_directed_graphs(edge)
+                            await add_directed_graphs(edge)
+                cal.active = True
+        else:
+            if cal.active:
+                edge_query = await db_model.callbackgraphedge_query()
+                try:
+                    edges = await db_objects.execute(
+                        edge_query.where(
+                            (db_model.CallbackGraphEdge.source == cal)
+                            & (db_model.CallbackGraphEdge.destination == cal)
+                            & (db_model.CallbackGraphEdge.end_timestamp == None)
+                            & (db_model.CallbackGraphEdge.operation == cal.operation)
+                        )
+                    )
+                    for edge in edges:
+                        if not edge.c2_profile.is_p2p:
+                            edge.end_timestamp = datetime.utcnow()
+                            await db_objects.update(edge)
+                            await remove_non_directed_graphs(edge)
+                            await remove_directed_graphs(edge)
+                except Exception as d:
+                    logger.warning(
+                        "error trying to add end-timestamps to edges when going inactive"
+                    )
+                    logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(d))
+            cal.active = False
+    if "locked" in data:
+        if cal.locked and not data["locked"]:
+            # currently locked and trying to unlock, must be admin, admin of that operation, or the user that did it
+            if (
+                    user["admin"]
+                    or cal.operation.name in user["admin_operations"]
+                    or user["username"] == cal.locked_operator.username
+            ):
+                cal.locked = False
+                cal.locked_operator = None
+            else:
+                await db_objects.update(cal)
+                return json(
+                    {"status": "error", "error": "Not authorized to unlock"}
+                )
+        elif not cal.locked and data["locked"]:
+            # currently unlocked and wanting to lock it
+            if (
+                    user["admin"]
+                    or cal.operation.name in user["operations"]
+                    or cal.operation.name in user["admin_operations"]
+            ):
+                cal.locked = True
+                query = await db_model.operator_query()
+                operator = await db_objects.get(query, username=user["username"])
+                cal.locked_operator = operator
+            else:
+                await db_objects.update(cal)
+                return json({"status": "error", "error": "Not authorized to lock"})
+    await db_objects.update(cal)
+    return {"status": "success"}
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/<id:int>", methods=["PUT"])
@@ -1338,135 +1609,15 @@ async def update_callback_web(request, id, user):
         operation = await db_objects.get(query, name=user["current_operation"])
         query = await db_model.callback_query()
         cal = await db_objects.get(query, id=id, operation=operation)
-        if "description" in data:
-            if data["description"] == "reset":
-                # set the description back to what it was from the payload
-                cal.description = cal.registered_payload.tag
-            else:
-                cal.description = data["description"]
-        if "active" in data:
-            if data["active"] == "true":
-                if not cal.active:
-                    c2_query = await db_model.callbackc2profiles_query()
-                    c2profiles = await db_objects.execute(
-                        c2_query.where(db_model.CallbackC2Profiles.callback == cal)
-                    )
-                    for c2 in c2profiles:
-                        if not c2.c2_profile.is_p2p:
-                            try:
-                                edge = await db_objects.get(
-                                    db_model.CallbackGraphEdge,
-                                    source=cal,
-                                    destination=cal,
-                                    c2_profile=c2.c2_profile,
-                                    direction=1,
-                                    end_timestamp=None,
-                                    operation=cal.operation,
-                                )
-                            except Exception as d:
-                                print(d)
-                                edge = await db_objects.create(
-                                    db_model.CallbackGraphEdge,
-                                    source=cal,
-                                    destination=cal,
-                                    c2_profile=c2.c2_profile,
-                                    direction=1,
-                                    end_timestamp=None,
-                                    operation=cal.operation,
-                                )
-                                await add_non_directed_graphs(edge)
-                                await add_directed_graphs(edge)
-                    cal.active = True
-            elif data["active"] == "false":
-                if cal.active:
-                    edge_query = await db_model.callbackgraphedge_query()
-                    try:
-                        edges = await db_objects.execute(
-                            edge_query.where(
-                                (db_model.CallbackGraphEdge.source == cal)
-                                & (db_model.CallbackGraphEdge.destination == cal)
-                                & (db_model.CallbackGraphEdge.end_timestamp == None)
-                                & (
-                                    db_model.CallbackGraphEdge.operation
-                                    == cal.operation
-                                )
-                            )
-                        )
-                        for edge in edges:
-                            if not edge.c2_profile.is_p2p:
-                                edge.end_timestamp = datetime.utcnow()
-                                await db_objects.update(edge)
-                                await remove_non_directed_graphs(edge)
-                                await remove_directed_graphs(edge)
-                    except Exception as d:
-                        print(
-                            "error trying to add end-timestamps to edges when going inactive"
-                        )
-                        print(d)
-                cal.active = False
-        if "encryption_type" in data:
-            cal.encryption_type = data["encryption_type"]
-        if "encryption_key" in data:
-            cal.encryption_key = data["encryption_key"]
-        if "decryption_key" in data:
-            cal.decryption_key = data["decryption_key"]
-        if "locked" in data:
-            if cal.locked and not data["locked"]:
-                # currently locked and trying to unlock, must be admin, admin of that operation, or the user that did it
-                if (
-                    user["admin"]
-                    or cal.operation.name in user["admin_operations"]
-                    or user["username"] == cal.locked_operator.username
-                ):
-                    cal.locked = False
-                    cal.locked_operator = None
-                else:
-                    await db_objects.update(cal)
-                    return json(
-                        {"status": "error", "error": "Not authorized to unlock"}
-                    )
-            elif not cal.locked and data["locked"]:
-                # currently unlocked and wanting to lock it
-                if (
-                    user["admin"]
-                    or cal.operation.name in user["operations"]
-                    or cal.operation.name in user["admin_operations"]
-                ):
-                    cal.locked = True
-                    query = await db_model.operator_query()
-                    operator = await db_objects.get(query, username=user["username"])
-                    cal.locked_operator = operator
-                else:
-                    await db_objects.update(cal)
-                    return json({"status": "error", "error": "Not authorized to lock"})
-        if "parent" in data:
-            try:
-                if data["parent"] == -1:
-                    # this means to remove the current parent
-                    cal.pcallback = None
-                else:
-                    query = await db_model.callback_query()
-                    parent = await db_objects.get(
-                        query, id=data["parent"], operation=operation
-                    )
-                    if parent.id == cal.id:
-                        return json(
-                            {"status": "error", "error": "cannot set parent = child"}
-                        )
-                    cal.pcallback = parent
-            except Exception as e:
-                return json(
-                    {
-                        "status": "error",
-                        "error": "failed to set parent callback: " + str(e),
-                    }
-                )
-        await db_objects.update(cal)
-        success = {"status": "success"}
+
         updated_cal = cal.to_json()
-        return json({**success, **updated_cal})
+        status = await update_callback_active_lock(user, request, cal, data)
+        if status["status"] == "success":
+            return json({**status, **updated_cal})
+        else:
+            return json(status)
     except Exception as e:
-        print(e)
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json(
             {"status": "error", "error": "failed to update callback: " + str(e)}
         )
@@ -1504,7 +1655,7 @@ async def remove_callback(request, id, user):
                 }
             )
     except Exception as e:
-        print(e)
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json(
             {"status": "error", "error": "failed to delete callback: " + str(e)}
         )
@@ -1539,40 +1690,8 @@ async def callbacks_get_all_tasking(request, user, id):
             cb_json["tasks"].append({**t.to_json()})
         return json({"status": "success", **cb_json})
     except Exception as e:
-        print(e)
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})
-
-
-@mythic.route(mythic.config["API_BASE"] + "/callbacks/<id:int>/keys", methods=["GET"])
-@inject_user()
-@scoped(["auth:user", "auth:apitoken_user", "auth:apitoken_c2"], False)
-async def get_callback_keys(request, user, id):
-    if user["auth"] not in ["access_token", "apitoken"]:
-        abort(
-            status_code=403,
-            message="Cannot access via Cookies. Use CLI or access via JS in browser",
-        )
-    if user["view_mode"] == "spectator" or user["current_operation"] == "":
-        return json({"status": "error", "error": "Spectators cannot get callback keys"})
-    try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.callback_query()
-        callback = await db_objects.get(query, id=id, operation=operation)
-    except Exception as e:
-        print(e)
-        return json({"status": "error", "error": "failed to find callback"})
-    encryption_type = callback.encryption_type if callback.encryption_type else ""
-    decryption_key = callback.decryption_key if callback.decryption_key else ""
-    encryption_key = callback.encryption_key if callback.encryption_key else ""
-    return json(
-        {
-            "status": "success",
-            "encryption_type": encryption_type,
-            "decryption_key": decryption_key,
-            "encryption_key": encryption_key,
-        }
-    )
 
 
 @mythic.route(
@@ -1693,7 +1812,7 @@ async def search_callbacks_with_pageinate(request, user):
             }
         )
     except Exception as e:
-        print(str(e))
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})
 
 
@@ -1705,7 +1824,8 @@ async def add_p2p_route(agent_message, callback, task):
     #      "destination": "uuid of adjoining callback",
     #      "direction": 1 or 2 or 3,
     #      "metadata": "{ optional metadata json string }",
-    #       "action": "add" or "remove"
+    #      "action": "add" or "remove"
+    #      "c2_profile": "name of the c2 profile"
     #     }
     #   ]
     # }
@@ -1718,7 +1838,6 @@ async def add_p2p_route(agent_message, callback, task):
     for e in agent_message:
         if e["action"] == "add":
             try:
-                profile = None
                 source = await db_objects.get(query, agent_callback_id=e["source"])
                 destination = await db_objects.get(
                     query, agent_callback_id=e["destination"]
@@ -1734,30 +1853,9 @@ async def add_p2p_route(agent_message, callback, task):
                 ):
                     profile = await db_objects.get(profile_query, name=e["c2_profile"])
                 else:
-                    # find an overlapping p2p profile in both agents, else error
-                    callback_c2profile_query = await db_model.callbackc2profiles_query()
-                    mutual_c2 = await db_objects.execute(
-                        callback_c2profile_query.where(
-                            (
-                                (db_model.CallbackC2Profiles.callback == source)
-                                | (db_model.CallbackC2Profiles.callback == destination)
-                            )
-                            & (db_model.C2Profile.is_p2p == True)
-                        )
-                    )
-                    hist = []
-                    for cc2 in mutual_c2:
-                        if cc2.c2_profile.name not in hist:
-                            hist.append(cc2.c2_profile.name)
-                        else:
-                            profile = cc2.c2_profile
-                            break
-                    if profile is None:
-                        return {
-                            "status": "error",
-                            "error": "No matching p2p profiles",
-                            "task_id": task.agent_task_id,
-                        }
+                    await db_objects.create(db_model.OperationEventLog, operation=callback.operation,
+                                            level="warning", message=f"Failed to add route between {source.id} and {destination.id}. No c2_profile specified")
+                    return
                 # there can only be one source-destination-direction-metadata-c2_profile combination
                 try:
                     edge = await db_objects.get(
@@ -1770,11 +1868,7 @@ async def add_p2p_route(agent_message, callback, task):
                         c2_profile=profile,
                         end_timestamp=None,
                     )
-                    return {
-                        "status": "error",
-                        "error": "edge already exists",
-                        "task_id": task.agent_task_id,
-                    }
+                    return
                 except Exception as error:
                     edge = await db_objects.create(
                         db_model.CallbackGraphEdge,
@@ -1789,20 +1883,14 @@ async def add_p2p_route(agent_message, callback, task):
                     await add_non_directed_graphs(edge)
                     await add_directed_graphs(edge)
             except Exception as d:
-                print(d)
-                if task is not None:
-                    return {
-                        "status": "error",
-                        "error": str(d),
-                        "task_id": task.agent_task_id,
-                    }
-                else:
-                    return {"status": "error", "error": str(d), "task_id": None}
+                await db_objects.create(db_model.OperationEventLog, operation=callback.operation,
+                                        level="warning",
+                                        message=f"Failed to add p2p route. {str(sys.exc_info()[-1].tb_lineno) + ' ' + str(d)}")
+                return
         if e["action"] == "remove":
             try:
                 # find the edge its talking about
                 # print(e)
-                profile = None
                 source = await db_objects.get(query, agent_callback_id=e["source"])
                 destination = await db_objects.get(
                     query, agent_callback_id=e["destination"]
@@ -1816,30 +1904,10 @@ async def add_p2p_route(agent_message, callback, task):
                 ):
                     profile = await db_objects.get(profile_query, name=e["c2_profile"])
                 else:
-                    # find an overlapping p2p profile in both agents, else error
-                    callback_c2profile_query = await db_model.callbackc2profiles_query()
-                    mutual_c2 = await db_objects.execute(
-                        callback_c2profile_query.where(
-                            (
-                                (db_model.CallbackC2Profiles.callback == source)
-                                | (db_model.CallbackC2Profiles.callback == destination)
-                            )
-                            & (db_model.C2Profile.is_p2p == True)
-                        )
-                    )
-                    hist = []
-                    for cc2 in mutual_c2:
-                        if cc2.c2_profile.name not in hist:
-                            hist.append(cc2.c2_profile.name)
-                        else:
-                            profile = cc2.c2_profile
-                            break
-                    if profile is None:
-                        return {
-                            "status": "error",
-                            "error": "No matching p2p profiles",
-                            "task_id": task.agent_task_id,
-                        }
+                    await db_objects.create(db_model.OperationEventLog, operation=callback.operation,
+                                            level="warning",
+                                            message=f"Failed to remove route between {source.id} and {destination.id}. c2_profile not specified")
+                    return
                 edge = await db_objects.get(
                     db_model.CallbackGraphEdge,
                     source=source,
@@ -1859,78 +1927,93 @@ async def add_p2p_route(agent_message, callback, task):
                     await remove_non_directed_graphs(edge)
                     await remove_directed_graphs(edge)
                 except Exception as e:
-                    print("failed to remove edge from graph: " + str(e))
-                    pass
+                    await db_objects.create(db_model.OperationEventLog, operation=callback.operation,
+                                            level="warning",
+                                            message=f"Failed to remove route between {source.id} and {destination.id}. {str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}")
+                    return
             except Exception as d:
-                print(d)
-                if task is not None:
-                    return {
-                        "status": "error",
-                        "error": str(d),
-                        "task_id": task.agent_task_id,
-                    }
-                else:
-                    return {"status": "error", "error": str(d), "task_id": task}
-    if task is not None:
-        return {"status": "success", "task_id": task.agent_task_id}
-    else:
-        return {"status": "success", "task_id": task}
+                await db_objects.create(db_model.OperationEventLog, operation=callback.operation,
+                                        level="warning",
+                                        message=f"Failed to remove route. {str(sys.exc_info()[-1].tb_lineno) + ' ' + str(d)}")
+                return
+    return
 
 
 async def remove_directed_graphs(edge):
-    if edge.source.operation.name not in current_graphs:
-        current_graphs[edge.source.operation.name] = Graph()
-    if edge.direction == 1:
-        current_graphs[edge.source.operation.name].remove_edge(
-            edge.source, edge.destination
-        )
-    elif edge.direction == 2:
-        current_graphs[edge.source.operation.name].remove_edge(
-            edge.destination, edge.source
-        )
-    else:
-        current_graphs[edge.source.operation.name].remove_edge(
-            edge.source, edge.destination
-        )
-        current_graphs[edge.source.operation.name].remove_edge(
-            edge.destination, edge.source
-        )
+    try:
+        if edge.source.operation.name not in current_graphs:
+            current_graphs[edge.source.operation.name] = Graph()
+        if edge.source not in current_graphs[edge.source.operation.name]:
+            current_graphs[edge.source.operation.name].add_node(edge.source)
+        if edge.destination not in current_graphs[edge.source.operation.name]:
+            current_graphs[edge.source.operation.name].add_node(edge.destination)
+        if edge.c2_profile not in current_graphs[edge.source.operation.name]:
+            current_graphs[edge.source.operation.name].add_node(edge.c2_profile)
+        if edge.direction == 1:
+            current_graphs[edge.source.operation.name].remove_edge(
+                edge.source, edge.destination
+            )
+        elif edge.direction == 2:
+            current_graphs[edge.source.operation.name].remove_edge(
+                edge.destination, edge.source
+            )
+        else:
+            current_graphs[edge.source.operation.name].remove_edge(
+                edge.source, edge.destination
+            )
+            current_graphs[edge.source.operation.name].remove_edge(
+                edge.destination, edge.source
+            )
+    except Exception as e:
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        raise e
 
 
 async def add_directed_graphs(edge):
-    if edge.source.operation.name not in current_graphs:
-        current_graphs[edge.source.operation.name] = Graph()
-    if edge.direction == 1:
-        current_graphs[edge.source.operation.name].add_edge(
-            edge.source, edge.destination, 1
-        )
-    elif edge.direction == 2:
-        current_graphs[edge.source.operation.name].add_edge(
-            edge.destination, edge.source, 1
-        )
-    else:
-        current_graphs[edge.source.operation.name].add_edge(
-            edge.source, edge.destination, 1
-        )
-        current_graphs[edge.source.operation.name].add_edge(
-            edge.destination, edge.source, 1
-        )
+    try:
+        if edge.source.operation.name not in current_graphs:
+            current_graphs[edge.source.operation.name] = Graph()
+        if edge.source not in current_graphs[edge.source.operation.name]:
+            current_graphs[edge.source.operation.name].add_node(edge.source)
+        if edge.destination not in current_graphs[edge.source.operation.name]:
+            current_graphs[edge.source.operation.name].add_node(edge.destination)
+        if edge.source == edge.destination:
+            current_graphs[edge.source.operation.name].add_edge(edge.source, edge.c2_profile, edge)
+        if edge.direction == 1:
+            current_graphs[edge.source.operation.name].add_edge(
+                edge.source, edge.destination, edge
+            )
+        elif edge.direction == 2:
+            current_graphs[edge.source.operation.name].add_edge(
+                edge.destination, edge.source, edge
+            )
+        else:
+            current_graphs[edge.source.operation.name].add_edge(
+                edge.source, edge.destination, edge
+            )
+            current_graphs[edge.source.operation.name].add_edge(
+                edge.destination, edge.source, edge
+            )
+    except Exception as e:
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        raise e
 
 
-async def path_to_callback(callback):
+async def path_to_callback(callback, destination):
     try:
         await update_non_directed_graphs(callback.operation)
         if current_non_directed_graphs[callback.operation.name].edge_count == 0:
-            #print("no edges")
+            print("no edges")
             return []  # graph for this operation has no edges
         try:
             path = find_path(
-                current_non_directed_graphs[callback.operation.name], callback, "Mythic"
+                current_non_directed_graphs[callback.operation.name], callback, destination, cost_func=cost_func
             )
         except NoPathError:
-            #print("no path")
+            print("no path")
             return []
         return path.nodes
     except Exception as e:
+        logger.warning(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         print("error in path_to_callback: " + str(e))
         return []

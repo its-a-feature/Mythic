@@ -5,6 +5,18 @@ from sanic.response import json
 from sanic.exceptions import abort
 
 
+@mythic.route(mythic.config["API_BASE"] + "/generate_apitoken", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_c2", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def generate_apitoken(request, user):
+    print(user)
+    print(request)
+    print(request.json)
+    return json({"tokenValue": "blah"})
+
+
 # -------  API Tokens FUNCTION -----------------
 @mythic.route(mythic.config["API_BASE"] + "/apitokens", methods=["GET"])
 @inject_user()

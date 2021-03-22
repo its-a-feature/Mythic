@@ -15,7 +15,7 @@ import (
 )
 const (
     CONN_HOST = "localhost"
-    CONN_TYPE = "tcp"
+    CONN_TYPE = "tcp4"
     MESSAGE_SIZE = 512000
 )
 var (

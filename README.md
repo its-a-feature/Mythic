@@ -9,7 +9,45 @@ A cross-platform, post-exploit, red teaming framework built with python3, docker
 * Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf  
 * Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
 
-* Current Version: 2.1.17
+* Current Version: 2.2.1
+
+## Installing Agents and C2 Profiles
+
+The Mythic repository itself does not host any Payload Types or any C2 Profiles. Instead, Mythic provides a script, `./install_agent_from_github.sh`, that can be used to install agents into a current Mythic instance.
+
+Payload Types are hosted on the [MythicAgents](https://github.com/MythicAgents) organization and C2 Profiles are hosted on the [MythiC2Profiles](https://github.com/MythicC2Profiles) organization.
+
+To install an agent, simply run the script and provide an argument of the path to the agent on GitHub:
+```bash
+sudo ./install_agent_from_github.sh https://github.com/MythicAgents/apfell
+```
+
+The same is true for isntalling C2 Profiles:
+```bash
+sudo ./install_agent_from_github.sh https://github.com/MythicC2Profiles/http
+```
+
+This is a slight departure from previous Mythic versions which included a few default Payload Types and C2 Profiles within this repository. This change allows the agents and c2 profiles to be updated at a much more regular pace and finally separates out the Mythic Core components from the rest of Mythic. 
+
+## Mythic Container Configurations & PyPi Packages
+
+Mythic uses Docker and Docker-compose for all of its components, which allows Mythic to provide a wide range of components and features without having requirements exist on the host. However, it can be helpful to have insight into how the containers are configured. All of Mythic's docker containers are hosted on DockerHub under [itsafeaturemythic](https://hub.docker.com/search?q=itsafeaturemythic&type=image).
+
+Additionally, Mythic uses a number of custom PyPi packages to help control and sync information between all of the containers as well as providing an easy way to script access to the server.
+
+All of this can be found on the [MythicMeta](https://github.com/MythicMeta):  
+* Dockerfile configurations for all Docker images uploaded to DockerHub
+* PyPi source code for all packages uploaded to PyPi
+
+## Current Container PyPi Package requirements
+
+Supported payload types must have the `mythic_payloadtype_container` PyPi package of 0.0.38.  
+* The Payload Type container reports this as version 4  
+
+Supported c2 profiles must have the `mythic_c2profile_container` PyPi package of 0.0.15.  
+* The C2 Profile container reports this as version 2.  
+
+Supported translation containers must have the `mythic_translation_containter` PyPi package of 0.0.6.
 
 ## Documentation
 

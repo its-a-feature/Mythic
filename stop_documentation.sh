@@ -8,6 +8,12 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 echo -e "${BLUE}[*]${NC} Stopping documentation container"
-docker stop "documentation" 2>/dev/null
-docker container prune --filter label=name=documentation -f
+output=`docker stop "documentation" 2>/dev/null`
+output=`docker ps -aqf name=documentation`
+if [[ $output ]]
+then
+  output=`docker container rm ${output}`
+  output=`docker container prune --filter label=name=documentation -f`
+fi
+
 echo -e "${GREEN}[+]${NC} Successfully stopped the documentation container"

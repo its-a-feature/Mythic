@@ -1,6 +1,7 @@
-from CommandBase import *  # import the basics
+from mythic_payloadtype_container.MythicCommandBase import *  # import the basics
 import json  # import any other code you might need
-from MythicFileRPC import *  # import the code for interacting with Files on the Mythic server
+# import the code for interacting with Files on the Mythic server
+from mythic_payloadtype_container.MythicFileRPC import *
 
 # create a class that extends TaskArguments class that will supply all the arguments needed for this command
 class LoadAssemblyArguments(TaskArguments):

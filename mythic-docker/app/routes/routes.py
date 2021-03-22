@@ -2,13 +2,13 @@ from app import (
     mythic,
     db_objects,
     links,
-    use_ssl,
-    server_header,
+    nginx_port,
+    listen_port,
     mythic_admin_password,
     mythic_admin_user,
     default_operation_name,
 )
-from sanic.response import json
+from sanic.response import json, redirect
 from sanic import response
 from sanic.exceptions import (
     NotFound,
@@ -33,13 +33,11 @@ from sanic_jwt.decorators import scoped, inject_user
 import ujson as js
 from ipaddress import ip_address
 from app.routes.authentication import invalidate_refresh_token
-from app.crypto import create_key_AES256
 import app.database_models.model as db_model
 from sanic.log import logger
 from app.api.browserscript_api import set_default_scripts
-import glob
-from app.api.callback_api import start_all_socks_after_restart
-import sys
+from uuid import uuid4
+
 
 env = Environment(loader=PackageLoader("app", "templates"), autoescape=True)
 
@@ -51,10 +49,13 @@ async def respect_pivot(my_links, request):
     host_field = request.host.split(":")
     if len(host_field) == 1:
         server_ip = host_field[0]
-        if request.scheme == "https":
-            server_port = 443
+        if 'x-forwarded-port' in request.headers:
+            server_port = request.headers["x-forwarded-port"]
         else:
-            server_port = 80
+            if request.scheme == "https":
+                server_port = nginx_port
+            else:
+                server_port = listen_port
     else:
         server_ip = host_field[0]
         server_port = host_field[1]
@@ -63,6 +64,18 @@ async def respect_pivot(my_links, request):
     updated_links["login"] = "{}://{}/login".format(request.scheme, request.host)
     updated_links["register"] = "{}://{}/register".format(request.scheme, request.host)
     return updated_links
+
+
+async def getSchemes(request):
+    if 'x-forwarded-proto' in request.headers:
+        if request.headers['x-forwarded-proto'] == "http":
+            return {"http": "http", "ws": "ws"}
+        else:
+            return {"http": "https", "ws": "wss"}
+    if request.scheme == "http":
+        return {"http": "http", "ws": "ws"}
+    else:
+        return {"http": "https", "ws": "wss"}
 
 
 @mythic.route("/")
@@ -76,8 +89,7 @@ async def index(request, user):
         current_operation=user["current_operation"],
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request)
     )
 
     return response.html(content)
@@ -98,8 +110,7 @@ class Login(BaseEndpoint):
             successful_creation=successful_creation,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            ** await getSchemes(request)
         )
         return response.html(content)
 
@@ -152,8 +163,7 @@ class Login(BaseEndpoint):
                                 form=form,
                                 errors=errors,
                                 access_token=access_token,
-                                http="https" if use_ssl else "http",
-                                ws="wss" if use_ssl else "ws",
+                                ** await getSchemes(request),
                                 refresh_token=refresh_token,
                                 config={},
                                 view_utc_time=False,
@@ -174,13 +184,12 @@ class Login(BaseEndpoint):
                             ] = True
                             return resp
                         except Exception as e:
-                            print("post login error:" + str(e))
-                            errors["validate_errors"] = "failed to update login time"
+                            logger.error("post login error:" + str(e))
                 else:
                     form.username.errors = ["Username or password invalid"]
             except Exception as e:
-                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                form.username.errors = ["username or password invalid"]
+                logger.info(f"Unable to login as the user {username}. " + str(e))
+                form.username.errors = ["Username or password invalid"]
         errors["username_errors"] = "<br>".join(form.username.errors)
         errors["password_errors"] = "<br>".join(form.password.errors)
         template = env.get_template("login.html")
@@ -190,8 +199,7 @@ class Login(BaseEndpoint):
             errors=errors,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            ** await getSchemes(request)
         )
         return response.html(content)
 
@@ -207,8 +215,7 @@ class Register(BaseEndpoint):
             errors=errors,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            ** await getSchemes(request)
         )
         return response.html(content)
 
@@ -217,11 +224,12 @@ class Register(BaseEndpoint):
         form = RegistrationForm(request)
         if form.validate():
             username = form.username.data
-            password = await crypto.hash_SHA512(form.password.data)
+            salt = str(uuid4())
+            password = await crypto.hash_SHA512(salt + form.password.data)
             # we need to create a new user
             try:
                 user = await db_objects.create(
-                    Operator, username=username, password=password, admin=False, active=False
+                    Operator, username=username, password=password, admin=False, active=False, salt=salt
                 )
                 query = await db_model.operation_query()
                 operations = await db_objects.execute(query)
@@ -236,7 +244,7 @@ class Register(BaseEndpoint):
                 return response.redirect("/login?success=true")
             except Exception as e:
                 # failed to insert into database
-                print(e)
+                logger.error("Failed to insert user into database: " + str(e))
                 form.username.errors = ["Failed to create user"]
         errors["username_errors"] = "<br>".join(form.username.errors)
         template = env.get_template("register.html")
@@ -247,8 +255,7 @@ class Register(BaseEndpoint):
             successful_creation=False,
             config={},
             view_utc_time=False,
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            ** await getSchemes(request)
         )
         return response.html(content)
 
@@ -298,14 +305,13 @@ async def settings(request, user):
         content = template.render(
             links=await respect_pivot(links, request),
             name=user["username"],
-            http="https" if use_ssl else "http",
-            ws="wss" if use_ssl else "ws",
+            ** await getSchemes(request),
             config=user["ui_config"],
             view_utc_time=user["view_utc_time"],
         )
         return response.html(content)
     except Exception as e:
-        print(e)
+        logger.error(str(e))
         return json({"status": "error", "error": "Failed to find operator"})
 
 
@@ -340,22 +346,34 @@ async def handler_405(request, exception):
     return json({"status": "error", "error": "Session Expired, refresh"}, status=405)
 
 
-@mythic.exception(Unauthorized, exceptions.AuthenticationFailed)
-async def handler_403(request, exception):
-    return response.redirect("/login")
-
-
 @mythic.exception(RequestTimeout)
 def request_timeout(request, exception):
     return json({"status": "error", "error": "request timeout"})
 
 
+@mythic.exception(exceptions.AuthenticationFailed)
+async def handler_auth_failed(request, exception):
+    if "/new" in request.path or "webhook" in request.path or "/auth" in request.path:
+        return json({"status": "error", "error": "Authentication failed", "message": "access-denied", "code": "access-denied"}, status=401)
+    else:
+        return response.redirect("/login")
+
+
+@mythic.exception(Unauthorized)
+async def handler_auth_failed(request, exception):
+    if "/new" in request.path or "webhook" in request.path:
+        return json({"status": "error", "error": "Authentication failed", "message": "Unauthorized", "code": "forbidden"}, status=403)
+    else:
+        return response.redirect("/login")
+
+
 @mythic.exception(SanicException)
 def catch_all(request, exception):
+
     logger.exception(
         "Caught random exception within Mythic: {}, {}".format(exception, str(request))
     )
-    return json({"status": "error"}, status=404)
+    return json({"status": "error", "error": "Mythic encountered an error"}, status=500)
 
 
 @mythic.middleware("request")
@@ -371,29 +389,6 @@ async def check_ips(request):
         return json({"error": "Not Found"}, status=404)
 
 
-@mythic.middleware("response")
-async def reroute_to_refresh(request, resp):
-    resp.headers["Server"] = server_header
-    # if you browse somewhere and get greeted with response.json.get('reasons')[0] and "Signature has expired"
-    if (
-        resp
-        and (resp.status == 403 or resp.status == 401)
-        and resp.content_type == "application/json"
-    ):
-        output = js.loads(resp.body)
-        if "reasons" in output and "Signature has expired" in output["reasons"][0]:
-            # unauthorized due to signature expiring, not invalid auth, redirect to /refresh
-            if request.cookies["refresh_token"] and request.cookies["access_token"]:
-                # auto generate a new
-                return response.redirect("/uirefresh")
-        if "exception" in output and output["exception"] == "AuthenticationFailed":
-            # authentication failed for one reason or another, redirect them to login
-            resp = response.redirect("/login")
-            del resp.cookies["access_token"]
-            del resp.cookies["refresh_token"]
-            return resp
-
-
 @mythic.listener("before_server_start")
 async def setup_initial_info(app, loop):
     await initial_setup()
@@ -403,37 +398,35 @@ async def initial_setup():
     # create mythic_admin
     operators = await db_objects.execute(Operator.select())
     if len(operators) != 0:
-        print("Users already exist, aborting initial install")
-        await start_all_socks_after_restart()
+        logger.info("Users already exist, aborting initial install")
         return
-    password = await crypto.hash_SHA512(mythic_admin_password)
+    salt = str(uuid4())
+    password = await crypto.hash_SHA512(salt + mythic_admin_password)
     admin, created = await db_objects.get_or_create(
-        Operator, username=mythic_admin_user, password=password, admin=True, active=True
+        Operator, username=mythic_admin_user, password=password, admin=True, active=True, salt=salt
     )
-    print("Created Admin")
+    logger.info("Created Admin")
     # create default operation
-    AES_PSK = await create_key_AES256()
     operation, created = await db_objects.get_or_create(
         Operation,
         name=default_operation_name,
         admin=admin,
         complete=False,
-        AESPSK=AES_PSK,
     )
-    print("Created Operation")
+    logger.info("Created Operation")
     await db_objects.get_or_create(
         OperatorOperation, operator=admin, operation=operation
     )
     admin.current_operation = operation
     await db_objects.update(admin)
-    print("Registered Admin with the default operation")
-    print("Started parsing ATT&CK data...")
+    logger.info("Registered Admin with the default operation")
+    logger.info("Started parsing ATT&CK data...")
     file = open("./app/default_files/other_info/attack.json", "r")
     attack = js.load(file)  # this is a lot of data and might take a hot second to load
     for obj in attack["techniques"]:
         await db_objects.create(ATTACK, **obj)
     file.close()
-    print("Created all ATT&CK entries")
+    logger.info("Created all ATT&CK entries")
     file = open("./app/default_files/other_info/artifacts.json", "r")
     artifacts_file = js.load(file)
     for artifact in artifacts_file["artifacts"]:
@@ -441,14 +434,8 @@ async def initial_setup():
             Artifact, name=artifact["name"], description=artifact["description"]
         )
     file.close()
-    print("Created all base artifacts")
-    for base_file in glob.iglob("./app/default_files/c2_profiles/*"):
-        file = open(base_file, "r")
-        c2 = js.load(file)
-        print("parsed {}".format(base_file))
-        # await import_c2_profile_func(c2, admin)
-    print("Created all C2 Profiles")
-    print("Successfully finished initial setup")
+    logger.info("Created all base artifacts")
+    logger.info("Successfully finished initial setup")
 
 
 # /static serves out static images and files

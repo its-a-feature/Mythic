@@ -25,7 +25,6 @@ do
 	p=$(echo "${p/.\/C2_Profiles\//}")
 	tag=$(echo "$p" | tr '[:upper:]' '[:lower:]')
 	tag=$(echo "${tag/' '/}")
-	tag=$(echo "${tag/'_'/}")
 	if [ -d "$realpath" ]
 	then
 		# only try to do this if the specified directory actually exists

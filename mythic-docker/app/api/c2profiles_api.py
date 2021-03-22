@@ -10,12 +10,14 @@ from urllib.parse import unquote_plus
 from sanic_jwt.decorators import scoped, inject_user
 import ujson as js
 import app.database_models.model as db_model
-from app.api.rabbitmq_api import send_c2_rabbitmq_message
 from sanic.exceptions import abort
 from exrex import getone
 import uuid
 from app.api.operation_api import send_all_operations_message
-from app.crypto import create_key_AES256
+from app.api.rabbitmq_api import MythicBaseRPC
+
+
+c2_rpc = MythicBaseRPC()
 
 
 # Get all the currently registered profiles
@@ -92,15 +94,14 @@ async def get_c2profiles_by_type_function(ptype):
     return [p.to_json() for p in profiles]
 
 
-# Start running a profile's server side code
 @mythic.route(
-    mythic.config["API_BASE"] + "/c2profiles/<info:int>/start", methods=["GET"]
+    mythic.config["API_BASE"] + "/start_stop_profile_webhook", methods=["POST"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def start_c2profile(request, info, user):
+async def start_stop_c2profile_webhook(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -111,53 +112,49 @@ async def start_c2profile(request, info, user):
             return json(
                 {"status": "error", "error": "Spectators cannot start c2 profiles"}
             )
+        data = request.json["input"]
         query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
+        profile = await db_objects.get(query, id=data["id"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
-    status = await send_c2_rabbitmq_message(profile.name, "start", "", user["username"])
+    status, successfully_sent = await start_stop_c2_profile(profile, data["action"])
+    # print(status)
+    if not successfully_sent:
+        await send_all_operations_message(message=f"C2 Profile {profile.name} couldn't be contacted. Is it online? Check with ./status_check.sh",
+                                          level="info", source="update_c2_profile")
+        profile.running = False
+        await db_objects.update(profile)
+        return json({"status": "error", "error": "Failed to contact C2 profile"})
+    status = js.loads(status)
+    if "running" in status:
+        if status["running"]:
+            await send_all_operations_message(message=f"C2 Profile {profile.name} started by {user['username']}",
+                                              level="info", source="update_c2_profile")
+        else:
+            await send_all_operations_message(
+                message=f"C2 Profile {profile.name} was manually stopped by {user['username']}",
+                level="warning", source="update_c2_profile")
+        profile.running = status.pop("running")
+        await db_objects.update(profile)
     return json(status)
 
 
-# Start running a profile's server side code
+async def start_stop_c2_profile(profile, action):
+    status, successfully_sent = await c2_rpc.call(message={
+        "action": "{}_profile".format(action),
+    }, receiver="{}_mythic_rpc_queue".format(profile.name))
+    return status, successfully_sent
+
+
 @mythic.route(
-    mythic.config["API_BASE"] + "/c2profiles/<info:int>/stop", methods=["GET"]
+    mythic.config["API_BASE"] + "/c2profile_status_webhook", methods=["POST"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def stop_c2profile(request, info, user):
-    if user["auth"] not in ["access_token", "apitoken"]:
-        abort(
-            status_code=403,
-            message="Cannot access via Cookies. Use CLI or access via JS in browser",
-        )
-    if user["view_mode"] == "spectator" or user["current_operation"] == "":
-        return json({"status": "error", "error": "Spectators cannot stop c2 profiles"})
-    return await stop_c2profile_func(info, user["username"])
-
-
-async def stop_c2profile_func(profile_id, username):
-    try:
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=profile_id)
-    except Exception as e:
-        return {"status": "error", "error": "failed to find c2 profile in database"}
-    status = await send_c2_rabbitmq_message(profile.name, "stop", "", username)
-    return json(status)
-
-
-# Return the current input and output of the c2 profile for the user
-@mythic.route(
-    mythic.config["API_BASE"] + "/c2profiles/<info:int>/status", methods=["GET"]
-)
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def status_c2profile(request, info, user):
+async def status_c2profile(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -168,59 +165,71 @@ async def status_c2profile(request, info, user):
             return json(
                 {"status": "error", "error": "Spectators cannot query c2 profiles"}
             )
+        #print(request.json)
+        data = request.json["input"]
         query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
+        profile = await db_objects.get(query, id=data["id"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
     # we want to send a rabbitmq message and wait for a response via websocket
-    status = await send_c2_rabbitmq_message(
-        profile.name, "status", "", user["username"]
-    )
+    status, successfully_sent = await c2_rpc.call(message={
+        "action": "get_status",
+    }, receiver="{}_mythic_rpc_queue".format(profile.name))
+    status = js.loads(status)
+    if "running" in status:
+        profile.running = status.pop("running")
+        await db_objects.update(profile)
     return json(status)
 
 
 @mythic.route(
     mythic.config["API_BASE"]
-    + "/c2profiles/<info:int>/files/container_config_download",
-    methods=["GET"],
-)
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def download_container_file_for_c2profiles(request, info, user):
-    if user["auth"] not in ["access_token", "apitoken"]:
-        abort(
-            status_code=403,
-            message="Cannot access via Cookies. Use CLI or access via JS in browser",
-        )
-    try:
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
-    except Exception as e:
-        print(e)
-        return json({"status": "error", "error": "failed to find C2 Profile"})
-    if user["current_operation"] == "":
-        return json({"status": "error", "error": "Must be part of an operation to see this"})
-    try:
-        status = await send_c2_rabbitmq_message(
-            profile.name, "get_config", "", user["username"]
-        )
-        return json(status)
-    except Exception as e:
-        return json({"status": "error", "error": "failed finding the file: " + str(e)})
-
-
-@mythic.route(
-    mythic.config["API_BASE"] + "/c2profiles/<info:int>/files/container_config_upload",
+    + "/c2profile_download_file_webhook",
     methods=["POST"],
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def upload_container_file_for_c2profiles(request, info, user):
+async def download_container_file_for_c2profiles_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        data = request.json["input"]
+        query = await db_model.c2profile_query()
+        profile = await db_objects.get(query, id=data["id"])
+    except Exception as e:
+        print(e)
+        return json({"status": "error", "error": "failed to find C2 Profile"})
+    if user["current_operation"] == "":
+        return json({"status": "error", "error": "Must be part of an operation to see this"})
+    try:
+        status, successfully_sent = await c2_rpc.call(message={
+            "action": "get_file",
+            "filename": data["filename"]
+        }, receiver="{}_mythic_rpc_queue".format(profile.name))
+        status = js.loads(status)
+        if "running" in status:
+            profile.running = status.pop("running")
+            await db_objects.update(profile)
+        return json(status)
+    except Exception as e:
+        return json({"status": "error", "error": "failed finding the file: " + str(e)})
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/c2profile_upload_file_webhook",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def upload_container_file_for_c2profiles_webhook(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -234,22 +243,25 @@ async def upload_container_file_for_c2profiles(request, info, user):
                     "error": "Spectators cannot modify c2 profile files",
                 }
             )
+        data = request.json["input"]
         query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
+        profile = await db_objects.get(query, id=data["id"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
     try:
-        data = request.json
-        status = await send_c2_rabbitmq_message(
-            profile.name,
-            "writefile",
-            js.dumps({"file_path": "config.json", "data": data["code"]}),
-            user["username"],
-        )
+        status, successfully_sent = await c2_rpc.call(message={
+            "action": "write_file",
+            "file_path": data["file_path"],
+            "data": data["data"]
+        }, receiver="{}_mythic_rpc_queue".format(profile.name))
+        status = js.loads(status)
+        if "running" in status:
+            profile.running = status.pop("running")
+            await db_objects.update(profile)
         return json(status)
     except Exception as e:
-        return json({"status": "error", "error": "failed finding the file: " + str(e)})
+        return json({"status": "error", "error": "failed writing the file: " + str(e)})
 
 
 # Delete a profile
@@ -316,13 +328,14 @@ async def get_c2profile_parameters(request, info, user):
     try:
         query = await db_model.c2profileparameters_query()
         parameters = await db_objects.execute(
-            query.where(C2ProfileParameters.c2_profile == profile)
+            query.where(
+                (C2ProfileParameters.c2_profile == profile) &
+                (C2ProfileParameters.deleted == False)
+            )
         )
         param_list = []
         for p in parameters:
             p_json = p.to_json()
-            if p_json["name"] == "AESPSK":
-                p_json["default_value"] = await create_key_AES256()
             if p_json["randomize"]:
                 # generate a random value based on the associated format_string variable
                 p_json["default_value"] = await generate_random_format_string(
@@ -346,38 +359,6 @@ async def generate_random_format_string(format_string):
     except Exception as e:
         print(e)
         return ""
-
-
-@mythic.route(
-    mythic.config["API_BASE"] + "/c2profiles/<profile:int>/files/sync", methods=["GET"]
-)
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def sync_container_file_for_c2_profile(request, profile, user):
-    if user["auth"] not in ["access_token", "apitoken"]:
-        abort(
-            status_code=403,
-            message="Cannot access via Cookies. Use CLI or access via JS in browser",
-        )
-    try:
-        if user["view_mode"] == "spectator":
-            return json(
-                {"status": "error", "error": "Spectators cannot sync containers"}
-            )
-        query = await db_model.c2profile_query()
-        c2profile = await db_objects.get(query, id=profile)
-    except Exception as e:
-        print(e)
-        return json({"status": "error", "error": "failed to find C2 Profile"})
-    try:
-        status = await send_c2_rabbitmq_message(
-            c2profile.name, "sync_classes", "", user["username"]
-        )
-        return json(status)
-    except Exception as e:
-        return json({"status": "error", "error": "failed finding the file: " + str(e)})
 
 
 @mythic.route(mythic.config["API_BASE"] + "/c2profiles/<profile:int>", methods=["PUT"])
@@ -408,7 +389,7 @@ async def update_c2_profile(request, profile, user):
             if not c2profile.container_running:
                 c2profile.running = False
                 await send_all_operations_message(message=f"C2 Profile {c2profile.name} has stopped",
-                                                  level="info")
+                                                  level="info", source="update_c2_profile")
             await db_objects.update(c2profile)
         return json(c2profile.to_json())
     except Exception as e:
@@ -455,7 +436,10 @@ async def save_c2profile_parameter_value_instance(request, info, user):
         )
     query = await db_model.c2profileparameters_query()
     params = await db_objects.execute(
-        query.where(C2ProfileParameters.c2_profile == profile)
+        query.where(
+            (C2ProfileParameters.c2_profile == profile) &
+            (C2ProfileParameters.deleted == False)
+        )
     )
     created_params = []
     for p in params:
@@ -616,8 +600,6 @@ async def import_c2_profile_func(data, operator):
             profile.is_p2p = data["is_p2p"]
         if "is_server_routed" in data:
             profile.is_server_routed = data["is_server_routed"]
-        if "mythic_encrypts" in data:
-            profile.mythic_encrypts = data["mythic_encrypts"]
         await db_objects.update(profile)
     except Exception as e:
         # this means the profile doesn't exit yet, so we need to create it
@@ -626,21 +608,21 @@ async def import_c2_profile_func(data, operator):
             data["is_p2p"] = False
         if "is_server_routed" not in data:
             data["is_server_routed"] = False
-        if "mythic_encrypts" not in data:
-            data["mythic_encrypts"] = True
         profile = await db_objects.create(
             C2Profile,
             name=data["name"],
             description=data["description"],
             author=data["author"],
-            mythic_encrypts=data["mythic_encrypts"],
             is_p2p=data["is_p2p"],
             is_server_routed=data["is_server_routed"],
         )
         # print("Created new c2 profile: {}".format(data['name']))
     query = await db_model.c2profileparameters_query()
     curr_parameters = await db_objects.execute(
-        query.where(db_model.C2ProfileParameters.c2_profile == profile)
+        query.where(
+            (db_model.C2ProfileParameters.c2_profile == profile) &
+            (db_model.C2ProfileParameters.deleted == False)
+        )
     )
     curr_parameters_dict = {c.name: c for c in curr_parameters}
     for param in data["params"]:
@@ -657,8 +639,10 @@ async def import_c2_profile_func(data, operator):
             c2_profile_param.required = param["required"]
             c2_profile_param.parameter_type = param["parameter_type"]
             c2_profile_param.verifier_regex = param["verifier_regex"]
+            c2_profile_param.crypto_type = param["crypto_type"]
             await db_objects.update(c2_profile_param)
         except Exception as e:
+            print(str(e))
             await db_objects.create(
                 C2ProfileParameters,
                 c2_profile=profile,
@@ -670,10 +654,12 @@ async def import_c2_profile_func(data, operator):
                 required=param["required"],
                 parameter_type=param["parameter_type"],
                 verifier_regex=param["verifier_regex"],
+                crypto_type=param["crypto_type"]
             )
         curr_parameters_dict.pop(param["name"], None)
         # print("Associated new params for profile: {}-{}".format(param['name'], data['name']))
     #  anything left in curr_parameters_dict we need to delete
     for k, v in curr_parameters_dict.items():
-        await db_objects.delete(v, recursive=True)
+        v.deleted = True
+        await db_objects.update(v)
     return {"status": "success", "new": new_profile, **profile.to_json()}

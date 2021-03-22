@@ -1,13 +1,14 @@
-from C2ProfileBase import *
+from mythic_c2_container.C2ProfileBase import *
 
 
 class HTTP(C2Profile):
-    name = "HTTP"
+    name = "http"
     description = "Uses HTTP(S) connections with a simple query parameter or basic POST messages. For more configuration options use dynamicHTTP."
     author = "@its_a_feature_"
     is_p2p = False
     is_server_routed = False
     mythic_encrypts = True
+    translation_container = None #"translator"
     parameters = [
         C2ProfileParameter(
             name="callback_port",
@@ -19,7 +20,8 @@ class HTTP(C2Profile):
         C2ProfileParameter(
             name="killdate",
             description="Kill Date",
-            default_value="yyyy-mm-dd",
+            parameter_type=ParameterType.Date,
+            default_value=365,
             required=False,
         ),
         C2ProfileParameter(
@@ -58,6 +60,50 @@ class HTTP(C2Profile):
             description="Callback Host",
             default_value="https://domain.com",
             verifier_regex="^(http|https):\/\/[a-zA-Z0-9]+",
+        ),
+        C2ProfileParameter(
+            name="get_uri",
+            description="GET request URI",
+            default_value="index",
+            required=True,
+        ),
+        C2ProfileParameter(
+            name="post_uri",
+            description="POST request URI",
+            default_value="data",
+            required=True,
+        ),
+        C2ProfileParameter(
+            name="query_path_name",
+            description="Name of the query parameter",
+            default_value="q",
+            required=True,
+        ),
+        C2ProfileParameter(
+            name="proxy_host",
+            description="Proxy Host",
+            default_value="",
+            required=False,
+            verifier_regex="^$|^(http|https):\/\/[a-zA-Z0-9]+",
+        ),
+        C2ProfileParameter(
+            name="proxy_port",
+            description="Proxy Port",
+            default_value="",
+            verifier_regex="^$|^[0-9]+$",
+            required=False,
+        ),
+        C2ProfileParameter(
+            name="proxy_user",
+            description="Proxy Username",
+            default_value="",
+            required=False,
+        ),
+        C2ProfileParameter(
+            name="proxy_pass",
+            description="Proxy Password",
+            default_value="",
+            required=False,
         ),
         C2ProfileParameter(
             name="callback_interval",

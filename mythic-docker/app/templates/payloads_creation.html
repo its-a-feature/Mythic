@@ -1,7 +1,5 @@
 {% extends "base.html" %}
 {% block body %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker3.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <div id="payloadCreation" style="margin-top:5px">
     <div class="card">
         <div class="card-header bg-header border border-dark shadow text-white">
@@ -101,7 +99,7 @@
                                                         <input disabled :value="o['name']" class="text form-control">
                                                     </template>
                                                     <button disabled class="btn btn-sm btn-secondary">Value:</button>
-                                                    <input type="text" class="form-control" :value="o['value']">
+                                                    <input type="text" class="form-control" :value="value.parameter[i]['value']" v-model="value.parameter[i]['value']">
                                                 </div>
                                             </template>
                                             <template v-if="can_add_more(value)">

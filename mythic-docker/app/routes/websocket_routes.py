@@ -1,7 +1,7 @@
-from app import mythic, db_objects, use_ssl
+from app import mythic, db_objects
 import aiopg
 import ujson as js
-import asyncio
+from sanic.log import logger
 from app.database_models.model import (
     Callback,
     Payload,
@@ -18,6 +18,7 @@ import aio_pika
 import sys
 import base64
 from app.api.processlist_api import get_process_tree
+import asyncio
 
 
 # --------------- TASKS --------------------------
@@ -2050,7 +2051,7 @@ async def ws_parameter_hints_current_operation(request, ws, user):
                         payloads = await db_objects.execute(
                             payloadquery.where(
                                 (Payload.operation == operation)
-                                & (Payload.auto_generated == False)
+                                #& (Payload.auto_generated == False)
                                 & (Payload.deleted == False)
                                 & (Payload.build_phase == "success")
                             )
@@ -2069,6 +2070,10 @@ async def ws_parameter_hints_current_operation(request, ws, user):
                                     db_model.PayloadC2Profiles.payload == cur_payload
                                 )
                             )
+                            build_parameters = []
+                            if p.build_parameters is not None:
+                                for bp in p.build_parameters:
+                                    build_parameters.append({"name": bp.build_parameter.name, "value": bp.parameter})
                             supported_profiles = []
                             for c2p in c2profiles:
                                 profile_info = {
@@ -2099,6 +2104,7 @@ async def ws_parameter_hints_current_operation(request, ws, user):
                                         **p.to_json(),
                                         "supported_profiles": supported_profiles,
                                         "channel": "newpayload",
+                                        "build_parameters": build_parameters
                                     }
                                 )
                             )
@@ -2234,6 +2240,11 @@ async def ws_parameter_hints_current_operation(request, ws, user):
                                                 == cur_payload
                                             )
                                         )
+                                        build_parameters = []
+                                        if payload.build_parameters is not None:
+                                            for bp in payload.build_parameters:
+                                                build_parameters.append(
+                                                    {"name": bp.build_parameter.name, "value": bp.parameter})
                                         supported_profiles = []
                                         for c2p in c2profiles:
                                             profile_info = {
@@ -2261,6 +2272,7 @@ async def ws_parameter_hints_current_operation(request, ws, user):
                                         obj_json = {
                                             **payload.to_json(),
                                             "supported_profiles": supported_profiles,
+                                            "build_parameters": build_parameters
                                         }
                                     obj_json["channel"] = msg.channel
                                     await ws.send(js.dumps(obj_json))
@@ -3072,18 +3084,205 @@ async def ws_file_browser_objects(request, ws, user):
         pool.close()
 
 
+# -------------- Token INFORMATION ----------------------
+@mythic.websocket("/ws/tokens/current_operation")
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def ws_token_objects(request, ws, user):
+    if not await valid_origin_header(request):
+        return
+    try:
+        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "newtoken";')
+                    await cur.execute('LISTEN "updatedtoken";')
+                    if user["current_operation"] != "":
+                        query = await db_model.operation_query()
+                        operation = await db_objects.get(
+                            query, name=user["current_operation"]
+                        )
+                        tokenquery = await db_model.token_query()
+                        tokens = await db_objects.execute(tokenquery.where(
+                            db_model.Token.callback != None
+                        ))
+                        for t in tokens:
+                            if t.callback.operation == operation:
+                                await ws.send(js.dumps(t.to_json()))
+                        while True:
+                            try:
+                                msg = conn.notifies.get_nowait()
+                                id = msg.payload
+                                token = await db_objects.get(tokenquery, id=id)
+                                if token.callback.operation == operation:
+                                    await ws.send(js.dumps(token.to_json()))
+                            except asyncio.QueueEmpty as e:
+                                await asyncio.sleep(0.5)
+                                await ws.send(
+                                    ""
+                                )  # this is our test to see if the client is still there
+                            except Exception as e:
+                                print(e)
+                                continue
+                    else:
+                        await ws.send("no_operation")
+                        while True:
+                            await ws.send("")
+                            await asyncio.sleep(0.5)
+    finally:
+        pool.close()
+
+
+# -------------- Callback Tasking  ----------------------
+@mythic.websocket("/ws/agent_message/<num_tasks:int>")
+async def ws_agent_messages(request, ws, num_tasks):
+    from app.api.callback_api import parse_agent_message, get_agent_tasks, get_routable_messages, create_final_message_from_data_and_profile_info, get_encryption_data
+    from app.api.operation_api import send_all_operations_message
+    if "Mythic" in request.headers:
+        profile = request.headers["Mythic"]
+    else:
+        asyncio.create_task(send_all_operations_message(
+            message=f"Failed to find Mythic header in: {request.socket} as {request.method} method, URL {request.url} and with headers: \n{request.headers}",
+            level="warning", source="websocket_c2_connection"))
+        return
+    callback = None
+    try:
+        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute('LISTEN "updatedtask";')
+                    checkinMsg = await ws.recv()
+                    message, code, new_callback, msg_uuid = await parse_agent_message(checkinMsg, request, profile)
+                    await ws.send(message)
+                    print("sent checkin response message")
+                    print(msg_uuid)
+                    print(new_callback)
+                    if code == 404:
+                        logger.error("websocket route message got 404 trying to process checkin")
+                        return
+                    query = await db_model.callback_query()
+                    if new_callback != "":
+                        callback = await db_objects.get(query, agent_callback_id=new_callback)
+                    else:
+                        callback = await db_objects.get(query, agent_callback_id=msg_uuid)
+                    try:
+                        enc_key = await get_encryption_data(callback.agent_callback_id, profile)
+                    except Exception as e:
+                        asyncio.create_task(send_all_operations_message(
+                            message=f"Failed to correlate UUID to something mythic knows: {new_callback}\nfrom websocket method with headers: \n{request.headers}",
+                            level="warning", source="parse_agent_message_uuid"))
+                        print("failed to get encryption data")
+                        return
+                    # now that we have a checkin message, iterate to see if there are any tasks
+                    #   for that callback or any of its routable agents
+                    print("trying to get any backlogged tasks")
+                    response_data = await get_agent_tasks({"action": "get_tasking", "tasking_size": num_tasks}, callback)
+                    print("got agent tasks if any")
+                    delegates = await get_routable_messages(callback, request)
+                    print("got routable messages, if any")
+                    if delegates is not None:
+                        response_data["delegates"] = delegates
+                    print(response_data)
+                    if (len(response_data["tasks"]) > 0) or (delegates is not None):
+                        print("creating final message")
+                        final_msg = await create_final_message_from_data_and_profile_info(response_data, enc_key, callback.agent_callback_id,
+                                                                                      request)
+                        if final_msg is None:
+                            logger.error("websocket route message got no final message from create_final_message")
+                            return
+                        print("sending final message")
+                        await ws.send(final_msg)
+                    print("about to create task query")
+                    task_query = await db_model.task_query()
+                    print("creating getMessagesFromWebsocket task")
+                    asyncio.create_task(getMessagesFromWebsocket(ws, request, profile, callback, enc_key))
+                    print("now about to enter while loop")
+                    while True:
+                        try:
+                            # blocking get call
+                            print("wait for new events")
+                            msg = await conn.notifies.get()
+                            print(msg)
+                            id = msg.payload
+                            task = await db_objects.get(task_query, id=id)
+                            if task.callback.operation == callback.operation and task.status == "submitted":
+                                # this is a candidate to see if we need to send this down the websocket
+                                print("got new task, checking to see if targeted for our websocket or linked agents")
+                                response_data = await get_agent_tasks({"action": "get_tasking", "tasking_size": num_tasks},
+                                                                      callback)
+                                delegates = await get_routable_messages(callback, request)
+                                if delegates is not None:
+                                    response_data["delegates"] = delegates
+                                if len(response_data["tasks"]) > 0 or delegates is not None:
+                                    print("got message or delegate message for us, create final message")
+                                    final_msg = await create_final_message_from_data_and_profile_info(response_data,
+                                                                                                      enc_key, callback.agent_callback_id,
+                                                                                                      request)
+                                    if final_msg is None:
+                                        return
+                                    print("sending final message to websocket")
+                                    await ws.send(final_msg)
+
+                        except asyncio.QueueEmpty as e:
+                            await asyncio.sleep(0.5)
+                        except Exception as e:
+                            logger.error("websocket route: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                            continue
+    except Exception as d:
+        str(sys.exc_info()[-1].tb_lineno) + " " + str(d)
+
+
+async def getSocksMessagesForWebsocket(ws, request, enc_key, callback):
+    from app.api.callback_api import cached_socks, create_final_message_from_data_and_profile_info
+    while True:
+        if callback.id in cached_socks and "queue" in cached_socks[callback.id]:
+            try:
+                data = [ cached_socks[callback.id]["queue"].pop() ]
+                while cached_socks[callback.id]["queue"]:
+                    data.append( cached_socks[callback.id]["queue"].pop() )
+                msg = {"action": "get_tasking", "tasks": [], "socks": data}
+                final_msg = await create_final_message_from_data_and_profile_info(msg,
+                                                                                  enc_key, callback.id,
+                                                                                  request)
+                if final_msg is None:
+                    logger.error("final_msg is none in getSocksMessagesForWebsocket")
+                    return
+                await ws.send(final_msg)
+            except Exception as e:
+                logger.error("getSocksMessagesForWebsocket route: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                return
+        else:
+            await asyncio.sleep(2)
+
+
+async def getMessagesFromWebsocket(ws, request, profile, callback, enc_key):
+    from app.api.callback_api import parse_agent_message
+    print("creating task for getSocksMessages")
+    task = asyncio.create_task(getSocksMessagesForWebsocket(ws, request, enc_key, callback))
+    while True:
+        try:
+            # blocking receive call
+            print("in getMessagesFromWebsocket, blocking on receive")
+            data = await ws.recv()
+            print("got message in getMessagesFromWebsocket")
+            print(data)
+            message, code, new_callback, msg_uuid = await parse_agent_message(data, request, profile)
+            await ws.send(message)
+            if code == 404:
+                logger.error("websocket route message getMessagesFromWebsocket got 404")
+                return
+        except Exception as e:
+            logger.error("websocket route getMessagesFromWebsocket: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            task.cancel()
+            return
+
+
 # CHECK ORIGIN HEADERS FOR WEBSOCKETS
 async def valid_origin_header(request):
     if "origin" in request.headers:
-        if use_ssl:
-            if request.headers["origin"] == "https://{}".format(
-                request.headers["host"]
-            ):
-                return True
-        else:
-            if request.headers["origin"] == "http://{}".format(request.headers["host"]):
-                return True
-        return False
+        return True
     elif "apitoken" in request.headers:
         return True
     else:

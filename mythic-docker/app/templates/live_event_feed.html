@@ -31,6 +31,7 @@
                 <td style="padding-left:10px"><pre>[[toLocalTime(entry.timestamp)]]</pre></td>
                 <td>
                     [[entry.operator]]
+                    <template v-if="entry.count > 1">([[entry.count]])</template>
                     <template v-if="entry.level === 'warning' && entry.resolved">
                         <br><button type="button" class="btn btn-sm btn{{config['outline-buttons']}}secondary" @click="toggle_resolved(entry)">Unresolve</button>
                     </template>

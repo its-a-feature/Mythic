@@ -1,4 +1,5 @@
-from PayloadBuilder import *
+from mythic_payloadtype_container.PayloadBuilder import *
+from mythic_payloadtype_container.MythicCommandBase import *
 import asyncio
 import os
 from distutils.dir_util import copy_tree
@@ -12,7 +13,7 @@ class Atlas(PayloadType):
     author = "@Airzero24"  # author of the payload type
     supported_os = [SupportedOS.Windows]  # supported OS and architecture combos
     wrapper = False  # does this payload type act as a wrapper for another payloads inside of it?
-    wrapped_payloads = []  # if so, which payload types
+    wrapped_payloads = []  # if so, which payload types. If you are writing a wrapper, you will need to modify this variable (adding in your wrapper's name) in the builder.py of each payload that you want to utilize your wrapper.
     note = """Any note you want to show up about your payload type in the UI"""
     supports_dynamic_loading = False  # setting this to True allows users to only select a subset of commands when generating a payload
     build_parameters = {

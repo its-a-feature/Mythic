@@ -66,7 +66,7 @@ async def add_payload_to_host(request, user):
         operation = await db_objects.get(query, name=user["current_operation"])
         payload_query = await db_model.payload_query()
         payload = await db_objects.get(payload_query, uuid=data["uuid"])
-        data["host"] = data["host"].upper()
+        data["host"] = data["host"]
         try:
             payloadonhost = await db_objects.get(
                 db_model.PayloadOnHost,

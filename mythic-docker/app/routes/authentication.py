@@ -1,5 +1,5 @@
-from sanic_jwt import exceptions
-from app import db_objects, links
+from sanic_jwt import exceptions, Responses
+from app import db_objects, links, mythic, valid_restful_scripting_bounds
 from app.database_models.model import Operation, OperatorOperation
 from app.database_models.model import (
     operator_query,
@@ -8,10 +8,11 @@ from app.database_models.model import (
     apitokens_query,
 )
 import datetime
-import json
+import ujson as js
+from sanic.response import json
 from sanic_jwt import Authentication, Configuration
-
-
+from sanic.log import logger
+from sanic_jwt.decorators import inject_user
 from contextlib import contextmanager
 from sanic_jwt.cache import to_cache, clear_cache
 
@@ -40,15 +41,15 @@ class MyConfig(Configuration):
 
 class MyAuthentication(Authentication):
     async def _verify(
-        self,
-        request,
-        return_payload=False,
-        verify=True,
-        raise_missing=False,
-        request_args=None,
-        request_kwargs=None,
-        *args,
-        **kwargs,
+            self,
+            request,
+            return_payload=False,
+            verify=True,
+            raise_missing=False,
+            request_args=None,
+            request_kwargs=None,
+            *args,
+            **kwargs,
     ):
         """
         If there is a "apitoken", then we will verify the token by checking the
@@ -65,7 +66,7 @@ class MyAuthentication(Authentication):
                 with cache_request(request):
                     payload = await self._decode(apitoken, verify=verify)
             except Exception as e:
-                print("Failed to decode apitoken")
+                logger.error("Failed to decode apitoken")
                 if return_payload:
                     return {}
                 return False, 401, "Auth Error"
@@ -76,12 +77,12 @@ class MyAuthentication(Authentication):
             request_kwargs = request_kwargs or {}
             user = request_kwargs.get("user")
             if not user:
-                print("retrieve_user lookup failed in request_kwargs")
+                logger.error("retrieve_user lookup failed in request_kwargs")
                 return False, 401, "Auth Error"
             if user["apitoken_active"]:
                 return True, 200, "Success"
             else:
-                print("Token no longer active")
+                logger.error("Token no longer active")
                 return False, 401, "Auth Error"
         else:
             with cache_request(request):
@@ -106,10 +107,10 @@ class MyAuthentication(Authentication):
         try:
             query = await operator_query()
             user = await db_objects.get(query, username=username)
-            # print("in authenticate, the user: " + str(user))
+            # logger.debug("in authenticate, the user: " + str(user))
             # user = await db_objects.get(Operator, username=username)
         except Exception as e:
-            print("invalid username")
+            logger.info("invalid username: " + str(username))
             raise exceptions.AuthenticationFailed("Incorrect username or password")
         if not user.active:
             raise exceptions.AuthenticationFailed("Account is deactivated")
@@ -118,13 +119,13 @@ class MyAuthentication(Authentication):
                 user.last_login = datetime.datetime.now()
                 await db_objects.update(user)
                 # now we have successful authentication, return appropriately
-                # print("success authentication")
-                return {"user_id": user.id, "username": user.username, "auth": "user"}
+                # logger.debug("success authentication")
+                return {"user_id": user.id, "username": user.username, "auth": "user", **user.to_json()}
             except Exception as e:
-                print("failed to update user in authenticate")
+                logger.error("failed to update user in authenticate")
                 raise exceptions.AuthenticationFailed("Failed to authenticate")
         else:
-            print("invalid password")
+            logger.info("invalid password for user " + str(user.username))
             raise exceptions.AuthenticationFailed("Incorrect username or password")
 
     async def retrieve_user(self, request, payload, *args, **kwargs):
@@ -134,7 +135,7 @@ class MyAuthentication(Authentication):
             user_id = payload.get("user_id", None)
         try:
             if user_id is None or (
-                user_id not in refresh_tokens and "apitoken" not in request.headers
+                    user_id not in refresh_tokens and "apitoken" not in request.headers
             ):
                 raise exceptions.AuthenticationFailed(
                     "Invalid auth token or your refresh token is gone. Login again"
@@ -144,7 +145,7 @@ class MyAuthentication(Authentication):
                 user = await db_objects.get(query, id=user_id)
                 if not user.active:
                     # this allows us to reject apitokens of user that have been deactivated
-                    print("User is not active, failing authentication")
+                    logger.info("User is not active, failing authentication")
                     raise exceptions.AuthenticationFailed("User is not active")
             user_json = user.to_json()
             query = await operatoroperation_query()
@@ -153,7 +154,7 @@ class MyAuthentication(Authentication):
             )
             operations = []
             if (
-                user.current_operation is not None
+                    user.current_operation is not None
             ):
                 links["current_operation"] = user.current_operation.name
             else:
@@ -173,7 +174,7 @@ class MyAuthentication(Authentication):
             admin_ops = []
             for op in admin_operations:
                 admin_ops.append(op.name)
-            user_json["ui_config"] = json.loads(user_json["ui_config"])
+            user_json["ui_config"] = js.loads(user_json["ui_config"])
             # note for @inject_user headers if this is an apitoken or normal login request
             if "apitoken" in request.headers:
                 query = await apitokens_query()
@@ -202,27 +203,41 @@ class MyAuthentication(Authentication):
                 "admin_operations": admin_ops,
             }
         except exceptions.AuthenticationFailed as e:
-            print("got authentication failed in retrieve_user. {}".format(str(e)))
+            msg = "Authentication failed in retrieve_user (user ID: {}). {}"
+            logger.info(msg.format(user_id, str(e)))
             raise e
         except Exception as e:
-            print("Error in retrieve user:" + str(e))
+            logger.error("Error in retrieve user:" + str(e))
             raise exceptions.AuthenticationFailed("Auth Error")
+
+
+class MyResponses(Responses):
+    @staticmethod
+    def extend_authenticate(request,
+                            user=None,
+                            access_token=None,
+                            refresh_token=None):
+        data = request.json
+        if "scripting_version" in data:
+            if data["scripting_version"] < valid_restful_scripting_bounds[0] or \
+                    data["scripting_version"] > valid_restful_scripting_bounds[1]:
+                raise Exception("Scripting version is outside of the allowed bounds. please update")
+        return {"access_token": access_token, "refresh_token": refresh_token,
+                "user": user}
 
 
 async def add_scopes_to_payload(user, *args, **kwargs):
     # return an array of scopes
     scopes = []
-    if user["auth"] == "apitoken" and user["token_type"] == "C2":
-        scopes.append("auth:apitoken_c2")
-    elif user["auth"] == "apitoken" and user["token_type"] == "User":
+    if user["auth"] == "apitoken" and user["token_type"] == "User":
         scopes.append("auth:apitoken_user")
     else:
-        scopes.append("auth:user:apitoken_c2:apitoken_user")
+        scopes.append("auth:user:apitoken_user")
     try:
         query = await operator_query()
         dbuser = await db_objects.get(query, id=user["user_id"])
     except Exception as e:
-        print(e)
+        logger.error(str(e))
         return []
     try:
         query = await operatoroperation_query()
@@ -237,8 +252,43 @@ async def add_scopes_to_payload(user, *args, **kwargs):
             scopes.append(map.operation.name)
         return scopes
     except Exception as e:
-        print(e)
+        logger.error(str(e))
         return []
+
+
+async def get_graphql_claims(user_id):
+    query = await operator_query()
+    user = await db_objects.get(query, id=user_id)
+    query = await operatoroperation_query()
+    operationmap = await db_objects.execute(
+        query.where(OperatorOperation.operator == user)
+    )
+    operations = []
+    admin_ops = []
+    user_json = {
+        "x-hasura-user-id": str(user.id)
+    }
+    if user.current_operation is not None:
+        user_json["x-hasura-current_operation"] = user.current_operation.name
+        user_json["x-hasura-current-operation-id"] = str(user.current_operation.id)
+    else:
+        user_json["x-hasura-current_operation"] = "null"
+    for operation in operationmap:
+        op = operation.operation
+        if op.name == user_json["x-hasura-current_operation"]:
+            user_json["x-hasura-role"] = operation.view_mode
+            if op.admin == user:
+                user_json["x-hasura-role"] = "operation_admin"
+        operations.append(str(op.id))
+        if op.admin == user:
+            admin_ops.append(str(op.id))
+    if user.admin:
+        user_json["x-hasura-role"] = "mythic_admin"
+    if "x-hasura-role" not in user_json:
+        user_json["x-hasura-role"] = "spectator"
+    user_json["x-hasura-operations"] = "{" + ",".join(operations) + "}"
+    user_json["x-hasura-admin-operations"] = "{" + ",".join(admin_ops) + "}"
+    return user_json
 
 
 async def store_refresh_token(user_id, refresh_token, *args, **kwargs):
@@ -250,7 +300,7 @@ async def store_refresh_token(user_id, refresh_token, *args, **kwargs):
 
 
 async def retrieve_refresh_token(request, user_id, *args, **kwargs):
-    # print("requested refresh token for: " + str(user_id))
+    # logger.debug("requested refresh token for: " + str(user_id))
     if user_id in refresh_tokens:
         return refresh_tokens[user_id]
     return None
@@ -259,3 +309,11 @@ async def retrieve_refresh_token(request, user_id, *args, **kwargs):
 async def invalidate_refresh_token(user_id):
     if user_id in refresh_tokens:
         del refresh_tokens[user_id]
+
+
+@mythic.route("/graphql/webhook")
+@inject_user()
+async def index(request, user):
+    user_json = await get_graphql_claims(user["id"])
+    # print(user_json)
+    return json(user_json)

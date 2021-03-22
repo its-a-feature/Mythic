@@ -1,8 +1,0 @@
-To build the sever:
-
-go get github.com/gorilla/websocket
-go get github.com/kabukky/httpscerts
-go build -tags=websocket main.go
-
-this outputs a binary called "main"
-move this to ../server

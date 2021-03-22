@@ -1,5 +1,6 @@
 From python:3.8-buster
 RUN pip install aio_pika
+RUN pip install mythic-payloadtype-container
 
 RUN apt-get update
 RUN apt-get install software-properties-common apt-utils -y

@@ -23,11 +23,12 @@ function generate_report(url){
 function create_timeline(response){
     try{
         let data = JSON.parse(response);
+        console.log(data);
         if(data['status'] !== "success"){
             alertTop("danger", data['error']);
         }
         else{
-            alertTop("success", "Download here: <a style='color:darkblue' href=\"{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + data['agent_file_id'] + "\" target=\"_blank\">Full Report</a>",
+            alertTop("success", "Download here: <a style='color:darkblue' href=\"{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + data['agent_file_id'] + "\" target=\"_blank\">Full Report</a><br/>And download later from the \"Services\" -> \"Host Files\" <a style='color:darkblue' href=\"{{http}}://{{links.server_ip}}:{{links.server_port}}/services/host_file/\" target=\"_blank\">page</a>.",
                 0, "Successfully created!", false);
         }
     }catch(error){

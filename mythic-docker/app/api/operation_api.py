@@ -30,7 +30,6 @@ async def get_all_operation(request, user):
                     query.where(OperatorOperation.operation == o)
                 )
                 ojson = o.to_json()
-                ojson.pop("AESPSK", None)
                 ojson["members"] = []
                 for map in operatorsmap:
                     data = {
@@ -75,6 +74,7 @@ async def get_one_operation(request, user, op):
         if (
             operation.name in user["operations"]
             or operation.name in user["admin_operations"]
+            or user["admin"]
         ):
             query = await db_model.operatoroperation_query()
             operatorsmap = await db_objects.execute(
@@ -179,7 +179,7 @@ async def update_operation(request, user, op):
                     ),
                 )
             except Exception as e:
-                print(e)
+                print(str(e))
                 return json({"status": "error", "error": "failed to update the admin"})
         if "add_members" in data:
             for new_member in data["add_members"]:
@@ -303,24 +303,33 @@ async def update_operation(request, user, op):
                 await db_objects.update(operatoroperation)
         if "webhook" in data:
             if (data["webhook"] == "" or data["webhook"] is None) and (
-                operation.webhook is not None and operation.webhook != ""
+                operation.webhook != ""
             ):
-                operation.webhook = None
+                operation.webhook = ""
                 await db_objects.create(
                     db_model.OperationEventLog,
                     operation=operation,
                     message="{} removed Operation webhook".format(modifier.username),
                 )
-            elif data["webhook"] != "":
+            elif data["webhook"] != "" and data["webhook"] != operation.webhook:
                 operation.webhook = data["webhook"]
-                if operation.webhook is not None:
-                    await db_objects.create(
-                        db_model.OperationEventLog,
-                        operation=operation,
-                        message="{} added operation webhook: {}".format(
-                            modifier.username, data["webhook"]
-                        ),
-                    )
+                await db_objects.create(
+                    db_model.OperationEventLog,
+                    operation=operation,
+                    message="{} set operation webhook to {}".format(
+                        modifier.username, data["webhook"]
+                    ),
+                )
+        if "channel" in data and data["channel"] != operation.channel:
+            operation.channel = data["channel"]
+        if "display_name" in data and data["display_name"] != operation.display_name:
+            operation.display_name = data["display_name"]
+        if "icon_emoji" in data and data["icon_emoji"] != operation.icon_emoji:
+            operation.icon_emoji = data["icon_emoji"]
+        if "icon_url" in data and data["icon_url"] != operation.icon_url:
+            operation.icon_url = data["icon_url"]
+        if "webhook_message" in data and data["webhook_message"] != operation.webhook_message:
+            operation.webhook_message = data["webhook_message"]
         if "complete" in data:
             operation.complete = data["complete"]
         try:
@@ -341,7 +350,6 @@ async def update_operation(request, user, op):
                 data["base_disabled_commands"] = None
             all_users.append(data)
         ojson = operation.to_json()
-        ojson.pop("AESPSK", None)
         return json({"status": "success", "members": all_users, **ojson})
     else:
         return json({"status": "error", "error": "not authorized to make the change"})
@@ -378,7 +386,6 @@ async def create_operation(request, user):
                 db_model.Operation,
                 name=data["name"],
                 admin=new_admin,
-                AESPSK=await create_key_AES256(),
             )
             await db_objects.create(
                 db_model.OperationEventLog,
@@ -447,25 +454,25 @@ async def create_operation(request, user):
                             ),
                         }
                     )
-        if "webhook" in data:
-            if (data["webhook"] == "" or data["webhook"] is None) and (
-                operation.webhook is not None and operation.webhook != ""
-            ):
-                operation.webhook = None
-                await db_objects.create(
-                    db_model.OperationEventLog,
-                    operation=operation,
-                    message="{} removed operation webhook".format(modifier.username),
-                )
-            elif data["webhook"] != "":
-                operation.webhook = data["webhook"]
-                await db_objects.create(
-                    db_model.OperationEventLog,
-                    operation=operation,
-                    message="{} added operation webhook: {}".format(
-                        modifier.username, data["webhook"]
-                    ),
-                )
+        if "webhook" in data and data["webhook"] != "":
+            operation.webhook = data["webhook"]
+            await db_objects.create(
+                db_model.OperationEventLog,
+                operation=operation,
+                message="{} added operation webhook: {}".format(
+                    modifier.username, data["webhook"]
+                ),
+            )
+        if "channel" in data:
+            operation.channel = data["channel"]
+        if "display_name" in data:
+            operation.display_name = data["display_name"]
+        if "icon_emoji" in data:
+            operation.icon_emoji = data["icon_emoji"]
+        if "icon_url" in data:
+            operation.icon_url = data["icon_url"]
+        if "webhook_message" in data:
+            operation.webhook_message = data["webhook_message"]
         await db_objects.update(operation)
         return json(
             {"status": "success", "members": added_members, **operation.to_json()}
@@ -694,13 +701,41 @@ async def update_disabled_commands_profile(request, user):
         )
 
 
-async def send_all_operations_message(message: str, level: str):
-    query = await db_model.operation_query()
-    operations = await db_objects.execute(query)
-    for o in operations:
-        await db_objects.create(
-            db_model.OperationEventLog,
-            operation=o,
-            level=level,
-            message=message,
-        )
+async def send_all_operations_message(message: str, level: str, source: str = "", operation=None):
+    try:
+        query = await db_model.operation_query()
+        event_query = await db_model.operationeventlog_query()
+        operations = await db_objects.execute(query.where(db_model.Operation.complete == False))
+        for o in operations:
+            if operation is None or operation == o:
+                try:
+                    msg = await db_objects.count(event_query.where(
+                        (db_model.OperationEventLog.level == "warning") &
+                        (db_model.OperationEventLog.source == source) &
+                        (db_model.OperationEventLog.operation == o) &
+                        (db_model.OperationEventLog.resolved == False) &
+                        (db_model.OperationEventLog.deleted == False)
+                    ).order_by(-db_model.OperationEventLog.id).limit(1))
+                    if msg == 0:
+                        await db_objects.create(
+                            db_model.OperationEventLog,
+                            operation=o,
+                            level=level,
+                            message=message,
+                            source=source
+                        )
+                    else:
+                        msg = await db_objects.execute(event_query.where(
+                            (db_model.OperationEventLog.level == "warning") &
+                            (db_model.OperationEventLog.source == source) &
+                            (db_model.OperationEventLog.operation == o) &
+                            (db_model.OperationEventLog.resolved == False) &
+                            (db_model.OperationEventLog.deleted == False)
+                        ).order_by(-db_model.OperationEventLog.id).limit(1))
+                        for m in msg:
+                            m.count = m.count + 1
+                            await db_objects.update(m)
+                except Exception as e:
+                    print(e)
+    except Exception as b:
+        print(b)

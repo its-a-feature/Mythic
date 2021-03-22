@@ -83,6 +83,8 @@ async def create_credential_func(operator, operation, data):
         data["account"] = ""
     if "comment" not in data:
         data["comment"] = ""
+    if "metadata" not in data:
+        data["metadata"] = ""
     if "task" not in data or data["task"] == "":
         try:
             # trying to prevent duplication of data in the database
@@ -95,6 +97,7 @@ async def create_credential_func(operator, operation, data):
                 realm=data["realm"],
                 operation=operation,
                 credential=data["credential"].encode(),
+                metadata=data["metadata"]
             )
             status["new"] = False
         except Exception as e:
@@ -108,6 +111,7 @@ async def create_credential_func(operator, operation, data):
                 credential=data["credential"].encode(),
                 operator=operator,
                 comment=data["comment"],
+                metadata=data["metadata"]
             )
             await log_to_siem(cred.to_json(), mythic_object="credential_new")
     else:
@@ -121,6 +125,7 @@ async def create_credential_func(operator, operation, data):
                 realm=data["realm"],
                 operation=operation,
                 credential=data["credential"].encode(),
+                metadata=data["metadata"]
             )
             status["new"] = False
         except Exception as e:
@@ -135,6 +140,7 @@ async def create_credential_func(operator, operation, data):
                 credential=data["credential"].encode(),
                 operator=operator,
                 comment=data["comment"],
+                metadata=data["metadata"]
             )
             await log_to_siem(cred.to_json(), mythic_object="credential_new")
     return {**status, **cred.to_json()}

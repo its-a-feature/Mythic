@@ -71,6 +71,17 @@
                                     Enable Browser Script
                                 </template>
                             </a>
+                            <a class="dropdown-item" href="#" data-toggle="tooltip" title="View Stdout/Stderr for task" @click="view_stdout_stderr(task)"><i class="fas fa-info-circle"></i>View Task Stdout/Stderr</a>
+                            <a class="dropdown-item" href="#" data-toggle="tooltip" title="View All Parameters for task" @click="view_all_parameters(task)"><i class="fas fa-info-circle"></i>View All Parameters</a>
+                            <template v-if="task.opsec_pre_blocked !== null || task.opsec_post_blocked !== null">
+                                <a class="dropdown-item" href="#" data-toggle="tooltip" title="View OPSEC block info" @click="view_opsec_block(task)"><i class="fas fa-info-circle"></i>View OPSEC Message</a>
+                            </template>
+                            <template v-if="task.opsec_pre_blocked && task.opsec_pre_bypassed === false">
+                                <a class="dropdown-item" href="#" data-toggle="tooltip" title="submit bypass request" @click="submit_opsec_bypass_request(task)"><i class="fas fa-info-circle"></i>Submit Bypass Request ([[task.opsec_pre_bypass_role]])</a>
+                            </template>
+                            <template v-else-if="task.opsec_post_blocked && task.opsec_post_bypassed === false">
+                                <a class="dropdown-item" href="#" data-toggle="tooltip" title="submit bypass request" @click="submit_opsec_bypass_request(task)"><i class="fas fa-info-circle"></i>Submit Bypass Request ([[task.opsec_post_bypass_role]])</a>
+                            </template>
                         </div>
                     </div>
                      <p :key="'mutedtext' + task.id" class="card-text" style="margin:0;display:inline-block"><small class="text-muted">
@@ -81,7 +92,7 @@
                      <br :key="'br' + task.id">
                      <a :key="'toggleoutput' + task.id" class="btn btn-link" type="button" style="border:0;padding:0 0 5px 5px" data-toggle="collapse" :data-target="'#cardbody' + task.id" aria-expanded="false" :aria-controls="'cardbody' + task.id" @click="toggle_arrow(task)"><i :id="'color-arrow' + task.id" class="fas fa-plus fa-xs" data-toggle="tooltip" title="view / hide task output"></i></a>
                         <div style="display:inline-block" :key="'taskcommand' + task.id"><b>&nbsp;[[task.command]]&nbsp;</b></div>
-                     <div style="display:inline-block" :key="'taskparams' + task.id">[[task.original_params]]</div>
+                     <div style="display:inline-block" :key="'taskparams' + task.id">[[task.display_params]]</div>
                     </transition-group>
                 </div>
                 <div :key="'outputcontent' + task.id" class="collapse" :id="'cardbody' + task.id" >

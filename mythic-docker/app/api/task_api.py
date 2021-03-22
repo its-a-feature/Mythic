@@ -23,6 +23,7 @@ from sanic.exceptions import abort
 from math import ceil
 from sanic.log import logger
 from app.api.siem_logger import log_to_siem
+import asyncio
 
 
 # This gets all tasks in the database
@@ -380,6 +381,29 @@ async def get_all_tasks_for_callback(request, cid, user):
         )
 
 
+@mythic.route(mythic.config["API_BASE"] + "/tasks/stdoutstderr/<tid:int>", methods=["GET"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_stdout_stderr_for_task(request, tid, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation_query = await db_model.operation_query()
+        cur_op = await db_objects.get(operation_query, name=user["current_operation"])
+        query = await db_model.task_query()
+        task = await db_objects.get(query, id=tid)
+        if task.callback.operation != cur_op:
+            return json({"status": "error", "error": "not part of the right operation"})
+    except Exception as e:
+        return json({"status": "error", "error": "task does not exist"})
+    return json({"status": "success", "stdout": task.stdout, "stderr": task.stderr})
+
+
 @mythic.route(mythic.config["API_BASE"] + "/task_report_by_callback")
 @inject_user()
 @scoped(
@@ -424,6 +448,52 @@ async def get_all_tasks_by_callback_in_current_operation(request, user):
     return json({"status": "success", "output": output})
 
 
+async def update_edges_from_checkin(callback_uuid, profile):
+    try:
+        callbackquery = await db_model.callback_query()
+        callback = await db_objects.get(callbackquery, agent_callback_id=callback_uuid)
+        cur_time = datetime.utcnow()
+        callback.last_checkin = cur_time
+        c2_query = await db_model.callbackc2profiles_query()
+        c2profiles = await db_objects.execute(
+            c2_query.where(db_model.CallbackC2Profiles.callback == callback)
+        )
+        for c2 in c2profiles:
+            if c2.c2_profile.name == profile:
+                try:
+                    edge = await db_objects.get(
+                        db_model.CallbackGraphEdge,
+                        source=callback,
+                        destination=callback,
+                        c2_profile=c2.c2_profile,
+                        direction=1,
+                        end_timestamp=None,
+                        operation=callback.operation,
+                    )
+                except Exception as d:
+                    print(d)
+                    edge = await db_objects.create(
+                        db_model.CallbackGraphEdge,
+                        source=callback,
+                        destination=callback,
+                        c2_profile=c2.c2_profile,
+                        direction=1,
+                        end_timestamp=None,
+                        operation=callback.operation,
+                    )
+                    from app.api.callback_api import (
+                        add_non_directed_graphs,
+                        add_directed_graphs,
+                    )
+
+                    await add_non_directed_graphs(edge)
+                    await add_directed_graphs(edge)
+            callback.active = True  # always set this to true regardless of what it was before because it's clearly active
+        await db_objects.update(callback)  # update the last checkin time
+    except Exception as e:
+        print(e)
+
+
 async def get_agent_tasks(data, callback):
     # { INPUT
     #    "action": "get_tasking",
@@ -444,45 +514,6 @@ async def get_agent_tasks(data, callback):
     tasks = []
     socks = []
     try:
-        cur_time = datetime.utcnow()
-        callback.last_checkin = cur_time
-        if not callback.active:
-            c2_query = await db_model.callbackc2profiles_query()
-            c2profiles = await db_objects.execute(
-                c2_query.where(db_model.CallbackC2Profiles.callback == callback)
-            )
-            for c2 in c2profiles:
-                if not c2.c2_profile.is_p2p:
-                    try:
-                        edge = await db_objects.get(
-                            db_model.CallbackGraphEdge,
-                            source=callback,
-                            destination=callback,
-                            c2_profile=c2.c2_profile,
-                            direction=1,
-                            end_timestamp=None,
-                            operation=callback.operation,
-                        )
-                    except Exception as d:
-                        print(d)
-                        edge = await db_objects.create(
-                            db_model.CallbackGraphEdge,
-                            source=callback,
-                            destination=callback,
-                            c2_profile=c2.c2_profile,
-                            direction=1,
-                            end_timestamp=None,
-                            operation=callback.operation,
-                        )
-                        from app.api.callback_api import (
-                            add_non_directed_graphs,
-                            add_directed_graphs,
-                        )
-
-                        await add_non_directed_graphs(edge)
-                        await add_directed_graphs(edge)
-            callback.active = True  # always set this to true regardless of what it was before because it's clearly active
-        await db_objects.update(callback)  # update the last checkin time
         if not callback.operation.complete:
             query = await db_model.task_query()
             if data["tasking_size"] > 0:
@@ -651,6 +682,100 @@ async def add_task_to_callback(request, cid, user):
     )
 
 
+@mythic.route(mythic.config["API_BASE"] + "/create_task_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def add_task_to_callback_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    # some commands can optionally upload files or indicate files for use
+    # if they are uploaded here, process them first and substitute the values with corresponding file_id numbers
+    if user["current_operation"] == "":
+        return json(
+            {"status": "error", "error": "Must be part of a current operation first"}
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot issue tasking"})
+    try:
+        query = await db_model.operator_query()
+        operator = await db_objects.get(query, username=user["username"])
+    except Exception as e:
+        return json(
+            {
+                "status": "error",
+                "error": "failed to get the current user's info from the database",
+            }
+        )
+    try:
+        query = await db_model.operation_query()
+        operation = await db_objects.get(query, name=user["current_operation"])
+    except Exception as e:
+        return json({"status": "error", "error": "failed to get the current operation"})
+    try:
+        data = request.json["input"]
+        query = await db_model.callback_query()
+        cb = await db_objects.get(query, id=data["callback_id"], operation=operation)
+    except Exception as e:
+        return json({"status": "error", "error": "failed to get callback"})
+    # check if the callback was locked
+    if cb.locked:
+        if cb.locked_operator != operator and cb.operation.name not in user["admin_operations"] and not user["admin"]:
+            return json(
+                {
+                    "status": "error",
+                    "error": "Callback is locked by another user - Cannot task",
+                }
+            )
+    # make sure the tasking we're trying to do isn't blocked for our user
+    query = await db_model.operatoroperation_query()
+    operatoroperation = await db_objects.get(
+        query, operator=operator, operation=operation
+    )
+    if operatoroperation.base_disabled_commands is not None:
+        query = await db_model.command_query()
+        if data["command"] not in ["clear"]:
+            cmd = await db_objects.get(
+                query,
+                cmd=data["command"],
+                payload_type=cb.registered_payload.payload_type,
+            )
+            try:
+                query = await db_model.disabledcommandsprofile_query()
+                disabled_command = await db_objects.get(
+                    query,
+                    name=operatoroperation.base_disabled_commands.name,
+                    command=cmd,
+                )
+                return json(
+                    {
+                        "status": "error",
+                        "error": "Not authorized to execute that command",
+                    }
+                )
+            except Exception as e:
+                pass
+    # if we create new files throughout this process, be sure to tag them with the right task at the end
+    data["original_params"] = data["params"]
+    if "files" in data and data["files"] is not None:
+        data["params"] = js.loads(data["params"])
+        data["files"] = js.loads(data["files"])
+        for f, v in data["files"].items():
+            data["params"][f] = v
+        data["params"] = js.dumps(data["params"])
+        data.pop("files", None)
+    output = await add_task_to_callback_func(data, data["callback_id"], user, operator, operation, cb)
+    return json({
+        "status": output.pop("status"),
+        "error": output.pop("error", None),
+        "id": output["id"] if "id" in output else None,
+    })
+
+
 cached_payload_info = {}
 
 
@@ -682,6 +807,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                     status="processed",
                     original_params="clear " + data["params"],
                     completed=True,
+                    display_params="clear " + data["params"]
                 )
                 raw_rsp = await clear_tasks_for_callback_func(
                     {"task": data["params"]}, cb.id, user
@@ -721,7 +847,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                 "callback": cid,
             }
         file_meta = ""
-        rabbit_message = {"params": data["params"], "command": data["command"]}
+
 
         # check and update if the corresponding container is running or not
         query = await db_model.payloadtype_query()
@@ -738,33 +864,30 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             "status": "success"
         }  # we are successful now unless the rabbitmq service is down
         if payload_type.container_running:
+            if "token" in data:
+                token_query = await db_model.token_query()
+                try:
+                    token = await db_objects.get(token_query, TokenId=data["token"], deleted=False)
+                except Exception as te:
+                    logger.warning("task_api.py: failed to find token associated with task")
+                    token = None
+            else:
+                token = None
             task = await db_objects.create(
                 Task,
                 callback=cb,
                 operator=op,
                 command=cmd,
-                params=data["original_params"],
+                token=token,
+                params=data["params"],
                 original_params=data["original_params"],
+                display_params=data["original_params"]
             )
-            rabbit_message["task"] = task.to_json()
-            rabbit_message["task"]["callback"] = task.callback.to_json()
-            # get the information for the callback's associated payload
-            payload_info = await add_all_payload_info(task.callback.registered_payload)
-            rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
-                "build_parameters"
-            ]
-            rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
-            # by default tasks are created in a preprocessing state,
-            result = await send_pt_rabbitmq_message(
-                cb.registered_payload.payload_type.ptype,
-                "command_transform.{}".format(task.id),
-                base64.b64encode(js.dumps(rabbit_message).encode()).decode("utf-8"),
-                user["username"],
-            )
+            result = await submit_task_to_container(task, user["username"])
         else:
             return {
                 "status": "error",
-                "error": "payload's container not running, no heartbeat in over 30 seconds, so it cannot process tasking",
+                "error": f"{payload_type.ptype}'s container isn't running - no heartbeat in over 30 seconds, so it cannot process tasking.\nUse ./status_check.sh to check if the container is still online.\nUse './display_output.sh {payload_type.ptype}' to get any error logs from the container.\nUse './start_payload_types.sh {payload_type.ptype}' to start the container again.",
                 "cmd": cmd.cmd,
                 "params": data["original_params"],
                 "callback": cid,
@@ -792,6 +915,152 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             "params": data["params"],
             "callback": cid,
         }
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/tasks/<tid:int>/request_bypass",
+    methods=["GET"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def request_bypass_for_opsec_check(request, tid, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation_query = await db_model.operation_query()
+        operation = await db_objects.get(operation_query, name=user["current_operation"])
+        task_query = await db_model.task_query()
+        task = await db_objects.get(task_query, id=tid)
+        user_query = await db_model.operator_query()
+        operator = await db_objects.get(user_query, id=user["id"])
+        if task.callback.operation == operation:
+            return json(await process_bypass_request(operator, task))
+        else:
+            return json({"status": "error", "error": "Task doesn't exist or isn't part of your operation"})
+    except Exception as e:
+        logger.warning(str(e))
+        return json({"status": "error", "error": "Failed to find components"})
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/request_opsec_bypass_webhook",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def request_bypass_for_opsec_check_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation_query = await db_model.operation_query()
+        operation = await db_objects.get(operation_query, name=user["current_operation"])
+        task_query = await db_model.task_query()
+        data = request.json["input"]
+        task = await db_objects.get(task_query, id=data["task_id"])
+        user_query = await db_model.operator_query()
+        operator = await db_objects.get(user_query, id=user["id"])
+        if task.callback.operation == operation:
+            return json(await process_bypass_request(operator, task))
+        else:
+            return json({"status": "error", "error": "Task doesn't exist or isn't part of your operation"})
+    except Exception as e:
+        logger.warning(str(e))
+        return json({"status": "error", "error": "Failed to find components"})
+
+
+async def process_bypass_request(user, task):
+    if task.opsec_pre_blocked and not task.opsec_pre_bypassed:
+        if task.opsec_pre_bypass_role == "operator":
+            # we just need an operator to acknowledge the risk, not a lead to approve it necessarily
+            task.opsec_pre_bypass_user = user
+            task.opsec_pre_bypassed = True
+            task.status = "creating task"
+            await db_objects.update(task)
+            await db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                    message=f"{user.username} bypassed an OPSEC PreCheck for task {task.id}")
+            return await submit_task_to_container(task, user.username)
+        elif task.opsec_pre_bypass_role == "lead":
+            # only the lead of an operation can bypass the check
+            if task.callback.operation.admin == user:
+                task.opsec_pre_bypass_user = user
+                task.opsec_pre_bypassed = True
+                task.status = "creating task"
+                await db_objects.update(task)
+                await db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                        message=f"{user.username} bypassed an OPSEC PreCheck for task {task.id}")
+                return await submit_task_to_container(task, user.username)
+            else:
+                await db_objects.create(db_model.OperationEventLog, level="warning", operation=task.callback.operation,
+                                        message=f"{user.username} failed to bypass an OPSEC PreCheck for task {task.id}")
+                return {"status": "error", "error": "Not Authorized"}
+    elif task.opsec_post_blocked and not task.opsec_post_bypassed:
+        if task.opsec_post_bypass_role == "operator":
+            # we just need an operator to acknowledge the risk, not a lead to approve it necessarily
+            task.opsec_post_bypass_user = user
+            task.opsec_post_bypassed = True
+            task.status = "creating task"
+            await db_objects.update(task)
+            await db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                    message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
+            return await submit_task_to_container(task, user.username)
+        elif task.opsec_post_bypass_role == "lead":
+            # only the lead of an operation can bypass the check
+            if task.callback.operation.admin == user:
+                task.opsec_post_bypass_user = user
+                task.opsec_post_bypassed = True
+                task.status = "creating task"
+                await db_objects.update(task)
+                await db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                        message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
+                return await submit_task_to_container(task, user.username)
+            else:
+                await db_objects.create(db_model.OperationEventLog, level="warning", operation=task.callback.operation,
+                                        message=f"{user.username} failed to bypass an OPSEC PostCheck for task {task.id}")
+                return {"status": "error", "error": "Not Authorized"}
+    else:
+        return {"status": "error", "error": "nothing to bypass"}
+
+
+async def submit_task_to_container(task, username):
+    if (
+            task.callback.registered_payload.payload_type.last_heartbeat
+            < datetime.utcnow() + timedelta(seconds=-30)
+    ):
+        task.callback.registered_payload.payload_type.container_running = False
+        await db_objects.update(task.callback.registered_payload.payload_type)
+        return {"status": "error", "error": "Payload Type container not running"}
+    if task.callback.registered_payload.payload_type.container_running:
+        rabbit_message = {"params": task.params, "command": task.command.cmd}
+        rabbit_message["task"] = task.to_json()
+        rabbit_message["task"]["callback"] = task.callback.to_json()
+        # get the information for the callback's associated payload
+        payload_info = await add_all_payload_info(task.callback.registered_payload)
+        rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
+            "build_parameters"
+        ]
+        rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+        rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
+        # by default tasks are created in a preprocessing state,
+        result = await send_pt_rabbitmq_message(
+            task.callback.registered_payload.payload_type.ptype,
+            "command_transform",
+            base64.b64encode(js.dumps(rabbit_message).encode()).decode("utf-8"),
+            username,
+            task.id
+        )
+        return result
+    else:
+        return {"status": "error", "error": "Container not running"}
 
 
 async def add_all_payload_info(payload):
@@ -1068,10 +1337,7 @@ async def get_one_task_and_responses_as_raw_output(request, tid, user):
             )
             output = "".join(
                 [
-                    bytes(r.response)
-                    .decode("unicode-escape", errors="backslashreplace")
-                    .encode("utf-8", errors="backslashreplace")
-                    .decode()
+                    bytes(r.response).decode("utf-8")
                     for r in responses
                 ]
             )

@@ -96,7 +96,7 @@ async def reporting_full_timeline_api(request, user):
                     path=save_path,
                     operator=operator,
                     complete=True,
-                    filename="{} Timeline.pdf".format(user["current_operation"]),
+                    filename="{} Timeline.pdf".format(user["current_operation"]).encode("utf-8"),
                 )
                 pdf.output(save_path, dest="F")
                 filedata = open(save_path, "rb").read()
@@ -559,7 +559,7 @@ async def get_full_timeline_json(request, user):
                     path=save_path,
                     operator=operator,
                     complete=True,
-                    filename="{} Full Timeline.json".format(user["current_operation"]),
+                    filename="{} Full Timeline.json".format(user["current_operation"]).encode("utf-8"),
                 )
                 file = open(save_path, "w")
                 file.write(js.dumps(all_data, indent=4, sort_keys=True))

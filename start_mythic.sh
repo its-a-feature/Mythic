@@ -1,8 +1,48 @@
 #! /bin/bash
+
+# Set working directory for unattended starts
+cd "${0%/*}"
+
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 GREEN='\033[1;32m'
 BLUE='\033[1;34m'
+
+# Allow us to exit from a function (see https://stackoverflow.com/questions/9893667/is-there-a-way-to-write-a-bash-function-which-aborts-the-whole-execution-no-mat)
+trap "exit 1" TERM
+export TOP_PID=$$
+export COMPOSE_PROJECT_NAME=mythic
+# Returns a single value or an array of values
+function get_config_value() {
+    local config_file=$1
+    local var_name=$2
+    local value_name=$3
+    local default_value=$4
+
+    local value=`jq -r ".${value_name} | if type==\"array\" then .[] else . end" "${config_file}"`
+    if [[ $value == "null"  ]]
+    then
+        if [[ -z ${default_value} ]]
+        then
+            echo -e "${RED}[-]${NC} Failed to find value '${value_name}' in ${config_file}"
+            kill -s TERM $TOP_PID
+        else
+            value=$default_value
+        fi
+    fi
+
+    unset $var_name
+    for i in ${value[*]}
+    do
+        eval $var_name+="('$i')"
+    done
+}
+
+function generate_random_password() {
+  local password=$(tr -cd '[:alnum:]' < /dev/urandom | fold -w30 | head -n1)
+  echo $password
+}
+
 if [ "$EUID" -ne 0 ]
   then echo -e "${RED}[-]${NC} Please run as root"
   exit 1
@@ -14,7 +54,7 @@ elif ! which docker-compose > /dev/null; then
     echo -e "${RED}[-]${NC} Sorry, docker-compose needs to be installed"
     exit 1
 fi
-# stand up the docker services and build if needed, started them detached
+
 if ! which realpath > /dev/null; then
   apt-get install -y realpath
   if [ $? -ne 0 ]
@@ -32,107 +72,127 @@ if ! which jq > /dev/null; then
   fi
 fi
 #generate a self-signed cert for us to use
-if [ ! -d "./mythic-docker/app/ssl" ]; then
-  echo -e "${BLUE}[*]${NC} Failed to find ./mythic-docker/app/ssl folder, creating it"
-  mkdir ./mythic-docker/app/ssl > /dev/null 2>&1
+if [ ! -d "./nginx-docker/ssl" ]; then
+  echo -e "${BLUE}[*]${NC} Failed to find ./nginx-docker/ssl folder, creating it"
+  mkdir ./nginx-docker/ssl > /dev/null 2>&1
 fi
 
-if [ ! -f "./mythic-docker/app/ssl/mythic-ssl.key" ]; then
+if [ ! -f "./nginx-docker/ssl/mythic-ssl.key" ]; then
    echo -e "${BLUE}[*]${NC} Failed to find ssl keys, generating new ones"
-   openssl req -new -x509 -keyout ./mythic-docker/app/ssl/mythic-ssl.key -out ./mythic-docker/app/ssl/mythic-cert.pem -days 365 -nodes -subj "/C=US" >/dev/null 2>&1
+   openssl req -x509 -newkey rsa:2048 -keyout ./nginx-docker/ssl/mythic-ssl.key -out ./nginx-docker/ssl/mythic-cert.crt -days 365 -extensions v3_req -nodes -subj "/C=US" >/dev/null 2>&1
    echo -e "${GREEN}[+]${NC} Generated new SSL self signed certificates"
 fi
-server_port=`jq ".listen_port" "mythic-docker/config.json"`
-if [[ $? -ne 0  ]]
-then
-  echo -e "${RED}[-]${NC} Failed to find server_port"
+
+# Get settings
+config_file="./mythic-docker/config.json"
+# Validate that the config.json is valid JSON
+if ! jq -e . >/dev/null 2>&1 < $config_file; then
+  echo -e "${RED}[-]${NC} Invalid JSON in '${config_file}'"
   exit 1
 fi
-start_documentation=`jq ".start_documentation_container" "mythic-docker/config.json"`
-if [[ $? -ne 0  ]]
+
+#nginx configuration
+get_config_value $config_file nginx_port "nginx_port" "7443"
+#mythic server configuration
+get_config_value $config_file documentation_host "documentation_container_host" "127.0.0.1"
+get_config_value $config_file documentation_port "documentation_container_port" "8090"
+get_config_value $config_file debug "debug" "false"
+get_config_value $config_file excluded_payload_types "excluded_payload_types"
+get_config_value $config_file excluded_c2_profiles "excluded_c2_profiles"
+get_config_value $config_file mythic_server_port "mythic_server_port" "17443"
+get_config_value $config_file mythic_server_host "mythic_server_host" "127.0.0.1"
+#postgres configuration
+get_config_value $config_file postgres_host "postgres_host" "127.0.0.1"
+get_config_value $config_file postgres_port "postgres_port" "5432"
+get_config_value $config_file postgres_db "postgres_db" "mythic_db"
+get_config_value $config_file postgres_user "postgres_user" "mythic_user"
+get_config_value $config_file postgres_password "postgres_password" "null"
+#rabbitmq configuration
+get_config_value $config_file rabbitmq_host "rabbitmq_host" "127.0.0.1"
+get_config_value $config_file rabbitmq_port "rabbitmq_port" "5672"
+get_config_value $config_file rabbitmq_user "rabbitmq_user" "mythic_user"
+get_config_value $config_file rabbitmq_password "rabbitmq_password" "mythic_password"
+get_config_value $config_file rabbitmq_vhost "rabbitmq_vhost" "mythic_vhost"
+#jwt configuration
+get_config_value $config_file jwt_secret "jwt_secret" "null"
+#hasura configuration
+get_config_value $config_file hasura_host "hasura_host" "127.0.0.1"
+get_config_value $config_file hasura_port "hasura_port" "8080"
+get_config_value $config_file hasura_secret "hasura_secret" "null"
+
+# Setup database
+if [[ ! -f ".env" ]];
 then
-  echo -e "${RED}[-]${NC} Failed to find start_documentation_container"
-  exit 1
-fi
-documentation_port=`jq ".documentation_container_port" "mythic-docker/config.json"`
-if [[ $? -ne 0  ]]
-then
-  echo -e "${RED}[-]${NC} Failed to find start_documentation_container"
-  exit 1
-fi
-use_ssl=`jq ".use_ssl" "mythic-docker/config.json"`
-if [[ $? -ne 0  ]]
-then
-  echo -e "${RED}[-]${NC} Failed to find use_ssl"
-  exit 1
-fi
-if [[ "$use_ssl" == "true" ]]
+  if [[ $postgres_password == "null" ]];
   then
-    use_ssl="https"
-  else
-    use_ssl="http"
+    echo -e "${BLUE}[*]${NC} Generating random database password and saving it to .env"
+    postgres_password=$(generate_random_password)
+  fi
+  echo "POSTGRES_HOST=${postgres_host}" > .env
+  echo "POSTGRES_PORT=${postgres_port}" >> .env
+  echo "POSTGRES_DB=${postgres_db}" >> .env
+  echo "POSTGRES_USER=${postgres_user}" >> .env
+  echo "POSTGRES_PASSWORD=${postgres_password}" >> .env
+  if [[ $rabbitmq_password == "null" ]];
+  then
+    echo -e "${BLUE}[*]${NC} Generating random RabbitMQ password and saving it to .env"
+    rabbitmq_password=$(generate_random_password)
+  fi
+  echo "RABBITMQ_HOST=${rabbitmq_host}" >> .env
+  echo "RABBITMQ_PORT=${rabbitmq_port}" >> .env
+  echo "RABBITMQ_USER=${rabbitmq_user}" >> .env
+  echo "RABBITMQ_PASSWORD=${rabbitmq_password}" >> .env
+  echo "RABBITMQ_VHOST=${rabbitmq_vhost}" >> .env
+  mkdir -p "./postgres-docker/database"
+  mkdir -p "./rabbitmq-docker/storage"
+  if [[ $jwt_secret == "null" ]];
+  then
+    echo -e "${BLUE}[*]${NC} Generating random JWT secret and saving it to .env"
+    jwt_secret=$(generate_random_password)$(generate_random_password)
+  fi
+  echo "JWT_SECRET=${jwt_secret}" >> .env
+  echo "NGINX_PORT=${nginx_port}" >> .env
+  echo "DOCUMENTATION_HOST=${documentation_host}" >> .env
+  echo "DOCUMENTATION_PORT=${documentation_port}" >> .env
+  echo "HASURA_HOST=${hasura_host}" >> .env
+  echo "HASURA_PORT=${hasura_port}" >> .env
+  if [[ $hasura_secret == "null" ]];
+  then
+    echo -e "${BLUE}[*]${NC} Generating random Hasura secret and saving it to .env"
+    hasura_secret=$(generate_random_password)$(generate_random_password)
+  fi
+  echo "HASURA_SECRET=${hasura_secret}" >> .env
+  echo "MYTHIC_SERVER_PORT=${mythic_server_port}" >> .env
+  echo "MYTHIC_SERVER_HOST=${mythic_server_host}" >> .env
+  echo ""
 fi
-excluded_payload_types=(`jq -rc ".excluded_payload_types" "mythic-docker/config.json" | jq -rc .[]`)
-if [[ $? -ne 0  ]]
-then
-  echo -e "${RED}[-]${NC} Failed to find excluded_payload_types"
-  exit 1
-else
-  excluded_payload_types_args=""
-  for i in "${excluded_payload_types[@]}"
-  do
-     excluded_payload_types_args="$excluded_payload_types_args -e $i"
-  done
-  printf -v excluded_payload_types "%s " "${excluded_payload_types[@]}"
-fi
-excluded_c2_profiles=(`jq -rc ".excluded_c2_profiles" "mythic-docker/config.json" | jq -rc .[]`)
-if [[ $? -ne 0  ]]
-then
-  echo -e "${RED}[-]${NC} Failed to find excluded_c2_profiles"
-  exit 1
-else
-  excluded_c2_profiles_args=""
-  for i in "${excluded_c2_profiles[@]}"
-  do
-     excluded_c2_profiles_args="$excluded_c2_profiles_args -e $i"
-  done
-  printf -v excluded_c2_profiles "%s " "${excluded_c2_profiles[@]}"
-fi
+
 
 # make sure things are stopped first
-docker-compose stop
-if [ $? -ne 0 ]
-then
-  echo -e "${RED}[-]${NC} Failed to stop docker-compose properly. Aborting"
-  exit 1
-fi
-# stop c2 profiles
-./stop_c2_profiles.sh
-# stop payload types
-./stop_payload_types.sh
-# stop documentation
-./stop_documentation.sh
-
-if [ ! -d "./postgres-docker/database" ]; then
-    mkdir "./postgres-docker/database"
-fi
-if [ ! -d "./rabbitmq-docker/storage" ]; then
-  mkdir "./rabbitmq-docker/storage"
-fi
+./reset_rabbitmq.sh
 # check if postgres or mythic ports are in use already, could be an issue
-ss -tulpn | grep :5432
+if [[ $postgres_host == "127.0.0.1" || $postgres_host == "localhost" ]];
+then
+  ss -tulpn | grep ":$postgres_port"
+  if [ $? -eq 0 ]
+  then
+    echo -e "${RED}[-]${NC} Postgres port $postgres_port is already in use"
+    exit 1
+  fi
+fi
+ss -tulpn | grep -i ":$nginx_port "
 if [ $? -eq 0 ]
 then
-  echo -e "${RED}[-]${NC} Postgres port 5432 is already in use"
+  echo -e "${RED}[-]${NC} Nginx external port $nginx_port is already in use"
   exit 1
 fi
-ss -tulpn | grep -i ":$server_port"
+ss -tulpn | grep -i ":$mythic_server_port "
 if [ $? -eq 0 ]
 then
-  echo -e "${RED}[-]${NC} Mythic port $server_port is already in use"
+  echo -e "${RED}[-]${NC} Mythic port $mythic_server_port is already in use"
   exit 1
 fi
-if $start_documentation
+if [[ $documentation_host == "127.0.0.1" || $documentation_host == "localhost" ]];
 then
     ss -tulpn | grep -i ":$documentation_port"
     if [ $? -eq 0 ]
@@ -140,42 +200,44 @@ then
       echo -e "${RED}[-]${NC} Mythic documentation port $documentation_port is already in use"
       exit 1
     fi
+    ./start_documentation.sh $documentation_port
 fi
-if [ "$(ls -A postgres-docker/database/)" ]; then
-  echo -e "${BLUE}[*]${NC} Database exists already"
-else
-  postgres_password=$(tr -cd '[:alnum:]' < /dev/urandom | fold -w30 | head -n1)
-  base_replace="POSTGRES_PASSWORD=super_secret_mythic_user_password"
-  echo -e "${BLUE}[*]${NC} Replacing static database password with randomized one"
-  sed -i "s/$base_replace/POSTGRES_PASSWORD=$postgres_password/g" .env
-fi
+
 # start the main mythic components
+export DEBUG=$debug
 docker-compose up --build -d
 if [ $? -ne 0 ]
 then
   echo -e "${RED}[-]${NC} Failed to start docker-compose properly. Aborting"
   exit 1
 fi
+excluded_payload_types_args=""
+for i in "${excluded_payload_types[@]}"
+do
+  excluded_payload_types_args="$excluded_payload_types_args -e $i"
+done
+excluded_c2_profiles_args=""
+for i in "${excluded_c2_profiles[@]}"
+do
+  excluded_c2_profiles_args="$excluded_c2_profiles_args -e $i"
+done
 # stand up c2 profiles
 ./start_c2_profiles.sh $excluded_c2_profiles_args
 # stand up payload types
 ./start_payload_types.sh $excluded_payload_types_args
-if $start_documentation
-then
-    ./start_documentation.sh $documentation_port
-fi
 
-echo -e "${BLUE}[*]${NC} Testing connection to server via curl at: $use_ssl://127.0.0.1:$server_port"
-output=`curl -s --retry-connrefused --retry 5 $use_ssl://127.0.0.1:$server_port --insecure`
+echo -e "${BLUE}[*]${NC} Testing connection to server via curl through nginx at: https://127.0.0.1:$nginx_port"
+output=`curl -s --retry-connrefused --retry 5 https://127.0.0.1:$nginx_port --insecure`
 if [ $? -ne 0 ]
 then
-  echo -e "${RED}[-]${NC} Failed to hit specified Mythic endpoint."
+  echo -e "${RED}[-]${NC} Failed to hit specified Nginx endpoint."
+  echo -e "${RED}[-]${NC} Consider running './display_output.sh mythic_server' to determine why the Mythic server cannot start"
   exit 1
 else
   echo -e "${GREEN}[+]${NC} Successfully connected to endpoint"
-  echo -e "${GREEN}[+]${NC} Mythic containers succssfully started!"
+  echo -e "${GREEN}[+]${NC} Mythic containers successfully started!"
 fi
 echo -e "${BLUE}[*]${NC} use ./status_check.sh to check status of docker containers"
 echo -e "${BLUE}[*]${NC} use ./display_output.sh [container name] to display the output of that container"
-echo -e "${BLUE}[*]${NC}    ex: ./display_output.sh mythic_server (shows output of main mythic web server)"
+echo -e "${BLUE}[*]${NC}    ex: ./display_output.sh mythic_server \(shows output of main mythic web server\)"
 echo -e "${BLUE}[*]${NC}    ex: ./display_output.sh apfell (shows output of apfell container)"

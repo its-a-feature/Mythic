@@ -5,6 +5,7 @@ from app import mythic_db
 import app.crypto as crypto
 import json
 from uuid import uuid4
+import sys
 
 
 def gen_uuid():
@@ -86,15 +87,16 @@ class Operator(p.Model):
     )
     username = p.TextField(unique=True, null=False)
     password = p.TextField(null=False)
-    admin = p.BooleanField(null=True, default=False)
-    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    admin = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    salt = p.TextField(null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     last_login = p.DateTimeField(default=None, null=True)
     # option to simply de-activate an account instead of delete it so you keep all your relational data intact
-    active = p.BooleanField(null=False, default=True)
+    active = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     current_operation = p.DeferredForeignKey("Operation", null=True)
     ui_config = p.TextField(null=False, default=dark_config)
-    view_utc_time = p.BooleanField(null=False, default=False)
-    deleted = p.BooleanField(null=False, default=False)
+    view_utc_time = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
 
     class Meta:
         ordering = [
@@ -122,7 +124,7 @@ class Operator(p.Model):
         return json.dumps(self.to_json())
 
     async def check_password(self, password):
-        temp_pass = await crypto.hash_SHA512(password)
+        temp_pass = await crypto.hash_SHA512(self.salt + password)
         return self.password.lower() == temp_pass.lower()
 
     async def hash_password(self, password):
@@ -134,21 +136,23 @@ class Operator(p.Model):
 #   Users can create their own commands and payload types as well
 class PayloadType(p.Model):
     ptype = p.TextField(null=False, unique=True)
-    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
-    file_extension = p.CharField(null=True)
+    mythic_encrypts = p.BooleanField(null=False, default=True)
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
+    file_extension = p.CharField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if this type requires another payload to be already created
-    wrapper = p.BooleanField(default=False, null=False)
+    wrapper = p.BooleanField(constraints=[p.SQL("DEFAULT FALSE")], null=False)
     # indicate which OS/versions this payload works for
-    supported_os = p.TextField(null=False, default="")
+    supported_os = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # information about getting information to/from another container or machine for building/loading/transforming
-    last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
-    container_running = p.BooleanField(null=False, default=False)
-    service = p.TextField(null=False, default="rabbitmq")
+    last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
+    container_running = p.BooleanField(null=False,constraints=[p.SQL("DEFAULT FALSE")])
+    service = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'rabbitmq'")])
     # who created the code for the payload type, not just who imported it
-    author = p.TextField(null=False, default="")
-    note = p.TextField(null=False, default="")
-    supports_dynamic_loading = p.BooleanField(null=False, default=False)
-    deleted = p.BooleanField(null=False, default=False)
+    author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    note = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    supports_dynamic_loading = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    translation_container = p.TextField(null=True)
 
     class Meta:
         database = mythic_db
@@ -159,6 +163,7 @@ class PayloadType(p.Model):
             "ptype": self.ptype,
             "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
             "file_extension": self.file_extension,
+            "mythic_encrypts": self.mythic_encrypts,
             "wrapper": self.wrapper,
             "supported_os": self.supported_os,
             "last_heartbeat": self.last_heartbeat.strftime("%m/%d/%Y %H:%M:%S"),
@@ -167,7 +172,8 @@ class PayloadType(p.Model):
             "author": self.author,
             "note": self.note,
             "supports_dynamic_loading": self.supports_dynamic_loading,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "translation_container": self.translation_container
         }
         if getattr(self, "build_parameters") is not None:
             r["build_parameters"] = []
@@ -205,16 +211,16 @@ class WrappedPayloadTypes(p.Model):
 
 class BuildParameter(p.Model):
     # name presented to the user
-    name = p.TextField(null=False, default="")
+    name = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # what kind of parameter should be shown in the UI? String or ChooseOne
-    parameter_type = p.TextField(null=False, default="None")
-    description = p.TextField(null=False, default="")
+    parameter_type = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'None'")])
+    description = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # associated payload type
     payload_type = p.ForeignKeyField(PayloadType, backref="build_parameters")
-    required = p.BooleanField(default=True)
-    verifier_regex = p.TextField(default="", null=False)
-    deleted = p.BooleanField(default=False)
-    parameter = p.TextField(null=False, default="")
+    required = p.BooleanField(constraints=[p.SQL("DEFAULT TRUE")], null=False)
+    verifier_regex = p.TextField(constraints=[p.SQL("DEFAULT ''")], null=False)
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    parameter = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
         indexes = ((("name", "payload_type"), True),)
@@ -238,35 +244,65 @@ class BuildParameter(p.Model):
         return json.dumps(self.to_json())
 
 
+class CommandOPSEC(p.Model):
+    deleted = p.BooleanField(default=False, null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    # opsec components that we care about regarding a specific command's execution
+    injection_method = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])
+    process_creation = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])
+    authentication = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "id": getattr(self, "id"),
+            "deleted": self.deleted,
+            "injection_method": self.injection_method,
+            "process_creation": self.process_creation,
+            "authentication": self.authentication
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
 # This has information about a specific command that can be executed by a PayloadType
 #   Custom commands can be created by users
 #   There will be a new Command instance for every cmd+payload_type combination
 #      (each payload_type needs its own 'shell' command because they might be implemented differently)
 class Command(p.Model):
-    needs_admin = p.BooleanField(null=False, default=False)
+    needs_admin = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # generates get-help info on the command
-    help_cmd = p.TextField(null=False, default="")
-    description = p.TextField(null=False)
-    cmd = p.CharField(null=False)
+    help_cmd = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    description = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    cmd = p.CharField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # this command applies to what payload types
     payload_type = p.ForeignKeyField(PayloadType, null=False)
-    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
     # what version, so we can know if loaded commands are out of date
-    version = p.IntegerField(null=False, default=1)
+    version = p.IntegerField(null=False, constraints=[p.SQL("DEFAULT 1")])
     # indicate if this command is the exit command for a payload type
-    is_exit = p.BooleanField(null=False, default=False)
+    is_exit = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # indicate if this is the command used for browsing files
-    is_file_browse = p.BooleanField(null=False, default=False)
+    is_file_browse = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # indicate if this is the command used for listing processes
-    is_process_list = p.BooleanField(null=False, default=False)
+    is_process_list = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # indicate if this is the command used for downloading files
-    is_download_file = p.BooleanField(null=False, default=False)
+    is_download_file = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # indicate if this is the command used for removing files
-    is_remove_file = p.BooleanField(null=False, default=False)
+    is_remove_file = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # indicate if this is the command used to upload files
-    is_upload_file = p.BooleanField(null=False, default=False)
-    author = p.TextField(null=False, default="")
-    deleted = p.BooleanField(null=False, default=False)
+    is_upload_file = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    # indicate if this command is used to link to another agent
+    is_link = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    # specify if this command supports being injected into a remote process and executed
+    attributes = p.TextField(null=False,  constraints=[p.SQL("DEFAULT '{}'")])
+    # specify any opsec considerations for the command
+    opsec = p.ForeignKeyField(CommandOPSEC, null=True)
 
     class Meta:
         indexes = ((("cmd", "payload_type"), True),)
@@ -288,8 +324,11 @@ class Command(p.Model):
             "is_download_file": self.is_download_file,
             "is_remove_file": self.is_remove_file,
             "is_upload_file": self.is_upload_file,
+            "is_link": self.is_link,
             "author": self.author,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "attributes": self.attributes,
+            "opsec": self.opsec.to_json() if self.opsec is not None else None
         }
         return r
 
@@ -301,16 +340,21 @@ class Command(p.Model):
 class CommandParameters(p.Model):
     command = p.ForeignKeyField(Command, null=False)
     # what is the name of the parameter (what is displayed in the UI and becomes dictionary key)
-    name = p.TextField(null=False)
+    name = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # String, Boolean, Number, Array, Choice, ChoiceMultiple, Credential, File, PayloadList, AgentConnect
-    type = p.CharField(null=False, default="String")
-    default_value = p.TextField(null=False, default="")
+    type = p.CharField(null=False, constraints=[p.SQL("DEFAULT 'String'")])
+    default_value = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # \n separated list of possible choices
-    choices = p.TextField(null=False, default="")
-    required = p.BooleanField(null=False, default=False)
-    description = p.TextField(null=False, default="")
+    choices = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    required = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    description = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if the action is related to payloads or linking agents, you can limit the options to only agents you want
-    supported_agents = p.TextField(null=False, default="")
+    supported_agents = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    # if the action is related to payloads or linking agnets, you can also limit to specific agent build param values
+    supported_agent_build_parameters = p.TextField(null=False, constraints=[p.SQL("DEFAULT '{}'")])
+    choice_filter_by_command_attributes = p.TextField(null=False, constraints=[p.SQL("DEFAULT '{}'")])
+    choices_are_all_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    choices_are_loaded_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
 
     class Meta:
         indexes = ((("command", "name"), True),)
@@ -328,7 +372,11 @@ class CommandParameters(p.Model):
             "choices": self.choices,
             "required": self.required,
             "description": self.description,
-            "supported_agents": self.supported_agents
+            "supported_agents": self.supported_agents,
+            "supported_agent_build_parameters": self.supported_agent_build_parameters,
+            "choice_filter_by_command_attributes": self.choice_filter_by_command_attributes,
+            "choices_are_all_commands": self.choices_are_all_commands,
+            "choices_are_loaded_commands": self.choices_are_loaded_commands
         }
         return r
 
@@ -339,13 +387,72 @@ class CommandParameters(p.Model):
 # users will be associated with operations
 #   payload_types and commands are associated with all operations
 #   when creating a new operation, associate all the default c2profiles with it
+default_webhook_message = json.dumps({
+                "channel": "{channel}",
+                "username": "{display_name}",
+                "icon_emoji": "{icon_emoji}",
+                "attachments": [
+                    {
+                        "fallback": "New Mythic Callback!",
+                        "color": "#b366ff",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "<!channel> You have a new Callback!",
+                                },
+                            },
+                            {"type": "divider"},
+                            {
+                                "type": "section",
+                                "fields": [
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*Operation:*\n{operation}",
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*IP:*\n{ip}",
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*Callback ID:*\n{callback}",
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*Type:*\n{payload_type}",
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": '*Description:*\n"{description}"',
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*Operator:*\n{operator}",
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": "*Integrity Level*\n{integrity}",
+                                    },
+                                ],
+                            },
+                        ],
+                    }
+                ]
+            }, indent=4)
+
+
 class Operation(p.Model):
     name = p.TextField(null=False, unique=True)
     admin = p.ForeignKeyField(Operator, null=False)  # who is an admin of this operation
-    complete = p.BooleanField(null=False, default=False)
-    # auto create an AES PSK key when the operation is created for things like PFS with EKE
-    AESPSK = p.TextField(null=False, unique=True)
-    webhook = p.TextField(null=True)
+    complete = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    webhook = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    channel = p.TextField(null=False, constraints=[p.SQL("DEFAULT '#random'")])
+    display_name = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'Mythic'")])
+    icon_emoji = p.TextField(null=False, constraints=[p.SQL("DEFAULT ':mythic:'")])
+    icon_url = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    webhook_message = p.TextField(null=False, default=default_webhook_message)
 
     class Meta:
         database = mythic_db
@@ -356,8 +463,12 @@ class Operation(p.Model):
             "name": self.name,
             "admin": self.admin.username,
             "complete": self.complete,
-            "AESPSK": self.AESPSK,
-            "webhook": self.webhook
+            "webhook": self.webhook,
+            "channel": self.channel,
+            "display_name": self.display_name,
+            "icon_emoji": self.icon_emoji,
+            "icon_url": self.icon_url,
+            "webhook_message": self.webhook_message
         }
         return r
 
@@ -419,9 +530,9 @@ class DisabledCommands(p.Model):
 class OperatorOperation(p.Model):
     operator = p.ForeignKeyField(Operator)
     operation = p.ForeignKeyField(Operation)
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     base_disabled_commands = p.ForeignKeyField(DisabledCommandsProfile, null=True)
-    view_mode = p.TextField(null=False, default="operator")
+    view_mode = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'operator'")])
 
     class Meta:
         indexes = ((("operator", "operation"), True),)
@@ -445,24 +556,21 @@ class OperatorOperation(p.Model):
 # an instance of a c2profile
 class C2Profile(p.Model):
     name = p.TextField(null=False, unique=True)
-    description = p.TextField(null=True, default="")
+    description = p.TextField(null=True, constraints=[p.SQL("DEFAULT ''")])
     # list of payload types that are supported (i.e. have a corresponding module created for them on the client side
     # This has information about supported payload types, but that information is in a separate join table
-    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     # indicates if the c2 profile is running
-    running = p.BooleanField(null=False, default=False)
-    last_heartbeat = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    running = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    last_heartbeat = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
     # indicates if the c2 profile container is up and able to receive tasking
-    container_running = p.BooleanField(null=False, default=False)
-    author = p.TextField(null=False, default="")
+    container_running = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # identify if this is a p2p protocol or not, we treat those a bit differently
-    is_p2p = p.BooleanField(null=False, default=False)
+    is_p2p = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # server_routed means the server specifies the specific route for sending messages
-    is_server_routed = p.BooleanField(null=False, default=False)
-    # indicate if mythic should do the encryption/decryption for the profile
-    #     or if the profile will handle it
-    mythic_encrypts = p.BooleanField(null=False, default=True)
-    deleted = p.BooleanField(null=False, default=False)
+    is_server_routed = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
 
     class Meta:
         database = mythic_db
@@ -479,7 +587,6 @@ class C2Profile(p.Model):
             "author": self.author,
             "is_p2p": self.is_p2p,
             "is_server_routed": self.is_server_routed,
-            "mythic_encrypts": self.mythic_encrypts,
             "deleted": self.deleted
         }
         return r
@@ -519,30 +626,32 @@ class Payload(p.Model):
     # this is actually a sha256 from other information about the payload
     uuid = p.TextField(unique=True, null=False)
     # tag a payload with information like spearphish, custom bypass, lat mov, etc (indicates "how")
-    tag = p.TextField(null=True)
+    tag = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # creator of the payload, cannot be null! must be attributed to somebody (indicates "who")
     operator = p.ForeignKeyField(Operator, null=False)
-    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     # this is fine because this is an instance of a payload, so it's tied to one PayloadType
     payload_type = p.ForeignKeyField(PayloadType, null=False)
     # this will signify if a current callback made / spawned a new callback that's checking in
     #   this helps track how we're getting callbacks (which payloads/tags/parents/operators)
     pcallback = p.DeferredForeignKey("Callback", null=True)
-    # c2_profile = p.ForeignKeyField(C2Profile, null=False)  # identify which C2 profile is being used
     operation = p.ForeignKeyField(Operation, null=False)
     wrapped_payload = p.ForeignKeyField("self", null=True)
-    deleted = p.BooleanField(null=False, default=False)
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # if the payload is in the build process: building, success, error
     build_container = p.TextField(null=False)
-    build_phase = p.TextField(null=False, default="building")
+    build_phase = p.TextField(null=False,constraints=[p.SQL("DEFAULT 'building'")])
     # capture error or any other info
-    build_message = p.TextField(null=False, default="")
+    build_message = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    build_error = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if there is a slack webhook for the operation, decide if this payload should generate an alert or not
-    callback_alert = p.BooleanField(null=False, default=True)
+    callback_alert = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT TRUE")])
     # when dealing with auto-generated payloads for lateral movement or spawning new callbacks
-    auto_generated = p.BooleanField(null=False, default=False)
+    auto_generated = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     task = p.DeferredForeignKey("Task", null=True)
-    file_id = p.DeferredForeignKey("FileMeta", null=True)
+    file = p.DeferredForeignKey("FileMeta", null=True)
+    # which OS is this for
+    os = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
         database = mythic_db
@@ -559,13 +668,15 @@ class Payload(p.Model):
             "operation": self.operation.name,
             "wrapped_payload": self.wrapped_payload.uuid if self.wrapped_payload is not None else None,
             "deleted": self.deleted,
+            "os": self.os,
             "build_container": self.build_container,
             "build_phase": self.build_phase,
             "build_message": self.build_message,
+            "build_error": self.build_error,
             "callback_alert": self.callback_alert,
             "auto_generated": self.auto_generated,
             "task": self.task.to_json() if self.task is not None else None,
-            "file_id": self.file_id.to_json() if self.file_id is not None else None
+            "file": self.file.to_json() if self.file is not None else None
         }
         return r
 
@@ -577,9 +688,9 @@ class Payload(p.Model):
 class PayloadOnHost(p.Model):
     host = p.TextField(null=False)
     payload = p.ForeignKeyField(Payload, null=False)
-    deleted = p.BooleanField(default=False, null=False)
+    deleted = p.BooleanField(constraints=[p.SQL("DEFAULT FALSE")], null=False)
     operation = p.ForeignKeyField(Operation, null=False)
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     task = p.DeferredForeignKey("Task", null=True)
 
     class Meta:
@@ -604,7 +715,7 @@ class PayloadOnHost(p.Model):
 class BuildParameterInstance(p.Model):
     # this is the instance of actual values used to create a specific payload instance
     build_parameter = p.ForeignKeyField(BuildParameter, null=False)
-    payload = p.ForeignKeyField(Payload, null=False)
+    payload = p.ForeignKeyField(Payload, null=False, backref="build_parameters")
     parameter = p.TextField(null=True)  # what the user picked
 
     class Meta:
@@ -629,7 +740,7 @@ class PayloadCommand(p.Model):
     payload = p.ForeignKeyField(Payload, null=False)
     # this is how we can tell what commands are in a payload by default and if they might be out of date
     command = p.ForeignKeyField(Command, null=False)
-    creation_time = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    creation_time = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     # version of a command when the payload is created might differ from later in time, so save it off
     version = p.IntegerField(null=False)
 
@@ -659,12 +770,14 @@ class C2ProfileParameters(p.Model):
     description = p.TextField(null=False)
     name = p.TextField(null=False)  # what the stamping should look for. ex: XXXXX
     # Hint for the user when setting the parameters
-    default_value = p.TextField(null=False, default="")
-    randomize = p.BooleanField(null=False, default=False)
-    format_string = p.TextField(null=False, default="")
-    parameter_type = p.TextField(null=False, default="String")
-    required = p.BooleanField(null=False, default=True)
-    verifier_regex = p.TextField(null=False, default="")
+    default_value = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    randomize = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    format_string = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    parameter_type = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'String'")])
+    required = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT TRUE")])
+    verifier_regex = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    crypto_type = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
 
     class Meta:
         indexes = ((("c2_profile", "name"), True),)
@@ -681,7 +794,9 @@ class C2ProfileParameters(p.Model):
             "format_string": self.format_string,
             "parameter_type": self.parameter_type,
             "required": self.required,
-            "verifier_regex": self.verifier_regex
+            "verifier_regex": self.verifier_regex,
+            "deleted": self.deleted,
+            "crypto_type": self.crypto_type
         }
         return r
 
@@ -691,34 +806,32 @@ class C2ProfileParameters(p.Model):
 
 class Callback(p.Model):
     agent_callback_id = p.TextField(unique=True, null=False, default=gen_uuid)
-    init_callback = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
-    last_checkin = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    init_callback = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
+    last_checkin = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     user = p.CharField(null=False)
-    host = p.CharField(null=False)
+    host = p.TextField(null=False)
     pid = p.IntegerField(null=False)
     ip = p.CharField(max_length=100, null=False)
     external_ip = p.TextField(null=True)
     description = p.TextField(null=True)
     operator = p.ForeignKeyField(Operator, null=False)
-    active = p.BooleanField(default=True, null=False)
+    active = p.BooleanField(constraints=[p.SQL("DEFAULT TRUE")], null=False)
     # keep track of the parent callback from this one
     pcallback = p.DeferredForeignKey("Callback", null=True)
     # what payload is associated with this callback
     registered_payload = p.ForeignKeyField(Payload, null=False)
     integrity_level = p.IntegerField(null=True, default=2)
     # an operator can lock a callback to themselves so that other users cannot issue commands as well
-    locked = p.BooleanField(default=False)
+    locked = p.BooleanField(constraints=[p.SQL("DEFAULT FALSE")])
     locked_operator = p.ForeignKeyField(
         Operator, null=True, backref="locked_operator"
     )
     operation = p.ForeignKeyField(Operation, null=False)
     # the following information comes from the c2 profile if it wants to provide some form of encryption
     # the kind of encryption on this callback (aes, xor, rc4, etc)
-    encryption_type = p.CharField(null=True)
-    # base64 of the key to use to decrypt traffic
-    decryption_key = p.TextField(null=True)
-    # base64 of the key to use to encrypt traffic
-    encryption_key = p.TextField(null=True)
+    crypto_type = p.TextField(null=True)
+    dec_key = p.BlobField(null=True)
+    enc_key = p.BlobField(null=True)
     os = p.TextField(null=True)
     architecture = p.TextField(null=True)
     domain = p.TextField(null=True)
@@ -726,9 +839,9 @@ class Callback(p.Model):
     port = p.IntegerField(null=True)
     socks_task = p.DeferredForeignKey("Task", null=True)
     # if you need to define extra context for a callback, like a webshell, supply that here
-    extra_info = p.TextField(null=False, default="")
+    extra_info = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # store information about sleep interval/jitter/waking hours/etc here
-    sleep_info = p.TextField(null=False, default="")
+    sleep_info = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
         database = mythic_db
@@ -764,10 +877,15 @@ class Callback(p.Model):
             "extra_info": self.extra_info,
             "sleep_info": self.sleep_info
         }
+        if getattr(self, "tokens") is not None:
+            r["tokens"] = []
+            for x in self.tokens:
+                if x.deleted is False:
+                    r["tokens"].append(x.to_json())
         return r
 
     def __str__(self):
-        return "" #json.dumps(self.to_json())
+        return json.dumps(self.to_json())
 
 
 class PayloadC2Profiles(p.Model):
@@ -819,6 +937,9 @@ class C2ProfileParametersInstance(p.Model):
     c2_profile = p.ForeignKeyField(C2Profile)
     # this is the final value the user specified
     value = p.TextField(null=False)
+    # if c2_profile_parameters.crypto_type is True then we can specify enc and dec keys
+    enc_key = p.BlobField(null=True)
+    dec_key = p.BlobField(null=True)
     # the specific payload instance these values apply to
     payload = p.ForeignKeyField(
         Payload, null=True, backref="payload_profile_parameters"
@@ -870,7 +991,7 @@ class LoadedCommands(p.Model):
     callback = p.ForeignKeyField(Callback, null=False)
     # so we know who loaded which commands
     operator = p.ForeignKeyField(Operator, null=False)
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     # which version of the command is loaded, so we know if it's out of date
     version = p.IntegerField(null=False)
 
@@ -887,6 +1008,7 @@ class LoadedCommands(p.Model):
             "callback": self.callback.id,
             "operator": self.operator.username,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "attributes": self.command.attributes,
         }
         return r
 
@@ -903,13 +1025,13 @@ class Task(p.Model):
     )  # this will have the instance specific params (ex: id)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
     status_timestamp_preprocessing = p.DateTimeField(
-        default=datetime.datetime.utcnow, null=False
+        default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False
     )
     status_timestamp_submitted = p.DateTimeField(null=True)
     status_timestamp_processing = p.DateTimeField(null=True)
     status_timestamp_processed = p.DateTimeField(null=True)
     # this is the last timestamp that something happened
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     # every task is associated with a specific callback that executes the task
     callback = p.ForeignKeyField(Callback, null=False)
     # the operator to issue the command can be different from the one that spawned the callback
@@ -918,13 +1040,30 @@ class Task(p.Model):
     status = p.CharField(null=False, default="preprocessing")
     # save off the original params in the scenarios where we to transforms on it for logging and tracking purposes
     original_params = p.TextField(null=True)
+    # what to display to the user so that they don't see big JSON blobs immediately
+    display_params = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # people can add a comment to the task
-    comment = p.TextField(null=False, default="")
+    comment = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # the user that added the above comment
     comment_operator = p.ForeignKeyField(
         Operator, backref="comment_operator", null=True
     )
-    completed = p.BooleanField(null=False, default=False)
+    # optionally allow tasking to capture stdout/stderr when going through create_tasking for later analysis
+    stdout = p.TextField(null=False, default="", constraints=[p.SQL("default ''")])
+    stderr = p.TextField(null=False, default="", constraints=[p.SQL("default ''")])
+    completed = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    # Track which securitycontext was used for this task
+    token = p.DeferredForeignKey('Token', null=True)
+    opsec_pre_blocked = p.BooleanField(null=True)
+    opsec_pre_message = p.TextField(null=False, default="", constraints=[p.SQL("default ''")])
+    opsec_pre_bypassed = p.BooleanField(null=False, default=False, constraints=[p.SQL("DEFAULT FALSE")])
+    opsec_pre_bypass_role = p.TextField(null=False, default="lead", constraints=[p.SQL("DEFAULT 'lead'")])
+    opsec_pre_bypass_user = p.ForeignKeyField(Operator, null=True)
+    opsec_post_blocked = p.BooleanField(null=True)
+    opsec_post_message = p.TextField(null=False, default="", constraints=[p.SQL("default ''")])
+    opsec_post_bypassed = p.BooleanField(null=False, default=False, constraints=[p.SQL("DEFAULT FALSE")])
+    opsec_post_bypass_role = p.TextField(null=False, default="lead", constraints=[p.SQL("DEFAULT 'lead'")])
+    opsec_post_bypass_user = p.ForeignKeyField(Operator, null=True)
 
     class Meta:
         database = mythic_db
@@ -934,6 +1073,7 @@ class Task(p.Model):
             "id": getattr(self, "id"),
             "agent_task_id": self.agent_task_id,
             "command": self.command.cmd if self.command is not None else None,
+            "payload_type": self.command.payload_type.ptype if self.command is not None else None,
             "command_id": self.command.id if self.command is not None else None,
             "status_timestamp_preprocessing": self.status_timestamp_preprocessing.strftime("%m/%d/%Y %H:%M:%S"),
             "status_timestamp_submitted": self.status_timestamp_submitted.strftime("%m/%d/%Y %H:%M:%S") if self.status_timestamp_submitted is not None else None,
@@ -947,7 +1087,227 @@ class Task(p.Model):
             "original_params": self.original_params,
             "comment": self.comment,
             "comment_operator": self.comment_operator.username if self.comment_operator is not None else None,
-            "completed": self.completed
+            "completed": self.completed,
+            "token": self.token.to_json() if self.token is not None else None,
+            "opsec_pre_blocked": self.opsec_pre_blocked,
+            "opsec_pre_bypassed": self.opsec_pre_bypassed,
+            "opsec_pre_message": self.opsec_pre_message,
+            "opsec_pre_bypass_role": self.opsec_pre_bypass_role,
+            "opsec_pre_bypass_user": self.opsec_pre_bypass_user.username if self.opsec_pre_bypass_user is not None else "",
+            "opsec_post_blocked": self.opsec_post_blocked,
+            "opsec_post_bypassed": self.opsec_post_bypassed,
+            "opsec_post_message": self.opsec_post_message,
+            "opsec_post_bypass_role": self.opsec_post_bypass_role,
+            "opsec_post_bypass_user": self.opsec_post_bypass_user.username if self.opsec_post_bypass_user is not None else "",
+            "display_params": self.display_params
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class LogonSession(p.Model):
+    # Windows Logon Session data
+    LogonId = p.IntegerField(null=True)
+    UserName = p.TextField(null=True)
+    LogonDomain = p.TextField(null=True)
+    FullQualifiedUserName = p.TextField(null=True)
+    LogonType = p.TextField(null=True)
+    SessionId = p.IntegerField(null=True)
+    Sid = p.TextField(null=True)
+    LogonTime = p.TimestampField(null=True)
+    LogonServer = p.TextField(null=True)
+    DnsDomainName = p.TextField(null=True)
+    Upn = p.TextField(null=True)
+    UserFlags = p.IntegerField(null=True)
+    LastSuccessfulLogon = p.TimestampField(null=True)
+    LastFailedLogon = p.TimestampField(null=True)
+    FailedAttemptCountSinceLastSuccessfulLogon = p.IntegerField(null=True)
+    LogonScript = p.TextField(null=True)
+    ProfilePath = p.TextField(null=True)
+    HomeDirectory = p.TextField(null=True)
+    HomeDirectoryDrive = p.TextField(null=True)
+    LogoffTime = p.TimestampField(null=True)
+    KickOffTime = p.TimestampField(null=True)
+    PasswordLastSet = p.TimestampField(null=True)
+    PasswordCanChange = p.TimestampField(null=True)
+    PasswordMustChange = p.TimestampField(null=True)
+    # Mythic tracking data
+    os = p.TextField(null=False, default="Windows", constraints=[p.SQL("default 'Windows'")])
+    task = p.ForeignKeyField(Task, null=False)
+    timestamp_created = p.DateTimeField(default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")], null=False)
+    deleted = p.BooleanField(default=False, null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    host = p.TextField(null=False)
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "id": getattr(self, "id")
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class Token(p.Model):
+    # Windows Token Information
+    # tokens are identified by TokenId and Host values
+    TokenId = p.IntegerField(null=False)
+    User = p.TextField(null=True)
+    Groups = p.TextField(null=True)
+    EnabledGroups = p.TextField(null=True)
+    DenyOnlyGroups = p.TextField(null=True)
+    GroupCount = p.IntegerField(null=True)
+    # AuthenticationId is what correlates to LogonId in LogonSession
+    AuthenticationId = p.ForeignKeyField(LogonSession, null=True, backref="tokens")
+    # enum type, 0 is Primary 1 is Secondary
+    TokenType = p.IntegerField(null=True)
+    ExpirationTime = p.TimestampField(null=True)
+    ModifiedId = p.IntegerField(null=True)
+    Owner = p.TextField(null=True)
+    PrimaryGroup = p.TextField(null=True)
+    DefaultDacl = p.TextField(null=True)
+    Source = p.TextField(null=True)
+    RestrictedSids = p.TextField(null=True)
+    RestrictedSidsCount = p.TextField(null=True)
+    # enum type
+    ImpersonationLevel = p.IntegerField(null=True)
+    SessionId = p.IntegerField(null=True)
+    SandboxInert = p.BooleanField(null=True)
+    Origin = p.IntegerField(null=True)
+    ElevationType = p.IntegerField(null=True)
+    Elevated = p.BooleanField(null=True)
+    HasRestrictions = p.BooleanField(null=True)
+    UIAccess = p.BooleanField(null=True)
+    VirtualizationAllowed = p.BooleanField(null=True)
+    VirtualizationEnabled = p.BooleanField(null=True)
+    Restricted = p.BooleanField(null=True)
+    WriteRestricted = p.BooleanField(null=True)
+    Filtered = p.BooleanField(null=True)
+    NotLow = p.BooleanField(null=True)
+    Flags = p.TextField(null=True)
+    NoChildProcess = p.BooleanField(null=True)
+    Capabilities = p.TextField(null=True)
+    MandatoryPolicy = p.TextField(null=True)
+    LogonSid = p.TextField(null=True)
+    IntegrityLevelSid = p.IntegerField(null=True)
+    AppContainerNumber = p.IntegerField(null=True)
+    IntegrityLevel = p.IntegerField(null=True)
+    SecurityAttributes = p.TextField(null=True)
+    DeviceClaimAttributes = p.TextField(null=True)
+    UserClaimAttributes = p.TextField(null=True)
+    RestrictedUserClaimAttributes = p.TextField(null=True)
+    RestrictedDeviceClaimAttributes = p.TextField(null=True)
+    AppContainer = p.BooleanField(null=True)
+    LowPrivilegeAppContainer = p.BooleanField(null=True)
+    AppContainerSid = p.TextField(null=True)
+    PackageName = p.TextField(null=True)
+    DeviceGroups = p.TextField(null=True)
+    RestrictedDeviceGroups = p.TextField(null=True)
+    Privileges = p.TextField(null=True)
+    FullPath = p.TextField(null=True)
+    TrustLevel = p.TextField(null=True)
+    IsPseudoToken = p.BooleanField(null=True)
+    IsSandbox = p.BooleanField(null=True)
+    PackageFullName = p.TextField(null=True)
+    AppId = p.TextField(null=True)
+    AppModelPolicies = p.TextField(null=True)
+    AppModelPolicyDictionary = p.TextField(null=True)
+    BnoIsolationPrefix = p.TextField(null=True)
+    PackageIdentity = p.TextField(null=True)
+    AuditPolicy = p.TextField(null=True)
+    PrivateNamespace = p.BooleanField(null=True)
+    IsRestricted = p.BooleanField(null=True)
+    ProcessUniqueAttribute = p.TextField(null=True)
+    GrantedAccess = p.TextField(null=True)
+    GrantedAccessGeneric = p.TextField(null=True)
+    GrantedAccessMask = p.IntegerField(null=True)
+    SecurityDescriptor = p.TextField(null=True)
+    Sddl = p.TextField(null=True)
+    Handle = p.IntegerField(null=True)
+    NtTypeName = p.TextField(null=True)
+    NtType = p.IntegerField(null=True)
+    Name = p.TextField(null=True)
+    CanSynchronize = p.BooleanField(null=True)
+    CreationTime = p.TimestampField(null=True)
+    AttributesFlags = p.IntegerField(null=True)
+    HandleReferenceCount = p.IntegerField(null=True)
+    PointerReferenceCount = p.IntegerField(null=True)
+    Inherit = p.BooleanField(null=True)
+    ProtectFromClose = p.BooleanField(null=True)
+    Address = p.IntegerField(null=True)
+    IsContainer = p.BooleanField(null=True)
+    IsClosed = p.BooleanField(null=True)
+    # Mythic Tracking Information
+    os = p.TextField(null=False, default="Windows", constraints=[p.SQL("default 'Windows'")])
+    task = p.ForeignKeyField(Task, null=False)
+    timestamp_created = p.DateTimeField(default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")],
+                                        null=False)
+    deleted = p.BooleanField(default=False, null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    host = p.TextField(null=False)
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "id": getattr(self, "id"),
+            "TokenId": self.TokenId
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class CallbackToken(p.Model):
+    # this tracks which tokens a callback knows about or can leverage
+    token = p.ForeignKeyField(Token, null=False)
+    callback = p.ForeignKeyField(Callback, null=False, backref="tokens")
+    # Mythic Tracking Information
+    os = p.TextField(null=False, default="Windows", constraints=[p.SQL("default 'Windows'")])
+    task = p.ForeignKeyField(Task, null=False)
+    timestamp_created = p.DateTimeField(default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")],
+                                        null=False)
+    deleted = p.BooleanField(default=False, null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    host = p.TextField(null=False)
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "id": getattr(self, "id"),
+            "token": self.token.to_json()
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class AuthenticationPackage(p.Model):
+    # Windows Information
+    LogonSession = p.ForeignKeyField(LogonSession, null=False, backref="AuthenticationPackage")
+    Name = p.TextField(null=False)
+    # Mythic Tracking Information
+    os = p.TextField(null=False, default="Windows", constraints=[p.SQL("default 'Windows'")])
+    task = p.ForeignKeyField(Task, null=False)
+    timestamp_created = p.DateTimeField(default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")],
+                                        null=False)
+    deleted = p.BooleanField(default=False, null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    host = p.TextField(null=False)
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "id": getattr(self, "id")
         }
         return r
 
@@ -957,7 +1317,7 @@ class Task(p.Model):
 
 class Response(p.Model):
     response = p.BlobField(null=True)
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     task = p.ForeignKeyField(Task, null=False)
 
     class Meta:
@@ -966,9 +1326,7 @@ class Response(p.Model):
     def to_json(self):
         r = {
             "id": getattr(self, "id"),
-            "response": bytes(getattr(self, "response")).decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "response": bytes(getattr(self, "response")).decode("utf-8"),
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
             "task": self.task.to_json()
         }
@@ -1047,18 +1405,20 @@ class ATTACKTask(p.Model):
 
 class Credential(p.Model):
     # what kind of credential is it? [hash, password, certificate, etc]
-    type = p.TextField(null=False)
+    type = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'plaintext'")])
     # if you know the task, you know who, what, where, when, etc that caused this thing to exist
     # task can be null though which means it was manually entered
     task = p.ForeignKeyField(Task, null=True)
-    account = p.TextField(null=False)  # whose credential is this
-    realm = p.TextField()  # which domain does this credential apply?
+    account = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])  # whose credential is this
+    realm = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])  # which domain does this credential apply?
     operation = p.ForeignKeyField(Operation)
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     credential = p.BlobField(null=False)  # the actual credential we captured
     operator = p.ForeignKeyField(Operator, null=False)
     comment = p.TextField(null=True)
-    deleted = p.BooleanField(null=False, default=False)
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    # this is a field that can be set for extra metadata surrounding the credential material
+    metadata = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
         database = mythic_db
@@ -1073,12 +1433,11 @@ class Credential(p.Model):
             "realm": self.realm,
             "operation": self.operation.name,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "credential": bytes(getattr(self, "credential")).decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "credential": bytes(getattr(self, "credential")).decode("utf-8"),
             "operator": self.operator.username,
             "comment": self.comment,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "metadata": self.metadata
         }
         return r
 
@@ -1091,9 +1450,9 @@ class Keylog(p.Model):
     task = p.ForeignKeyField(Task, null=False)  # what command caused this to exist
     keystrokes = p.BlobField(null=False)  # what did you actually capture
     # if possible, what's the window title for where these keystrokes happened
-    window = p.TextField(null=False, default="UNKOWN")
+    window = p.TextField(null=False, default="UNKNOWN")
     # when did we get these keystrokes?
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     operation = p.ForeignKeyField(Operation, null=False)
     # whose keystrokes are these? The agent needs to tell us
     user = p.TextField(null=False)
@@ -1107,9 +1466,7 @@ class Keylog(p.Model):
             "task": self.task.id,
             "host": self.task.callback.host,
             "callback": {"id": self.task.callback.id},
-            "keystrokes": bytes(getattr(self, "keystrokes")).decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "keystrokes": bytes(getattr(self, "keystrokes")).decode("utf-8"),
             "window": self.window,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
             "operation": self.operation.name,
@@ -1124,8 +1481,8 @@ class Keylog(p.Model):
 class Artifact(p.Model):
     # this is global and generic information about different kinds of host artifacts
     # type indicates the kind of host artifacts this instance applies to
-    name = p.BlobField(null=False, unique=True)
-    description = p.BlobField(null=False, default="")
+    name = p.TextField(null=False, unique=True)
+    description = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
         database = mythic_db
@@ -1133,12 +1490,8 @@ class Artifact(p.Model):
     def to_json(self):
         r = {
             "id": getattr(self, "id"),
-            "name": bytes(getattr(self, "name")).decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
-            "description": bytes(getattr(self, "description")).decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode()
+            "name": self.name,
+            "description": self.description
         }
         return r
 
@@ -1148,8 +1501,8 @@ class Artifact(p.Model):
 
 class TaskArtifact(p.Model):
     task = p.ForeignKeyField(Task, null=True)
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
-    artifact_instance = p.BlobField(null=False, default="")
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
+    artifact_instance = p.BlobField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if this is a manual entry (no task), still specify the corresponding artifact
     artifact = p.ForeignKeyField(Artifact, null=True)
     operation = p.ForeignKeyField(Operation, null=True)
@@ -1165,16 +1518,9 @@ class TaskArtifact(p.Model):
             "task": self.task.original_params if self.task is not None else "",
             "command": self.task.command.cmd if self.task is not None else "Manual Entry",
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "artifact_instance": bytes(getattr(self, "artifact_instance")).decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
-            "artifact_template": bytes(getattr(self, "artifact").name).decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "artifact_instance": bytes(getattr(self, "artifact_instance")).decode("utf-8"),
             "operation": self.operation.name if self.operation is not None else None,
-            "host": str(self.host).encode().decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "host": self.host,
         }
         return r
 
@@ -1186,10 +1532,12 @@ class StagingInfo(p.Model):
     # this is a way to identify the corresponding session key between HTTP messages since it's stateless
     session_id = p.TextField(null=False, unique=True)
     # this is the creation session key that's base64 encoded
-    session_key = p.TextField(null=False)
+    enc_key = p.BlobField(null=False)
+    dec_key = p.BlobField(null=False)
+    crypto_type = p.TextField(null=False)
     # staging step uuid
     staging_uuid = p.TextField(null=False, unique=True)
-    payload_uuid = p.TextField(null=False)
+    payload = p.ForeignKeyField(Payload, null=False)
 
     class Meta:
         database = mythic_db
@@ -1198,9 +1546,8 @@ class StagingInfo(p.Model):
         r = {
             "id": getattr(self, "id"),
             "session_id": self.session_id,
-            "session_key": self.session_key,
             "staging_uuid": self.staging_uuid,
-            "payload_uuid": self.payload_uuid
+            "payload": self.payload.uuid
         }
         return r
 
@@ -1212,8 +1559,8 @@ class APITokens(p.Model):
     # this offers a way to interact with specific interfaces without a JWT expiring
     token_type = p.TextField(null=False)  # [C2, User]
     token_value = p.TextField(null=False)
-    active = p.BooleanField(null=False, default=True)
-    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    active = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT TRUE")])
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
     operator = p.ForeignKeyField(Operator)  # act on behalf of which user
 
     class Meta:
@@ -1239,20 +1586,20 @@ class BrowserScript(p.Model):
     # who does this script belong to
     operator = p.ForeignKeyField(Operator, null=True)
     # the actual script contents
-    script = p.TextField(null=False, default="")
+    script = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if this is null, it is a support function
     command = p.ForeignKeyField(Command, null=True)
     payload_type = p.ForeignKeyField(PayloadType, null=False)
-    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
     # if command is None, we're a support function, use this to define a name for the function
     name = p.TextField(null=True)
-    active = p.BooleanField(default=True)
-    author = p.TextField(null=False, default="")
+    active = p.BooleanField(constraints=[p.SQL("DEFAULT TRUE")])
+    author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # track if the user modified this script
-    user_modified = p.BooleanField(default=False)
+    user_modified = p.BooleanField(constraints=[p.SQL("DEFAULT FALSE")])
     # this is always the latest from the container
-    container_version = p.TextField(null=False, default="")
-    container_version_author = p.TextField(null=False, default="")
+    container_version = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    container_version_author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
         indexes = ((("command", "name", "operator"), True),)
@@ -1302,13 +1649,52 @@ class BrowserScriptOperation(p.Model):
         return json.dumps(self.to_json())
 
 
+class Process(p.Model):
+    # which task populated the data
+    task = p.ForeignKeyField(Task, null=False)
+    # when did we get the data back
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")])
+    # this is a process list for which host
+    host = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    # requires a specific format:
+    #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
+    process_id = p.IntegerField(null=False)
+    architecture = p.TextField()
+    parent_process_id = p.IntegerField(null=True)
+    bin_path = p.TextField(null=True)
+    name = p.TextField(null=True)
+    user = p.TextField(null=True)
+    operation = p.ForeignKeyField(Operation, null=False)
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "id": getattr(self, "id"),
+            "task": self.task.id,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+            "host": self.host,
+            "operation": self.operation.name,
+            "process_id": self.process_id,
+            "architecture": self.architecture,
+            "parent_process_id": self.parent_process_id,
+            "bin_path": self.bin_path,
+            "name": self.name
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
 class ProcessList(p.Model):
     # which task populated the data
     task = p.ForeignKeyField(Task, null=False, unique=True)
     # when did we get the data back
-    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
     # this is a process list for which host
-    host = p.TextField(null=False)
+    host = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # requires a specific format:
     #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
     process_list = p.BlobField(null=False)
@@ -1324,10 +1710,7 @@ class ProcessList(p.Model):
             "callback": self.task.callback.id,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
             "host": self.host,
-            "process_list": bytes(getattr(self, "process_list"))
-                        .decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "process_list": bytes(getattr(self, "process_list")).decode("utf-8"),
             "operation": self.operation.name
         }
         return r
@@ -1338,28 +1721,28 @@ class ProcessList(p.Model):
 
 class FileBrowserObj(p.Model):
     task = p.ForeignKeyField(Task, null=False)
-    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
     operation = p.ForeignKeyField(Operation, null=False)
     # this should be the fqdn of the host the info is from
-    host = p.BlobField(null=False)
-    permissions = p.TextField(null=False, default="")
+    host = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    permissions = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # this is the name of this file/folder
-    name = p.BlobField(null=False)
+    name = p.BlobField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # this is the parent object
     parent = p.ForeignKeyField('self', null=True)
     # this is the full path for the parent folder
     # we need this to enable faster searching and better context
-    parent_path = p.BlobField(null=False, default="")
-    full_path = p.BlobField(null=False, default="")
-    access_time = p.TextField(null=False, default="")
-    modify_time = p.TextField(null=False, default="")
-    comment = p.TextField(null=False, default="")
+    parent_path = p.BlobField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    full_path = p.BlobField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    access_time = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    modify_time = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    comment = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # this is how we differentiate between files and folders of information
-    is_file = p.BooleanField(null=False, default=False)
-    size = p.TextField(null=False, default="")
+    is_file = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    size = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # indicates if we successfully pulled info about the object. False would be access denied for example
     success = p.BooleanField(null=True)
-    deleted = p.BooleanField(null=False, default=False)
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
 
     class Meta:
         database = mythic_db
@@ -1371,24 +1754,11 @@ class FileBrowserObj(p.Model):
             "callback": self.task.callback.id,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
             "operation": self.operation.name,
-            "host": bytes(getattr(self, "host"))
-                        .decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
-            #"permissions": self.permissions,
-            "name": bytes(getattr(self, "name"))
-                        .decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "host": self.host,
+            "name": bytes(getattr(self, "name")).decode("utf-8"),
             "parent": self.parent.id if self.parent is not None else None,
-            "parent_path": bytes(getattr(self, "parent_path"))
-                        .decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
-            "full_path": bytes(getattr(self, "full_path"))
-                        .decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "parent_path": bytes(getattr(self, "parent_path")).decode("utf-8"),
+            "full_path": bytes(getattr(self, "full_path")).decode("utf-8"),
             "access_time": self.access_time,
             "modify_time": self.modify_time,
             "comment": self.comment,
@@ -1412,22 +1782,22 @@ class FileMeta(p.Model):
     chunk_size = p.IntegerField(null=False, default=0)
     # what task caused this file to exist in the database
     task = p.ForeignKeyField(Task, null=True)
-    complete = p.BooleanField(null=False, default=False)
+    complete = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # where the file is located on local disk
     path = p.TextField(null=False)
     # path on victim if applicable
-    full_remote_path = p.TextField(null=False, default="")
+    full_remote_path = p.BlobField(null=False, default=b"")
     # host of where the file was pulled from, can be remote
-    host = p.TextField(null=False, default="")
-    is_payload = p.BooleanField(null=False, default=False)
-    is_screenshot = p.BooleanField(null=False, default=False)
-    is_download_from_agent = p.BooleanField(default=False)
+    host = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])
+    is_payload = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    is_screenshot = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    is_download_from_agent = p.BooleanField(constraints=[p.SQL("DEFAULT FALSE")])
     file_browser = p.ForeignKeyField(FileBrowserObj, null=True, backref="files")
-    filename = p.TextField(null=False, default="")
-    delete_after_fetch = p.BooleanField(null=False, default=True)
+    filename = p.BlobField(null=False, default=b"", constraints=[p.SQL("DEFAULT ''")])
+    delete_after_fetch = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT TRUE")])
     operation = p.ForeignKeyField(Operation, null=False)
-    timestamp = p.DateTimeField(default=datetime.datetime.utcnow, null=False)
-    deleted = p.BooleanField(null=False, default=False)
+    timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # specify this in case it was a manual registration
     operator = p.ForeignKeyField(Operator, null=True)
     md5 = p.TextField(null=True)
@@ -1437,36 +1807,36 @@ class FileMeta(p.Model):
         database = mythic_db
 
     def to_json(self):
-        r = {
-            "id": getattr(self, "id"),
-            "agent_file_id": self.agent_file_id,
-            "total_chunks": self.total_chunks,
-            "chunks_received": self.chunks_received,
-            "chunk_size": self.chunk_size,
-            "task": self.task.id if self.task is not None else None,
-            "cmd": self.task.command.cmd if self.task is not None else None,
-            "complete": self.complete,
-            "path": self.path,
-            "full_remote_path": str(self.full_remote_path).encode().decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
-            "host": str(self.host).encode().decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
-            "is_payload": self.is_payload,
-            "is_screenshot": self.is_screenshot,
-            "is_download_from_agent": self.is_download_from_agent,
-            "file_browser": self.file_browser.id if self.file_browser is not None else None,
-            "filename": self.filename,
-            "delete_after_fetch": self.delete_after_fetch,
-            "operation": self.operation.name,
-            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "deleted": self.deleted,
-            "operator": self.operator.username if self.operator is not None else None,
-            "md5": self.md5,
-            "sha1": self.sha1
-        }
-        return r
+        try:
+            r = {
+                "id": getattr(self, "id"),
+                "agent_file_id": self.agent_file_id,
+                "total_chunks": self.total_chunks,
+                "chunks_received": self.chunks_received,
+                "chunk_size": self.chunk_size,
+                "task": self.task.id if self.task is not None else None,
+                "cmd": self.task.command.cmd if self.task is not None else None,
+                "complete": self.complete,
+                "path": self.path,
+                "full_remote_path": bytes(self.full_remote_path).decode("utf-8"),
+                "host": self.host,
+                "is_payload": self.is_payload,
+                "is_screenshot": self.is_screenshot,
+                "is_download_from_agent": self.is_download_from_agent,
+                "file_browser": self.file_browser.id if self.file_browser is not None else None,
+                "filename": bytes(self.filename).decode("utf-8"),
+                "delete_after_fetch": self.delete_after_fetch,
+                "operation": self.operation.name,
+                "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+                "deleted": self.deleted,
+                "operator": self.operator.username if self.operator is not None else None,
+                "md5": self.md5,
+                "sha1": self.sha1
+            }
+            return r
+        except Exception as e:
+            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            return {}
 
     def __str__(self):
         return json.dumps(self.to_json())
@@ -1475,12 +1845,18 @@ class FileMeta(p.Model):
 class OperationEventLog(p.Model):
     # user-user messages, sign-on/off notifications, new callback notifications, file hosted, etc
     operator = p.ForeignKeyField(Operator, null=True)  # who sent the message
-    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
-    message = p.BlobField(null=False)
+    timestamp = p.DateTimeField(null=False,
+        default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
+    message = p.TextField(null=False)
     operation = p.ForeignKeyField(Operation, null=False)
-    level = p.TextField(null=False, default="info")
-    deleted = p.BooleanField(null=False, default=False)
-    resolved = p.BooleanField(null=False, default=False)
+    level = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'info'")])
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    resolved = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    # indicate the 'source' of the message.
+    # operator / callback / c2 / etc
+    source = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    # to prevent unnecessary messages, if the message already exists, just increment the count
+    count = p.IntegerField(null=False, constraints=[p.SQL("DEFAULT 1")])
 
     class Meta:
         database = mythic_db
@@ -1490,14 +1866,13 @@ class OperationEventLog(p.Model):
             "id": getattr(self, "id"),
             "operator": self.operator.username if self.operator is not None else None,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "message":  bytes(getattr(self, "message"))
-                        .decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "message":  self.message,
             "operation": self.operation.name,
             "level": self.level,
             "deleted": self.deleted,
-            "resolved": self.resolved
+            "resolved": self.resolved,
+            "count": self.count,
+            "source": self.source
         }
         return r
 
@@ -1508,7 +1883,7 @@ class OperationEventLog(p.Model):
 class CallbackGraphEdge(p.Model):
     # information about p2p connections and egress to p2p connections
     # when did this connection start
-    start_timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    start_timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")])
     end_timestamp = p.DateTimeField(null=True)  # when did the connection stop
     operation = p.ForeignKeyField(Operation, null=False)
     # source node for the relationship
@@ -1518,7 +1893,7 @@ class CallbackGraphEdge(p.Model):
     # 1 is src->dst, 2 is dst->src, 3 is src<->dst
     direction = p.IntegerField(null=False)
     # metadata about the connection, JSON string
-    metadata = p.BlobField(null=False, default=b"")
+    metadata = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT NOW()")])
     # which c2 profile does this connection belong to
     c2_profile = p.ForeignKeyField(C2Profile, null=False)
     # which task added the connection
@@ -1538,10 +1913,7 @@ class CallbackGraphEdge(p.Model):
             "source": json.dumps(self.source.to_json()),
             "destination": json.dumps(self.destination.to_json()),
             "direction": self.direction,
-            "metadata": bytes(getattr(self, "metadata"))
-                        .decode("unicode-escape", errors="backslashreplace")
-                        .encode("utf-8", errors="backslashreplace")
-                        .decode(),
+            "metadata": self.metadata,
             "c2_profile": self.c2_profile.name,
             "task_start": self.task_start.id if self.task_start is not None else None,
             "task_end": self.task_end.id if self.task_end is not None else None
@@ -1562,14 +1934,9 @@ async def operator_query():
 
 
 async def payloadtype_query():
-    ptype = PayloadType.alias()
     return (
-        PayloadType.select(PayloadType, BuildParameter, ptype)
-        .join(ptype, on=(ptype.id == PayloadType.id))
-        .join(BuildParameter, join_type=p.JOIN.LEFT_OUTER, on=(BuildParameter.payload_type == ptype.id))
-        .switch(PayloadType)
+        PayloadType.select(PayloadType)
     )
-
 
 
 async def wrappedpayloadtypes_query():
@@ -1597,15 +1964,25 @@ async def commandparameters_query():
     )
 
 
+async def commandopsec_query():
+    return (
+        CommandOPSEC.select(CommandOPSEC, Command, PayloadType)
+        .join(Command)
+        .join(PayloadType)
+        .switch(CommandOPSEC)
+    )
+
+
 async def operation_query():
     return Operation.select(Operation, Operator).join(Operator).switch(Operation)
 
 
 async def operatoroperation_query():
     current_op = Operation.alias()
+    admin = Operator.alias()
     return (
         OperatorOperation.select(
-            OperatorOperation, Operator, Operation, current_op, DisabledCommandsProfile
+            OperatorOperation, Operator, Operation, current_op, DisabledCommandsProfile, admin
         )
         .join(Operator)
         .join(
@@ -1615,6 +1992,7 @@ async def operatoroperation_query():
         )
         .switch(OperatorOperation)
         .join(Operation)
+        .join(admin)
         .switch(OperatorOperation)
         .join(DisabledCommandsProfile, p.JOIN.LEFT_OUTER)
         .switch(OperatorOperation)
@@ -2031,6 +2409,17 @@ async def browserscriptoperation_query():
     )
 
 
+async def process_query():
+    return (
+        Process.select(Process, Task, Callback, Operation)
+            .join(Task)
+            .join(Callback)
+            .switch(Process)
+            .join(Operation)
+            .switch(Process)
+    )
+
+
 async def processlist_query():
     return (
         ProcessList.select(ProcessList, Task, Callback, Operation)
@@ -2157,6 +2546,46 @@ async def buildparameterinstance_query():
     )
 
 
+async def logonsession_query():
+    return (
+        LogonSession.select(LogonSession, Task)
+        .join(Task, p.JOIN.LEFT_OUTER)
+        .switch(LogonSession)
+    )
+
+
+async def token_query():
+    return (
+        Token.select(Token, Task, LogonSession)
+        .join(Task, p.JOIN.LEFT_OUTER)
+        .switch(Token)
+        .join(LogonSession, p.JOIN.LEFT_OUTER)
+        .switch(Token)
+    )
+
+
+async def callbacktoken_query():
+    return (
+        CallbackToken.select(CallbackToken, Token, Callback, Task)
+        .join(Token)
+        .switch(CallbackToken)
+        .join(Callback)
+        .switch(CallbackToken)
+        .join(Task)
+        .switch(CallbackToken)
+    )
+
+
+async def authenticationpackage_query():
+    return (
+        AuthenticationPackage.select(AuthenticationPackage, LogonSession, Task)
+        .join(LogonSession, p.JOIN.LEFT_OUTER)
+        .switch(AuthenticationPackage)
+        .join(Task, p.JOIN.LEFT_OUTER)
+        .switch(AuthenticationPackage)
+    )
+
+
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
     inserts = [
@@ -2198,6 +2627,11 @@ def pg_register_newinserts():
         "callbackc2profiles",
         "payloadonhost",
         "wrappedpayloadtypes",
+        "token",
+        "logonsession",
+        "authenticationpackage",
+        "process",
+        "commandopsec"
     ]
     for table in inserts:
         create_function_on_insert = (
@@ -2265,6 +2699,10 @@ def pg_register_updates():
         "wrappedpayloadtypes",
         "buildparameter",
         "buildparameterinstance",
+        "token",
+        "authenticationpackage",
+        "logonsession",
+        "commandopsec"
     ]
     for table in updates:
         create_function_on_changes = (
@@ -2293,6 +2731,61 @@ def pg_register_updates():
             print(e)
 
 
+def pg_created_response_text_field():
+    func_response_response = """CREATE OR REPLACE FUNCTION public.response(response_row response)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(response_row.response, 'utf8')
+$function$"""
+    func_filemeta_filename = """CREATE OR REPLACE FUNCTION public.filemeta_filename(meta_row filemeta)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(meta_row.filename, 'utf8')
+$function$"""
+    func_filemeta_full_remote_path = """CREATE OR REPLACE FUNCTION public.filemeta_full_remote_path(meta_row filemeta)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(meta_row.full_remote_path, 'utf8')
+$function$"""
+    func_fileobj_name = """CREATE OR REPLACE FUNCTION public.filebrowserobj_name(fileobj_row filebrowserobj)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(fileobj_row.name, 'utf8')
+$function$"""
+    func_fileobj_parent_path = """CREATE OR REPLACE FUNCTION public.filebrowserobj_parent_path(fileobj_row filebrowserobj)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(fileobj_row.parent_path, 'utf8')
+$function$"""
+    func_fileobj_full_path = """CREATE OR REPLACE FUNCTION public.filebrowserobj_full_path(fileobj_row filebrowserobj)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(fileobj_row.full_path, 'utf8')
+$function$"""
+    try:
+        mythic_db.execute_sql(func_response_response)
+        mythic_db.execute_sql(func_filemeta_filename)
+        mythic_db.execute_sql(func_filemeta_full_remote_path)
+        mythic_db.execute_sql(func_fileobj_name)
+        mythic_db.execute_sql(func_fileobj_parent_path)
+        mythic_db.execute_sql(func_fileobj_full_path)
+
+    except Exception as e:
+        print(e)
+
+
 def pg_register_deletes():
     updates = [
         "commandparameters",
@@ -2301,6 +2794,7 @@ def pg_register_deletes():
         "credential",
         "loadedcommands",
         "wrappedpayloadtypes",
+        "commandopsec"
     ]
     for table in updates:
         create_function_on_deletes = (
@@ -2334,6 +2828,7 @@ Operator.create_table(True)
 PayloadType.create_table(True)
 BuildParameter.create_table(True)
 WrappedPayloadTypes.create_table(True)
+CommandOPSEC.create_table(True)
 Command.create_table(True)
 CommandParameters.create_table(True)
 Operation.create_table(True)
@@ -2347,6 +2842,10 @@ BuildParameterInstance.create_table(True)
 PayloadOnHost.create_table(True)
 Callback.create_table(True)
 Task.create_table(True)
+LogonSession.create_table(True)
+Token.create_table(True)
+AuthenticationPackage.create_table(True)
+CallbackToken.create_table(True)
 Response.create_table(True)
 PayloadCommand.create_table(True)
 C2ProfileParameters.create_table(True)
@@ -2365,6 +2864,7 @@ StagingInfo.create_table(True)
 APITokens.create_table(True)
 BrowserScript.create_table(True)
 BrowserScriptOperation.create_table(True)
+Process.create_table(True)
 ProcessList.create_table(True)
 FileBrowserObj.create_table(True)
 FileMeta.create_table(True)
@@ -2375,9 +2875,10 @@ CallbackGraphEdge.create_table(True)
 pg_register_newinserts()
 pg_register_updates()
 pg_register_deletes()
+pg_created_response_text_field()
 try:
+    Task._schema.create_foreign_key(Task.token)
     Payload._schema.create_foreign_key(Payload.pcallback)
-    Payload._schema.create_foreign_key(Payload.wrapped_payload)
     Payload._schema.create_foreign_key(Payload.task)
     Payload._schema.create_foreign_key(Payload.file_id)
     Operator._schema.create_foreign_key(Operator.current_operation)

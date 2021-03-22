@@ -3,27 +3,19 @@ RED='\033[1;31m'
 NC='\033[0m' # No Color
 GREEN='\033[1;32m'
 BLUE='\033[1;34m'
+
+# Set working directory for unattended starts
+cd "${0%/*}"
+
 if [ "$EUID" -ne 0 ]
   then echo -e "${RED}[-]${NC} Please run as root"
   exit
 fi
-server_port=`jq ".listen_port" "mythic-docker/config.json"`
+server_port=`jq ".mythic_server_port" "mythic-docker/config.json"`
 if [[ $? -ne 0  ]]
 then
   echo -e "${RED}[-]${NC} Failed to find server_port"
   exit 1
-fi
-use_ssl=`jq ".use_ssl" "mythic-docker/config.json"`
-if [[ $? -ne 0  ]]
-then
-  echo -e "${RED}[-]${NC} Failed to find use_ssl"
-  exit 1
-fi
-if [[ "$use_ssl" == "true" ]]
-  then
-    use_ssl="https"
-  else
-    use_ssl="http"
 fi
 containsElement () {
   local e match="$1"
@@ -37,12 +29,11 @@ startContainer(){
     if [ $? -ne 0 ]
     then
       echo -e "${RED}[-]${NC} Failed to find 'realpath' command. Aborting"
-      exit 1
+      return 1
     fi
     p=$(echo "${p/.\/C2_Profiles\//}")
     tag=$(echo "$p" | tr '[:upper:]' '[:lower:]')
     tag=$(echo "${tag/' '/}")
-    tag=$(echo "${tag/'_'/}")
     if [ -d "$realpath" ]
     then
       # only try to do this if the specified directory actually exists
@@ -51,12 +42,12 @@ startContainer(){
       if [ $? -ne 0 ]
       then
         echo -e "${RED}[-]${NC} Failed to build $p's container. Aborting"
-        exit 1
+        return 1
       else
         echo -e "${GREEN}[+]${NC} Successfully built $p's container"
       fi
       docker container prune --filter label=name="$tag" -f
-      output=`docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="$use_ssl://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag" 2>&1`
+      output=`docker run --log-driver json-file --log-opt max-size=10m --log-opt max-file=1 --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="http://127.0.0.1:$server_port/api/v1.4/agent_message" -e MYTHIC_WEBSOCKET="ws://127.0.0.1:$server_port/ws/agent_message/" "$tag" 2>&1`
       if [ $? -ne 0 ]
       then
         echo -e "${BLUE}[*]${NC} C2 Profile, $p, is already running. Stopping it..."
@@ -64,11 +55,11 @@ startContainer(){
         output=`docker stop "$tag" 2>/dev/null`
         output=`docker container rm $(docker container ps -aq --filter name="$tag") 2>/dev/null`
         echo -e "${BLUE}[*]${NC} Now trying to start it again..."
-        docker run --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="$use_ssl://127.0.0.1:$server_port/api/v1.4/agent_message" "$tag"
+        docker run --log-driver json-file --log-opt max-size=10m --log-opt max-file=1 --network host --hostname "$p" -d -v "$realpath:/Mythic/" --name "$tag" -e MYTHIC_ADDRESS="http://127.0.0.1:$server_port/api/v1.4/agent_message" -e MYTHIC_WEBSOCKET="ws://127.0.0.1:$server_port/ws/agent_message/" "$tag"
         if [ $? -ne 0 ]
         then
           echo -e "${RED}[-]${NC} Failed to start $p's container. Aborting"
-          exit 1
+          return 1
         else
           echo -e "${GREEN}[+]${NC} Successfully started $p's container"
         fi
@@ -119,7 +110,7 @@ payloads=(./C2_Profiles/*)
 # can use the next two lines to build a local "payload_type_base" image that's python3.6 and has the necessary files
 #echo "Building golden payload_type_base image..."
 # now loop through the profiles to build out their variations
-echo -e "${BLUE}[*]${NC} Looping through payload types..."
+echo -e "${BLUE}[*]${NC} Looping through c2 profiles..."
 for p in "${payloads[@]}"
 do
   containsElement "${p}" "${exclude[@]}"

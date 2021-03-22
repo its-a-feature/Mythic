@@ -26,6 +26,8 @@ from peewee import fn
 from app.api.siem_logger import log_to_siem
 from app.api.file_browser_api import add_upload_file_to_file_browser
 import asyncio
+from app.api.rabbitmq_api import send_pt_rabbitmq_message
+from app.api.task_api import add_all_payload_info
 
 
 # This gets all responses in the database
@@ -249,7 +251,8 @@ async def post_agent_response(agent_message, UUID):
                 task = await db_objects.get(query, agent_task_id=task_id)
                 # update the callback's last checkin time since it just posted a response
                 task.callback.last_checkin = datetime.datetime.utcnow()
-                task.callback.active = True  # always set this to true regardless of what it was before because it's clearly active
+                # always set this to true regardless of what it was before because it's clearly active
+                task.callback.active = True
                 await db_objects.update(task.callback)  # update the last checkin time
             except Exception as e:
                 logger.exception("Failed to find callback or task: " + str(e))
@@ -262,30 +265,28 @@ async def post_agent_response(agent_message, UUID):
             try:
                 if task.command.is_process_list:
                     # save this data off as a process list object in addition to doing whatever normally
-                    # this might be chunked, so see if one already exists for this task and just add to it, or create a new one
                     try:
                         query = await db_model.processlist_query()
                         pl = await db_objects.get(query, task=task)
-                        pl.process_list += parsed_response["user_output"].encode(
-                            "unicode-escape"
-                        )
+                        pl.process_list += parsed_response["user_output"].encode("utf-8")
                         pl.timestamp = datetime.datetime.utcnow()
                         await db_objects.update(pl)
                     except Exception as e:
+                        processes = js.loads(parsed_response["user_output"])
+                        from app.api.rabbitmq_api import create_processes
+                        await create_processes({"processes": processes}, task)
                         await db_objects.create(
                             db_model.ProcessList,
                             task=task,
                             host=task.callback.host,
-                            process_list=parsed_response["user_output"].encode(
-                                "unicode-escape"
-                            ),
+                            process_list=parsed_response["user_output"].encode("utf-8"),
                             operation=task.callback.operation,
                         )
                 try:
                     if "completed" in parsed_response:
                         if parsed_response["completed"]:
                             task.completed = True
-                            await log_to_siem(task.to_json(), mythic_object="task_completed")
+                            asyncio.create_task(log_to_siem(task.to_json(), mythic_object="task_completed"))
                         parsed_response.pop("completed", None)
                     if "user_output" in parsed_response:
                         if parsed_response["user_output"] is not None:
@@ -320,8 +321,8 @@ async def post_agent_response(agent_message, UUID):
                                     fobj = await db_objects.get(
                                         filebrowserquery,
                                         operation=task.callback.operation,
-                                        host=f["host"].encode("unicode-escape"),
-                                        full_path=f["path"].encode("unicode-escape"),
+                                        host=f["host"],
+                                        full_path=f["path"].encode('utf-8'),
                                         deleted=False,
                                     )
                                     fobj.deleted = True
@@ -346,8 +347,6 @@ async def post_agent_response(agent_message, UUID):
                                         sort_keys=True,
                                         indent=2,
                                     )
-                                    .encode("unicode-escape", errors="backslashreplace")
-                                    .decode("utf-8", errors="backslashreplace")
                                 )
                                 await db_objects.create(
                                     Response, task=task, response=download_data
@@ -376,7 +375,6 @@ async def post_agent_response(agent_message, UUID):
                                 json_return_info["status"] = "error"
                                 json_return_info["error"] = json_return_info["error"] + " " + rsp[
                                     "error"] if "error" in json_return_info else rsp["error"]
-                                final_output += rsp["error"]
                         parsed_response.pop("chunk_num", None)
                         parsed_response.pop("chunk_data", None)
                     if "keystrokes" in parsed_response:
@@ -397,31 +395,21 @@ async def post_agent_response(agent_message, UUID):
                                 Keylog,
                                 task=task,
                                 window=parsed_response["window_title"],
-                                keystrokes=parsed_response["keystrokes"].encode("unicode-escape"),
+                                keystrokes=parsed_response["keystrokes"].encode("utf-8"),
                                 operation=task.callback.operation,
                                 user=parsed_response["user"],
                             )
-                            await log_to_siem(rsp.to_json(), mythic_object="keylog_new")
+                            asyncio.create_task(log_to_siem(rsp.to_json(), mythic_object="keylog_new"))
                         parsed_response.pop("window_title", None)
                         parsed_response.pop("user", None)
                         parsed_response.pop("keystrokes", None)
                     if "credentials" in parsed_response:
                         if parsed_response["credentials"] is not None and str(parsed_response["credentials"]) != "":
-                            total_creds_added = 0
-                            total_repeats = 0
                             for cred in parsed_response["credentials"]:
                                 cred["task"] = task
-                                new_cred_status = await create_credential_func(
+                                asyncio.create_task(create_credential_func(
                                     task.operator, task.callback.operation, cred
-                                )
-                                if (
-                                    new_cred_status["status"] == "success"
-                                    and new_cred_status["new"]
-                                ):
-                                    total_creds_added = total_creds_added + 1
-                                elif new_cred_status["status"] == "success":
-                                    total_repeats = total_repeats + 1
-                        # final_output += "\nAdded {} new credentials\n".format(str(total_creds_added))
+                                ))
                         parsed_response.pop("credentials", None)
                     if "artifacts" in parsed_response:
                         # now handle the case where the agent is reporting back artifact information
@@ -431,25 +419,25 @@ async def post_agent_response(agent_message, UUID):
                                     try:
                                         query = await db_model.artifact_query()
                                         base_artifact = await db_objects.get(
-                                            query, name=artifact["base_artifact"].encode("unicode-escape")
+                                            query, name=artifact["base_artifact"].encode("utf-8")
                                         )
                                     except Exception as e:
                                         base_artifact = await db_objects.create(
                                             Artifact,
-                                            name=artifact["base_artifact"].encode("unicode-escape"),
+                                            name=artifact["base_artifact"].encode("utf-8"),
                                             description="Auto created from task {}".format(
                                                 task.id
-                                            ).encode("unicode-escape"),
+                                            ).encode("utf-8"),
                                         )
                                     # you can report back multiple artifacts at once, no reason to make separate C2 requests
                                     art = await db_objects.create(
                                         TaskArtifact,
                                         task=task,
-                                        artifact_instance=str(artifact["artifact"]).encode("unicode-escape"),
+                                        artifact_instance=str(artifact["artifact"]).encode("utf-8"),
                                         artifact=base_artifact,
-                                        host=task.callback.host.encode("unicode-escape"),
+                                        host=task.callback.host,
                                     )
-                                    await log_to_siem(art.to_json(), mythic_object="artifact_new")
+                                    asyncio.create_task(log_to_siem(art.to_json(), mythic_object="artifact_new"))
                                     # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
                                 except Exception as e:
                                     final_output += (
@@ -467,6 +455,11 @@ async def post_agent_response(agent_message, UUID):
                             if task.status_timestamp_processed is None:
                                 task.status_timestamp_processed = datetime.datetime.utcnow()
                         parsed_response.pop("status", None)
+                    else:
+                        if task.status_timestamp_processed is None:
+                            task.status_timestamp_processed = datetime.datetime.utcnow()
+                        if task.status == "processing":
+                            task.status = "processed"
                     if (
                         "full_path" in parsed_response
                         and "file_id" in parsed_response
@@ -490,13 +483,13 @@ async def post_agent_response(agent_message, UUID):
                                 f = await db_objects.create(
                                     db_model.FileMeta,
                                     task=task,
-                                    host=host.encode("unicode-escape"),
+                                    host=host,
                                     total_chunks=file_meta.total_chunks,
                                     chunks_received=file_meta.chunks_received,
                                     chunk_size=file_meta.chunk_size,
                                     complete=file_meta.complete,
-                                    path=file_meta.path.encode("unicode-escape"),
-                                    full_remote_path=parsed_response["full_path"].encode("unicode-escape"),
+                                    path=file_meta.path,
+                                    full_remote_path=parsed_response["full_path"].encode("utf-8"),
                                     operation=task.callback.operation,
                                     md5=file_meta.md5,
                                     sha1=file_meta.sha1,
@@ -505,26 +498,16 @@ async def post_agent_response(agent_message, UUID):
                                     operator=task.operator,
                                 )
                             else:
-                                if (
-                                    file_meta.full_remote_path is None
-                                    or file_meta.full_remote_path == ""
-                                ):
-                                    file_meta.full_remote_path = parsed_response[
-                                        "full_path"
-                                    ].encode("unicode-escape")
-                                else:
-                                    file_meta.full_remote_path = (
-                                        file_meta.full_remote_path
-                                        + ","
-                                        + parsed_response["full_path"]
-                                    ).encode("unicode-escape")
+                                file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")
                                 if host != file_meta.host:
-                                    file_meta.host = host.encode("unicode-escape")
+                                    file_meta.host = host
                                 await db_objects.update(file_meta)
                                 if file_meta.full_remote_path != "":
-                                    await add_upload_file_to_file_browser(task.callback.operation, task, file_meta,
-                                                                          {"host": host,
-                                                                           "full_path": parsed_response["full_path"]})
+                                    print("call4 adding host with: " + host)
+                                    asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task,
+                                                                                        file_meta,
+                                                                                        {"host": host,
+                                                                                        "full_path": parsed_response["full_path"]}))
                         except Exception as e:
                             print(str(e))
                             logger.exception(
@@ -540,25 +523,44 @@ async def post_agent_response(agent_message, UUID):
                             try:
                                 from app.api.callback_api import add_p2p_route
 
-                                rsp = await add_p2p_route(
+                                asyncio.create_task(add_p2p_route(
                                     parsed_response["edges"], task.callback, task
-                                )
+                                ))
                             except Exception as e:
                                 print(str(e))
-                                json_return_info["status"] = "error"
-                                json_return_info["error"] = json_return_info["error"] + " " + str(e) if "error" in json_return_info else str(e)
                         parsed_response.pop("edges", None)
                     if "commands" in parsed_response:
                         if parsed_response["commands"] != [] and parsed_response["commands"] is not None and parsed_response["commands"] != "":
                             # the agent is reporting back that it has commands that are loaded/unloaded
                             from app.api.callback_api import load_commands_func
                             for c in parsed_response["commands"]:
-                                rsp = await load_commands_func(command_dict=c, callback=task.callback, task=task)
-                                if rsp["status"] == "error":
-                                    json_return_info["status"] = "error"
-                                    json_return_info["error"] = json_return_info["error"] + " " + rsp[
-                                        "error"] if "error" in json_return_info else rsp["error"]
+                                asyncio.create_task(load_commands_func(command_dict=c,
+                                                                       callback=task.callback,
+                                                                       task=task))
                         parsed_response.pop("commands", None)
+                    if "process_container" in parsed_response and parsed_response["process_container"] != "" and parsed_response["process_container"] is not None:
+                        try:
+                            rabbit_message = {"params": task.params, "command": task.command.cmd}
+                            rabbit_message["task"] = task.to_json()
+                            rabbit_message["task"]["callback"] = task.callback.to_json()
+                            # get the information for the callback's associated payload
+                            payload_info = await add_all_payload_info(task.callback.registered_payload)
+                            rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
+                                "build_parameters"
+                            ]
+                            rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+                            rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
+                            rabbit_message["response"] = parsed_response["process_container"]
+                            status = await send_pt_rabbitmq_message(payload_type=task.callback.registered_payload.payload_type.ptype,
+                                                                    command="process_container",
+                                                                    username="",
+                                                                    reference_id=task.id,
+                                                                    message_body=js.dumps(rabbit_message))
+                            if status["status"] == "error":
+                                logger.error("response_api.py: sending process_container message: " + status["error"])
+                        except Exception as pc:
+                            logger.error("response_api.py: " + str(sys.exc_info()[-1].tb_lineno) + str(pc))
+                        parsed_response.pop("process_container", None)
                     parsed_response.pop("full_path", None)
                     parsed_response.pop("host", None)
                     parsed_response.pop("file_id", None)
@@ -587,13 +589,14 @@ async def post_agent_response(agent_message, UUID):
                 resp = await db_objects.create(
                     Response,
                     task=task,
-                    response=final_output.encode("unicode-escape"),
+                    response=final_output.encode("utf-8")
                 )
-                await log_to_siem(resp.to_json(), mythic_object="response_new")
+                asyncio.create_task(log_to_siem(resp.to_json(), mythic_object="response_new"))
             task.timestamp = datetime.datetime.utcnow()
             await db_objects.update(task)
             response_message["responses"].append(json_return_info)
         except Exception as e:
+            logger.exception(e)
             response_message["responses"].append(
                 {
                     "status": "error",
@@ -611,7 +614,7 @@ async def post_agent_response(agent_message, UUID):
 
         query = await db_model.callback_query()
         callback = await db_objects.get(query, agent_callback_id=UUID)
-        await send_socks_data(agent_message["socks"], callback)
+        asyncio.create_task(send_socks_data(agent_message["socks"], callback))
         agent_message.pop("socks", None)
     # echo back any additional parameters here as well
     for k in agent_message:
