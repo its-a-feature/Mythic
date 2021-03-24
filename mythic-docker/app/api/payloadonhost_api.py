@@ -70,7 +70,7 @@ async def add_payload_to_host(request, user):
         try:
             payloadonhost = await db_objects.get(
                 db_model.PayloadOnHost,
-                host=data["host"],
+                host=data["host"].upper(),
                 payload=payload,
                 operation=operation,
                 deleted=False,
@@ -78,7 +78,7 @@ async def add_payload_to_host(request, user):
         except Exception as e:
             payloadonhost = await db_objects.create(
                 db_model.PayloadOnHost,
-                host=data["host"],
+                host=data["host"].upper(),
                 payload=payload,
                 operation=operation,
             )
@@ -149,7 +149,7 @@ async def delete_payloadonhost_by_host(request, user, host: str):
             )
         query = await db_model.operation_query()
         operation = await db_objects.get(query, name=user["current_operation"])
-        hostname = base64.b64decode(host).decode()
+        hostname = base64.b64decode(host).decode().upper()
         poh_query = await db_model.payloadonhost_query()
         poh = await db_objects.execute(
             poh_query.where(

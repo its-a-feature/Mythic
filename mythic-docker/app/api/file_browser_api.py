@@ -62,9 +62,9 @@ async def get_filebrowser_tree_for_operation(operation_name):
         final_output = {}
         for e in objs:
             e_json = e.to_json()
-            if e_json["host"] not in final_output:
-                final_output[e_json["host"]] = []
-            final_output[e_json["host"]].append(e_json)
+            if e_json["host"].upper() not in final_output:
+                final_output[e_json["host"].upper()] = []
+            final_output[e_json["host"].upper()].append(e_json)
         return {"status": "success", "output": final_output}
     except Exception as e:
         print(e)
@@ -83,7 +83,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
             "error": "Failed to parse and handle file browser objects",
         }
     if "host" not in response or response["host"] == "" or response["host"] is None:
-        response["host"] = task.callback.host
+        response["host"] = task.callback.host.upper()
     # now that we have the immediate parent and all parent hierarchy create, deal with current obj and sub objects
     try:
         if (
@@ -102,7 +102,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
             filebrowserobj = await db_objects.get(
                 query,
                 operation=operation,
-                host=response["host"],
+                host=response["host"].upper(),
                 name=response["name"].encode("utf-8"),
                 is_file=response["is_file"],
                 parent=parent,
@@ -121,7 +121,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
                 db_model.FileBrowserObj,
                 task=task,
                 operation=operation,
-                host=response["host"],
+                host=response["host"].upper(),
                 name=response["name"].encode("utf-8"),
                 permissions=js.dumps(response["permissions"]).encode("utf-8"),
                 parent=parent,
@@ -146,7 +146,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
                     newfileobj = await db_objects.get(
                         query,
                         operation=operation,
-                        host=response["host"],
+                        host=response["host"].upper(),
                         name=f["name"].encode("utf-8"),
                         is_file=f["is_file"],
                         parent=filebrowserobj,
@@ -164,7 +164,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
                         db_model.FileBrowserObj,
                         task=task,
                         operation=operation,
-                        host=response["host"],
+                        host=response["host"].upper(),
                         parent=filebrowserobj,
                         permissions=js.dumps(f["permissions"]).encode("utf-8"),
                         parent_path=str(parent_path).encode("utf-8"),
@@ -200,11 +200,11 @@ async def add_upload_file_to_file_browser(operation, task, file, data):
         data["name"] = full_path.name
         data["parent_path"] = str(full_path.parents[0])
         if "host" not in data or data["host"] is None or data["host"] == "":
-            data["host"] = file.host
+            data["host"] = file.host.upper()
         await store_response_into_filebrowserobj(operation, task, data)
         fbo_query = await db_model.filebrowserobj_query()
         fbo = await db_objects.get(fbo_query, operation=operation,
-                                   host=data["host"],
+                                   host=data["host"].upper(),
                                    full_path=data["full_path"].encode("utf-8"))
         file.file_browser = fbo
         await db_objects.update(file)
@@ -259,7 +259,7 @@ async def create_and_check_parents(operation, task, response):
             try:
                 parent = await db_objects.get(
                     query,
-                    host=response["host"],
+                    host=response["host"].upper(),
                     parent=parent_obj,
                     name=name.encode("utf-8"),
                     operation=operation,
@@ -272,7 +272,7 @@ async def create_and_check_parents(operation, task, response):
                     db_model.FileBrowserObj,
                     task=task,
                     operation=operation,
-                    host=response["host"],
+                    host=response["host"].upper(),
                     name=name.encode("utf-8"),
                     parent=parent_obj,
                     parent_path=parent_path_name.encode("utf-8"),
@@ -495,7 +495,7 @@ async def get_filebrowsobj_permissions_by_path(request, user):
             return json({"status": "error", "error": "Missing host parameter"})
         if "full_path" not in data:
             return json({"status": "error", "error": "Missing full_path parameter"})
-        file = await db_objects.get(query, operation=operation, host=data["host"],
+        file = await db_objects.get(query, operation=operation, host=data["host"].upper(),
                                     full_path=data["full_path"].encode("utf-8"))
         return json({"status": "success", "permissions": file.permissions})
     except Exception as e:

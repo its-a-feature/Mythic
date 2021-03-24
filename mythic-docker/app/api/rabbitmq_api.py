@@ -1,4 +1,4 @@
-from app import db_objects, mythic, valid_payload_container_version_bounds, valid_c2_container_version_bounds
+from app import db_objects, mythic, valid_payload_container_version_bounds
 import datetime
 import app.database_models.model as db_model
 import aio_pika
@@ -495,7 +495,7 @@ async def build_payload_from_template(request, task):
                 and request["destination_host"] is not None
                 and request["destination_host"] not in ["localhost", "127.0.0.1", "::1"]
         ):
-            host = request["destination_host"]
+            host = request["destination_host"].upper()
         # using that payload, generate the following build-tasking data
         data = {
             "payload_type": template.payload_type.ptype,
@@ -579,7 +579,7 @@ async def build_payload_from_template(request, task):
 async def build_payload_from_parameters(request, task):
     try:
         from app.api.payloads_api import register_new_payload_func
-        host = task.callback.host
+        host = task.callback.host.upper()
         task.status = "building.."
         await db_objects.update(task)
         if (
@@ -621,7 +621,7 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
         payload.callback_alert = False
         payload.file.delete_after_fetch = True
         payload.file.task = task
-        payload.file.host = host
+        payload.file.host = host.upper()
         await db_objects.update(payload.file)
         await db_objects.update(payload)
         # send a message back to the container to build a new payload
@@ -655,7 +655,7 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
             await db_objects.update(task)
             await db_objects.get_or_create(
                 db_model.PayloadOnHost,
-                host=host,
+                host=host.upper(),
                 payload=payload,
                 operation=payload.operation,
                 task=task,
@@ -740,13 +740,13 @@ async def register_artifact(request, task):
         artifact = await db_objects.create(db_model.Artifact, name=request["artifact"].encode("utf-8"))
     try:
         if "host" not in request or request["host"] is None or request["host"] == "":
-            request["host"] = task.callback.host
+            request["host"] = task.callback.host.upper()
         art = await db_objects.create(
             db_model.TaskArtifact,
             task=task,
             artifact_instance=request["artifact_instance"].encode("utf-8"),
             artifact=artifact,
-            host=request["host"],
+            host=request["host"].upper(),
             operation=task.callback.operation,
         )
         asyncio.create_task(log_to_siem(art.to_json(), mythic_object="artifact_new"))
@@ -765,7 +765,7 @@ async def register_payload_on_host(request, task):
         payloadquery = await db_model.payload_query()
         payload = await db_objects.get(payloadquery, uuid=request["uuid"], operation=task.operation)
         payload_on_host = await db_objects.create(db_model.PayloadOnHost, payload=payload,
-                                                  host=request["host"], operation=task.operation, task=task)
+                                                  host=request["host"].upper(), operation=task.operation, task=task)
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": "Failed to find payload"}
@@ -777,7 +777,7 @@ async def get_security_context_of_running_jobs_on_host(request, task):
     #   and for each one returns the security context (which token is associated with each job)
     task_query = await db_model.task_query()
     tasks = await db_objects.execute(task_query.where(
-        (db_model.Callback.host == request["host"]) &
+        (db_model.Callback.host == request["host"].upper()) &
         (db_model.Task.status != "error") &
         (db_model.Task.completed == False)
     ))
@@ -796,9 +796,9 @@ async def rpc_tokens(request, task):
     tokenquery = await db_model.token_query()
     for t in request["add"]:
         try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"], deleted=False)
+            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper(), deleted=False)
         except Exception as e:
-            token = await db_objects.create(db_model.Token, TokenId=t["TokenId"], host=request["host"],
+            token = await db_objects.create(db_model.Token, TokenId=t["TokenId"], host=request["host"].upper(),
                                             task=task)
         for k, v in t.items():
             if hasattr(token, k):
@@ -806,9 +806,9 @@ async def rpc_tokens(request, task):
                 if k == "AuthenticationId":
                     auth_query = await db_model.logonsession_query()
                     try:
-                        session = await db_objects.get(auth_query, LogonId=v, host=request["host"], deleted=False)
+                        session = await db_objects.get(auth_query, LogonId=v, host=request["host"].upper(), deleted=False)
                     except Exception as e:
-                        session = await db_objects.create(db_model.LogonSession, LogonId=v, host=request["host"],
+                        session = await db_objects.create(db_model.LogonSession, LogonId=v, host=request["host"].upper(),
                                                           task=task)
                     setattr(token, k, session)
 
@@ -817,7 +817,7 @@ async def rpc_tokens(request, task):
         await db_objects.update(token)
     for t in request["remove"]:
         try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"])
+            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper())
             token.deleted = True
             await db_objects.update(token)
         except Exception as e:
@@ -834,9 +834,9 @@ async def rpc_logon_sessions(request, task):
     sessionquery = await db_model.logonsession_query()
     for t in request["add"]:
         try:
-            session = await db_objects.get(sessionquery, LogonId=t["LogonId"], host=request["host"], deleted=False)
+            session = await db_objects.get(sessionquery, LogonId=t["LogonId"], host=request["host"].upper(), deleted=False)
         except Exception as e:
-            session = await db_objects.create(db_model.LogonSession, LogonId=request["LogonId"], host=request["host"],
+            session = await db_objects.create(db_model.LogonSession, LogonId=request["LogonId"], host=request["host"].upper(),
                                             task=task)
         for k, v in t.items():
             if hasattr(session, k):
@@ -844,7 +844,7 @@ async def rpc_logon_sessions(request, task):
         await db_objects.update(session)
     for t in request["remove"]:
         try:
-            session = await db_objects.get(sessionquery, LogonId=t["LogonId"], host=request["host"])
+            session = await db_objects.get(sessionquery, LogonId=t["LogonId"], host=request["host"].upper())
             session.deleted = True
             await db_objects.update(session)
         except Exception as e:
@@ -863,9 +863,9 @@ async def rpc_callback_tokens(request, task):
     for t in request["add"]:
         # first get/create the token as needed
         try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"], deleted=False)
+            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper(), deleted=False)
         except Exception as e:
-            token = await db_objects.create(db_model.Token, TokenId=t["TokenId"], host=request["host"],
+            token = await db_objects.create(db_model.Token, TokenId=t["TokenId"], host=request["host"].upper(),
                                             task=task)
         for k, v in t.items():
             if hasattr(token, k):
@@ -873,9 +873,9 @@ async def rpc_callback_tokens(request, task):
                 if k == "AuthenticationId":
                     auth_query = await db_model.logonsession_query()
                     try:
-                        session = await db_objects.get(auth_query, LogonId=v, host=request["host"], deleted=False)
+                        session = await db_objects.get(auth_query, LogonId=v, host=request["host"].upper(), deleted=False)
                     except Exception as e:
-                        session = await db_objects.create(db_model.LogonSession, LogonId=v, host=request["host"],
+                        session = await db_objects.create(db_model.LogonSession, LogonId=v, host=request["host"].upper(),
                                                           task=task)
                     setattr(token, k, session)
                 else:
@@ -884,14 +884,14 @@ async def rpc_callback_tokens(request, task):
         # then try to associate it with our callback
         try:
             callbacktoken = await db_objects.get(callbacktokenquery, token=token, callback=task.callback,
-                                                 deleted=False, host=request["host"])
+                                                 deleted=False, host=request["host"].upper())
         except Exception as e:
             callbacktoken = await db_objects.create(db_model.CallbackToken, token=token, callback=task.callback,
-                                                    task=task, host=request["host"])
+                                                    task=task, host=request["host"].upper())
     for t in request["remove"]:
         try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"])
-            callbacktoken = await db_objects.get(callbacktokenquery, token=token, callback=task.callback, deleted=False, host=request["host"])
+            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper())
+            callbacktoken = await db_objects.get(callbacktokenquery, token=token, callback=task.callback, deleted=False, host=request["host"].upper())
             callbacktoken.deleted = True
             await db_objects.update(callbacktoken)
         except Exception as e:
@@ -954,7 +954,7 @@ async def remove_files_from_file_browser(request, task):
             fobj = await db_objects.get(
                 filebrowserquery,
                 operation=task.callback.operation,
-                host=f["host"],
+                host=f["host"].upper(),
                 full_path=f["path"].encode("utf-8"),
                 deleted=False,
             )

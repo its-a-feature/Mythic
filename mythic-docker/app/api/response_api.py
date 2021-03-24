@@ -278,7 +278,7 @@ async def post_agent_response(agent_message, UUID):
                         await db_objects.create(
                             db_model.ProcessList,
                             task=task,
-                            host=task.callback.host,
+                            host=task.callback.host.upper(),
                             process_list=parsed_response["user_output"].encode("utf-8"),
                             operation=task.callback.operation,
                         )
@@ -321,7 +321,7 @@ async def post_agent_response(agent_message, UUID):
                                     fobj = await db_objects.get(
                                         filebrowserquery,
                                         operation=task.callback.operation,
-                                        host=f["host"],
+                                        host=f["host"].upper(),
                                         full_path=f["path"].encode('utf-8'),
                                         deleted=False,
                                     )
@@ -435,7 +435,7 @@ async def post_agent_response(agent_message, UUID):
                                         task=task,
                                         artifact_instance=str(artifact["artifact"]).encode("utf-8"),
                                         artifact=base_artifact,
-                                        host=task.callback.host,
+                                        host=task.callback.host.upper(),
                                     )
                                     asyncio.create_task(log_to_siem(art.to_json(), mythic_object="artifact_new"))
                                     # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
@@ -483,7 +483,7 @@ async def post_agent_response(agent_message, UUID):
                                 f = await db_objects.create(
                                     db_model.FileMeta,
                                     task=task,
-                                    host=host,
+                                    host=host.upper(),
                                     total_chunks=file_meta.total_chunks,
                                     chunks_received=file_meta.chunks_received,
                                     chunk_size=file_meta.chunk_size,
@@ -500,13 +500,13 @@ async def post_agent_response(agent_message, UUID):
                             else:
                                 file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")
                                 if host != file_meta.host:
-                                    file_meta.host = host
+                                    file_meta.host = host.upper()
                                 await db_objects.update(file_meta)
                                 if file_meta.full_remote_path != "":
                                     print("call4 adding host with: " + host)
                                     asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task,
                                                                                         file_meta,
-                                                                                        {"host": host,
+                                                                                        {"host": host.upper(),
                                                                                         "full_path": parsed_response["full_path"]}))
                         except Exception as e:
                             print(str(e))

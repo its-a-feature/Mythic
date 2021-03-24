@@ -189,7 +189,7 @@ async def download_agent_file(data, cid):
                 delete_after_fetch=False,
                 deleted=False,
                 operator=task.operator,
-                host=file_meta.host,
+                host=file_meta.host.upper(),
             )
             print("call1 adding file with host: " + fm.host)
             asyncio.create_task(add_upload_file_to_file_browser(fm.operation, fm.task, fm,
@@ -204,7 +204,7 @@ async def download_agent_file(data, cid):
                     fb_object = await db_objects.get(
                         query,
                         full_path=file_meta.full_remote_path,
-                        host=file_meta.host,
+                        host=file_meta.host.upper(),
                     )
                     if file_meta.file_browser is None:
                         file_meta.file_browser = fb_object
@@ -408,7 +408,7 @@ async def create_filemeta_in_database_func(data):
                 fb_object = await db_objects.get(
                     query,
                     full_path=data["full_path"].encode("utf-8"),
-                    host=data["host"],
+                    host=data["host"].upper(),
                 )
                 file_browser = fb_object
         except Exception as e:
@@ -431,7 +431,7 @@ async def create_filemeta_in_database_func(data):
             file_browser=file_browser,
             filename=filename.name.encode("utf-8"),
             is_download_from_agent=True,
-            host=data["host"],
+            host=data["host"].upper(),
         )
         if filemeta.is_screenshot:
             asyncio.create_task(log_to_siem(task.to_json(), mythic_object="file_screenshot"))
@@ -538,13 +538,13 @@ async def download_file_to_disk_func(data):
             file_meta = await db_objects.get(query, agent_file_id=data["file_id"])
             file_meta.chunks_received = file_meta.chunks_received + 1
             if "host" in data and data["host"] is not None and data["host"] != "":
-                file_meta.host = data["host"]
+                file_meta.host = data["host"].upper()
             if "full_path" in data and data["full_path"] is not None and data["full_path"] != "":
                 file_meta.full_remote_path = data["full_path"].encode("utf-8")
                 if file_meta.file_browser is None:
                     print("call3 adding host with: " + file_meta.host)
                     asyncio.create_task(add_upload_file_to_file_browser(file_meta.operation, file_meta.task, file_meta,
-                                                          {"host": file_meta.host,
+                                                          {"host": file_meta.host.upper(),
                                                            "full_path": bytes(file_meta.full_remote_path).decode("utf-8")}))
             # print("received chunk num {}".format(data['chunk_num']))
             if file_meta.chunks_received == file_meta.total_chunks:
