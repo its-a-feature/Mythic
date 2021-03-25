@@ -51,7 +51,7 @@ async def get_a_process_list(request, user, pid, host):
         operation = await db_objects.get(query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
-    host = base64.b64decode(host).decode("utf-8")
+    host = base64.b64decode(host).decode("utf-8").upper()
     query = await db_model.processlist_query()
     if pid > 0:
         try:
@@ -132,7 +132,7 @@ async def get_adjacent_process_list(request, user):
                 query.where(
                     (db_model.ProcessList.operation == operation)
                     & (db_model.ProcessList.id < data["pid"])
-                    & (db_model.ProcessList.host == data["host"])
+                    & (db_model.ProcessList.host == data["host"].upper())
                 )
                 .order_by(-db_model.ProcessList.id)
                 .limit(1)
@@ -158,7 +158,7 @@ async def get_adjacent_process_list(request, user):
                 query.where(
                     (db_model.ProcessList.operation == operation)
                     & (db_model.ProcessList.id > data["pid"])
-                    & (db_model.ProcessList.host == data["host"])
+                    & (db_model.ProcessList.host == data["host"].upper())
                 )
                 .order_by(db_model.ProcessList.timestamp)
                 .limit(1)

@@ -4149,7 +4149,7 @@ function process_file_browser_data(data){
         });
     }
     // what if we're adding a new top level root
-    if (data['parent'] === null) {
+    if (data['parent'] === null && data["file_browser"] === undefined) {
         for (let i = 0; i < meta['file_browser'][data['host']]['children'].length; i++) {
             if (data['name'] in meta['file_browser'][data['host']]['children'][i]) {
                 Object.assign(meta['file_browser'][data['host']]['children'][i][data['name']]['data'],
@@ -4178,14 +4178,26 @@ function process_file_browser_data(data){
 function add_update_file_browser(search, element) {
     //recursive base case
     //ust check to see if it's the one we're looking for otherwise return up
-    if (element['data']['id'] === search['id']) {
-        Object.assign(element['data'],
-            element['data'],
-            search);
-        task_data.$forceUpdate();
-        return true;
+    if (search["file_browser"] !== undefined){
+        //we're looking at a file_meta object that's downloading
+        if(search["file_browser"] === element["data"]["id"]) {
+            Object.assign(element['data'],
+                element['data'],
+                search);
+            task_data.$forceUpdate();
+            return true;
+        }
+    }else{
+        //we're looking at file browsing data
+        if(search["id"] === element["data"]["id"]){
+            Object.assign(element['data'],
+                element['data'],
+                search);
+            task_data.$forceUpdate();
+            return true;
+        }
     }
-    if(element["is_file"]){return false;}
+    if(element["data"]["is_file"]){return false;}
     //we aren't in the base case, so let's iterate through the current item's children
     if (element['children'] !== undefined) {
         for (let i = 0; i < element['children'].length; i++) {
@@ -4196,9 +4208,8 @@ function add_update_file_browser(search, element) {
             }
         }
     }
-
     //if we get here, and parent is true, then we are the parent and failed to find the child, so we need to add it
-    if (element['data']['id'] === search['parent']) {
+    if (search["file_browser"] === undefined && element["data"]['id'] === search['parent']) {
         let new_data = {};
         new_data[search['name']] = {"data": search, "children": []};
         if(element['children'] === undefined){
