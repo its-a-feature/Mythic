@@ -606,6 +606,11 @@ async def write_payload(uuid, user, data):
                     "enc_key": base64.b64encode(instance.enc_key).decode() if instance.enc_key is not None else None,
                     "dec_key": base64.b64encode(instance.dec_key).decode() if instance.dec_key is not None else None,
                 }
+            elif param.parameter_type in ["Array", "Dictionary"]:
+                try:
+                    param_dict[param.name] = js.loads(instance.value)
+                except Exception as f:
+                    param_dict[param.name] = instance.value
             else:
                 param_dict[param.name] = instance.value
         status, successfully_sent = await c2_rpc.call(message={
