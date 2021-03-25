@@ -189,7 +189,7 @@ then
 else
   # Out with the old
   find ./temp/documentation-c2/ -maxdepth 1 -type d | grep -vE "documentation-c2/$" > ./temp/c2documentation.txt
-  sed -i 's/\.\/temp\/documentation-c2\//\.\/documentation-docker\/content\/C2 Profiles\//g' ./temp/c2documentation.txt
+  sed -i 's/\.\/temp\/documentation-c2\//\.\/documentation-docker\/content\/C2\ Profiles\//g' ./temp/c2documentation.txt
   while read p; do
     type_name=`echo "$p" | rev | cut -d "/" -f 1 | rev`
     if [ -d "$p" ]; then
