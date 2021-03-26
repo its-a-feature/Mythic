@@ -26,8 +26,8 @@ function(task, responses){
 				}
 			}
 		}
-		return "<pre>" + JSON.stringify(dict, null, 6) + "</pre>";
+		return "<pre>" + escapeHTML(JSON.stringify(dict, null, 6)) + "</pre>";
 	}catch(error){
-		return "<pre>" + error.toString() + JSON.stringify(responses, null, 6) +  "</pre>";
+		return "<pre>" + error.toString() + escapeHTML(JSON.stringify(responses, null, 6)) +  "</pre>";
 	}
 }

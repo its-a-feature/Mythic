@@ -11,7 +11,7 @@ function(task, responses){
           output += "<div class='response-background card-body' style='padding:0'><img src='/api/v1.4/files/screencaptures/" + escapeHTML(id) + "' width='100%'></div></div></div>";
                   return output;
         }catch(error){
-           return "<pre>Error: " + error.toString() + "\n" + JSON.stringify(responses, null, 2) + "</pre>";
+           return "<pre>Error: " + error.toString() + "\n" + escapeHTML(JSON.stringify(responses, null, 2)) + "</pre>";
         }
       }
     if(task.status === 'processing' || task.status === "processed"){

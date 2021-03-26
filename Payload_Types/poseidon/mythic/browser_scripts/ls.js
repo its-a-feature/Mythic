@@ -12,7 +12,7 @@ function(task, responses){
         if( !data['is_file'] ){ row_style = "background-color: #5E28DC"}
 		let row = {"name": escapeHTML(data['name']), "size": escapeHTML(data['size']), "row-style": row_style, "cell-style": {}};
 		let perm_data = data['permissions'];
-		row['permissions'] = perm_data["permissions"];
+		row['permissions'] = escapeHTML(perm_data["permissions"]);
 		rows.push(row);
 	    if(!data.hasOwnProperty('files')){data['files'] = []}
 	    data['files'].forEach(function(r){
@@ -21,7 +21,7 @@ function(task, responses){
             let row = {"name": escapeHTML(r['name']), "size": escapeHTML(r['size']), "row-style": row_style, "cell-style": {}};
             let perm_data = r['permissions'];
             perm_data = data['permissions'];
-			row['permissions'] = perm_data["permissions"];
+			row['permissions'] = escapeHTML(perm_data["permissions"]);
 			rows.push(row);
 		});
 	}

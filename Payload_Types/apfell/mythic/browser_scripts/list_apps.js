@@ -27,7 +27,7 @@ function(task, response){
 		    });
     }
     catch(error){
-        "<pre>Error: " + error.toString() + "\n" + JSON.stringify(response, null, 2) + "</pre>";
+        "<pre>Error: " + error.toString() + "\n" + escapeHTML(JSON.stringify(response, null, 2)) + "</pre>";
     }
   }
   return support_scripts['apfell_create_table']([{"name":"pid","size":"2em"},{"name":"arch","size":"2em"},{"name":"name", "size":"10em"}, {"name":"frontMost","size":"3em"},{"name":"bin_path","size":"20em"}], rows);
