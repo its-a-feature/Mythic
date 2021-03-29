@@ -4,14 +4,19 @@ var files_div = new Vue({
     data: {
         hosts: {"uploads": [], "downloads": []},
         filter_downloads: "",
-        filter_uploads: ""
+        filter_uploads: "",
+        show_deleted: false
     },
     methods: {
         apply_filter_downloads: function (e) {
             return e["full_remote_path"].includes(this.filter_downloads);
         },
         apply_filter_uploads: function (e) {
+            if(!this.show_deleted && e["deleted"]){return false}
             return e["full_remote_path"].includes(this.filter_uploads) || e["upload"]["remote_path"].includes(this.filter_uploads);
+        },
+        toggle_deleted_uploads: function() {
+            this.show_deleted = !this.show_deleted;
         },
         delete_file: function (file_id) {
             alertTop("info", "deleting...", 1);

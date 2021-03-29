@@ -346,7 +346,7 @@ async def delete_filemeta_in_database(request, user, id):
             db_model.OperationEventLog,
             operator=None,
             operation=operation,
-            message="{} deleted {} from Shared File Hosting".format(operator.username, bytes(filemeta.filename)
+            message="{} deleted {}".format(operator.username, bytes(filemeta.filename)
                         .decode("utf-8")),
         )
     except Exception as e:

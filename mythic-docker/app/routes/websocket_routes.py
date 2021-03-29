@@ -1583,7 +1583,6 @@ async def ws_files_current_operation(request, ws, user):
                                 (FileMeta.operation == operation)
                                 & (FileMeta.is_screenshot == False)
                                 & (FileMeta.is_payload == False)
-                                & (FileMeta.deleted == False)
                             ).order_by(FileMeta.id)
                         )
                         for f in files:
@@ -1632,7 +1631,6 @@ async def ws_files_current_operation(request, ws, user):
                                     id=id,
                                     operation=operation,
                                     is_screenshot=False,
-                                    is_payload=False,
                                 )
                                 try:
                                     if not f.is_download_from_agent:

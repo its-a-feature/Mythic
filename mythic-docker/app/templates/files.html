@@ -85,7 +85,13 @@
                 <input style="float:right;color:white;display: inline-block" class="form-control" type="text" size="50rem" placeholder="filter by filename" id="filter-uploads" v-model="filter_uploads">
             </div>
             <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="export_file_metadata('uploads')"><i class="fas fa-file-export"></i> Export Metadata</button>
-        </div>
+            <template v-if="show_deleted">
+                <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="toggle_deleted_uploads()"><i class="fas fa-eye"></i> Hide Deleted</button>
+            </template>
+            <template v-else>
+                <button style="float:right;margin:5px" class="btn btn-md btn{{config['outline-buttons']}}info" @click="toggle_deleted_uploads()"><i class="fas fa-eye-slash"></i> Show Deleted</button>
+            </template>
+            </div>
         <div class="card-body bg-card-body border border-dark shadow" style="padding:0">
             <table class="table table-striped {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
                 <tr>
@@ -101,7 +107,9 @@
                     <th style="width:4rem">Info</th>
                 </tr>
                 <tr v-for="(file,i) in hosts.uploads" :key="file.id" v-if="file.host != 'MANUAL FILE UPLOAD' && apply_filter_uploads(file)">
-                    <td><button class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-lg" @click="delete_file(file.id)" ></i></button></td>
+                    <td>
+                        <button v-if="!file.deleted" class="btn btn-md" style="color:red"><i class="far fa-trash-alt fa-lg" @click="delete_file(file.id)" ></i></button>
+                    </td>
                     <td>[[toLocalTime(file.timestamp)]]</td>
                     <td><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + file.task" target="_blank"><b>[[file.task]]</b></a></td>
                     <td>[[file.host]]</td>
@@ -123,9 +131,12 @@
                         <template v-else>
                             [[file.upload.remote_path]]
                         </template>
+                        <template v-if="file.delete_on_fetch">
+                            <br/><span style="color:indianred">Autodeleted</span>
+                        </template>
                     </td>
                     <td>[[file.comment]]</td>
-                    <td style="text-align:center"><a class="btn btn-md" :href='file.remote_path' style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
+                    <td style="text-align:center"><a v-if="!file.deleted" class="btn btn-md" :href='file.remote_path' style="color:green"><i class="fas fa-download fa-lg"></i></a></td>
                     <td style="text-align:center"><a class="btn btn-md" @click="display_info(file)" style="color:royalblue;cursor:pointer"><i class="fas fa-info-circle fa-lg"></i></a></td>
                 </tr>
             </table>

@@ -1439,7 +1439,7 @@ async def get_one_callback(request, id, user):
         build_params = [t.to_json() for t in build_parameters]
         return_json["build_parameters"] = build_params
         return_json["payload_uuid"] = callback.registered_payload.uuid
-        return_json["payload_name"] = callback.registered_payload.file.filename
+        return_json["payload_name"] = bytes(callback.registered_payload.file.filename).decode("utf-8")
         return_json["status"] = "success"
         paths = await path_to_callback(callback, "Mythic")
         return_json["path"] = [str(p) if p == "Mythic" else js.dumps(p.to_json()) for p in paths]
