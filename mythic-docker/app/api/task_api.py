@@ -663,6 +663,7 @@ async def add_task_to_callback(request, cid, user):
             except Exception as e:
                 pass
     # if we create new files throughout this process, be sure to tag them with the right task at the end
+    data["params"] = data["params"].strip()
     data["original_params"] = data["params"]
     if request.files:
         # this means we got files as part of our task, so handle those first
@@ -760,6 +761,7 @@ async def add_task_to_callback_webhook(request, user):
             except Exception as e:
                 pass
     # if we create new files throughout this process, be sure to tag them with the right task at the end
+    data["params"] = data["params"].strip()
     data["original_params"] = data["params"]
     if "files" in data and data["files"] is not None:
         data["params"] = js.loads(data["params"])
