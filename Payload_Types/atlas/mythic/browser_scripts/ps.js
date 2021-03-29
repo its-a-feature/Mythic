@@ -4,7 +4,7 @@ function(task, response){
     try{
         var data = JSON.parse(response[i]['response']);
     }catch(error){
-        return response;
+        return escapeHTML(response);
     }
     data.forEach(function(r){
       let row_style = "";

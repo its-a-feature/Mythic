@@ -5,7 +5,7 @@ function(task, response) {
             var data = JSON.parse(response[i]['response']);
         } catch (error) {
             //return error.ToString();
-            return response;
+            return escapeHTML(response);
         }
 
         data.forEach(function (r) {
