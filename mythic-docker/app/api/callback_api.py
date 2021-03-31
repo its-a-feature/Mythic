@@ -446,6 +446,10 @@ async def parse_agent_message(data: str, request, profile: str):
             asyncio.create_task(send_all_operations_message(message="Unknown action:" + str(decrypted["action"]),
                                                             level="warning", source="unknown_action_in_message"))
             return "", 404, new_callback, agent_uuid
+        if "edges" in decrypted:
+            if decrypted["edges"] != "" and decrypted["edges"] is not None:
+                asyncio.create_task(add_p2p_route(decrypted["edges"], None, None))
+            response_data.pop("edges", None)
         # now that we have the right response data, format the response message
         if (
             "delegates" in decrypted
@@ -1833,9 +1837,20 @@ async def add_p2p_route(agent_message, callback, task):
     #   "status": "success" or "error"
     # }
     query = await db_model.callback_query()
+    task_query = await db_model.task_query()
     profile_query = await db_model.c2profile_query()
     # dijkstra is directed, so if we have a bidirectional connection (type 3) account for that as well
     for e in agent_message:
+        if task is None and "task_id" in e and e["task_id"] != "" and e["task_id"] is not None:
+            try:
+                this_task = await db_objects.get(task_query, agent_task_id=e["task_id"])
+            except Exception as e:
+                this_task = None
+                asyncio.create_task(send_all_operations_message(message="Failed to find specified task for 'edges' message",
+                                                                level="warning",
+                                                                source="generic_edge_processing"))
+        else:
+            this_task = task
         if e["action"] == "add":
             try:
                 source = await db_objects.get(query, agent_callback_id=e["source"])
@@ -1878,7 +1893,7 @@ async def add_p2p_route(agent_message, callback, task):
                         metadata=e["metadata"],
                         operation=callback.operation,
                         c2_profile=profile,
-                        task_start=task,
+                        task_start=this_task,
                     )
                     await add_non_directed_graphs(edge)
                     await add_directed_graphs(edge)
@@ -1919,7 +1934,7 @@ async def add_p2p_route(agent_message, callback, task):
                     end_timestamp=None,
                 )
                 edge.end_timestamp = datetime.utcnow()
-                edge.task_end = task
+                edge.task_end = this_task
                 await db_objects.update(edge)
                 if source.operation.name not in current_graphs:
                     current_graphs[source.operation.name] = Graph()
