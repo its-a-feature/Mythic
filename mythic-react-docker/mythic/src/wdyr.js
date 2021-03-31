@@ -5,5 +5,5 @@ whyDidYouRender(React, {
 trackAllPureComponents: true,
 trackHooks: true,
 logOnDifferentValues: true,
-include: [/^ResponseDisplay/]
+include: [/^EventFeed/]
 });

@@ -4,9 +4,8 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import {useQuery, gql, useReactiveVar, useMutation} from '@apollo/client';
+import {useQuery, gql} from '@apollo/client';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import { meState } from '../../../cache';
 
 const getParametersQuery = gql`
 query getParametersQuery ($task_id: Int!) {
@@ -21,7 +20,6 @@ query getParametersQuery ($task_id: Int!) {
 
 export function TaskViewParametersDialog(props) {
     const [comment, setComment] = useState("");
-    const me = useReactiveVar(meState);
     const { loading, error } = useQuery(getParametersQuery, {
         variables: {task_id: props.task_id},
         onCompleted: data => {

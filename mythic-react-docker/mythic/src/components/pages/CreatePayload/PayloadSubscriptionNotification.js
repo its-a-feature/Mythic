@@ -24,6 +24,7 @@ subscription NewPayloadsSubscription($fromNow: timestamp!) {
   payload(limit: 1, where: {deleted: {_eq: false}, creation_time: {_gte: $fromNow}}, order_by: {creation_time: desc}) {
     build_message
     build_phase
+    build_error
     uuid
     tag
     id
@@ -131,7 +132,7 @@ export function PayloadSubscriptionNotification(props) {
         const badActions = key => (
             <React.Fragment>
                 <Button onClick={() => { closeSnackbar(key) }} variant="outlined">
-                    'Dismiss'
+                    Dismiss
                 </Button>
             </React.Fragment>
         )
@@ -142,11 +143,15 @@ export function PayloadSubscriptionNotification(props) {
             }else if(data.payload[0].build_phase === "building"){
                 snackActions.info(`Building payload ${data.payload[0].uuid}...`, {autoHideDuration: 5000});
             }else{
-                snackActions.error(data.payload[0].build_message, {persist: true, action: badActions});
+                if(data.payload[0].build_error !== ""){
+                    snackActions.error(data.payload[0].build_error, {persist: true, action: badActions});
+                }else{
+                    snackActions.error(data.payload[0].build_message, {persist: true, action: badActions});
+                }
             } 
         }else if(error){
             console.log(error);
-            snackActions.error("Mythic encountered an error");
+            snackActions.error("Mythic encountered an error: " + error.toString());
         }
     }, [loading, data, error]);
     return (    

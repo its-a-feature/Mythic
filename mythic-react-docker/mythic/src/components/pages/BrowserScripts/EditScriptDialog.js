@@ -10,12 +10,10 @@ import "ace-builds/src-noconflict/theme-github";
 
 export function EditScriptDialog(props) {
     const [script, setScript] = React.useState("");
-    const handleSubmit = () => {
-    
-    }
+
     useEffect( () => {
         setScript(atob(props.script));
-    }, []);
+    }, [props.script]);
     const onChange = (value) => {
         setScript(value);
     }

@@ -2,7 +2,6 @@ import React, {useEffect, useRef} from 'react';
 import {Button, IconButton} from '@material-ui/core';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
-import ButtonGroup from '@material-ui/core/ButtonGroup';
 import { toLocalTime } from '../../utilities/Time';
 import { copyStringToClipboard } from '../../utilities/Clipboard';
 import { meState } from '../../../cache';
@@ -13,7 +12,6 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionActions from '@material-ui/core/AccordionActions';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import Divider from '@material-ui/core/Divider';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import LinkIcon from '@material-ui/icons/Link';
 import CodeIcon from '@material-ui/icons/Code';
@@ -25,7 +23,6 @@ import { useSnackbar } from 'notistack';
 import RateReviewOutlinedIcon from '@material-ui/icons/RateReviewOutlined';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {TaskCommentDialog} from './TaskCommentDialog';
-import { useTheme } from '@material-ui/core/styles';
 import {muiTheme} from '../../../themes/Themes.js';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
@@ -98,10 +95,8 @@ const accordionUseStyles = makeStyles((theme) => ({
 export const TaskDisplay = (props) =>{
     const me = useReactiveVar(meState);
     const { enqueueSnackbar } = useSnackbar();
-    const dropdownAnchorRef = React.useRef(null);
     const [enableBrowserscripts, setEnableBrowserscripts] = React.useState(true);
     const [lastSeenResponse, setLastSeenResponse] = React.useState(0);
-    const [displayTime, setDisplayTime] = React.useState("");
     const [displayComment, setDisplayComment] = React.useState(false);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [alertBadges, setAlertBadges] = React.useState(0);
@@ -160,7 +155,7 @@ export const TaskDisplay = (props) =>{
             setAlertBadges(0);
             
         }
-    }, [props.task.responses, dropdownOpen]);
+    }, [props.task.responses, dropdownOpen, lastSeenResponse]);
     const toggleTaskDropdown = (event, newExpanded) => {
         if(newExpanded){
             setAlertBadges(0);
@@ -210,7 +205,7 @@ export const TaskDisplay = (props) =>{
                             {getTaskStatus()}
                         </Badge>
                       </div>
-                      {props.task.comment != "" ? (
+                      {props.task.comment !== "" ? (
                         <div className={classes.column}>
                             <IconButton size="small" style={{padding: "0", color: muiTheme.palette.info.main}} onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
                           </div>

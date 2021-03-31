@@ -17,7 +17,7 @@ export const lightTheme = {
     tabHeaderBackground: "",
     tabHeaderText: "",
     tableLineColor:"",
-    eventMessageBackgroundColor: ""
+    eventMessageBackgroundColor: "",
 }
 export const darkTheme = {
     body: '#363537',
@@ -39,7 +39,7 @@ export const darkTheme = {
     tabHeaderBackground: "#363537",
     tabHeaderText: "white",
     tableLineColor: "grey",
-    eventMessageBackgroundColor: "#424242"
+    eventMessageBackgroundColor: "#424242",
 }
 export const muiTheme = createMuiTheme({
   palette: {

@@ -4,9 +4,8 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import {useQuery, gql, useReactiveVar, useMutation} from '@apollo/client';
+import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import { meState } from '../../../cache';
 
 const updateDescriptionMutation = gql`
 mutation updateDescription ($file_id: Int!, $filename: bytea!) {
@@ -30,8 +29,7 @@ query getFilenameQuery ($payload_id: Int!) {
 
 export function PayloadFilenameDialog(props) {
     const [description, setDescription] = useState("");
-    const [fileId, setFileId] = useState()
-    const me = useReactiveVar(meState);
+    const [fileId, setFileId] = useState();
     const { loading, error } = useQuery(getFilenameQuery, {
         variables: {payload_id: props.payload_id},
         onCompleted: data => {

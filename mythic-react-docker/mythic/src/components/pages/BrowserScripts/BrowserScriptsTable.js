@@ -12,8 +12,10 @@ import { BrowserScriptsTableRow } from './BrowserScriptsTableRow';
 
 export function BrowserScriptsTable(props){
     useEffect( () => {
-        props.subscribeToMoreMessages();
-    }, []);
+        if(props !== undefined){
+            props.subscribeToMoreMessages();
+        }
+    }, [props]);
     return (
         <TableContainer component={Paper} className="mythicElement" style={{maxHeight: "calc(50vh)"}}>
             <Typography variant="h4" align="left" id="browserscriptstable" component="div" 
@@ -33,7 +35,7 @@ export function BrowserScriptsTable(props){
                 </TableHead>
                 <TableBody>
                 {props.browserscript.map( (op) => (
-                    <BrowserScriptsTableRow onToggleActive={props.onToggleActive} onSubmitEdit={props.onSubmitEdit} onRevert={props.onRevert} onToggleOperation={props.onToggleOperation}
+                    <BrowserScriptsTableRow onSubmitApplyToOperation={props.onSubmitApplyToOperation} onSubmitRemoveFromOperation={props.onSubmitRemoveFromOperation} operation_id={props.operation_id} onToggleActive={props.onToggleActive} onSubmitEdit={props.onSubmitEdit} onRevert={props.onRevert} onToggleOperation={props.onToggleOperation}
                         key={"script" + op.id}
                         {...op}
                     />

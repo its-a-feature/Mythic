@@ -14,9 +14,6 @@ import { toLocalTime } from '../../utilities/Time';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
 import {DetailedPayloadTable} from './DetailedPayloadTable';
-import GetAppIcon from '@material-ui/icons/GetApp';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import ErrorIcon from '@material-ui/icons/Error';
 import Grow from '@material-ui/core/Grow';
 import Popper from '@material-ui/core/Popper';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -27,20 +24,17 @@ import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
 import {PayloadDescriptionDialog} from './PayloadDescriptionDialog';
 import {PayloadFilenameDialog} from './PayloadFilenameDialog';
 import {PayloadBuildMessageDialog} from './PayloadBuildMessageDialog';
-import Typography from '@material-ui/core/Typography';
-import CancelIcon from '@material-ui/icons/Cancel';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import {muiTheme} from '../../../themes/Themes';
 import {PayloadsTableRowC2Status} from './PayloadsTableRowC2Status';
+import {PayloadsTableRowBuildStatus} from './PayloadsTableRowBuildStatus';
 
 export function PayloadsTableRow(props){
     const [open, setOpen] = React.useState(false);
+    const [viewError, setViewError] = React.useState(true);
     const [openUpdate, setOpenUpdateDialog] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [openDescription, setOpenDescriptionDialog] = React.useState(false);
     const [openFilename, setOpenFilenameDialog] = React.useState(false);
     const [openBuildMessage, setOpenBuildMessageDialog] = React.useState(false);
-    const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const dropdownAnchorRef = useRef(null);
     const me = useReactiveVar(meState);
     
@@ -63,6 +57,11 @@ export function PayloadsTableRow(props){
                         setOpenDescriptionDialog(true);
                      }},
                      {name: 'View Build Message', click: () => {
+                        setViewError(false);
+                        setOpenBuildMessageDialog(true);
+                     }},
+                     {name: 'View Build Error', click: () => {
+                        setViewError(true);
                         setOpenBuildMessageDialog(true);
                      }}
                      ];
@@ -91,7 +90,7 @@ export function PayloadsTableRow(props){
                     >
                       <Paper>
                         <ClickAwayListener onClickAway={handleClose}>
-                          <MenuList id="split-button-menu" anchorEl={dropdownAnchorRef} >
+                          <MenuList id="split-button-menu"  >
                             {options.map((option, index) => (
                               <MenuItem
                                 key={option.name + props.uuid}
@@ -106,18 +105,24 @@ export function PayloadsTableRow(props){
                     </Grow>
                   )}
                 </Popper>
-                <MythicDialog fullWidth={true} maxWidth="md" open={openDescription} 
-                    onClose={()=>{setOpenDescriptionDialog(false);}} 
-                    innerDialog={<PayloadDescriptionDialog payload_id={props.id} onClose={()=>{setOpenDescriptionDialog(false);}} />}
-                />
-                <MythicDialog fullWidth={true} maxWidth="md" open={openFilename} 
-                    onClose={()=>{setOpenFilenameDialog(false);}} 
-                    innerDialog={<PayloadFilenameDialog payload_id={props.id} onClose={()=>{setOpenFilenameDialog(false);}} />}
-                />
-                <MythicDialog fullWidth={true} maxWidth="md" open={openBuildMessage} 
-                    onClose={()=>{setOpenBuildMessageDialog(false);}} 
-                    innerDialog={<PayloadBuildMessageDialog payload_id={props.id} onClose={()=>{setOpenBuildMessageDialog(false);}} />}
-                />
+                {openDescription ? (
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openDescription} 
+                        onClose={()=>{setOpenDescriptionDialog(false);}} 
+                        innerDialog={<PayloadDescriptionDialog payload_id={props.id} onClose={()=>{setOpenDescriptionDialog(false);}} />}
+                    />
+                ): (null) }
+                {openFilename ? (
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openFilename} 
+                        onClose={()=>{setOpenFilenameDialog(false);}} 
+                        innerDialog={<PayloadFilenameDialog payload_id={props.id} onClose={()=>{setOpenFilenameDialog(false);}} />}
+                    />
+                ): (null) }
+                {openBuildMessage ? (
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openBuildMessage} 
+                        onClose={()=>{setOpenBuildMessageDialog(false);}} 
+                        innerDialog={<PayloadBuildMessageDialog payload_id={props.id} viewError={viewError} onClose={()=>{setOpenBuildMessageDialog(false);}} />}
+                    />
+                ): (null) }
                 </TableCell>
                 <TableCell>
                     <Switch
@@ -129,15 +134,7 @@ export function PayloadsTableRow(props){
                       />
                 </TableCell>
                 <TableCell>
-                    {props.build_phase === "success" ?
-                        ( <IconButton variant="contained" target="_blank" color="primary" href={window.location.origin + "/direct/download/" + props.filemetum.agent_file_id} download><GetAppIcon style={{color: muiTheme.palette.success.main}} /></IconButton>
-                        )
-                        : 
-                        (props.build_phase === "building" ? 
-                        (<IconButton variant="contained"><CircularProgress size={20} thickness={4} style={{color: muiTheme.palette.info.main}}/></IconButton>) : 
-                        (<IconButton variant="contained"><ErrorIcon style={{color: muiTheme.palette.error.main}} /></IconButton>) 
-                        )
-                    }
+                    <PayloadsTableRowBuildStatus {...props} />
                 </TableCell>
                 <TableCell>{props.filemetum.filename_text}</TableCell>
                 <TableCell>{props.tag}</TableCell>
@@ -151,15 +148,18 @@ export function PayloadsTableRow(props){
                 </TableCell>
             </TableRow>
             <TableRow>
-            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
-              <Collapse in={open}>
-                <Box margin={1}>
-                  <DetailedPayloadTable {...props} payload_id={props.id} />
-                </Box>
-              </Collapse>
-            </TableCell>
+            {open ? (
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
+                  <Collapse in={open}>
+                    <Box margin={1}>
+                      <DetailedPayloadTable {...props} payload_id={props.id} />
+                    </Box>
+                  </Collapse>
+                </TableCell>
+            ) : (null) }
           </TableRow>
         </React.Fragment>
         )
 }
+PayloadsTableRow.whyDidYouRender = true;
 

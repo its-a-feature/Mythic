@@ -13,7 +13,6 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import {TaskParametersDialogRow} from './TaskParametersDialogRow';
 import {useQuery, gql, useLazyQuery, useMutation } from '@apollo/client';
-import LinearProgress from '@material-ui/core/LinearProgress';
 
 //if we need to get all the loaded commands for the callback and filter, use this
 const GetLoadedCommandsQuery = gql`
@@ -104,7 +103,7 @@ query getAllPayloadsQuery($operation_id: Int!){
         ptype
     }
     filemetum {
-        filename
+        filename_text
     }
     buildparameterinstances {
       parameter
@@ -126,7 +125,7 @@ query getAllPayloadsOnHostsQuery($operation_id: Int!){
       id
       tag
       filemetum {
-        filename
+        filename_text
       }
       uuid
       c2profileparametersinstances(where: {c2profile: {is_p2p: {_eq: true}}}) {
@@ -226,7 +225,7 @@ export function TaskParametersDialog(props) {
             getAllPayloadsOnHosts({variables: {operation_id: props.callback.operation_id}})
         }
     });
-    const {loading, error, data: cmdInfo} = useQuery(getCommandQuery, {
+    useQuery(getCommandQuery, {
         variables: {id: props.command.id},
         onCompleted: data => {
             // do an initial pass to see what other quries we need to make
@@ -260,32 +259,40 @@ export function TaskParametersDialog(props) {
       return [...new Set(a)].filter(x => setB.has(x));
     }
     const getLinkInfoFromAgentConnect = (choices) => {
-        const c2profileparameters = choices[0]["payloads"][0]["c2info"][0].parameters.map( (opt) => {
-            return { [opt.name]: opt.value}
-        });
-        let agentConnectValue = {host: choices[0]["host"], agent_uuid: choices[0]["payloads"][0].uuid,
-        c2_profile: {name: choices[0]["payloads"][0]["c2info"][0].name, parameters: c2profileparameters}};
-        if(choices[0]["payloads"][0].type === "callback"){
-            agentConnectValue["callback_uuid"] = props.choices[0]["payloads"][0]["agent_callback_id"];
+        if(choices.length > 0){
+            const c2profileparameters = choices[0]["payloads"][0]["c2info"][0].parameters.map( (opt) => {
+                return { [opt.name]: opt.value}
+            });
+            let agentConnectValue = {host: choices[0]["host"], agent_uuid: choices[0]["payloads"][0].uuid,
+            c2_profile: {name: choices[0]["payloads"][0]["c2info"][0].name, parameters: c2profileparameters}};
+            if(choices[0]["payloads"][0].type === "callback"){
+                agentConnectValue["callback_uuid"] = props.choices[0]["payloads"][0]["agent_callback_id"];
+            }
+            return agentConnectValue;
+        }else{
+            return {};
         }
-        return agentConnectValue;
     }
     const getLinkInfoValue = (choices) => {
         let choice;
-        if(choices[0]["source"]["id"] === props.callback_id){
-            choice = choices[0]["source"];
-        }else{
-            choice = choices[0]["destination"];
-        }
-        const c2profileparameters = choice["c2profileparametersinstances"].reduce( (prev, opt) => {
-            if(opt.c2_profile_id === choices[0]["c2profile"]["id"]){
-                return [...prev, { [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key, dec_key: opt.dec_key} } ]
+        if(choices.length > 0){
+            if(choices[0]["source"]["id"] === props.callback_id){
+                choice = choices[0]["source"];
             }else{
-                return prev;
+                choice = choices[0]["destination"];
             }
-        }, []);
-        let agentConnectValue = {host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: choices[0]["c2profile"]["name"], parameters: c2profileparameters} };
-        return agentConnectValue;
+            const c2profileparameters = choice["c2profileparametersinstances"].reduce( (prev, opt) => {
+                if(opt.c2_profile_id === choices[0]["c2profile"]["id"]){
+                    return [...prev, { [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key, dec_key: opt.dec_key} } ]
+                }else{
+                    return prev;
+                }
+            }, []);
+            let agentConnectValue = {host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: choices[0]["c2profile"]["name"], parameters: c2profileparameters} };
+            return agentConnectValue;
+        }else{
+            return {};
+        }
     }
     useEffect( () => {
         if(rawParameters && (!requiredPieces["loaded"] || loadedCommandsLoading) &&
@@ -397,7 +404,7 @@ export function TaskParametersDialog(props) {
                             const profiles = payload.payloadc2profiles.reduce( (prev, profile) => {
                                 return [...prev, profile.c2profile.name];
                             }, []).join(",");
-                            return [...prev, {...payload, display: payload.filemetum.filename + " - " + profiles + " - " + payload.tag}]
+                            return [...prev, {...payload, display: payload.filemetum.filename_text + " - " + profiles + " - " + payload.tag}]
                         }, []);
                         const organized = loadedAllPayloadsOnHostsLoading.payloadonhost.reduce( (prev, entry) => {
                             let found = false;
@@ -424,7 +431,7 @@ export function TaskParametersDialog(props) {
                                     for( const [key, value] of Object.entries(c2info)){
                                         c2array.push({name: key, parameters: value});
                                     }
-                                    const payloadInfo = {...entry.payload, c2info: c2array, display: entry.payload.filemetum.filename + " - " + entry.payload.tag, type: "payload"};
+                                    const payloadInfo = {...entry.payload, c2info: c2array, display: entry.payload.filemetum.filename_text + " - " + entry.payload.tag, type: "payload"};
                                     const callbacks = entry.payload.callbacks.reduce( (prior, callback) => {
                                         if(callback.host === entry.host){
                                             return [...prior, {...entry.payload, c2info: c2array, c2profileparametersinstances: entry.payload.c2profileparametersinstances,  display: "Callback " + callback.id + " - " + callback.description, ...callback, type: "callback"}];
@@ -453,7 +460,7 @@ export function TaskParametersDialog(props) {
                                 for( const [key, value] of Object.entries(c2info)){
                                     c2array.push({name: key, parameters: value});
                                 }
-                                const payloadInfo = {...entry.payload, c2info: c2array, display: entry.payload.filemetum.filename + " - " + entry.payload.tag, type: "payload"};
+                                const payloadInfo = {...entry.payload, c2info: c2array, display: entry.payload.filemetum.filename_text + " - " + entry.payload.tag, type: "payload"};
                                 const callbacks = entry.payload.callbacks.reduce( (prior, callback) => {
                                     if(callback.host === entry.host){
                                         return [...prior, {...entry.payload, c2info: c2array, c2profileparametersinstances: entry.payload.c2profileparametersinstances,  display: "Callback " + callback.id + " - " + callback.description, ...callback, type: "callback"}];
@@ -488,7 +495,7 @@ export function TaskParametersDialog(props) {
                                 }
                             }
                             if(matched){
-                                return [...prev, {...payload, display: payload.filemetum.filename + " - " + profiles + " - " + payload.tag}]
+                                return [...prev, {...payload, display: payload.filemetum.filename_text + " - " + profiles + " - " + payload.tag}]
                             }else{
                                 return prev;
                             }

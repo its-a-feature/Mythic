@@ -1,8 +1,6 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import {useSubscription, gql, useLazyQuery } from '@apollo/client';
-import {useReactiveVar} from '@apollo/client';
-import { meState } from '../../../cache';
+import {useSubscription, gql } from '@apollo/client';
 import {ResponseDisplayBrowserScript} from './ResponseDisplayBrowserScript';
 
 

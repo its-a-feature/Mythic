@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useRef, useEffect} from 'react';
 import Button from '@material-ui/core/Button';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -30,7 +30,7 @@ export function MythicSelectFromListDialog(props) {
         }else{
             setSelected("");
         }
-    }, []);
+    }, [props.options]);
   return (
     <React.Fragment>
         <DialogTitle >{props.title}</DialogTitle>

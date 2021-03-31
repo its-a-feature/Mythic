@@ -11,26 +11,24 @@ import {muiTheme} from '../../../themes/Themes.js';
 export function C2PathDialog(props) {
     const dagreRef = useRef(null);   
     const [reZoom, setReZoom] = useState(true);
-    const include_disconnected = true;
-    const rankDir = "LR";
-    const node_labels = ["id"];
-    const view_config = {
-        rankDir: "LR",
-        label_components: ["id"],
-        packet_flow_view: true,
-        include_disconnected: true,
-        show_all_nodes: true
-    }
-    const node_events = {
-        "mouseover": (parent, node, d) => {return},
-        "mouseout": (parent, node, d) => {return},
-        "click": (parent, node, d) => {return},
-        "contextmenu": []
-    }
+    
     useEffect( () => {
+        const view_config = {
+            rankDir: "LR",
+            label_components: ["id"],
+            packet_flow_view: true,
+            include_disconnected: true,
+            show_all_nodes: true
+        }
+        const node_events = {
+            "mouseover": (parent, node, d) => {return},
+            "mouseout": (parent, node, d) => {return},
+            "click": (parent, node, d) => {return},
+            "contextmenu": []
+        }
         drawC2PathElements(props.callbackgraphedges, dagreRef, reZoom, view_config, node_events);
         setReZoom(false);
-    }, [props.callbackgraphedges])
+    }, [props.callbackgraphedges, reZoom])
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Callback {props.id}'s Egress Path</DialogTitle>
@@ -112,11 +110,12 @@ const createEdge = (g, edge, adjusted_direction) =>{
 export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_events) =>{
     var g = new dagreD3.graphlib.Graph({ compound: true, multigraph: true, directed: true}).setGraph({rankdir: view_config["rankDir"]}).setDefaultEdgeLabel(function() {return {}; });
     var svg = d3.select(dagreRef.current);
+    var svgGroup;
     var test = svg.select("g")._groups[0][0];
     if(test){
-        var svgGroup = svg.select("g");
+        svgGroup = svg.select("g");
     }else{
-        var svgGroup = svg.append("g");
+        svgGroup = svg.append("g");
     }
     var zoom = d3.zoom().on("zoom", function() {
           svgGroup.attr("transform", d3.event.transform);

@@ -7,10 +7,11 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 
 const GET_Payloads = gql`
 query GetPayloadsQuery($operation_id: Int!) {
-  payload(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}) {
+  payload(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}, order_by: {id: asc}) {
     auto_generated
     build_message
     build_phase
+    build_error
     callback_alert
     creation_time
     id
@@ -43,10 +44,11 @@ query GetPayloadsQuery($operation_id: Int!) {
 `;
 const SUB_Payloads = gql`
 subscription SubPayloadsQuery($operation_id: Int!) {
-  payload(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}) {
+  payload(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}, order_by: {id: desc}, limit: 1) {
     auto_generated
     build_message
     build_phase
+    build_error
     callback_alert
     creation_time
     id
@@ -80,19 +82,18 @@ subscription SubPayloadsQuery($operation_id: Int!) {
 
 const payloadsDelete = gql`
 mutation PayloadsDeletePayloadMutation($id: Int!) {
-  update_payload(where: {id: {_eq: $id}}, _set: {deleted: true}) {
-    returning {
+  update_payload_by_pk(pk_columns: {id: $id}, _set: {deleted: true}) {
       id
-    }
+      deleted
   }
 }
 `;
 const payloadsCallbackAlert = gql`
 mutation PayloadsCallbackAlertMutation($id: Int!, $callback_alert: Boolean!) {
   update_payload(where: {id: {_eq: $id}}, _set: {callback_alert: $callback_alert}) {
-    returning {
-      id
-      callback_alert
+    returning{
+        id
+        callback_alert
     }
   }
 }
@@ -106,16 +107,16 @@ export function Payloads(props){
         update: (cache, {data}) => {
         }
     });
-    const [callbackAlert] = useMutation(payloadsCallbackAlert, {
-        update: (cache, {data}) => {
-        }
-    });
+    const [callbackAlert] = useMutation(payloadsCallbackAlert);
 
     const onDeletePayload = (id) => {
         deletePayload({variables: {id}});
     }
     const onUpdateCallbackAlert = (id, callback_alert) => {
-        callbackAlert({variables: {id, callback_alert}});
+        callbackAlert({
+            variables: {id, callback_alert}
+        
+        });
     }
     if (loading) {
      return <LinearProgress style={{marginTop: "10px"}} />;
@@ -131,12 +132,27 @@ export function Payloads(props){
             document: SUB_Payloads,
             variables: {operation_id: me.user.current_operation_id},
             updateQuery: (prev, {subscriptionData} ) => {
-                console.log("in subscription", subscriptionData);
                 if(!subscriptionData.data) return prev;
-                console.log(prev);
-                return Object.assign({}, prev, {
-                    payload: [...prev.payload, subscriptionData.data]
+                let found = false;
+                const updated = prev.payload.map( (p) => {
+                    if(p.id === subscriptionData.data.payload[0].id){
+                        found = true;
+                        return {...p, ...subscriptionData.data.payload[0]};
+                    }
+                    return {...p}
                 });
+                if(found){
+                    // we just updated an entry
+                    return Object.assign({}, prev, {
+                        payload: updated
+                    });
+                }else{
+                    //this is a new entry
+                    return Object.assign({}, prev, {
+                        payload: [...prev.payload, subscriptionData.data]
+                    });
+                }
+                
             }
         })}
             {...data} />

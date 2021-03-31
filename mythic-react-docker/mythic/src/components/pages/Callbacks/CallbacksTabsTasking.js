@@ -1,9 +1,5 @@
 import {MythicTabPanel, MythicTabLabel} from '../../../components/MythicComponents/MythicTabPanel';
-import { IconButton } from '@material-ui/core';
-import SendIcon from '@material-ui/icons/Send';
 import React, {useEffect, useRef} from 'react';
-import {TextField} from '@material-ui/core';
-import Autocomplete from '@material-ui/lab/Autocomplete';
 import {useQuery, gql, useMutation, useLazyQuery } from '@apollo/client';
 import { TaskDisplay } from './TaskDisplay';
 import LinearProgress from '@material-ui/core/LinearProgress';
@@ -13,7 +9,7 @@ import {TaskParametersDialog} from './TaskParametersDialog';
 import {CallbacksTabsTaskingInput} from './CallbacksTabsTaskingInput';
 import {useReactiveVar} from '@apollo/client';
 import { meState } from '../../../cache';
-import {getBrowserScripts, getSupportScripts, scriptsQuery, sort_tableDefinition, escapeHTMLDefinition} from '../../utilities/BrowserScriptHelpers';
+import {getBrowserScripts, getSupportScripts, scriptsQuery} from '../../utilities/BrowserScriptHelpers';
 
 
 export function CallbacksTabsTaskingLabel(props){
@@ -109,8 +105,6 @@ subscription getNewUpdatedTaskingSubscription($callback_id: Int!) {
   }
 }
  `;
-const escapeHTML = escapeHTMLDefinition;
-const sort_table = sort_tableDefinition;
 var browserscripts = {};
 var support_scripts = {};
 export const CallbacksTabsTaskingPanel = (props) =>{
@@ -121,12 +115,11 @@ export const CallbacksTabsTaskingPanel = (props) =>{
     const [supportScripts, setSupportScripts] = React.useState({});
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
-    const [getScripts, { loading: scriptLoading}] = useLazyQuery(scriptsQuery, {
+    const [getScripts] = useLazyQuery(scriptsQuery, {
         onCompleted: data => {
             console.log(data);
             //consolidate the browserscriptoperation and browserscript 
             // operation scripts get applied instead of operator-specific scripts
-            
             try{
                 eval(getSupportScripts(data));
                 eval(getBrowserScripts(data));
@@ -201,7 +194,9 @@ export const CallbacksTabsTaskingPanel = (props) =>{
     }, [getTasking, props.tabInfo.callbackID]);
     
     useEffect(scrollToBottom, [taskingData]);
-    useEffect( () => {getScripts({variables: {operator_id: me.user.id, operation_id: me.user.current_operation_id } }); }, []);
+    useEffect( () => {
+        getScripts({variables: {operator_id: me.user.id, operation_id: me.user.current_operation_id } }); 
+    }, [getScripts, me.user.current_operation_id, me.user.id]);
     if (loading) {
      return <LinearProgress style={{marginTop: "10px"}} />;
     }

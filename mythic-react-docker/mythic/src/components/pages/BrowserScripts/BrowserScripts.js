@@ -6,7 +6,6 @@ import {BrowserScriptsTable} from './BrowserScriptsTable';
 import {BrowserScriptsOperationsTable} from './BrowserScriptsOperationsTable';
 import {snackActions} from '../../utilities/Snackbar';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import {muiTheme} from '../../../themes/Themes';
 
 
 const GET_BrowserScripts = gql`
@@ -18,6 +17,7 @@ query GetBrowserScripts($operator_id: Int!) {
     script
     payloadtype {
       ptype
+      id
     }
     name
     id
@@ -26,6 +26,11 @@ query GetBrowserScripts($operator_id: Int!) {
     container_version
     command {
       cmd
+      id
+    }
+    browserscriptoperations {
+      operation_id
+      id
     }
   }
 }
@@ -39,6 +44,7 @@ subscription SubscribeBrowserScripts($operator_id: Int!) {
     script
     payloadtype {
       ptype
+      id
     }
     name
     id
@@ -47,6 +53,11 @@ subscription SubscribeBrowserScripts($operator_id: Int!) {
     container_version
     command {
       cmd
+      id
+    }
+    browserscriptoperations {
+      operation_id
+      id
     }
   }
 }
@@ -61,6 +72,7 @@ query GetOperationBrowserScripts($operation_id: Int!) {
         script
         payloadtype {
           ptype
+          id
         }
         name
         id
@@ -69,11 +81,13 @@ query GetOperationBrowserScripts($operation_id: Int!) {
         container_version
         command {
           cmd
+          id
         }
       }
    operation{
     admin{
         username
+        id
     }
    }
   }
@@ -89,6 +103,7 @@ subscription SubscribeOperationBrowserScripts($operation_id: Int!) {
         script
         payloadtype {
           ptype
+          id
         }
         name
         id
@@ -97,6 +112,7 @@ subscription SubscribeOperationBrowserScripts($operation_id: Int!) {
         container_version
         command {
           cmd
+          id
         }
       }
    operation{
@@ -129,6 +145,7 @@ mutation updateBrowserScriptRevert($browserscript_id: Int!, $script: String!) {
 }
 `;
 
+
 export function BrowserScripts(props){
     const me = useReactiveVar(meState);
     const { loading, error, data, subscribeToMore } = useQuery(GET_BrowserScripts, {variables: {operator_id: me.user.id}});
@@ -159,7 +176,7 @@ export function BrowserScripts(props){
     });
     useEffect( () => {
         getOperationScripts({variables: {operation_id: me.user.current_operation_id}});
-    }, []);
+    }, [getOperationScripts, me.user.current_operation_id]);
     if (loading || loadingOperations) {
      return <LinearProgress style={{marginTop: "20px" }}/>;
     }
@@ -177,17 +194,19 @@ export function BrowserScripts(props){
     const onRevert = ({browserscript_id, script}) => {
         revertScript({variables:{browserscript_id, script}});
     }
-    const onToggleOperation = ({browserscript_id}) => {
-    
+    const onSubmitApplyToOperation = ({browserscript_id}) => {
+        snackActions.warning("Not Implemented Yet!", {autoHideDuration: 1000});
+    }
+    const onSubmitRemoveFromOperation = ({browserscript_id}) => {
+        snackActions.warning("Not Implemented Yet!", {autoHideDuration: 1000});
     }
     return (
     <React.Fragment>
-        <BrowserScriptsTable {...data} onToggleActive={onToggleActive} onSubmitEdit={onSubmitEdit} onRevert={onRevert} onToggleOperation={onToggleOperation} subscribeToMoreMessages={() => subscribeToMore({
+        <BrowserScriptsTable {...data} operation_id={me.user.current_operation_id} onToggleActive={onToggleActive} onSubmitEdit={onSubmitEdit} onRevert={onRevert} onSubmitApplyToOperation={onSubmitApplyToOperation} onSubmitRemoveFromOperation={onSubmitRemoveFromOperation} subscribeToMoreMessages={() => subscribeToMore({
             document: SUB_BrowserScripts,
             variables: {operator_id: me.user.id},
             shouldResubscribe: true,
             updateQuery: (prev, {subscriptionData} ) => {
-                console.log("in subscription", subscriptionData);
             }
         })}
         />
@@ -197,7 +216,6 @@ export function BrowserScripts(props){
             variables: {operation_id: me.user.current_operation_id},
             shouldResubscribe: true,
             updateQuery: (prev, {subscriptionData} ) => {
-                console.log("in subscription for operation", subscriptionData);
             }
         })}
         />)}

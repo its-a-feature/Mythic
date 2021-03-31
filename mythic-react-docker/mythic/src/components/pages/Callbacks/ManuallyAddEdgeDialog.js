@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useRef} from 'react';
 import Button from '@material-ui/core/Button';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -12,7 +12,6 @@ import {muiTheme} from '../../../themes/Themes.js';
 import {useQuery, useReactiveVar, gql } from '@apollo/client';
 import { meState } from '../../../cache';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import TextField from '@material-ui/core/TextField';
 import { makeStyles } from '@material-ui/core/styles';
 
 const getP2PProfilesAndCallbacks = gql`
@@ -46,7 +45,6 @@ export function ManuallyAddEdgeDialog(props) {
     const [selectedDestination, setSelectedDestination] = React.useState('');
     const [selectedProfile, setSelectedProfile] = React.useState('');
     const inputRefDestination = useRef(null); 
-    const inputRefProfile = useRef(null); 
       const handleChangeProfile = (event) => {
         setSelectedProfile(event.target.value);
       };

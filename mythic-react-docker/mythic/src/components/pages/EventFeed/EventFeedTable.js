@@ -1,16 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { EventFeedTableEvents } from './EventFeedTableEvents';
 import Typography from '@material-ui/core/Typography';
-import SendIcon from '@material-ui/icons/Send';
-import IconButton from '@material-ui/core/IconButton';
 import List from '@material-ui/core/List';
-import {TextField} from '@material-ui/core';
 import Paper from '@material-ui/core/Paper';
 import {ThemeContext} from 'styled-components';
 import { useContext} from 'react';
 import { EventFeedTableInput } from './EventFeedTableInput';
 
-export function EventFeedTable(props){
+function EventFeedTableFunc(props){
     const messagesEndRef = useRef(null);
     const theme = useContext(ThemeContext);
 
@@ -30,7 +27,6 @@ export function EventFeedTable(props){
         subscribeToMoreMessages();
         
     }, []);
-    useEffect(scrollToBottom, [props.operationeventlog]);
     return (
     <React.Fragment>
         <Typography variant="h4" style={{textAlign: "left"}}>
@@ -55,4 +51,6 @@ export function EventFeedTable(props){
     </React.Fragment>
     )
 }
+export const EventFeedTable = React.memo(EventFeedTableFunc);
+EventFeedTable.whyDidYouRender = true;
 

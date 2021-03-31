@@ -11,14 +11,14 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export function CallbacksTabs(props) {
+export function CallbacksTabs({callbacks, onCLoseTab, openTabs, clickedTabId, maxHeight, clearSelectedTab, tabHeight}) {
     const classes = useStyles();
     const [value, setValue] = React.useState(0);
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
     const getCallbackData = (tabID) => {
-        return props.callbacks.filter( c => c.id === tabID.callbackID );
+        return callbacks.filter( c => c.id === tabID.callbackID );
     }
     const onCloseTab = ({tabID, index}) =>{
         if(index > 0){
@@ -26,19 +26,19 @@ export function CallbacksTabs(props) {
         }else{
             setValue(0);
         }
-        props.onCloseTab({tabID, index});
+        onCloseTab({tabID, index});
     }
     useEffect( () => {
-        for(let i = 0; i < props.openTabs.length; i++){     
-            if( props.openTabs[i].tabID === props.clickedTabId ){
+        for(let i = 0; i < openTabs.length; i++){     
+            if( openTabs[i].tabID === clickedTabId ){
                 setValue(i);
             }
         }
-        props.clearSelectedTab();
-    }, [props.clickedTabId, props.openTabs]);
+        clearSelectedTab();
+    }, [clickedTabId, openTabs, clearSelectedTab]);
   return (
-    <div className={classes.root} style={{maxHeight: props.maxHeight, height: props.maxHeight, background: "transparent"}}>
-    {props.openTabs.length > 0 ? (
+    <div className={classes.root} style={{maxHeight: maxHeight, height: maxHeight, background: "transparent"}}>
+    {openTabs.length > 0 ? (
           <AppBar position="static" color="default">
             <Tabs 
               value={value}
@@ -50,7 +50,7 @@ export function CallbacksTabs(props) {
               aria-label="scrollable auto tabs example"
             >
             {
-                props.openTabs.map( (tab, index) => (
+                openTabs.map( (tab, index) => (
                     <CallbacksTabsTaskingLabel onCloseTab={onCloseTab} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index}/>
                 ))
             }
@@ -59,8 +59,8 @@ export function CallbacksTabs(props) {
       ) : (null)
       }
       {
-        props.openTabs.map( (tab, index) => (
-            <CallbacksTabsTaskingPanel maxHeight={props.tabHeight} style={{height:`calc(${props.tabHeight}vh)`, maxHeight:`calc(${props.tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)}/>
+       openTabs.map( (tab, index) => (
+            <CallbacksTabsTaskingPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)}/>
         ))
       }
     </div>

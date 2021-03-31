@@ -1,6 +1,4 @@
 import { useSnackbar } from 'notistack'
-import React from 'react'
-
 
 let useSnackbarRef = null;
 

@@ -13,7 +13,7 @@ import { BrowserScriptsOperationsTableRow } from './BrowserScriptsOperationsTabl
 export function BrowserScriptsOperationsTable(props){
     useEffect( () => {
         props.subscribeToMoreMessages();
-    }, []);
+    }, [props]);
     return (
         <TableContainer component={Paper} className="mythicElement" style={{maxHeight: "calc(30vh)"}}>
             <Typography variant="h4" align="left" id="browserscriptstable" component="div" 

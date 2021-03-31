@@ -4,9 +4,8 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import {useQuery, gql, useReactiveVar, useMutation} from '@apollo/client';
+import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import { meState } from '../../../cache';
 import { useSnackbar } from 'notistack';
 
 const updateOpsecRequestMutation = gql`
@@ -42,7 +41,6 @@ query getOPSECQuery ($task_id: Int!) {
 export function TaskOpsecDialog(props) {
     const [opsecMessage, setOpsecMessage] = useState("");
     const [opsecData, setOpsecData] = useState({});
-    const me = useReactiveVar(meState);
     const { enqueueSnackbar } = useSnackbar();
     const { loading, error } = useQuery(getOpsecQuery, {
         variables: {task_id: props.task_id},

@@ -459,7 +459,7 @@ async def update_edges_from_checkin(callback_uuid, profile):
             c2_query.where(db_model.CallbackC2Profiles.callback == callback)
         )
         for c2 in c2profiles:
-            if c2.c2_profile.name == profile:
+            if c2.c2_profile.name == profile and not c2.c2_profile.is_p2p:
                 try:
                     edge = await db_objects.get(
                         db_model.CallbackGraphEdge,

@@ -1,5 +1,4 @@
 import React, {useRef, useEffect, useState} from 'react';
-import Tooltip from '@material-ui/core/Tooltip';
 import {drawC2PathElements, getNodeEdges} from './C2PathDialog';
 import {Button} from '@material-ui/core';
 import {muiTheme} from '../../../themes/Themes';
@@ -50,10 +49,9 @@ export function CallbacksGraph(props){
     const [selectedCallback, setSelectedCallback] = useState();
     const [manuallyRemoveEdgeDialogOpen, setManuallyRemoveEdgeDialogOpen] = useState(false);
     const [manuallyAddEdgeDialogOpen, setManuallyAddEdgeDialogOpen] = useState(false);
-    const [pickLinkTaskDialogOpen, setPickLinkTaskDialogOpen] = useState(false);
     const [edgeOptions, setEdgeOptions] = useState([]); // used for manuallyRemoveEdgeDialog
     const [addEdgeSource, setAddEdgeSource] = useState(null); // used for manuallyAddEdgeDialog
-    const [getLinkCommands, {loading, error}] = useLazyQuery(loadedLinkCommandsQuery, {fetchPolicy: "network-only",
+    const [getLinkCommands] = useLazyQuery(loadedLinkCommandsQuery, {fetchPolicy: "network-only",
         onCompleted: data => {
             console.log(data);
             
@@ -241,7 +239,7 @@ export function CallbacksGraph(props){
         const allEdges = [...props.callbackgraphedges];
         drawC2PathElements(allEdges, dagreRef, reZoom, viewConfig, node_events);
         setReZoom(false);
-    }, [props.callbackgraphedges])
+    }, [props.callbackgraphedges, reZoom, viewConfig])
     return (
         <React.Fragment>
             <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "10px", backgroundColor: muiTheme.palette.info.main}}>

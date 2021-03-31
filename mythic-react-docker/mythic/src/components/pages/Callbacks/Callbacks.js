@@ -130,7 +130,7 @@ export function Callbacks(props){
         variables: {operation_id: me.user.current_operation_id}, fetchPolicy: "network-only",
         shouldResubscribe: true
     });
-    const { loading: loadingEdges , error: errorEdges, data: dataEdges } = useSubscription(SUB_Edges, {
+    const { loading: loadingEdges , data: dataEdges } = useSubscription(SUB_Edges, {
         variables: {operation_id: me.user.current_operation_id}, fetchPolicy: "network-only",
         shouldResubscribe: true
     });

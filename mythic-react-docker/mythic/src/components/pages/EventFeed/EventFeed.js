@@ -9,7 +9,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 
 const GET_Event_Feed = gql`
 query GetOperationEventLogs($operation_id: Int!) {
-  operationeventlog(where: {operation_id: {_eq: $operation_id}, deleted: {_eq: false}}, order_by: {timestamp: asc}) {
+  operationeventlog(where: {operation_id: {_eq: $operation_id}, deleted: {_eq: false}}, order_by: {timestamp: asc}, limit: 50) {
     id
     level
     message
@@ -29,36 +29,7 @@ mutation CreateOperationEventLog($message: String!, $level: String!) {
   }
 }
  `;
-const Update_Resolution = gql`
-mutation UpdateResolutionOperationEventLog($id: Int!, $resolved: Boolean!) {
-  update_operationeventlog(where:{id: {_eq: $id}}, _set: {resolved: $resolved}) {
-    returning{
-        id
-        resolved
-    }
-  }
-}
- `;
-const Update_Level = gql`
-mutation UpdateLevelOperationEventLog($id: Int!) {
-  update_operationeventlog(where:{id: {_eq: $id}}, _set: {level: "warning"}) {
-    returning{
-        id
-        level
-    }
-  }
-}
- `;
- const Update_Deleted = gql`
-mutation UpdateDeletedOperationEventLog($id: Int!) {
-  update_operationeventlog(where:{id: {_eq: $id}}, _set: {deleted: true}) {
-    returning{
-        id
-        deleted
-    }
-  }
-}
- `;
+
  const SUB_Event_Feed = gql`
 subscription OperationEventLogSubscription($operation_id: Int!) {
   operationeventlog(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}, limit: 1, order_by: {timestamp: desc}) {
@@ -74,13 +45,22 @@ subscription OperationEventLogSubscription($operation_id: Int!) {
   }
 }
  `;
-export function EventFeed(props){
+  const Update_Deleted = gql`
+mutation UpdateDeletedOperationEventLog($id: Int!) {
+  update_operationeventlog(where:{id: {_eq: $id}}, _set: {deleted: true}) {
+    returning{
+        id
+        deleted
+    }
+  }
+}
+ `;
+function EventFeedFunc(props){
     const me = useReactiveVar(meState);
     const { enqueueSnackbar } = useSnackbar();
     const { loading, error, data, subscribeToMore } = useQuery(GET_Event_Feed, {variables: {operation_id: me.user.current_operation_id}});
     const [newOperationEventLog] = useMutation(Create_Operational_Event_Log);
-    const [updateResolution] = useMutation(Update_Resolution);
-    const [updateLevel] = useMutation(Update_Level);
+    
     const [updateDeleted] = useMutation(Update_Deleted, {
         update: (cache, {data}) => {
             const existingMessages = cache.readQuery({query: GET_Event_Feed, variables: {operation_id: me.user.current_operation_id}});
@@ -93,12 +73,7 @@ export function EventFeed(props){
             });
         }
     });
-    const onUpdateResolution = (id, resolved) => {
-        updateResolution({variables: {id, resolved}});
-    }
-    const onUpdateLevel = (id) => {
-        updateLevel({variables: {id}});
-    }
+    
     const onUpdateDeleted = (id) => {
         updateDeleted({variables: {id}});
     }
@@ -131,9 +106,9 @@ export function EventFeed(props){
                 });
             }
         })}
-        onUpdateResolution={onUpdateResolution}
-        onUpdateLevel={onUpdateLevel}
         onUpdateDeleted={onUpdateDeleted}
         />
     );
 }
+export const EventFeed = React.memo(EventFeedFunc, (prev, next) => {console.log(prev, next);});;
+EventFeed.whyDidYouRender = true;

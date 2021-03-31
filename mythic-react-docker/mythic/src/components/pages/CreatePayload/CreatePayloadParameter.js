@@ -4,11 +4,8 @@ import TableRow from '@material-ui/core/TableRow';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableContainer from '@material-ui/core/TableContainer';
 import DeleteIcon from '@material-ui/icons/Delete';
-import {IconButton, TextField, Input, Button, MenuItem} from '@material-ui/core';
+import {IconButton, Input, Button, MenuItem} from '@material-ui/core';
 import {muiTheme} from '../../../themes/Themes';
 import AddCircleIcon from '@material-ui/icons/AddCircle';
 
@@ -19,6 +16,12 @@ export function CreatePayloadParameter(props){
     const [dictSelectOptions, setDictSelectOptions] = React.useState([]);
     const [dictSelectOptionsChoice, setDictSelectOptionsChoice] = React.useState("");
     const [chooseOptions, setChooseOptions] = React.useState([]);
+    const submitDictChange = (list) => {
+        const condensed = list.map( (opt) => {
+            return {[opt.key]: opt.value};
+        });
+        props.onChange(props.name, condensed, false);
+    }
     useEffect( () => {
         if(props.parameter_type === "ChooseOne"){
             if(props.default_value){
@@ -69,13 +72,8 @@ export function CreatePayloadParameter(props){
         }else{
             setValue(props.default_value);
         }
-    }, []);
-    const submitDictChange = (list) => {
-        const condensed = list.map( (opt) => {
-            return {[opt.key]: opt.value};
-        });
-        props.onChange(props.name, condensed, false);
-    }
+    }, [props.default_value, props.parameter, props.parameter_type, value]);
+    
     const onChangeValue = (evt) => {
         setValue(evt.target.value);
         props.onChange(props.name, evt.target.value, false);

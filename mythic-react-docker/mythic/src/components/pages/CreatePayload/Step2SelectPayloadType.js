@@ -28,12 +28,14 @@ query getPayloadTypesBuildParametersQuery($os: String!) {
 export function Step2SelectPayloadType(props){
     const [selectedPayloadType, setSelectedPayloadType] = React.useState('');
     const [fileExtension, setFileExtension] = React.useState('');
+    const [supportsDynamicLoading, setSupportsDynamicLoading] = React.useState(false);
     const [payloadTypeParameters, setSelectedPayloadTypeParameters] = React.useState([]);
     const { loading, error, data } = useQuery(GET_Payload_Types, {variables:{os: "%" + props.buildOptions + "%"},
         onCompleted: data => {
             if(data.payloadtype.length > 0){
                 setSelectedPayloadType(data.payloadtype[0].ptype);
                 setFileExtension(data.payloadtype[0].file_extension);
+                setSupportsDynamicLoading(data.payloadtype[0].supports_dynamic_loading);
                 const payloadtypedata = data.payloadtype.reduce( (prev, payload) => {
                     if(payload.ptype === data.payloadtype[0].ptype){
                         const params = payload.buildparameters.map( (param) => {
@@ -59,7 +61,7 @@ export function Step2SelectPayloadType(props){
         const finishedParams = payloadTypeParameters.map( (param) => {
             return {"name": param.name, "value": param.value}
         });
-        props.finished({"payload_type": selectedPayloadType, "parameters": finishedParams, "file_extension": fileExtension});
+        props.finished({"payload_type": selectedPayloadType, "parameters": finishedParams, "file_extension": fileExtension, "supports_dynamic_loading": supportsDynamicLoading});
     }
     const canceled = () => {
         props.canceled();
@@ -69,6 +71,7 @@ export function Step2SelectPayloadType(props){
         const payloadtypedata = data.payloadtype.reduce( (prev, payload) => {
             if(payload.ptype === evt.target.value){
                 setFileExtension(payload.file_extension);
+                setSupportsDynamicLoading(payload.supports_dynamic_loading);
                 const params = payload.buildparameters.map( (param) => {
                     return {...param, error: param.required}
                 });

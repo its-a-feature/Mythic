@@ -5,7 +5,6 @@ import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableHead from '@material-ui/core/TableHead';
 import Typography from '@material-ui/core/Typography';
-import { toLocalTime } from '../../utilities/Time';
 import {useQuery, gql} from '@apollo/client';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';

@@ -59,7 +59,7 @@ export function TaskParametersDialogRow(props){
        }else{
             setValue(props.default_value);
        }
-    }, []);
+    }, [props.choices, props.default_value, props.type, props.value]);
     const onChangeAgentConnect = (host_index, payload_index, c2_index) => {
         const c2profileparameters = props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].parameters.map( (opt) => {
             return { [opt.name]: opt.value}

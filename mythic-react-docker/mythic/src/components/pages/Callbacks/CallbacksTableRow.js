@@ -41,12 +41,7 @@ export function CallbacksTableRow(props){
             evt.stopPropagation();
             setDropdownOpen((prevOpen) => !prevOpen);
       };
-      const handleDropdownClose = (event) => {
-        if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
-          return;
-        }
-        setDropdownOpen(false);
-      };
+
     const updateTime = (curTime) => {
         setDisplayTime(getTimeDifference(curTime));
     };
@@ -68,61 +63,63 @@ export function CallbacksTableRow(props){
             return false;
         }).length > 0;
     }
-    const getEdges = (activeOnly) => {
-        //update our aggregate of callbackgraphedges for both src and dst that involve us
-        let myEdges = props.callbackgraphedges.filter( (edge) =>{
-            if(edge.source.id === props.id || edge.destination.id === props.id){
-                if(activeOnly){
-                    if(edge.end_timestamp === null){
-                        return true;
-                    }
-                    else{return false}
-                }
-                return true;
-            }
-            return false;
-        });
-        let foundMore = true;
-        while(foundMore){
-            //look at all of the edges in myEdges and see if there are any edges that share a source/destination in props.callbackgraphedges that are _not_ in myEdges so far
-            const newEdges = props.callbackgraphedges.reduce( (prev, edge) => {
-                //looking to see if we should add 'edge' to our list of relevant edges
-                if(prev.includes(edge)){return [...prev]}
-                //look through all of the previous edges we know about and see if there's a matching source/destination id with the new edge
-                const matching = prev.filter( (e) => {
-                    if(e.source.id === edge.source.id || e.source.id === edge.destination.id || e.destination.id === edge.source.id ){
-                        if(activeOnly){
-                            if(edge.end_timestamp === null) { return true}
-                            else{return false}
-                        }
-                        return true;
-                    }
-                    return false;
-                });
-                if(matching.length > 0){
-                    return [...prev, edge];
-                }else{
-                    return [...prev];
-                }
-            }, [...myEdges]);
-            foundMore = newEdges.length > myEdges;
-            myEdges = [...newEdges];
-        }
-        return myEdges;
-    }
+    
     useEffect( () => {
+        const getEdges = (activeOnly) => {
+            //update our aggregate of callbackgraphedges for both src and dst that involve us
+            let myEdges = props.callbackgraphedges.filter( (edge) =>{
+                if(edge.source.id === props.id || edge.destination.id === props.id){
+                    if(activeOnly){
+                        if(edge.end_timestamp === null){
+                            return true;
+                        }
+                        else{return false}
+                    }
+                    return true;
+                }
+                return false;
+            });
+            let foundMore = true;
+            while(foundMore){
+                //look at all of the edges in myEdges and see if there are any edges that share a source/destination in props.callbackgraphedges that are _not_ in myEdges so far
+                const newEdges = props.callbackgraphedges.reduce( (prev, edge) => {
+                    //looking to see if we should add 'edge' to our list of relevant edges
+                    if(prev.includes(edge)){return [...prev]}
+                    //look through all of the previous edges we know about and see if there's a matching source/destination id with the new edge
+                    const matching = prev.filter( (e) => {
+                        if(e.source.id === edge.source.id || e.source.id === edge.destination.id || e.destination.id === edge.source.id ){
+                            if(activeOnly){
+                                if(edge.end_timestamp === null) { return true}
+                                else{return false}
+                            }
+                            return true;
+                        }
+                        return false;
+                    });
+                    if(matching.length > 0){
+                        return [...prev, edge];
+                    }else{
+                        return [...prev];
+                    }
+                }, [...myEdges]);
+                foundMore = newEdges.length > myEdges;
+                myEdges = [...newEdges];
+            }
+            return myEdges;
+        }
         const myActiveEdges = getEdges(true);
         const myEdges = getEdges(false);
         setCallbackgraphedges(myActiveEdges);
         setCallbackgraphedgesAll(myEdges);
-    }, [props.callbackgraphedges]);
+    }, [props.callbackgraphedges, props.id]);
     
     useEffect( () => {
         //determine if there are any active routes left at all
         const activeRoutes = callbackgraphedges.filter( (edge) => {
             if(!edge.c2profile.is_p2p  && edge.end_timestamp === null){
-                return edge;
+                return true;
             }
+            return false
         });
         if(activeRoutes.length === 0){
             setActiveEgress(muiTheme.palette.error.main);

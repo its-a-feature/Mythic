@@ -19,7 +19,16 @@ query getCommands($payloadType: String!) {
 
 export function Step3SelectCommands(props){
     const [commands, setCommands] = React.useState([]);
-    const { loading, error, data } = useQuery(GET_Payload_Types, {variables: {payloadType: props.buildOptions["payload_type"]}});
+    const [isDisabled, setIsDisabled] = React.useState(false);
+    const { loading, error, data } = useQuery(GET_Payload_Types, {variables: {payloadType: props.buildOptions["payload_type"]},
+        onCompleted: commandData => {
+            if(!props.buildOptions["supports_dynamic_loading"]){
+                setIsDisabled(true);
+                const allCommands = data.command.map( (cmd) => cmd.cmd );
+                setCommands(allCommands);
+            }
+        }
+    });
 
     if (loading) {
      return <div><CircularProgress /></div>;
@@ -55,6 +64,7 @@ export function Step3SelectCommands(props){
             <Select
               multiple
               native
+              disabled={isDisabled}
               value={commands}
               inputProps={{size: 20}}
               onChange={handleChangeMultiple}
