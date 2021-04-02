@@ -1593,7 +1593,7 @@ var task_data = new Vue({
                             alertTop("info", "<b>Usage: </b>" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd'] +
                                 "<br><b>Description:</b><pre style=\"word-wrap:break-word;white-space:pre-wrap\">" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['description'] +
                                 "</pre><br><b>Note: </b>Documentation for " + callbacks[data['cid']]['payload_type'] +
-                                " can be found in the <a target='_blank' href=\"/docs/agents/" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['payload_type'] + "/" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] + "\" style='color:darkblue'> Help Container</a>", 0,
+                                " can be found in the <a target='_blank' href=\"/docs/agents/" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['payload_type'] + "/commands/" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] + "\" style='color:darkblue'> Help Container</a>", 0,
                                 "Command Help", false);
                             return;
                         } else if (params.length === 0) {
