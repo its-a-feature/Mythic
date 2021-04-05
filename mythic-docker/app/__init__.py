@@ -43,7 +43,7 @@ db_pass = os.environ['POSTGRES_PASSWORD']
 debugging_enabled = os.environ['DEBUG'] != 'False' if "DEBUG" in os.environ else False
 # if log_size > 0, rotate and make a max of max_log_count files to hold logs
 max_log_count = 1
-valid_payload_container_version_bounds = [4, 4]
+valid_payload_container_version_bounds = [4, 5]
 valid_c2_container_version_bounds = [2, 2]
 valid_restful_scripting_bounds = [2, 2]
 # custom loop to pass to db manager

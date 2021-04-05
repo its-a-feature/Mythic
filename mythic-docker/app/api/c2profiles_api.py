@@ -140,10 +140,17 @@ async def start_stop_c2profile_webhook(request, user):
     return json(status)
 
 
-async def start_stop_c2_profile(profile, action):
+async def start_stop_c2_profile(profile: C2Profile = None, action: str = "start"):
     status, successfully_sent = await c2_rpc.call(message={
         "action": "{}_profile".format(action),
     }, receiver="{}_mythic_rpc_queue".format(profile.name))
+    return status, successfully_sent
+
+
+async def kill_c2_profile_container(profileName: str):
+    status, successfully_sent = await c2_rpc.call(message={
+        "action": "exit_container",
+    }, receiver="{}_mythic_rpc_queue".format(profileName))
     return status, successfully_sent
 
 
@@ -662,4 +669,4 @@ async def import_c2_profile_func(data, operator):
     for k, v in curr_parameters_dict.items():
         v.deleted = True
         await db_objects.update(v)
-    return {"status": "success", "new": new_profile, **profile.to_json()}
+    return {"status": "success", "new": new_profile, **profile.to_json(), "profile": profile}

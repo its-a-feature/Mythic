@@ -1,4 +1,4 @@
-from app import db_objects, mythic, valid_payload_container_version_bounds
+from app import db_objects, mythic, valid_payload_container_version_bounds, valid_c2_container_version_bounds
 import datetime
 import app.database_models.model as db_model
 import aio_pika
@@ -25,8 +25,29 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
         # print(pieces)
-        # print(" [x] %r:%r" % (message.routing_key,message.body))
+        print(" [x] %r:%r" % (message.routing_key,message.body))
         if pieces[4] == "sync_classes":
+            if len(pieces) == 7:
+                if int(pieces[6]) > valid_c2_container_version_bounds[1] or \
+                        int(pieces[6]) < valid_c2_container_version_bounds[0]:
+                    asyncio.create_task(
+                        send_all_operations_message(
+                            message="C2 Profile container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}. Sending a kill message now".format(
+                                pieces[2], pieces[7], str(valid_payload_container_version_bounds[0]),
+                                str(valid_payload_container_version_bounds[1])
+                            ), level="warning", source="bad_payload_version"))
+                    from app.api.c2profiles_api import kill_c2_profile_container
+                    await kill_c2_profile_container(pieces[2])
+                    return
+            else:
+                asyncio.create_task(
+                    send_all_operations_message(
+                        message="C2 Profile container, {}, of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
+                            pieces[2],
+                            str(valid_payload_container_version_bounds[0]),
+                            str(valid_payload_container_version_bounds[1])
+                        ), level="warning", source="bad_payload_version"))
+                return
             if pieces[5] == "":
                 operator = None
             else:
@@ -45,6 +66,7 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     pieces[2], str(e)
                 ), level="warning", source="sync_c2_failed"))
                 return
+            profile = status.pop("profile")
             if status["status"] == "success":
                 sync_tasks.pop(pieces[2], None)
                 asyncio.create_task(send_all_operations_message(message="Successfully Sync-ed database with {} C2 files".format(
@@ -63,6 +85,26 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                             await send_pt_rabbitmq_message(
                                 pt.ptype, "sync_classes", "", sync_operator, ""
                             )
+                if not profile.is_p2p:
+                    from app.api.c2profiles_api import start_stop_c2_profile
+                    run_stat, successfully_started = await start_stop_c2_profile(action="start", profile=profile)
+                    run_stat = json.loads(run_stat)
+                    try:
+                        if "running" in run_stat:
+                            profile.running = run_stat["running"]
+                            await db_objects.update(profile)
+                            if run_stat["running"]:
+                                await send_all_operations_message(
+                                    message=f"C2 Profile {profile.name} successfully started",
+                                    level="info", source="update_c2_profile")
+                            else:
+                                await send_all_operations_message(
+                                    message=f"C2 Profile {profile.name} failed to automatically start",
+                                    level="info", source="update_c2_profile")
+                            return
+                    except Exception as c:
+                        print("exception in rabbitmq_api.py trying to set profile running status")
+                        print(str(c))
             else:
                 sync_tasks.pop(pieces[2], None)
                 asyncio.create_task(send_all_operations_message(message="Failed Sync-ed database with {} C2 files: {}".format(
@@ -105,16 +147,16 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         int(pieces[7]) < valid_payload_container_version_bounds[0]:
                     asyncio.create_task(
                         send_all_operations_message(
-                            message="Payload container of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
-                                pieces[7], str(valid_payload_container_version_bounds[0]),
+                            message="Payload container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
+                                pieces[2], pieces[7], str(valid_payload_container_version_bounds[0]),
                                 str(valid_payload_container_version_bounds[1])
                             ), level="warning", source="bad_payload_version"))
                     return
             else:
                 asyncio.create_task(
                     send_all_operations_message(
-                        message="Payload container of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
-                            str(valid_payload_container_version_bounds[0]),
+                        message="Payload container, {}, of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
+                            pieces[2], str(valid_payload_container_version_bounds[0]),
                             str(valid_payload_container_version_bounds[1])
                         ), level="warning", source="bad_payload_version"))
                 return
@@ -269,14 +311,14 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                             )
                             else:
                                 asyncio.create_task(send_all_operations_message(
-                                    message="Failed Sync-ed database with {} payload files: {}".format(
+                                    message="Failed Sync-ed database import with {} payload files: {}".format(
                                         pieces[2], status["error"]
-                                    ), level="warning", source="payload_sync_error"))
+                                    ), level="warning", source="payload_import_sync_error"))
                         except Exception as i:
                             asyncio.create_task(
-                                send_all_operations_message(message="Failed Sync-ed database with {} payload files: {}".format(
-                                    pieces[2], status["error"]
-                                ), level="warning", source="payload_sync_error"))
+                                send_all_operations_message(message="Failed Sync-ed database fetch with {} payload files: {}".format(
+                                    pieces[2], str(i)
+                                ), level="warning", source="payload_parse_sync_error"))
                     else:
                         asyncio.create_task(send_all_operations_message(
                             message="Failed getting information for payload {} with error: {}".format(

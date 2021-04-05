@@ -8,7 +8,7 @@ from app.database_models.model import (
     PayloadTypeC2Profile,
 )
 from sanic_jwt.decorators import scoped, inject_user
-import shortuuid
+import asyncio
 import datetime
 import app.database_models.model as db_model
 from sanic.exceptions import abort
@@ -638,15 +638,22 @@ async def import_command_func(payload_type, operator, command_list):
             # now to process the att&cks
             for attack in cmd["attack"]:
                 query = await db_model.attack_query()
-                attck = await db_objects.get(query, t_num=attack["t_num"])
-                query = await db_model.attackcommand_query()
                 try:
-                    await db_objects.get(query, command=command, attack=attck)
-                except Exception as e:
-                    # we got here so it doesn't exist, so create it and move on
-                    await db_objects.create(
-                        ATTACKCommand, command=command, attack=attck
-                    )
+                    attck = await db_objects.get(query, t_num=attack["t_num"])
+                    query = await db_model.attackcommand_query()
+                    try:
+                        await db_objects.get(query, command=command, attack=attck)
+                    except Exception as e:
+                        # we got here so it doesn't exist, so create it and move on
+                        await db_objects.create(
+                            ATTACKCommand, command=command, attack=attck
+                        )
+                except Exception as attack_e:
+                    from app.api.operation_api import send_all_operations_message
+                    asyncio.create_task( send_all_operations_message(
+                        message=f"Failed to find ATT&CK number {attack['t_num']} for {command.cmd} in {command.payload_type.ptype}",
+                        level="warning"
+                    ) )
             # now process the command file
             browserscriptquery = await db_model.browserscript_query()
             found_script = False
@@ -938,13 +945,20 @@ async def import_command_func(payload_type, operator, command_list):
         # now to process the att&cks
         for attack in cmd["attack"]:
             query = await db_model.attack_query()
-            attck = await db_objects.get(query, t_num=attack["t_num"])
-            query = await db_model.attackcommand_query()
             try:
-                await db_objects.get(query, command=command, attack=attck)
-            except Exception as e:
-                # we got here so it doesn't exist, so create it and move on
-                await db_objects.create(ATTACKCommand, command=command, attack=attck)
+                attck = await db_objects.get(query, t_num=attack["t_num"])
+                query = await db_model.attackcommand_query()
+                try:
+                    await db_objects.get(query, command=command, attack=attck)
+                except Exception as e:
+                    # we got here so it doesn't exist, so create it and move on
+                    await db_objects.create(ATTACKCommand, command=command, attack=attck)
+            except Exception as attack_e:
+                from app.api.operation_api import send_all_operations_message
+                asyncio.create_task(send_all_operations_message(
+                    message=f"Failed to find ATT&CK number {attack['t_num']} for {command.cmd} in {command.payload_type.ptype}",
+                    level="warning"
+                ))
         # now process the command file
         if "browser_script" in cmd:
             browserscriptquery = await db_model.browserscript_query()
