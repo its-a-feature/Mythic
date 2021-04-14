@@ -17,6 +17,11 @@ then
   echo -e "${RED}[-]${NC} Failed to find server_port"
   exit 1
 fi
+if [[ $server_port == "null"  ]]
+then
+  # provide a default value in case a modified version isn't specified
+  server_port=17443
+fi
 containsElement () {
   local e match="$1"
   shift
