@@ -1150,24 +1150,25 @@ async def get_rportfwd_data(callback: Callback):
     if (bool(cached_rportfwd) == False):
         return default_struct
     dict_conn = {}
-    for port in cached_rportfwd[callback.id]:
-        id = 0
-        rport = cached_rportfwd[callback.id][port]["rport"]
-        rip = cached_rportfwd[callback.id][port]["rip"]
-        dict_conn[str(port)] = {}
-        dict_conn[str(port)][str(rport)] = {}
-        dict_conn[str(port)][str(rport)][str(rip)] = {}
-        if len(cached_rportfwd[callback.id][port]["connections"]) > 0:
-            for connection in cached_rportfwd[callback.id][port]["connections"]:
-                deq = 0
-                dict_conn[str(port)][str(rport)][str(rip)][str(id)] = []
-                while (len(cached_rportfwd[callback.id][port]["connections"][id]["queue"]) > 0):
-                    try:
-                        dict_conn[str(port)][str(rport)][str(rip)][str(id)].append(connection["queue"].popleft())
-                    except:
-                        pass
-                #deque the rest for the next time, this avoids hanging connections
-                id = id+1
+    if callback.id in cached_rportfwd:
+        for port in cached_rportfwd[callback.id]:
+            id = 0
+            rport = cached_rportfwd[callback.id][port]["rport"]
+            rip = cached_rportfwd[callback.id][port]["rip"]
+            dict_conn[str(port)] = {}
+            dict_conn[str(port)][str(rport)] = {}
+            dict_conn[str(port)][str(rport)][str(rip)] = {}
+            if len(cached_rportfwd[callback.id][port]["connections"]) > 0:
+                for connection in cached_rportfwd[callback.id][port]["connections"]:
+                    deq = 0
+                    dict_conn[str(port)][str(rport)][str(rip)][str(id)] = []
+                    while (len(cached_rportfwd[callback.id][port]["connections"][id]["queue"]) > 0):
+                        try:
+                            dict_conn[str(port)][str(rport)][str(rip)][str(id)].append(connection["queue"].popleft())
+                        except:
+                            pass
+                    #deque the rest for the next time, this avoids hanging connections
+                    id = id+1
         
     # if len(data) > 0:
     # print("******* SENDING THE FOLLOWING TO THE AGENT ******")
