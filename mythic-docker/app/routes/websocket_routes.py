@@ -489,6 +489,7 @@ async def ws_callbacks_current_operation(request, ws, user):
                         )
                         for cb in callbacks_with_operators:
                             cb_json = cb.to_json()
+                            cb_json["payload_os"] = cb.registered_payload.os
                             callbackc2profiles = await app.db_objects.execute(
                                 db_model.callbackc2profiles_query.where(
                                     db_model.CallbackC2Profiles.callback == cb
@@ -614,6 +615,7 @@ async def ws_callbacks_current_operation(request, ws, user):
                                     db_model.callback_query, id=id, operation=operation
                                 )
                                 cb_json = cb.to_json()
+                                cb_json["payload_os"] = cb.registered_payload.os
                                 callbackc2profiles = await app.db_objects.execute(
                                     db_model.callbackc2profiles_query.where(
                                         db_model.CallbackC2Profiles.callback == cb
