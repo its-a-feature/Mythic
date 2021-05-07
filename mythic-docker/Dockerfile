@@ -1,1 +1,1 @@
-From itsafeaturemythic/mythic_server:0.0.2
+FROM itsafeaturemythic/mythic_server:0.0.4

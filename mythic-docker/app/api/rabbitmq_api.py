@@ -1,4 +1,5 @@
-from app import db_objects, mythic, valid_payload_container_version_bounds, valid_c2_container_version_bounds
+from app import mythic, valid_payload_container_version_bounds, valid_c2_container_version_bounds, valid_translation_container_version_bounds
+import app
 import datetime
 import app.database_models.model as db_model
 import aio_pika
@@ -16,6 +17,7 @@ from app.api.operation_api import send_all_operations_message
 from app.api.siem_logger import log_to_siem
 import operator
 from peewee import reduce
+from app.api.file_browser_api import mark_nested_deletes, add_upload_file_to_file_browser
 
 # Keep track of sending sync requests to containers so we don't go crazy
 sync_tasks = {}
@@ -24,8 +26,8 @@ sync_tasks = {}
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
-        # print(pieces)
-        print(" [x] %r:%r" % (message.routing_key,message.body))
+        #logger.warning(pieces)
+        #logger.warning(" [x] %r:%r" % (message.routing_key,message.body))
         if pieces[4] == "sync_classes":
             if len(pieces) == 7:
                 if int(pieces[6]) > valid_c2_container_version_bounds[1] or \
@@ -33,9 +35,9 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     asyncio.create_task(
                         send_all_operations_message(
                             message="C2 Profile container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}. Sending a kill message now".format(
-                                pieces[2], pieces[7], str(valid_payload_container_version_bounds[0]),
-                                str(valid_payload_container_version_bounds[1])
-                            ), level="warning", source="bad_payload_version"))
+                                pieces[2], pieces[6], str(valid_c2_container_version_bounds[0]),
+                                str(valid_c2_container_version_bounds[1])
+                            ), level="warning", source="bad_c2_version"))
                     from app.api.c2profiles_api import kill_c2_profile_container
                     await kill_c2_profile_container(pieces[2])
                     return
@@ -44,16 +46,15 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     send_all_operations_message(
                         message="C2 Profile container, {}, of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
                             pieces[2],
-                            str(valid_payload_container_version_bounds[0]),
-                            str(valid_payload_container_version_bounds[1])
-                        ), level="warning", source="bad_payload_version"))
+                            str(valid_c2_container_version_bounds[0]),
+                            str(valid_c2_container_version_bounds[1])
+                        ), level="warning", source="bad_c2_version"))
                 return
             if pieces[5] == "":
                 operator = None
             else:
-                query = await db_model.operator_query()
-                operator = await db_objects.get(
-                    query, username=base64.b64decode(pieces[5]).decode()
+                operator = await app.db_objects.get(
+                    db_model.operator_query, username=base64.b64decode(pieces[5]).decode()
                 )
             from app.api.c2profiles_api import import_c2_profile_func
 
@@ -74,9 +75,8 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 ), level="info", source="sync_c2_success"))
                 # for a successful checkin, we need to find all non-wrapper payload types and get them to re-check in
                 if status["new"]:
-                    query = await db_model.payloadtype_query()
-                    pts = await db_objects.execute(
-                        query.where(db_model.PayloadType.wrapper == False)
+                    pts = await app.db_objects.execute(
+                        db_model.payloadtype_query.where(db_model.PayloadType.wrapper == False)
                     )
                     sync_operator = "" if operator is None else operator.username
                     for pt in pts:
@@ -92,7 +92,9 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     try:
                         if "running" in run_stat:
                             profile.running = run_stat["running"]
-                            await db_objects.update(profile)
+                            profile.container_running = True
+                            profile.last_heartbeat = datetime.datetime.utcnow()
+                            await app.db_objects.update(profile)
                             if run_stat["running"]:
                                 await send_all_operations_message(
                                     message=f"C2 Profile {profile.name} successfully started",
@@ -103,8 +105,7 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                                     level="info", source="update_c2_profile")
                             return
                     except Exception as c:
-                        print("exception in rabbitmq_api.py trying to set profile running status")
-                        print(str(c))
+                        logger.warning("rabbitmq_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(c))
             else:
                 sync_tasks.pop(pieces[2], None)
                 asyncio.create_task(send_all_operations_message(message="Failed Sync-ed database with {} C2 files: {}".format(
@@ -112,16 +113,15 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 ), level="warning", source="sync_C2_errored"))
         if pieces[1] == "status":
             try:
-                query = await db_model.c2profile_query()
-                profile = await db_objects.get(query, name=pieces[2], deleted=False)
+                profile = await app.db_objects.get(db_model.c2profile_query, name=pieces[2], deleted=False)
                 if pieces[3] == "running" and not profile.running:
                     profile.running = True
-                    await db_objects.update(profile)
+                    await app.db_objects.update(profile)
                     asyncio.create_task(
                         send_all_operations_message(message=f"C2 Profile {profile.name} has started", level="info", source="c2_started"))
                 elif pieces[3] == "stopped" and profile.running:
                     profile.running = False
-                    await db_objects.update(profile)
+                    await app.db_objects.update(profile)
                     asyncio.create_task(
                         send_all_operations_message(message=f"C2 Profile {profile.name} has stopped", level="warning", source="c2_stopped"))
                 # otherwise we got a status that matches the current status, just move on
@@ -131,7 +131,6 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                         pieces, str(e)
                     )
                 )
-                # print("Exception in rabbit_c2_callback (status): {}, {}".format(pieces, str(e)))
 
 
 async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
@@ -147,10 +146,11 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         int(pieces[7]) < valid_payload_container_version_bounds[0]:
                     asyncio.create_task(
                         send_all_operations_message(
-                            message="Payload container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
+                            message="Payload container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}. Sending Exit command".format(
                                 pieces[2], pieces[7], str(valid_payload_container_version_bounds[0]),
                                 str(valid_payload_container_version_bounds[1])
                             ), level="warning", source="bad_payload_version"))
+                    await send_pt_rabbitmq_message(pieces[2], "exit_container", "", "", "")
                     return
             else:
                 asyncio.create_task(
@@ -164,8 +164,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                 if pieces[3] == "create_payload_with_code":
                     # print(pieces)
                     # this means we should be getting back the finished payload or an error
-                    query = await db_model.payload_query()
-                    payload = await db_objects.get(query, uuid=pieces[4])
+                    payload = await app.db_objects.get(db_model.payload_query, uuid=pieces[4])
                     agent_message = json.loads(message.body.decode())
                     if agent_message["status"] == "success":
                         file = open(payload.file.path, "wb")
@@ -176,10 +175,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         sha1 = await hash_SHA1(code)
                         payload.file.md5 = md5
                         payload.file.sha1 = sha1
-                        await db_objects.update(payload.file)
-                        query = await db_model.buildparameterinstance_query()
-                        current_instances = await db_objects.execute(
-                            query.where(
+                        await app.db_objects.update(payload.file)
+                        current_instances = await app.db_objects.execute(
+                            db_model.buildparameterinstance_query.where(
                                 db_model.BuildParameterInstance.payload == payload
                             )
                         )
@@ -191,18 +189,17 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 ci.parameter = agent_message[
                                     "build_parameter_instances"
                                 ][ci.build_parameter.name]
-                                await db_objects.update(ci)
+                                await app.db_objects.update(ci)
                                 del agent_message["build_parameter_instances"][
                                     ci.build_parameter.name
                                 ]
-                        query = await db_model.buildparameter_query()
                         for k, v in agent_message["build_parameter_instances"].items():
                             # now create entries that were set to default in the build script that weren't supplied by the user
                             try:
-                                bp = await db_objects.get(
-                                    query, name=k, payload_type=payload.payload_type
+                                bp = await app.db_objects.get(
+                                    db_model.buildparameter_query, name=k, payload_type=payload.payload_type
                                 )
-                                await db_objects.create(
+                                await app.db_objects.create(
                                     db_model.BuildParameterInstance,
                                     parameter=v,
                                     payload=payload,
@@ -215,13 +212,13 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     k
                                 )
                     payload.build_phase = agent_message["status"]
-                    payload.build_message = payload.build_message + "\n" + agent_message["message"]
-                    payload.build_error = agent_message["build_error"] if "build_error" in agent_message else ""
-                    await db_objects.update(payload)
-                    asyncio.create_task(log_to_siem(payload.to_json(), mythic_object="payload_new"))
+                    payload.build_message = payload.build_message + "\n" + agent_message["build_message"]
+                    payload.build_stderr = agent_message["build_stderr"] if "build_stderr" in agent_message else ""
+                    payload.build_stdout = agent_message["build_stdout"] if "build_stdout" in agent_message else ""
+                    await app.db_objects.update(payload)
+                    asyncio.create_task(log_to_siem(mythic_object=payload, mythic_source="payload_new"))
                 elif pieces[3] == "command_transform":
-                    query = await db_model.task_query()
-                    task = await db_objects.get(query, id=pieces[4])
+                    task = await app.db_objects.get(db_model.task_query, id=pieces[4])
                     if pieces[5] == "error":
                         # create a response that there was an error and set task to processed
                         task.status = "error"
@@ -229,24 +226,24 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         task.timestamp = datetime.datetime.utcnow()
                         task.status_timestamp_submitted = task.timestamp
                         task.status_timestamp_processed = task.timestamp
-                        await db_objects.create(
+                        await app.db_objects.create(
                             db_model.Response,
                             task=task,
                             response=message.body.decode("utf-8"),
                         )
-                        await db_objects.update(task)
+                        await app.db_objects.update(task)
                     elif pieces[5] == "opsec_pre":
                         tmp = json.loads(message.body)
                         task.opsec_pre_blocked = tmp["opsec_pre_blocked"]
                         task.opsec_pre_message = tmp["opsec_pre_message"]
                         task.opsec_pre_bypass_role = tmp["opsec_pre_bypass_role"]
-                        await db_objects.update(task)
+                        await app.db_objects.update(task)
                     elif pieces[5] == "opsec_post":
                         tmp = json.loads(message.body)
                         task.opsec_post_blocked = tmp["opsec_post_blocked"]
                         task.opsec_post_message = tmp["opsec_post_message"]
                         task.opsec_post_bypass_role = tmp["opsec_post_bypass_role"]
-                        await db_objects.update(task)
+                        await app.db_objects.update(task)
                     else:
                         tmp = json.loads(message.body)
                         task.params = tmp["args"]
@@ -266,17 +263,16 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         else:
                             task.status = pieces[5]
                         task.status_timestamp_submitted = task.timestamp
-                        await db_objects.update(task)
-                        asyncio.create_task(log_to_siem(task.to_json(), mythic_object="task_new"))
+                        await app.db_objects.update(task)
+                        asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_new"))
                         asyncio.create_task(add_command_attack_to_task(task, task.command))
                 elif pieces[3] == "sync_classes":
                     if pieces[6] == "":
                         # this was an auto sync from starting a container
                         operator = None
                     else:
-                        operator_query = await db_model.operator_query()
-                        operator = await db_objects.get(
-                            operator_query,
+                        operator = await app.db_objects.get(
+                            db_model.operator_query,
                             username=base64.b64decode(pieces[6]).decode(),
                         )
                     sync_tasks.pop(pieces[2], None)
@@ -292,9 +288,8 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                         pieces[2]
                                     ), level="info", source="payload_sync_success"))
                                 if status["wrapper"] and status["new"]:
-                                    query = await db_model.payloadtype_query()
-                                    pts = await db_objects.execute(
-                                        query.where(
+                                    pts = await app.db_objects.execute(
+                                        db_model.payloadtype_query.where(
                                             db_model.PayloadType.wrapper == False
                                         )
                                     )
@@ -325,126 +320,42 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 pieces[2], message.body.decode()
                             ), level="warning", source="payload_sync_error"))
                 elif pieces[3] == "process_container":
-                    task_query = await db_model.task_query()
-                    task = await db_objects.get(task_query, id=pieces[4])
-                    await db_objects.create(db_model.OperationEventLog, operation=task.callback.operation,
+                    task = await app.db_objects.get(db_model.task_query, id=pieces[4])
+                    await app.db_objects.create(db_model.OperationEventLog, operation=task.callback.operation,
                                             message=message.body.decode("utf-8"), level="warning", source=str(uuid.uuid4()))
             except Exception as e:
                 logger.exception("Exception in rabbit_pt_callback: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
 
 
-async def rabbit_pt_rpc_callback(
-        exchange: aio_pika.Exchange, message: aio_pika.IncomingMessage
-):
-    with message.process():
-        request = json.loads(message.body.decode())
-        if "task_id" not in request:
-            response = json.dumps(
-                {"status": "error", "error": "Missing task_id"}
-            ).encode("utf-8")
-        else:
-            try:
-                task_query = await db_model.task_query()
-                task = await db_objects.get(task_query, id=request["task_id"])
-                if "action" in request:
-                    if request["action"] == "register_file":
-                        response = await register_file(request, task)
-                    elif request["action"] == "get_file_by_name":
-                        response = await get_file_by_name(request, task)
-                    elif request["action"] == "get_payload_by_uuid":
-                        response = await get_payload_by_uuid(request, task)
-                    elif request["action"] == "build_payload_from_template":
-                        response = await build_payload_from_template(request, task)
-                    elif request["action"] == "control_socks":
-                        response = await control_socks(request, task)
-                    elif request["action"] == "user_output":
-                        response = await user_output(request, task)
-                    elif request["action"] == "task_update_callback":
-                        response = await task_update_callback(request, task)
-                    elif request["action"] == "register_artifact":
-                        response = await register_artifact(request, task)
-                    elif request["action"] == "build_payload_from_parameters":
-                        response = await build_payload_from_parameters(request, task)
-                    elif request["action"] == "register_payload_on_host":
-                        response = await register_payload_on_host(request, task)
-                    elif request["action"] == "get_security_context_of_running_jobs_on_host":
-                        response = await get_security_context_of_running_jobs_on_host(request, task)
-                    elif request["action"] == "rpc_tokens":
-                        response = await rpc_tokens(request, task)
-                    elif request["action"] == "rpc_logon_sessions":
-                        response = await rpc_logon_sessions(request, task)
-                    elif request["action"] == "rpc_callback_tokens":
-                        response = await rpc_callback_tokens(request, task)
-                    elif request["action"] == "create_processes":
-                        response = await create_processes(request, task)
-                    elif request["action"] == "remove_files_from_file_browser":
-                        response = await remove_files_from_file_browser(request, task)
-                    elif request["action"] == "register_keystrokes":
-                        response = await register_keystrokes(request, task)
-                    elif request["action"] == "register_credentials":
-                        response = await register_credentials(request, task)
-                    elif request["action"] == "add_files_to_file_browser":
-                        response = await add_files_to_file_browser(request, task)
-                    elif request["action"] == "search_database":
-                        response = await search_database(request, task)
-                    else:
-                        response = {"status": "error", "error": "unknown action"}
-                    response = json.dumps(response).encode("utf-8")
-                else:
-                    response = json.dumps(
-                        {"status": "error", "error": "Missing action"}
-                    ).encode("utf-8")
-            except Exception as e:
-                logger.exception("Exception in rabbit_pt_rpc_callback: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                response = json.dumps({"status": "error", "error": "Exception in rabbit_pt_rpc_callback: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e)}).encode("utf-8")
-        try:
-            await exchange.publish(
-                aio_pika.Message(body=response, correlation_id=message.correlation_id),
-                routing_key=message.reply_to,
-            )
-        except Exception as e:
-            error = (
-                    "Exception trying to send message back to container for rpc! " + str(e)
-            )
-            error += "\nResponse: {}\nCorrelation_id: {}\n RoutingKey: {}".format(
-                str(response), message.correlation_id, message.reply_to
-            )
-            task_query = await db_model.task_query()
-            task = await db_objects.get(task_query, id=request["task_id"])
-            task.status = "error"
-            task.completed = True
-            await db_objects.update(task)
-            await db_objects.create(
-                db_model.Response, task=task, response=error.encode("utf-8")
-            )
-
-
-async def register_file(request, task):
-    # {
-    # "action": "register_file",
-    # "file": base64.b64encode(file).decode(),
-    # "task_id": self.task_id
-    # "delete_after_fetch": True,
-    # "saved_file_name": str(uuid.uuid4()),
-    # "remote_path": "",
-    # "is_screenshot": False,
-    # "is_download": False,
-    # }
+async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
+                      saved_file_name: str = None, is_screenshot: bool = False,
+                      is_download: bool = False, remote_path: str = None,
+                      host: str = None):
+    """
+    Creates a FileMeta object in Mythic's database and writes contents to disk with a random UUID filename.
+    This file can then be fetched via the returned file UUID.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param file: The base64 contents of the file to register
+    :param delete_after_fetch: Should Mythic delete the file from disk after the agent fetches it. This also marks the file as deleted in the UI. This is useful if the file is a temporary file that doesn't necessarily need long-term tracking within Mythic.
+    :param saved_file_name: The name of the file (if none supplied, a random UUID4 value will be used)
+    :param is_screenshot: Is this file a screenshot reported by the agent? If so, this will cause it to show up in the screenshots page.
+    :param is_download: Is this file the result of downloading something from the agent? If so, this will cause it to show up in the Files page under Downloads
+    :param remote_path: Does this file exist on target? If so, provide the full remote path here
+    :param host: If this file exists on a target host, indicate it here in conjunction with the remote_path argument
+    :return: JSON representation of the new FileMeta object
+    """
     try:
-        filename = (
-            request["saved_file_name"]
-            if "saved_file_name" in request
-            else str(uuid.uuid4())
-        )
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        filename = saved_file_name if saved_file_name is not None else str(uuid.uuid4())
         path = "./app/files/{}".format(str(uuid.uuid4()))
         code_file = open(path, "wb")
-        code = base64.b64decode(request["file"])
+        code = base64.b64decode(file)
         code_file.write(code)
         code_file.close()
         size = os.stat(path).st_size
         md5 = await hash_MD5(code)
         sha1 = await hash_SHA1(code)
-        new_file_meta = await db_objects.create(
+        new_file_meta = await app.db_objects.create(
             db_model.FileMeta,
             total_chunks=1,
             chunks_received=1,
@@ -453,54 +364,91 @@ async def register_file(request, task):
             path=str(path),
             operation=task.callback.operation,
             operator=task.operator,
-            full_remote_path=request["remote_path"].encode("utf-8"),
+            full_remote_path=remote_path.encode("utf-8") if remote_path is not None else "".encode("utf-8"),
             md5=md5,
             sha1=sha1,
             task=task,
-            delete_after_fetch=request["delete_after_fetch"],
+            delete_after_fetch=delete_after_fetch,
             filename=filename.encode("utf-8"),
-            is_screenshot=request["is_screenshot"],
-            is_download_from_agent=request["is_download"],
+            is_screenshot=is_screenshot,
+            is_download_from_agent=is_download,
+            host=host.upper() if host is not None else task.callback.host
         )
-        asyncio.create_task(log_to_siem(new_file_meta.to_json(), mythic_object="file_upload"))
+        asyncio.create_task(log_to_siem(mythic_object=new_file_meta, mythic_source="file_upload"))
+        if remote_path is not None:
+            asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task, new_file_meta,
+                                                                {"full_path": remote_path}))
         return {"status": "success", "response": new_file_meta.to_json()}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-async def get_file_by_name(request, task):
+async def get_file(task_id: int, filename: str = None, limit_by_callback: bool = True, max_results: int = 1,
+                   file_id: str = None, get_contents: bool = True):
+    """
+    Get file data and contents by name (ex: from create_file and a specified saved_file_name parameter).
+    The search can be limited to just this callback (or the entire operation) and return just the latest or some number of matching results.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param filename: The name of the file to search for (Case sensitive)
+    :param file_id: If no filename specified, then can search for a specific file by this UUID
+    :param limit_by_callback: Set this to True if you only want to search for files that are tied to this callback. This is useful if you're doing this as part of another command that previously loaded files into this callback's memory.
+    :param max_results: The number of results you want back. 1 will be the latest file uploaded with that name, -1 will be all results.
+    :param get_contents: Boolean of if you want to fetch file contents or just metadata
+    :return: An array of all the matching files
+    """
     try:
-        file_query = await db_model.filemeta_query()
-        files = await db_objects.execute(
-            file_query.where(
-                (db_model.FileMeta.deleted == False)
-                & (db_model.FileMeta.filename == request["filename"])
-                & (db_model.FileMeta.operation == task.callback.operation)
-            ).order_by(db_model.FileMeta.timestamp)
-        )
-        file = None
-        for f in files:
-            file = f
-        if file is None:
-            return {"status": "error", "error": "File not found"}
-        else:
-            file_json = file.to_json()
-            if os.path.exists(file.path):
-                file_json["contents"] = base64.b64encode(
-                    open(file.path, "rb").read()
-                ).decode()
-            return {"status": "success", "response": file_json}
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        output = []
+        if filename is not None:
+            files = await app.db_objects.execute(
+                db_model.filemeta_query.where(
+                    (db_model.FileMeta.deleted == False)
+                    & (db_model.FileMeta.filename == filename)
+                    & (db_model.FileMeta.operation == task.callback.operation)
+                ).order_by(-db_model.FileMeta.id)
+            )
+            count = 0
+            for f in files:
+                if count < max_results or max_results == -1:
+                    if limit_by_callback:
+                        if f.task is not None and f.task.callback == task.callback:
+                            output.append(f.to_json())
+                    else:
+                        output.append(f.to_json())
+        elif file_id is not None:
+            try:
+                file = await app.db_objects.get(db_model.filemeta_query, agent_file_id=file_id,
+                                                operation=task.operation)
+                output.append(file.to_json())
+            except Exception as d:
+                return {"status": "error", "error": "File does not exist in this operation"}
+        if get_contents:
+            for f in output:
+                if os.path.exists(f["path"]):
+                    f["contents"] = base64.b64encode(
+                        open(f["path"], "rb").read()
+                    ).decode()
+                else:
+                    f["contents"] = None
+        return {"status": "success", "response": output}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-async def get_payload_by_uuid(request, task):
+async def get_payload(payload_uuid: str, get_contents: bool = True):
+    """
+    Get information about a payload and its contents
+    :param payload_uuid: The UUID for the payload you're interested in
+    :param get_contents: Whether or not you want to fetch the contents of the file or just the metadata
+    :return: JSON representation of the Payload object
+    """
     try:
-        payload_query = await db_model.payload_query()
-        payload = await db_objects.get(payload_query, uuid=request["uuid"])
+        payload = await app.db_objects.prefetch(db_model.payload_query.where(db_model.Payload.uuid == payload_uuid),
+                                                db_model.filemeta_query)
+        payload = list(payload)[0]
         payload_json = payload.to_json()
         payload_json["contents"] = ""
-        if os.path.exists(payload.file.path):
+        if os.path.exists(payload.file.path) and get_contents:
             payload_json["contents"] = base64.b64encode(
                 open(payload.file.path, "rb").read()
             ).decode()
@@ -512,71 +460,92 @@ async def get_payload_by_uuid(request, task):
         payload_json["build_parameters"] = payload_info["build_parameters"]
         return {"status": "success", "response": payload_json}
     except Exception as e:
-        print(str(traceback.format_exc()))
-        return {"status": "error", "error": "Payload not found"}
+        logger.warning("rabbitmq_api.py - get_payload - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return {"status": "error", "error": "Payload not found:\n" + str(e)}
 
 
-async def build_payload_from_template(request, task):
+async def create_payload_from_uuid(task_id: int, payload_uuid: str, generate_new_random_values: bool = True,
+                                   new_description: str = None, remote_host: str = None, filename: str = None):
+    """
+    Given an existing Payload UUID, generate a new copy with a potentially new description, new filename, new random values, and specify that it'll exist on a certain host. This is useful for spawn or lateral movement tasks where you want to potentially change up IOCs and provide new, more informative, descriptions for callbacks.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param payload_uuid: The UUID of the payload we're interested in
+    :param generate_new_random_values: Set this to True to generate new random values for C2 Profile parameters that are flagged as randomized
+    :param new_description: Provide a custom new description for the payload and callbacks associated from it. If you don't provide one, a generic one will be generated
+    :param remote_host: Indicate the hostname of the host this new payload is deployed to. If one isn't specified, you won't be able to link to it without first telling Mythic that this payload exists on a certain host via the Popup Modals.
+    :param filename: New filename for the payload. If one isn't supplied, a random UUID will be generated
+    :return:
+    """
     # check to make sure we have the right parameters (host, template)
-    from app.api.payloads_api import register_new_payload_func, write_payload
-    from app.api.c2profiles_api import generate_random_format_string
-
+    from app.api.payloads_api import register_new_payload_func
     try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
         # default to the template of the current payload unless otherwise specified
-        template = task.callback.registered_payload
-        host = task.callback.host
+        host = task.callback.host if remote_host is None else remote_host.upper()
+
+        data = await get_payload_build_config(payload_uuid, generate_new_random_values)
+        if new_description is not None:
+            data["tag"] = new_description
+        else:
+            data["tag"] = "Autogenerated from task {} on callback {}".format(
+                str(task.id), str(task.callback.id)
+            )
+        data["filename"] = "Task" + str(task.id) + "Copy_" + data["filename"]
+        if filename is not None:
+            data["filename"] = filename
+        rsp = await register_new_payload_func(
+            data,
+            {
+                "current_operation": task.callback.operation.name,
+                "username": task.operator.username,
+            },
+        )
         task.status = "building.."
-        await db_objects.update(task)
-        if "uuid" in request and request["uuid"] != "" and request["uuid"] is not None:
-            # pull that associated payload
-            query = await db_model.payload_query()
-            template = await db_objects.get(query, uuid=request["uuid"])
-        if (
-                "destination_host" in request
-                and request["destination_host"] != ""
-                and request["destination_host"] is not None
-                and request["destination_host"] not in ["localhost", "127.0.0.1", "::1"]
-        ):
-            host = request["destination_host"].upper()
+        await app.db_objects.update(task)
+        return await handle_automated_payload_creation_response(task, rsp, data, host)
+    except Exception as e:
+        logger.warning("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(traceback.format_exc()))
+        return {
+            "status": "error",
+            "error": "Failed to build payload: " + str(traceback.format_exc()),
+        }
+
+
+async def get_payload_build_config(payload_uuid: str, generate_new_random_values: bool = False):
+    try:
+        from app.api.c2profiles_api import generate_random_format_string
+        template = await app.db_objects.get(db_model.payload_query, uuid=payload_uuid)
+        if template.build_phase not in ["success", "error"]:
+            return {"status": "error", "error": "Can't task to rebuild a payload that's not completed"}
         # using that payload, generate the following build-tasking data
         data = {
             "payload_type": template.payload_type.ptype,
             "c2_profiles": [],
             "commands": [],
             "selected_os": template.os,
-            "tag": "Autogenerated from task {} on callback {}".format(
-                str(task.id), str(task.callback.id)
-            ),
+            "tag": template.tag,
             "wrapper": template.payload_type.wrapper,
         }
         if data["wrapper"]:
-            if "wrapped_payload" not in request or request["wrapped_payload"] is None:
-                data["wrapped_payload"] = template.wrapped_payload.uuid
-        if "description" in request:
-            if request["description"] is not None and request["description"] != "":
-                data["tag"] = request["description"]
-        query = await db_model.payloadcommand_query()
-        payloadcommands = await db_objects.execute(
-            query.where(db_model.PayloadCommand.payload == template)
+            data["wrapped_payload"] = template.wrapped_payload.uuid
+        payloadcommands = await app.db_objects.execute(
+            db_model.payloadcommand_query.where(db_model.PayloadCommand.payload == template)
         )
         data["commands"] = [c.command.cmd for c in payloadcommands]
-        query = await db_model.buildparameterinstance_query()
-        create_transforms = await db_objects.execute(
-            query.where(db_model.BuildParameterInstance.payload == template)
+        build_parameters = await app.db_objects.execute(
+            db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == template)
         )
-        data["build_parameters"] = [t.to_json() for t in create_transforms]
+        data["build_parameters"] = [t.to_json() for t in build_parameters]
         for t in data["build_parameters"]:
             t["name"] = t["build_parameter"]["name"]
             t["value"] = t["parameter"]
         c2_profiles_data = []
-        query = await db_model.payloadc2profiles_query()
-        c2profiles = await db_objects.execute(
-            query.where(db_model.PayloadC2Profiles.payload == template)
+        c2profiles = await app.db_objects.execute(
+            db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == template)
         )
         for c2p in c2profiles:
-            query = await db_model.c2profileparametersinstance_query()
-            c2_profile_params = await db_objects.execute(
-                query.where(
+            c2_profile_params = await app.db_objects.execute(
+                db_model.c2profileparametersinstance_query.where(
                     (db_model.C2ProfileParametersInstance.payload == template)
                     & (
                             db_model.C2ProfileParametersInstance.c2_profile
@@ -586,56 +555,72 @@ async def build_payload_from_template(request, task):
             )
             params = {}
             for p in c2_profile_params:
-                if p.c2_profile_parameters.randomize:
+                if p.c2_profile_parameters.randomize and generate_new_random_values:
                     params[
                         p.c2_profile_parameters.name
                     ] = await generate_random_format_string(
                         p.c2_profile_parameters.format_string
                     )
+                elif p.c2_profile_parameters.parameter_type == "Dictionary" or p.c2_profile_parameters.parameter_type == "Array":
+                    params[p.c2_profile_parameters.name] = json.loads(p.value)
                 else:
                     params[p.c2_profile_parameters.name] = p.value
             c2_profiles_data.append(
                 {"c2_profile": c2p.c2_profile.name, "c2_profile_parameters": params}
             )
         data["c2_profiles"] = c2_profiles_data
-        data["filename"] = "Task" + str(task.id) + "Copy_" + template.file.filename
-        # print(data)
-        # upon successfully starting the build process, set pcallback and task
-        #   when it's successfully written, it will get a file with it
-        rsp = await register_new_payload_func(
-            data,
-            {
-                "current_operation": task.callback.operation.name,
-                "username": task.operator.username,
-            },
-        )
-        return await handle_automated_payload_creation_response(task, rsp, data, host)
+        data["filename"] = bytes(template.file.filename).decode()
+        return {"status": "success", "data": data}
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(traceback.format_exc()))
-        return {
-            "status": "error",
-            "error": "Failed to build payload: " + str(traceback.format_exc()),
-        }
+        logger.warning("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        raise e
 
 
-async def build_payload_from_parameters(request, task):
+async def create_payload_from_parameters(task_id: int, payload_type: str, c2_profiles: list, commands: list,
+                                         build_parameters: list, filename: str = None, description: str = None,
+                                         destination_host: str = None, wrapped_payload_uuid: str = None):
+    """
+    Create a payload by specifying all of the parameters yourself for what you want to build
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param payload_type: The name of the payload type you're wanting to build
+    :param c2_profiles: List of c2 dictionaries of the form:
+    [{ "c2_profile": "name of the c2 profile",
+      "c2_profile_parameters": {
+        "parameter name": "parameter value",
+        "parameter name2": "parameter value 2"
+      }
+    }]
+    :param commands: List of all the command names you want included with the payload that you build. This is of the form:
+    [ "command1", "command2", "command3", ...]
+    :param build_parameters:
+    :param filename: Name of the new file
+    :param description: Description for the payload that'll appear in the UI when a callback is created
+    :param destination_host: Name of the host where the payload goes. If this isn't specified, then it's assumed to be the same host as the callback where the task is issued
+    :param wrapped_payload_uuid: If you're creating a payload that wraps another payload, specify the UUID of the internal payload here
+    :return:
+    """
     try:
+        task = app.db_objects.get(db_model.task_query, id=task_id)
         from app.api.payloads_api import register_new_payload_func
         host = task.callback.host.upper()
-        task.status = "building.."
-        await db_objects.update(task)
-        if (
-                "destination_host" in request
-                and request["destination_host"] != ""
-                and request["destination_host"] is not None
-                and request["destination_host"] not in ["localhost", "127.0.0.1", "::1"]
-        ):
-            host = request["destination_host"]
-        if "tag" not in request or request["tag"] == "":
-            request["tag"] = "Autogenerated from task {} on callback {}".format(
+        if destination_host is not None:
+            host = destination_host.upper()
+        tag = "Autogenerated from task {} on callback {}".format(
                 str(task.id), str(task.callback.id))
-        if "filename" not in request or request["filename"] == "":
-            request["filename"] = "Task" + str(task.id) + "Payload"
+        if description is not None:
+            tag = description
+        new_filename = "Task" + str(task.id) + "Payload"
+        if filename is not None:
+            new_filename = filename
+        request = {
+            "tag": tag,
+            "filename": new_filename,
+            "payload_type": payload_type,
+            "c2_profiles": c2_profiles,
+            "commands": commands,
+            "build_parameters": build_parameters,
+            "wrapped_payload": wrapped_payload_uuid,
+        }
         rsp = await register_new_payload_func(
             request,
             {
@@ -643,6 +628,8 @@ async def build_payload_from_parameters(request, task):
                 "username": task.operator.username,
             },
         )
+        task.status = "building.."
+        await app.db_objects.update(task)
         return await handle_automated_payload_creation_response(task, rsp, request, host)
     except Exception as e:
         return {
@@ -655,17 +642,15 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
     from app.api.payloads_api import write_payload
 
     if rsp["status"] == "success":
-        query = await db_model.payload_query()
-        payload = await db_objects.get(query, uuid=rsp["uuid"])
+        payload = await app.db_objects.get(db_model.payload_query, uuid=rsp["uuid"])
         payload.task = task
-        payload.pcallback = task.callback
         payload.auto_generated = True
         payload.callback_alert = False
         payload.file.delete_after_fetch = True
         payload.file.task = task
         payload.file.host = host.upper()
-        await db_objects.update(payload.file)
-        await db_objects.update(payload)
+        await app.db_objects.update(payload.file)
+        await app.db_objects.update(payload)
         # send a message back to the container to build a new payload
         create_rsp = await write_payload(
             payload.uuid,
@@ -677,9 +662,9 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
         )
         if create_rsp["status"] != "success":
             payload.deleted = True
-            await db_objects.update(payload)
+            await app.db_objects.update(payload)
             task.status = "error"
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.Response,
                 task=task,
                 response="Exception when building payload: {}".format(
@@ -694,8 +679,8 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
         else:
             task.status = "building.."
             task.timestamp = datetime.datetime.utcnow()
-            await db_objects.update(task)
-            await db_objects.get_or_create(
+            await app.db_objects.update(task)
+            await app.db_objects.get_or_create(
                 db_model.PayloadOnHost,
                 host=host.upper(),
                 payload=payload,
@@ -708,7 +693,7 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
         payload_info = {**payload_info, **payload.to_json()}
         return {"status": "success", "response": payload_info}
     else:
-        await db_objects.create(
+        await app.db_objects.create(
             db_model.Response,
             task=task,
             response="Exception when registering payload: {}".format(rsp["error"]),
@@ -719,257 +704,431 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
         }
 
 
-async def control_socks(request, task):
-    if "start" in request:
-        from app.api.callback_api import start_socks
-        resp = await start_socks(request["port"], task.callback, task)
-        return resp
-    if "stop" in request:
-        from app.api.callback_api import stop_socks
-        resp = await stop_socks(task.callback, task.operator)
-        return resp
-    return {"status": "error", "error": "unknown socks tasking"}
-
-
-async def user_output(request, task):
+async def control_socks(task_id: int, port: int, start: bool = False, stop: bool = False):
+    """
+    Start or stop SOCKS 5 on a specific port for this task's callback
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param port: The port to open for SOCKS 5
+    :param start: Boolean for if SOCKS should start
+    :param stop: Boolean for if SOCKS should stop
+    :return: Status message of if it completed successfully
+    """
     try:
-        resp = await db_objects.create(
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        if start:
+            from app.api.callback_api import start_socks
+            resp = await start_socks(port, task.callback, task)
+            return resp
+        elif stop:
+            from app.api.callback_api import stop_socks
+            resp = await stop_socks(task.callback, task.operator)
+            return resp
+        return {"status": "error", "error": "unknown socks tasking"}
+    except Exception as e:
+        return {"status": "error", "error": "Exception trying to handle socks control:\n" + str(e)}
+
+
+async def create_output(task_id: int, output: str):
+    """
+    Add a message to the output for a task that the operator can see
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param output: The message you want to send.
+    :return:
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        resp = await app.db_objects.create(
             db_model.Response,
             task=task,
-            response=request["user_output"].encode("utf-8"),
+            response=output.encode("utf-8"),
         )
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-async def task_update_callback(request, task):
+async def update_callback(task_id: int, user: str = None, host: str = None, pid: int = None, ip: str = None,
+                          external_ip: str = None, description: str = None, integrity_level: int = None,
+                          os: str = None, architecture: str = None, domain: str = None, extra_info: str = None,
+                          sleep_info: str = None):
+    """
+    Update this task's associated callback data.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param user: The new username
+    :param host: The new hostname
+    :param pid: The new process identifier
+    :param ip: The new IP address
+    :param external_ip: The new external IP address
+    :param description: The new description
+    :param integrity_level: The new integrity level
+    :param os: The new operating system information
+    :param architecture: The new architecture
+    :param domain: The new domain
+    :param extra_info: The new "extra info" you want to store
+    :param sleep_info: The new sleep information for the callback
+    :return:
+    """
     try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        update_data = {}
+        if user is not None:
+            update_data["user"] = user
+        if host is not None:
+            update_data["host"] = host.upper()
+        if pid is not None:
+            update_data["pid"] = pid
+        if ip is not None:
+            update_data["ip"] = ip
+        if external_ip is not None:
+            update_data["external_ip"] = external_ip
+        if description is not None:
+            update_data["description"] = description
+        if integrity_level is not None:
+            update_data["integrity_level"] = integrity_level
+        if os is not None:
+            update_data["os"] = os
+        if architecture is not None:
+            update_data["architecture"] = architecture
+        if domain is not None:
+            update_data["domain"] = domain
+        if extra_info is not None:
+            update_data["extra_info"] = extra_info
+        if sleep_info is not None:
+            update_data["sleep_info"] = sleep_info
         from app.api.callback_api import update_callback
         status = await update_callback(
-            request["callback_info"], task.callback.agent_callback_id
+            update_data, task.callback.agent_callback_id
         )
         return status
     except Exception as e:
-        print("error in task_update:" + str(e))
+        logger.warning("rabbitmq_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
 
 
-async def update_task(request, task):
+async def create_artifact(task_id: int, artifact_type: str, artifact: str, host: str = None):
+    """
+    Create a new artifact for a certain task on a host
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param artifact_type: What kind of artifact is this (Process Create, File Write, etc). If the type specified doesn't exist, it will be created
+    :param artifact: The actual artifact that was created
+    :param host: Which host the artifact was created on. If none is provided, the current task's host is used
+    :return:
+    """
     try:
-        if "status" in request:
-            task.status = request["status"]
-        if "completed" in request:
-            task.completed = request["completed"]
-        await db_objects.update(task)
-        return {"status": "success"}
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
     except Exception as e:
-        return {"status": "error", "error": str(e)}
-
-
-async def register_artifact(request, task):
-    # {"action": "register_artifact",
-    # "task_id": self.task_id,
-    # "host": host, (could be None)
-    # "artifact_instance": artifact_instance,
-    # "artifact": artifact_type
-    # })
+        return {"status": "error", "error": "Failed to find task"}
     try:
         # first try to look for the artifact type, if it doesn't exist, create it
-        query = await db_model.artifact_query()
-        artifact = await db_objects.get(query, name=request["artifact"].encode("utf-8"))
+        base_artifact = await app.db_objects.get(db_model.artifact_query, name=artifact_type)
     except Exception as e:
-        artifact = await db_objects.create(db_model.Artifact, name=request["artifact"].encode("utf-8"))
+        base_artifact = await app.db_objects.create(db_model.Artifact, name=artifact_type)
     try:
-        if "host" not in request or request["host"] is None or request["host"] == "":
-            request["host"] = task.callback.host.upper()
-        art = await db_objects.create(
+        artifact_host = host.upper() if host is not None else task.callback.host.upper()
+        art = await app.db_objects.create(
             db_model.TaskArtifact,
             task=task,
-            artifact_instance=request["artifact_instance"].encode("utf-8"),
-            artifact=artifact,
-            host=request["host"].upper(),
+            artifact_instance=artifact.encode("utf-8"),
+            artifact=base_artifact,
+            host=artifact_host,
             operation=task.callback.operation,
         )
-        asyncio.create_task(log_to_siem(art.to_json(), mythic_object="artifact_new"))
+        asyncio.create_task(log_to_siem(mythic_object=art, mythic_source="artifact_new"))
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": "failed to create task artifact: " + str(e)}
 
 
-async def register_payload_on_host(request, task):
-    # {"action": "register_payload_on_host",
-    # "task_id": self.task_id,
-    # "host": host,
-    # "uuid": payload uuid
-    # })
+async def create_payload_on_host(task_id: int, payload_uuid: str, host: str):
+    """
+    Register within Mythic that the specified payload exists on the specified host as a result of this tasking
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param payload_uuid: The payload that will be associated with the host
+    :param host: The host that will have the payload on it
+    :return:
+    """
     try:
-        payloadquery = await db_model.payload_query()
-        payload = await db_objects.get(payloadquery, uuid=request["uuid"], operation=task.operation)
-        payload_on_host = await db_objects.create(db_model.PayloadOnHost, payload=payload,
-                                                  host=request["host"].upper(), operation=task.operation, task=task)
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        payload = await app.db_objects.get(db_model.payload_query, uuid=payload_uuid, operation=task.operation)
+        payload_on_host = await app.db_objects.create(db_model.PayloadOnHost, payload=payload,
+                                                  host=host.upper(), operation=task.operation, task=task)
         return {"status": "success"}
     except Exception as e:
-        return {"status": "error", "error": "Failed to find payload"}
+        return {"status": "error", "error": "Failed to register payload on host:\n" + str(e)}
 
 
-async def get_security_context_of_running_jobs_on_host(request, task):
+async def get_tasks(task_id: int, host: str = None, ):
+    """
+    Get all of the currently running tasks on the current host or on a specific host
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param host: The name of the host to check for running tasks
+    :return: An array of JSON objects representing the tasks running
+    """
     # this needs host name, task_id
     # this returns a list of all jobs that are not errored or completed on that host for the task's callback
     #   and for each one returns the security context (which token is associated with each job)
-    task_query = await db_model.task_query()
-    tasks = await db_objects.execute(task_query.where(
-        (db_model.Callback.host == request["host"].upper()) &
-        (db_model.Task.status != "error") &
-        (db_model.Task.completed == False)
-    ))
-    response = []
-    for t in tasks:
-        response.append(t.to_json())
-    return response
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        if host is None:
+            search_host = task.callback.host
+        else:
+            search_host = host.upper()
+        tasks = await app.db_objects.execute(db_model.task_query.where(
+            (db_model.Callback.host == search_host) &
+            (db_model.Task.status != "error") &
+            (db_model.Task.completed == False)
+        ))
+        response = []
+        for t in tasks:
+            response.append(t.to_json())
+        return {"status": "success", "response": response}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
-async def rpc_tokens(request, task):
-    # { "action": "rpc_tokens",
-    # "add": [ {token info} ], // this will update if it already exists
-    # "remove": [ {token info} ],
-    # "host": "hostname in question"
-    # }
-    tokenquery = await db_model.token_query()
-    for t in request["add"]:
-        try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper(), deleted=False)
-        except Exception as e:
-            token = await db_objects.create(db_model.Token, TokenId=t["TokenId"], host=request["host"].upper(),
-                                            task=task)
-        for k, v in t.items():
+async def create_token(task_id: int, TokenId: int, host: str = None, **kwargs):
+    """
+    Create or update a token on a host. The `TokenId` is a unique identifier for the token on the host and is how Mythic identifies tokens as well. A token's `AuthenticationId` is used to link a Token to a LogonSession per Windows documentation, so when setting that value, if the associated LogonSession object doesnt' exist, Mythic will make it.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param TokenId: The integer token identifier value that uniquely identifies this token on this host
+    :param host: The host where the token exists
+    :param kwargs: The `Mythic/mythic-docker/app/database_models/model.py` Token class has all of the possible values you can set when creating/updating tokens. There are too many to list here individually, so a generic kwargs is specified.
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        token_host = host.upper() if host is not None else task.callback.host
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find task"}
+    try:
+        token = await app.db_objects.get(db_model.token_query, TokenId=TokenId, host=host.upper(), deleted=False)
+    except Exception as e:
+        token = await app.db_objects.create(db_model.Token, TokenId=TokenId, host=token_host, task=task)
+    try:
+        for k, v in kwargs.items():
             if hasattr(token, k):
                 # we want to handle foreign keys separately
                 if k == "AuthenticationId":
-                    auth_query = await db_model.logonsession_query()
                     try:
-                        session = await db_objects.get(auth_query, LogonId=v, host=request["host"].upper(), deleted=False)
+                        session = await app.db_objects.get(db_model.logonsession_query, LogonId=v, host=token_host, deleted=False)
                     except Exception as e:
-                        session = await db_objects.create(db_model.LogonSession, LogonId=v, host=request["host"].upper(),
-                                                          task=task)
+                        session = await app.db_objects.create(db_model.LogonSession, LogonId=v, host=token_host, task=task)
                     setattr(token, k, session)
-
                 else:
                     setattr(token, k, v)
-        await db_objects.update(token)
-    for t in request["remove"]:
-        try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper())
-            token.deleted = True
-            await db_objects.update(token)
-        except Exception as e:
-            pass
+        await app.db_objects.update(token)
+        return {"status": "success", "response": token.to_json()}
+    except Exception as e:
+        return {"status": "error", "error": "Failed to create/update token:\n" + str(e)}
+
+
+async def delete_token(TokenId: int, host: str):
+    """
+    Mark a specific token as "deleted" on a specific host.
+    :param TokenId: The token that should be deleted
+    :param host: The host where this token exists
+    :return: Success or Error
+    """
+    try:
+        token = await app.db_objects.get(db_model.token_query, TokenId=TokenId, host=host.upper())
+        token.deleted = True
+        await app.db_objects.update(token)
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find/delete token:\n" + str(e)}
     return {"status": "success"}
 
 
-async def rpc_logon_sessions(request, task):
-    # { "action": "rpc_logon_sessions",
-    # "add": [ {session info} ], // this will update if it already exists
-    # "remove": [ {session info} ],
-    # "host": "hostname in question"
-    # }
-    sessionquery = await db_model.logonsession_query()
-    for t in request["add"]:
+async def create_logon_session(task_id: int, LogonId: int, host: str = None, **kwargs):
+    """
+    Create a new logon session for this host
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param LogonId: The integer logon identifier value that uniquely identifies this logon session on this host
+    :param host: The host where this logon session exists
+    :param kwargs: The `Mythic/mythic-docker/app/database_models/model.py` LogonSession class has all of the possible values you can set when creating/updating logon sessions. There are too many to list here individually, so a generic kwargs is specified.
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        session_host = host.upper() if host is not None else task.callback.host
         try:
-            session = await db_objects.get(sessionquery, LogonId=t["LogonId"], host=request["host"].upper(), deleted=False)
+            session = await app.db_objects.get(db_model.logonsession_query, LogonId=LogonId, host=session_host, deleted=False)
         except Exception as e:
-            session = await db_objects.create(db_model.LogonSession, LogonId=request["LogonId"], host=request["host"].upper(),
+            session = await app.db_objects.create(db_model.LogonSession, LogonId=LogonId, host=session_host,
                                             task=task)
-        for k, v in t.items():
+        for k, v in kwargs.items():
             if hasattr(session, k):
                 setattr(session, k, v)
-        await db_objects.update(session)
-    for t in request["remove"]:
-        try:
-            session = await db_objects.get(sessionquery, LogonId=t["LogonId"], host=request["host"].upper())
-            session.deleted = True
-            await db_objects.update(session)
-        except Exception as e:
-            pass
-    return {"status": "success"}
+        await app.db_objects.update(session)
+        return {"status": "success"}
+    except Exception as d:
+        return {"status": "error", "error": "Failed to create logon session:\n" + str(d)}
 
 
-async def rpc_callback_tokens(request, task):
-    # { "action": "rpc_callback_tokens",
-    # "add": [ {token info} ], // this will update if it already exists
-    # "remove": [ {token info} ],
-    # "host": "hostname in question"
-    # }
-    callbacktokenquery = await db_model.callbacktoken_query()
-    tokenquery = await db_model.token_query()
-    for t in request["add"]:
-        # first get/create the token as needed
+async def delete_logon_session(LogonId: int, host: str):
+    """
+    Mark a specified logon session as "deleted" on a specific host
+    :param LogonId: The Logon Session that should be deleted
+    :param host: The host where the logon session used to be
+    :return: Success or Error
+    """
+    try:
+        session = await app.db_objects.get(db_model.logonsession_query, LogonId=LogonId, host=host.upper())
+        session.deleted = True
+        await app.db_objects.update(session)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find/delete that logon session on that host:\n" + str(e)}
+
+
+async def create_callback_token(task_id: int, TokenID: int, host: str = None):
+    """
+    Associate a token with a callback for usage in further tasking.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param TokenID: The token you want to associate with this callback
+    :param host: The host where the token exists
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.token_query, id=task_id)
+        token_host = host.upper() if host is not None else task.callback.host
         try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper(), deleted=False)
+            token = await app.db_objects.get(db_model.token_query, TokenId=TokenID, host=token_host, deleted=False)
         except Exception as e:
-            token = await db_objects.create(db_model.Token, TokenId=t["TokenId"], host=request["host"].upper(),
-                                            task=task)
-        for k, v in t.items():
-            if hasattr(token, k):
-                # we want to handle foreign keys separately
-                if k == "AuthenticationId":
-                    auth_query = await db_model.logonsession_query()
-                    try:
-                        session = await db_objects.get(auth_query, LogonId=v, host=request["host"].upper(), deleted=False)
-                    except Exception as e:
-                        session = await db_objects.create(db_model.LogonSession, LogonId=v, host=request["host"].upper(),
-                                                          task=task)
-                    setattr(token, k, session)
-                else:
-                    setattr(token, k, v)
-        await db_objects.update(token)
+            token = await app.db_objects.create(db_model.Token, TokenId=TokenID, host=token_host, task=task)
         # then try to associate it with our callback
         try:
-            callbacktoken = await db_objects.get(callbacktokenquery, token=token, callback=task.callback,
-                                                 deleted=False, host=request["host"].upper())
+            callbacktoken = await app.db_objects.get(db_model.callbacktoken_query, token=token, callback=task.callback,
+                                                 deleted=False, host=token_host)
         except Exception as e:
-            callbacktoken = await db_objects.create(db_model.CallbackToken, token=token, callback=task.callback,
-                                                    task=task, host=request["host"].upper())
-    for t in request["remove"]:
+            callbacktoken = await app.db_objects.create(db_model.CallbackToken, token=token, callback=task.callback,
+                                                    task=task, host=token_host)
+        return {"status": "success"}
+    except Exception as d:
+        return {"status": "error", "error": "Failed to get token and associate it:\n" + str(d)}
+
+
+async def delete_callback_token(task_id: int, TokenID: int, host: str = None):
+    """
+    Mark a callback token as no longer being associated
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param TokenID: The Token you want to disassociate from the task's callback
+    :param host: The host where the token exists
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.token_query, id=task_id)
+        token_host = host.upper() if host is not None else task.callback.host
         try:
-            token = await db_objects.get(tokenquery, TokenId=t["TokenId"], host=request["host"].upper())
-            callbacktoken = await db_objects.get(callbacktokenquery, token=token, callback=task.callback, deleted=False, host=request["host"].upper())
+            token = await app.db_objects.get(db_model.token_query, TokenId=TokenID, host=token_host)
+            callbacktoken = await app.db_objects.get(db_model.callbacktoken_query, token=token, callback=task.callback,
+                                                     deleted=False, host=token_host)
             callbacktoken.deleted = True
-            await db_objects.update(callbacktoken)
+            await app.db_objects.update(callbacktoken)
+            return {"status": "success"}
         except Exception as e:
-            pass
-    return {"status": "success"}
+            return {"status": "error", "error": "Failed to find and delete callback token:\n" + str(e)}
+    except Exception as d:
+        return {"status": "error", "error": "Failed to find task:\n" + str(d)}
+
+
+async def create_processes_rpc(task_id: int, processes: dict):
+    """
+    Create processes in bulk. The parameters in the "processes" dictionary are the same as those in the `create_process` RPC call.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param processes: Dictionary of the processes you want to create - the key value pairs are the same as the parameters to the `create_process` RPC call.
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        return await create_processes(processes, task)
+    except Exception as e:
+        return {"status": "error", "error": "Failed to get task or create processes:\n" + str(e)}
+
+
+async def create_process(task_id: int, host: str, process_id: int, parent_process_id: int = None,
+                         architecture: str = None, name: str = None, bin_path: str = None,
+                         user: str = None, command_line: str = None, integrity_level: int = None,
+                         start_time: str = None, description: str = None, signer: str = None):
+    """
+    Create a new process within Mythic.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param host: The host where this process exists
+    :param process_id: The process ID
+    :param parent_process_id: The process's parent process ID
+    :param architecture: The architecture for the process (x86, x64, arm, etc)
+    :param name: The name of the process
+    :param bin_path: The path to the binary that's executed
+    :param user: The user context that the process is executing
+    :param command_line: The command line that's spawned with the process
+    :param integrity_level: The integrity level of the process
+    :param start_time: When the process started
+    :param description: The description of the process
+    :param signer: The process' signing information
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        process_data = {
+            "host": host.upper(),
+            "process_id": process_id,
+            "parent_process_id": parent_process_id,
+            "architecture": architecture,
+            "name": name,
+            "bin_path": bin_path,
+            "user": user,
+            "command_line": command_line,
+            "integrity_level": integrity_level,
+            "start_time": start_time,
+            "description": description,
+            "signer": signer
+        }
+        return await create_processes([process_data], task)
+    except Exception as e:
+        return {"status": "error", "error": "Failed to create process:\n" + str(e)}
 
 
 async def create_processes(request, task):
     # perform the same additions that you could do from request_api.py to add processes
     # just offer as RPC mechanism
     try:
+        host = task.callback.host
+        if "host" in request:
+            host = request["host"].upper()
+        timestamp = datetime.datetime.utcnow()
+        bulk_insert = []
         for p in request["processes"]:
-            await db_objects.create(
-                db_model.Process,
-                task=task,
-                host=task.callback.host,
-                operation=task.callback.operation,
-                process_id=p["process_id"],
-                parent_process_id=p["parent_process_id"] if "parent_process_id" in p else None,
-                architecture=p["architecture"] if "architecture" in p else None,
-                name=p["name"] if "name" in p else None,
-                bin_path=p["bin_path"] if "bin_path" in p else None,
-                user=p["user"] if "user" in p else None
+            bulk_insert.append(
+                {
+                    "task": task,
+                    "host": host,
+                    "timestamp": timestamp,
+                    "operation": task.callback.operation,
+                    "process_id": p["process_id"],
+                    "parent_process_id": p["parent_process_id"] if "parent_process_id" in p else None,
+                    "architecture": p["architecture"] if "architecture" in p else None,
+                    "name": p["name"] if "name" in p else None,
+                    "bin_path": p["bin_path"] if "bin_path" in p else None,
+                    "user": p["user"] if "user" in p else None,
+                    "command_line": p["command_line"] if "command_line" in p else None,
+                    "integrity_level": p["integrity_level"] if "integrity_level" in p else None,
+                    "start_time": p["start_time"] if "start_time" in p else None,
+                    "description": p["description"] if "description" in p else None,
+                    "signer": p["signer"] if "signer" in p else None
+                }
             )
+        await app.db_objects.execute(db_model.Process.insert_many(bulk_insert))
         return {"status": "success"}
     except Exception as e:
+        logger.warning("rabbitmq_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
 
 
-async def search_processes(request, task):
-    process_query = await db_model.process_query()
+async def search_processes(task, **request):
     clauses = []
     for k, v in request.items():
         if k != "operation":
             clauses.append(getattr(db_model.Process, k).regexp(v))
-    results = await db_objects.execute(process_query.where(
+    results = await app.db_objects.execute(db_model.process_query.where(
         (db_model.Process.operation == task.callback.operation) &
         reduce(operator.and_, clauses)
     ))
@@ -977,86 +1136,160 @@ async def search_processes(request, task):
     return result
 
 
-async def search_database(request, task):
-    # this is the single entry point to do queries across the back-end database
-    #   for RPC calls from payload types
-    if request["table"].lower() == "process":
-        return await search_processes(request["search"], task)
-    else:
-        return {"status": "error", "error": "Search not supported yet for that table"}
+async def search_database(task_id: int, table: str, **kwargs):
+    """
+    Search the Mythic database for some data. Data is searched by regular expression for the fields specified. Because the available fields depends on the table you're searching, that argument is a generic python "kwargs" value.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param table: The name of the table you want to query (the is the same as the class name from `Mythic/mythic-docker/app/database_models/model.py`)
+    :param kwargs: These are the key=value pairs for how you're going to search the table specified. For example, searching processes where the name of "bob" and host that starts with "spooky" would have kwargs of: name="bob", host="spooky*"
+    :return:
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        # this is the single entry point to do queries across the back-end database
+        #   for RPC calls from payload types
+        if table.lower() == "process":
+            return await search_processes(task, **kwargs)
+        else:
+            return {"status": "error", "error": "Search not supported yet for that table"}
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find task or search database:\n" + str(e)}
 
 
-async def remove_files_from_file_browser(request, task):
-    filebrowserquery = await db_model.filebrowserobj_query()
-    for f in request["removed_files"]:
-        if "host" not in f or f["host"] == "":
-            f["host"] = task.callback.host
-        # we want to see if there's a filebrowserobj that matches up with the removed files
+async def delete_file_browser(task_id: int, file_path: str, host: str = None):
+    """
+    Mark a file in the file browser as deleted (typically as part of a manual removal via a task)
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param file_path: The full path to the file that's being removed
+    :param host: The host where the file existed. If you don't specify a host, the callback's host is used
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        file_host = host.upper() if host is not None else task.callback.host
         try:
-            fobj = await db_objects.get(
-                filebrowserquery,
+            fobj = await app.db_objects.get(
+                db_model.filebrowserobj_query,
                 operation=task.callback.operation,
-                host=f["host"].upper(),
-                full_path=f["path"].encode("utf-8"),
+                host=file_host,
+                full_path=file_path.encode("utf-8"),
                 deleted=False,
             )
             fobj.deleted = True
-            await db_objects.update(fobj)
+            if not fobj.is_file:
+                await mark_nested_deletes(fobj, task.callback.operation)
+            await app.db_objects.update(fobj)
+            return {"status": "success"}
         except Exception as e:
-            pass
-    return {"status": "success"}
+            return {"status": "error", "error": "Failed to mark file as deleted:\n" + str(e)}
+    except Exception as d:
+        return {"status": "error", "error": "Failed to find task:\n" + str(d)}
 
 
-async def register_keystrokes(request, task):
+async def create_keylog(task_id: int, keystrokes: str, user: str = None, window_title: str = None):
+    """
+    Create a new keylog entry in Mythic.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param keystrokes: The keys that are being registered
+    :param user: The user that performed the keystrokes. If you don't supply this, "UNKNOWN" will be used.
+    :param window_title: The title of the window where the keystrokes came from. If you don't supply this, "UNKNOWN" will be used.
+    :return: Success or Error
+    """
     try:
-        for k in request["keystrokes"]:
-            if (
-                    "window_title" not in k
-                    or k["window_title"] is None
-                    or k["window_title"] == ""
-            ):
-                k["window_title"] = "UNKNOWN"
-            if (
-                    "user" not in k
-                    or k["user"] is None
-                    or k["user"] == ""
-            ):
-                k["user"] = "UNKNOWN"
-            rsp = await db_objects.create(
-                db_model.Keylog,
-                task=task,
-                window=k["window_title"],
-                keystrokes=k["keystrokes"].encode("utf-8"),
-                operation=task.callback.operation,
-                user=k["user"],
-            )
-            asyncio.create_task(log_to_siem(rsp.to_json(), mythic_object="keylog_new"))
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        rsp = await app.db_objects.create(
+            db_model.Keylog,
+            task=task,
+            window=window_title if window_title is not None else "UNKNOWN",
+            keystrokes=keystrokes.encode("utf-8"),
+            operation=task.callback.operation,
+            user=user if user is not None else "UNKNOWN",
+        )
+        asyncio.create_task(log_to_siem(mythic_object=rsp, mythic_source="keylog_new"))
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-async def register_credentials(request, task):
+async def create_credential(task_id: int, credential_type: str, account: str, realm: str, credential: str,
+                            metadata: str = "", comment: str = None):
+    """
+    Create a new credential within Mythic to be leveraged in future tasks
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param credential_type: The type of credential we're storing (plaintext, hash, ticket, certificate, token)
+    :param account: The account associated with the credential
+    :param realm: The realm for the credential (sometimes called the domain)
+    :param credential: The credential value itself
+    :param metadata: Any additional metadata you want to store about the credential
+    :param comment: Any comment you want to store about it the credential
+    :return: Success or Error
+    """
     try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
         from app.api.credential_api import create_credential_func
-        for cred in request["credentials"]:
-            cred["task"] = task
-            asyncio.create_task(create_credential_func(
-                task.operator, task.callback.operation, cred
-            ))
+        cred = {
+            "task": task,
+            "type": credential_type,
+            "account": account,
+            "realm": realm,
+            "credential": credential,
+            "comment": comment,
+            "metadata": metadata
+        }
+        asyncio.create_task(create_credential_func(
+            task.operator, task.callback.operation, cred
+        ))
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-async def add_files_to_file_browser(request, task):
-    from app.api.file_browser_api import (
-        store_response_into_filebrowserobj,
-    )
-    status = await store_response_into_filebrowserobj(
-        task.callback.operation, task, request["file_browser"]
-    )
-    return status
+async def create_file_browser(task_id: int, host: str, name: str, full_path: str, permissions: dict = None,
+                              access_time: str = "", modify_time: str = "", comment: str = "",
+                              is_file: bool = True, size: str = "", success: bool = True, files: [dict] = None,
+                              update_deleted: bool = False):
+    """
+    Add file browser content to the file browser user interface.
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param host: Which host this data is from (useful for remote file listings)
+    :param name: Name of the file/folder that was listed
+    :param full_path: Full path of the file/folder that was listed (useful in case the operator said to ls `.` or a relative path)
+    :param permissions: Dictionary of permissions. The key/values here are completely up to you and are displayed as key/value pairs in the UI
+    :param access_time: String representation of when the file/folder was last accessed
+    :param modify_time: String representation of when the file/folder was last modified
+    :param comment: Any comment you might want to add to this file/folder
+    :param is_file: Is this a file?
+    :param size: Size of the file (can be an int or something human readable, like 10MB)
+    :param success: True/False if you successfully listed this file. A False value (like from an access denied) will appear as a red X in the UI
+    :param files: Array of dictionaries of information for all of the files in this folder (or an empty array of this is a file). Each dictionary has all of the same pieces of information as the main folder itself.
+    :param update_deleted: True or False indicating if this file browser data should be used to automatically update deleted files for the listed folder. This defaults to false, but if set to true and there are files that Mythic knows about for this folder that the passed-in data doesn't include, it will be marked as deleted.
+    :return:
+    """
+    if permissions is None:
+        permissions = {}
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        request = {
+            "host": host.upper(),
+            "name": name,
+            "full_path": full_path,
+            "permissions": permissions if permissions is not None else {},
+            "access_time": access_time,
+            "modify_time": modify_time,
+            "comment": comment,
+            "is_file": is_file,
+            "size": size,
+            "success": success,
+            "update_deleted": update_deleted,
+            "files": files if files is not None else []
+        }
+        from app.api.file_browser_api import store_response_into_filebrowserobj
+        status = await store_response_into_filebrowserobj(
+            task.callback.operation, task, request
+        )
+        return status
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find task or store data:\n" + str(e)}
 
 
 async def rabbit_c2_rpc_callback(
@@ -1066,15 +1299,7 @@ async def rabbit_c2_rpc_callback(
         # print(message)
         request = json.loads(message.body.decode())
         if "action" in request:
-            if request["action"] == "add_route":
-                response = await add_route(request)
-            elif request["action"] == "remove_route":
-                response = await remove_route(request)
-            elif request["action"] == "get_callback_info":
-                response = await get_callback_info(request)
-            elif request["action"] == "update_callback_info":
-                response = await update_callback_info(request)
-            elif request["action"] == "add_event_message":
+            if request["action"] == "add_event_message":
                 response = await add_event_message(request)
             else:
                 response = {"status": "error", "error": "unknown action"}
@@ -1095,12 +1320,11 @@ async def rabbit_c2_rpc_callback(
             error += "\nResponse: {}\nCorrelation_id: {}\n RoutingKey: {}".format(
                 str(response), message.correlation_id, message.reply_to
             )
-            operation_query = await db_model.operation_query()
-            operations = await db_objects.execute(
-                operation_query.where(db_model.Operation.complete == False)
+            operations = await app.db_objects.execute(
+                db_model.operation_query.where(db_model.Operation.complete == False)
             )
             for o in operations:
-                await db_objects.create(
+                await app.db_objects.create(
                     db_model.OperationEventLog,
                     level="warning",
                     operation=o,
@@ -1108,95 +1332,40 @@ async def rabbit_c2_rpc_callback(
                 )
 
 
-async def get_callback_info(request):
-    try:
-        query = await db_model.callback_query()
-        callback = await db_objects.get(query, agent_callback_id=request["uuid"])
-        cjson = callback.to_json()
-        cjson["encryption_type"] = callback.encryption_type
-        cjson["encryption_key"] = callback.encryption_key
-        cjson["decryption_key"] = callback.decryption_key
-        return {"status": "success", "response": cjson}
-    except Exception as e:
-        return {"status": "error", "error": str(e)}
-
-
-async def update_callback_info(request):
-    try:
-        from app.api.callback_api import update_callback
-
-        status = await update_callback(request["data"], request["uuid"])
-        return status
-    except Exception as e:
-        return {"status": "error", "error": str(e)}
-
-
 async def add_event_message(request):
     try:
-        operation_query = await db_model.operation_query()
-        operations = await db_objects.execute(
-            operation_query.where(db_model.Operation.complete == False)
+        operations = await app.db_objects.execute(
+            db_model.operation_query.where(db_model.Operation.complete == False)
         )
         for o in operations:
-            msg = await db_objects.create(
+            msg = await app.db_objects.create(
                 db_model.OperationEventLog,
                 level=request["level"],
                 operation=o,
                 message=request["message"],
             )
-            await log_to_siem(msg.to_json(), mythic_object="eventlog_new")
+            asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_new"))
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-async def add_route(request):
-    # {"action": "add_route",
-    # "source": source_uuid,
-    # "destination": destination_uuid,
-    # "direction": direction,
-    # "metadata": metadata
-    # }
-    from app.api.callback_api import add_p2p_route
-
-    request["action"] = "add"
-    rsp = await add_p2p_route(request, None, None)
-    return rsp
-
-
-async def remove_route(request):
-    # {"action": "remove_route",
-    # "source": source_uuid,
-    # "destination": destination_uuid,
-    # "direction": direction,
-    # "metadata": metadata
-    # }
-    from app.api.callback_api import add_p2p_route
-
-    request["action"] = "remove"
-    rsp = await add_p2p_route(request, None, None)
-    return rsp
-
-
 async def add_command_attack_to_task(task, command):
     try:
-        query = await db_model.attackcommand_query()
-        attack_mappings = await db_objects.execute(
-            query.where(db_model.ATTACKCommand.command == command)
+        attack_mappings = await app.db_objects.execute(
+            db_model.attackcommand_query.where(db_model.ATTACKCommand.command == command)
         )
         for attack in attack_mappings:
             try:
-                query = await db_model.attacktask_query()
                 # try to get the query, if it doens't exist, then create it in the exception
-                await db_objects.get(query, task=task, attack=attack.attack)
+                await app.db_objects.get(db_model.attacktask_query, task=task, attack=attack.attack)
             except Exception as e:
-                attack = await db_objects.create(
+                attack = await app.db_objects.create(
                     db_model.ATTACKTask, task=task, attack=attack.attack
                 )
-                asyncio.create_task(log_to_siem(attack.to_json(), mythic_object="task_mitre_attack"))
+                asyncio.create_task(log_to_siem(mythic_object=attack, mythic_source="task_mitre_attack"))
     except Exception as e:
-        # logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.warning("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         raise e
 
 
@@ -1209,9 +1378,8 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
         # ))
         try:
             if pieces[0] == "c2":
-                query = await db_model.c2profile_query()
                 try:
-                    profile = await db_objects.get(query, name=pieces[2], deleted=False)
+                    profile = await app.db_objects.get(db_model.c2profile_query, name=pieces[2], deleted=False)
                 except Exception as e:
                     if pieces[2] not in sync_tasks:
                         sync_tasks[pieces[2]] = True
@@ -1228,21 +1396,19 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                     if profile.running:
                         asyncio.create_task(
                             send_all_operations_message(message=f"{profile.name}'s internal server stopped",
-                                                        level="warning", source="c2_stopped"))
+                                                        level="warning"))
                         profile.running = False  # container just started, clearly the inner service isn't running
-                    # print("setting running to false")
                 profile.container_running = True
                 profile.last_heartbeat = datetime.datetime.utcnow()
-                await db_objects.update(profile)
+                await app.db_objects.update(profile)
             elif pieces[0] == "pt":
-                ptquery = await db_model.payloadtype_query()
                 try:
-                    payload_type = await db_objects.get(
-                        ptquery, ptype=pieces[2], deleted=False
+                    payload_type = await app.db_objects.get(
+                        db_model.payloadtype_query, ptype=pieces[2], deleted=False
                     )
                     payload_type.container_running = True
                     payload_type.last_heartbeat = datetime.datetime.utcnow()
-                    await db_objects.update(payload_type)
+                    await app.db_objects.update(payload_type)
                 except Exception as e:
                     if pieces[2] not in sync_tasks:
                         # don't know the ptype, but haven't sent a sync request either, wait for an auto sync
@@ -1254,11 +1420,46 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                             send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
                                                         level="info", source="payload_sync_send"))
                         await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "", "")
+            elif pieces[0] == "tr":
+                if len(pieces) == 4:
+                    if int(pieces[3]) > valid_translation_container_version_bounds[1] or \
+                            int(pieces[3]) < valid_translation_container_version_bounds[0]:
+                        asyncio.create_task(
+                            send_all_operations_message(
+                                message="Translation container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
+                                    pieces[2], pieces[3], str(valid_translation_container_version_bounds[0]),
+                                    str(valid_translation_container_version_bounds[1])
+                                ), level="warning", source="bad_translation_version"))
+                        return
+                else:
+                    asyncio.create_task(
+                        send_all_operations_message(
+                            message="Translation container, {}, of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
+                                pieces[2],
+                                str(valid_translation_container_version_bounds[0]),
+                                str(valid_translation_container_version_bounds[1])
+                            ), level="warning", source="bad_translation_version"))
+                    return
+                try:
+                    translation_container = await app.db_objects.get(db_model.translationcontainer_query,
+                                                                     name=pieces[2], deleted=False)
+
+                except Exception as e:
+                    translation_container = await app.db_objects.create(db_model.TranslationContainer,
+                                                                        name=pieces[2])
+                    payloads = await app.db_objects.execute(db_model.payloadtype_query)
+                    for p in payloads:
+                        if not p.deleted:
+                            await send_pt_rabbitmq_message(
+                                p.ptype, "sync_classes", "", "", ""
+                            )
+                translation_container.last_heartbeat = datetime.datetime.utcnow()
+                translation_container.container_running = True
+                await app.db_objects.update(translation_container)
         except Exception as e:
             logger.exception(
                 "Exception in rabbit_heartbeat_callback: {}, {}".format(pieces, str(e))
             )
-            # print("Exception in rabbit_heartbeat_callback: {}, {}".format(pieces, str(e)))
 
 
 # just listen for c2 heartbeats and update the database as necessary
@@ -1330,7 +1531,7 @@ async def connect_and_consume_c2():
                 "mythic_traffic", aio_pika.ExchangeType.TOPIC
             )
             # get a random queue that only the mythic server will use to listen on to catch all heartbeats
-            queue = await channel.declare_queue("", auto_delete=True)
+            queue = await channel.declare_queue("consume_c2", auto_delete=True)
             # bind the queue to the exchange so we can actually catch messages
             await queue.bind(exchange="mythic_traffic", routing_key="c2.status.#")
 
@@ -1343,7 +1544,6 @@ async def connect_and_consume_c2():
                 logger.exception(
                     "Exception in connect_and_consume .consume: {}".format(str(e))
                 )
-                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except (ConnectionError, ConnectionRefusedError) as c:
             logger.error("Connection to rabbitmq failed, trying again..")
         except Exception as e:
@@ -1364,7 +1564,7 @@ async def connect_and_consume_pt():
                 "mythic_traffic", aio_pika.ExchangeType.TOPIC
             )
             # get a random queue that only the mythic server will use to listen on to catch all heartbeats
-            queue = await channel.declare_queue("", auto_delete=True)
+            queue = await channel.declare_queue("consume_pt", auto_delete=True)
             # bind the queue to the exchange so we can actually catch messages
             await queue.bind(exchange="mythic_traffic", routing_key="pt.status.#")
             await channel.set_qos(prefetch_count=50)
@@ -1376,14 +1576,12 @@ async def connect_and_consume_pt():
                 logger.exception(
                     "Exception in connect_and_consume .consume: {}".format(str(r))
                 )
-                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except (ConnectionError, ConnectionRefusedError) as c:
             logger.error("Connection to rabbitmq failed, trying again..")
         except Exception as e:
             logger.exception(
                 "Exception in connect_and_consume connect: {}".format(str(e))
             )
-            # print("Exception in connect_and_consume connect: {}".format(str(e)))
         await asyncio.sleep(2)
 
 
@@ -1393,27 +1591,16 @@ async def connect_and_consume_rpc():
         try:
             connection = await mythic_rabbitmq_connection()
             channel = await connection.channel()
-            # get a random queue that only the mythic server will use to listen on to catch all heartbeats
-            queue = await channel.declare_queue("rpc_queue", auto_delete=True)
+            #queue = await channel.declare_queue("rpc_queue", auto_delete=True)
+            rpc = await aio_pika.patterns.RPC.create(channel)
+            await register_rpc_endpoints(rpc)
             await channel.set_qos(prefetch_count=50)
-            logger.info("Waiting for messages in connect_and_consume_rpc.")
-            try:
-                task = queue.consume(
-                    partial(rabbit_pt_rpc_callback, channel.default_exchange)
-                )
-                result = await asyncio.wait_for(task, None)
-            except Exception as e:
-                logger.exception(
-                    "Exception in connect_and_consume_rpc .consume: {}".format(str(e))
-                )
-                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except (ConnectionError, ConnectionRefusedError) as c:
             logger.error("Connection to rabbitmq failed, trying again..")
         except Exception as e:
             logger.exception(
                 "Exception in connect_and_consume_rpc connect: {}".format(str(e))
             )
-            # print("Exception in connect_and_consume connect: {}".format(str(e)))
         await asyncio.sleep(2)
 
 
@@ -1438,14 +1625,12 @@ async def connect_and_consume_c2_rpc():
                         str(e)
                     )
                 )
-                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except (ConnectionError, ConnectionRefusedError) as c:
             logger.error("Connection to rabbitmq failed, trying again..")
         except Exception as e:
             logger.exception(
                 "Exception in connect_and_consume_c2_rpc connect: {}".format(str(e))
             )
-            # print("Exception in connect_and_consume connect: {}".format(str(e)))
         await asyncio.sleep(2)
 
 
@@ -1460,7 +1645,7 @@ async def connect_and_consume_heartbeats():
                 "mythic_traffic", aio_pika.ExchangeType.TOPIC
             )
             # get a random queue that only the mythic server will use to listen on to catch all heartbeats
-            queue = await channel.declare_queue("", auto_delete=True)
+            queue = await channel.declare_queue("heartbeats", auto_delete=True)
             # bind the queue to the exchange so we can actually catch messages
             await queue.bind(exchange="mythic_traffic", routing_key="*.heartbeat.#")
             await channel.set_qos(prefetch_count=20)
@@ -1472,14 +1657,12 @@ async def connect_and_consume_heartbeats():
                 logger.exception(
                     "Exception in connect_and_consume .consume: {}".format(str(e))
                 )
-                # print("Exception in connect_and_consume .consume: {}".format(str(e)))
         except (ConnectionError, ConnectionRefusedError) as c:
             logger.error("Connection to rabbitmq failed, trying again..")
         except Exception as e:
             logger.exception(
                 "Exception in connect_and_consume connect: {}".format(str(e))
             )
-            # print("Exception in connect_and_consume connect: {}".format(str(e)))
         await asyncio.sleep(2)
 
 
@@ -1504,7 +1687,7 @@ async def send_c2_rabbitmq_message(name, command, message_body, username):
         await connection.close()
         return {"status": "success"}
     except Exception as e:
-        logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.exception("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": "Failed to connect to rabbitmq, refresh"}
 
 
@@ -1532,7 +1715,7 @@ async def send_pt_rabbitmq_message(payload_type, command, message_body, username
         await connection.close()
         return {"status": "success"}
     except Exception as e:
-        logger.exception(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.exception("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": "Failed to connect to rabbitmq, refresh"}
 
 
@@ -1547,7 +1730,7 @@ class MythicBaseRPC:
     async def connect(self):
         self.connection = await mythic_rabbitmq_connection()
         self.channel = await self.connection.channel()
-        self.callback_queue = await self.channel.declare_queue(exclusive=True, auto_delete=True)
+        self.callback_queue = await self.channel.declare_queue(exclusive=False, auto_delete=True)
         await self.callback_queue.consume(self.on_response)
         return self
 
@@ -1563,7 +1746,6 @@ class MythicBaseRPC:
                 await self.connect()
             correlation_id = str(uuid.uuid4())
             future = self.loop.create_future()
-
             self.futures[correlation_id] = future
             try:
                 await self.channel.get_queue(receiver)
@@ -1592,3 +1774,49 @@ class MythicBaseRPC:
                                             level="warning", source="rabbitmq_container_exception"))
             logger.warning("rabbitmq.py: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             return b"", False
+
+
+async def register_rpc_endpoints(rpc):
+    for k,v in exposed_rpc_endpoints.items():
+        await rpc.register(k, v, auto_delete=True)
+    await rpc.register("get_rpc_functions", get_rpc_functions, auto_delete=True)
+
+
+def get_rpc_functions():
+    import inspect
+    output = ""
+    for k, v in exposed_rpc_endpoints.items():
+        output += k + str(inspect.signature(v))
+        if v.__doc__ is not None:
+            output += v.__doc__ + "\n"
+        else:
+            output += "\n"
+    return {"status": "success", "response": output}
+
+
+exposed_rpc_endpoints = {
+    "create_file": create_file,
+    "get_file": get_file,
+    "get_payload": get_payload,
+    "get_tasks": get_tasks,
+    "create_payload_from_uuid": create_payload_from_uuid,
+    "create_payload_from_parameters": create_payload_from_parameters,
+    "create_processes": create_processes_rpc,
+    "create_process": create_process,
+    "create_artifact": create_artifact,
+    "create_keylog": create_keylog,
+    "create_output": create_output,
+    "create_credential": create_credential,
+    "create_file_browser": create_file_browser,
+    "create_payload_on_host": create_payload_on_host,
+    "create_logon_session": create_logon_session,
+    "create_callback_token": create_callback_token,
+    "create_token": create_token,
+    "delete_token": delete_token,
+    "delete_file_browser": delete_file_browser,
+    "delete_logon_session": delete_logon_session,
+    "delete_callback_token": delete_callback_token,
+    "update_callback": update_callback,
+    "search_database": search_database,
+    "control_socks": control_socks
+}

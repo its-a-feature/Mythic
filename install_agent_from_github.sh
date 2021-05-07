@@ -35,10 +35,10 @@ echo -e "${BLUE}[*]${NC} Pulling down remote repo via git"
 if [ $# -eq 2 ]
 then
         echo -e "${BLUE}[*]${NC} Installing From Branch: $2"
-        git clone --recurse-submodules --single-branch --branch $2 $1 temp
+        git -c http.sslVerify=false clone --recurse-submodules --single-branch --branch $2 $1 temp
 else
         echo -e "${BLUE}[*]${NC} Installing From master"
-        git clone --recurse-submodules --single-branch $1 temp
+        git -c http.sslVerify=false clone --recurse-submodules --single-branch $1 temp
 fi
 if [ $? -ne 0 ]
 then

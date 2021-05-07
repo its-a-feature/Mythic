@@ -382,18 +382,19 @@
   - role: developer
     permission:
       columns:
-      - id
-      - operator_id
-      - script
-      - command_id
-      - payload_type_id
-      - creation_time
-      - name
       - active
       - author
-      - user_modified
+      - command_id
       - container_version
       - container_version_author
+      - creation_time
+      - for_new_ui
+      - id
+      - name
+      - operator_id
+      - payload_type_id
+      - script
+      - user_modified
       filter:
         _or:
         - operator_id:
@@ -405,17 +406,18 @@
     permission:
       columns:
       - active
-      - user_modified
-      - command_id
-      - id
-      - operator_id
-      - payload_type_id
       - author
+      - command_id
       - container_version
       - container_version_author
-      - name
-      - script
       - creation_time
+      - for_new_ui
+      - id
+      - name
+      - operator_id
+      - payload_type_id
+      - script
+      - user_modified
       filter:
         _or:
         - operator_id:
@@ -427,17 +429,18 @@
     permission:
       columns:
       - active
-      - user_modified
-      - command_id
-      - id
-      - operator_id
-      - payload_type_id
       - author
+      - command_id
       - container_version
       - container_version_author
-      - name
-      - script
       - creation_time
+      - for_new_ui
+      - id
+      - name
+      - operator_id
+      - payload_type_id
+      - script
+      - user_modified
       filter:
         _or:
         - operator_id:
@@ -449,17 +452,18 @@
     permission:
       columns:
       - active
-      - user_modified
-      - command_id
-      - id
-      - operator_id
-      - payload_type_id
       - author
+      - command_id
       - container_version
       - container_version_author
-      - name
-      - script
       - creation_time
+      - for_new_ui
+      - id
+      - name
+      - operator_id
+      - payload_type_id
+      - script
+      - user_modified
       filter:
         _or:
         - operator_id:
@@ -471,17 +475,18 @@
     permission:
       columns:
       - active
-      - user_modified
-      - command_id
-      - id
-      - operator_id
-      - payload_type_id
       - author
+      - command_id
       - container_version
       - container_version_author
-      - name
-      - script
       - creation_time
+      - for_new_ui
+      - id
+      - name
+      - operator_id
+      - payload_type_id
+      - script
+      - user_modified
       filter:
         _or:
         - operator_id:
@@ -1138,9 +1143,6 @@
     schema: public
     name: callback
   object_relationships:
-  - name: callback
-    using:
-      foreign_key_constraint_on: pcallback_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
@@ -1164,6 +1166,13 @@
         table:
           schema: public
           name: c2profileparametersinstance
+  - name: callbackaccesstimes
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          schema: public
+          name: callbackaccesstime
   - name: callbackc2profiles
     using:
       foreign_key_constraint_on:
@@ -1185,13 +1194,6 @@
         table:
           schema: public
           name: callbackgraphedge
-  - name: callbacks
-    using:
-      foreign_key_constraint_on:
-        column: pcallback_id
-        table:
-          schema: public
-          name: callback
   - name: callbacktokens
     using:
       foreign_key_constraint_on:
@@ -1206,13 +1208,6 @@
         table:
           schema: public
           name: loadedcommands
-  - name: payloads
-    using:
-      foreign_key_constraint_on:
-        column: pcallback_id
-        table:
-          schema: public
-          name: payload
   - name: tasks
     using:
       foreign_key_constraint_on:
@@ -1250,7 +1245,6 @@
       - port
       - extra_info
       - sleep_info
-      - pcallback_id
       - socks_task_id
       filter:
         operation_id:
@@ -1265,7 +1259,6 @@
       - locked_operator_id
       - operation_id
       - operator_id
-      - pcallback_id
       - pid
       - port
       - registered_payload_id
@@ -1299,7 +1292,6 @@
       - locked_operator_id
       - operation_id
       - operator_id
-      - pcallback_id
       - pid
       - port
       - registered_payload_id
@@ -1347,7 +1339,6 @@
       - operation_id
       - operator_id
       - os
-      - pcallback_id
       - pid
       - port
       - registered_payload_id
@@ -1369,7 +1360,6 @@
       - locked_operator_id
       - operation_id
       - operator_id
-      - pcallback_id
       - pid
       - port
       - registered_payload_id
@@ -1391,6 +1381,13 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+- table:
+    schema: public
+    name: callbackaccesstime
+  object_relationships:
+  - name: callback
+    using:
+      foreign_key_constraint_on: callback_id
 - table:
     schema: public
     name: callbackc2profiles
@@ -1867,13 +1864,6 @@
       - description
       - help_cmd
       - id
-      - is_download_file
-      - is_exit
-      - is_file_browse
-      - is_link
-      - is_process_list
-      - is_remove_file
-      - is_upload_file
       - needs_admin
       - opsec_id
       - payload_type_id
@@ -1890,13 +1880,6 @@
       - description
       - help_cmd
       - id
-      - is_download_file
-      - is_exit
-      - is_file_browse
-      - is_link
-      - is_process_list
-      - is_remove_file
-      - is_upload_file
       - needs_admin
       - opsec_id
       - payload_type_id
@@ -1913,13 +1896,6 @@
       - description
       - help_cmd
       - id
-      - is_download_file
-      - is_exit
-      - is_file_browse
-      - is_link
-      - is_process_list
-      - is_remove_file
-      - is_upload_file
       - needs_admin
       - opsec_id
       - payload_type_id
@@ -1936,13 +1912,6 @@
       - description
       - help_cmd
       - id
-      - is_download_file
-      - is_exit
-      - is_file_browse
-      - is_link
-      - is_process_list
-      - is_remove_file
-      - is_upload_file
       - needs_admin
       - opsec_id
       - payload_type_id
@@ -1959,13 +1928,6 @@
       - description
       - help_cmd
       - id
-      - is_download_file
-      - is_exit
-      - is_file_browse
-      - is_link
-      - is_process_list
-      - is_remove_file
-      - is_upload_file
       - needs_admin
       - opsec_id
       - payload_type_id
@@ -2925,13 +2887,6 @@
         table:
           schema: public
           name: process
-  - name: processlists
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          schema: public
-          name: processlist
   - name: taskartifacts
     using:
       foreign_key_constraint_on:
@@ -3515,9 +3470,6 @@
     schema: public
     name: payload
   object_relationships:
-  - name: callback
-    using:
-      foreign_key_constraint_on: pcallback_id
   - name: filemetum
     using:
       foreign_key_constraint_on: file_id
@@ -3601,6 +3553,8 @@
       - build_container
       - build_message
       - build_phase
+      - build_stderr
+      - build_stdout
       - callback_alert
       - creation_time
       - deleted
@@ -3610,7 +3564,6 @@
       - operator_id
       - os
       - payload_type_id
-      - pcallback_id
       - tag
       - task_id
       - uuid
@@ -3625,6 +3578,8 @@
       - build_container
       - build_message
       - build_phase
+      - build_stderr
+      - build_stdout
       - callback_alert
       - creation_time
       - deleted
@@ -3634,7 +3589,6 @@
       - operator_id
       - os
       - payload_type_id
-      - pcallback_id
       - tag
       - task_id
       - uuid
@@ -3649,6 +3603,8 @@
       - build_container
       - build_message
       - build_phase
+      - build_stderr
+      - build_stdout
       - callback_alert
       - creation_time
       - deleted
@@ -3658,7 +3614,6 @@
       - operator_id
       - os
       - payload_type_id
-      - pcallback_id
       - tag
       - task_id
       - uuid
@@ -3673,6 +3628,8 @@
       - build_container
       - build_message
       - build_phase
+      - build_stderr
+      - build_stdout
       - callback_alert
       - creation_time
       - deleted
@@ -3682,7 +3639,6 @@
       - operator_id
       - os
       - payload_type_id
-      - pcallback_id
       - tag
       - task_id
       - uuid
@@ -3697,6 +3653,8 @@
       - build_container
       - build_message
       - build_phase
+      - build_stderr
+      - build_stdout
       - callback_alert
       - creation_time
       - deleted
@@ -3706,7 +3664,6 @@
       - operator_id
       - os
       - payload_type_id
-      - pcallback_id
       - tag
       - task_id
       - uuid
@@ -4044,6 +4001,10 @@
 - table:
     schema: public
     name: payloadtype
+  object_relationships:
+  - name: translationcontainer
+    using:
+      foreign_key_constraint_on: translation_container_id
   array_relationships:
   - name: browserscripts
     using:
@@ -4105,13 +4066,13 @@
       - file_extension
       - id
       - last_heartbeat
+      - mythic_encrypts
       - note
       - ptype
-      - mythic_encrypts
       - service
       - supported_os
       - supports_dynamic_loading
-      - translation_container
+      - translation_container_id
       - wrapper
       filter: {}
   - role: mythic_admin
@@ -4124,13 +4085,13 @@
       - file_extension
       - id
       - last_heartbeat
+      - mythic_encrypts
       - note
       - ptype
-      - mythic_encrypts
       - service
       - supported_os
       - supports_dynamic_loading
-      - translation_container
+      - translation_container_id
       - wrapper
       filter: {}
   - role: operation_admin
@@ -4143,13 +4104,13 @@
       - file_extension
       - id
       - last_heartbeat
+      - mythic_encrypts
       - note
       - ptype
-      - mythic_encrypts
       - service
       - supported_os
       - supports_dynamic_loading
-      - translation_container
+      - translation_container_id
       - wrapper
       filter: {}
   - role: operator
@@ -4162,13 +4123,13 @@
       - file_extension
       - id
       - last_heartbeat
+      - mythic_encrypts
       - note
       - ptype
-      - mythic_encrypts
       - service
       - supported_os
       - supports_dynamic_loading
-      - translation_container
+      - translation_container_id
       - wrapper
       filter: {}
   - role: spectator
@@ -4181,13 +4142,13 @@
       - file_extension
       - id
       - last_heartbeat
+      - mythic_encrypts
       - note
       - ptype
-      - mythic_encrypts
       - service
       - supported_os
       - supports_dynamic_loading
-      - translation_container
+      - translation_container_id
       - wrapper
       filter: {}
 - table:
@@ -4246,6 +4207,14 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  array_relationships:
+  - name: tokens
+    using:
+      foreign_key_constraint_on:
+        column: process_id
+        table:
+          schema: public
+          name: token
   select_permissions:
   - role: developer
     permission:
@@ -4332,16 +4301,6 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
-- table:
-    schema: public
-    name: processlist
-  object_relationships:
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: task
-    using:
-      foreign_key_constraint_on: task_id
 - table:
     schema: public
     name: response
@@ -4562,13 +4521,6 @@
         table:
           schema: public
           name: process
-  - name: processlists
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          schema: public
-          name: processlist
   - name: responses
     using:
       foreign_key_constraint_on:
@@ -4935,6 +4887,9 @@
   - name: logonsession
     using:
       foreign_key_constraint_on: AuthenticationId_id
+  - name: process
+    using:
+      foreign_key_constraint_on: process_id
   - name: task
     using:
       foreign_key_constraint_on: task_id
@@ -5439,6 +5394,63 @@
           callback:
             operation_id:
               _in: X-Hasura-operations
+- table:
+    schema: public
+    name: translationcontainer
+  array_relationships:
+  - name: payloadtypes
+    using:
+      foreign_key_constraint_on:
+        column: translation_container_id
+        table:
+          schema: public
+          name: payloadtype
+  select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - id
+      - name
+      - last_heartbeat
+      - deleted
+      - container_running
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+      - id
+      - name
+      - last_heartbeat
+      - deleted
+      - container_running
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+      - id
+      - name
+      - last_heartbeat
+      - deleted
+      - container_running
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+      - id
+      - name
+      - last_heartbeat
+      - deleted
+      - container_running
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+      - id
+      - name
+      - last_heartbeat
+      - deleted
+      - container_running
+      filter: {}
 - table:
     schema: public
     name: wrappedpayloadtypes

@@ -1,23 +1,22 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from math import ceil
-from peewee import fn
 from app.api.siem_logger import log_to_siem
 import uuid
+import asyncio
+from sanic.log import logger
+import sys
 
 
 async def get_old_event_alerts(user):
     try:
-        # query = await db_model.operator_query()
-        # operator = await db_objects.get(query, username=user['username'])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        event_query = await db_model.operationeventlog_query()
-        alerts = await db_objects.execute(
-            event_query.where(
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        alerts = await app.db_objects.execute(
+            db_model.operationeventlog_query.where(
                 (db_model.OperationEventLog.operation == operation)
                 & (db_model.OperationEventLog.deleted == False)
                 & (db_model.OperationEventLog.level != "info")
@@ -42,11 +41,9 @@ async def get_event_message(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        event_query = await db_model.operationeventlog_query()
-        alerts = await db_objects.execute(
-            event_query.where(
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        alerts = await app.db_objects.execute(
+            db_model.operationeventlog_query.where(
                 (db_model.OperationEventLog.operation == operation)
                 & (db_model.OperationEventLog.deleted == False)
             )
@@ -56,7 +53,57 @@ async def get_event_message(request, user):
             total_alerts.append(a.to_json())
         return json({"status": "success", "alerts": total_alerts})
     except Exception as e:
-        print(str(e))
+        logger.warning("event_message_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({"status": "error", "error": str(e)})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/event_message/batch_fetch", methods=["POST"])
+@inject_user()
+@scoped(["auth:user", "auth:apitoken_user"], False)
+async def get_event_message_batch(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        data = request.json
+        if "get_next_unresolved_error" in data and data["get_next_unresolved_error"]:
+            # find the next error
+            alerts = await app.db_objects.execute(
+                db_model.operationeventlog_query.where(
+                    (db_model.OperationEventLog.operation == operation)
+                    & (db_model.OperationEventLog.deleted == False)
+                    & (db_model.OperationEventLog.id < data["last_event_id"])
+                    & (db_model.OperationEventLog.level == "warning")
+                    & (db_model.OperationEventLog.resolved == False)
+                ).order_by(-db_model.OperationEventLog.id).limit(data["limit"])
+            )
+        elif "get_next_error" in data and data["get_next_error"]:
+            alerts = await app.db_objects.execute(
+                db_model.operationeventlog_query.where(
+                    (db_model.OperationEventLog.operation == operation)
+                    & (db_model.OperationEventLog.deleted == False)
+                    & (db_model.OperationEventLog.id < data["last_event_id"])
+                    & (db_model.OperationEventLog.level == "warning")
+                ).order_by(-db_model.OperationEventLog.id).limit(data["limit"])
+            )
+        else:
+            # we're just fetching the next data["limit"] events since the data["last_event_id"]
+            alerts = await app.db_objects.execute(
+                db_model.operationeventlog_query.where(
+                    (db_model.OperationEventLog.operation == operation)
+                    & (db_model.OperationEventLog.deleted == False)
+                    & (db_model.OperationEventLog.id < data["last_event_id"])
+                ).order_by(-db_model.OperationEventLog.id).limit(data["limit"])
+            )
+        total_alerts = []
+        for a in alerts:
+            total_alerts.append(a.to_json())
+        return json({"status": "success", "alerts": total_alerts})
+    except Exception as e:
+        logger.warning("event_message_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})
 
 
@@ -72,10 +119,8 @@ async def add_event_message(request, user):
     if user["view_mode"] == "spectator":
         return json({"status": "error", "error": "Spectators cannot send messages"})
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json
         if "message" not in data:
             return json({"status": "error", "error": "message is required"})
@@ -83,7 +128,7 @@ async def add_event_message(request, user):
             data["level"] = "info"
         if data["level"] not in ["info", "warning"]:
             return json({"status": "error", "error": "level not recognized"})
-        msg = await db_objects.create(
+        msg = await app.db_objects.create(
             db_model.OperationEventLog,
             operator=operator,
             operation=operation,
@@ -91,9 +136,10 @@ async def add_event_message(request, user):
             level=data["level"],
             source=str(uuid.uuid4())
         )
-        await log_to_siem(msg.to_json(), mythic_object="eventlog_new")
+        asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_new"))
         return json({"status": "success", **msg.to_json()})
     except Exception as e:
+        logger.warning("event_message_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})
 
 
@@ -109,13 +155,10 @@ async def edit_event_message(request, user, eid):
     if user["view_mode"] == "spectator":
         return json({"status": "error", "error": "Spectators cannot edit messages"})
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json
-        query = await db_model.operationeventlog_query()
-        msg = await db_objects.get(query, id=eid, operation=operation)
+        msg = await app.db_objects.get(db_model.operationeventlog_query, id=eid, operation=operation)
         if "message" not in data and "resolved" not in data:
             return json(
                 {"status": "error", "error": "message or resolve status is required"}
@@ -132,13 +175,13 @@ async def edit_event_message(request, user, eid):
                     msg.message = data["message"]
                 if "level" in data and data["level"] in ["info", "warning"]:
                     msg.level = data["level"]
-                await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")
-                await db_objects.update(msg)
+                asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_modified"))
+                await app.db_objects.update(msg)
             else:
                 if "resolved" in data and data["resolved"] != msg.resolved:
                     msg.resolved = data["resolved"]
-                    await db_objects.update(msg)
-                    await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")
+                    await app.db_objects.update(msg)
+                    asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_modified"))
                 else:
                     return json(
                         {
@@ -149,6 +192,7 @@ async def edit_event_message(request, user, eid):
 
         return json({"status": "success", **msg.to_json()})
     except Exception as e:
+        logger.warning("event_message_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})
 
 
@@ -164,24 +208,21 @@ async def remove_event_messagse(request, user):
     if user["view_mode"] == "spectator":
         return json({"status": "error", "error": "Spectators cannot remove messages"})
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json
-        query = await db_model.operationeventlog_query()
         not_authorized = False
         for e in data["messages"]:
             # given an array of message ids to delete, try to delete them all
-            msg = await db_objects.get(query, id=e, operation=operation)
+            msg = await app.db_objects.get(db_model.operationeventlog_query, id=e, operation=operation)
             if (
                 user["admin"]
                 or msg.operator == operator
                 or operation.name in user["admin_operations"]
             ):
                 msg.deleted = True
-                await log_to_siem(msg.to_json(), mythic_object="eventlog_modified")
-                await db_objects.update(msg)
+                asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_modified"))
+                await app.db_objects.update(msg)
             else:
                 not_authorized = True
         if not_authorized:
@@ -194,6 +235,7 @@ async def remove_event_messagse(request, user):
         else:
             return json({"status": "success"})
     except Exception as e:
+        logger.warning("event_message_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})
 
 
@@ -209,9 +251,7 @@ async def search_event_message(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.operationeventlog_query()
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json(
             {
@@ -221,11 +261,11 @@ async def search_event_message(request, user):
         )
     try:
         data = request.json
-        count = await db_objects.count(
-            query.where(
+        count = await app.db_objects.count(
+            db_model.operationeventlog_query.where(
                 (db_model.OperationEventLog.operation == operation)
                 & (
-                    fn.encode(db_model.OperationEventLog.message, "escape").regexp(
+                    db_model.OperationEventLog.message.regexp(
                         data["search"]
                     )
                 )
@@ -233,11 +273,11 @@ async def search_event_message(request, user):
         )
         if "page" not in data:
             # allow a blanket search to still be performed
-            responses = await db_objects.execute(
-                query.where(
+            responses = await app.db_objects.execute(
+                db_model.operationeventlog_query.where(
                     (db_model.OperationEventLog.operation == operation)
                     & (
-                        fn.encode(db_model.OperationEventLog.message, "escape").regexp(
+                        db_model.OperationEventLog.message.regexp(
                             data["search"]
                         )
                     )
@@ -264,11 +304,11 @@ async def search_event_message(request, user):
                 data["page"] = ceil(count / data["size"])
                 if data["page"] == 0:
                     data["page"] = 1
-            responses = await db_objects.execute(
-                query.where(
+            responses = await app.db_objects.execute(
+                db_model.operationeventlog_query.where(
                     (db_model.OperationEventLog.operation == operation)
                     & (
-                        fn.encode(db_model.OperationEventLog.message, "escape").regexp(
+                        db_model.OperationEventLog.message.regexp(
                             data["search"]
                         )
                     )
@@ -290,5 +330,5 @@ async def search_event_message(request, user):
             }
         )
     except Exception as e:
-        print(e)
+        logger.warning("event_message_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})

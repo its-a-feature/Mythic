@@ -18,7 +18,7 @@ else
     exit 1
   fi
 fi
-output=`docker stop "documentation" 2>/dev/null`
+output=`docker stop "mythic_documentation" 2>/dev/null`
 ss -tulpn | grep -i ":$documentation_port"
 if [ $? -eq 0 ]
 then
@@ -34,12 +34,12 @@ then
 else
   echo -e "${GREEN}[+]${NC} Successfully built the documentation container"
 fi
-output=`docker ps -aqf name=documentation`
+output=`docker ps -aqf name=mythic_documentation`
 if [[ $output ]]
 then
   output=`docker container rm ${output}`
-  output=`docker container prune --filter label=name=documentation -f`
+  output=`docker container prune --filter label=name=mythic_documentation -f`
 fi
 
 realpath=$(realpath "documentation-docker")
-output=`docker run --log-driver json-file --log-opt max-size=10m --log-opt max-file=1 -d -v "$realpath:/src" --name "documentation" -p $documentation_port:1313  "mythic_documentation" server`
+output=`docker run --log-driver json-file --log-opt max-size=10m --log-opt max-file=1 -d -v "$realpath:/src" --name "mythic_documentation" -p $documentation_port:1313  "mythic_documentation" server`

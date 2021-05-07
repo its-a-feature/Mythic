@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json, file_stream
 from app.database_models.model import (
     Payload,
@@ -39,8 +40,7 @@ async def get_all_payloads(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     if user["admin"]:
-        query = await db_model.payload_query()
-        payloads = await db_objects.execute(query)
+        payloads = await app.db_objects.execute(db_model.payload_query)
         return json([p.to_json() for p in payloads])
     else:
         return json(
@@ -62,11 +62,9 @@ async def get_all_payloads_current_operation(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     if user["current_operation"] != "":
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.payload_query()
-        payloads = await db_objects.execute(
-            query.where((Payload.operation == operation) & (Payload.deleted == False))
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        payloads = await app.db_objects.execute(
+            db_model.payload_query.where((Payload.operation == operation) & (Payload.deleted == False))
         )
         return json([p.to_json() for p in payloads])
     else:
@@ -87,10 +85,7 @@ async def get_all_payloads_current_operation(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     if user["current_operation"] != "":
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.payload_query()
-        ptype_query = await db_model.payloadtype_query()
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json
         output = {}
         if "ptypes" not in data:
@@ -99,9 +94,9 @@ async def get_all_payloads_current_operation(request, user):
             )
         for p in data["ptypes"]:
             try:
-                ptype = await db_objects.get(ptype_query, ptype=p, deleted=False)
-                payloads = await db_objects.execute(
-                    query.where(
+                ptype = await app.db_objects.get(db_model.payloadtype_query, ptype=p, deleted=False)
+                payloads = await app.db_objects.execute(
+                    db_model.payload_query.where(
                         (Payload.operation == operation)
                         & (Payload.deleted == False)
                         & (Payload.payload_type == ptype)
@@ -116,6 +111,36 @@ async def get_all_payloads_current_operation(request, user):
         return json({"status": "success", "payloads": output})
     else:
         return json({"status": "error", "error": "must be part of a current operation"})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/payloads/<puuid:string>", methods=["GET"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_one_payload_info(request, puuid, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        payload = await app.db_objects.get(db_model.payload_query, uuid=puuid)
+    except Exception as e:
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({"status": "error", "error": "failed to find payload"})
+    if payload.operation.name in user["operations"]:
+        config = await get_payload_config(payload)
+        if payload.wrapped_payload is not None:
+            config["wrapped"] = await get_payload_config(payload.wrapped_payload)
+        return json(config)
+    else:
+        return json(
+            {
+                "status": "error",
+                "error": "you need to be part of the right operation to see this",
+            }
+        )
 
 
 @mythic.route(
@@ -136,8 +161,7 @@ async def remove_payload(request, puuid, user):
             return json(
                 {"status": "error", "error": "Spectators cannot remove payload"}
             )
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         return json(await remove_payload_func(puuid, operation))
     except Exception as e:
         return json({"status": "error", "error": "Failed to find operation"})
@@ -145,31 +169,29 @@ async def remove_payload(request, puuid, user):
 
 async def remove_payload_func(uuid, operation):
     try:
-        query = await db_model.payload_query()
-        payload = await db_objects.get(query, uuid=uuid, operation=operation)
+        payload = await app.db_objects.get(db_model.payload_query, uuid=uuid, operation=operation)
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": "specified payload does not exist"}
     try:
         payload.deleted = True
-        await db_objects.update(payload)
+        await app.db_objects.update(payload)
         if os.path.exists(payload.file.path):
             try:
                 os.remove(payload.file.path)
             except Exception as e:
-                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         # if we started hosting this payload as a file in our database, we need to remove that as well
-        query = await db_model.filemeta_query()
-        file_metas = await db_objects.execute(
-            query.where(FileMeta.path == payload.file.path)
+        file_metas = await app.db_objects.execute(
+            db_model.filemeta_query.where(FileMeta.path == payload.file.path)
         )
         for fm in file_metas:
             fm.deleted = True
-            await db_objects.update(fm)
+            await app.db_objects.update(fm)
         success = {"status": "success"}
         return {**success, **payload.to_json()}
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": "failed to delete payload: " + uuid}
 
 
@@ -189,8 +211,7 @@ async def remove_multiple_payload(request, user):
             return json(
                 {"status": "error", "error": "Spectators cannot remove payloads"}
             )
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json
         errors = {}
         successes = {}
@@ -205,7 +226,7 @@ async def remove_multiple_payload(request, user):
         else:
             return json({"status": "error", "errors": errors, "successes": successes})
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json(
             {
                 "status": "error",
@@ -223,10 +244,9 @@ async def register_new_payload_func(data, user):
         if "payload_type" not in data:
             return {"status": "error", "error": '"payload_type" field is required'}
         try:
-            query = await db_model.payloadtype_query()
-            payload_type = await db_objects.get(query, ptype=data["payload_type"])
+            payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=data["payload_type"])
         except Exception as e:
-            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             return {
                 "status": "error",
                 "error": "failed to get payload type when registering payload",
@@ -235,12 +255,10 @@ async def register_new_payload_func(data, user):
             return {"status": "error", "error": '"c2_profiles" field is required'}
         # the other parameters are based on the payload_type, c2_profile, or other payloads
         try:
-            query = await db_model.operator_query()
-            operator = await db_objects.get(query, username=user["username"])
-            query = await db_model.operation_query()
-            operation = await db_objects.get(query, name=user["current_operation"])
+            operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+            operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         except Exception as e:
-            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             return {
                 "status": "error",
                 "error": "failed to get operator or operation when registering payload",
@@ -255,9 +273,8 @@ async def register_new_payload_func(data, user):
                 data["commands"] = []
             for cmd in data["commands"]:
                 try:
-                    query = await db_model.command_query()
-                    db_commands[cmd] = await db_objects.get(
-                        query, cmd=cmd, payload_type=payload_type
+                    db_commands[cmd] = await app.db_objects.get(
+                        db_model.command_query, cmd=cmd, payload_type=payload_type
                     )
                 except Exception as e:
                     return {
@@ -270,7 +287,7 @@ async def register_new_payload_func(data, user):
         if "build_container" not in data:
             data["build_container"] = payload_type.ptype
         if not payload_type.wrapper:
-            file_meta = await db_objects.create(
+            file_meta = await app.db_objects.create(
                 db_model.FileMeta,
                 operation=operation,
                 operator=operator,
@@ -282,7 +299,7 @@ async def register_new_payload_func(data, user):
                 filename=filename.encode("utf-8"),
                 path="./app/files/{}".format(uuid),
             )
-            payload = await db_objects.create(
+            payload = await app.db_objects.create(
                 Payload,
                 operator=operator,
                 payload_type=payload_type,
@@ -293,24 +310,24 @@ async def register_new_payload_func(data, user):
                 build_container=data["build_container"],
                 file=file_meta,
             )
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.OperationEventLog,
                 operation=operation,
-                message="New payload {} from {} with UUID {} and tag: {}".format(
+                message="Creating new payload {} from {} with UUID {} and tag: {}".format(
                     payload_type.ptype, operator.username, payload.uuid, payload.tag
                 ),
             )
 
             for cmd in db_commands:
                 try:
-                    pc = await db_objects.create(
+                    pc = await app.db_objects.create(
                         PayloadCommand,
                         payload=payload,
                         command=db_commands[cmd],
                         version=db_commands[cmd].version,
                     )
                 except Exception as e:
-                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                     # this should delete any PayloadCommands that managed to get created before the error
                     return {
                         "status": "error",
@@ -320,13 +337,12 @@ async def register_new_payload_func(data, user):
             # Get all of the c2 profile parameters and create their instantiations
             for p in data["c2_profiles"]:
                 try:
-                    query = await db_model.c2profile_query()
-                    c2_profile = await db_objects.get(query, name=p["c2_profile"])
+                    c2_profile = await app.db_objects.get(db_model.c2profile_query, name=p["c2_profile"])
                     if c2_profile.container_running and not c2_profile.running and not c2_profile.is_p2p:
                         await send_all_operations_message(message=f"Starting {c2_profile.name} C2 Profile when creating payload", level="info", source="starting_c2_profile")
                         c2status, successfully_sent = await start_stop_c2_profile(c2_profile, "start")
                         if not successfully_sent:
-                            await send_all_operations_message(message=f"Failed to contact {c2_profile.name} C2 Profile",
+                            await send_all_operations_message(message=f"Failed to contact and start {c2_profile.name} C2 Profile",
                                                               level="warning", source="starting_c2_profile")
                         else:
                             status = js.loads(c2status)
@@ -338,22 +354,23 @@ async def register_new_payload_func(data, user):
                                     await send_all_operations_message(message=f"Failed to start {c2_profile.name} C2 Profile\n{status['output']}",
                                                                       level="warning", source="starting_c2_profile")
                                 c2_profile.running = status.pop("running")
-                                await db_objects.update(c2_profile)
+                                await app.db_objects.update(c2_profile)
 
                 except Exception as e:
-                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    payload.build_phase = "error"
+                    payload.build_stderr = f"failed to get c2 profile when registering payload"
+                    await app.db_objects.update(payload)
                     return {
                         "status": "error",
                         "error": "failed to get c2 profile when registering payload",
                     }
-                query = await db_model.c2profileparameters_query()
-                db_c2_profile_parameters = await db_objects.execute(
-                    query.where( (C2ProfileParameters.c2_profile == c2_profile) & (C2ProfileParameters.deleted == False))
+                db_c2_profile_parameters = await app.db_objects.execute(
+                    db_model.c2profileparameters_query.where( (C2ProfileParameters.c2_profile == c2_profile) & (C2ProfileParameters.deleted == False))
                 )
                 for param in db_c2_profile_parameters:
                     # find the matching data in the data['c2_profile_parameters']
                     try:
-
                         if param.name not in p["c2_profile_parameters"]:
                             if param.randomize:
                                 # generate a random value based on the associated format_string variable
@@ -385,9 +402,16 @@ async def register_new_payload_func(data, user):
                                 p["c2_profile_parameter"][param.name] = temp_dict
                             else:
                                 p["c2_profile_parameters"][param.name] = param.default_value
+                        elif param.randomize and "randomize" in data and data["randomize"]:
+                            from app.api.c2profiles_api import (
+                                generate_random_format_string,
+                            )
+                            p["c2_profile_parameters"][
+                                param.name
+                            ] = await generate_random_format_string(param.format_string)
                         if param.parameter_type in ["Array", "Dictionary"]:
                             p["c2_profile_parameters"][param.name] = js.dumps(p["c2_profile_parameters"][param.name])
-                        c2p = await db_objects.create(
+                        c2p = await app.db_objects.create(
                             C2ProfileParametersInstance,
                             c2_profile_parameters=param,
                             value=p["c2_profile_parameters"][param.name],
@@ -399,61 +423,83 @@ async def register_new_payload_func(data, user):
                                 keys = await generate_enc_dec_keys(p["c2_profile_parameters"][param.name])
                                 c2p.enc_key = keys["enc_key"]
                                 c2p.dec_key = keys["dec_key"]
-                                await db_objects.update(c2p)
+                                await app.db_objects.update(c2p)
                                 if c2p.enc_key is None:
-                                    await db_objects.create(db_model.OperationEventLog, level="warning", operation=payload.operation,
+                                    await app.db_objects.create(db_model.OperationEventLog, level="warning", operation=payload.operation,
                                                             message=f"Using no encryption for payload {bytes(payload.file.filename).decode('utf-8')} ({payload.uuid}) in {c2_profile.name}! Specified encryption type of {c2p.value}")
                             else:
                                 # mythic doesn't handle the encryption, so send this data off to the payload's
                                 #   translation_container to gen the appropriate enc/dec keys
-                                if payload.payload_type.translation_container is not None and payload.payload_type.translation_container != "":
+                                if payload.payload_type.translation_container is not None:
                                     from app.api.callback_api import translator_rpc
                                     keys, successfully_sent = await translator_rpc.call(message={
                                         "action": "generate_keys",
-                                        "message": param.to_json(),
-                                    }, receiver="{}_rpc_queue".format(payload.payload_type.translation_container))
+                                        "message": c2p.to_json(),
+                                    }, receiver="{}_rpc_queue".format(payload.payload_type.translation_container.name))
                                     if keys == b"":
                                         if successfully_sent:
                                             # we successfully sent the message, but got blank bytes back, raise an error
                                             asyncio.create_task(send_all_operations_message(
-                                                message=f"Failed to have {payload.payload_type.translation_container} container process generate_keys. Is it running? Check with './status_check.sh' or check the container's logs",
-                                                level="warning", source="generate_keys_success"))
+                                                message=f"Failed to have {payload.payload_type.translation_container.name} container process generate_keys. Check the container's logs with './display_output.sh {payload.payload_type.translation_container.name}",
+                                                level="warning", source="generate_keys_success", operation=payload.operation))
+                                            payload.build_phase = "error"
+                                            payload.build_stderr = f"Failed to have {payload.payload_type.translation_container.name} container process generate_keys. Check the container's logs with './display_output.sh {payload.payload_type.translation_container.name}"
+                                            await app.db_objects.update(payload)
                                             return {"status": "error", "error": "Failed to create payload parameters"}
                                         else:
                                             asyncio.create_task(send_all_operations_message(
-                                                message=f"Failed to contact {payload.payload_type.translation_container} container. Is it running? Check with './status_check.sh' or check the container's logs",
-                                                level="warning", source="generate_keys_error"))
-                                            return {"status": "error", "error": "Failed to create payload parameters"}
+                                                message=f"Failed to contact {payload.payload_type.translation_container.name} container. Is it running? Check with './status_check.sh' or check the container's logs",
+                                                level="warning", source="generate_keys_error", operation=payload.operation))
+                                            payload.build_phase = "error"
+                                            payload.build_stderr = f"Failed to contact {payload.payload_type.translation_container.name} container. Is it running? Check with './status_check.sh' or check the container's logs"
+                                            await app.db_objects.update(payload)
+                                            return {"status": "error", "error": "Failed to generate crypto keys in " + payload.payload_type.translation_container.name}
                                     else:
                                         try:
                                             keys = js.loads(keys)
-                                            c2p.enc_key = base64.b64decode(keys["enc_key"])
-                                            c2p.dec_key = base64.b64decode(keys["dec_key"])
-                                            await db_objects.update(c2p)
+                                            if keys["enc_key"] is not None:
+                                                c2p.enc_key = base64.b64decode(keys["enc_key"])
+                                            else:
+                                                c2p.enc_key = None
+                                                asyncio.create_task(send_all_operations_message(
+                                                    message=f"Using no encryption for payload {bytes(payload.file.filename).decode('utf-8')} ({payload.uuid}) in {c2_profile.name}! Specified encryption type of {c2p.value}",
+                                                    level="warning", operation=payload.operation))
+                                            if keys["dec_key"] is not None:
+                                                c2p.dec_key = base64.b64decode(keys["dec_key"])
+                                            await app.db_objects.update(c2p)
                                         except Exception as e:
                                             asyncio.create_task(send_all_operations_message(
-                                                message=f"Failed to parse {payload.payload_type.translation_container} container's returned keys for a payload. Expected JSON, got: {keys}",
-                                                level="warning", source="generate_keys_load_from_container"))
-                                            return {"status": "error", "error": "Failed to create payload parameters"}
+                                                message=f"Failed to parse {payload.payload_type.translation_container.name} container's returned keys for a payload. Expected JSON, got: {keys}",
+                                                level="warning", source="generate_keys_load_from_container", operation=payload.operation))
+                                            payload.build_phase = "error"
+                                            payload.build_stderr = f"Failed to parse {payload.payload_type.translation_container.name} container's returned keys for a payload. Expected JSON with base64 encoded 'enc_key' and 'dec_key' key values, got: {keys}"
+                                            await app.db_objects.update(payload)
+                                            return {"status": "error", "error": "Failed to load crypto keys returned from " + payload.payload_type.translation_container.name}
                                 else:
                                     # somehow have crypto fields, no translation container, and we don't translate
                                     asyncio.create_task(send_all_operations_message(
-                                        message=f"Parameter has crypto_type {c2p.value}, but {payload.payload_type.ptype} has no translation_container and {c2_profile.name} doesn't want Mythic to handle encryption",
-                                        level="warning", source="generate_keys_no_generator"))
-                                    return {"status": "error", "error": "Failed to create payload parameters"}
+                                        message=f"Parameter has crypto_type {c2p.value}, but {payload.payload_type.ptype} has no translation_container and {payload.payload_type.ptype} doesn't want Mythic to handle encryption",
+                                        level="warning", source="generate_keys_no_generator", operation=payload.operation))
+                                    payload.build_phase = "error"
+                                    payload.build_stderr = f"Parameter has crypto_type {c2p.value}, but {payload.payload_type.ptype} has no translation_container and {payload.payload_type.ptype} doesn't want Mythic to handle encryption"
+                                    await app.db_objects.update(payload)
+                                    return {"status": "error", "error": f"Got crypto parameters, but {payload.payload_type.ptype} has no translation_container and {payload.payload_type.ptype} doesn't want Mythic to handle encryption"}
                     except Exception as e:
-                        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                         # remove our payload that we managed to create
                         return {
                             "status": "error",
                             "error": "failed to create parameter instance: " + str(e),
                         }
                 try:
-                    payload_c2 = await db_objects.create(
+                    payload_c2 = await app.db_objects.create(
                         db_model.PayloadC2Profiles, payload=payload, c2_profile=c2_profile
                     )
                 except Exception as e:
-                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    payload.build_phase = "error"
+                    payload.build_stderr = f"failed to create parameter instance: " + str(e)
+                    await app.db_objects.update(payload)
                     # remove our payload that we managed to create
                     return {
                         "status": "error",
@@ -464,17 +510,17 @@ async def register_new_payload_func(data, user):
             if "wrapped_payload" not in data:
                 return {"status": "error", "error": "missing wrapped_payload UUID"}
             try:
-                query = await db_model.payload_query()
-                wrapped_payload = await db_objects.get(
-                    query, uuid=data["wrapped_payload"], operation=operation
+                wrapped_payload = await app.db_objects.get(
+                    db_model.payload_query, uuid=data["wrapped_payload"], operation=operation
                 )
             except Exception as e:
-                print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 return {
                     "status": "error",
                     "error": "failed to find the wrapped payload specified in our current operation",
                 }
-            file_meta = await db_objects.create(
+            data["selected_os"] = wrapped_payload.os
+            file_meta = await app.db_objects.create(
                 db_model.FileMeta,
                 operation=operation,
                 operator=operator,
@@ -486,7 +532,7 @@ async def register_new_payload_func(data, user):
                 filename=filename.encode("utf-8"),
                 path="./app/files/{}".format(uuid),
             )
-            payload = await db_objects.create(
+            payload = await app.db_objects.create(
                 Payload,
                 operator=operator,
                 payload_type=payload_type,
@@ -498,18 +544,17 @@ async def register_new_payload_func(data, user):
                 operation=operation,
                 wrapped_payload=wrapped_payload,
             )
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.OperationEventLog,
                 operation=operation,
-                message="New payload {} from {} with UUID {} and tag: {}".format(
+                message="Creating new payload {} from {} with UUID {} and tag: {}".format(
                     payload_type.ptype, operator.username, payload.uuid, payload.tag
                 ),
             )
 
         # Get all of the build parameters if any and create their instantiations
-        query = await db_model.buildparameter_query()
-        bparameters = await db_objects.execute(
-            query.where(
+        bparameters = await app.db_objects.execute(
+            db_model.buildparameter_query.where(
                 (db_model.BuildParameter.payload_type == payload.payload_type)
                 & (db_model.BuildParameter.deleted == False)
             )
@@ -527,7 +572,7 @@ async def register_new_payload_func(data, user):
                     value = build_param.parameter.split("\n")[0]
                 else:
                     value = build_param.parameter
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.BuildParameterInstance,
                 build_parameter=build_param,
                 payload=payload,
@@ -537,10 +582,13 @@ async def register_new_payload_func(data, user):
             os.makedirs(pathlib.Path(file_meta.path).parent, exist_ok=True)
             pathlib.Path(file_meta.path).touch()
         except Exception as e:
+            payload.build_phase = "error"
+            payload.build_stderr = "Failed to touch file on disk - " + str(file_meta.path)
+            await app.db_objects.update(payload)
             return {"status": "error", "error": "failed to touch file on disk"}
         return {"status": "success", **payload.to_json()}
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
 
 
@@ -550,49 +598,48 @@ async def generate_uuid():
 
 async def write_payload(uuid, user, data):
     try:
-        query = await db_model.payload_query()
-        payload = await db_objects.get(query, uuid=uuid)
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        payload = await app.db_objects.get(db_model.payload_query, uuid=uuid)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {
             "status": "error",
             "error": "failed to get payload db object to write to disk",
         }
 
     if not payload.payload_type.container_running:
+        payload.build_phase = "error"
+        payload.build_stderr = f"{payload.payload_type.ptype} container is not running. Check with './status_check.sh'"
+        await app.db_objects.update(payload)
         return {"status": "error", "error": "build container not running"}
     if payload.payload_type.last_heartbeat < datetime.utcnow() + timedelta(seconds=-30):
-        query = await db_model.payloadtype_query()
-        payload_type = await db_objects.get(query, ptype=payload.payload_type.ptype)
+        payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=payload.payload_type.ptype)
         payload_type.container_running = False
-        await db_objects.update(payload_type)
+        await app.db_objects.update(payload_type)
+        payload.build_phase = "error"
+        payload.build_stderr = f"{payload.payload_type.ptype} container is not running. Check with './status_check.sh'"
+        await app.db_objects.update(payload)
         return {
             "status": "error",
             "error": "build container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./status_check.sh`",
         }
-    query = await db_model.payloadcommand_query()
-    commands = await db_objects.execute(query.where(PayloadCommand.payload == payload))
+    commands = await app.db_objects.execute(db_model.payloadcommand_query.where(PayloadCommand.payload == payload))
     commands = [c.command.cmd for c in commands]
     build_parameters = {}
-    bp_query = await db_model.buildparameterinstance_query()
-    build_params = await db_objects.execute(
-        bp_query.where(db_model.BuildParameterInstance.payload == payload)
+    build_params = await app.db_objects.execute(
+        db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == payload)
     )
     for bp in build_params:
         build_parameters[bp.build_parameter.name] = bp.parameter
     c2_profile_parameters = []
-    query = await db_model.payloadc2profiles_query()
-    payloadc2profiles = await db_objects.execute(
-        query.where(db_model.PayloadC2Profiles.payload == payload)
+    payloadc2profiles = await app.db_objects.execute(
+        db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
     )
     for pc2p in payloadc2profiles:
         # for each profile, we need to get all of the parameters and supplied values for just that profile
         param_dict = {}
-        query = await db_model.c2profileparametersinstance_query()
-        c2_param_instances = await db_objects.execute(
-            query.where(
+        c2_param_instances = await app.db_objects.execute(
+            db_model.c2profileparametersinstance_query.where(
                 (C2ProfileParametersInstance.payload == payload)
                 & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
             )
@@ -619,7 +666,10 @@ async def write_payload(uuid, user, data):
         }, receiver="{}_mythic_rpc_queue".format(pc2p.c2_profile.name))
         if not successfully_sent:
             pc2p.c2_profile.running = False
-            await db_objects.update(pc2p.c2_profile)
+            await app.db_objects.update(pc2p.c2_profile)
+            payload.build_phase = "error"
+            payload.build_stderr = f"C2 Profile {pc2p.c2_profile.name}'s container is not running, so it cannot be tasked with an OPSEC check"
+            await app.db_objects.update(payload)
             return {
                 "status": "error",
                 "error": f"C2 Profile {pc2p.c2_profile.name}'s container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./status_check.sh`",
@@ -631,14 +681,14 @@ async def write_payload(uuid, user, data):
                 pass
             else:
                 payload.build_phase = "error"
-                payload.build_error = f"\nFailed to pass OPSEC check for {pc2p.c2_profile.name}:\n{status['error']}"
-                await db_objects.update(payload)
-                return {"status": "error", "error": payload.build_error}
+                payload.build_stderr = f"\nFailed to pass OPSEC check for {pc2p.c2_profile.name}:\n{status['error']}"
+                await app.db_objects.update(payload)
+                return {"status": "error", "error": payload.build_stderr}
         else:
             if "message" not in status:
-                status["message"] = "No Output"
+                status["message"] = "OPSEC Check executed, but provided no output"
             payload.build_message = payload.build_message + f"\nOPSEC message from {pc2p.c2_profile.name}:\n{status['message']}"
-            await db_objects.update(payload)
+            await app.db_objects.update(payload)
         c2_profile_parameters.append(
             {"parameters": param_dict, **pc2p.c2_profile.to_json()}
         )
@@ -652,7 +702,7 @@ async def write_payload(uuid, user, data):
             else:
                 return {"status": "error", "error": "Wrapped payload no longer exists"}
     except Exception as e:
-        print(str(e))
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": "Error trying to get wrapped payload"}
     result = await send_pt_rabbitmq_message(
         payload.payload_type.ptype,
@@ -689,7 +739,56 @@ async def create_payload(request, user):
     if user["view_mode"] == "spectator":
         return json({"status": "error", "error": "Spectators cannot create payloads"})
     data = request.json
-    return json(await (create_payload_func(data, user)))
+    return json(await create_payload_func(data, user))
+
+
+@mythic.route(mythic.config["API_BASE"] + "/payloads/rebuild", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def create_payload_again(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot create payloads"})
+    from app.api.rabbitmq_api import get_payload_build_config
+    try:
+        rebuild_info = request.json
+        data = await get_payload_build_config(payload_uuid=rebuild_info["uuid"], generate_new_random_values=False)
+        if data["status"] == "success":
+            return json(await create_payload_func(data["data"], user))
+        else:
+            return json(data)
+    except Exception as e:
+        return json({"status": "error", "error": "Failed to rebuild payload: " + str(e)})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/payloads/export_config/<puuid:string>", methods=["GET"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def export_payload_config(request, user, puuid):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot create payloads"})
+    from app.api.rabbitmq_api import get_payload_build_config
+    try:
+        data = await get_payload_build_config(payload_uuid=puuid, generate_new_random_values=False)
+        if data["status"] == "success":
+            return json({"status": "success", "config": data["data"]})
+        else:
+            return json(data)
+    except Exception as e:
+        return json({"status": "error", "error": "Failed to rebuild payload: " + str(e)})
 
 
 @mythic.route(mythic.config["API_BASE"] + "/createpayload_webhook", methods=["POST"])
@@ -724,44 +823,42 @@ async def create_payload_func(data, user):
         rsp = await register_new_payload_func(data, user)
         if rsp["status"] == "success":
             # now that it's registered, write the file, if we fail out here then we need to delete the db object
-            query = await db_model.payload_query()
-            payload = await db_objects.get(query, uuid=rsp["uuid"])
+            payload = await app.db_objects.get(db_model.payload_query, uuid=rsp["uuid"])
             create_rsp = await write_payload(payload.uuid, user, data)
             if create_rsp["status"] == "success":
                 return {"status": "success", "uuid": rsp["uuid"]}
             else:
                 return {"status": "error", "error": create_rsp["error"]}
         else:
-            print("payloads_api.py error:  " + str(rsp["error"]))
+            logging.warning("payloads_api.py - Failed to register_new_payload_func: " + rsp["error"])
             return {"status": "error", "error": rsp["error"]}
     except Exception as e:
-        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
 
 
 # needs to not be protected so the implant can call back and get a copy of an agent to run
 @mythic.route(
-    mythic.config["API_BASE"] + "/payloads/download/<uuid:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/payloads/download/<puuid:string>", methods=["GET"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_payload(request, uuid, user):
+async def get_payload(request, puuid, user):
     # return a blob of the requested payload
     # the pload string will be the uuid of a payload registered in the system
     try:
         if user["view_mode"] == "spectator":
             return json({"status": "error", "error": "Spectators cannot download payloads"})
-        query = await db_model.payload_query()
-        payload = await db_objects.get(query, uuid=uuid)
+        payload = await app.db_objects.get(db_model.payload_query, uuid=puuid)
     except Exception as e:
         return json({"status": "error", "error": "payload not found"})
     if payload.operation.name in user["operations"]:
         try:
             return await file_stream(payload.file.path, filename=bytes(payload.file.filename).decode("utf-8"))
         except Exception as e:
-            print(e)
+            logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             return json({"status": "error", "error": "failed to open payload"})
     else:
         return json(
@@ -784,18 +881,15 @@ async def get_payloads_by_type(request, ptype, user):
         )
     payload_type = unquote_plus(ptype)
     try:
-        query = await db_model.payloadtype_query()
-        payloadtype = await db_objects.get(query, ptype=payload_type)
+        payloadtype = await app.db_objects.get(db_model.payloadtype_query, ptype=payload_type)
     except Exception as e:
         return json({"status": "error", "error": "failed to find payload type"})
     if user["current_operation"] != "":
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     else:
         return json({"status": "error", "error": "must be part of an active operation"})
-    query = await db_model.payload_query()
-    payloads = await db_objects.execute(
-        query.where(
+    payloads = await app.db_objects.execute(
+        db_model.payload_query.where(
             (Payload.operation == operation)
             & (Payload.payload_type == payloadtype)
             & (Payload.build_phase == "success")
@@ -805,41 +899,9 @@ async def get_payloads_by_type(request, ptype, user):
     return json({"status": "success", "payloads": payloads_json})
 
 
-@mythic.route(mythic.config["API_BASE"] + "/payloads/<uuid:string>", methods=["GET"])
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def get_one_payload_info(request, uuid, user):
-    if user["auth"] not in ["access_token", "apitoken"]:
-        abort(
-            status_code=403,
-            message="Cannot access via Cookies. Use CLI or access via JS in browser",
-        )
-    try:
-        query = await db_model.payload_query()
-        payload = await db_objects.get(query, uuid=uuid)
-    except Exception as e:
-        print(e)
-        return json({"status": "error", "error": "failed to find payload"})
-    if payload.operation.name in user["operations"]:
-        config = await get_payload_config(payload)
-        if payload.wrapped_payload is not None:
-            config["wrapped"] = await get_payload_config(payload.wrapped_payload)
-        return json(config)
-    else:
-        return json(
-            {
-                "status": "error",
-                "error": "you need to be part of the right operation to see this",
-            }
-        )
-
-
 async def get_payload_config(payload):
-    query = await db_model.payloadcommand_query()
-    payloadcommands = await db_objects.execute(
-        query.where(PayloadCommand.payload == payload)
+    payloadcommands = await app.db_objects.execute(
+        db_model.payloadcommand_query.where(PayloadCommand.payload == payload)
     )
     commands = [
         {
@@ -851,14 +913,12 @@ async def get_payload_config(payload):
     ]
     # now we need to get the c2 profile parameters as well
     c2_profiles_data = {}
-    query = await db_model.payloadc2profiles_query()
-    c2profiles = await db_objects.execute(
-        query.where(db_model.PayloadC2Profiles.payload == payload)
+    c2profiles = await app.db_objects.execute(
+        db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
     )
     for c2p in c2profiles:
-        query = await db_model.c2profileparametersinstance_query()
-        c2_profile_params = await db_objects.execute(
-            query.where(
+        c2_profile_params = await app.db_objects.execute(
+            db_model.c2profileparametersinstance_query.where(
                 (C2ProfileParametersInstance.payload == payload)
                 & (C2ProfileParametersInstance.c2_profile == c2p.c2_profile)
             )
@@ -872,9 +932,8 @@ async def get_payload_config(payload):
                 p_json["dec_key"] = base64.b64encode(p.dec_key).decode()
             param_fields.append(p_json)
         c2_profiles_data[c2p.c2_profile.name] = param_fields
-    query = await db_model.buildparameterinstance_query()
-    build_params = await db_objects.execute(
-        query.where((db_model.BuildParameterInstance.payload == payload))
+    build_params = await app.db_objects.execute(
+        db_model.buildparameterinstance_query.where((db_model.BuildParameterInstance.payload == payload))
     )
     return {
         "status": "success",
@@ -886,12 +945,12 @@ async def get_payload_config(payload):
     }
 
 
-@mythic.route(mythic.config["API_BASE"] + "/payloads/<uuid:string>", methods=["PUT"])
+@mythic.route(mythic.config["API_BASE"] + "/payloads/<puuid:string>", methods=["PUT"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def edit_one_payload(request, uuid, user):
+async def edit_one_payload(request, puuid, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -900,23 +959,22 @@ async def edit_one_payload(request, uuid, user):
     try:
         if user["view_mode"] == "spectator":
             return json({"status": "error", "error": "Spectators cannot edit payloads"})
-        query = await db_model.payload_query()
-        payload = await db_objects.get(query, uuid=uuid)
+        payload = await app.db_objects.get(db_model.payload_query, uuid=puuid)
     except Exception as e:
-        print(e)
+        logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": "failed to find payload"})
     try:
         if payload.operation.name in user["operations"]:
             data = request.json
             if "callback_alert" in data:
                 payload.callback_alert = data["callback_alert"]
-                await db_objects.update(payload)
+                await app.db_objects.update(payload)
             if "filename" in data:
                 payload.file.filename = data["filename"].encode("utf-8")
-                await db_objects.update(payload.file)
+                await app.db_objects.update(payload.file)
             if "description" in data:
                 payload.tag = data["description"]
-                await db_objects.update(payload)
+                await app.db_objects.update(payload)
             return json({"status": "success", **payload.to_json()})
         else:
             return json(

@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import (
     Task,
@@ -24,10 +25,13 @@ from math import ceil
 from sanic.log import logger
 from peewee import fn
 from app.api.siem_logger import log_to_siem
-from app.api.file_browser_api import add_upload_file_to_file_browser
+from app.api.file_browser_api import add_upload_file_to_file_browser, mark_nested_deletes
 import asyncio
 from app.api.rabbitmq_api import send_pt_rabbitmq_message
 from app.api.task_api import add_all_payload_info
+from app.api.operation_api import send_all_operations_message
+from app.api.rabbitmq_api import create_processes
+from sanic.log import logger
 
 
 # This gets all responses in the database
@@ -44,72 +48,64 @@ async def get_all_responses(request, user):
         )
     try:
         responses = []
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.callback_query()
-        callbacks = await db_objects.execute(
-            query.where(Callback.operation == operation)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        callbacks = await app.db_objects.execute(
+            db_model.callback_query.where(Callback.operation == operation)
         )
         for c in callbacks:
-            query = await db_model.task_query()
-            tasks = await db_objects.prefetch(
-                query.where(Task.callback == c), Command.select()
+            tasks = await app.db_objects.prefetch(
+                db_model.task_query.where(Task.callback == c), Command.select()
             )
             for t in tasks:
-                query = await db_model.response_query()
-                task_responses = await db_objects.execute(
-                    query.where(Response.task == t)
+                task_responses = await app.db_objects.execute(
+                    db_model.response_query.where(Response.task == t)
                 )
                 responses += [r.to_json() for r in task_responses]
     except Exception as e:
+        logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": "Cannot get responses: " + str(e)})
     return json(responses)
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/responses/by_task/<id:int>", methods=["GET"]
+    mythic.config["API_BASE"] + "/responses/by_task/<tid:int>", methods=["GET"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_all_responses_for_task(request, user, id):
+async def get_all_responses_for_task(request, user, tid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.task_query()
-        task = await db_objects.get(query, id=id)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        task = await app.db_objects.get(db_model.task_query, id=tid)
     except Exception as e:
         return json({"status": "error", "error": "failed to get operation or task"})
-    query = await db_model.response_query()
-    responses = await db_objects.execute(
-        query.where(Response.task == task).order_by(Response.id)
+    responses = await app.db_objects.execute(
+        db_model.response_query.where(Response.task == task).order_by(Response.id)
     )
     return json([r.to_json() for r in responses])
 
 
 # Get a single response
-@mythic.route(mythic.config["API_BASE"] + "/responses/<id:int>", methods=["GET"])
+@mythic.route(mythic.config["API_BASE"] + "/responses/<rid:int>", methods=["GET"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_one_response(request, user, id):
+async def get_one_response(request, user, rid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.response_query()
-        resp = await db_objects.get(query, id=id)
-        query = await db_model.callback_query()
-        cb = await db_objects.get(query.where(Callback.id == resp.task.callback))
+        resp = await app.db_objects.get(db_model.response_query, id=rid)
+        cb = await app.db_objects.get(db_model.callback_query.where(Callback.id == resp.task.callback))
         if cb.operation.name == user["current_operation"]:
             return json(resp.to_json())
         else:
@@ -140,15 +136,12 @@ async def search_responses(request, user):
             return json(
                 {"status": "error", "error": "failed to find search term in request"}
             )
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "Cannot get that response"})
     try:
-        query = await db_model.task_query()
-        count = await db_objects.count(
-            query.join(Response)
-            .switch(Response)
+        count = await app.db_objects.count(
+            db_model.response_query
             .where(fn.encode(Response.response, "escape").regexp(data["search"]))
             .switch(Task)
             .where(Callback.operation == operation)
@@ -157,9 +150,8 @@ async def search_responses(request, user):
         )
         if "page" not in data:
             # allow a blanket search to still be performed
-            responses = await db_objects.execute(
-                query.join(Response)
-                .switch(Response)
+            responses = await app.db_objects.execute(
+                db_model.response_query
                 .where(fn.encode(Response.response, "escape").regexp(data["search"]))
                 .switch(Task)
                 .where(Callback.operation == operation)
@@ -187,9 +179,8 @@ async def search_responses(request, user):
                 data["page"] = ceil(count / data["size"])
                 if data["page"] == 0:
                     data["page"] = 1
-            responses = await db_objects.execute(
-                query.join(Response)
-                .switch(Response)
+            responses = await app.db_objects.execute(
+                db_model.response_query
                 .where(fn.encode(Response.response, "escape").regexp(data["search"]))
                 .switch(Task)
                 .where(Callback.operation == operation)
@@ -198,12 +189,13 @@ async def search_responses(request, user):
                 .paginate(data["page"], data["size"])
             )
         output = []
-        response_query = await db_model.response_query()
         for r in responses:
-            setup = await db_objects.execute(
-                response_query.where(Response.task == r).order_by(Response.id)
+            setup = await app.db_objects.execute(
+                db_model.response_query.where(Response.task == r.task).order_by(Response.id)
             )
-            output.append({**r.to_json(), "response": [s.to_json() for s in setup]})
+            # do an extra query here for task data so that we aren't doing a bunch of sync queries when we do .to_json
+            task = await app.db_objects.get(db_model.task_query, id=r.task.id)
+            output.append({**task.to_json(), "response": [s.to_json(include_task=False) for s in setup]})
         return json(
             {
                 "status": "success",
@@ -214,11 +206,11 @@ async def search_responses(request, user):
             }
         )
     except Exception as e:
-        print(str(e))
+        logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": "bad regex syntax"})
 
 
-async def post_agent_response(agent_message, UUID):
+async def post_agent_response(agent_message, callback):
     # { INPUT
     # "action": "post_response",
     # "responses": [
@@ -247,15 +239,14 @@ async def post_agent_response(agent_message, UUID):
             del r["task_id"]
             parsed_response = r
             try:
-                query = await db_model.task_query()
-                task = await db_objects.get(query, agent_task_id=task_id)
-                # update the callback's last checkin time since it just posted a response
-                task.callback.last_checkin = datetime.datetime.utcnow()
-                # always set this to true regardless of what it was before because it's clearly active
-                task.callback.active = True
-                await db_objects.update(task.callback)  # update the last checkin time
+                task = await app.db_objects.prefetch(db_model.task_query.where(db_model.Task.agent_task_id == task_id),
+                                                     db_model.callback_query,
+                                                     db_model.callbacktoken_query)
+                task = list(task)[0]
             except Exception as e:
-                logger.exception("Failed to find callback or task: " + str(e))
+                asyncio.create_task(
+                    send_all_operations_message(message=f"Failed to find task: {task_id}",
+                                                level="warning", source="process_list", operation=callback.operation))
                 response_message["responses"].append(
                     {task_id: "error", "error": "failed to find task or callback"}
                 )
@@ -263,30 +254,11 @@ async def post_agent_response(agent_message, UUID):
             json_return_info = {"status": "success", "task_id": task_id}
             final_output = ""  # we're resetting it since we're going to be doing some processing on the response
             try:
-                if task.command.is_process_list:
-                    # save this data off as a process list object in addition to doing whatever normally
-                    try:
-                        query = await db_model.processlist_query()
-                        pl = await db_objects.get(query, task=task)
-                        pl.process_list += parsed_response["user_output"].encode("utf-8")
-                        pl.timestamp = datetime.datetime.utcnow()
-                        await db_objects.update(pl)
-                    except Exception as e:
-                        processes = js.loads(parsed_response["user_output"])
-                        from app.api.rabbitmq_api import create_processes
-                        await create_processes({"processes": processes}, task)
-                        await db_objects.create(
-                            db_model.ProcessList,
-                            task=task,
-                            host=task.callback.host.upper(),
-                            process_list=parsed_response["user_output"].encode("utf-8"),
-                            operation=task.callback.operation,
-                        )
                 try:
                     if "completed" in parsed_response:
                         if parsed_response["completed"]:
                             task.completed = True
-                            asyncio.create_task(log_to_siem(task.to_json(), mythic_object="task_completed"))
+                            asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
                         parsed_response.pop("completed", None)
                     if "user_output" in parsed_response:
                         if parsed_response["user_output"] is not None:
@@ -312,21 +284,22 @@ async def post_agent_response(agent_message, UUID):
                             and parsed_response["removed_files"] != []
                             and parsed_response["removed_files"] != ""
                         ):
-                            filebrowserquery = await db_model.filebrowserobj_query()
                             for f in parsed_response["removed_files"]:
                                 if "host" not in f or f["host"] == "":
                                     f["host"] = task.callback.host
                                 # we want to see if there's a filebrowserobj that matches up with the removed files
                                 try:
-                                    fobj = await db_objects.get(
-                                        filebrowserquery,
+                                    fobj = await app.db_objects.get(
+                                        db_model.filebrowserobj_query,
                                         operation=task.callback.operation,
                                         host=f["host"].upper(),
                                         full_path=f["path"].encode('utf-8'),
                                         deleted=False,
                                     )
                                     fobj.deleted = True
-                                    await db_objects.update(fobj)
+                                    if not fobj.is_file:
+                                        asyncio.create_task(mark_nested_deletes(fobj, task.callback.operation))
+                                    await app.db_objects.update(fobj)
                                 except Exception as e:
                                     pass
                         parsed_response.pop("removed_files", None)
@@ -336,6 +309,10 @@ async def post_agent_response(agent_message, UUID):
                                 str(parsed_response["total_chunks"]) != "" and\
                                 parsed_response["total_chunks"] >= 0:
                             parsed_response["task"] = task.id
+                            if app.debugging_enabled:
+                                await send_all_operations_message(
+                                    message=f"Agent sent 'total_chunks' in a response, starting a file 'Download' from agent to Mythic",
+                                    level="info", source="debug", operation=task.callback.operation)
                             rsp = await create_filemeta_in_database_func(parsed_response)
                             parsed_response.pop("task", None)
                             if rsp["status"] == "success":
@@ -348,7 +325,7 @@ async def post_agent_response(agent_message, UUID):
                                         indent=2,
                                     )
                                 )
-                                await db_objects.create(
+                                await app.db_objects.create(
                                     Response, task=task, response=download_data
                                 )
                                 json_return_info = {
@@ -370,6 +347,10 @@ async def post_agent_response(agent_message, UUID):
                             ):
                                 # allow agents to post the initial chunk data with initial metadata
                                 parsed_response["file_id"] = json_return_info["file_id"]
+                            if app.debugging_enabled:
+                                await send_all_operations_message(
+                                    message=f"in 'Download', agent sent new chunk_data",
+                                    level="info", source="debug", operation=task.callback.operation)
                             rsp = await download_file_to_disk_func(parsed_response)
                             if rsp["status"] == "error":
                                 json_return_info["status"] = "error"
@@ -391,7 +372,7 @@ async def post_agent_response(agent_message, UUID):
                                 or parsed_response["user"] == ""
                             ):
                                 parsed_response["user"] = "UNKNOWN"
-                            rsp = await db_objects.create(
+                            rsp = await app.db_objects.create(
                                 Keylog,
                                 task=task,
                                 window=parsed_response["window_title"],
@@ -399,7 +380,7 @@ async def post_agent_response(agent_message, UUID):
                                 operation=task.callback.operation,
                                 user=parsed_response["user"],
                             )
-                            asyncio.create_task(log_to_siem(rsp.to_json(), mythic_object="keylog_new"))
+                            asyncio.create_task(log_to_siem(mythic_object=rsp, mythic_source="keylog_new"))
                         parsed_response.pop("window_title", None)
                         parsed_response.pop("user", None)
                         parsed_response.pop("keystrokes", None)
@@ -417,27 +398,26 @@ async def post_agent_response(agent_message, UUID):
                             for artifact in parsed_response["artifacts"]:
                                 try:
                                     try:
-                                        query = await db_model.artifact_query()
-                                        base_artifact = await db_objects.get(
-                                            query, name=artifact["base_artifact"].encode("utf-8")
+                                        base_artifact = await app.db_objects.get(
+                                            db_model.artifact_query, name=artifact["base_artifact"]
                                         )
                                     except Exception as e:
-                                        base_artifact = await db_objects.create(
+                                        base_artifact = await app.db_objects.create(
                                             Artifact,
-                                            name=artifact["base_artifact"].encode("utf-8"),
+                                            name=artifact["base_artifact"],
                                             description="Auto created from task {}".format(
                                                 task.id
-                                            ).encode("utf-8"),
+                                            ),
                                         )
                                     # you can report back multiple artifacts at once, no reason to make separate C2 requests
-                                    art = await db_objects.create(
+                                    art = await app.db_objects.create(
                                         TaskArtifact,
                                         task=task,
                                         artifact_instance=str(artifact["artifact"]).encode("utf-8"),
                                         artifact=base_artifact,
                                         host=task.callback.host.upper(),
                                     )
-                                    asyncio.create_task(log_to_siem(art.to_json(), mythic_object="artifact_new"))
+                                    asyncio.create_task(log_to_siem(mythic_object=art, mythic_source="artifact_new"))
                                     # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
                                 except Exception as e:
                                     final_output += (
@@ -449,6 +429,9 @@ async def post_agent_response(agent_message, UUID):
                                     json_return_info["status"] = "error"
                                     json_return_info["error"] = json_return_info["error"] + " " + str(e) if "error" in json_return_info else str(e)
                         parsed_response.pop("artifacts", None)
+                    if "processes" in parsed_response:
+                        if parsed_response["processes"] != "" and parsed_response["processes"] is not None:
+                            asyncio.create_task(create_processes({"processes": parsed_response["processes"]}, task))
                     if "status" in parsed_response:
                         if parsed_response["status"] != "" and parsed_response["status"] is not None:
                             task.status = str(parsed_response["status"]).lower()
@@ -469,10 +452,13 @@ async def post_agent_response(agent_message, UUID):
                         and parsed_response["file_id"] is not None
                     ):
                         # updating the full_path field of a file object after the initial checkin for it
+                        if app.debugging_enabled:
+                            await send_all_operations_message(
+                                message=f"Processing agent response, got file_id, {parsed_response['file_id']}, and a full path, {parsed_response['full_path']}. Going to try to associate them.",
+                                level="info", source="debug", operation=task.callback.operation)
                         try:
-                            query = await db_model.filemeta_query()
-                            file_meta = await db_objects.get(
-                                query, agent_file_id=parsed_response["file_id"], operation=task.callback.operation
+                            file_meta = await app.db_objects.get(
+                                db_model.filemeta_query, agent_file_id=parsed_response["file_id"], operation=task.callback.operation
                             )
                             if "host" in parsed_response and parsed_response["host"] is not None and parsed_response["host"] != "":
                                 host = parsed_response["host"]
@@ -480,7 +466,7 @@ async def post_agent_response(agent_message, UUID):
                                 host = task.callback.host
                             if file_meta.task is None or file_meta.task != task:
                                 # print("creating new file")
-                                f = await db_objects.create(
+                                f = await app.db_objects.create(
                                     db_model.FileMeta,
                                     task=task,
                                     host=host.upper(),
@@ -501,19 +487,22 @@ async def post_agent_response(agent_message, UUID):
                                 file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")
                                 if host != file_meta.host:
                                     file_meta.host = host.upper()
-                                await db_objects.update(file_meta)
+                                await app.db_objects.update(file_meta)
                                 if file_meta.full_remote_path != "":
-                                    print("call4 adding host with: " + host)
+                                    if app.debugging_enabled:
+                                        await send_all_operations_message(
+                                            message=f"Processing agent response, associated {file_meta.agent_file_id} with {parsed_response['full_path']}, now updating file browser data",
+                                            level="info", source="debug", operation=task.callback.operation)
                                     asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task,
                                                                                         file_meta,
                                                                                         {"host": host.upper(),
                                                                                         "full_path": parsed_response["full_path"]}))
                         except Exception as e:
-                            print(str(e))
-                            logger.exception(
-                                "Tried to update the full path for a file that can't be found: "
-                                + parsed_response["file_id"]
-                            )
+                            logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                            if app.debugging_enabled:
+                                await send_all_operations_message(
+                                    message=f"Failed to associate new 'full_path' with file {parsed_response['file_id']} - {str(e)}",
+                                    level="info")
                         parsed_response.pop("full_path", None)
                         parsed_response.pop("file_id", None)
                         parsed_response.pop("host", None)
@@ -538,7 +527,7 @@ async def post_agent_response(agent_message, UUID):
                                                                        callback=task.callback,
                                                                        task=task))
                         parsed_response.pop("commands", None)
-                    if "process_container" in parsed_response and parsed_response["process_container"] != "" and parsed_response["process_container"] is not None:
+                    if "process_response" in parsed_response and parsed_response["process_response"] != "" and parsed_response["process_response"] is not None:
                         try:
                             rabbit_message = {"params": task.params, "command": task.command.cmd}
                             rabbit_message["task"] = task.to_json()
@@ -550,22 +539,30 @@ async def post_agent_response(agent_message, UUID):
                             ]
                             rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
                             rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
-                            rabbit_message["response"] = parsed_response["process_container"]
+                            rabbit_message["response"] = parsed_response["process_response"]
+                            if app.debugging_enabled:
+                                await send_all_operations_message(
+                                    message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
+                                    level="info", source="debug", operation=task.callback.operation)
                             status = await send_pt_rabbitmq_message(payload_type=task.callback.registered_payload.payload_type.ptype,
                                                                     command="process_container",
                                                                     username="",
                                                                     reference_id=task.id,
                                                                     message_body=js.dumps(rabbit_message))
                             if status["status"] == "error":
-                                logger.error("response_api.py: sending process_container message: " + status["error"])
+                                logger.error("response_api.py: sending process_response message: " + status["error"])
                         except Exception as pc:
                             logger.error("response_api.py: " + str(sys.exc_info()[-1].tb_lineno) + str(pc))
-                        parsed_response.pop("process_container", None)
+                            if app.debugging_enabled:
+                                await send_all_operations_message(
+                                    message=f"Failed to send message to payload container:\n{str(pc)}",
+                                    level="info", source="debug", operation=task.callback.operation)
+                        parsed_response.pop("process_response", None)
                     parsed_response.pop("full_path", None)
                     parsed_response.pop("host", None)
                     parsed_response.pop("file_id", None)
                 except Exception as e:
-                    print(sys.exc_info()[-1].tb_lineno)
+                    logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                     final_output += (
                         "Failed to process a JSON-based response with error: "
                         + str(e)
@@ -578,25 +575,30 @@ async def post_agent_response(agent_message, UUID):
                     json_return_info["error"] = json_return_info["error"] + " " + str(e) if "error" in json_return_info else str(e)
             except Exception as e:
                 # response is not json, so just process it as normal
-                print(str(e))
+                asyncio.create_task(
+                    send_all_operations_message(message=f"Failed to parse response data:\n{str(e)}",
+                                                level="warning", source="response",
+                                                operation=task.callback.operation))
                 pass
             # echo back any values that the agent sent us that don't match something we're expecting
-            #print(parsed_response)
             json_return_info = {**json_return_info, **parsed_response}
-            #print(json_return_info)
             if final_output != "":
                 # if we got here, then we did some sort of meta processing
-                resp = await db_objects.create(
+                resp = await app.db_objects.create(
                     Response,
                     task=task,
                     response=final_output.encode("utf-8")
                 )
-                asyncio.create_task(log_to_siem(resp.to_json(), mythic_object="response_new"))
+                asyncio.create_task(log_to_siem(mythic_object=resp, mythic_source="response_new"))
             task.timestamp = datetime.datetime.utcnow()
-            await db_objects.update(task)
+            await app.db_objects.update(task)
             response_message["responses"].append(json_return_info)
         except Exception as e:
-            logger.exception(e)
+            logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            asyncio.create_task(
+                send_all_operations_message(message=f"Failed to process response:\n{str(e)}", level="warning",
+                                            source="response_meta",
+                                            operation=callback.operation))
             response_message["responses"].append(
                 {
                     "status": "error",
@@ -610,14 +612,11 @@ async def post_agent_response(agent_message, UUID):
         and agent_message["socks"] != []
         and agent_message["socks"] is not None
     ):
-        from app.api.callback_api import send_socks_data
-
-        query = await db_model.callback_query()
-        callback = await db_objects.get(query, agent_callback_id=UUID)
-        asyncio.create_task(send_socks_data(agent_message["socks"], callback))
+        # since this could be in any worker, publish this data to a channel that should be listening
+        app.redis_pool.publish(f"SOCKS:{callback.id}:FromAgent", js.dumps(agent_message["socks"]))
         agent_message.pop("socks", None)
     # echo back any additional parameters here as well
     for k in agent_message:
-        if k not in ["action", "responses", "delegates", "socks"]:
+        if k not in ["action", "responses", "delegates", "socks", "edges"]:
             response_message[k] = agent_message[k]
     return response_message

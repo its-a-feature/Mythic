@@ -9,7 +9,7 @@ A cross-platform, post-exploit, red teaming framework built with python3, docker
 * Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf  
 * Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
 
-* Current Version: 2.2.1
+* Current Version: 2.2.2
 
 ## Installing Agents and C2 Profiles
 
@@ -38,16 +38,18 @@ Additionally, Mythic uses a number of custom PyPi packages to help control and s
 All of this can be found on the [MythicMeta](https://github.com/MythicMeta):  
 * Dockerfile configurations for all Docker images uploaded to DockerHub
 * PyPi source code for all packages uploaded to PyPi
+* Scripting source code
 
 ## Current Container PyPi Package requirements
 
-Supported payload types must have the `mythic_payloadtype_container` PyPi package of 0.0.38.  
-* The Payload Type container reports this as version 4  
+Supported payload types must have the `mythic_payloadtype_container` PyPi package of 0.0.42.  
+* The Payload Type container reports this as version 6  
 
-Supported c2 profiles must have the `mythic_c2profile_container` PyPi package of 0.0.15.  
-* The C2 Profile container reports this as version 2.  
+Supported c2 profiles must have the `mythic_c2_container` PyPi package of 0.0.22.  
+* The C2 Profile container reports this as version 3.  
 
-Supported translation containers must have the `mythic_translation_containter` PyPi package of 0.0.6.
+Supported translation containers must have the `mythic_translator_containter` PyPi package of 0.0.10.
+* The Translator container reports this as version 3.  
 
 ## Documentation
 

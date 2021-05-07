@@ -95,14 +95,27 @@ var task_info = new Vue({
             }, "GET", null);
         },
         view_all_parameters: function(task){
-            let text_msg = "Display Parameters:\n" + task["display_params"] + "\n\nOriginal Parameters:\n" + task["original_params"];
-            $('#addCommentTextArea').val(text_msg);
-            $('#commentModalTitle').text("View Parameters");
-            $('#addCommentModal').modal('show');
-            $('#addCommentModal').on('shown.bs.modal', function () {
-                $('#addCommentTextArea').focus();
-            });
-            $('#addCommentSubmit').unbind('click').click(function () {});
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/all_params/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "Display Parameters:\n" + data["display_params"] + "\n\nOriginal Parameters:\n" + data["original_params"];
+                        text_msg += "\n\nFinal Params:\n" + data["params"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("All Parameters");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
         },
         view_opsec_block: function(task){
             let text_msg = "";

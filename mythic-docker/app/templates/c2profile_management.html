@@ -61,7 +61,7 @@
                     {% if view_mode == 'operator' %}
                     <button :disabled="!p.container_running" class="btn btn{{config['outline-buttons']}}warning btn-sm" type="button" @click="configure_server(p)"><i class="fas fa-edit"></i> Configure</button>
                     {% endif %}
-                    <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/c2-profiles/' + p.name.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
+                    <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'/docs/c2-profiles/' + p.name.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
                 </td>
                 <td style="text-align:center"><br>
                     Saved instances:

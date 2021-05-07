@@ -15,7 +15,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 const GET_Payload_Details = gql`
 query GetPayloadDetails($payload_name: String!) {
   payloadtype(where: {ptype: {_eq: $payload_name}}) {
-    buildparameters {
+    buildparameters (where: {deleted: {_eq: false} } ){
       description
       name
       id

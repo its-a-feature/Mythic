@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import Command, CommandParameters, ATTACKCommand
 from sanic_jwt.decorators import scoped, inject_user
@@ -22,16 +23,14 @@ async def get_all_commands(request, user):
     if user["current_operation"] == "":
         return json({"status": "error", "error": "Must be part of a current operation to see this"})
     all_commands = []
-    query = await db_model.command_query()
-    commands = await db_objects.execute(
-        query.where(
+    commands = await app.db_objects.execute(
+        db_model.command_query.where(
             (Command.deleted == False) & (db_model.PayloadType.deleted == False)
         ).order_by(Command.id)
     )
     for cmd in commands:
-        query = await db_model.commandparameters_query()
-        params = await db_objects.execute(
-            query.where(CommandParameters.command == cmd).order_by(CommandParameters.id)
+        params = await app.db_objects.execute(
+            db_model.commandparameters_query.where(CommandParameters.command == cmd).order_by(CommandParameters.id)
         )
         all_commands.append({**cmd.to_json(), "params": [p.to_json() for p in params]})
     return json(all_commands)
@@ -57,23 +56,19 @@ async def check_command(request, user, ptype, cmd):
     status = {"status": "success"}
     cmd = unquote_plus(cmd)
     try:
-        query = await db_model.payloadtype_query()
-        payload_type = await db_objects.get(query, id=ptype)
+        payload_type = await app.db_objects.get(db_model.payloadtype_query, id=ptype)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to get payload type"})
     try:
-        query = await db_model.command_query()
-        command = await db_objects.get(
-            query, cmd=cmd, payload_type=payload_type, deleted=False
+        command = await app.db_objects.get(
+            db_model.command_query, cmd=cmd, payload_type=payload_type, deleted=False
         )
-        query = await db_model.commandparameters_query()
-        params = await db_objects.execute(
-            query.where(CommandParameters.command == command)
+        params = await app.db_objects.execute(
+            db_model.commandparameters_query.where(CommandParameters.command == command)
         )
-        query = await db_model.attackcommand_query()
-        attacks = await db_objects.execute(
-            query.where(ATTACKCommand.command == command)
+        attacks = await app.db_objects.execute(
+            db_model.attackcommand_query.where(ATTACKCommand.command == command)
         )
         status = {
             **status,
@@ -89,13 +84,13 @@ async def check_command(request, user, ptype, cmd):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<id:int>/parameters/", methods=["GET"]
+    mythic.config["API_BASE"] + "/commands/<cid:int>/parameters/", methods=["GET"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_all_parameters_for_command(request, user, id):
+async def get_all_parameters_for_command(request, user, cid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -104,13 +99,11 @@ async def get_all_parameters_for_command(request, user, id):
     if user["current_operation"] == "":
         return json({"status": "error", "error": "Must be part of a current operation to see this"})
     try:
-        query = await db_model.command_query()
-        command = await db_objects.get(query, id=id)
+        command = await app.db_objects.get(db_model.command_query, id=cid)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find that command"})
-    query = await db_model.commandparameters_query()
-    params = await db_objects.execute(query.where(CommandParameters.command == command))
+    params = await app.db_objects.execute(db_model.commandparameters_query.where(CommandParameters.command == command))
     return json([p.to_json() for p in params])
 
 
@@ -118,13 +111,13 @@ async def get_all_parameters_for_command(request, user, id):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<id:int>/mitreattack/", methods=["GET"]
+    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/", methods=["GET"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_all_attack_mappings_for_command(request, user, id):
+async def get_all_attack_mappings_for_command(request, user, cid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -133,25 +126,23 @@ async def get_all_attack_mappings_for_command(request, user, id):
     if user["current_operation"] == "":
         return json({"status": "error", "error": "Must be part of a current operation to see this"})
     try:
-        query = await db_model.command_query()
-        command = await db_objects.get(query, id=id)
+        command = await app.db_objects.get(db_model.command_query, id=cid)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find that command"})
-    query = await db_model.attackcommand_query()
-    attacks = await db_objects.execute(query.where(ATTACKCommand.command == command))
+    attacks = await app.db_objects.execute(db_model.attackcommand_query.where(ATTACKCommand.command == command))
     return json({"status": "success", "attack": [a.to_json() for a in attacks]})
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<id:int>/mitreattack/<t_num:string>",
+    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/<t_num:string>",
     methods=["DELETE"],
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def remove_attack_mapping_for_command(request, user, id, t_num):
+async def remove_attack_mapping_for_command(request, user, cid, t_num):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -162,28 +153,25 @@ async def remove_attack_mapping_for_command(request, user, id, t_num):
             {"status": "error", "error": "Spectators cannot remove MITRE mappings"}
         )
     try:
-        query = await db_model.command_query()
-        command = await db_objects.get(query, id=id)
-        query = await db_model.attack_query()
-        attack = await db_objects.get(query, t_num=t_num)
-        query = await db_model.attackcommand_query()
-        attackcommand = await db_objects.get(query, command=command, attack=attack)
+        command = await app.db_objects.get(db_model.command_query, id=cid)
+        attack = await app.db_objects.get(db_model.attack_query, t_num=t_num)
+        attackcommand = await app.db_objects.get(db_model.attackcommand_query, command=command, attack=attack)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find that command"})
-    await db_objects.delete(attackcommand)
+    await app.db_objects.delete(attackcommand)
     return json({"status": "success", "t_num": attack.t_num, "command_id": command.id})
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<id:int>/mitreattack/<t_num:string>",
+    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/<t_num:string>",
     methods=["POST"],
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def create_attack_mappings_for_command(request, user, id, t_num):
+async def create_attack_mappings_for_command(request, user, cid, t_num):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -194,32 +182,29 @@ async def create_attack_mappings_for_command(request, user, id, t_num):
             {"status": "error", "error": "Spectators cannot add MITRE mappings"}
         )
     try:
-        query = await db_model.command_query()
-        command = await db_objects.get(query, id=id)
-        query = await db_model.attack_query()
-        attack = await db_objects.get(query, t_num=t_num)
+        command = await app.db_objects.get(db_model.command_query, id=cid)
+        attack = await app.db_objects.get(db_model.attack_query, t_num=t_num)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find that command"})
     try:
-        query = await db_model.attackcommand_query()
-        attackcommand = await db_objects.get(query, attack=attack, command=command)
+        attackcommand = await app.db_objects.get(db_model.attackcommand_query, attack=attack, command=command)
     except Exception as e:
-        attackcommand = await db_objects.create(
+        attackcommand = await app.db_objects.create(
             ATTACKCommand, attack=attack, command=command
         )
     return json({"status": "success", **attackcommand.to_json()})
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<id:int>/mitreattack/<t_num:string>",
+    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/<t_num:string>",
     methods=["PUT"],
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def adjust_attack_mappings_for_command(request, user, id, t_num):
+async def adjust_attack_mappings_for_command(request, user, cid, t_num):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -231,15 +216,12 @@ async def adjust_attack_mappings_for_command(request, user, id, t_num):
         )
     data = request.json
     try:
-        query = await db_model.command_query()
-        command = await db_objects.get(query, id=id)
-        query = await db_model.attack_query()
-        newattack = await db_objects.get(query, t_num=t_num)
-        query = await db_model.attackcommand_query()
-        attackcommand = await db_objects.get(query, id=data["id"], command=command)
+        command = await app.db_objects.get(db_model.command_query, id=cid)
+        newattack = await app.db_objects.get(db_model.attack_query, t_num=t_num)
+        attackcommand = await app.db_objects.get(db_model.attackcommand_query, id=data["id"], command=command)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find that command"})
     attackcommand.attack = newattack
-    await db_objects.update(attackcommand)
+    await app.db_objects.update(attackcommand)
     return json({"status": "success", **attackcommand.to_json()})

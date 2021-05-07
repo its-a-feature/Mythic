@@ -157,8 +157,16 @@ var callback_table = new Vue({
                                 }
                                 params_table.command_params.push(param);
                             }
-                            params_table.command_params.sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+                            params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
                             $('#paramsModal').modal('show');
+                            $('#paramsModal').on('shown.bs.modal', function () {
+                                $('#paramindex0').focus();
+                                $("#paramsModal").unbind('keyup').on('keyup', function (e) {
+                                    if (e.keyCode === 13 && e.ctrlKey) {
+                                        $('#paramsSubmit').click();
+                                    }
+                                });
+                            });
                             $('#paramsSubmit').unbind('click').click(function () {
                                 let param_data = {};
                                 let file_data = {};  //mapping of param_name to uploaded file data
@@ -386,14 +394,27 @@ var callback_table = new Vue({
             }, "GET", null);
         },
         view_all_parameters: function(task){
-            let text_msg = "Display Parameters:\n" + task["display_params"] + "\n\nOriginal Parameters:\n" + task["original_params"];
-            $('#addCommentTextArea').val(text_msg);
-            $('#commentModalTitle').text("View Parameters");
-            $('#addCommentModal').modal('show');
-            $('#addCommentModal').on('shown.bs.modal', function () {
-                $('#addCommentTextArea').focus();
-            });
-            $('#addCommentSubmit').unbind('click').click(function () {});
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/all_params/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "Display Parameters:\n" + data["display_params"] + "\n\nOriginal Parameters:\n" + data["original_params"];
+                        text_msg += "\n\nFinal Params:\n" + data["params"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("All Parameters");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
         },
         view_opsec_block: function(task){
             let text_msg = "";

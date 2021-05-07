@@ -24,7 +24,8 @@ subscription NewPayloadsSubscription($fromNow: timestamp!) {
   payload(limit: 1, where: {deleted: {_eq: false}, creation_time: {_gte: $fromNow}}, order_by: {creation_time: desc}) {
     build_message
     build_phase
-    build_error
+    build_stderr
+    build_stdout
     uuid
     tag
     id

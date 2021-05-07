@@ -2,7 +2,7 @@
   "mythic_admin_user": "mythic_admin",
   "mythic_admin_password": "mythic_password",
   "default_operation_name": "Operation Chimera",
-  "listen_port": 7443,
+  "nginx_port": 7443,
   "allowed_ip_blocks": ["0.0.0.0/0"],
   "server_header": "nginx 1.2",
   "web_log_size": 1024000,
@@ -11,5 +11,5 @@
   "excluded_c2_profiles": [],
   "excluded_payload_types": [],
   "documentation_container_port": 8090,
-  "mythic_server_port": 17443
+  "server_port": 17443
 }

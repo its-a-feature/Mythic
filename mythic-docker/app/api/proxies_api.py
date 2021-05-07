@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic_jwt.decorators import inject_user, scoped
 import app.database_models.model as db_model
 from sanic.response import json
@@ -19,16 +20,14 @@ async def get_proxies(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        callbacks_query = await db_model.callback_query()
-        proxies = await db_objects.execute(
-            callbacks_query.where(
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        proxies = await app.db_objects.execute(
+            db_model.callback_query.where(
                 (db_model.Callback.operation == operation)
                 & (db_model.Callback.port != None)
             )
         )
-        return json({"status": "success", "proxies": [p.to_json() for p in proxies]})
+        return json({"status": "success", "proxies": [p.to_json(False) for p in proxies]})
     except Exception as e:
         print(str(e))
         return json({"status": "error", "error": "failed to find proxies or operation"})
@@ -48,12 +47,10 @@ async def stop_socks_in_callback(request, user, pid):
     try:
         if user["view_mode"] == "spectator":
             return json({"status": "error", "error": "Spectators cannot stop socks"})
-        query = await db_model.callback_query()
-        proxy = await db_objects.get(query, port=pid)
-        operator_query = await db_model.operator_query()
-        operator = await db_objects.get(operator_query, username=user["username"])
+        proxy = await app.db_objects.get(db_model.callback_query, port=pid)
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         await stop_socks(proxy, operator)
-        return json({"status": "success", **proxy.to_json()})
+        return json({"status": "success", **proxy.to_json(False)})
     except Exception as e:
         print(str(e))
         return json({"status": "error", "error": "failed to find proxy"})

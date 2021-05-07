@@ -344,7 +344,7 @@
                              <template v-else-if="task.opsec_post_blocked === true && task.opsec_post_bypassed === false">
                                  <button class="btn btn{{config['outline-buttons']}}warning btn-sm dropdown-toggle" style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">OPSEC BLOCKED (POST)</span></button>
                              </template>
-                            <template v-else-if="task.completed == true && task.status != 'error'">
+                            <template v-else-if="task.completed == true && task.status !== 'error'">
                                 <button class="btn btn{{config['outline-buttons']}}success btn-sm dropdown-toggle" style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">completed</span></button>
                             </template>
                             <template v-else-if="task.status == 'processed'">
@@ -513,31 +513,15 @@
                             <td>[[proc.process_id]]</td>
                             <td>[[proc.parent_process_id]]</td>
                             <td style="word-break:break-all;white-space:normal">
-                                <template v-if="proc.hasOwnProperty('name')" >
                                     [[proc.name]]
-                                </template>
-                                <template v-else>
-                                    [[proc.process_name]]
-                                </template>
                             </td>
                             <td>
-                                <template v-if="proc.hasOwnProperty('architecture')">
                                     [[proc.architecture]]
-                                </template>
-                                <template v-else>
-                                    [[ proc.arch]]
-                                </template>
                             </td>
                             <td>[[proc.user]]</td>
                             <td>
-                                <template v-if="proc.hasOwnProperty('bin_path')">
                                     [[proc.bin_path]]
-                                </template>
-                                <template v-else>
-                                    [[proc.file_path]]
-                                </template>
                             </td>
-
                         </tr>
                     </template>
                 </table>
@@ -584,15 +568,22 @@
                     <input type="text" class="form-control" v-model="path" autocomplete="off">
                     <button class="btn input-group-append btn-sm btn{{config['outline-buttons']}}primary" @click="task_list_file_refresh()">List</button>
                     <button class="btn input-group-append btn-sm btn{{config['outline-buttons']}}primary" @click="task_file_upload()">Upload</button>
-                    <input disabled type="text" class="form-control col-1" placeholder="Callback:" >
-                    <input type="number" class="form-control col-1" v-model="callback" autocomplete="off">
+                    <input data-toggle="tooltip" title="Callback that returned this data and will be tasked"  disabled type="text" class="form-control col-1" placeholder="Callback:" >
+                    <template v-if="manually_edit_file_browser_callback">
+                        <input type="number" min="1" max="9999" class="form-control col-1" v-model="manual_file_browser_callback_num" autocomplete="off">
+                        <button data-toggle="tooltip" title="Set callback number back to the one that returned this data" class="btn input-group-append btn-sm btn{{config['outline-buttons']}}info" @click="reset_manually_change_file_browser_callback_num()" style="display:inline"><i class="fas fa-undo"></i></button>
+                    </template>
+                    <template v-else>
+                        <input type="number" min="1" max="9999" class="form-control col-1" :value="callback" @change="set_manually_change_file_browser_callback_num" autocomplete="off">
+                    </template>
+
                 </div>
                 <table class="table table-striped {{config['table-color']}} table-condensed bg-card-body-l2 shadow border border-dark" style="margin-bottom:0;overflow:auto;word-wrap:break-word;table-layout:fixed">
                     <tr>
                         <th onclick="sort_table(this)">Name</th>
                         <th onclick="sort_table(this)" style="width:7rem">Size</th>
                         <th onclick="sort_table(this)" style="width:14rem">Modify Time</th>
-                        <th onclick="sort_table(this)" style="width:30rem">Comment</th>
+                        <th onclick="sort_table(this)">Comment</th>
                         <th style="width:7rem">Actions</th>
                     </tr>
                     <tr @dblclick="move_up_folder_ui(folder)">
@@ -962,7 +953,7 @@
 </div>
 <!-- END MODAL FOR VIEW LOADED COMMANDS -->
 <!-- THIS IS OUR MODAL FOR ADDING A COMMENT -->
-<div class="modal fade" id="addCommentModal" role="dialog" >
+<div class="modal fade" id="addCommentModal" role="dialog" style="max-height: calc(90vh)">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
@@ -1000,7 +991,7 @@
                         <th style="padding:10px;margin:10px;width:15rem">Parameter</th>
                         <th style="text-align:left">Value</th>
                     </tr>
-                    <tr v-for="param in command_params" :key="param.id" >
+                    <tr v-for="(param, pindex) in command_params" :key="param.id" >
                         <td style="padding:10px;margin:10px;text-align:left">
                             <div class="tooltip">[[param.name]]<span v-if="param.required">
                                 <br><b style="color:indianred">Required</b>
@@ -1011,10 +1002,10 @@
                         </td>
                         <td style="text-align:left">
                             <span v-if="param.type == 'String'">
-                                <input class="form-control" type="text" :placeholder="param.default_value" v-model="param.string_value" size="90" @keyup.enter="$('#paramsSubmit').click()">
+                                <input :id="'paramindex' + pindex" class="form-control" type="text" :placeholder="param.default_value" v-model="param.string_value" size="90">
                             </span>
                             <span v-else-if="param.type.includes('Credential')">
-                                <select class="form-control" v-model="param.credential_id">
+                                <select :id="'paramindex' + pindex" class="form-control" v-model="param.credential_id">
                                     <option value="0">Select One...</option>
                                     <template v-if="param.type.includes('JSON')">
                                         <option v-for="cred in credentials" :value="cred.id">
@@ -1047,27 +1038,27 @@
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'Number'">
-                                <input class="form-control" type="number" v-model="param.number_value" @keyup.enter="$('#paramsSubmit').click()">
+                                <input :id="'paramindex' + pindex" class="form-control" type="number" v-model="param.number_value">
                             </span>
                             <span v-else-if="param.type == 'Choice'">
-                                <select class="form-control" v-model="param.choice_value">
+                                <select :id="'paramindex' + pindex" class="form-control" v-model="param.choice_value">
                                     <option v-for="opt in param.choices" :value="opt">[[opt]]</option>
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'ChoiceMultiple'">
-                                <select class="form-control" multiple v-model="param.choicemultiple_value">
+                                <select :id="'paramindex' + pindex" class="form-control" multiple v-model="param.choicemultiple_value">
                                     <option v-for="opt in param.choices" :value="opt">[[opt]]</option>
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'Boolean'">
-                                &nbsp;<span class="material-switch pull-right"><input class="form-control" type="checkbox" v-model="param.boolean_value" :id="'param' + param.id">
+                                &nbsp;<span :id="'paramindex' + pindex" class="material-switch pull-right"><input class="form-control" type="checkbox" v-model="param.boolean_value" :id="'param' + param.id">
                                 <label :for="'param' + param.id" class="btn-info"></label></span>
                             </span>
                             <span v-else-if="param.type == 'Array'">
                                 <div v-for="(arg, index) in param.array_value" :key="index">
                                     <span class="input-group">
                                         <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="command_params_remove_array_element(param, index)"><i class="fas fa-trash-alt" ></i></button>
-                                        <textarea class="form-control" v-model="param.array_value[index]" rows="1" cols="60" @input="split_input_params(param, index)"></textarea>
+                                        <textarea :id="'paramindex' + pindex" class="form-control" v-model="param.array_value[index]" rows="1" cols="60" @input="split_input_params(param, index)"></textarea>
                                     </span>
                                 </div>
                                 <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="command_params_add_array_element(param);"><i class="fas fa-plus"></i> </button>
@@ -1076,12 +1067,12 @@
                                 <input class="form-control-file" type="file" :id="'fileparam' + param.name">
                             </span>
                             <span v-else-if="param.type === 'PayloadList'">
-                                <select class="form-control" v-model="param.payloadlist_value">
+                                <select :id="'paramindex' + pindex" class="form-control" v-model="param.payloadlist_value">
                                     <option v-for="p in param.payloads" :value="p.uuid">[[ p.payload_list_selection ]] </option>
                                 </select>
                             </span>
                             <span v-else-if="param.type === 'LinkInfo'">
-                                <select class="form-control" v-model="param.links_value">
+                                <select :id="'paramindex' + pindex" class="form-control" v-model="param.links_value">
                                     <option v-for="p in param.links" :value="p">Callback [[ p.source.id ]] -> Callback [[ p.destination.id ]] ( [[ p.c2_profile ]] ) - [[ p.end_timestamp === null ? "Active": "Dead"]] </option>
                                 </select>
                             </span>

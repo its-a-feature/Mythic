@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 import aiopg
 import ujson as js
 from sanic.log import logger
@@ -14,11 +15,10 @@ from app.database_models.model import (
 )
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
-import aio_pika
 import sys
-import base64
 from app.api.processlist_api import get_process_tree
 import asyncio
+import peewee
 
 
 # --------------- TASKS --------------------------
@@ -40,11 +40,10 @@ async def ws_tasks(request, ws, user):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newtask";')
                     # before we start getting new things, update with all of the old data
-                    query = await db_model.task_query()
-                    tasks_with_all_info = await db_objects.execute(
-                        query.order_by(db_model.Task.id)
+                    tasks_with_all_info = await app.db_objects.execute(
+                        db_model.task_query.order_by(db_model.Task.id)
                     )
-                    # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
+                    # callbacks_with_operators = await app.db_objects.prefetch(callbacks, operators)
                     for task in tasks_with_all_info:
                         await ws.send(js.dumps(task.to_json()))
                     await ws.send("")
@@ -53,8 +52,7 @@ async def ws_tasks(request, ws, user):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            query = await db_model.task_query()
-                            tsk = await db_objects.get(query, id=id)
+                            tsk = await app.db_objects.get(db_model.task_query, id=id)
                             await ws.send(js.dumps(tsk.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -63,7 +61,7 @@ async def ws_tasks(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/tasks")
@@ -79,21 +77,19 @@ async def ws_tasks(request, ws, user):
     if not await valid_origin_header(request):
         return
     try:
-        op_query = await db_model.operation_query()
-        op = await db_objects.get(op_query, name=user["current_operation"])
+        op = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newtask";')
                     await cur.execute('LISTEN "updatedtask";')
                     # before we start getting new things, update with all of the old data
-                    query = await db_model.task_query()
-                    tasks_with_all_info = await db_objects.execute(
-                        query.where(db_model.Callback.operation == op).order_by(
+                    tasks_with_all_info = await app.db_objects.execute(
+                        db_model.task_query.where(db_model.Callback.operation == op).order_by(
                             db_model.Task.id
                         )
                     )
-                    # callbacks_with_operators = await db_objects.prefetch(callbacks, operators)
+                    # callbacks_with_operators = await app.db_objects.prefetch(callbacks, operators)
                     for task in tasks_with_all_info:
                         taskj = task.to_json()
                         taskj["callback"] = task.callback.to_json()
@@ -104,7 +100,7 @@ async def ws_tasks(request, ws, user):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            tsk = await db_objects.get(query, id=id)
+                            tsk = await app.db_objects.get(db_model.task_query, id=id)
                             if tsk.callback.operation == op:
                                 taskj = tsk.to_json()
                                 taskj["callback"] = tsk.callback.to_json()
@@ -116,7 +112,7 @@ async def ws_tasks(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/tasks")
@@ -132,21 +128,18 @@ async def ws_tasks(request, ws, user):
     if not await valid_origin_header(request):
         return
     try:
-        op_query = await db_model.operation_query()
-        op = await db_objects.get(op_query, name=user["current_operation"])
+        op = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newtask";')
                     await cur.execute('LISTEN "updatedtask";')
-                    # before we start getting new things, update with all of the old data
-                    query = await db_model.task_query()
                     # now pull off any new tasks we got queued up while processing the old data
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            tsk = await db_objects.get(query, id=id)
+                            tsk = await app.db_objects.get(db_model.task_query, id=id)
                             if tsk.callback.operation == op:
                                 taskj = tsk.to_json()
                                 taskj["callback"] = tsk.callback.to_json()
@@ -158,7 +151,7 @@ async def ws_tasks(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/tasks")
@@ -174,16 +167,14 @@ async def ws_updates_for_task(request, ws, user, tid):
     if not await valid_origin_header(request):
         return
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
 
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "updatedtask";')
                     # before we start getting new things, update with all of the old data
-                    query = await db_model.task_query()
-                    task = await db_objects.get(query, id=tid)
+                    task = await app.db_objects.get(db_model.task_query, id=tid)
                     if task.callback.operation == operation:
                         await ws.send(js.dumps(task.to_json()))
                     else:
@@ -193,8 +184,7 @@ async def ws_updates_for_task(request, ws, user, tid):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            query = await db_model.task_query()
-                            tsk = await db_objects.get(query, id=id)
+                            tsk = await app.db_objects.get(db_model.task_query, id=id)
                             if tsk.id == task.id:
                                 await ws.send(js.dumps(tsk.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -204,7 +194,7 @@ async def ws_updates_for_task(request, ws, user, tid):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/tasks")
@@ -226,14 +216,12 @@ async def ws_tasks_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newtask";')
                     await cur.execute('LISTEN "updatedtask";')
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.task_query()
                         # to avoid being too slow, just get the latest 200
-                        initial_tasks = await db_objects.execute(
-                            query.where(Callback.operation == operation)
+                        initial_tasks = await app.db_objects.execute(
+                            db_model.task_query.where(Callback.operation == operation)
                             .order_by(Task.timestamp)
                             .limit(200)
                         )
@@ -253,7 +241,7 @@ async def ws_tasks_current_operation(request, ws, user):
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
 
-                                t = await db_objects.get(query, id=id)
+                                t = await app.db_objects.get(db_model.task_query, id=id)
                                 if t.callback.operation == operation:
                                     await ws.send(
                                         js.dumps(
@@ -270,7 +258,7 @@ async def ws_tasks_current_operation(request, ws, user):
                                     ""
                                 )  # this is our test to see if the client is still there
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
@@ -300,9 +288,8 @@ async def ws_responses(request, ws, user):
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newresponse";')
-                    query = await db_model.response_query()
-                    responses_with_tasks = await db_objects.execute(
-                        query.order_by(db_model.Response.id)
+                    responses_with_tasks = await app.db_objects.execute(
+                        db_model.response_query.order_by(db_model.Response.id)
                     )
                     for resp in responses_with_tasks:
                         await ws.send(js.dumps(resp.to_json()))
@@ -312,7 +299,7 @@ async def ws_responses(request, ws, user):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            rsp = await db_objects.get(query, id=id)
+                            rsp = await app.db_objects.get(db_model.response_query, id=id)
                             await ws.send(js.dumps(rsp.to_json()))
                             # print(msg.payload)
                         except asyncio.QueueEmpty as e:
@@ -322,7 +309,7 @@ async def ws_responses(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/task_updates")
@@ -338,15 +325,13 @@ async def ws_responses(request, ws, user):
     if not await valid_origin_header(request):
         return
     try:
-        query = await db_model.operation_query()
-        op = await db_objects.get(query, name=user["current_operation"])
+        op = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newresponse";')
-                    query = await db_model.response_query()
-                    responses_with_tasks = await db_objects.execute(
-                        query.where(db_model.Callback.operation == op).order_by(
+                    responses_with_tasks = await app.db_objects.execute(
+                        db_model.response_query.where(db_model.Callback.operation == op).order_by(
                             db_model.Response.id
                         )
                     )
@@ -358,7 +343,7 @@ async def ws_responses(request, ws, user):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            rsp = await db_objects.get(query, id=id)
+                            rsp = await app.db_objects.get(db_model.response_query, id=id)
                             if rsp.task.callback.operation == op:
                                 await ws.send(js.dumps(rsp.to_json()))
                             # print(msg.payload)
@@ -369,7 +354,7 @@ async def ws_responses(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/task_updates")
@@ -385,18 +370,16 @@ async def ws_responses(request, ws, user):
     if not await valid_origin_header(request):
         return
     try:
-        query = await db_model.operation_query()
-        op = await db_objects.get(query, name=user["current_operation"])
+        op = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newresponse";')
-                    query = await db_model.response_query()
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            rsp = await db_objects.get(query, id=id)
+                            rsp = await app.db_objects.get(db_model.response_query, id=id)
                             if rsp.task.callback.operation == op:
                                 await ws.send(js.dumps(rsp.to_json()))
                             # print(msg.payload)
@@ -407,7 +390,7 @@ async def ws_responses(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/task_updates")
@@ -430,8 +413,7 @@ async def ws_responses(request, ws, user, tid):
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newresponse";')
-                    tquery = await db_model.task_query()
-                    task = await db_objects.get(tquery, id=tid)
+                    task = await app.db_objects.get(db_model.task_query, id=tid)
                     if (
                         task.callback.operation.name not in user["operations"]
                         and task.callback.operation.name not in user["admin_operations"]
@@ -445,9 +427,8 @@ async def ws_responses(request, ws, user, tid):
                             )
                         )
                         return
-                    query = await db_model.response_query()
-                    responses_with_tasks = await db_objects.execute(
-                        query.where(db_model.Response.task == task).order_by(
+                    responses_with_tasks = await app.db_objects.execute(
+                        db_model.response_query.where(db_model.Response.task == task).order_by(
                             db_model.Response.id
                         )
                     )
@@ -461,8 +442,7 @@ async def ws_responses(request, ws, user, tid):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            query = await db_model.response_query()
-                            rsp = await db_objects.get(query, id=id)
+                            rsp = await app.db_objects.get(db_model.response_query, id=id)
                             if rsp.task == task:
                                 await ws.send(js.dumps(rsp.to_json()))
                                 if rsp.task.completed:
@@ -475,7 +455,7 @@ async def ws_responses(request, ws, user, tid):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/task_updates")
@@ -498,27 +478,19 @@ async def ws_callbacks_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newcallback";')
                     if user["current_operation"] != "":
                         # before we start getting new things, update with all of the old data
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.callback_query()
-                        callbackc2profilequery = (
-                            await db_model.callbackc2profiles_query()
-                        )
-                        c2profileparametersinstancequery = (
-                            await db_model.c2profileparametersinstance_query()
-                        )
-                        callbacks_with_operators = await db_objects.execute(
-                            query.where(
+                        callbacks_with_operators = await app.db_objects.prefetch(
+                            db_model.callback_query.where(
                                 (Callback.operation == operation)
                                 & (Callback.active == True)
-                            ).order_by(Callback.id)
+                            ).order_by(Callback.id), db_model.callbacktoken_query
                         )
                         for cb in callbacks_with_operators:
                             cb_json = cb.to_json()
-                            callbackc2profiles = await db_objects.execute(
-                                callbackc2profilequery.where(
+                            callbackc2profiles = await app.db_objects.execute(
+                                db_model.callbackc2profiles_query.where(
                                     db_model.CallbackC2Profiles.callback == cb
                                 )
                             )
@@ -529,8 +501,8 @@ async def ws_callbacks_current_operation(request, ws, user):
                                     "is_p2p": c2p.c2_profile.is_p2p,
                                     "parameters": {},
                                 }
-                                c2_profile_params = await db_objects.execute(
-                                    c2profileparametersinstancequery.where(
+                                c2_profile_params = await app.db_objects.execute(
+                                    db_model.c2profileparametersinstance_query.where(
                                         (
                                             db_model.C2ProfileParametersInstance.callback
                                             == cb
@@ -555,12 +527,14 @@ async def ws_callbacks_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                cb = await db_objects.get(
-                                    query, id=id, operation=operation
+                                cb = await app.db_objects.prefetch(
+                                    db_model.callback_query.where( (db_model.Callback.id == id) & (db_model.Callback.operation == operation) ),
+                                    db_model.callbacktoken_query
                                 )
+                                cb = list(cb)[0]
                                 cb_json = cb.to_json()
-                                callbackc2profiles = await db_objects.execute(
-                                    callbackc2profilequery.where(
+                                callbackc2profiles = await app.db_objects.execute(
+                                    db_model.callbackc2profiles_query.where(
                                         db_model.CallbackC2Profiles.callback == cb
                                     )
                                 )
@@ -571,8 +545,8 @@ async def ws_callbacks_current_operation(request, ws, user):
                                         "is_p2p": c2p.c2_profile.is_p2p,
                                         "parameters": {},
                                     }
-                                    c2_profile_params = await db_objects.execute(
-                                        c2profileparametersinstancequery.where(
+                                    c2_profile_params = await app.db_objects.execute(
+                                        db_model.c2profileparametersinstance_query.where(
                                             (
                                                 db_model.C2ProfileParametersInstance.callback
                                                 == cb
@@ -608,8 +582,8 @@ async def ws_callbacks_current_operation(request, ws, user):
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 @mythic.websocket("/ws/new_callbacks/current_operation")
@@ -627,36 +601,21 @@ async def ws_callbacks_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newcallback";')
                     if user["current_operation"] != "":
                         # before we start getting new things, update with all of the old data
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.callback_query()
-                        callbackc2profilequery = (
-                            await db_model.callbackc2profiles_query()
-                        )
-                        c2profileparametersinstancequery = (
-                            await db_model.c2profileparametersinstance_query()
-                        )
-                        callbacks_with_operators = await db_objects.execute(
-                            query.where(
-                                (Callback.operation == operation)
-                                & (Callback.active == True)
-                            ).order_by(Callback.id)
-                        )
-                        await ws.send("")
                         # now pull off any new callbacks we got queued up while processing the old data
                         while True:
                             # msg = await conn.notifies.get()
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                cb = await db_objects.get(
-                                    query, id=id, operation=operation
+                                cb = await app.db_objects.get(
+                                    db_model.callback_query, id=id, operation=operation
                                 )
                                 cb_json = cb.to_json()
-                                callbackc2profiles = await db_objects.execute(
-                                    callbackc2profilequery.where(
+                                callbackc2profiles = await app.db_objects.execute(
+                                    db_model.callbackc2profiles_query.where(
                                         db_model.CallbackC2Profiles.callback == cb
                                     )
                                 )
@@ -667,8 +626,8 @@ async def ws_callbacks_current_operation(request, ws, user):
                                         "is_p2p": c2p.c2_profile.is_p2p,
                                         "parameters": {},
                                     }
-                                    c2_profile_params = await db_objects.execute(
-                                        c2profileparametersinstancequery.where(
+                                    c2_profile_params = await app.db_objects.execute(
+                                        db_model.c2profileparametersinstance_query.where(
                                             (
                                                 db_model.C2ProfileParametersInstance.callback
                                                 == cb
@@ -704,8 +663,62 @@ async def ws_callbacks_current_operation(request, ws, user):
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
+
+
+async def unified_callback_callback(ws, operation, callback):
+    async def callback_func(connection, pid, channel, msg_id):
+        try:
+            if channel == "updatedcallback":
+                if str(msg_id) != str(callback.id):
+                    return
+                obj = await app.db_objects.prefetch(db_model.callback_query.where(
+                    (db_model.Callback.id == msg_id) & (db_model.Callback.operation == operation)
+                ), db_model.callbacktoken_query)
+                obj = list(obj)[0]
+                obj_json = obj.to_json()
+            elif "task" in channel:
+                obj = await app.db_objects.get(
+                    db_model.task_query, id=msg_id, callback=callback
+                )
+                obj_json = obj.to_json()
+            elif "filemeta" in channel:
+                obj = await app.db_objects.get(
+                    db_model.filemeta_query, id=msg_id, operation=operation
+                )
+                obj_json = obj.to_json()
+                if obj.task is not None:
+                    obj_json["callback_id"] = obj.task.callback.id
+                else:
+                    obj_json["callback_id"] = 0
+            elif "loadedcommand" in channel:
+                if "deleted" in channel:
+                    obj_json = js.loads(msg_id)
+                    obj_json["callback"] = obj_json["callback_id"]
+                    obj_json["channel"] = "deletedloadedcommand"
+                else:
+                    obj = await app.db_objects.get(db_model.loadedcommands_query,
+                                                   id=msg_id, callback=callback)
+                    obj_json = obj.to_json()
+            else:
+                obj = await app.db_objects.prefetch(db_model.response_query.where(db_model.Response.id == msg_id),
+                                                    db_model.task_query)
+                obj = list(obj)[0]
+                if obj.task.callback.id != callback.id:
+                    return
+                obj_json = obj.to_json()
+            obj_json["channel"] = channel
+        except peewee.DoesNotExist:
+            return
+        except Exception as e:
+            logger.warning("exception in unified callback: " + str(sys.exc_info()[-1].tb_lineno) +str(e))
+            return
+        try:
+            await ws.send(js.dumps(obj_json))
+        except Exception as e:
+            logger.warning("in unified_callback callback, exception: " + str(sys.exc_info()[-1].tb_lineno) +str(e))
+    return callback_func
 
 
 @mythic.websocket("/ws/unified_callback/<cid:int>")
@@ -716,110 +729,67 @@ async def ws_callbacks_current_operation(request, ws, user):
 async def ws_unified_single_callback_current_operation(request, ws, user, cid):
     if not await valid_origin_header(request):
         return
+    conn = None
+    cb = None
+    def callback_func(*args):
+        asyncio.create_task(cb(*args))
     try:
-        # print("opened socket on webserver for " + str(cid))
-        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "updatedcallback";')
-                    await cur.execute('LISTEN "newtask";')
-                    await cur.execute('LISTEN "updatedtask";')
-                    await cur.execute('LISTEN "newresponse";')
-                    await cur.execute('LISTEN "newfilemeta";')
-                    await cur.execute('LISTEN "updatedfilemeta";')
-                    await cur.execute('LISTEN "newloadedcommands";')
-                    await cur.execute('LISTEN "updatedloadedcommands";')
-                    await cur.execute('LISTEN "deletedloadedcommands";')
-                    if user["current_operation"] != "":
-                        # before we start getting new things, update with all of the old data
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
-                        )
-                        callbackquery = await db_model.callback_query()
-                        callback = await db_objects.get(
-                            callbackquery, operation=operation, id=cid
-                        )
-                        taskquery = await db_model.task_query()
-                        filemetaquery = await db_model.filemeta_query()
-                        responsequery = await db_model.response_query()
-                        loadedcommandsquery = await db_model.loadedcommands_query()
-                        cur_loaded = await db_objects.execute(loadedcommandsquery.where(
-                            (db_model.LoadedCommands.callback == callback)
-                        ))
-                        for c in cur_loaded:
-                            await ws.send(js.dumps({**c.to_json(), "channel": "newloadedcommand"}))
-                        await ws.send("")
-                        # now pull off any new callbacks we got queued up while processing the old data
-                        while True:
-                            # msg = await conn.notifies.get()
-                            try:
-                                msg = conn.notifies.get_nowait()
-                                id = msg.payload
-                                # only get updates for the callback we specified
-                                if msg.channel == "updatedcallback":
-                                    if str(id) != str(callback.id):
-                                        continue
-                                    obj = await db_objects.get(
-                                        callbackquery, id=id, operation=operation
-                                    )
-                                    obj_json = obj.to_json()
-                                elif "task" in msg.channel:
-                                    obj = await db_objects.get(
-                                        taskquery, id=id, callback=callback
-                                    )
-                                    obj_json = obj.to_json()
-                                elif "filemeta" in msg.channel:
-                                    obj = await db_objects.get(
-                                        filemetaquery, id=id, operation=operation
-                                    )
-                                    obj_json = obj.to_json()
-                                    if obj.task is not None:
-                                        obj_json["callback_id"] = obj.task.callback.id
-                                    else:
-                                        obj_json["callback_id"] = 0
-                                elif "loadedcommand" in msg.channel:
-                                    if "deleted" in msg.channel:
-                                        obj_json = js.loads(msg.payload)
-                                        obj_json["callback"] = obj_json["callback_id"]
-                                        obj_json["channel"] = "deletedloadedcommand"
-                                    else:
-                                        obj = await db_objects.get(loadedcommandsquery,
-                                                                   id=id, callback=callback)
-                                        obj_json = obj.to_json()
-                                else:
-                                    obj = await db_objects.get(responsequery, id=id)
-                                    if obj.task.callback.id != callback.id:
-                                        continue
-                                    obj_json = obj.to_json()
-                                # print(obj)
-                                obj_json["channel"] = msg.channel
-                                await ws.send(js.dumps(obj_json))
-                            except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(0.5)
-                                await ws.send(
-                                    ""
-                                )  # this is our test to see if the client is still there
-                                continue
-                            except Exception as e:
-                                if "Notify(" in str(msg):
-                                    continue
-                                else:
-                                    print(
-                                        str(sys.exc_info()[-1].tb_lineno)
-                                        + str(e)
-                                        + " "
-                                        + str(msg)
-                                    )
-                                continue
-                    else:
-                        await ws.send("no_operation")
-                        while True:
-                            await ws.send("")
-                            await asyncio.sleep(0.5)
+        if user["current_operation"] != "":
+            # before we start getting new things, update with all of the old data
+            operation = await app.db_objects.get(
+                db_model.operation_query, name=user["current_operation"]
+            )
+            callback = await app.db_objects.get(
+                db_model.callback_query, operation=operation, id=cid
+            )
+        else:
+            await ws.send("no_operation")
+            while True:
+                await ws.send("")
+                await asyncio.sleep(1)
+        conn = await app.websocket_pool.acquire()
+        cb = await unified_callback_callback(ws, operation, callback)
+        await conn.add_listener("updatedcallback", callback_func)
+        await conn.add_listener("newtask", callback_func)
+        await conn.add_listener("updatedtask", callback_func)
+        await conn.add_listener("newfilemeta", callback_func)
+        await conn.add_listener("updatedfilemeta", callback_func)
+        await conn.add_listener("newloadedcommands", callback_func)
+        await conn.add_listener("updatedloadedcommands", callback_func)
+        await conn.add_listener("deletedloadedcommands", callback_func)
+        await conn.add_listener("newresponse", callback_func)
+        cur_loaded = await app.db_objects.execute(db_model.loadedcommands_query.where(
+            (db_model.LoadedCommands.callback == callback)
+        ))
+        for c in cur_loaded:
+            await ws.send(js.dumps({**c.to_json(), "channel": "newloadedcommand"}))
+        await ws.send("")
+        while True:
+            await ws.send("")
+            await asyncio.sleep(1)
+    except Exception as e:
+        logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
     finally:
-        # print("closed socket on webserver for " + str(cid))
-        pool.close()
+        if conn is not None:
+            await conn.remove_listener("updatedcallback", callback_func)
+            await conn.remove_listener("newtask", callback_func)
+            await conn.remove_listener("updatedtask", callback_func)
+            await conn.remove_listener("newfilemeta", callback_func)
+            await conn.remove_listener("updatedfilemeta", callback_func)
+            await conn.remove_listener("newloadedcommands", callback_func)
+            await conn.remove_listener("updatedloadedcommands", callback_func)
+            await conn.remove_listener("deletedloadedcommands", callback_func)
+            await conn.remove_listener("newresponse", callback_func)
+
+
+async def updatedcallback_callback(ws, operation):
+    async def callback(connection, pid, channel, payload):
+        cb = await app.db_objects.get(db_model.callback_query, id=payload, operation=operation)
+        obj = cb.to_json(get_tokens=False)
+        obj["tokens"] = []
+        obj["channel"] = "updatedcallback"
+        asyncio.ensure_future(ws.send(js.dumps(obj)))
+    return callback
 
 
 # notifications for updated callbacks
@@ -831,61 +801,25 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
 async def ws_callbacks_updated_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
+    conn = None
+    cb = None
+    def callback_func(*args):
+        asyncio.create_task(cb(*args))
     try:
-        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "updatedcallback";')
-                    await cur.execute('LISTEN "newcallbackc2profiles";')
-                    if user["current_operation"] != "":
-                        # just want updates, not anything else
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
-                        )
-                        updatedcallbackquery = await db_model.callback_query()
-                        newcallbackc2profilequery = (
-                            await db_model.callbackc2profiles_query()
-                        )
-                        while True:
-                            # msg = await conn.notifies.get()
-                            try:
-                                msg = conn.notifies.get_nowait()
-                                # print("got an update for a callback")
-                                id = msg.payload
-                                if "profiles" in msg.channel:
-                                    profile = await db_objects.get(
-                                        newcallbackc2profilequery.where(
-                                            (db_model.CallbackC2Profiles.id == id)
-                                            & (db_model.Callback.operation == operation)
-                                        )
-                                    )
-                                    obj = profile.to_json()
-                                    obj["channel"] = "newcallbackc2profiles"
-                                else:
-                                    callback = await db_objects.get(
-                                        updatedcallbackquery, id=id, operation=operation
-                                    )
-                                    obj = callback.to_json()
-                                    obj["channel"] = "updatedcallback"
-                                await ws.send(js.dumps(obj))
-                            except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(0.5)
-                                await ws.send(
-                                    ""
-                                )  # this is our test to see if the client is still there
-                                continue
-                            except Exception as e:
-                                print(e)
-                                continue
-                    else:
-                        await ws.send("no_operation")
-                        while True:
-                            await ws.send("")
-                            await asyncio.sleep(0.5)
+        operation = await app.db_objects.get(
+            db_model.operation_query, name=user["current_operation"]
+        )
+        conn = await app.websocket_pool.acquire()
+        cb = await updatedcallback_callback(ws, operation)
+        await conn.add_listener("updatedcallback", callback_func)
+        while True:
+            await ws.send("")
+            await asyncio.sleep(1)
+    except Exception as t:
+        logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(t))
     finally:
-        pool.close()
-
+        if conn is not None:
+            await conn.remove_listener("updatedcallback", callback_func)
 
 # --------------- PAYLOADS -----------------------
 # notifications for new payloads
@@ -906,17 +840,16 @@ async def ws_payloads_current_operation(request, ws, user):
                     await cur.execute('LISTEN "updatedpayload";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.payload_query()
-                        payloads = await db_objects.execute(
-                            query.where(
+                        payloads = await app.db_objects.prefetch(
+                            db_model.payload_query.where(
                                 (Payload.operation == operation)
                                 #& (Payload.deleted == False)
                                 #& (Payload.auto_generated == False)
-                            ).order_by(Payload.id)
+                            ).order_by(Payload.id),
+                            db_model.filemeta_query, db_model.task_query, db_model.command_query
                         )
                         for p in payloads:
                             await ws.send(js.dumps(p.to_json()))
@@ -926,8 +859,7 @@ async def ws_payloads_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                query = await db_model.payload_query()
-                                p = await db_objects.get(query, id=id)
+                                p = await app.db_objects.get(db_model.payload_query, id=id)
                                 if p.operation == operation:
                                     await ws.send(js.dumps(p.to_json()))
                             except asyncio.QueueEmpty as e:
@@ -937,10 +869,8 @@ async def ws_payloads_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(
-                                    "error in websocket for current operation payloads:"
-                                    + str(e)
-                                )
+                                logger.warning(
+                                    "websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) + str(e))
                                 print("Most likely payload was deleted")
                                 continue
                     else:
@@ -948,8 +878,8 @@ async def ws_payloads_current_operation(request, ws, user):
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 @mythic.websocket("/ws/payloads/info/current_operation")
@@ -971,13 +901,11 @@ async def ws_payloads_current_operation(request, ws, user):
 
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.payload_query()
-                        payloads = await db_objects.execute(
-                            query.where((Payload.operation == operation)).order_by(
+                        payloads = await app.db_objects.execute(
+                            db_model.payload_query.where((Payload.operation == operation)).order_by(
                                 Payload.id
                             )
                         )
@@ -991,8 +919,7 @@ async def ws_payloads_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                query = await db_model.payload_query()
-                                p = await db_objects.get(query, id=id)
+                                p = await app.db_objects.get(db_model.payload_query, id=id)
                                 if p.operation == operation:
                                     pinfo = await get_payload_config(p)
                                     pinfo.pop("status", None)
@@ -1004,10 +931,7 @@ async def ws_payloads_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(
-                                    "error in websocket for current operation payloads:"
-                                    + str(e)
-                                )
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 print("Most likely payload was deleted")
                                 continue
                     else:
@@ -1015,8 +939,8 @@ async def ws_payloads_current_operation(request, ws, user):
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 @mythic.websocket("/ws/payloads/<puuid:uuid>")
@@ -1028,16 +952,14 @@ async def ws_updates_for_payload(request, ws, user, puuid):
     if not await valid_origin_header(request):
         return
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
 
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "updatedpayload";')
                     # before we start getting new things, update with all of the old data
-                    query = await db_model.payload_query()
-                    payload = await db_objects.get(query, uuid=puuid)
+                    payload = await app.db_objects.get(db_model.payload_query, uuid=puuid)
                     if payload.operation == operation:
                         await ws.send(js.dumps(payload.to_json()))
                     else:
@@ -1047,7 +969,7 @@ async def ws_updates_for_payload(request, ws, user, puuid):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            tsk = await db_objects.get(query, id=id)
+                            tsk = await app.db_objects.get(db_model.payload_query, id=id)
                             if tsk.id == payload.id:
                                 await ws.send(js.dumps(tsk.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -1057,7 +979,7 @@ async def ws_updates_for_payload(request, ws, user, puuid):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/tasks")
@@ -1082,20 +1004,18 @@ async def ws_c2profile_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newc2profile";')
                     await cur.execute('LISTEN "updatedc2profile";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    query = await db_model.c2profile_query()
-                    profiles = await db_objects.execute(
-                        query.where(C2Profile.deleted == False)
+                    profiles = await app.db_objects.execute(
+                        db_model.c2profile_query.where(C2Profile.deleted == False)
                     )
                     for p in profiles:
                         await ws.send(js.dumps(p.to_json()))
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
-                    query = await db_model.c2profile_query()
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            p = await db_objects.get(query, id=id)
+                            p = await app.db_objects.get(db_model.c2profile_query, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(1)
@@ -1104,10 +1024,10 @@ async def ws_c2profile_current_operation(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 @mythic.websocket("/ws/payloadtypec2profile")
@@ -1124,8 +1044,7 @@ async def ws_payloadtypec2profile(request, ws):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newpayloadtypec2profile";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    query = await db_model.payloadtypec2profile_query()
-                    profiles = await db_objects.execute(query)
+                    profiles = await app.db_objects.execute(db_model.payloadtypec2profile_query)
                     for p in profiles:
                         await ws.send(js.dumps(p.to_json()))
                     await ws.send("")
@@ -1134,8 +1053,7 @@ async def ws_payloadtypec2profile(request, ws):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            query = await db_model.payloadtypec2profile_query()
-                            p = await db_objects.get(query, id=id)
+                            p = await app.db_objects.get(db_model.payloadtypec2profile_query, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -1144,10 +1062,10 @@ async def ws_payloadtypec2profile(request, ws):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # ---------------- OPERATORS --------------------------
@@ -1166,9 +1084,8 @@ async def ws_operators(request, ws):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newoperator";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    query = await db_model.operator_query()
-                    operators = await db_objects.execute(
-                        query.where(db_model.Operator.deleted == False)
+                    operators = await app.db_objects.execute(
+                        db_model.operator_query.where(db_model.Operator.deleted == False)
                     )
                     for o in operators:
                         await ws.send(js.dumps(o.to_json()))
@@ -1178,8 +1095,7 @@ async def ws_operators(request, ws):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            query = await db_model.operator_query()
-                            p = await db_objects.get(query, id=id)
+                            p = await app.db_objects.get(db_model.operator_query, id=id)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -1188,10 +1104,10 @@ async def ws_operators(request, ws):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # notifications for updated operators
@@ -1215,8 +1131,7 @@ async def ws_updated_operators(request, ws):
                             msg = conn.notifies.get_nowait()
                             # print("got an update for a callback")
                             id = msg.payload
-                            query = await db_model.operator_query()
-                            cb = await db_objects.get(query, id=id, deleted=False)
+                            cb = await app.db_objects.get(db_model.operator_query, id=id, deleted=False)
                             await ws.send(js.dumps(cb.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -1225,10 +1140,10 @@ async def ws_updated_operators(request, ws):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # ---------------- PAYLOADTYPES --------------------------
@@ -1250,20 +1165,16 @@ async def ws_payloadtypes(request, ws):
                     await cur.execute('LISTEN "newwrappedpayloadtypes";')
                     await cur.execute('LISTEN "updatedwrappedpayloadtypes";')
                     await cur.execute('LISTEN "deletedwrappedpayloadtypes";')
+                    await cur.execute('LISTEN "updatedtranslationcontainer";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    query = await db_model.payloadtype_query()
-                    wrappedpayloadtypesquery = (
-                        await db_model.wrappedpayloadtypes_query()
-                    )
-                    build_params_query = await db_model.buildparameter_query()
-                    payloadtypes = await db_objects.prefetch(
-                        query.where(db_model.PayloadType.deleted == False).order_by(
+                    payloadtypes = await app.db_objects.prefetch(
+                        db_model.payloadtype_query.where(db_model.PayloadType.deleted == False).order_by(
                             PayloadType.id
                         ), db_model.BuildParameter.select().where(db_model.BuildParameter.deleted == False)
                     )
                     for p in payloadtypes:
-                        wrappedpayloadtypes = await db_objects.execute(
-                            wrappedpayloadtypesquery.where(
+                        wrappedpayloadtypes = await app.db_objects.execute(
+                            db_model.wrappedpayloadtypes_query.where(
                                 db_model.WrappedPayloadTypes.wrapper == p
                             )
                         )
@@ -1279,7 +1190,6 @@ async def ws_payloadtypes(request, ws):
                         )
                     await ws.send("")
                     # now pull off any new payloads we got queued up while processing old data
-                    query = await db_model.payloadtype_query()
                     while True:
                         try:
                             msg = conn.notifies.get_nowait()
@@ -1287,9 +1197,14 @@ async def ws_payloadtypes(request, ws):
                             if "deleted" in msg.channel:
                                 await ws.send("")
                             else:
-                                p = await db_objects.prefetch(query.where(
-                                    (PayloadType.id == id) & (PayloadType.deleted == False)
+                                if "translation" in msg.channel:
+                                    p = await app.db_objects.prefetch(db_model.payloadtype_query.where(
+                                    (PayloadType.translation_container != None) & (PayloadType.deleted == False)
                                 ), db_model.BuildParameter.select().where(db_model.BuildParameter.deleted == False))
+                                else:
+                                    p = await app.db_objects.prefetch(db_model.payloadtype_query.where(
+                                        (PayloadType.id == id) & (PayloadType.deleted == False)
+                                    ), db_model.BuildParameter.select().where(db_model.BuildParameter.deleted == False))
                                 for element in p:
                                     await ws.send(js.dumps(element.to_json()))
                         except asyncio.QueueEmpty as e:
@@ -1299,10 +1214,10 @@ async def ws_payloadtypes(request, ws):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # ---------------- COMMANDS --------------------------
@@ -1334,16 +1249,13 @@ async def ws_commands(request, ws):
                                 "parameters" in msg.channel
                                 and "deleted" not in msg.channel
                             ):
-                                query = await db_model.commandparameters_query()
-                                p = await db_objects.get(query, id=id)
+                                p = await app.db_objects.get(db_model.commandparameters_query, id=id)
                             elif "deleted" not in msg.channel:
-                                query = await db_model.command_query()
-                                p = await db_objects.get(query, id=id)
+                                p = await app.db_objects.get(db_model.command_query, id=id)
                             elif "deleted" in msg.channel:
                                 # print(msg)
-                                query = await db_model.command_query()
-                                p = await db_objects.get(
-                                    query, id=js.loads(id)["command_id"]
+                                p = await app.db_objects.get(
+                                    db_model.command_query, id=js.loads(id)["command_id"]
                                 )
                                 msg_dict = {**js.loads(id)}
                             await ws.send(
@@ -1358,10 +1270,10 @@ async def ws_commands(request, ws):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # basic info of just new commmands for the payload types page
@@ -1381,9 +1293,8 @@ async def ws_commands(request, ws, user):
                 async with conn.cursor() as cur:
                     await cur.execute('LISTEN "newcommand";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    query = await db_model.command_query()
-                    commands = await db_objects.execute(
-                        query.where(db_model.Command.deleted == False)
+                    commands = await app.db_objects.execute(
+                        db_model.command_query.where(db_model.Command.deleted == False)
                     )
                     for c in commands:
                         await ws.send(js.dumps(c.to_json()))
@@ -1393,7 +1304,7 @@ async def ws_commands(request, ws, user):
                         try:
                             msg = conn.notifies.get_nowait()
                             id = msg.payload
-                            p = await db_objects.get(query, id=id, deleted=False)
+                            p = await app.db_objects.get(db_model.command_query, id=id, deleted=False)
                             await ws.send(js.dumps(p.to_json()))
                         except asyncio.QueueEmpty as e:
                             await asyncio.sleep(2)
@@ -1402,10 +1313,10 @@ async def ws_commands(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # ------------- FILEMETA ---------------------------
@@ -1426,20 +1337,17 @@ async def ws_screenshots(request, ws, user):
                     await cur.execute('LISTEN "newfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.filemeta_query()
-                        files = await db_objects.execute(
-                            query.where(
+                        files = await app.db_objects.execute(
+                            db_model.filemeta_query.where(
                                 (FileMeta.operation == operation)
                                 & (FileMeta.is_screenshot == True)
                             ).order_by(FileMeta.id)
                         )
                         for f in files:
-                            query = await db_model.task_query()
-                            task = await db_objects.get(query, id=f.task)
+                            task = await app.db_objects.get(db_model.task_query, id=f.task)
                             await ws.send(
                                 js.dumps(
                                     {
@@ -1456,15 +1364,13 @@ async def ws_screenshots(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                query = await db_model.filemeta_query()
-                                f = await db_objects.get(
-                                    query,
+                                f = await app.db_objects.get(
+                                    db_model.filemeta_query,
                                     id=id,
                                     operation=operation,
                                     is_screenshot=True,
                                 )
-                                query = await db_model.task_query()
-                                task = await db_objects.get(query, id=f.task)
+                                task = await app.db_objects.get(db_model.task_query, id=f.task)
                                 await ws.send(
                                     js.dumps(
                                         {
@@ -1482,15 +1388,15 @@ async def ws_screenshots(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # notifications for updated screenshots
@@ -1510,23 +1416,20 @@ async def ws_updated_screenshots(request, ws, user):
                     await cur.execute('LISTEN "updatedfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                query = await db_model.filemeta_query()
-                                f = await db_objects.get(
-                                    query,
+                                f = await app.db_objects.get(
+                                    db_model.filemeta_query,
                                     id=id,
                                     is_screenshot=True,
                                     operation=operation,
                                 )
-                                query = await db_model.task_query()
-                                task = await db_objects.get(query, id=f.task)
+                                task = await app.db_objects.get(db_model.task_query, id=f.task)
                                 await ws.send(
                                     js.dumps(
                                         {
@@ -1544,15 +1447,15 @@ async def ws_updated_screenshots(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # notifications for new files in the current operation
@@ -1573,13 +1476,11 @@ async def ws_files_current_operation(request, ws, user):
                     await cur.execute('LISTEN "updatedfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.filemeta_query()
-                        files = await db_objects.execute(
-                            query.where(
+                        files = await app.db_objects.execute(
+                            db_model.filemeta_query.where(
                                 (FileMeta.operation == operation)
                                 & (FileMeta.is_screenshot == False)
                                 & (FileMeta.is_payload == False)
@@ -1589,9 +1490,8 @@ async def ws_files_current_operation(request, ws, user):
                             if not f.is_download_from_agent:
                                 # this means it's an upload, so supply additional information as well
                                 if f.task is not None:
-                                    query = await db_model.callback_query()
-                                    callback = await db_objects.get(
-                                        query, id=f.task.callback
+                                    callback = await app.db_objects.get(
+                                        db_model.callback_query, id=f.task.callback
                                     )
                                     await ws.send(
                                         js.dumps(
@@ -1605,9 +1505,8 @@ async def ws_files_current_operation(request, ws, user):
                                     )
                             else:
                                 # this is a file download, so it's straight forward
-                                query = await db_model.callback_query()
-                                callback = await db_objects.get(
-                                    query, id=f.task.callback
+                                callback = await app.db_objects.get(
+                                    db_model.callback_query, id=f.task.callback
                                 )
                                 await ws.send(
                                     js.dumps(
@@ -1625,9 +1524,8 @@ async def ws_files_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                query = await db_model.filemeta_query()
-                                f = await db_objects.get(
-                                    query,
+                                f = await app.db_objects.get(
+                                    db_model.filemeta_query,
                                     id=id,
                                     operation=operation,
                                     is_screenshot=False,
@@ -1639,9 +1537,8 @@ async def ws_files_current_operation(request, ws, user):
                                         if (
                                             f.task is not None
                                         ):  # this is an upload via gent tasking
-                                            query = await db_model.task_query()
-                                            task = await db_objects.get(
-                                                query, id=f.task
+                                            task = await app.db_objects.get(
+                                                db_model.task_query, id=f.task
                                             )
                                             await ws.send(
                                                 js.dumps(
@@ -1656,8 +1553,7 @@ async def ws_files_current_operation(request, ws, user):
 
                                     else:
                                         # this is a file download, so it's straight forward
-                                        query = await db_model.task_query()
-                                        task = await db_objects.get(query, id=f.task)
+                                        task = await app.db_objects.get(db_model.task_query, id=f.task)
                                         await ws.send(
                                             js.dumps(
                                                 {
@@ -1677,15 +1573,15 @@ async def ws_files_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 @mythic.websocket("/ws/files/new/current_operation")
@@ -1705,18 +1601,16 @@ async def ws_new_files_current_operation(request, ws, user):
                     await cur.execute('LISTEN "updatedfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
                         # now pull off any new payloads we got queued up while processing old data
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                query = await db_model.filemeta_query()
-                                f = await db_objects.get(
-                                    query,
+                                f = await app.db_objects.get(
+                                    db_model.filemeta_query,
                                     id=id,
                                     operation=operation,
                                     is_screenshot=False,
@@ -1729,9 +1623,8 @@ async def ws_new_files_current_operation(request, ws, user):
                                         if (
                                             f.task is not None
                                         ):  # this is an upload via gent tasking
-                                            query = await db_model.task_query()
-                                            task = await db_objects.get(
-                                                query, id=f.task
+                                            task = await app.db_objects.get(
+                                                db_model.task_query, id=f.task
                                             )
                                             await ws.send(
                                                 js.dumps(
@@ -1746,8 +1639,7 @@ async def ws_new_files_current_operation(request, ws, user):
 
                                     else:
                                         # this is a file download, so it's straight forward
-                                        query = await db_model.task_query()
-                                        task = await db_objects.get(query, id=f.task)
+                                        task = await app.db_objects.get(db_model.task_query, id=f.task)
                                         await ws.send(
                                             js.dumps(
                                                 {
@@ -1767,15 +1659,15 @@ async def ws_new_files_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # notifications for new files in the current operation
@@ -1796,13 +1688,11 @@ async def ws_manual_files_current_operation(request, ws, user):
                     await cur.execute('LISTEN "updatedfilemeta";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.filemeta_query()
-                        files = await db_objects.execute(
-                            query.where(
+                        files = await app.db_objects.execute(
+                            db_model.filemeta_query.where(
                                 (FileMeta.operation == operation)
                                 & (FileMeta.deleted == False)
                                 & (FileMeta.is_payload == False)
@@ -1818,9 +1708,8 @@ async def ws_manual_files_current_operation(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                query = await db_model.filemeta_query()
-                                f = await db_objects.get(
-                                    query, id=id, operation=operation
+                                f = await app.db_objects.get(
+                                    db_model.filemeta_query, id=id, operation=operation
                                 )
                                 await ws.send(js.dumps({**f.to_json()}))
                             except asyncio.QueueEmpty as e:
@@ -1830,15 +1719,15 @@ async def ws_manual_files_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # ------------- CREDENTIAL ---------------------------
@@ -1859,13 +1748,11 @@ async def ws_credentials_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newcredential";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.credential_query()
-                        creds = await db_objects.execute(
-                            query.where(
+                        creds = await app.db_objects.execute(
+                            db_model.credential_query.where(
                                 (Credential.operation == operation)
                                 & (Credential.deleted == False)
                             ).order_by(db_model.Credential.id)
@@ -1879,8 +1766,8 @@ async def ws_credentials_current_operation(request, ws, user):
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
                                 try:
-                                    c = await db_objects.get(
-                                        query, id=id, operation=operation, deleted=False
+                                    c = await app.db_objects.get(
+                                        db_model.credential_query, id=id, operation=operation, deleted=False
                                     )
                                     await ws.send(js.dumps({**c.to_json()}))
                                 except Exception as e:
@@ -1892,15 +1779,15 @@ async def ws_credentials_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 @mythic.websocket("/ws/credentials/new/current_operation")
@@ -1919,19 +1806,17 @@ async def ws_credentials_new_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newcredential";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.credential_query()
                         # now pull off any new payloads we got queued up while processing old data
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
                                 try:
-                                    c = await db_objects.get(
-                                        query, id=id, operation=operation, deleted=False
+                                    c = await app.db_objects.get(
+                                        db_model.credential_query, id=id, operation=operation, deleted=False
                                     )
                                     await ws.send(js.dumps({**c.to_json()}))
                                 except Exception as e:
@@ -1943,15 +1828,15 @@ async def ws_credentials_new_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # ------------- KEYLOG ---------------------------
@@ -1972,9 +1857,8 @@ async def ws_keylogs_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newkeylog";')
                     # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
                         # now pull off any new payloads we got queued up while processing old data
                         while True:
@@ -1982,9 +1866,8 @@ async def ws_keylogs_current_operation(request, ws, user):
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
                                 try:
-                                    query = await db_model.keylog_query()
-                                    c = await db_objects.get(
-                                        query, id=id, operation=operation
+                                    c = await app.db_objects.get(
+                                        db_model.keylog_query, id=id, operation=operation
                                     )
                                     await ws.send(js.dumps({**c.to_json()}))
                                 except Exception as e:
@@ -1996,15 +1879,139 @@ async def ws_keylogs_current_operation(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
+
+
+async def parameter_hints_callback(ws, operation):
+    async def parameter_callback(con, pid, channel, msg):
+        try:
+            if "credential" in channel:
+                obj = await app.db_objects.get(
+                    db_model.credential_query, id=msg, operation=operation
+                )
+                obj_json = obj.to_json()
+            elif "onhost" in channel:
+                payloadonhost = await app.db_objects.prefetch(
+                    db_model.payloadonhost_query.where(
+                        (db_model.PayloadOnHost.operation == operation) &
+                        (db_model.PayloadOnHost.id == msg)
+                    ), db_model.payload_query, db_model.filemeta_query
+                )
+                payloadonhost = list(payloadonhost)[0]
+                if (
+                        payloadonhost.payload.wrapped_payload
+                        is not None
+                ):
+                    cur_payload = (
+                        payloadonhost.payload.wrapped_payload
+                    )
+                else:
+                    cur_payload = payloadonhost.payload
+                c2profiles = await app.db_objects.execute(
+                    db_model.payloadc2profiles_query.where(
+                        db_model.PayloadC2Profiles.payload
+                        == cur_payload
+                    )
+                )
+                supported_profiles = []
+                for c2p in c2profiles:
+                    profile_info = {
+                        "name": c2p.c2_profile.name,
+                        "is_p2p": c2p.c2_profile.is_p2p,
+                        "parameters": {},
+                    }
+                    c2profiledata = await app.db_objects.execute(
+                        db_model.c2profileparametersinstance_query.where(
+                            (
+                                    db_model.C2ProfileParametersInstance.payload
+                                    == cur_payload
+                            )
+                            & (
+                                    db_model.C2ProfileParametersInstance.c2_profile
+                                    == c2p.c2_profile
+                            )
+                        )
+                    )
+                    for c in c2profiledata:
+                        profile_info["parameters"][
+                            c.c2_profile_parameters.name
+                        ] = c.value
+                    supported_profiles.append(profile_info)
+                obj_json = {
+                    **payloadonhost.to_json(),
+                    "supported_profiles": supported_profiles,
+                }
+            else:
+                # this is just for new payloads
+                payload = await app.db_objects.prefetch(
+                    db_model.payload_query.where(
+                        (Payload.operation == operation)
+                        & (Payload.id == msg)
+                        & (Payload.deleted == False)
+                        & (Payload.build_phase == "success")
+                    ), db_model.buildparameterinstance_query, db_model.filemeta_query, db_model.task_query
+                )
+                if len(payload) == 0:
+                    return
+                payload = list(payload)[0]
+                if payload.wrapped_payload is not None:
+                    cur_payload = payload.wrapped_payload
+                else:
+                    cur_payload = payload
+                c2profiles = await app.db_objects.execute(
+                    db_model.payloadc2profiles_query.where(
+                        db_model.PayloadC2Profiles.payload
+                        == cur_payload
+                    )
+                )
+                build_parameters = []
+                if payload.build_parameters is not None:
+                    for bp in payload.build_parameters:
+                        build_parameters.append(
+                            {"name": bp.build_parameter.name, "value": bp.parameter})
+                supported_profiles = []
+                for c2p in c2profiles:
+                    profile_info = {
+                        "name": c2p.c2_profile.name,
+                        "is_p2p": c2p.c2_profile.is_p2p,
+                        "parameters": {},
+                    }
+                    c2profiledata = await app.db_objects.execute(
+                        db_model.c2profileparametersinstance_query.where(
+                            (
+                                    db_model.C2ProfileParametersInstance.payload
+                                    == cur_payload
+                            )
+                            & (
+                                    db_model.C2ProfileParametersInstance.c2_profile
+                                    == c2p.c2_profile
+                            )
+                        )
+                    )
+                    for c in c2profiledata:
+                        profile_info["parameters"][
+                            c.c2_profile_parameters.name
+                        ] = c.value
+                    supported_profiles.append(profile_info)
+                obj_json = {
+                    **payload.to_json(),
+                    "supported_profiles": supported_profiles,
+                    "build_parameters": build_parameters
+                }
+            obj_json["channel"] = channel
+            await ws.send(js.dumps(obj_json))
+        except Exception as e:
+            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
+            pass  # we got a file that's not part of our operation
+    return parameter_callback
 
 
 # ------ OPERATING COMMAND POPUP INFORMATION --------------------
@@ -2018,404 +2025,159 @@ async def ws_keylogs_current_operation(request, ws, user):
 async def ws_parameter_hints_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
+    conn = None
+    cb = None
+    def callback_func(*args):
+        asyncio.create_task(cb(*args))
     try:
-        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "newcredential";')
-                    await cur.execute('LISTEN "updatedcredential";')
-                    await cur.execute('LISTEN "newpayload";')
-                    await cur.execute('LISTEN "updatedpayload";')
-                    await cur.execute('LISTEN "newpayloadonhost";')
-                    await cur.execute('LISTEN "updatedpayloadonhost";')
-                    # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-                    if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+
+        if user["current_operation"] != "":
+            operation = await app.db_objects.get(
+                db_model.operation_query, name=user["current_operation"]
+            )
+        else:
+            await ws.send("no_operation")
+            while True:
+                await ws.send("")
+                await asyncio.sleep(2)
+        conn = await app.websocket_pool.acquire()
+        cb = await parameter_hints_callback(ws, operation)
+
+        await conn.add_listener("newcredential", callback_func)
+        await conn.add_listener("updatedcredential", callback_func)
+        await conn.add_listener("newpayload", callback_func)
+        await conn.add_listener("updatedpayload", callback_func)
+        await conn.add_listener("newpayloadonhost", callback_func)
+        await conn.add_listener("updatedpayloadonhost", callback_func)
+        # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+        creds = await app.db_objects.execute(
+            db_model.credential_query.where(
+                (Credential.operation == operation)
+                & (Credential.deleted == False)
+            )
+        )
+        for c in creds:
+            await ws.send(
+                js.dumps({**c.to_json(), "channel": "newcredential"})
+            )
+        payloads = await app.db_objects.prefetch(
+            db_model.payload_query.where(
+                (Payload.operation == operation)
+                & (Payload.deleted == False)
+                & (Payload.build_phase == "success")
+            ), db_model.buildparameterinstance_query, db_model.filemeta_query
+        )
+        for p in payloads:
+            if p.wrapped_payload is not None:
+                cur_payload = p.wrapped_payload
+            else:
+                cur_payload = p
+            c2profiles = await app.db_objects.execute(
+                db_model.payloadc2profiles_query.where(
+                    db_model.PayloadC2Profiles.payload == cur_payload
+                )
+            )
+            build_parameters = []
+            if p.build_parameters is not None:
+                for bp in p.build_parameters:
+                    build_parameters.append({"name": bp.build_parameter.name, "value": bp.parameter})
+            supported_profiles = []
+            for c2p in c2profiles:
+                profile_info = {
+                    "name": c2p.c2_profile.name,
+                    "is_p2p": c2p.c2_profile.is_p2p,
+                    "parameters": {},
+                }
+                c2profiledata = await app.db_objects.execute(
+                    db_model.c2profileparametersinstance_query.where(
+                        (
+                            db_model.C2ProfileParametersInstance.payload
+                            == cur_payload
                         )
-                        credquery = await db_model.credential_query()
-                        creds = await db_objects.execute(
-                            credquery.where(
-                                (Credential.operation == operation)
-                                & (Credential.deleted == False)
-                            )
+                        & (
+                            db_model.C2ProfileParametersInstance.c2_profile
+                            == c2p.c2_profile
                         )
-                        for c in creds:
-                            await ws.send(
-                                js.dumps({**c.to_json(), "channel": "newcredential"})
-                            )
-                        payloadquery = await db_model.payload_query()
-                        payloads = await db_objects.execute(
-                            payloadquery.where(
-                                (Payload.operation == operation)
-                                #& (Payload.auto_generated == False)
-                                & (Payload.deleted == False)
-                                & (Payload.build_phase == "success")
-                            )
+                    )
+                )
+                for c in c2profiledata:
+                    profile_info["parameters"][
+                        c.c2_profile_parameters.name
+                    ] = c.value
+                supported_profiles.append(profile_info)
+            await ws.send(
+                js.dumps(
+                    {
+                        **p.to_json(),
+                        "supported_profiles": supported_profiles,
+                        "channel": "newpayload",
+                        "build_parameters": build_parameters
+                    }
+                )
+            )
+        payloadonhost = await app.db_objects.prefetch(
+            db_model.payloadonhost_query.where(
+                (db_model.PayloadOnHost.operation == operation)
+                & (db_model.PayloadOnHost.deleted == False)
+            ), db_model.payload_query, db_model.filemeta_query
+        )
+        for p in payloadonhost:
+            if p.payload.wrapped_payload is not None:
+                cur_payload = p.payload.wrapped_payload
+            else:
+                cur_payload = p.payload
+            c2profiles = await app.db_objects.execute(
+                db_model.payloadc2profiles_query.where(
+                    db_model.PayloadC2Profiles.payload == cur_payload
+                )
+            )
+            supported_profiles = []
+            for c2p in c2profiles:
+                profile_info = {
+                    "name": c2p.c2_profile.name,
+                    "is_p2p": c2p.c2_profile.is_p2p,
+                    "parameters": {},
+                }
+                c2profiledata = await app.db_objects.execute(
+                    db_model.c2profileparametersinstance_query.where(
+                        (
+                            db_model.C2ProfileParametersInstance.payload
+                            == cur_payload
                         )
-                        c2profileparameterinstancequery = (
-                            await db_model.c2profileparametersinstance_query()
+                        & (
+                            db_model.C2ProfileParametersInstance.c2_profile
+                            == c2p.c2_profile
                         )
-                        c2profilepayloadquery = await db_model.payloadc2profiles_query()
-                        for p in payloads:
-                            if p.wrapped_payload is not None:
-                                cur_payload = p.wrapped_payload
-                            else:
-                                cur_payload = p
-                            c2profiles = await db_objects.execute(
-                                c2profilepayloadquery.where(
-                                    db_model.PayloadC2Profiles.payload == cur_payload
-                                )
-                            )
-                            build_parameters = []
-                            if p.build_parameters is not None:
-                                for bp in p.build_parameters:
-                                    build_parameters.append({"name": bp.build_parameter.name, "value": bp.parameter})
-                            supported_profiles = []
-                            for c2p in c2profiles:
-                                profile_info = {
-                                    "name": c2p.c2_profile.name,
-                                    "is_p2p": c2p.c2_profile.is_p2p,
-                                    "parameters": {},
-                                }
-                                c2profiledata = await db_objects.execute(
-                                    c2profileparameterinstancequery.where(
-                                        (
-                                            db_model.C2ProfileParametersInstance.payload
-                                            == cur_payload
-                                        )
-                                        & (
-                                            db_model.C2ProfileParametersInstance.c2_profile
-                                            == c2p.c2_profile
-                                        )
-                                    )
-                                )
-                                for c in c2profiledata:
-                                    profile_info["parameters"][
-                                        c.c2_profile_parameters.name
-                                    ] = c.value
-                                supported_profiles.append(profile_info)
-                            await ws.send(
-                                js.dumps(
-                                    {
-                                        **p.to_json(),
-                                        "supported_profiles": supported_profiles,
-                                        "channel": "newpayload",
-                                        "build_parameters": build_parameters
-                                    }
-                                )
-                            )
-                        payloadonhostquery = await db_model.payloadonhost_query()
-                        payloadonhost = await db_objects.execute(
-                            payloadonhostquery.where(
-                                (db_model.PayloadOnHost.operation == operation)
-                                & (db_model.PayloadOnHost.deleted == False)
-                            )
-                        )
-                        for p in payloadonhost:
-                            if p.payload.wrapped_payload is not None:
-                                cur_payload = p.payload.wrapped_payload
-                            else:
-                                cur_payload = p.payload
-                            c2profiles = await db_objects.execute(
-                                c2profilepayloadquery.where(
-                                    db_model.PayloadC2Profiles.payload == cur_payload
-                                )
-                            )
-                            supported_profiles = []
-                            for c2p in c2profiles:
-                                profile_info = {
-                                    "name": c2p.c2_profile.name,
-                                    "is_p2p": c2p.c2_profile.is_p2p,
-                                    "parameters": {},
-                                }
-                                c2profiledata = await db_objects.execute(
-                                    c2profileparameterinstancequery.where(
-                                        (
-                                            db_model.C2ProfileParametersInstance.payload
-                                            == cur_payload
-                                        )
-                                        & (
-                                            db_model.C2ProfileParametersInstance.c2_profile
-                                            == c2p.c2_profile
-                                        )
-                                    )
-                                )
-                                for c in c2profiledata:
-                                    profile_info["parameters"][
-                                        c.c2_profile_parameters.name
-                                    ] = c.value
-                                supported_profiles.append(profile_info)
-                            await ws.send(
-                                js.dumps(
-                                    {
-                                        **p.to_json(),
-                                        "supported_profiles": supported_profiles,
-                                        "channel": "newpayloadonhost",
-                                    }
-                                )
-                            )
-                        await ws.send("")
-                        # now pull off any new payloads we got queued up while processing old data
-                        while True:
-                            try:
-                                msg = conn.notifies.get_nowait()
-                                # print(msg)
-                                id = msg.payload
-                                try:
-                                    if "credential" in msg.channel:
-                                        obj = await db_objects.get(
-                                            credquery, id=id, operation=operation
-                                        )
-                                        obj_json = obj.to_json()
-                                    elif "onhost" in msg.channel:
-                                        payloadonhost = await db_objects.get(
-                                            payloadonhostquery,
-                                            operation=operation,
-                                            id=id,
-                                        )
-                                        if (
-                                            payloadonhost.payload.wrapped_payload
-                                            is not None
-                                        ):
-                                            cur_payload = (
-                                                payloadonhost.payload.wrapped_payload
-                                            )
-                                        else:
-                                            cur_payload = payloadonhost.payload
-                                        c2profiles = await db_objects.execute(
-                                            c2profilepayloadquery.where(
-                                                db_model.PayloadC2Profiles.payload
-                                                == cur_payload
-                                            )
-                                        )
-                                        supported_profiles = []
-                                        for c2p in c2profiles:
-                                            profile_info = {
-                                                "name": c2p.c2_profile.name,
-                                                "is_p2p": c2p.c2_profile.is_p2p,
-                                                "parameters": {},
-                                            }
-                                            c2profiledata = await db_objects.execute(
-                                                c2profileparameterinstancequery.where(
-                                                    (
-                                                        db_model.C2ProfileParametersInstance.payload
-                                                        == cur_payload
-                                                    )
-                                                    & (
-                                                        db_model.C2ProfileParametersInstance.c2_profile
-                                                        == c2p.c2_profile
-                                                    )
-                                                )
-                                            )
-                                            for c in c2profiledata:
-                                                profile_info["parameters"][
-                                                    c.c2_profile_parameters.name
-                                                ] = c.value
-                                            supported_profiles.append(profile_info)
-                                        obj_json = {
-                                            **payloadonhost.to_json(),
-                                            "supported_profiles": supported_profiles,
-                                        }
-                                    else:
-                                        # this is just for new payloads
-                                        payload = await db_objects.get(
-                                            payloadquery.where(
-                                                (Payload.operation == operation)
-                                                & (Payload.id == id)
-                                                & (Payload.deleted == False)
-                                                & (Payload.build_phase == "success")
-                                            )
-                                        )
-                                        if payload.wrapped_payload is not None:
-                                            cur_payload = payload.wrapped_payload
-                                        else:
-                                            cur_payload = payload
-                                        c2profiles = await db_objects.execute(
-                                            c2profilepayloadquery.where(
-                                                db_model.PayloadC2Profiles.payload
-                                                == cur_payload
-                                            )
-                                        )
-                                        build_parameters = []
-                                        if payload.build_parameters is not None:
-                                            for bp in payload.build_parameters:
-                                                build_parameters.append(
-                                                    {"name": bp.build_parameter.name, "value": bp.parameter})
-                                        supported_profiles = []
-                                        for c2p in c2profiles:
-                                            profile_info = {
-                                                "name": c2p.c2_profile.name,
-                                                "is_p2p": c2p.c2_profile.is_p2p,
-                                                "parameters": {},
-                                            }
-                                            c2profiledata = await db_objects.execute(
-                                                c2profileparameterinstancequery.where(
-                                                    (
-                                                        db_model.C2ProfileParametersInstance.payload
-                                                        == cur_payload
-                                                    )
-                                                    & (
-                                                        db_model.C2ProfileParametersInstance.c2_profile
-                                                        == c2p.c2_profile
-                                                    )
-                                                )
-                                            )
-                                            for c in c2profiledata:
-                                                profile_info["parameters"][
-                                                    c.c2_profile_parameters.name
-                                                ] = c.value
-                                            supported_profiles.append(profile_info)
-                                        obj_json = {
-                                            **payload.to_json(),
-                                            "supported_profiles": supported_profiles,
-                                            "build_parameters": build_parameters
-                                        }
-                                    obj_json["channel"] = msg.channel
-                                    await ws.send(js.dumps(obj_json))
-                                except Exception as e:
-                                    print(e)
-                                    pass  # we got a file that's just not part of our current operation, so move on
-                            except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(2)
-                                await ws.send(
-                                    ""
-                                )  # this is our test to see if the client is still there
-                                continue
-                            except Exception as e:
-                                print(e)
-                                continue
-                    else:
-                        await ws.send("no_operation")
-                        while True:
-                            await ws.send("")
-                            await asyncio.sleep(0.5)
+                    )
+                )
+                for c in c2profiledata:
+                    profile_info["parameters"][
+                        c.c2_profile_parameters.name
+                    ] = c.value
+                supported_profiles.append(profile_info)
+            await ws.send(
+                js.dumps(
+                    {
+                        **p.to_json(),
+                        "supported_profiles": supported_profiles,
+                        "channel": "newpayloadonhost",
+                    }
+                )
+            )
+        await ws.send("")
+        while True:
+            await ws.send("")
+            await asyncio.sleep(1)
+    except Exception as t:
+        logger.warning("websocket_routes.py " + str(sys.exc_info()[-1].tb_lineno) + " param_hints error: " + str(t))
     finally:
-        pool.close()
-
-
-# ------------- RABBITMQ DATA ---------------------------
-# messages back from rabbitmq with key: c2.status.#
-@mythic.websocket("/ws/rabbitmq/c2_status")
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def ws_c2_status_messages(request, ws, user):
-    if not await valid_origin_header(request):
-        return
-
-    async def send_data(message: aio_pika.IncomingMessage):
-        base_username = base64.b64encode(user["username"].encode()).decode("utf-8")
-        with message.process():
-            if message.routing_key.split(".")[5] == base_username:
-                data = {
-                    "status": "success",
-                    "body": message.body.decode("utf-8"),
-                    "routing_key": message.routing_key,
-                }
-                try:
-                    await ws.send(js.dumps(data))
-                except Exception as e:
-                    pass
-
-    try:
-        connection = await aio_pika.connect(
-            host="127.0.0.1",
-            login="mythic_user",
-            password="mythic_password",
-            virtualhost="mythic_vhost",
-        )
-        channel = await connection.channel()
-        # declare our exchange
-        await channel.declare_exchange("mythic_traffic", aio_pika.ExchangeType.TOPIC)
-        # get a random queue that only the mythic server will use to listen on to catch all heartbeats
-        queue = await channel.declare_queue("", exclusive=True)
-        await queue.bind(exchange="mythic_traffic", routing_key="c2.status.#")
-        await channel.set_qos(prefetch_count=50)
-        print(" [*] Waiting for messages in websocket. To exit press CTRL+C")
-        await queue.consume(send_data)
-        while True:
-            try:
-                await ws.send("")
-                await asyncio.sleep(2)
-            except Exception as e:
-                return
-    except Exception as e:
-        print("Exception in ws_c2_status_messages: {}".format(str(sys.exc_info())))
-        await ws.send(
-            js.dumps(
-                {
-                    "status": "error",
-                    "error": "Failed to connect to rabbitmq, {}".format(str(e)),
-                }
-            )
-        )
-
-
-# messages back from rabbitmq with key: pt.status.#
-@mythic.websocket("/ws/rabbitmq/pt_status")
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def ws_payload_type_status_messages(request, ws, user):
-    if not await valid_origin_header(request):
-        return
-
-    async def send_data(message: aio_pika.IncomingMessage):
-        base_username = base64.b64encode(user["username"].encode()).decode("utf-8")
-        with message.process():
-            # print(message.routing_key)
-            if message.routing_key.split(".")[-1] == base_username:
-                data = {
-                    "status": "success",
-                    "body": message.body.decode("utf-8"),
-                    "routing_key": message.routing_key,
-                }
-                try:
-                    await ws.send(js.dumps(data))
-                except Exception as e:
-                    pass
-
-    try:
-        connection = await aio_pika.connect(
-            host="127.0.0.1",
-            login="mythic_user",
-            password="mythic_password",
-            virtualhost="mythic_vhost",
-        )
-        channel = await connection.channel()
-        # declare our exchange
-        await channel.declare_exchange("mythic_traffic", aio_pika.ExchangeType.TOPIC)
-        # get a random queue that only the mythic server will use to listen on to catch all heartbeats
-        queue = await channel.declare_queue("", exclusive=True)
-        # bind the queue to the exchange so we can actually catch messages
-        await queue.bind(exchange="mythic_traffic", routing_key="pt.status.#")
-        await channel.set_qos(prefetch_count=50)
-        print(" [*] Waiting for messages in websocket. To exit press CTRL+C")
-        await queue.consume(send_data)
-        while True:
-            try:
-                await ws.send("")
-                await asyncio.sleep(2)
-            except Exception as e:
-                return
-    except Exception as e:
-        print(
-            "Exception in ws_payload_type_status_messages: {}".format(
-                str(sys.exc_info())
-            )
-        )
-        await ws.send(
-            js.dumps(
-                {
-                    "status": "error",
-                    "error": "Failed to connect to rabbitmq, {}".format(str(e)),
-                }
-            )
-        )
+        if conn is not None:
+            await conn.remove_listener("newcredential", callback_func)
+            await conn.remove_listener("updatedcredential", callback_func)
+            await conn.remove_listener("newpayload", callback_func)
+            await conn.remove_listener("updatedpayload", callback_func)
+            await conn.remove_listener("newpayloadonhost", callback_func)
+            await conn.remove_listener("updatedpayloadonhost", callback_func)
 
 
 # ============= BROWSER SCRIPTING WEBSOCKETS ===============
@@ -2439,14 +2201,13 @@ async def ws_browserscripts(request, ws, user):
                     await cur.execute('LISTEN "deletedbrowserscriptoperation";')
                     # before we start getting new things, update with all of the old data
                     try:
-                        query = await db_model.operator_query()
-                        operator = await db_objects.get(
-                            query, username=user["username"]
+                        operator = await app.db_objects.get(
+                            db_model.operator_query, username=user["username"]
                         )
-                        script_query = await db_model.browserscript_query()
-                        all_scripts = await db_objects.execute(
-                            script_query.where(
-                                db_model.BrowserScript.operator == operator
+                        all_scripts = await app.db_objects.execute(
+                            db_model.browserscript_query.where(
+                                (db_model.BrowserScript.operator == operator)
+                                & (db_model.BrowserScript.for_new_ui == False)
                             )
                         )
                         for s in all_scripts:
@@ -2454,20 +2215,18 @@ async def ws_browserscripts(request, ws, user):
                                 js.dumps({"type": "browserscript", **s.to_json()})
                             )
                         try:
-                            query = await db_model.operation_query()
-                            operation = await db_objects.get(
-                                query, name=user["current_operation"]
+                            operation = await app.db_objects.get(
+                                db_model.operation_query, name=user["current_operation"]
                             )
-                            scriptoperation_query = (
-                                await db_model.browserscriptoperation_query()
-                            )
-                            all_scripts = await db_objects.execute(
-                                scriptoperation_query.where(
+                            all_scripts = await app.db_objects.execute(
+                                db_model.browserscriptoperation_query.where(
                                     db_model.BrowserScriptOperation.operation
                                     == operation
                                 )
                             )
                             for s in all_scripts:
+                                if s.browserscript.for_new_ui:
+                                    continue
                                 await ws.send(
                                     js.dumps(
                                         {
@@ -2481,7 +2240,7 @@ async def ws_browserscripts(request, ws, user):
                             pass  # user might not have an operation assigned, so still
                         await ws.send("")
                     except Exception as e:
-                        print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                        logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                         return
                     # now pull off any new tasks we got queued up while processing the old data
                     while True:
@@ -2500,11 +2259,13 @@ async def ws_browserscripts(request, ws, user):
                                             )
                                         )
                                     else:
-                                        s = await db_objects.get(
-                                            scriptoperation_query,
+                                        s = await app.db_objects.get(
+                                            db_model.browserscriptoperation_query,
                                             id=id,
                                             operation=operation,
                                         )
+                                        if s.browserscript.for_new_ui:
+                                            return
                                         await ws.send(
                                             js.dumps(
                                                 {
@@ -2514,8 +2275,8 @@ async def ws_browserscripts(request, ws, user):
                                             )
                                         )
                             else:
-                                s = await db_objects.get(
-                                    script_query, id=id, operator=operator
+                                s = await app.db_objects.get(
+                                    db_model.browserscript_query, id=id, operator=operator, for_new_ui=False
                                 )
                                 await ws.send(
                                     js.dumps({"type": "browserscript", **s.to_json()})
@@ -2527,7 +2288,7 @@ async def ws_browserscripts(request, ws, user):
                             )  # this is our test to see if the client is still there
                             continue
                         except Exception as e:
-                            print(e)
+                            logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                             continue
     finally:
         # print("closed /ws/tasks")
@@ -2552,27 +2313,22 @@ async def ws_artifacts(request, ws, user):
                     await cur.execute('LISTEN "newtaskartifact";')
                     if user["current_operation"] != "":
                         # before we start getting new things, update with all of the old data
-                        query = await db_model.artifact_query()
-                        base_artifacts = await db_objects.execute(query)
+                        base_artifacts = await app.db_objects.execute(db_model.artifact_query)
                         for b in base_artifacts:
                             await ws.send(
                                 js.dumps({**b.to_json(), "channel": "artifact"})
                             )
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-
-                        query = await db_model.callback_query()
-                        callbacks = query.where(Callback.operation == operation).select(
+                        callbacks = db_model.callback_query.where(Callback.operation == operation).select(
                             Callback.id
                         )
-                        task_query = await db_model.taskartifact_query()
-                        artifact_tasks = await db_objects.execute(
-                            task_query.where(Task.callback.in_(callbacks))
+                        artifact_tasks = await app.db_objects.execute(
+                            db_model.taskartifact_query.where(Task.callback.in_(callbacks))
                         )
-                        manual_tasks = await db_objects.execute(
-                            task_query.where(TaskArtifact.operation == operation)
+                        manual_tasks = await app.db_objects.execute(
+                            db_model.taskartifact_query.where(TaskArtifact.operation == operation)
                         )
                         for a in artifact_tasks:
                             await ws.send(
@@ -2590,8 +2346,7 @@ async def ws_artifacts(request, ws, user):
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
                                 if msg.channel == "newartifact":
-                                    query = await db_model.artifact_query()
-                                    artifact = await db_objects.get(query, id=id)
+                                    artifact = await app.db_objects.get(db_model.artifact_query, id=id)
                                     await ws.send(
                                         js.dumps(
                                             {
@@ -2601,8 +2356,7 @@ async def ws_artifacts(request, ws, user):
                                         )
                                     )
                                 elif msg.channel == "newtaskartifact":
-                                    query = await db_model.taskartifact_query()
-                                    artifact = await db_objects.get(query, id=id)
+                                    artifact = await app.db_objects.get(db_model.taskartifact_query, id=id)
                                     if artifact.operation == operation or (
                                         artifact.task is not None
                                         and artifact.task.callback.operation
@@ -2624,7 +2378,7 @@ async def ws_artifacts(request, ws, user):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
@@ -2649,35 +2403,34 @@ async def ws_process_list(request, ws, user, cid):
         async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "newprocesslist";')
+                    await cur.execute('LISTEN "newprocess";')
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        query = await db_model.callback_query()
-                        callback = await db_objects.get(
-                            query, operation=operation, id=cid
+                        callback = await app.db_objects.get(
+                            db_model.callback_query, operation=operation, id=cid
                         )
                         # now pull off any new tasks we got queued up while processing the old data
-                        query = await db_model.processlist_query()
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                process_list = await db_objects.get(
-                                    query,
+                                proc = await app.db_objects.get(
+                                    db_model.process_query,
                                     id=id,
                                     operation=operation,
                                     host=callback.host,
                                 )
-                                plist = process_list.to_json()
+                                processes = await app.db_objects.execute(
+                                    db_model.process_query.where(db_model.Process.timestamp == proc.timestamp)
+                                )
+                                plist = proc.to_json()
+                                plist["process_list"] = [p.to_json() for p in processes]
                                 try:
-                                    tree = await get_process_tree(
-                                        js.loads(plist["process_list"])
-                                    )
+                                    tree = await get_process_tree(plist["process_list"])
                                 except Exception as e:
-                                    print(e)
+                                    logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                     tree = {}
                                 await ws.send(
                                     js.dumps({"process_list": plist, "tree_list": tree})
@@ -2689,7 +2442,7 @@ async def ws_process_list(request, ws, user, cid):
                                 )  # this is our test to see if the client is still there
                                 continue
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
@@ -2701,6 +2454,17 @@ async def ws_process_list(request, ws, user, cid):
         pool.close()
 
 
+async def events_current_operation_callback(ws, operation):
+    async def event_callback(conn, pid, channel, msg):
+        t = await app.db_objects.get(db_model.operationeventlog_query, id=msg)
+        if t.operation == operation:
+            op_msg = t.to_json()
+            if op_msg["operator"] is None:
+                op_msg["operator"] = "Mythic"
+            op_msg["channel"] = channel
+            asyncio.ensure_future(ws.send(js.dumps(op_msg)))
+    return event_callback
+
 # -------------- EVENT LOGS ----------------------
 @mythic.websocket("/ws/events/current_operation")
 @inject_user()
@@ -2711,115 +2475,40 @@ async def ws_events_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
     try:
-        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "newoperationeventlog";')
-                    await cur.execute('LISTEN "updatedoperationeventlog";')
-                    if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
-                        )
-                        query = await db_model.operationeventlog_query()
-                        initial_events = await db_objects.execute(
-                            query.where(
-                                (db_model.OperationEventLog.operation == operation)
-                                & (db_model.OperationEventLog.deleted == False)
-                            ).order_by(db_model.OperationEventLog.id)
-                        )
-                        events = []
-                        for i in initial_events:
-                            op_msg = i.to_json()
-                            if op_msg["operator"] is None:
-                                op_msg["operator"] = "Mythic"
-                            events.append(op_msg)
-                        await ws.send(js.dumps(events))
-                        await ws.send("")
-                        while True:
-                            try:
-                                msg = conn.notifies.get_nowait()
-                                id = msg.payload
-                                t = await db_objects.get(query, id=id)
-                                if t.operation == operation:
-                                    op_msg = t.to_json()
-                                    if op_msg["operator"] is None:
-                                        op_msg["operator"] = "Mythic"
-                                    await ws.send(js.dumps(op_msg))
-                            except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(0.5)
-                                await ws.send(
-                                    ""
-                                )  # this is our test to see if the client is still there
-                            except Exception as e:
-                                print(e)
-                                continue
-                    else:
-                        await ws.send("no_operation")
-                        while True:
-                            await ws.send("")
-                            await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+        if user["current_operation"] != "":
+            operation = await app.db_objects.get(
+                db_model.operation_query, name=user["current_operation"]
+            )
+        else:
+            await ws.send("no_operation")
+            while True:
+                await ws.send("")
+                await asyncio.sleep(2)
+        async with app.websocket_pool.acquire() as conn:
+            cb = await events_current_operation_callback(ws, operation)
+            await conn.add_listener("newoperationeventlog", lambda *args: asyncio.get_event_loop().create_task(cb(*args)))
+            await conn.add_listener("updatedoperationeventlog",
+                                    lambda *args: asyncio.get_event_loop().create_task(cb(*args)))
 
-
-@mythic.websocket("/ws/events_all/current_operation")
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def ws_events_current_operation(request, ws, user):
-    if not await valid_origin_header(request):
-        return
-    try:
-        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "newoperationeventlog";')
-                    await cur.execute('LISTEN "updatedoperationeventlog";')
-                    if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
-                        )
-                        query = await db_model.operationeventlog_query()
-                        initial_events = await db_objects.execute(
-                            query.where(
-                                (db_model.OperationEventLog.operation == operation)
-                                & (db_model.OperationEventLog.deleted == False)
-                            ).order_by(db_model.OperationEventLog.id)
-                        )
-                        for i in initial_events:
-                            op_msg = i.to_json()
-                            if op_msg["operator"] == "null":
-                                op_msg["operator"] = "Mythic"
-                            await ws.send(js.dumps(op_msg))
-                        await ws.send("")
-                        while True:
-                            try:
-                                msg = conn.notifies.get_nowait()
-                                id = msg.payload
-                                t = await db_objects.get(query, id=id)
-                                if t.operation == operation:
-                                    op_msg = t.to_json()
-                                    if op_msg["operator"] == "null":
-                                        op_msg["operator"] = "Mythic"
-                                    await ws.send(js.dumps(op_msg))
-                            except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(0.5)
-                                await ws.send(
-                                    ""
-                                )  # this is our test to see if the client is still there
-                            except Exception as e:
-                                print(e)
-                                continue
-                    else:
-                        await ws.send("no_operation")
-                        while True:
-                            await ws.send("")
-                            await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+            initial_events = await app.db_objects.execute(
+                db_model.operationeventlog_query.where(
+                    (db_model.OperationEventLog.operation == operation)
+                    & (db_model.OperationEventLog.deleted == False)
+                ).order_by(-db_model.OperationEventLog.id).limit(100)
+            )
+            events = []
+            for i in initial_events:
+                op_msg = i.to_json()
+                if op_msg["operator"] is None:
+                    op_msg["operator"] = "Mythic"
+                events.append(op_msg)
+            await ws.send(js.dumps(events))
+            await ws.send("")
+            while True:
+                await ws.send("")
+                await asyncio.sleep(1)
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # the main operator callback page doesn't need all historic events, just new ones
@@ -2831,54 +2520,50 @@ async def ws_events_current_operation(request, ws, user):
 async def ws_events_notifier_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-    try:
-        async with aiopg.create_pool(mythic.config["DB_POOL_CONNECT_STRING"]) as pool:
-            async with pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute('LISTEN "newoperationeventlog";')
-                    await cur.execute('LISTEN "updatedoperationeventlog";')
-                    if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
-                        )
-                        query = await db_model.operationeventlog_query()
-                        from app.api.event_message_api import get_old_event_alerts
+    conn = None
+    cb = None
 
-                        alert_counts = await get_old_event_alerts(user)
-                        if alert_counts["status"] == "success":
-                            alert_counts.pop("status", None)
-                            alert_counts["channel"] = "historic"
-                            await ws.send(js.dumps(alert_counts))
-                        else:
-                            print(alert_counts["error"])
-                            return
-                        while True:
-                            try:
-                                msg = conn.notifies.get_nowait()
-                                id = msg.payload
-                                t = await db_objects.get(query, id=id)
-                                if t.operation == operation:
-                                    op_msg = t.to_json()
-                                    if op_msg["operator"] == "null":
-                                        op_msg["operator"] = "Mythic"
-                                    op_msg["channel"] = msg.channel
-                                    await ws.send(js.dumps(op_msg))
-                            except asyncio.QueueEmpty as e:
-                                await asyncio.sleep(0.5)
-                                await ws.send(
-                                    ""
-                                )  # this is our test to see if the client is still there
-                            except Exception as e:
-                                print(e)
-                                continue
-                    else:
-                        await ws.send("no_operation")
-                        while True:
-                            await ws.send("")
-                            await asyncio.sleep(0.5)
+    def callback_func(*args):
+        asyncio.create_task(cb(*args))
+    try:
+        if user["current_operation"] != "":
+            operation = await app.db_objects.get(
+                db_model.operation_query, name=user["current_operation"]
+            )
+        else:
+            await ws.send("no_operation")
+            while True:
+                await ws.send("")
+                await asyncio.sleep(2)
+        conn = await app.websocket_pool.acquire()
+        cb = await events_current_operation_callback(ws, operation)
+        await conn.add_listener("newoperationeventlog",
+                                callback_func)
+        await conn.add_listener("updatedoperationeventlog",
+                                callback_func)
+
+        from app.api.event_message_api import get_old_event_alerts
+
+        alert_counts = await get_old_event_alerts(user)
+        if alert_counts["status"] == "success":
+            alert_counts.pop("status", None)
+            alert_counts["channel"] = "historic"
+            await ws.send(js.dumps(alert_counts))
+        else:
+            print(alert_counts["error"])
+            return
+        await ws.send("")
+        while True:
+            await ws.send("")
+            await asyncio.sleep(1)
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
     finally:
-        pool.close()
+        if conn is not None:
+            await conn.remove_listener("newoperationeventlog",
+                                    callback_func)
+            await conn.remove_listener("updatedoperationeventlog",
+                                    callback_func)
 
 
 # -------------- CALLBACK GRAPH EDGE CONNECTIONS ----------------------
@@ -2897,13 +2582,11 @@ async def ws_graph_edges_current_operation(request, ws, user):
                     await cur.execute('LISTEN "newcallbackgraphedge";')
                     await cur.execute('LISTEN "updatedcallbackgraphedge";')
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        c2query = await db_model.c2profile_query()
-                        profiles = await db_objects.execute(
-                            c2query.where(db_model.C2Profile.is_p2p == False)
+                        profiles = await app.db_objects.execute(
+                            db_model.c2profile_query.where(db_model.C2Profile.is_p2p == False)
                         )
                         for p in profiles:
                             await ws.send(
@@ -2928,19 +2611,23 @@ async def ws_graph_edges_current_operation(request, ws, user):
                                     }
                                 )
                             )
-                        query = await db_model.callbackgraphedge_query()
-                        initial_edges = await db_objects.execute(
-                            query.where(
+                        initial_edges = await app.db_objects.execute(
+                            db_model.callbackgraphedge_query.where(
                                 (db_model.CallbackGraphEdge.operation == operation)
                                 & (db_model.CallbackGraphEdge.end_timestamp == None)
-                            ).order_by(db_model.CallbackGraphEdge.id)
-                        )
+                            ).order_by(db_model.CallbackGraphEdge.id))
                         for i in initial_edges:
                             if i.source.id == i.destination.id:
                                 await ws.send(
                                     js.dumps(
                                         {
-                                            **i.to_json(),
+                                            "id": i.id,
+                                            "source": js.dumps(await get_edge_info(i.source)),
+                                            "start_timestamp": i.start_timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+                                            "end_timestamp": i.end_timestamp.strftime("%m/%d/%Y %H:%M:%S") if i.end_timestamp is not None else None,
+                                            "direction": i.direction,
+                                            "metadata": i.metadata,
+                                            "c2_profile": i.c2_profile.name,
                                             "destination": js.dumps(
                                                 {"id": "c" + str(i.c2_profile.id)}
                                             ),
@@ -2948,7 +2635,17 @@ async def ws_graph_edges_current_operation(request, ws, user):
                                     )
                                 )
                             else:
-                                await ws.send(js.dumps(i.to_json()))
+                                await ws.send(js.dumps({
+                                "id": i.id,
+                                "source": js.dumps(await get_edge_info(i.source)),
+                                "destination": js.dumps(await get_edge_info(i.destination)),
+                                "start_timestamp": i.start_timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+                                "end_timestamp": i.end_timestamp.strftime("%m/%d/%Y %H:%M:%S") if i.end_timestamp is not None else None,
+                                "direction": i.direction,
+                                "metadata": i.metadata,
+                                "c2_profile": i.c2_profile.name,
+                                })
+                                )
 
                         await ws.send("")
                         while True:
@@ -2956,14 +2653,20 @@ async def ws_graph_edges_current_operation(request, ws, user):
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
 
-                                i = await db_objects.get(
-                                    query, id=id, operation=operation
+                                i = await app.db_objects.get(
+                                    db_model.callbackgraphedge_query, id=id, operation=operation
                                 )
                                 if i.source.id == i.destination.id:
                                     await ws.send(
                                         js.dumps(
                                             {
-                                                **i.to_json(),
+                                                "id": i.id,
+                                                "start_timestamp": i.start_timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+                                                "end_timestamp": i.end_timestamp.strftime("%m/%d/%Y %H:%M:%S") if i.end_timestamp is not None else None,
+                                                "direction": i.direction,
+                                                "metadata": i.metadata,
+                                                "c2_profile": i.c2_profile.name,
+                                                "source": js.dumps(await get_edge_info(i.source)),
                                                 "destination": js.dumps(
                                                     {"id": "c" + str(i.c2_profile.id)}
                                                 ),
@@ -2971,23 +2674,46 @@ async def ws_graph_edges_current_operation(request, ws, user):
                                         )
                                     )
                                 else:
-                                    await ws.send(js.dumps(i.to_json()))
+                                    await ws.send(js.dumps({
+                                        "id": i.id,
+                                        "source": js.dumps(await get_edge_info(i.source)),
+                                        "destination": js.dumps(await get_edge_info(i.destination)),
+                                        "start_timestamp": i.start_timestamp.strftime("%m/%d/%Y %H:%M:%S"),
+                                        "end_timestamp": i.end_timestamp.strftime("%m/%d/%Y %H:%M:%S") if i.end_timestamp is not None else None,
+                                        "direction": i.direction,
+                                        "metadata": i.metadata,
+                                        "c2_profile": i.c2_profile.name,
+                                    })
+                                    )
                             except asyncio.QueueEmpty as e:
                                 await asyncio.sleep(0.5)
                                 await ws.send(
                                     ""
                                 )  # this is our test to see if the client is still there
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("here")
+        logger.warning("websocket_routes.py error: " + str(t))
 
+
+async def get_edge_info(callback: Callback):
+    return {
+        "user": callback.user,
+        "host": callback.host,
+        "pid": callback.pid,
+        "id": callback.id,
+        "ip": callback.ip,
+        "description": callback.description,
+        "integrity_level": callback.integrity_level,
+        "os": callback.os
+    }
 
 # -------------- FILE BROWSER INFORMATION ----------------------
 @mythic.websocket("/ws/file_browser/current_operation")
@@ -3007,9 +2733,8 @@ async def ws_file_browser_objects(request, ws, user):
                     await cur.execute('LISTEN "newfilemeta";')
                     await cur.execute('LISTEN "updatedfilemeta";')
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
                         from app.api.file_browser_api import (
                             get_filebrowser_tree_for_operation,
@@ -3020,22 +2745,20 @@ async def ws_file_browser_objects(request, ws, user):
                         )
                         await ws.send(js.dumps(burst["output"]))
                         await ws.send("")
-                        query = await db_model.filebrowserobj_query()
-                        filequery = await db_model.filemeta_query()
                         while True:
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
                                 if "filemeta" in msg.channel:
-                                    i = await db_objects.get(
-                                        filequery, id=id, operation=operation
+                                    i = await app.db_objects.get(
+                                        db_model.filemeta_query, id=id, operation=operation
                                     )
                                     if i.file_browser is not None:
-                                        j = await db_objects.prefetch(
-                                            query.where(
+                                        j = await app.db_objects.prefetch(
+                                            db_model.filebrowserobj_query.where(
                                                 (db_model.FileBrowserObj.id == i.file_browser) &
                                                 (db_model.FileBrowserObj.operation == operation)),
-                                            filequery.where(db_model.FileMeta.file_browser == i.file_browser)
+                                            db_model.filemeta_query.where(db_model.FileMeta.file_browser == i.file_browser)
                                         )
                                         ij = i.to_json()
                                         ij["files"] = []
@@ -3051,11 +2774,11 @@ async def ws_file_browser_objects(request, ws, user):
                                         ij = i.to_json()
                                         ij["files"] = []
                                 else:
-                                    i = await db_objects.prefetch(
-                                        query.where(
+                                    i = await app.db_objects.prefetch(
+                                        db_model.filebrowserobj_query.where(
                                             (db_model.FileBrowserObj.id == id) &
                                             (db_model.FileBrowserObj.operation == operation)),
-                                        filequery
+                                        db_model.filemeta_query
                                     )
                                     ij = i[0].to_json()
                                     ij["files"] = []
@@ -3071,15 +2794,15 @@ async def ws_file_browser_objects(request, ws, user):
                                     ""
                                 )  # this is our test to see if the client is still there
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # -------------- Token INFORMATION ----------------------
@@ -3098,12 +2821,10 @@ async def ws_token_objects(request, ws, user):
                     await cur.execute('LISTEN "newtoken";')
                     await cur.execute('LISTEN "updatedtoken";')
                     if user["current_operation"] != "":
-                        query = await db_model.operation_query()
-                        operation = await db_objects.get(
-                            query, name=user["current_operation"]
+                        operation = await app.db_objects.get(
+                            db_model.operation_query, name=user["current_operation"]
                         )
-                        tokenquery = await db_model.token_query()
-                        tokens = await db_objects.execute(tokenquery.where(
+                        tokens = await app.db_objects.execute(db_model.token_query.where(
                             db_model.Token.callback != None
                         ))
                         for t in tokens:
@@ -3113,7 +2834,7 @@ async def ws_token_objects(request, ws, user):
                             try:
                                 msg = conn.notifies.get_nowait()
                                 id = msg.payload
-                                token = await db_objects.get(tokenquery, id=id)
+                                token = await app.db_objects.get(db_model.token_query, id=id)
                                 if token.callback.operation == operation:
                                     await ws.send(js.dumps(token.to_json()))
                             except asyncio.QueueEmpty as e:
@@ -3122,15 +2843,15 @@ async def ws_token_objects(request, ws, user):
                                     ""
                                 )  # this is our test to see if the client is still there
                             except Exception as e:
-                                print(e)
+                                logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
                                 continue
                     else:
                         await ws.send("no_operation")
                         while True:
                             await ws.send("")
                             await asyncio.sleep(0.5)
-    finally:
-        pool.close()
+    except Exception as t:
+        logger.warning("websocket_routes.py error: " + str(t))
 
 
 # -------------- Callback Tasking  ----------------------
@@ -3160,11 +2881,10 @@ async def ws_agent_messages(request, ws, num_tasks):
                     if code == 404:
                         logger.error("websocket route message got 404 trying to process checkin")
                         return
-                    query = await db_model.callback_query()
                     if new_callback != "":
-                        callback = await db_objects.get(query, agent_callback_id=new_callback)
+                        callback = await app.db_objects.get(db_model.callback_query, agent_callback_id=new_callback)
                     else:
-                        callback = await db_objects.get(query, agent_callback_id=msg_uuid)
+                        callback = await app.db_objects.get(db_model.callback_query, agent_callback_id=msg_uuid)
                     try:
                         enc_key = await get_encryption_data(callback.agent_callback_id, profile)
                     except Exception as e:
@@ -3193,7 +2913,6 @@ async def ws_agent_messages(request, ws, num_tasks):
                         print("sending final message")
                         await ws.send(final_msg)
                     print("about to create task query")
-                    task_query = await db_model.task_query()
                     print("creating getMessagesFromWebsocket task")
                     asyncio.create_task(getMessagesFromWebsocket(ws, request, profile, callback, enc_key))
                     print("now about to enter while loop")
@@ -3204,7 +2923,7 @@ async def ws_agent_messages(request, ws, num_tasks):
                             msg = await conn.notifies.get()
                             print(msg)
                             id = msg.payload
-                            task = await db_objects.get(task_query, id=id)
+                            task = await app.db_objects.get(db_model.task_query, id=id)
                             if task.callback.operation == callback.operation and task.status == "submitted":
                                 # this is a candidate to see if we need to send this down the websocket
                                 print("got new task, checking to see if targeted for our websocket or linked agents")

@@ -1,4 +1,5 @@
 from mythic_c2_container.C2ProfileBase import *
+import sys
 
 # request is a dictionary: {"action": func_name, "message": "the input",  "task_id": task id num}
 # must return an RPCResponse() object and set .status to an instance of RPCStatus and response to str of message
@@ -23,4 +24,4 @@ async def test(request):
 #   For success: {"status": "success", "message": "your success message here" }
 #   For error: {"status": "error", "error": "your error message here" }
 async def opsec(request):
-    return {"status": "success", "message": "No OPSEC Check"}
+    return {"status": "success", "message": "No OPSEC Check Performed"}

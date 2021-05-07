@@ -54,11 +54,14 @@ var payloads_table = new Vue({
                                 Vue.set(payload_config_vue.config, "c2_profiles", data['wrapped']['c2_profiles']);
                             }
                             $('#payloadConfigModal').modal('show');
-                        } else if(reason === "message"){
+                        } else if(reason === "message") {
                             $('#buildStatus').text(data['build_message']);
                             $('#payloadBuildStatusModal').modal('show');
+                        } else if(reason === "stdout"){
+                            $('#buildStatus').text(data['build_stdout']);
+                            $('#payloadBuildStatusModal').modal('show');
                         } else {
-                            $('#buildStatus').text(data['build_error']);
+                            $('#buildStatus').text(data['build_stderr']);
                             $('#payloadBuildStatusModal').modal('show');
                         }
                     } else {
@@ -69,26 +72,6 @@ var payloads_table = new Vue({
                 }
             }, "GET", null);
 
-        },
-        register_manual_callback: function (p) {
-            register_new_callback_vue.reset();
-            $('#payloadRegisterCallbackModal').modal('show');
-            $('#payloadRegisterCallbackSubmit').unbind('click').click(function () {
-                let data = register_new_callback_vue.get_json();
-                data['uuid'] = p.uuid;
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/", function (response) {
-                    try {
-                        data = JSON.parse(response);
-                    } catch (error) {
-                        alertTop("danger", "Session expired, refresh");
-                    }
-                    if (data['status'] !== 'success') {
-                        alertTop("danger", data['error']);
-                    } else {
-                        alertTop("success", "Registered new callback based on that data");
-                    }
-                }, "POST", data);
-            });
         },
         edit_filename: function (p) {
             edit_payload_vue.header_message = "Edit Filename";
@@ -137,6 +120,34 @@ var payloads_table = new Vue({
         },
         toggle_auto_generated: function(){
             this.view_auto_generated = !this.view_auto_generated;
+        },
+        build_again: function(p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/rebuild/", function (response) {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] !== 'success') {
+                        alertTop("danger", data['error']);
+                    } else {
+                        alertTop("success", "Building...");
+                    }
+                } catch (error) {
+                    alertTop("danger", "Session expired, refresh");
+                }
+            }, "POST", {"uuid": p.uuid});
+        },
+        export_config: function(p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/export_config/" + p.uuid, function (response) {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] !== 'success') {
+                        alertTop("danger", data['error']);
+                    } else {
+                        download_from_memory(p.file.filename + ".json", btoa(JSON.stringify(data["config"], null, 4)));
+                    }
+                } catch (error) {
+                    alertTop("danger", "Session expired, refresh");
+                }
+            }, "GET", null);
         }
     },
     delimiters: ['[[', ']]']

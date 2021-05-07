@@ -27,7 +27,7 @@ query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
       }
     }
     filemetum {
-      filename
+      filename_text
       agent_file_id
       id
       md5
@@ -116,9 +116,9 @@ export function DetailedPayloadTable(props){
                         <TableCell>{data.payload[0].uuid}</TableCell>
                     </TableRow>
                     { data.payload[0].filemetum ? (
-                        <TableRow key={'filename'}>
+                        <TableRow key={'filename_text'}>
                             <TableCell>Filename</TableCell>
-                            <TableCell>{data.payload[0].filemetum.filename}</TableCell>
+                            <TableCell>{data.payload[0].filemetum.filename_text}</TableCell>
                         </TableRow>
                         
                     ) : null }

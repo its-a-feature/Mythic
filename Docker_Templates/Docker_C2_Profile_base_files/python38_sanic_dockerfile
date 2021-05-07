@@ -1,7 +1,0 @@
-From python:3.8-buster
-RUN pip install aio_pika sanic requests
-RUN pip install mythic-c2-container
-
-ENV PYTHONWARNINGS="ignore:Unverified HTTPS request"
-
-ENTRYPOINT ["/Mythic/mythic/c2_service.sh"]

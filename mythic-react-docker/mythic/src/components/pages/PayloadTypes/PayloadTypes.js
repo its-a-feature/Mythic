@@ -14,7 +14,12 @@ import LinearProgress from '@material-ui/core/LinearProgress';
     ptype
     supported_os
     wrapper
-    translation_container
+    translationcontainer {
+        id
+        name
+        last_heartbeat
+        container_running
+    }
   }
 }
  `;

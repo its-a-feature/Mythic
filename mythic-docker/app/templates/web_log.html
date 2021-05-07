@@ -13,7 +13,6 @@
                 <th onclick="sort_table(this)" style="width:15rem">Time</th>
                 <th onclick="sort_table(this)" >Host</th>
                 <th onclick="sort_table(this)" style="width:10rem;text-align:center">Status</th>
-                <th onclick="sort_table(this)" style="width:8rem">Response</th>
                 <th onclick="sort_table(this)">Message</th>
             </tr>
             <tr v-for="entry in entries" :style="'background-color:' + entry['color']">
@@ -21,13 +20,11 @@
                     <td><pre>[[entry.time]]</pre></td>
                     <td ><pre><font color="#00b0cf">[[entry.host]]</font></pre></td>
                     <td style="text-align:center"><pre><font :color="entry.status === 200 ? 'green' : 'indianred'">[[entry.status]]</font></pre></td>
-                    <td><pre>[[entry.return_size]]</pre></td>
                     <td><pre>[[entry.request]]</pre></td>
                 </template>
                 <template v-else-if="entry.type == 'root_log'">
                     <td><pre>[[entry.time]]</pre></td>
                     <td><pre><font color="indianred">Mythic</font></pre></td>
-                    <td><pre></pre></td>
                     <td><pre></pre></td>
                     <td><pre>[[entry.message]]</pre></td>
                 </template>

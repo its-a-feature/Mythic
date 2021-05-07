@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from app.database_models.model import Callback, Task, TaskArtifact, FileMeta
 from sanic.response import json, file
 from sanic_jwt.decorators import scoped, inject_user
@@ -21,8 +22,7 @@ async def analytics_command_frequency_api(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json(
             {"status": "error", "error": "failed to find operation or payloads"}
@@ -32,8 +32,7 @@ async def analytics_command_frequency_api(request, user):
         data = request.json
         if "order" in data and data["order"] in ["operator", "command"]:
             request_format["order"] = data["order"]
-    query = await db_model.task_query()
-    tasks = await db_objects.execute(query.where(Callback.operation == operation))
+    tasks = await app.db_objects.execute(db_model.task_query.where(Callback.operation == operation))
     output = {}
     if request_format["order"] == "operator":
         # {"mythic_admin": {"apfell": {"shell": 2, "ls": 5}, "viper": {"shell": 1} } }
@@ -87,11 +86,9 @@ async def analytics_callback_analysis_api(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.callback_query()
-        callbacks = await db_objects.execute(
-            query.where(Callback.operation == operation)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        callbacks = await app.db_objects.execute(
+            db_model.callback_query.where(Callback.operation == operation)
         )
     except Exception as e:
         return json({"status": "error", "error": "failed to get artifact templates"})
@@ -128,8 +125,7 @@ async def analytics_artifact_overview_api(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
     output = {
@@ -145,14 +141,12 @@ async def analytics_artifact_overview_api(request, user):
         },
     }
     # totals for each artifact type (15 process creates, 5 file writes)
-    query = await db_model.callback_query()
-    callbacks = query.where(Callback.operation == operation).select(Callback.id)
-    task_query = await db_model.taskartifact_query()
-    artifact_tasks = await db_objects.execute(
-        task_query.where(Task.callback.in_(callbacks))
+    callbacks = db_model.callback_query.where(Callback.operation == operation).select(Callback.id)
+    artifact_tasks = await app.db_objects.execute(
+        db_model.taskartifact_query.where(Task.callback.in_(callbacks))
     )
-    manual_tasks = await db_objects.execute(
-        task_query.where(
+    manual_tasks = await app.db_objects.execute(
+        db_model.taskartifact_query.where(
             (TaskArtifact.operation == operation) & (TaskArtifact.task == None)
         )
     )
@@ -185,8 +179,7 @@ async def analytics_artifact_overview_api(request, user):
         output["artifact_counts"][artifact_name]["manual"] += 1
         output["artifact_counts"]["total_count"] += 1
 
-    query = await db_model.filemeta_query()
-    files = await db_objects.execute(query.where(FileMeta.operation == operation))
+    files = await app.db_objects.execute(db_model.filemeta_query.where(FileMeta.operation == operation))
     for f in files:
         if f.is_screenshot:
             if f.operator.username not in output["files"]["screenshots"]["operators"]:
@@ -239,14 +232,12 @@ async def analytics_task_frequency_api(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json(
             {"status": "error", "error": "failed to find operation"}
         )
-    query = await db_model.task_query()
-    tasks = await db_objects.execute(query.where(Callback.operation == operation))
+    tasks = await app.db_objects.execute(db_model.task_query.where(Callback.operation == operation))
     output = []
     for t in tasks:
         output.append({"date": t.status_timestamp_preprocessing.strftime("%m/%d/%Y %H:%M:%S"),
@@ -268,14 +259,12 @@ async def analytics_event_frequency_api(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json(
             {"status": "error", "error": "failed to find operation"}
         )
-    query = await db_model.operationeventlog_query()
-    events = await db_objects.execute(query.where(db_model.OperationEventLog.operation == operation))
+    events = await app.db_objects.execute(db_model.operationeventlog_query.where(db_model.OperationEventLog.operation == operation))
     output = {"Deleted Events": 0, "Warning Events": 0, "Mythic Events": 0, "Resolved Events": 0}
     operator_specific = {"Mythic Events": {"warning": 0, "info": 0}}
     timings = []

@@ -95,9 +95,9 @@ export function PayloadTypeCard(props) {
             <Typography variant="body2" component="p">
               {props.note}
             </Typography>
-            {props.translation_container === null ? (null) : (
+            {props.translationcontainer === null ? (null) : (
                 <Typography variant="body1" component="p">
-                  <b>Translation Container:</b> {props.translation_container}
+                  <b>Translation Container:</b> {props.translationcontainer.name}
                 </Typography>
             ) }
         </CardContent>

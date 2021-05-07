@@ -1,5 +1,0 @@
-From python:3.8-buster
-RUN pip install aio_pika
-RUN pip install mythic-payloadtype-container
-
-ENTRYPOINT ["/Mythic/mythic/payload_service.sh"]

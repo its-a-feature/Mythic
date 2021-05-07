@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic_jwt.decorators import inject_user, scoped
 import app.database_models.model as db_model
 from sanic.response import json
@@ -19,11 +20,9 @@ async def get_payloadsonhost(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        poh_query = await db_model.payloadonhost_query()
-        poh = await db_objects.execute(
-            poh_query.where(
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        poh = await app.db_objects.execute(
+            db_model.payloadonhost_query.where(
                 (db_model.PayloadOnHost.operation == operation)
                 & (db_model.PayloadOnHost.deleted == False)
             )
@@ -62,13 +61,11 @@ async def add_payload_to_host(request, user):
             return json(
                 {"status": "error", "error": "uuid of a payload must be supplied"}
             )
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        payload_query = await db_model.payload_query()
-        payload = await db_objects.get(payload_query, uuid=data["uuid"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        payload = await app.db_objects.get(db_model.payload_query, uuid=data["uuid"])
         data["host"] = data["host"]
         try:
-            payloadonhost = await db_objects.get(
+            payloadonhost = await app.db_objects.get(
                 db_model.PayloadOnHost,
                 host=data["host"].upper(),
                 payload=payload,
@@ -76,7 +73,7 @@ async def add_payload_to_host(request, user):
                 deleted=False,
             )
         except Exception as e:
-            payloadonhost = await db_objects.create(
+            payloadonhost = await app.db_objects.create(
                 db_model.PayloadOnHost,
                 host=data["host"].upper(),
                 payload=payload,
@@ -112,12 +109,10 @@ async def delete_payloadonhost(request, user, poh_id):
                     "error": "Spectators cannot remove payloads from hosts",
                 }
             )
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        poh_query = await db_model.payloadonhost_query()
-        poh = await db_objects.get(poh_query, operation=operation, id=poh_id)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        poh = await app.db_objects.get(db_model.payloadonhost_query, operation=operation, id=poh_id)
         poh.deleted = True
-        await db_objects.update(poh)
+        await app.db_objects.update(poh)
         return json({"status": "success", "payload": poh.to_json()})
     except Exception as e:
         print(str(e))
@@ -147,12 +142,10 @@ async def delete_payloadonhost_by_host(request, user, host: str):
                     "error": "Spectators cannot remove payloads on hosts",
                 }
             )
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         hostname = base64.b64decode(host).decode().upper()
-        poh_query = await db_model.payloadonhost_query()
-        poh = await db_objects.execute(
-            poh_query.where(
+        poh = await app.db_objects.execute(
+            db_model.payloadonhost_query.where(
                 (db_model.PayloadOnHost.operation == operation)
                 & (db_model.PayloadOnHost.deleted == False)
                 & (db_model.PayloadOnHost.host == hostname)
@@ -161,7 +154,7 @@ async def delete_payloadonhost_by_host(request, user, host: str):
         deleted = []
         for p in poh:
             p.deleted = True
-            await db_objects.update(p)
+            await app.db_objects.update(p)
             deleted.append(p.to_json())
         return json({"status": "success", "payload": deleted})
     except Exception as e:

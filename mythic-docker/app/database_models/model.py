@@ -91,6 +91,8 @@ class Operator(p.Model):
     salt = p.TextField(null=False)
     creation_time = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     last_login = p.DateTimeField(default=None, null=True)
+    failed_login_count = p.IntegerField(null=False, default=0)
+    last_failed_login_timestamp = p.DateTimeField(null=True)
     # option to simply de-activate an account instead of delete it so you keep all your relational data intact
     active = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     current_operation = p.DeferredForeignKey("Operation", null=True)
@@ -110,13 +112,15 @@ class Operator(p.Model):
             "username": self.username,
             "admin": self.admin,
             "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
-            "last_login": self.last_login.strftime("%m/%d/%Y %H:%M:%S") if self.last_login is not None else "",
+            "last_login": self.last_login.strftime("%m/%d/%Y %H:%M:%S") if self.last_login is not None else None,
             "active": self.active,
             "current_operation": self.current_operation.name if self.current_operation is not None else None,
             "current_operation_id": self.current_operation.id if self.current_operation is not None else None,
             "ui_config": self.ui_config,
             "view_utc_time": self.view_utc_time,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "failed_login_count": self.failed_login_count,
+            "last_failed_login_timestamp": self.last_failed_login_timestamp.strftime("%m/%d/%Y %H:%M:%S") if self.last_failed_login_timestamp is not None else None
         }
         return r
 
@@ -129,6 +133,28 @@ class Operator(p.Model):
 
     async def hash_password(self, password):
         return await crypto.hash_SHA512(password)
+
+
+class TranslationContainer(p.Model):
+    name = p.TextField(null=False, unique=True)
+    last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")], null=False)
+    deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    container_running = p.BooleanField(null=False, default=True, constraints=[p.SQL("DEFAULT TRUE")])
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "name": self.name,
+            "deleted": self.deleted,
+            "last_heartbeat": self.last_heartbeat.strftime("%m/%d/%Y %H:%M:%S"),
+            "container_running": self.container_running
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
 
 
 # This is information about a class of payloads (like Apfell-jxa)
@@ -152,7 +178,7 @@ class PayloadType(p.Model):
     note = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     supports_dynamic_loading = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    translation_container = p.TextField(null=True)
+    translation_container = p.ForeignKeyField(TranslationContainer, null=True)
 
     class Meta:
         database = mythic_db
@@ -173,7 +199,7 @@ class PayloadType(p.Model):
             "note": self.note,
             "supports_dynamic_loading": self.supports_dynamic_loading,
             "deleted": self.deleted,
-            "translation_container": self.translation_container
+            "translation_container": self.translation_container.to_json() if self.translation_container is not None else None
         }
         if getattr(self, "build_parameters") is not None:
             r["build_parameters"] = []
@@ -283,20 +309,9 @@ class Command(p.Model):
     creation_time = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
     # what version, so we can know if loaded commands are out of date
     version = p.IntegerField(null=False, constraints=[p.SQL("DEFAULT 1")])
-    # indicate if this command is the exit command for a payload type
-    is_exit = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    # indicate if this is the command used for browsing files
-    is_file_browse = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    # indicate if this is the command used for listing processes
-    is_process_list = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    # indicate if this is the command used for downloading files
-    is_download_file = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    # indicate if this is the command used for removing files
-    is_remove_file = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    # indicate if this is the command used to upload files
-    is_upload_file = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    # indicate if this command is used to link to another agent
-    is_link = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    # identify the supported UI features that this command can be used for, such as: file_browser:list
+    # full list of supported options can be found on docs.mythic-c2.net
+    supported_ui_features = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])
     author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     # specify if this command supports being injected into a remote process and executed
@@ -318,13 +333,7 @@ class Command(p.Model):
             "payload_type": self.payload_type.ptype,
             "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
             "version": self.version,
-            "is_exit": self.is_exit,
-            "is_file_browse": self.is_file_browse,
-            "is_process_list": self.is_process_list,
-            "is_download_file": self.is_download_file,
-            "is_remove_file": self.is_remove_file,
-            "is_upload_file": self.is_upload_file,
-            "is_link": self.is_link,
+            "supported_ui_features": self.supported_ui_features,
             "author": self.author,
             "deleted": self.deleted,
             "attributes": self.attributes,
@@ -355,6 +364,7 @@ class CommandParameters(p.Model):
     choice_filter_by_command_attributes = p.TextField(null=False, constraints=[p.SQL("DEFAULT '{}'")])
     choices_are_all_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     choices_are_loaded_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+    ui_position = p.IntegerField(null=False)
 
     class Meta:
         indexes = ((("command", "name"), True),)
@@ -376,7 +386,8 @@ class CommandParameters(p.Model):
             "supported_agent_build_parameters": self.supported_agent_build_parameters,
             "choice_filter_by_command_attributes": self.choice_filter_by_command_attributes,
             "choices_are_all_commands": self.choices_are_all_commands,
-            "choices_are_loaded_commands": self.choices_are_loaded_commands
+            "choices_are_loaded_commands": self.choices_are_loaded_commands,
+            "ui_position": self.ui_position
         }
         return r
 
@@ -632,9 +643,6 @@ class Payload(p.Model):
     creation_time = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     # this is fine because this is an instance of a payload, so it's tied to one PayloadType
     payload_type = p.ForeignKeyField(PayloadType, null=False)
-    # this will signify if a current callback made / spawned a new callback that's checking in
-    #   this helps track how we're getting callbacks (which payloads/tags/parents/operators)
-    pcallback = p.DeferredForeignKey("Callback", null=True)
     operation = p.ForeignKeyField(Operation, null=False)
     wrapped_payload = p.ForeignKeyField("self", null=True)
     deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
@@ -643,7 +651,8 @@ class Payload(p.Model):
     build_phase = p.TextField(null=False,constraints=[p.SQL("DEFAULT 'building'")])
     # capture error or any other info
     build_message = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
-    build_error = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    build_stderr = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    build_stdout = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if there is a slack webhook for the operation, decide if this payload should generate an alert or not
     callback_alert = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT TRUE")])
     # when dealing with auto-generated payloads for lateral movement or spawning new callbacks
@@ -664,7 +673,6 @@ class Payload(p.Model):
             "operator": self.operator.username,
             "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
             "payload_type": self.payload_type.ptype,
-            "pcallback": self.pcallback.id if self.pcallback is not None else None,
             "operation": self.operation.name,
             "wrapped_payload": self.wrapped_payload.uuid if self.wrapped_payload is not None else None,
             "deleted": self.deleted,
@@ -672,7 +680,8 @@ class Payload(p.Model):
             "build_container": self.build_container,
             "build_phase": self.build_phase,
             "build_message": self.build_message,
-            "build_error": self.build_error,
+            "build_stderr": self.build_stderr,
+            "build_stdout": self.build_stdout,
             "callback_alert": self.callback_alert,
             "auto_generated": self.auto_generated,
             "task": self.task.to_json() if self.task is not None else None,
@@ -704,7 +713,7 @@ class PayloadOnHost(p.Model):
             "deleted": self.deleted,
             "operation": self.operation.name,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "task": self.task.to_json() if self.task is not None else None
+            "task": self.task.id if self.task is not None else None
         }
         return r
 
@@ -816,8 +825,6 @@ class Callback(p.Model):
     description = p.TextField(null=True)
     operator = p.ForeignKeyField(Operator, null=False)
     active = p.BooleanField(constraints=[p.SQL("DEFAULT TRUE")], null=False)
-    # keep track of the parent callback from this one
-    pcallback = p.DeferredForeignKey("Callback", null=True)
     # what payload is associated with this callback
     registered_payload = p.ForeignKeyField(Payload, null=False)
     integrity_level = p.IntegerField(null=True, default=2)
@@ -846,7 +853,7 @@ class Callback(p.Model):
     class Meta:
         database = mythic_db
 
-    def to_json(self):
+    def to_json(self, get_tokens=True):
         r = {
             "id": getattr(self, "id"),
             "agent_callback_id": self.agent_callback_id,
@@ -860,7 +867,6 @@ class Callback(p.Model):
             "description": self.description,
             "operator": self.operator.username,
             "active": self.active,
-            "pcallback": self.pcallback.id if self.pcallback is not None else None,
             "registered_payload": self.registered_payload.uuid,
             "payload_type": self.registered_payload.payload_type.ptype,
             "payload_type_id": self.registered_payload.payload_type.id,
@@ -877,7 +883,7 @@ class Callback(p.Model):
             "extra_info": self.extra_info,
             "sleep_info": self.sleep_info
         }
-        if getattr(self, "tokens") is not None:
+        if get_tokens:
             r["tokens"] = []
             for x in self.tokens:
                 if x.deleted is False:
@@ -885,7 +891,7 @@ class Callback(p.Model):
         return r
 
     def __str__(self):
-        return json.dumps(self.to_json())
+        return str(getattr(self, "id"))
 
 
 class PayloadC2Profiles(p.Model):
@@ -1153,6 +1159,50 @@ class LogonSession(p.Model):
         return json.dumps(self.to_json())
 
 
+class Process(p.Model):
+    # which task populated the data
+    task = p.ForeignKeyField(Task, null=False)
+    # when did we get the data back
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")])
+    # this is a process list for which host
+    host = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    # requires a specific format:
+    #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
+    process_id = p.IntegerField(null=False)
+    architecture = p.TextField()
+    parent_process_id = p.IntegerField(null=True)
+    bin_path = p.TextField(null=True)
+    name = p.TextField(null=True)
+    user = p.TextField(null=True)
+    command_line = p.TextField(null=True)
+    integrity_level = p.IntegerField(null=True)
+    start_time = p.TextField(null=True)
+    description = p.TextField(null=True)
+    signer = p.TextField(null=True)
+    operation = p.ForeignKeyField(Operation, null=False)
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "id": getattr(self, "id"),
+            "task": self.task.id,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S.%f"),
+            "host": self.host,
+            "operation": self.operation.name,
+            "process_id": self.process_id,
+            "architecture": self.architecture,
+            "parent_process_id": self.parent_process_id,
+            "bin_path": self.bin_path,
+            "name": self.name
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
 class Token(p.Model):
     # Windows Token Information
     # tokens are identified by TokenId and Host values
@@ -1249,6 +1299,9 @@ class Token(p.Model):
                                         null=False)
     deleted = p.BooleanField(default=False, null=False, constraints=[p.SQL("DEFAULT FALSE")])
     host = p.TextField(null=False)
+    # tokens can be related to processes and specifically a thread in that process
+    ThreadID = p.IntegerField(null=True)
+    process = p.ForeignKeyField(Process, null=True)
 
     class Meta:
         database = mythic_db
@@ -1323,12 +1376,12 @@ class Response(p.Model):
     class Meta:
         database = mythic_db
 
-    def to_json(self):
+    def to_json(self, include_task: bool = True):
         r = {
             "id": getattr(self, "id"),
             "response": bytes(getattr(self, "response")).decode("utf-8"),
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "task": self.task.to_json()
+            "task": self.task.to_json() if include_task else self.task.id
         }
         return r
 
@@ -1521,6 +1574,7 @@ class TaskArtifact(p.Model):
             "artifact_instance": bytes(getattr(self, "artifact_instance")).decode("utf-8"),
             "operation": self.operation.name if self.operation is not None else None,
             "host": self.host,
+            "artifact": self.artifact.name
         }
         return r
 
@@ -1600,9 +1654,11 @@ class BrowserScript(p.Model):
     # this is always the latest from the container
     container_version = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     container_version_author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    # format for browserscripts will change for the new UI, but for the moment, support both kinds
+    for_new_ui = p.BooleanField(null=False, default=False, constraints=[p.SQL("DEFAULT FALSE")])
 
     class Meta:
-        indexes = ((("command", "name", "operator"), True),)
+        indexes = ((("command", "name", "operator", "for_new_ui"), True),)
         database = mythic_db
 
     def to_json(self):
@@ -1619,7 +1675,8 @@ class BrowserScript(p.Model):
             "author": self.author,
             "user_modified": self.user_modified,
             "container_version": self.container_version,
-            "container_version_author": self.container_version_author
+            "container_version_author": self.container_version_author,
+            "for_new_ui": self.for_new_ui
         }
         return r
 
@@ -1641,76 +1698,6 @@ class BrowserScriptOperation(p.Model):
         r = {
             "id": getattr(self, "id"),
             "browserscript": json.dumps(self.browserscript.to_json()),
-            "operation": self.operation.name
-        }
-        return r
-
-    def __str__(self):
-        return json.dumps(self.to_json())
-
-
-class Process(p.Model):
-    # which task populated the data
-    task = p.ForeignKeyField(Task, null=False)
-    # when did we get the data back
-    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")])
-    # this is a process list for which host
-    host = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
-    # requires a specific format:
-    #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
-    process_id = p.IntegerField(null=False)
-    architecture = p.TextField()
-    parent_process_id = p.IntegerField(null=True)
-    bin_path = p.TextField(null=True)
-    name = p.TextField(null=True)
-    user = p.TextField(null=True)
-    operation = p.ForeignKeyField(Operation, null=False)
-
-    class Meta:
-        database = mythic_db
-
-    def to_json(self):
-        r = {
-            "id": getattr(self, "id"),
-            "task": self.task.id,
-            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "host": self.host,
-            "operation": self.operation.name,
-            "process_id": self.process_id,
-            "architecture": self.architecture,
-            "parent_process_id": self.parent_process_id,
-            "bin_path": self.bin_path,
-            "name": self.name
-        }
-        return r
-
-    def __str__(self):
-        return json.dumps(self.to_json())
-
-
-class ProcessList(p.Model):
-    # which task populated the data
-    task = p.ForeignKeyField(Task, null=False, unique=True)
-    # when did we get the data back
-    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")])
-    # this is a process list for which host
-    host = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
-    # requires a specific format:
-    #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
-    process_list = p.BlobField(null=False)
-    operation = p.ForeignKeyField(Operation, null=False)
-
-    class Meta:
-        database = mythic_db
-
-    def to_json(self):
-        r = {
-            "id": getattr(self, "id"),
-            "task": self.task.id,
-            "callback": self.task.callback.id,
-            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "host": self.host,
-            "process_list": bytes(getattr(self, "process_list")).decode("utf-8"),
             "operation": self.operation.name
         }
         return r
@@ -1835,7 +1822,7 @@ class FileMeta(p.Model):
             }
             return r
         except Exception as e:
-            print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+            print("model.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             return {}
 
     def __str__(self):
@@ -1864,7 +1851,7 @@ class OperationEventLog(p.Model):
     def to_json(self):
         r = {
             "id": getattr(self, "id"),
-            "operator": self.operator.username if self.operator is not None else None,
+            "operator": self.operator.username if self.operator is not None else "Mythic",
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
             "message":  self.message,
             "operation": self.operation.name,
@@ -1924,22 +1911,48 @@ class CallbackGraphEdge(p.Model):
         return json.dumps(self.to_json())
 
 
+class CallbackAccessTime(p.Model):
+    callback = p.ForeignKeyField(Callback)
+    timestamp = p.DateTimeField(null=False, default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")])
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        r = {
+            "callback": self.callback.id,
+            "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+        }
+        return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
 # -------------- TABLE SPECIFIC ASYNC JOIN QUERIES -----------
-async def operator_query():
+def query_operator():
     return (
         Operator.select(Operator, Operation)
         .join(Operation, p.JOIN.LEFT_OUTER)
         .switch(Operator)
     )
+operator_query = query_operator()
 
-
-async def payloadtype_query():
+def query_translationcontainer():
     return (
-        PayloadType.select(PayloadType)
+        TranslationContainer.select(TranslationContainer)
     )
+translationcontainer_query = query_translationcontainer()
 
+def query_payloadtype():
+    return (
+        PayloadType.select(PayloadType, TranslationContainer)
+        .join(TranslationContainer, p.JOIN.LEFT_OUTER)
+        .switch(PayloadType)
+    )
+payloadtype_query = query_payloadtype()
 
-async def wrappedpayloadtypes_query():
+def query_wrappedpayloadtypes():
     wrapped = PayloadType.alias()
     wrapper = PayloadType.alias()
     return (
@@ -1949,35 +1962,37 @@ async def wrappedpayloadtypes_query():
         .join(wrapper, on=(WrappedPayloadTypes.wrapper == wrapper.id),)
         .switch(WrappedPayloadTypes)
     )
+wrappedpayloadtypes_query = query_wrappedpayloadtypes()
 
+def query_command():
+    return Command.select(Command, PayloadType, CommandOPSEC)\
+        .join(PayloadType).switch(Command)\
+        .join(CommandOPSEC, p.JOIN.LEFT_OUTER).switch(Command)
+command_query = query_command()
 
-async def command_query():
-    return Command.select(Command, PayloadType).join(PayloadType).switch(Command)
-
-
-async def commandparameters_query():
+def query_commandparameters():
     return (
         CommandParameters.select(CommandParameters, Command, PayloadType)
         .join(Command)
         .join(PayloadType)
         .switch(CommandParameters)
     )
+commandparameters_query = query_commandparameters()
 
-
-async def commandopsec_query():
+def query_commandopsec():
     return (
         CommandOPSEC.select(CommandOPSEC, Command, PayloadType)
         .join(Command)
         .join(PayloadType)
         .switch(CommandOPSEC)
     )
+commandopsec_query = query_commandopsec()
 
-
-async def operation_query():
+def query_operation():
     return Operation.select(Operation, Operator).join(Operator).switch(Operation)
+operation_query = query_operation()
 
-
-async def operatoroperation_query():
+def query_operatoroperation():
     current_op = Operation.alias()
     admin = Operator.alias()
     return (
@@ -1997,13 +2012,13 @@ async def operatoroperation_query():
         .join(DisabledCommandsProfile, p.JOIN.LEFT_OUTER)
         .switch(OperatorOperation)
     )
+operatoroperation_query = query_operatoroperation()
 
-
-async def c2profile_query():
+def query_c2profile():
     return C2Profile.select(C2Profile)
+c2profile_query = query_c2profile()
 
-
-async def payloadtypec2profile_query():
+def query_payloadtypec2profile():
     return (
         PayloadTypeC2Profile.select(PayloadTypeC2Profile, PayloadType, C2Profile)
         .join(PayloadType)
@@ -2011,19 +2026,26 @@ async def payloadtypec2profile_query():
         .join(C2Profile)
         .switch(PayloadTypeC2Profile)
     )
+payloadtypec2profile_query = query_payloadtypec2profile()
 
-
-async def payload_query():
+def query_payload():
     wrap_alias = Payload.alias()
     fm_operation = Operation.alias()
     fm_operator = Operator.alias()
+    tsk_operator = Operator.alias()
+    tsk_callback = Callback.alias()
+    tsk_operation = Operation.alias()
+    tsk_payloadtype = PayloadType.alias()
+    tsk_command = Command.alias()
     return (
         Payload.select(
-            Payload, Operator, PayloadType, Operation, wrap_alias, Task, FileMeta, fm_operation, fm_operator
+            Payload, Operator, PayloadType, Operation, wrap_alias, Task, FileMeta, fm_operation, fm_operator, FileBrowserObj, tsk_operator,
+            tsk_callback, tsk_operation, tsk_payloadtype, tsk_command, TranslationContainer
         )
         .join(Operator)
         .switch(Payload)
         .join(PayloadType)
+        .join(TranslationContainer, p.JOIN.LEFT_OUTER)
         .switch(Payload)
         .join(Operation)
         .switch(Payload)
@@ -2037,6 +2059,13 @@ async def payload_query():
         )
         .switch(Payload)
         .join(Task, p.JOIN.LEFT_OUTER)
+        .join(tsk_operator, p.JOIN.LEFT_OUTER)
+        .switch(Task)
+        .join(tsk_callback, p.JOIN.LEFT_OUTER)
+        .join(tsk_operation, p.JOIN.LEFT_OUTER)
+        .switch(Task)
+        .join(tsk_command, p.JOIN.LEFT_OUTER)
+        .join(tsk_payloadtype, p.JOIN.LEFT_OUTER)
         .switch(Payload)
         .join(FileMeta, p.JOIN.LEFT_OUTER)
         .join(
@@ -2048,22 +2077,26 @@ async def payload_query():
             fm_operator,
             p.JOIN.LEFT_OUTER
         )
+        .switch(FileMeta)
+        .join(FileBrowserObj, p.JOIN.LEFT_OUTER)
         .switch(Payload)
     )
+payload_query = query_payload()
 
-
-async def payloadonhost_query():
+def query_payloadonhost():
     file_op = Operation.alias()
     pay_op = Operation.alias()
     pay_operator = Operator.alias()
     return (
         PayloadOnHost.select(PayloadOnHost, Payload, Operation, Task, Operator, FileMeta, file_op, pay_op, PayloadType,
-                             pay_operator)
+                             pay_operator, FileBrowserObj)
         .join(Payload)
         .join(FileMeta, p.JOIN.LEFT_OUTER)
         .join(Operator, p.JOIN.LEFT_OUTER)
         .switch(FileMeta)
         .join(file_op, p.JOIN.LEFT_OUTER)
+        .switch(FileMeta)
+        .join(FileBrowserObj, p.JOIN.LEFT_OUTER)
         .switch(Payload)
         .join(pay_op, p.JOIN.LEFT_OUTER)
         .switch(Payload)
@@ -2076,9 +2109,9 @@ async def payloadonhost_query():
         .join(Task, p.JOIN.LEFT_OUTER)
         .switch(PayloadOnHost)
     )
+payloadonhost_query = query_payloadonhost()
 
-
-async def payloadcommand_query():
+def query_payloadcommand():
     return (
         PayloadCommand.select(PayloadCommand, Payload, Command)
         .join(Payload)
@@ -2086,17 +2119,17 @@ async def payloadcommand_query():
         .join(Command)
         .switch(PayloadCommand)
     )
+payloadcommand_query = query_payloadcommand()
 
-
-async def c2profileparameters_query():
+def query_c2profileparameters():
     return (
         C2ProfileParameters.select(C2ProfileParameters, C2Profile)
         .join(C2Profile)
         .switch(C2ProfileParameters)
     )
+c2profileparameters_query = query_c2profileparameters()
 
-
-async def c2profileparametersinstance_query():
+def query_c2profileparametersinstance():
     parameters_profile = C2Profile.alias()
     return (
         C2ProfileParametersInstance.select(
@@ -2120,25 +2153,25 @@ async def c2profileparametersinstance_query():
         .join(Callback, p.JOIN.LEFT_OUTER)
         .switch(C2ProfileParametersInstance)
     )
+c2profileparametersinstance_query = query_c2profileparametersinstance()
 
-
-async def callback_query():
-    calias = Callback.alias()
+def query_callback():
     loperator = Operator.alias()
+    pay_operation = Operation.alias()
     return (
         Callback.select(
-            Callback, Operator, Payload, FileMeta, Operation, PayloadType, calias, loperator, Task
+            Callback, Operator, Payload, FileMeta, Operation, PayloadType, loperator, Task, pay_operation
         )
         .join(Operator)
         .switch(Callback)
         .join(Payload)
         .join(PayloadType)
         .switch(Payload)
+        .join(pay_operation)
+        .switch(Payload)
         .join(FileMeta)
         .switch(Callback)
         .join(Operation)
-        .switch(Callback)
-        .join(calias, p.JOIN.LEFT_OUTER, on=(Callback.pcallback).alias("pcallback"))
         .switch(Callback)
         .join(
             loperator,
@@ -2148,13 +2181,14 @@ async def callback_query():
         .switch(Callback)
         .join(
             Task,
-            p.JOIN.LEFT_OUTER
+            p.JOIN.LEFT_OUTER,
+            on=(Callback.socks_task).alias("socks_task")
         )
         .switch(Callback)
     )
+callback_query = query_callback()
 
-
-async def payloadc2profiles_query():
+def query_payloadc2profiles():
     return (
         PayloadC2Profiles.select(PayloadC2Profiles, Payload, C2Profile)
         .join(Payload)
@@ -2162,9 +2196,9 @@ async def payloadc2profiles_query():
         .join(C2Profile)
         .switch(PayloadC2Profiles)
     )
+payloadc2profiles_query = query_payloadc2profiles()
 
-
-async def callbackc2profiles_query():
+def query_callbackc2profiles():
     return (
         CallbackC2Profiles.select(CallbackC2Profiles, Callback, C2Profile)
         .join(Callback)
@@ -2172,9 +2206,9 @@ async def callbackc2profiles_query():
         .join(C2Profile)
         .switch(CallbackC2Profiles)
     )
+callbackc2profiles_query = query_callbackc2profiles()
 
-
-async def loadedcommands_query():
+def query_loadedcommands():
     return (
         LoadedCommands.select(LoadedCommands, Command, Callback, Operator)
         .join(Command)
@@ -2184,18 +2218,18 @@ async def loadedcommands_query():
         .join(Operator)
         .switch(LoadedCommands)
     )
+loadedcommands_query = query_loadedcommands()
 
-
-async def disabledcommandsprofile_query():
+def query_disabledcommandsprofile():
     return (
         DisabledCommandsProfile.select(DisabledCommandsProfile, Command, PayloadType)
         .join(Command)
         .join(PayloadType)
         .switch(DisabledCommandsProfile)
     )
+disabledcommandsprofile_query = query_disabledcommandsprofile()
 
-
-async def disabledcommands_query():
+def query_disabledcommands():
     return (
         DisabledCommands.select(
             DisabledCommands, Command, PayloadType, Operation, Operator
@@ -2208,18 +2242,21 @@ async def disabledcommands_query():
         .join(Operator)
         .switch(DisabledCommands)
     )
+disabledcommands_query = query_disabledcommands()
 
-
-async def task_query():
+def query_task():
     comment_operator = Operator.alias()
     callback_operator = Operator.alias()
     callback_lock_operator = Operator.alias()
+    opsec_pre_bypass_user_operator = Operator.alias()
+    opsec_post_bypass_user_operator = Operator.alias()
     callback_payload_type = PayloadType.alias()
     callback_payload = Payload.alias()
     return (
         Task.select(
             Task, Callback, Operator, comment_operator, Operation, Command, PayloadType, callback_operator,
-            callback_lock_operator, callback_payload_type, callback_payload
+            callback_lock_operator, callback_payload_type, callback_payload, opsec_pre_bypass_user_operator,
+            opsec_post_bypass_user_operator
         )
         .join(Callback)
         .join(Operation)
@@ -2242,10 +2279,13 @@ async def task_query():
         .join(Command, p.JOIN.LEFT_OUTER)
         .join(PayloadType, p.JOIN.LEFT_OUTER)
         .switch(Task)
+        .join(opsec_pre_bypass_user_operator, p.JOIN.LEFT_OUTER, on=(Task.opsec_pre_bypass_user == opsec_pre_bypass_user_operator.id).alias("opsec_pre_bypass_user"))
+        .switch(Task)
+        .join(opsec_post_bypass_user_operator, p.JOIN.LEFT_OUTER, on=(Task.opsec_post_bypass_user == opsec_post_bypass_user_operator.id).alias("opsec_post_bypass_user"))
     )
+task_query = query_task()
 
-
-async def response_query():
+def query_response():
     comment_operator = Operator.alias()
     return (
         Response.select(
@@ -2266,9 +2306,9 @@ async def response_query():
         )
         .switch(Response)
     )
+response_query = query_response()
 
-
-async def filemeta_query():
+def query_filemeta():
     return (
         FileMeta.select(FileMeta, Operation, Operator, Task, FileBrowserObj, Callback, Command)
         .join(Operation)
@@ -2283,13 +2323,13 @@ async def filemeta_query():
         .join(FileBrowserObj, p.JOIN.LEFT_OUTER)
         .switch(FileMeta)
     )
+filemeta_query = query_filemeta()
 
-
-async def attack_query():
+def query_attack():
     return ATTACK.select()
+attack_query = query_attack()
 
-
-async def attackcommand_query():
+def query_attackcommand():
     return (
         ATTACKCommand.select(ATTACKCommand, ATTACK, Command, PayloadType)
         .join(ATTACK)
@@ -2298,9 +2338,9 @@ async def attackcommand_query():
         .join(PayloadType)
         .switch(ATTACKCommand)
     )
+attackcommand_query = query_attackcommand()
 
-
-async def attacktask_query():
+def query_attacktask():
     return (
         ATTACKTask.select(
             ATTACKTask, ATTACK, Task, Command, PayloadType, Operation, Callback
@@ -2315,9 +2355,9 @@ async def attacktask_query():
         .join(Operation)
         .switch(ATTACKTask)
     )
+attacktask_query = query_attacktask()
 
-
-async def credential_query():
+def query_credential():
     return (
         Credential.select(Credential, Operation, Operator)
         .join(Operation)
@@ -2325,9 +2365,9 @@ async def credential_query():
         .join(Operator)
         .switch(Credential)
     )
+credential_query = query_credential()
 
-
-async def keylog_query():
+def query_keylog():
     comment_operator = Operator.alias()
     return (
         Keylog.select(
@@ -2349,13 +2389,13 @@ async def keylog_query():
         .join(Operation)
         .switch(Keylog)
     )
+keylog_query = query_keylog()
 
-
-async def artifact_query():
+def query_artifact():
     return Artifact.select()
+artifact_query = query_artifact()
 
-
-async def taskartifact_query():
+def query_taskartifact():
     return (
         TaskArtifact.select(TaskArtifact, Task, Command, Artifact, Operation)
         .join(Task, p.JOIN.LEFT_OUTER)
@@ -2366,17 +2406,21 @@ async def taskartifact_query():
         .join(Operation, p.JOIN.LEFT_OUTER)
         .switch(TaskArtifact)
     )
+taskartifact_query = query_taskartifact()
 
+def query_staginginfo():
+    return (StagingInfo.select(StagingInfo, Payload, PayloadType, Operation)
+            .join(Payload).join(PayloadType)
+            .switch(Payload).join(Operation)
+            .switch(StagingInfo)
+            )
+staginginfo_query = query_staginginfo()
 
-async def staginginfo_query():
-    return StagingInfo.select()
-
-
-async def apitokens_query():
+def query_apitokens():
     return APITokens.select(APITokens, Operator).join(Operator).switch(APITokens)
+apitokens_query = query_apitokens()
 
-
-async def browserscript_query():
+def query_browserscript():
     return (
         BrowserScript.select(BrowserScript, Operator, Command, PayloadType)
         .join(Operator, p.JOIN.LEFT_OUTER)
@@ -2386,9 +2430,9 @@ async def browserscript_query():
         .join(PayloadType)
         .switch(BrowserScript)
     )
+browserscript_query = query_browserscript()
 
-
-async def browserscriptoperation_query():
+def query_browserscriptoperation():
     return (
         BrowserScriptOperation.select(
             BrowserScriptOperation,
@@ -2400,16 +2444,17 @@ async def browserscriptoperation_query():
         )
         .join(BrowserScript)
         .join(Command, p.JOIN.LEFT_OUTER)
-        .join(PayloadType, p.JOIN.LEFT_OUTER)
+        .switch(BrowserScript)
+        .join(PayloadType)
         .switch(BrowserScript)
         .join(Operator)
         .switch(BrowserScriptOperation)
         .join(Operation)
         .switch(BrowserScriptOperation)
     )
+browserscriptoperation_query = query_browserscriptoperation()
 
-
-async def process_query():
+def query_process():
     return (
         Process.select(Process, Task, Callback, Operation)
             .join(Task)
@@ -2418,20 +2463,10 @@ async def process_query():
             .join(Operation)
             .switch(Process)
     )
+process_query = query_process()
 
 
-async def processlist_query():
-    return (
-        ProcessList.select(ProcessList, Task, Callback, Operation)
-        .join(Task)
-        .join(Callback)
-        .switch(ProcessList)
-        .join(Operation)
-        .switch(ProcessList)
-    )
-
-
-async def filebrowserobj_query():
+def query_filebrowserobj():
     parent = FileBrowserObj.alias()
     return (
         FileBrowserObj.select(FileBrowserObj, Task, Callback, Operation, parent)
@@ -2443,9 +2478,9 @@ async def filebrowserobj_query():
         .join(parent, p.JOIN.LEFT_OUTER, on=(FileBrowserObj.parent).alias("parent"))
         .switch(FileBrowserObj)
     )
+filebrowserobj_query = query_filebrowserobj()
 
-
-async def operationeventlog_query():
+def query_operationeventlog():
     return (
         OperationEventLog.select(OperationEventLog, Operator, Operation)
         .join(Operator, p.JOIN.LEFT_OUTER)
@@ -2453,9 +2488,9 @@ async def operationeventlog_query():
         .join(Operation)
         .switch(OperationEventLog)
     )
+operationeventlog_query = query_operationeventlog()
 
-
-async def callbackgraphedge_query():
+def query_callbackgraphedge():
     destination = Callback.alias()
     source = Callback.alias()
     task_end = Task.alias()
@@ -2523,38 +2558,40 @@ async def callbackgraphedge_query():
         .join(C2Profile)
         .switch(CallbackGraphEdge)
     )
+callbackgraphedge_query = query_callbackgraphedge()
 
-
-async def buildparameter_query():
+def query_buildparameter():
     return (
         BuildParameter.select(BuildParameter, PayloadType)
         .join(PayloadType)
         .switch(BuildParameter)
     )
+buildparameter_query = query_buildparameter()
 
-
-async def buildparameterinstance_query():
+def query_buildparameterinstance():
+    buildparam_payloadtype = PayloadType.alias()
     return (
         BuildParameterInstance.select(
-            BuildParameterInstance, BuildParameter, Payload, PayloadType
+            BuildParameterInstance, BuildParameter, Payload, PayloadType, buildparam_payloadtype
         )
         .join(BuildParameter)
+        .join(buildparam_payloadtype)
         .switch(BuildParameterInstance)
         .join(Payload)
         .join(PayloadType)
         .switch(BuildParameterInstance)
     )
+buildparameterinstance_query = query_buildparameterinstance()
 
-
-async def logonsession_query():
+def query_logonsession():
     return (
         LogonSession.select(LogonSession, Task)
         .join(Task, p.JOIN.LEFT_OUTER)
         .switch(LogonSession)
     )
+logonsession_query = query_logonsession()
 
-
-async def token_query():
+def query_token():
     return (
         Token.select(Token, Task, LogonSession)
         .join(Task, p.JOIN.LEFT_OUTER)
@@ -2562,9 +2599,9 @@ async def token_query():
         .join(LogonSession, p.JOIN.LEFT_OUTER)
         .switch(Token)
     )
+token_query = query_token()
 
-
-async def callbacktoken_query():
+def query_callbacktoken():
     return (
         CallbackToken.select(CallbackToken, Token, Callback, Task)
         .join(Token)
@@ -2574,9 +2611,9 @@ async def callbacktoken_query():
         .join(Task)
         .switch(CallbackToken)
     )
+callbacktoken_query = query_callbacktoken()
 
-
-async def authenticationpackage_query():
+def query_authenticationpackage():
     return (
         AuthenticationPackage.select(AuthenticationPackage, LogonSession, Task)
         .join(LogonSession, p.JOIN.LEFT_OUTER)
@@ -2584,7 +2621,15 @@ async def authenticationpackage_query():
         .join(Task, p.JOIN.LEFT_OUTER)
         .switch(AuthenticationPackage)
     )
+authenticationpackage_query = query_authenticationpackage()
 
+def query_callbackaccesstime():
+    return (
+        CallbackAccessTime.select(CallbackAccessTime, Callback)
+        .join(Callback)
+        .switch(CallbackAccessTime)
+    )
+callbackaccesstimes_query = query_callbackaccesstime()
 
 # ------------ LISTEN / NOTIFY ---------------------
 def pg_register_newinserts():
@@ -2616,7 +2661,6 @@ def pg_register_newinserts():
         "browserscript",
         "disabledcommandsprofile",
         "disabledcommands",
-        "processlist",
         "filebrowserobj",
         "browserscriptoperation",
         "operationeventlog",
@@ -2631,7 +2675,8 @@ def pg_register_newinserts():
         "logonsession",
         "authenticationpackage",
         "process",
-        "commandopsec"
+        "commandopsec",
+        "translationcontainer"
     ]
     for table in inserts:
         create_function_on_insert = (
@@ -2690,7 +2735,7 @@ def pg_register_updates():
         "browserscript",
         "disabledcommandsprofile",
         "disabledcommands",
-        "processlist",
+        "process",
         "filebrowserobj",
         "browserscriptoperation",
         "callbackgraphedge",
@@ -2702,7 +2747,8 @@ def pg_register_updates():
         "token",
         "authenticationpackage",
         "logonsession",
-        "commandopsec"
+        "commandopsec",
+        "translationcontainer"
     ]
     for table in updates:
         create_function_on_changes = (
@@ -2825,6 +2871,7 @@ def pg_register_deletes():
 
 # don't forget to add in a new truncate command in database_api.py to clear the rows if you add a new table
 Operator.create_table(True)
+TranslationContainer.create_table(True)
 PayloadType.create_table(True)
 BuildParameter.create_table(True)
 WrappedPayloadTypes.create_table(True)
@@ -2842,6 +2889,7 @@ BuildParameterInstance.create_table(True)
 PayloadOnHost.create_table(True)
 Callback.create_table(True)
 Task.create_table(True)
+Process.create_table(True)
 LogonSession.create_table(True)
 Token.create_table(True)
 AuthenticationPackage.create_table(True)
@@ -2864,12 +2912,11 @@ StagingInfo.create_table(True)
 APITokens.create_table(True)
 BrowserScript.create_table(True)
 BrowserScriptOperation.create_table(True)
-Process.create_table(True)
-ProcessList.create_table(True)
 FileBrowserObj.create_table(True)
 FileMeta.create_table(True)
 OperationEventLog.create_table(True)
 CallbackGraphEdge.create_table(True)
+CallbackAccessTime.create_table(True)
 # setup default admin user and c2 profile
 # Create the ability to do LISTEN / NOTIFY on these tables
 pg_register_newinserts()
@@ -2878,12 +2925,10 @@ pg_register_deletes()
 pg_created_response_text_field()
 try:
     Task._schema.create_foreign_key(Task.token)
-    Payload._schema.create_foreign_key(Payload.pcallback)
     Payload._schema.create_foreign_key(Payload.task)
     Payload._schema.create_foreign_key(Payload.file_id)
     Operator._schema.create_foreign_key(Operator.current_operation)
     PayloadOnHost._schema.create_foreign_key(PayloadOnHost.task)
-    Callback._schema.create_foreign_key(Callback.pcallback)
     Callback._schema.create_foreign_key(Callback.socks_task)
 except Exception as e:
     pass

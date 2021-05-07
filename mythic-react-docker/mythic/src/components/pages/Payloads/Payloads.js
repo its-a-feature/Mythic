@@ -11,7 +11,7 @@ query GetPayloadsQuery($operation_id: Int!) {
     auto_generated
     build_message
     build_phase
-    build_error
+    build_stderr
     callback_alert
     creation_time
     id
@@ -48,7 +48,7 @@ subscription SubPayloadsQuery($operation_id: Int!) {
     auto_generated
     build_message
     build_phase
-    build_error
+    build_stderr
     callback_alert
     creation_time
     id

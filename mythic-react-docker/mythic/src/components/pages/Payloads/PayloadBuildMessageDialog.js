@@ -11,7 +11,8 @@ const getDescriptionQuery = gql`
 query getDescriptionQuery ($payload_id: Int!) {
   payload_by_pk(id: $payload_id) {
     build_message
-    build_error
+    build_stderr
+    build_stdout
     id
   }
 }
@@ -24,8 +25,10 @@ export function PayloadBuildMessageDialog(props) {
         variables: {payload_id: props.payload_id},
         onCompleted: data => {
             setViewError(props.viewError);
-            setPayloadData({"message": data.payload_by_pk.build_message,
-                            "error": data.payload_by_pk.build_error});
+            let output = "Message:\n" + data.payload_by_pk.build_message;
+            output += "\nSTDOUT:\n" + data.payload_by_pk.build_stdout;
+            setPayloadData({"message": output,
+                            "error": "STDERR:\n" + data.payload_by_pk.build_stderr});
             
         },
         fetchPolicy: "network-only"
@@ -43,7 +46,7 @@ export function PayloadBuildMessageDialog(props) {
     
   return (
     <React.Fragment>
-        <DialogTitle id="form-dialog-title">Payload Build Message</DialogTitle>
+        <DialogTitle id="form-dialog-title">Payload Build Messages</DialogTitle>
         <DialogContent dividers={true}>
             <MythicTextField multiline={true} onChange={()=>{}} value={viewError ? payloadData["error"] : payloadData["message"]} />
         </DialogContent>

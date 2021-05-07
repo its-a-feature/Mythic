@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic_jwt.decorators import inject_user, scoped
 import app.database_models.model as db_model
 from sanic.response import json
@@ -30,11 +31,9 @@ async def get_apitokens(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.apitokens_query()
-        tokens = await db_objects.execute(
-            query.where(db_model.APITokens.operator == operator)
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        tokens = await app.db_objects.execute(
+            db_model.apitokens_query.where(db_model.APITokens.operator == operator)
         )
         return json({"status": "success", "apitokens": [t.to_json() for t in tokens]})
     except Exception as e:
@@ -65,8 +64,7 @@ async def create_apitokens(request, user):
             }
         )
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         token = await request.app.auth.generate_access_token(
             {
                 "user_id": user["user_id"],
@@ -75,7 +73,7 @@ async def create_apitokens(request, user):
             }
         )
         try:
-            apitoken = await db_objects.create(
+            apitoken = await app.db_objects.create(
                 db_model.APITokens,
                 token_type=data["token_type"],
                 token_value=token,
@@ -106,14 +104,12 @@ async def modify_apitokens(request, user, tid):
     except Exception as e:
         return json({"status": "error", "error": "failed to parse json"})
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.apitokens_query()
-        apitoken = await db_objects.get(query, id=tid, operator=operator)
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        apitoken = await app.db_objects.get(db_model.apitokens_query, id=tid, operator=operator)
         try:
             if "active" in data and data["active"] != apitoken.active:
                 apitoken.active = data["active"]
-                await db_objects.update(apitoken)
+                await app.db_objects.update(apitoken)
             return json({"status": "success", **apitoken.to_json()})
         except Exception as e:
             print(str(e))
@@ -135,12 +131,10 @@ async def remove_apitokens(request, user, tid):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.apitokens_query()
-        apitoken = await db_objects.get(query, id=tid, operator=operator)
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        apitoken = await app.db_objects.get(db_model.apitokens_query, id=tid, operator=operator)
         apitoken_json = apitoken.to_json()
-        await db_objects.delete(apitoken)
+        await app.db_objects.delete(apitoken)
         return json({"status": "success", **apitoken_json})
     except Exception as e:
         print(str(e))

@@ -12,7 +12,7 @@ query getPayloadTypesBuildParametersQuery($os: String!) {
     ptype
     note
     file_extension
-    buildparameters {
+    buildparameters(where: {deleted: {_eq: false} }) {
       id
       name
       description

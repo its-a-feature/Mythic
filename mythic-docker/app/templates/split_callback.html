@@ -177,7 +177,7 @@
 </div>
 <!-- THIS IS OUR MODAL FOR ADDING A COMMENT -->
 <div class="modal fade bs-example-modal-md" id="addCommentModal" role="dialog" >
-    <div class="modal-dialog modal-md" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h3>Add / Edit Comment</h3>
@@ -214,7 +214,7 @@
                         <th style="padding:10px;margin:10px;text-align:center;width:15rem">Parameter</th>
                         <th style="text-align:left">Value</th>
                     </tr>
-                    <tr v-for="param in command_params" :key="param.id">
+                    <tr v-for="(param, pindex) in command_params" :key="param.id">
                         <td style="padding:10px;margin:10px;text-align:left">
                             <div class="tooltip">[[param.name]]<span v-if="param.required">
                                 <br><b style="color:indianred">Required</b>
@@ -225,10 +225,10 @@
                         </td>
                         <td style="text-align:left">
                             <span v-if="param.type == 'String'">
-                                <input class="form-control" type="text" :placeholder="param.default_value" v-model="param.string_value" size="90">
+                                <input :id="'paramindex' + pindex" class="form-control" type="text" :placeholder="param.default_value" v-model="param.string_value" size="90">
                             </span>
                             <span v-else-if="param.type.includes('Credential')">
-                                <select class="form-control" v-model="param.credential_id">
+                                <select :id="'paramindex' + pindex" class="form-control" v-model="param.credential_id">
                                     <option value="0">Select One...</option>
                                     <template v-if="param.type.includes('JSON')">
                                         <option v-for="cred in credentials" :value="cred.id">
@@ -261,36 +261,36 @@
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'Number'">
-                                <input class="form-control" type="number" v-model="param.number_value">
+                                <input :id="'paramindex' + pindex" class="form-control" type="number" v-model="param.number_value">
                             </span>
                             <span v-else-if="param.type == 'Choice'">
-                                <select class="form-control" v-model="param.choice_value">
+                                <select :id="'paramindex' + pindex" class="form-control" v-model="param.choice_value">
                                     <option v-for="opt in param.choices.split('\n')" :value="opt">[[opt]]</option>
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'ChoiceMultiple'">
-                                <select class="form-control" multiple v-model="param.choicemultiple_value">
+                                <select :id="'paramindex' + pindex" class="form-control" multiple v-model="param.choicemultiple_value">
                                     <option v-for="opt in param.choices.split('\n')" :value="opt">[[opt]]</option>
                                 </select>
                             </span>
                             <span v-else-if="param.type == 'Boolean'">
-                                &nbsp;<span class="material-switch pull-right"><input class="form-control" type="checkbox" v-model="param.boolean_value" :id="'param' + param.id">
+                                &nbsp;<span :id="'paramindex' + pindex" class="material-switch pull-right"><input class="form-control" type="checkbox" v-model="param.boolean_value" :id="'param' + param.id">
                                 <label :for="'param' + param.id" class="btn-info"></label></span>
                             </span>
                             <span v-else-if="param.type == 'Array'">
                                 <div v-for="(arg, index) in param.array_value" :key="index">
                                     <span class="input-group">
                                         <button class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="command_params_remove_array_element(param, index)"><i class="fas fa-trash-alt" ></i></button>
-                                        <textarea class="form-control" v-model="param.array_value[index]" rows="1" cols="60" @input="split_input_params(param, index)"></textarea>
+                                        <textarea :id="'paramindex' + pindex" class="form-control" v-model="param.array_value[index]" rows="1" cols="60" @input="split_input_params(param, index)"></textarea>
                                     </span>
                                 </div>
                                 <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="command_params_add_array_element(param);">Add Element</button>
                             </span>
                             <span v-else-if="param.type == 'File'">
-                                <input class="form-control-file" type="file" :id="'fileparam' + param.name">
+                                <input :id="'paramindex' + pindex" class="form-control-file" type="file" :id="'fileparam' + param.name">
                             </span>
                             <span v-else-if="param.type === 'PayloadList'">
-                                <select class="form-control" v-model="param.payloadlist_value">
+                                <select :id="'paramindex' + pindex" class="form-control" v-model="param.payloadlist_value">
                                     <option v-for="p in param.payloads" :value="p.uuid">[[ p.payload_list_selection ]] </option>
                                 </select>
                             </span>

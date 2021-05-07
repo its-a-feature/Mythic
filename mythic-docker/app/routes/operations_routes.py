@@ -1,4 +1,5 @@
-from app import mythic, links, db_objects
+from app import mythic, links
+import app
 from app.routes.routes import env
 from sanic import response
 from sanic_jwt.decorators import scoped, inject_user
@@ -13,16 +14,14 @@ async def get_scripts(user):
         browser_scripts = ""
         support_scripts_to_add = {}
         final_support_scripts = ""
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.browserscript_query()
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         # get your own scripts
-        operator_scripts = await db_objects.execute(
-            query.where(
+        operator_scripts = await app.db_objects.execute(
+            db_model.browserscript_query.where(
                 (db_model.BrowserScript.operator == operator)
                 & (db_model.BrowserScript.active == True)
+                & (db_model.BrowserScript.for_new_ui == False)
             )
         )
         for s in operator_scripts:
@@ -41,13 +40,14 @@ async def get_scripts(user):
                     )
                     # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
         # get scripts assigned to the operation
-        operation_query = await db_model.browserscriptoperation_query()
-        operation_scripts = await db_objects.execute(
-            operation_query.where(
+        operation_scripts = await app.db_objects.execute(
+            db_model.browserscriptoperation_query.where(
                 db_model.BrowserScriptOperation.operation == operation
             )
         )
         for s in operation_scripts:
+            if s.browserscript.for_new_ui:
+                continue
             if s.browserscript.script != "":
                 if s.browserscript.command is not None:
                     scripts_to_add[s.browserscript.command.id] = (

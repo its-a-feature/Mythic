@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
@@ -6,9 +7,9 @@ from sanic.exceptions import abort
 from pathlib import PureWindowsPath, PurePosixPath
 import sys
 import ujson as js
-import treelib
 from peewee import fn
 from math import ceil
+from sanic.log import logger
 
 
 @mythic.route(mythic.config["API_BASE"] + "/filebrowserobj/", methods=["GET"])
@@ -22,8 +23,7 @@ async def get_all_filebrowserobj(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    query = await db_model.filebrowserobj_query()
-    objs = await db_objects.execute(query)
+    objs = await app.db_objects.execute(db_model.filebrowserobj_query)
     output = []
     for o in objs:
         output.append(o.to_json())
@@ -47,14 +47,12 @@ async def get_all_filebrowsertree(request, user):
 
 async def get_filebrowser_tree_for_operation(operation_name):
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=operation_name)
+        operation = await app.db_objects.get(db_model.operation_query, name=operation_name)
     except Exception as e:
         return {"status": "error", "error": "failed to find operation name"}
     try:
-        query = await db_model.filebrowserobj_query()
-        objs = await db_objects.execute(
-            query.where(
+        objs = await app.db_objects.execute(
+            db_model.filebrowserobj_query.where(
                 (db_model.FileBrowserObj.operation == operation) &
                 (db_model.FileBrowserObj.is_file == False) &
                 (db_model.FileBrowserObj.parent == None)
@@ -96,11 +94,10 @@ async def store_response_into_filebrowserobj(operation, task, response):
         else:
             parent_path = PureWindowsPath(response["parent_path"])
             blank_root = PureWindowsPath("")
-        query = await db_model.filebrowserobj_query()
         parent_path_str = str(parent_path) if not parent_path == blank_root else ""
         try:
-            filebrowserobj = await db_objects.get(
-                query,
+            filebrowserobj = await app.db_objects.get(
+                db_model.filebrowserobj_query,
                 operation=operation,
                 host=response["host"].upper(),
                 name=response["name"].encode("utf-8"),
@@ -115,9 +112,9 @@ async def store_response_into_filebrowserobj(operation, task, response):
             filebrowserobj.size = str(response["size"]).encode("utf-8")
             filebrowserobj.success = response["success"]
             filebrowserobj.deleted = False
-            await db_objects.update(filebrowserobj)
+            await app.db_objects.update(filebrowserobj)
         except Exception as e:
-            filebrowserobj = await db_objects.create(
+            filebrowserobj = await app.db_objects.create(
                 db_model.FileBrowserObj,
                 task=task,
                 operation=operation,
@@ -143,8 +140,8 @@ async def store_response_into_filebrowserobj(operation, task, response):
             parent_path = parent_path.joinpath(response["name"])
             for f in response["files"]:
                 try:
-                    newfileobj = await db_objects.get(
-                        query,
+                    newfileobj = await app.db_objects.get(
+                        db_model.filebrowserobj_query,
                         operation=operation,
                         host=response["host"].upper(),
                         name=f["name"].encode("utf-8"),
@@ -158,9 +155,9 @@ async def store_response_into_filebrowserobj(operation, task, response):
                     newfileobj.modify_time = f["modify_time"].encode("utf-8")
                     newfileobj.size = str(f["size"]).encode("utf-8")
                     newfileobj.deleted = False
-                    await db_objects.update(newfileobj)
+                    await app.db_objects.update(newfileobj)
                 except Exception as e:
-                    await db_objects.create(
+                    await app.db_objects.create(
                         db_model.FileBrowserObj,
                         task=task,
                         operation=operation,
@@ -175,11 +172,36 @@ async def store_response_into_filebrowserobj(operation, task, response):
                         name=f["name"].encode("utf-8"),
                         full_path=str(parent_path / f["name"]).encode("utf-8"),
                     )
+        if "update_deleted" in response and response["update_deleted"] and response["success"]:
+            # go through and mark all files/folders not associated with this task as deleted
+            base_files = await app.db_objects.execute(db_model.filebrowserobj_query.where(
+                (db_model.FileBrowserObj.task != task) &
+                (db_model.FileBrowserObj.parent == filebrowserobj) &
+                (db_model.FileBrowserObj.operation == operation)
+            ))
+            for f in base_files:
+                # this file object is not associated with this task but has the same parent folder, so it's gone
+                f.deleted = True
+                if not f.is_file:
+                    # this is a folder that was deleted, so make sure we mark all of its children as deleted
+                    await mark_nested_deletes(f, operation)
+                await app.db_objects.update(f)
         return {"status": "success"}
     except Exception as e:
-        print(sys.exc_info()[-1].tb_lineno)
-        print("file_browser_api.py: " + str(e))
+        logger.warning("file_browser_api.py: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
+
+
+async def mark_nested_deletes(folder, operation):
+    nested_files = await app.db_objects.execute(db_model.filebrowserobj_query.where(
+        (db_model.FileBrowserObj.operation == operation) &
+        (db_model.FileBrowserObj.parent == folder)
+    ))
+    for f in nested_files:
+        f.deleted = True
+        if not f.is_file:
+            await mark_nested_deletes(f, operation)
+        await app.db_objects.update(f)
 
 
 async def add_upload_file_to_file_browser(operation, task, file, data):
@@ -202,15 +224,13 @@ async def add_upload_file_to_file_browser(operation, task, file, data):
         if "host" not in data or data["host"] is None or data["host"] == "":
             data["host"] = file.host.upper()
         await store_response_into_filebrowserobj(operation, task, data)
-        fbo_query = await db_model.filebrowserobj_query()
-        fbo = await db_objects.get(fbo_query, operation=operation,
+        fbo = await app.db_objects.get(db_model.filebrowserobj_query, operation=operation,
                                    host=data["host"].upper(),
                                    full_path=data["full_path"].encode("utf-8"))
         file.file_browser = fbo
-        await db_objects.update(file)
+        await app.db_objects.update(file)
     except Exception as e:
-        print(sys.exc_info()[-1].tb_lineno)
-        print("file_browser_api.py: " + str(e))
+        logger.warning("file_browser_api.py: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return
 
 
@@ -218,7 +238,6 @@ async def create_and_check_parents(operation, task, response):
     #  start at the top and make the root node if necessary, then recursively go down the path
     #  should return as the immediate parent the last entry we make (if any)
     try:
-        query = await db_model.filebrowserobj_query()
         if "host" not in response:
             response["host"] = task.callback.host
         if (
@@ -257,8 +276,8 @@ async def create_and_check_parents(operation, task, response):
             parent_path_name = str(parent_path_name)
             # print("looking for name:{} and parent:{}".format(name, parent_obj))
             try:
-                parent = await db_objects.get(
-                    query,
+                parent = await app.db_objects.get(
+                    db_model.filebrowserobj_query,
                     host=response["host"].upper(),
                     parent=parent_obj,
                     name=name.encode("utf-8"),
@@ -268,7 +287,7 @@ async def create_and_check_parents(operation, task, response):
                 # it doesn't exist, so create it
                 # print("adding name:{} and parent:{}".format(name, parent_obj))
                 # we didn't find a matching parent, so we need to create it and potentially create all the way up
-                parent = await db_objects.create(
+                parent = await app.db_objects.create(
                     db_model.FileBrowserObj,
                     task=task,
                     operation=operation,
@@ -281,8 +300,7 @@ async def create_and_check_parents(operation, task, response):
             parent_obj = parent
         return parent_obj
     except Exception as e:
-        print(sys.exc_info()[-1].tb_lineno)
-        print("file_browser_api.py: " + str(e))
+        logger.warning("file_browser_api.py: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return None
 
 
@@ -298,10 +316,8 @@ async def edit_filebrowsobj(request, user, fid):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.filebrowserobj_query()
-        file = await db_objects.get(query, id=fid, operation=operation)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        file = await app.db_objects.get(db_model.filebrowserobj_query, id=fid, operation=operation)
     except Exception as e:
         return json(
             {
@@ -313,7 +329,7 @@ async def edit_filebrowsobj(request, user, fid):
         data = request.json
         if "comment" in data:
             file.comment = data["comment"]
-        await db_objects.update(file)
+        await app.db_objects.update(file)
         return json({"status": "success", "file_browser": file.to_json()})
     except Exception as e:
         return json({"status": "error", "error": str(e)})
@@ -331,10 +347,7 @@ async def search_filebrowsobj(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.filebrowserobj_query()
-        file_query = await db_model.filemeta_query()
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json(
             {
@@ -344,8 +357,8 @@ async def search_filebrowsobj(request, user):
         )
     try:
         data = request.json
-        count = await db_objects.count(
-            query.where(
+        count = await app.db_objects.count(
+            db_model.filebrowserobj_query.where(
                 (db_model.FileBrowserObj.operation == operation)
                 & (
                     db_model.FileBrowserObj.host.regexp(
@@ -362,8 +375,8 @@ async def search_filebrowsobj(request, user):
         )
         if "page" not in data:
             # allow a blanket search to still be performed
-            responses = await db_objects.prefetch(
-                query.where(
+            responses = await app.db_objects.prefetch(
+                db_model.filebrowserobj_query.where(
                     (db_model.FileBrowserObj.operation == operation)
                     & (
                         db_model.FileBrowserObj.host.regexp(
@@ -379,7 +392,7 @@ async def search_filebrowsobj(request, user):
                 )
                 #.distinct()
                 .order_by(db_model.FileBrowserObj.full_path),
-                file_query
+                db_model.filemeta_query
             )
             data["page"] = 1
             data["size"] = count
@@ -402,8 +415,8 @@ async def search_filebrowsobj(request, user):
                 data["page"] = ceil(count / data["size"])
                 if data["page"] == 0:
                     data["page"] = 1
-            responses = await db_objects.prefetch(
-                query.where(
+            responses = await app.db_objects.prefetch(
+                db_model.filebrowserobj_query.where(
                     (db_model.FileBrowserObj.operation == operation)
                     & (
                         db_model.FileBrowserObj.host.regexp(
@@ -420,7 +433,7 @@ async def search_filebrowsobj(request, user):
                 #.distinct()
                 .order_by(db_model.FileBrowserObj.full_path)
                 .paginate(data["page"], data["size"]),
-                file_query
+                db_model.filemeta_query
             )
         output = []
         for r in responses:
@@ -442,7 +455,7 @@ async def search_filebrowsobj(request, user):
             }
         )
     except Exception as e:
-        print(e)
+        logger.warning("file_browser_api.py: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": str(e)})
 
 
@@ -458,10 +471,8 @@ async def get_filebrowsobj_permissions(request, user, fid):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.filebrowserobj_query()
-        file = await db_objects.get(query, id=fid, operation=operation)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        file = await app.db_objects.get(db_model.filebrowserobj_query, id=fid, operation=operation)
     except Exception as e:
         return json(
             {
@@ -487,15 +498,13 @@ async def get_filebrowsobj_permissions_by_path(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.filebrowserobj_query()
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json
         if "host" not in data:
             return json({"status": "error", "error": "Missing host parameter"})
         if "full_path" not in data:
             return json({"status": "error", "error": "Missing full_path parameter"})
-        file = await db_objects.get(query, operation=operation, host=data["host"].upper(),
+        file = await app.db_objects.get(db_model.filebrowserobj_query, operation=operation, host=data["host"].upper(),
                                     full_path=data["full_path"].encode("utf-8"))
         return json({"status": "success", "permissions": file.permissions})
     except Exception as e:
@@ -519,14 +528,11 @@ async def get_filebrowsobj_files(request, user, fid):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        file_query = await db_model.filemeta_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.filebrowserobj_query()
-        files = await db_objects.prefetch(query.where(
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        files = await app.db_objects.prefetch(db_model.filebrowserobj_query.where(
             (db_model.FileBrowserObj.operation == operation) &
             (db_model.FileBrowserObj.parent == fid)
-        ), file_query)
+        ), db_model.filemeta_query)
     except Exception as e:
         return json(
             {

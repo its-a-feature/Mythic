@@ -10,7 +10,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 
 const GET_BrowserScripts = gql`
 query GetBrowserScripts($operator_id: Int!) {
-  browserscript(where: {operator_id: {_eq: $operator_id}}) {
+  browserscript(where: {operator_id: {_eq: $operator_id}, for_new_ui: {_eq: true}}) {
     active
     author
     user_modified
@@ -37,7 +37,7 @@ query GetBrowserScripts($operator_id: Int!) {
  `;
 const SUB_BrowserScripts = gql`
 subscription SubscribeBrowserScripts($operator_id: Int!) {
-  browserscript(where: {operator_id: {_eq: $operator_id}}) {
+  browserscript(where: {operator_id: {_eq: $operator_id}, for_new_ui: {_eq: true}}) {
     active
     author
     user_modified
@@ -64,7 +64,7 @@ subscription SubscribeBrowserScripts($operator_id: Int!) {
  `;
  const GET_OperationBrowserScripts = gql`
 query GetOperationBrowserScripts($operation_id: Int!) {
-  browserscriptoperation(where: {operation_id: {_eq: $operation_id}}) {
+  browserscriptoperation(where: {operation_id: {_eq: $operation_id}, browserscript: {for_new_ui: {_eq: true}}}) {
     browserscript{
         active
         author
@@ -95,7 +95,7 @@ query GetOperationBrowserScripts($operation_id: Int!) {
  `;
 const SUB_OperationBrowserScripts = gql`
 subscription SubscribeOperationBrowserScripts($operation_id: Int!) {
-  browserscriptoperation(where: {operation_id: {_eq: $operation_id}}) {
+  browserscriptoperation(where: {operation_id: {_eq: $operation_id}, browserscript: {for_new_ui: {_eq: true}}}){
     browserscript{
         active
         author

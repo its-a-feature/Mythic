@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import Task, Keylog
 from sanic_jwt.decorators import scoped, inject_user
@@ -21,11 +22,9 @@ async def get_operations_keystrokes(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.keylog_query()
-        keylogs = await db_objects.execute(
-            query.where(Keylog.operation == operation).order_by(Keylog.timestamp)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        keylogs = await app.db_objects.execute(
+            db_model.keylog_query.where(Keylog.operation == operation).order_by(Keylog.timestamp)
         )
     except Exception as e:
         print(e)
@@ -39,7 +38,6 @@ async def get_operations_keystrokes(request, user):
         if "grouping" in data and data["grouping"] is not None:
             grouping = data["grouping"]  # this can be by host or user
     # we will make our higher-level grouping by the log.task.callback.host that our keylogs came from
-    query = await db_model.callback_query()
     for log in keylogs:
         if grouping == "host":
             group = log.task.callback.host
@@ -49,13 +47,13 @@ async def get_operations_keystrokes(request, user):
                 output[group][log.user] = {}
             if log.window not in output[group][log.user]:
                 output[group][log.user][log.window] = {"keylogs": []}
-            callback = await db_objects.get(query, id=log.task.callback)
+            callback = await app.db_objects.get(db_model.callback_query, id=log.task.callback)
             output[group][log.user][log.window]["keylogs"].append(
                 {**log.to_json(), "callback": callback.to_json()}
             )
         elif grouping == "user":
             group = log.user
-            callback = await db_objects.get(query, id=log.task.callback)
+            callback = await app.db_objects.get(db_model.callback_query, id=log.task.callback)
             if group not in output:
                 output[group] = {}
             if callback.host not in output[group]:
@@ -70,22 +68,20 @@ async def get_operations_keystrokes(request, user):
     return json({"status": "success", "grouping": grouping, "keylogs": output})
 
 
-@mythic.route(mythic.config["API_BASE"] + "/keylogs/callback/<id:int>", methods=["GET"])
+@mythic.route(mythic.config["API_BASE"] + "/keylogs/callback/<kid:int>", methods=["GET"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_callback_keystrokes(request, user, id):
+async def get_callback_keystrokes(request, user, kid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.callback_query()
-        callback = await db_objects.get(query, id=id, operation=operation)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        callback = await app.db_objects.get(db_model.callback_query, id=kid, operation=operation)
     except Exception as e:
         print(e)
         return json(
@@ -96,9 +92,8 @@ async def get_callback_keystrokes(request, user, id):
         )
     try:
         output = {}
-        query = await db_model.keylog_query()
-        keylogs = await db_objects.execute(
-            query.switch(Task)
+        keylogs = await app.db_objects.execute(
+            db_model.keylog_query.switch(Task)
             .where(Task.callback == callback)
             .switch(Keylog)
             .order_by(Keylog.timestamp)
@@ -109,7 +104,7 @@ async def get_callback_keystrokes(request, user, id):
             if log.window not in output:
                 output[log.window] = []
             output[log.window].append(log_json)
-        return json({"status": "success", "callback": id, "keylogs": output})
+        return json({"status": "success", "callback": kid, "keylogs": output})
     except Exception as e:
         print(e)
         return json(

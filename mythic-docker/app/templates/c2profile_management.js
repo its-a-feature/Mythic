@@ -485,60 +485,6 @@ function startwebsocket_payloadtypec2profile() {
     };
 }
 
-function startwebsocket_rabbitmqresponses() {
-    let ws = new WebSocket("{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/rabbitmq/c2_status");
-    ws.onmessage = function (event) {
-        if (event.data === "no_operation") {
-            alertTop("warning", "No operation selected");
-        } else if (event.data !== "") {
-            let rdata = JSON.parse(event.data);
-            //console.log(rdata);
-            let pieces = rdata['routing_key'].split(".");
-            //console.log(rdata['body']);
-            //console.log(pieces);
-            //{"status": "success", "body": "C2 is not running", "routing_key": "c2.status.RESTful Patchthrough.stopped"}
-            if (rdata['status'] === "success") {
-                if (pieces[4] === "get_config") {
-                    let data = JSON.parse(rdata['body']);
-                    //clearAlertTop();
-                    profile_files_modal.code = atob(data['data']);
-                } else if (pieces[4] === "writefile") {
-                    let data = JSON.parse(rdata['body']);
-                    if (data['status'] === 'success') {
-                        alertTop("success", "File written");
-                    } else {
-                        alertTop("warning", data['error']);
-                    }
-                } else if (pieces[4] === "status" || pieces[4] === "stop" || pieces[4] === "start") {
-                    if (rdata['body'].length > 512000) {
-                        download_from_memory("c2_status_output.txt", btoa(rdata['body']));
-                    } else {
-                        $('#stdoutStderrModal').modal('show');
-                        $('#stdoutstderrText').text(rdata['body']);
-                    }
-                }
-            } else {
-                alertTop("danger", rdata['error']);
-            }
-            //console.log(event.data);
-            pieces = rdata['routing_key'].split(".");
-            for (let i = 0; i < profiles.length; i++) {
-                if (payloads_table.profiles[i].name === pieces[2]) {
-                    payloads_table.profiles[i].running = pieces[3] === "running";
-                    return;
-                }
-            }
-        }
-    };
-    ws.onclose = function (event) {
-        wsonclose(event);
-    };
-    ws.onerror = function (event) {
-        wsonerror(event);
-    };
-}
-
-startwebsocket_rabbitmqresponses();
 startwebsocket_c2profiles();
 
 function container_heartbeat_check() {

@@ -1,8 +1,7 @@
-from app import db_objects
+import app
 from app.database_models.model import StagingInfo, payload_query
 import base64
 import app.crypto as crypt
-import ujson as js
 from sanic.log import logger
 from uuid import uuid4
 
@@ -69,9 +68,8 @@ async def staging_rsa(decrypted_message_json, UUID):
     # Save session_key and SESSIONID into database
     temp_uuid = str(uuid4())
     try:
-        payloadquery = await payload_query()
-        payload = await db_objects.get(payloadquery, uuid=UUID)
-        stage_info = await db_objects.create(
+        payload = await app.db_objects.get(payload_query, uuid=UUID)
+        stage_info = await app.db_objects.create(
             StagingInfo,
             session_id=decrypted_message_json["session_id"],
             enc_key=base64.b64decode(session_key_encoded),

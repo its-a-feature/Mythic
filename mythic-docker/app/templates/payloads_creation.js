@@ -33,9 +33,36 @@ var profile_parameters_table = new Vue({
         c2_buttons: true,
         pt_buttons: false,
         command_buttons: false,
-        create_buttons: false
+        create_buttons: false,
+        upload_randomize: false
     },
     methods: {
+        import_payload_config: function(){
+            $('#uploadConfigModal').modal('show');
+            $('#uploadConfigModalSubmit').unbind('click').click(function () {
+                let uploaded_file = document.getElementById('upload_file').files[0];
+                let reader = new FileReader();
+                reader.onload = (function(theFile){
+                    return function(e){
+                        try{
+                            let data = JSON.parse(e.target.result);
+                            data["randomize"] = profile_parameters_table.upload_randomize;
+                            alertTop("info", "Submitted creation request...", 1);
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
+                        }catch(error){
+                            alertTop("error", "Failed to process uploaded file as JSON");
+                        }
+                    }
+                })(uploaded_file);
+                try{
+                    reader.readAsText(uploaded_file);
+                }catch(error){
+                    alertTop("warning", "Failed to process the file");
+                }
+
+            });
+
+        },
         move_to_c2: function () {
             if (this.selected_os !== " Select Target OS") {
                 $('#c2-card-body').collapse('show');
@@ -166,7 +193,7 @@ var profile_parameters_table = new Vue({
             let found_exit = false;
             data['commands'] = [];
             this.selected_payload_commands.forEach((x) => {
-                if (x['is_exit']) {
+                if (x["supported_ui_features"].includes("callback_table:exit")) {
                     found_exit = true;
                 }
                 data['commands'].push(x['cmd']);
@@ -538,6 +565,23 @@ var profile_parameters_table = new Vue({
                         let data = JSON.parse(response);
                         profile_parameters_table.payload_command_options = [];
                         if (data['status'] === 'success') {
+                            data["commands"] = data["commands"].reduce((total, cur) => {
+                                try{
+                                    let attributes = JSON.parse(cur["attributes"]);
+                                    if(attributes.hasOwnProperty("supported_os")){
+                                        if(attributes["supported_os"].includes(profile_parameters_table.selected_os) || attributes["supported_os"].length === 0){
+                                            return [...total, cur];
+                                        }else{
+                                            return [...total];
+                                        }
+                                    }else{
+                                        return [...total, cur];
+                                    }
+                                }catch(error){
+                                    console.log("error trying to parse attributes: " + error.toString());
+                                    return [...total, cur];
+                                }
+                            }, []);
                             profile_parameters_table.payload_command_options = data['commands'];
                             if (!all_payload_type_data[val]['supports_dynamic_loading']) {
                                 profile_parameters_table.command_message = "The selected payload type doesn't support dynamic loading of modules, so all commands are selected";

@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import OperatorOperation, DisabledCommandsProfile
 import base64
@@ -6,6 +7,7 @@ from sanic_jwt.decorators import scoped, inject_user
 from sanic.exceptions import abort
 import app.database_models.model as db_model
 from app.api.browserscript_api import remove_admin_browserscripts
+import uuid
 
 
 @mythic.route(mythic.config["API_BASE"] + "/operations", methods=["GET"])
@@ -21,13 +23,11 @@ async def get_all_operation(request, user):
         )
     output = []
     try:
-        query = await db_model.operation_query()
-        operations = await db_objects.execute(query)
-        query = await db_model.operatoroperation_query()
+        operations = await app.db_objects.execute(db_model.operation_query)
         for o in operations:
             if user["admin"] or o.name in user["operations"]:
-                operatorsmap = await db_objects.execute(
-                    query.where(OperatorOperation.operation == o)
+                operatorsmap = await app.db_objects.execute(
+                    db_model.operatoroperation_query.where(OperatorOperation.operation == o)
                 )
                 ojson = o.to_json()
                 ojson["members"] = []
@@ -69,16 +69,14 @@ async def get_one_operation(request, user, op):
     try:
         # get all users associated with that operation and the admin
         operators = []
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, id=op)
+        operation = await app.db_objects.get(db_model.operation_query, id=op)
         if (
             operation.name in user["operations"]
             or operation.name in user["admin_operations"]
             or user["admin"]
         ):
-            query = await db_model.operatoroperation_query()
-            operatorsmap = await db_objects.execute(
-                query.where(OperatorOperation.operation == operation)
+            operatorsmap = await app.db_objects.execute(
+                db_model.operatoroperation_query.where(OperatorOperation.operation == operation)
             )
             for operator in operatorsmap:
                 o = operator.operator
@@ -106,28 +104,27 @@ async def get_one_operation(request, user, op):
 
 async def add_user_to_operation_func(operation, users, user):
     # this take an operation object and a list of users (string) and adds them to the operation
-    query = await db_model.operator_query()
-    adder = await db_objects.get(query, username=user["username"])
+    adder = await app.db_objects.get(db_model.operator_query, username=user["username"])
     for operator in users:
         try:
-            op = await db_objects.get(query, username=operator["username"])
+            op = await app.db_objects.get(db_model.operator_query, username=operator["username"])
         except Exception as e:
             return {"status": "error", "error": "failed to find user"}
         try:
             if op.current_operation is None:
                 op.current_operation = operation
-                await db_objects.update(op)
+                await app.db_objects.update(op)
             if "view_mode" not in operator:
                 operator["view_mode"] = "operator"
             elif operator["view_mode"] not in ["operator", "developer", "spectator"]:
                 operator["view_mode"] = "operator"
-            map = await db_objects.create(
+            map = await app.db_objects.create(
                 OperatorOperation,
                 operator=op,
                 operation=operation,
                 view_mod=operator["view_mode"],
             )
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.OperationEventLog,
                 operation=operation,
                 message="{} added {} to operation as {}".format(
@@ -154,24 +151,21 @@ async def update_operation(request, user, op):
     # this can change the admin user assuming the person submitting is the current admin or overall admin ['admin']
     # this can change the users ['add_users'], ['remove_users']
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, id=op)
+        operation = await app.db_objects.get(db_model.operation_query, id=op)
     except Exception as e:
         return json({"status": "error", "error": "failed to find operation"})
     if operation.name in user["admin_operations"] or user["admin"]:
         data = request.json
-        query = await db_model.operator_query()
-        modifier = await db_objects.get(query, username=user["username"])
+        modifier = await app.db_objects.get(db_model.operator_query, username=user["username"])
         if "name" in data and data["name"] not in ["", "null", None]:
             operation.name = data["name"]
         if "admin" in data and data["admin"] != operation.admin.username:
             try:
-                query = await db_model.operator_query()
-                new_admin = await db_objects.get(query, username=data["admin"])
+                new_admin = await app.db_objects.get(db_model.operator_query, username=data["admin"])
                 await remove_admin_browserscripts(operation.admin, operation)
                 operation.admin = new_admin
-                await db_objects.update(operation)
-                await db_objects.create(
+                await app.db_objects.update(operation)
+                await app.db_objects.create(
                     db_model.OperationEventLog,
                     operation=operation,
                     message="{} made {} the operation admin".format(
@@ -184,13 +178,12 @@ async def update_operation(request, user, op):
         if "add_members" in data:
             for new_member in data["add_members"]:
                 try:
-                    query = await db_model.operator_query()
-                    operator = await db_objects.get(
-                        query, username=new_member["username"]
+                    operator = await app.db_objects.get(
+                        db_model.operator_query, username=new_member["username"]
                     )
                     if operator.current_operation is None:
                         operator.current_operation = operation
-                        await db_objects.update(operator)
+                        await app.db_objects.update(operator)
                     if "view_mode" not in new_member:
                         new_member["view_mode"] = "operator"
                     elif new_member["view_mode"] not in [
@@ -200,13 +193,13 @@ async def update_operation(request, user, op):
                     ]:
                         new_member["view_mode"] = "operator"
                     try:
-                        map = await db_objects.get(
+                        map = await app.db_objects.get(
                             OperatorOperation, operator=operator, operation=operation
                         )
                         if map.view_mode != new_member["view_mode"]:
                             map.view_mode = new_member["view_mode"]
-                            await db_objects.update(map)
-                            await db_objects.create(
+                            await app.db_objects.update(map)
+                            await app.db_objects.create(
                                 db_model.OperationEventLog,
                                 operation=operation,
                                 message="{} updated {} view mode to {}".format(
@@ -216,13 +209,13 @@ async def update_operation(request, user, op):
                                 ),
                             )
                     except Exception as e:
-                        map = await db_objects.create(
+                        map = await app.db_objects.create(
                             OperatorOperation,
                             operator=operator,
                             operation=operation,
                             view_mode=new_member["view_mode"],
                         )
-                        await db_objects.create(
+                        await app.db_objects.create(
                             db_model.OperationEventLog,
                             operation=operation,
                             message="{} added {} to operation with view mode {}".format(
@@ -243,20 +236,18 @@ async def update_operation(request, user, op):
         if "remove_members" in data:
             for old_member in data["remove_members"]:
                 try:
-                    query = await db_model.operator_query()
-                    operator = await db_objects.get(query, username=old_member)
-                    query = await db_model.operatoroperation_query()
-                    operatoroperation = await db_objects.get(
-                        query, operator=operator, operation=operation
+                    operator = await app.db_objects.get(db_model.operator_query, username=old_member)
+                    operatoroperation = await app.db_objects.get(
+                        db_model.operatoroperation_query, operator=operator, operation=operation
                     )
                     # don't remove the admin of an operation
                     if operation.admin.username != operator.username:
                         # if this operation is set as that user's current_operation, nullify it
                         if operator.current_operation == operation:
                             operator.current_operation = None
-                            await db_objects.update(operator)
-                        await db_objects.delete(operatoroperation)
-                        await db_objects.create(
+                            await app.db_objects.update(operator)
+                        await app.db_objects.delete(operatoroperation)
+                        await app.db_objects.create(
                             db_model.OperationEventLog,
                             operation=operation,
                             message="{} removed {} from operation".format(
@@ -276,44 +267,41 @@ async def update_operation(request, user, op):
                     )
         if "add_disabled_commands" in data:
             for user in data["add_disabled_commands"]:
-                query = await db_model.operator_query()
-                operator = await db_objects.get(query, username=user["username"])
-                query = await db_model.operatoroperation_query()
-                operatoroperation = await db_objects.get(
-                    query, operator=operator, operation=operation
+                operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+                operatoroperation = await app.db_objects.get(
+                    db_model.operatoroperation_query, operator=operator, operation=operation
                 )
-                query = await db_model.disabledcommandsprofile_query()
                 try:
-                    disabled_profile = await db_objects.get(
-                        query, name=user["base_disabled_commands"]
+                    disabled_profile = await app.db_objects.get(
+                        db_model.disabledcommandsprofile_query, name=user["base_disabled_commands"]
                     )
                     operatoroperation.base_disabled_commands = disabled_profile
-                    await db_objects.create(
+                    await app.db_objects.create(
                         db_model.OperationEventLog,
                         operation=operation,
                         message=f"{modifier.username} updated {operator.username}'s disabled command list to {disabled_profile.name}",
                     )
                 except Exception as e:
                     operatoroperation.base_disabled_commands = None
-                    await db_objects.create(
+                    await app.db_objects.create(
                         db_model.OperationEventLog,
                         operation=operation,
                         message=f"{modifier.username} removed {operator.username}'s disabled command list",
                     )
-                await db_objects.update(operatoroperation)
+                await app.db_objects.update(operatoroperation)
         if "webhook" in data:
             if (data["webhook"] == "" or data["webhook"] is None) and (
                 operation.webhook != ""
             ):
                 operation.webhook = ""
-                await db_objects.create(
+                await app.db_objects.create(
                     db_model.OperationEventLog,
                     operation=operation,
                     message="{} removed Operation webhook".format(modifier.username),
                 )
             elif data["webhook"] != "" and data["webhook"] != operation.webhook:
                 operation.webhook = data["webhook"]
-                await db_objects.create(
+                await app.db_objects.create(
                     db_model.OperationEventLog,
                     operation=operation,
                     message="{} set operation webhook to {}".format(
@@ -333,13 +321,12 @@ async def update_operation(request, user, op):
         if "complete" in data:
             operation.complete = data["complete"]
         try:
-            await db_objects.update(operation)
+            await app.db_objects.update(operation)
         except Exception as e:
             return json({"status": "error", "error": str(e)})
         all_users = []
-        query = await db_model.operatoroperation_query()
-        current_members = await db_objects.execute(
-            query.where(OperatorOperation.operation == operation)
+        current_members = await app.db_objects.execute(
+            db_model.operatoroperation_query.where(OperatorOperation.operation == operation)
         )
         for mem in current_members:
             member = mem.operator
@@ -378,23 +365,21 @@ async def create_operation(request, user):
         try:
             from app.crypto import create_key_AES256
 
-            query = await db_model.operator_query()
-            modifier = await db_objects.get(query, username=user["username"])
-            query = await db_model.operator_query()
-            new_admin = await db_objects.get(query, username=data["admin"])
-            operation = await db_objects.create(
+            modifier = await app.db_objects.get(db_model.operator_query, username=user["username"])
+            new_admin = await app.db_objects.get(db_model.operator_query, username=data["admin"])
+            operation = await app.db_objects.create(
                 db_model.Operation,
                 name=data["name"],
                 admin=new_admin,
             )
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.OperationEventLog,
                 operation=operation,
                 message="{} created operation {}".format(
                     modifier.username, data["name"]
                 ),
             )
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.OperationEventLog,
                 operation=operation,
                 message="{} made {} the operation admin".format(
@@ -421,21 +406,20 @@ async def create_operation(request, user):
                 )
             for new_member in data["members"]:
                 try:
-                    query = await db_model.operator_query()
-                    operator = await db_objects.get(
-                        query, username=new_member["username"]
+                    operator = await app.db_objects.get(
+                        db_model.operator_query, username=new_member["username"]
                     )
                     if operator.current_operation is None:
                         operator.current_operation = operation
-                        await db_objects.update(operator)
-                    map = await db_objects.create(
+                        await app.db_objects.update(operator)
+                    map = await app.db_objects.create(
                         OperatorOperation,
                         operator=operator,
                         operation=operation,
                         view_mode=new_member["view_mode"],
                     )
                     added_members.append(new_member)
-                    await db_objects.create(
+                    await app.db_objects.create(
                         db_model.OperationEventLog,
                         operation=operation,
                         message="{} added {} to operation with view mode {}".format(
@@ -456,7 +440,7 @@ async def create_operation(request, user):
                     )
         if "webhook" in data and data["webhook"] != "":
             operation.webhook = data["webhook"]
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.OperationEventLog,
                 operation=operation,
                 message="{} added operation webhook: {}".format(
@@ -473,7 +457,7 @@ async def create_operation(request, user):
             operation.icon_url = data["icon_url"]
         if "webhook_message" in data:
             operation.webhook_message = data["webhook_message"]
-        await db_objects.update(operation)
+        await app.db_objects.update(operation)
         return json(
             {"status": "success", "members": added_members, **operation.to_json()}
         )
@@ -500,8 +484,7 @@ async def get_all_disabled_commands_profiles(request, user):
         )
     # only the admin of an operation or an overall admin can delete an operation
     try:
-        query = await db_model.disabledcommandsprofile_query()
-        disabled_command_profiles = await db_objects.execute(query)
+        disabled_command_profiles = await app.db_objects.execute(db_model.disabledcommandsprofile_query)
         command_groupings = {}
         for dcp in disabled_command_profiles:
             if dcp.name not in command_groupings:
@@ -551,15 +534,13 @@ async def create_disabled_commands_profile(request, user):
             if name == "":
                 return json({"status": "error", "error": "name cannot be blank"})
             for ptype in data[name]:
-                query = await db_model.payloadtype_query()
-                payload_type = await db_objects.get(query, ptype=ptype)
+                payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=ptype)
                 for cmd in data[name][ptype]:
-                    query = await db_model.command_query()
-                    command = await db_objects.get(
-                        query, cmd=cmd, payload_type=payload_type
+                    command = await app.db_objects.get(
+                        db_model.command_query, cmd=cmd, payload_type=payload_type
                     )
                     try:
-                        profile = await db_objects.create(
+                        profile = await app.db_objects.create(
                             DisabledCommandsProfile, name=name, command=command
                         )
                         added_acl.append(profile.to_json())
@@ -602,20 +583,18 @@ async def delete_disabled_commands_profile(request, user, profile):
                     "error": "Must be a Mythic admin to delete command profiles",
                 }
             )
-        query = await db_model.disabledcommandsprofile_query()
-        commands_profile = await db_objects.execute(
-            query.where(DisabledCommandsProfile.name == profile)
+        commands_profile = await app.db_objects.execute(
+            db_model.disabledcommandsprofile_query.where(DisabledCommandsProfile.name == profile)
         )
         # make sure that the mapping is gone from operatoroperation.base_disabled_commands
-        query = await db_model.operatoroperation_query()
-        operator_operation_mapping = await db_objects.execute(
-            query.where(DisabledCommandsProfile.name == profile)
+        operator_operation_mapping = await app.db_objects.execute(
+            db_model.operatoroperation_query.where(DisabledCommandsProfile.name == profile)
         )
         for o in operator_operation_mapping:
             o.base_disabled_commands = None
-            await db_objects.update(o)
+            await app.db_objects.update(o)
         for c in commands_profile:
-            await db_objects.delete(c)
+            await app.db_objects.delete(c)
 
         return json({"status": "success", "name": profile})
     except Exception as e:
@@ -653,11 +632,9 @@ async def update_disabled_commands_profile(request, user):
         data = request.json
         added_acl = []
         # {"profile_name": {"payload type": [command name, command name 2], "Payload type 2": [] }
-        print(data)
-        disabled_profile_query = await db_model.disabledcommandsprofile_query()
         for name in data:
-            current_commands = await db_objects.execute(
-                disabled_profile_query.where(
+            current_commands = await app.db_objects.execute(
+                db_model.disabledcommandsprofile_query.where(
                     db_model.DisabledCommandsProfile.name == name
                 )
             )
@@ -676,17 +653,15 @@ async def update_disabled_commands_profile(request, user):
                 remove.append(cc)
             # now we need to remove everything in 'remove'
             for r in remove:
-                await db_objects.delete(r)
+                await app.db_objects.delete(r)
             # we need to add everything still in data
             for ptype in data[name]:
-                query = await db_model.payloadtype_query()
-                payload_type = await db_objects.get(query, ptype=ptype)
+                payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=ptype)
                 for cmd in data[name][ptype]:
-                    query = await db_model.command_query()
-                    command = await db_objects.get(
-                        query, cmd=cmd, payload_type=payload_type
+                    command = await app.db_objects.get(
+                        db_model.command_query, cmd=cmd, payload_type=payload_type
                     )
-                    profile = await db_objects.create(
+                    profile = await app.db_objects.create(
                         DisabledCommandsProfile, name=name, command=command
                     )
                     added_acl.append(profile.to_json())
@@ -703,13 +678,13 @@ async def update_disabled_commands_profile(request, user):
 
 async def send_all_operations_message(message: str, level: str, source: str = "", operation=None):
     try:
-        query = await db_model.operation_query()
-        event_query = await db_model.operationeventlog_query()
-        operations = await db_objects.execute(query.where(db_model.Operation.complete == False))
+        operations = await app.db_objects.execute(db_model.operation_query.where(db_model.Operation.complete == False))
+        if source == "":
+            source = str(uuid.uuid4())
         for o in operations:
             if operation is None or operation == o:
                 try:
-                    msg = await db_objects.count(event_query.where(
+                    msg = await app.db_objects.count(db_model.operationeventlog_query.where(
                         (db_model.OperationEventLog.level == "warning") &
                         (db_model.OperationEventLog.source == source) &
                         (db_model.OperationEventLog.operation == o) &
@@ -717,7 +692,7 @@ async def send_all_operations_message(message: str, level: str, source: str = ""
                         (db_model.OperationEventLog.deleted == False)
                     ).order_by(-db_model.OperationEventLog.id).limit(1))
                     if msg == 0:
-                        await db_objects.create(
+                        await app.db_objects.create(
                             db_model.OperationEventLog,
                             operation=o,
                             level=level,
@@ -725,7 +700,7 @@ async def send_all_operations_message(message: str, level: str, source: str = ""
                             source=source
                         )
                     else:
-                        msg = await db_objects.execute(event_query.where(
+                        msg = await app.db_objects.execute(db_model.operationeventlog_query.where(
                             (db_model.OperationEventLog.level == "warning") &
                             (db_model.OperationEventLog.source == source) &
                             (db_model.OperationEventLog.operation == o) &
@@ -734,7 +709,7 @@ async def send_all_operations_message(message: str, level: str, source: str = ""
                         ).order_by(-db_model.OperationEventLog.id).limit(1))
                         for m in msg:
                             m.count = m.count + 1
-                            await db_objects.update(m)
+                            await app.db_objects.update(m)
                 except Exception as e:
                     print(e)
     except Exception as b:

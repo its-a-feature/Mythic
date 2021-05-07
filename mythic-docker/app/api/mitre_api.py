@@ -1,6 +1,7 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
-from app.database_models.model import Task, ATTACKCommand, ATTACKTask, Callback, Command
+from app.database_models.model import Task, ATTACKCommand, ATTACKTask, Callback
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
@@ -17,8 +18,7 @@ async def get_all_mitre_attack_ids(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    query = await db_model.attack_query()
-    attack_entries = await db_objects.execute(query)
+    attack_entries = await app.db_objects.execute(db_model.attack_query)
     matrix = {}
     for entry in attack_entries:
         tactics = entry.tactic.split(" ")
@@ -41,8 +41,7 @@ async def get_all_mitre_attack_ids(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.attack_query()
-        attack_entries = await db_objects.execute(query)
+        attack_entries = await app.db_objects.execute(db_model.attack_query)
         return json(
             {"status": "success", "attack": [a.to_json() for a in attack_entries]}
         )
@@ -61,8 +60,7 @@ async def get_all_mitre_attack_ids_by_command(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    query = await db_model.attack_query()
-    attack_entries = await db_objects.execute(query)
+    attack_entries = await app.db_objects.execute(db_model.attack_query)
     matrix = {}
     for entry in attack_entries:
         tactics = entry.tactic.split(" ")
@@ -74,9 +72,8 @@ async def get_all_mitre_attack_ids_by_command(request, user):
                 "mappings"
             ] = {}  # this is where we'll store payload_type and command mappings
             entry_json["tactic"] = t
-            query = await db_model.attackcommand_query()
-            mappings = await db_objects.execute(
-                query.where(ATTACKCommand.attack == entry)
+            mappings = await app.db_objects.execute(
+                db_model.attackcommand_query.where(ATTACKCommand.attack == entry)
             )
             for m in mappings:
 
@@ -99,8 +96,7 @@ async def get_all_mitre_attack_ids_by_task(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json(
             {
@@ -108,8 +104,7 @@ async def get_all_mitre_attack_ids_by_task(request, user):
                 "error": "Must have an operation set as your current operation",
             }
         )
-    query = await db_model.attack_query()
-    attack_entries = await db_objects.execute(query)
+    attack_entries = await app.db_objects.execute(db_model.attack_query)
     matrix = {}
     for entry in attack_entries:
         tactics = entry.tactic.split(" ")
@@ -121,9 +116,8 @@ async def get_all_mitre_attack_ids_by_task(request, user):
                 "mappings"
             ] = {}  # this is where we'll store payload_type and command mappings
             entry_json["tactic"] = t
-            query = await db_model.attacktask_query()
-            mappings = await db_objects.execute(
-                query.where(
+            mappings = await app.db_objects.execute(
+                db_model.attacktask_query.where(
                     (ATTACKTask.attack == entry) & (Callback.operation == operation)
                 )
             )
@@ -150,8 +144,7 @@ async def regex_against_tasks(request, user):
         )
     data = request.json
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "Failed to find current operation"})
     if "regex" not in data:
@@ -161,8 +154,7 @@ async def regex_against_tasks(request, user):
     if "attack" not in data:
         return json({"status": "error", "error": "an attack T# is required"})
     try:
-        query = await db_model.attack_query()
-        attack = await db_objects.get(query, t_num=data["attack"])
+        attack = await app.db_objects.get(db_model.attack_query, t_num=data["attack"])
     except Exception as e:
         return json(
             {
@@ -171,9 +163,8 @@ async def regex_against_tasks(request, user):
             }
         )
     try:
-        query = await db_model.task_query()
-        matching_tasks = await db_objects.prefetch(
-            query.switch(Callback)
+        matching_tasks = await app.db_objects.prefetch(
+            db_model.task_query.switch(Callback)
             .where(Callback.operation == operation)
             .switch(Task)
             .where(
@@ -181,18 +172,17 @@ async def regex_against_tasks(request, user):
                 | (Task.original_params.regexp(data["regex"]))
             )
             .order_by(Task.id),
-            Command.select(),
+            db_model.command_query,
         )
         if data["apply"]:
             # actually apply the specified att&ck id to the matched tasks
             for t in matching_tasks:
                 # don't create duplicates
                 try:
-                    query = await db_model.attacktask_query()
-                    attacktask = await db_objects.get(query, attack=attack, task=t)
+                    attacktask = await app.db_objects.get(db_model.attacktask_query, attack=attack, task=t)
                 except Exception as e:
                     # we didn't find the specific attack-task mapping, so create a new one
-                    attacktask = await db_objects.create(
+                    attacktask = await app.db_objects.create(
                         ATTACKTask, attack=attack, task=t
                     )
             return json({"status": "success"})
@@ -202,9 +192,8 @@ async def regex_against_tasks(request, user):
             tasks = []
             for t in matching_tasks:
                 sub_attacks = []
-                query = await db_model.attacktask_query()
-                matching_attacks = await db_objects.execute(
-                    query.where(ATTACKTask.task == t)
+                matching_attacks = await app.db_objects.execute(
+                    db_model.attacktask_query.where(ATTACKTask.task == t)
                 )
                 for ma in matching_attacks:
                     sub_attacks.append(
@@ -236,13 +225,10 @@ async def remove_task_attack_mapping(request, user, tid, tnum):
             {"status": "error", "error": "Spectators cannot remove MITRE from tasks"}
         )
     try:
-        query = await db_model.task_query()
-        task = await db_objects.get(query, id=tid)
-        query = await db_model.attack_query()
-        attack = await db_objects.get(query, t_num=tnum)
-        query = await db_model.attacktask_query()
-        mapping = await db_objects.get(query, task=task, attack=attack)
-        await db_objects.delete(mapping)
+        task = await app.db_objects.get(db_model.task_query, id=tid)
+        attack = await app.db_objects.get(db_model.attack_query, t_num=tnum)
+        mapping = await app.db_objects.get(db_model.attacktask_query, task=task, attack=attack)
+        await app.db_objects.delete(mapping)
         return json({"status": "success", "task_id": tid, "attack": tnum})
     except Exception as e:
         print(e)

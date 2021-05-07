@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import Operator
 from sanic import response
@@ -23,8 +24,7 @@ async def get_all_operators(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    query = await db_model.operator_query()
-    ops = await db_objects.execute(query.where(db_model.Operator.deleted == False))
+    ops = await app.db_objects.execute(db_model.operator_query.where(db_model.Operator.deleted == False))
     return json([p.to_json() for p in ops])
 
 
@@ -40,8 +40,7 @@ async def get_my_operator(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         return json({"status": "success", **operator.to_json()})
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operator"})
@@ -78,7 +77,7 @@ async def create_operator(request, user):
     password = await crypto.hash_SHA512(salt + data["password"])
     # we need to create a new user
     try:
-        new_operator = await db_objects.create(
+        new_operator = await app.db_objects.create(
             Operator, username=data["username"], password=password, admin=False, salt=salt, active=True
         )
         success = {"status": "success"}
@@ -123,7 +122,7 @@ async def create_operator_graphql(request, user):
         return json({"status": "error", "error": "password must be at least 12 characters long"})
     # we need to create a new user
     try:
-        new_operator = await db_objects.create(
+        new_operator = await app.db_objects.create(
             Operator, username=data["username"], password=password, admin=False, salt=salt, active=True
         )
         success = {"status": "success"}
@@ -148,8 +147,7 @@ async def get_one_operator(request, oid, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        op = await db_objects.get(query, id=oid)
+        op = await app.db_objects.get(db_model.operator_query, id=oid)
         if op.username == user["username"] or user["view_mode"] != "spectator":
             return json({"status": "success", **op.to_json()})
         else:
@@ -201,8 +199,7 @@ async def update_operator(request, oid, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        op = await db_objects.get(query, id=oid)
+        op = await app.db_objects.get(db_model.operator_query, id=oid)
         if op.username != user["username"] and not user["admin"]:
             # you can't change the name of somebody else unless you're admin
             return json(
@@ -226,8 +223,7 @@ async def update_operator(request, oid, user):
             op.active = data["active"]
         if "current_operation" in data:
             if data["current_operation"] in user["operations"]:
-                query = await db_model.operation_query()
-                current_op = await db_objects.get(query, name=data["current_operation"])
+                current_op = await app.db_objects.get(db_model.operation_query, name=data["current_operation"])
                 op.current_operation = current_op
         if "ui_config" in data:
             if data["ui_config"] == "default":
@@ -241,7 +237,7 @@ async def update_operator(request, oid, user):
         if "view_utc_time" in data:
             op.view_utc_time = data["view_utc_time"]
         try:
-            await db_objects.update(op)
+            await app.db_objects.update(op)
             success = {"status": "success"}
         except Exception as e:
             return json(
@@ -268,8 +264,7 @@ async def remove_operator(request, oid, user):
         )
 
     try:
-        query = await db_model.operator_query()
-        op = await db_objects.get(query, id=oid)
+        op = await app.db_objects.get(db_model.operator_query, id=oid)
         if op.username != user["username"] and not user["admin"]:
             return json(
                 {
@@ -291,7 +286,7 @@ async def remove_operator(request, oid, user):
         op.deleted = True
         op.active = False
         op.admin = False
-        await db_objects.update(op)
+        await app.db_objects.update(op)
         success = {"status": "success"}
         return json({**success, **op.to_json()})
     except Exception as e:

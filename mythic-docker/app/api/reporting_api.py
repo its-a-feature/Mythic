@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from app.database_models.model import *
 from sanic.response import json
 from sanic_jwt.decorators import scoped, inject_user
@@ -31,8 +32,7 @@ async def reporting_full_timeline_api(request, user):
         return json({"status": "error", "error": "Spectators cannot generate reports"})
     if user["current_operation"] != "":
         try:
-            query = await operation_query()
-            operation = await db_objects.get(query, name=user["current_operation"])
+            operation = await app.db_objects.get(operation_query, name=user["current_operation"])
             pdf = PDF()
             pdf.set_author(user["username"])
             pdf.set_title(
@@ -87,9 +87,8 @@ async def reporting_full_timeline_api(request, user):
             pdf, status = await get_all_data(operation, pdf, data)
             if status["status"] == "success":
                 save_path = "./app/files/{}".format(str(uuid.uuid4()))
-                query = await operator_query()
-                operator = await db_objects.get(query, username=user["username"])
-                filemeta = await db_objects.create(
+                operator = await app.db_objects.get(operator_query, username=user["username"])
+                filemeta = await app.db_objects.create(
                     FileMeta,
                     total_chunks=1,
                     operation=operation,
@@ -102,7 +101,7 @@ async def reporting_full_timeline_api(request, user):
                 filedata = open(save_path, "rb").read()
                 filemeta.md5 = await hash_MD5(filedata)
                 filemeta.sha1 = await hash_SHA1(filedata)
-                await db_objects.update(filemeta)
+                await app.db_objects.update(filemeta)
             else:
                 return json({"status": "error", "error": status["error"]})
             return json({"status": "success", **filemeta.to_json()})
@@ -120,23 +119,20 @@ async def get_all_data(operation, pdf, config):
     # need to get all callbacks, tasks, responses in a dict with the key being the timestamp
     try:
         all_data = {}
-        query = await callback_query()
-        callbacks = await db_objects.execute(
-            query.where(Callback.operation == operation).order_by(Callback.id)
+        callbacks = await app.db_objects.execute(
+            callback_query.where(Callback.operation == operation).order_by(Callback.id)
         )
         height = pdf.font_size + 1
         for c in callbacks:
             all_data[c.init_callback] = {"callback": c}
-            query = await task_query()
-            tasks = await db_objects.prefetch(
-                query.where(Task.callback == c), Command.select()
+            tasks = await app.db_objects.prefetch(
+                task_query.where(Task.callback == c), Command.select()
             )
             for t in tasks:
                 all_data[t.status_timestamp_preprocessing] = {"task": t}
                 if config["attack"]:
-                    query = await attacktask_query()
-                    attacks = await db_objects.execute(
-                        query.where(ATTACKTask.task == t)
+                    attacks = await app.db_objects.execute(
+                        attacktask_query.where(ATTACKTask.task == t)
                     )
                     attack_list = []
                     for a in attacks:
@@ -145,9 +141,8 @@ async def get_all_data(operation, pdf, config):
                         )
                     all_data[t.status_timestamp_preprocessing]["attack"] = attack_list
                 if config["artifacts"]:
-                    query = await taskartifact_query()
-                    artifacts = await db_objects.execute(
-                        query.where(TaskArtifact.task == t)
+                    artifacts = await app.db_objects.execute(
+                        taskartifact_query.where(TaskArtifact.task == t)
                     )
                     artifacts_list = []
                     for a in artifacts:
@@ -156,9 +151,8 @@ async def get_all_data(operation, pdf, config):
                         "artifacts"
                     ] = artifacts_list
                 if "cmd_output" in config and config["cmd_output"]:
-                    query = await response_query()
-                    responses = await db_objects.execute(
-                        query.where(Response.task == t).order_by(Response.timestamp)
+                    responses = await app.db_objects.execute(
+                        response_query.where(Response.task == t).order_by(Response.timestamp)
                     )
                     if "strict" in config and config["strict"] == "time":
                         # this will get output as it happened, not grouped with the corresponding command
@@ -237,9 +231,8 @@ async def get_all_data(operation, pdf, config):
                 pdf.set_fill_color(244, 244, 244)
                 task = all_data[key]["task"]
                 task_json = task.to_json()
-                query = await callback_query()
                 callback = (
-                    await db_objects.get(query, id=all_data[key]["task"].callback)
+                    await app.db_objects.get(callback_query, id=all_data[key]["task"].callback)
                 ).to_json()
                 pdf.cell(
                     w=36,
@@ -479,27 +472,24 @@ async def get_full_timeline_json(request, user):
                 if "attack" in config:
                     data["attack"] = config["attack"]
             try:
-                query = await operation_query()
-                operation = await db_objects.get(query, name=user["current_operation"])
+                operation = await app.db_objects.get(operation_query, name=user["current_operation"])
                 all_data = {}
-                query = await callback_query()
-                callbacks = await db_objects.execute(
-                    query.where(Callback.operation == operation).order_by(Callback.id)
+                callbacks = await app.db_objects.prefetch(
+                    callback_query.where(Callback.operation == operation).order_by(Callback.id),
+                    callbacktoken_query
                 )
                 for c in callbacks:
                     c_json = c.to_json()
                     all_data[c_json["init_callback"]] = {"callback": c_json}
-                    query = await task_query()
-                    tasks = await db_objects.prefetch(
-                        query.where(Task.callback == c).order_by(Task.id),
-                        Command.select(),
+                    tasks = await app.db_objects.prefetch(
+                        task_query.where(Task.callback == c).order_by(Task.id),
+                        command_query,
                     )
                     for t in tasks:
                         t_json = t.to_json()
                         if data["attack"]:
-                            query = await attacktask_query()
-                            attacks = await db_objects.execute(
-                                query.where(ATTACKTask.task == t)
+                            attacks = await app.db_objects.execute(
+                                attacktask_query.where(ATTACKTask.task == t)
                             )
                             attack_list = []
                             for a in attacks:
@@ -511,9 +501,8 @@ async def get_full_timeline_json(request, user):
                                 )
                             t_json["attack"] = attack_list
                         if data["artifacts"]:
-                            query = await taskartifact_query()
-                            artifacts = await db_objects.execute(
-                                query.where(TaskArtifact.task == t)
+                            artifacts = await app.db_objects.execute(
+                                taskartifact_query.where(TaskArtifact.task == t)
                             )
                             artifacts_list = []
                             for a in artifacts:
@@ -523,9 +512,8 @@ async def get_full_timeline_json(request, user):
                             "task": t_json
                         }
                         if data["cmd_output"]:
-                            query = await response_query()
-                            responses = await db_objects.execute(
-                                query.where(Response.task == t)
+                            responses = await app.db_objects.execute(
+                                response_query.where(Response.task == t)
                             )
                             if data["strict"] == "time":
                                 # this will get output as it happened, not grouped with the corresponding command
@@ -550,9 +538,8 @@ async def get_full_timeline_json(request, user):
                                     "responses": response_data,
                                 }
                 save_path = "./app/files/{}".format(str(uuid.uuid4()))
-                query = await operator_query()
-                operator = await db_objects.get(query, username=user["username"])
-                filemeta = await db_objects.create(
+                operator = await app.db_objects.get(operator_query, username=user["username"])
+                filemeta = await app.db_objects.create(
                     FileMeta,
                     total_chunks=1,
                     operation=operation,
@@ -566,7 +553,7 @@ async def get_full_timeline_json(request, user):
                 file.close()
                 filemeta.md5 = await hash_MD5(js.dumps(all_data))
                 filemeta.sha1 = await hash_SHA1(js.dumps(all_data))
-                await db_objects.update(filemeta)
+                await app.db_objects.update(filemeta)
                 return json({"status": "success", **filemeta.to_json()})
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))

@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import (
     C2Profile,
@@ -33,10 +34,8 @@ async def get_all_c2profiles(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     #  this syntax is atrocious for getting a pretty version of the results from a many-to-many join table)
-    query = await db_model.c2profile_query()
-    all_profiles = await db_objects.execute(query.where(C2Profile.deleted == False))
-    query = await db_model.payloadtypec2profile_query()
-    profiles = await db_objects.execute(query)
+    all_profiles = await app.db_objects.execute(db_model.c2profile_query.where(C2Profile.deleted == False))
+    profiles = await app.db_objects.execute(db_model.payloadtypec2profile_query)
     results = []
     inter = {}
     for p in all_profiles:
@@ -82,11 +81,9 @@ async def get_c2profiles_by_type(request, info, user):
 # this function will be useful by other files, so make it easier to use
 async def get_c2profiles_by_type_function(ptype):
     try:
-        query = await db_model.payloadtype_query()
-        payload_type = await db_objects.get(query, ptype=ptype)
-        query = await db_model.payloadtypec2profile_query()
-        profiles = await db_objects.execute(
-            query.where(PayloadTypeC2Profile.payload_type == payload_type)
+        payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=ptype)
+        profiles = await app.db_objects.execute(
+            db_model.payloadtypec2profile_query.where(PayloadTypeC2Profile.payload_type == payload_type)
         )
     except Exception as e:
         print(e)
@@ -113,8 +110,7 @@ async def start_stop_c2profile_webhook(request, user):
                 {"status": "error", "error": "Spectators cannot start c2 profiles"}
             )
         data = request.json["input"]
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=data["id"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=data["id"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
@@ -124,7 +120,7 @@ async def start_stop_c2profile_webhook(request, user):
         await send_all_operations_message(message=f"C2 Profile {profile.name} couldn't be contacted. Is it online? Check with ./status_check.sh",
                                           level="info", source="update_c2_profile")
         profile.running = False
-        await db_objects.update(profile)
+        await app.db_objects.update(profile)
         return json({"status": "error", "error": "Failed to contact C2 profile"})
     status = js.loads(status)
     if "running" in status:
@@ -136,7 +132,7 @@ async def start_stop_c2profile_webhook(request, user):
                 message=f"C2 Profile {profile.name} was manually stopped by {user['username']}",
                 level="warning", source="update_c2_profile")
         profile.running = status.pop("running")
-        await db_objects.update(profile)
+        await app.db_objects.update(profile)
     return json(status)
 
 
@@ -174,8 +170,7 @@ async def status_c2profile(request, user):
             )
         #print(request.json)
         data = request.json["input"]
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=data["id"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=data["id"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
@@ -186,7 +181,7 @@ async def status_c2profile(request, user):
     status = js.loads(status)
     if "running" in status:
         profile.running = status.pop("running")
-        await db_objects.update(profile)
+        await app.db_objects.update(profile)
     return json(status)
 
 
@@ -207,8 +202,7 @@ async def download_container_file_for_c2profiles_webhook(request, user):
         )
     try:
         data = request.json["input"]
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=data["id"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=data["id"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
@@ -222,7 +216,7 @@ async def download_container_file_for_c2profiles_webhook(request, user):
         status = js.loads(status)
         if "running" in status:
             profile.running = status.pop("running")
-            await db_objects.update(profile)
+            await app.db_objects.update(profile)
         return json(status)
     except Exception as e:
         return json({"status": "error", "error": "failed finding the file: " + str(e)})
@@ -251,8 +245,7 @@ async def upload_container_file_for_c2profiles_webhook(request, user):
                 }
             )
         data = request.json["input"]
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=data["id"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=data["id"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
@@ -265,7 +258,7 @@ async def upload_container_file_for_c2profiles_webhook(request, user):
         status = js.loads(status)
         if "running" in status:
             profile.running = status.pop("running")
-            await db_objects.update(profile)
+            await app.db_objects.update(profile)
         return json(status)
     except Exception as e:
         return json({"status": "error", "error": "failed writing the file: " + str(e)})
@@ -288,11 +281,9 @@ async def delete_c2profile(request, info, user):
             return json(
                 {"status": "error", "error": "Spectators cannot delete c2 profiles"}
             )
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
-        query = await db_model.payloadtypec2profile_query()
-        ptypec2profile = await db_objects.execute(
-            query.where(PayloadTypeC2Profile.c2_profile == profile)
+        profile = await app.db_objects.get(db_model.c2profile_query, id=info)
+        ptypec2profile = await app.db_objects.execute(
+            db_model.payloadtypec2profile_query.where(PayloadTypeC2Profile.c2_profile == profile)
         )
     except Exception as e:
         print(e)
@@ -300,10 +291,10 @@ async def delete_c2profile(request, info, user):
     try:
         # we will do this recursively because there can't be payloadtypec2profile mappings if the profile doesn't exist
         for p in ptypec2profile:
-            await db_objects.delete(p)
+            await app.db_objects.delete(p)
         profile.deleted = True
         profile.name = str(uuid.uuid1()) + " ( deleted " + str(profile.name) + ")"
-        await db_objects.update(profile)
+        await app.db_objects.update(profile)
         success = {"status": "success"}
         updated_json = profile.to_json()
         return json({**success, **updated_json})
@@ -325,17 +316,14 @@ async def get_c2profile_parameters(request, info, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=info)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find the c2 profile"})
     try:
-        query = await db_model.c2profileparameters_query()
-        parameters = await db_objects.execute(
-            query.where(
+        parameters = await app.db_objects.execute(
+            db_model.c2profileparameters_query.where(
                 (C2ProfileParameters.c2_profile == profile) &
                 (C2ProfileParameters.deleted == False)
             )
@@ -384,8 +372,7 @@ async def update_c2_profile(request, profile, user):
             return json(
                 {"status": "error", "error": "Spectators cannot modify c2 profiles"}
             )
-        query = await db_model.c2profile_query()
-        c2profile = await db_objects.get(query, id=profile)
+        c2profile = await app.db_objects.get(db_model.c2profile_query, id=profile)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
@@ -397,7 +384,7 @@ async def update_c2_profile(request, profile, user):
                 c2profile.running = False
                 await send_all_operations_message(message=f"C2 Profile {c2profile.name} has stopped",
                                                   level="info", source="update_c2_profile")
-            await db_objects.update(c2profile)
+            await app.db_objects.update(c2profile)
         return json(c2profile.to_json())
     except Exception as e:
         return json({"status": "error", "error": "failed finding the file: " + str(e)})
@@ -427,10 +414,8 @@ async def save_c2profile_parameter_value_instance(request, info, user):
                     "error": "Spectators cannot save c2 profile instances",
                 }
             )
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=info)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to get the c2 profile"})
@@ -441,9 +426,8 @@ async def save_c2profile_parameter_value_instance(request, info, user):
                 "error": "must supply an instance name for these values",
             }
         )
-    query = await db_model.c2profileparameters_query()
-    params = await db_objects.execute(
-        query.where(
+    params = await app.db_objects.execute(
+        db_model.c2profileparameters_query.where(
             (C2ProfileParameters.c2_profile == profile) &
             (C2ProfileParameters.deleted == False)
         )
@@ -453,7 +437,7 @@ async def save_c2profile_parameter_value_instance(request, info, user):
         try:
             if p.parameter_type in ['Array', 'Dictionary']:
                 data[p.name] = js.dumps(data[p.name])
-            created = await db_objects.create(
+            created = await app.db_objects.create(
                 C2ProfileParametersInstance,
                 c2_profile_parameters=p,
                 instance_name=data["instance_name"],
@@ -464,7 +448,7 @@ async def save_c2profile_parameter_value_instance(request, info, user):
             created_params.append(created)
         except Exception as e:
             for c in created_params:
-                await db_objects.delete(c)
+                await app.db_objects.delete(c)
             return json(
                 {
                     "status": "error",
@@ -488,14 +472,12 @@ async def get_all_c2profile_parameter_value_instances(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to get the current operation"})
-    query = await db_model.c2profileparametersinstance_query()
-    params = await db_objects.execute(
-        query.where(
+    params = await app.db_objects.execute(
+        db_model.c2profileparametersinstance_query.where(
             (C2ProfileParametersInstance.operation == operation)
             & (C2ProfileParametersInstance.instance_name != None)
         )
@@ -523,16 +505,13 @@ async def get_specific_c2profile_parameter_value_instances(request, info, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, id=info)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=info)
     except Exception as e:
         print(e)
         return json({"status": "error", "error": "failed to get the c2 profile"})
-    query = await db_model.c2profileparametersinstance_query()
-    params = await db_objects.execute(
-        query.where(
+    params = await app.db_objects.execute(
+        db_model.c2profileparametersinstance_query.where(
             (C2ProfileParametersInstance.operation == operation)
             & (C2ProfileParametersInstance.instance_name != None)
         )
@@ -570,11 +549,9 @@ async def delete_c2profile_parameter_value_instance(request, instance_name, user
         )
     name = unquote_plus(instance_name)
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.c2profileparametersinstance_query()
-        params = await db_objects.execute(
-            query.where(
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        params = await app.db_objects.execute(
+            db_model.c2profileparametersinstance_query.where(
                 (C2ProfileParametersInstance.instance_name == name)
                 & (C2ProfileParametersInstance.operation == operation)
                 & (C2ProfileParametersInstance.payload == None)
@@ -583,7 +560,7 @@ async def delete_c2profile_parameter_value_instance(request, instance_name, user
         )
         parameters_found = False
         for p in params:
-            await db_objects.delete(p)
+            await app.db_objects.delete(p)
             parameters_found = True
         if parameters_found:
             return json({"status": "success"})
@@ -599,15 +576,14 @@ async def import_c2_profile_func(data, operator):
     try:
         if "author" not in data:
             data["author"] = operator.username
-        query = await db_model.c2profile_query()
-        profile = await db_objects.get(query, name=data["name"])
+        profile = await app.db_objects.get(db_model.c2profile_query, name=data["name"])
         profile.description = data["description"]
         profile.author = data["author"]
         if "is_p2p" in data:
             profile.is_p2p = data["is_p2p"]
         if "is_server_routed" in data:
             profile.is_server_routed = data["is_server_routed"]
-        await db_objects.update(profile)
+        await app.db_objects.update(profile)
     except Exception as e:
         # this means the profile doesn't exit yet, so we need to create it
         new_profile = True
@@ -615,7 +591,7 @@ async def import_c2_profile_func(data, operator):
             data["is_p2p"] = False
         if "is_server_routed" not in data:
             data["is_server_routed"] = False
-        profile = await db_objects.create(
+        profile = await app.db_objects.create(
             C2Profile,
             name=data["name"],
             description=data["description"],
@@ -624,9 +600,8 @@ async def import_c2_profile_func(data, operator):
             is_server_routed=data["is_server_routed"],
         )
         # print("Created new c2 profile: {}".format(data['name']))
-    query = await db_model.c2profileparameters_query()
-    curr_parameters = await db_objects.execute(
-        query.where(
+    curr_parameters = await app.db_objects.execute(
+        db_model.c2profileparameters_query.where(
             (db_model.C2ProfileParameters.c2_profile == profile) &
             (db_model.C2ProfileParameters.deleted == False)
         )
@@ -634,9 +609,8 @@ async def import_c2_profile_func(data, operator):
     curr_parameters_dict = {c.name: c for c in curr_parameters}
     for param in data["params"]:
         try:
-            query = await db_model.c2profileparameters_query()
-            c2_profile_param = await db_objects.get(
-                query, name=param["name"], c2_profile=profile
+            c2_profile_param = await app.db_objects.get(
+                db_model.c2profileparameters_query, name=param["name"], c2_profile=profile
             )
             c2_profile_param.name = param["name"]
             c2_profile_param.default_value = param["default_value"]
@@ -647,10 +621,10 @@ async def import_c2_profile_func(data, operator):
             c2_profile_param.parameter_type = param["parameter_type"]
             c2_profile_param.verifier_regex = param["verifier_regex"]
             c2_profile_param.crypto_type = param["crypto_type"]
-            await db_objects.update(c2_profile_param)
+            await app.db_objects.update(c2_profile_param)
         except Exception as e:
             print(str(e))
-            await db_objects.create(
+            await app.db_objects.create(
                 C2ProfileParameters,
                 c2_profile=profile,
                 name=param["name"],
@@ -668,5 +642,5 @@ async def import_c2_profile_func(data, operator):
     #  anything left in curr_parameters_dict we need to delete
     for k, v in curr_parameters_dict.items():
         v.deleted = True
-        await db_objects.update(v)
+        await app.db_objects.update(v)
     return {"status": "success", "new": new_profile, **profile.to_json(), "profile": profile}

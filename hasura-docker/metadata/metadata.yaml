@@ -225,9 +225,6 @@ tables:
     schema: public
     name: callback
   object_relationships:
-  - name: callback
-    using:
-      foreign_key_constraint_on: pcallback_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
@@ -272,13 +269,6 @@ tables:
         table:
           schema: public
           name: callbackgraphedge
-  - name: callbacks
-    using:
-      foreign_key_constraint_on:
-        column: pcallback_id
-        table:
-          schema: public
-          name: callback
   - name: loadedcommands
     using:
       foreign_key_constraint_on:
@@ -286,13 +276,6 @@ tables:
         table:
           schema: public
           name: loadedcommands
-  - name: payloads
-    using:
-      foreign_key_constraint_on:
-        column: pcallback_id
-        table:
-          schema: public
-          name: payload
   - name: tasks
     using:
       foreign_key_constraint_on:
@@ -625,13 +608,6 @@ tables:
         table:
           schema: public
           name: payload
-  - name: processlists
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          schema: public
-          name: processlist
   - name: taskartifacts
     using:
       foreign_key_constraint_on:
@@ -772,9 +748,6 @@ tables:
     schema: public
     name: payload
   object_relationships:
-  - name: callback
-    using:
-      foreign_key_constraint_on: pcallback_id
   - name: filemetum
     using:
       foreign_key_constraint_on: file_id
@@ -941,16 +914,6 @@ tables:
       foreign_key_constraint_on: payload_type_id
 - table:
     schema: public
-    name: processlist
-  object_relationships:
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: task
-    using:
-      foreign_key_constraint_on: task_id
-- table:
-    schema: public
     name: response
   object_relationships:
   - name: task
@@ -1046,13 +1009,6 @@ tables:
         table:
           schema: public
           name: payload
-  - name: processlists
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          schema: public
-          name: processlist
   - name: responses
     using:
       foreign_key_constraint_on:
@@ -1093,7 +1049,7 @@ tables:
 actions:
 - name: createAPIToken
   definition:
-    handler: https://192.168.53.128:7443/api/v1.4/generate_apitoken
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/generate_apitoken'
     output_type: createAPITokenResponse!
     forward_client_headers: true
     arguments:

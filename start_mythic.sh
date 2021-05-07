@@ -119,6 +119,8 @@ get_config_value $config_file jwt_secret "jwt_secret" "null"
 get_config_value $config_file hasura_host "hasura_host" "127.0.0.1"
 get_config_value $config_file hasura_port "hasura_port" "8080"
 get_config_value $config_file hasura_secret "hasura_secret" "null"
+#redis configuration
+get_config_value $config_file redis_port "redis_port" "6379"
 
 # Setup database
 if [[ ! -f ".env" ]];
@@ -164,6 +166,7 @@ then
   echo "HASURA_SECRET=${hasura_secret}" >> .env
   echo "MYTHIC_SERVER_PORT=${mythic_server_port}" >> .env
   echo "MYTHIC_SERVER_HOST=${mythic_server_host}" >> .env
+  echo "REDIS_PORT=${redis_port}" >> .env
   echo ""
 fi
 

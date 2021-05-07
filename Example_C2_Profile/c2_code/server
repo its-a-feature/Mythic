@@ -37,13 +37,13 @@ async def agent_message(request, **kwargs):
         if request.method == "POST":
             # manipulate the request if needed
             #await MythicCallbackRPC().add_event_message(message="got a POST message")
-            response = requests.post(config['mythic_address'], data=request.body, verify=False, cookies=request.cookies, headers={"Mythic": "HTTP", **request.headers})
+            response = requests.post(config['mythic_address'], data=request.body, verify=False, cookies=request.cookies, headers={"Mythic": "http", **request.headers})
         else:
             # manipulate the request if needed
             #await MythicCallbackRPC().add_event_message(message="got a GET message")
             #msg = await MythicCallbackRPC().encrypt_bytes(with_uuid=True, data="my message".encode(), uuid="eaf10700-cb30-402d-b101-8e35d67cdb41")
             #await MythicCallbackRPC().add_event_message(message=msg.response)
-            response = requests.get(config['mythic_address'] + "?{}".format(request.query_string), verify=False, data=request.body, cookies=request.cookies, headers={"Mythic": "HTTP", **request.headers})
+            response = requests.get(config['mythic_address'] + "?{}".format(request.query_string), verify=False, data=request.body, cookies=request.cookies, headers={"Mythic": "http", **request.headers})
         return raw(response.content, headers=config[request.app.name]['headers'], status=response.status_code)
     except Exception as e:
         if request is None:

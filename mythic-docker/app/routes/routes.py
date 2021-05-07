@@ -1,14 +1,19 @@
 from app import (
     mythic,
-    db_objects,
     links,
     nginx_port,
     listen_port,
     mythic_admin_password,
     mythic_admin_user,
     default_operation_name,
+    mythic_db
 )
-from sanic.response import json, redirect
+import app
+import logging
+import asyncpg
+import redis
+from peewee_async import Manager
+from sanic.response import json
 from sanic import response
 from sanic.exceptions import (
     NotFound,
@@ -17,6 +22,7 @@ from sanic.exceptions import (
     SanicException,
     RequestTimeout,
 )
+import sys
 from jinja2 import Environment, PackageLoader
 from app.database_models.model import (
     Operator,
@@ -25,7 +31,6 @@ from app.database_models.model import (
     ATTACK,
     Artifact,
 )
-from app.forms.loginform import LoginForm, RegistrationForm
 import datetime
 import app.crypto as crypto
 from sanic_jwt import BaseEndpoint, utils, exceptions
@@ -35,7 +40,6 @@ from ipaddress import ip_address
 from app.routes.authentication import invalidate_refresh_token
 import app.database_models.model as db_model
 from sanic.log import logger
-from app.api.browserscript_api import set_default_scripts
 from uuid import uuid4
 
 
@@ -97,17 +101,11 @@ async def index(request, user):
 
 class Login(BaseEndpoint):
     async def get(self, request):
-        form = LoginForm(request)
-        errors = {}
-        successful_creation = request.args.pop("success", False)
-        errors["username_errors"] = "<br>".join(form.username.errors)
-        errors["password_errors"] = "<br>".join(form.password.errors)
+        error = ""
         template = env.get_template("login.html")
         content = template.render(
             links=await respect_pivot(links, request),
-            form=form,
-            errors=errors,
-            successful_creation=successful_creation,
+            error=error,
             config={},
             view_utc_time=False,
             ** await getSchemes(request)
@@ -115,144 +113,106 @@ class Login(BaseEndpoint):
         return response.html(content)
 
     async def post(self, request):
-        form = LoginForm(request)
-        errors = {}
-        if form.validate():
-            username = form.username.data
-            password = form.password.data
-            try:
-                query = await db_model.operator_query()
-                user = await db_objects.get(query, username=username)
-                if await user.check_password(password):
-                    if not user.active:
-                        form.username.errors = ["Account is not active, cannot log in"]
-                    else:
-                        try:
-                            user.last_login = datetime.datetime.utcnow()
-                            await db_objects.update(
-                                user
-                            )  # update the last login time to be now
-                            if user.current_operation is not None:
-                                # update that operations' event log that the user just signed in
-                                await db_objects.create(
-                                    db_model.OperationEventLog,
-                                    operator=None,
-                                    operation=user.current_operation,
-                                    message="{} signed in".format(user.username),
-                                )
-                            (
-                                access_token,
-                                output,
-                            ) = await self.responses.get_access_token_output(
-                                request,
-                                {"user_id": user.id, "auth": "cookie"},
-                                self.config,
-                                self.instance,
-                            )
-                            refresh_token = (
-                                await self.instance.auth.generate_refresh_token(
-                                    request, {"user_id": user.id, "auth": "cookie"}
-                                )
-                            )
-                            output.update(
-                                {self.config.refresh_token_name(): refresh_token}
-                            )
-                            template = env.get_template("login.html")
-                            content = template.render(
-                                links=await respect_pivot(links, request),
-                                form=form,
-                                errors=errors,
-                                access_token=access_token,
-                                ** await getSchemes(request),
-                                refresh_token=refresh_token,
-                                config={},
-                                view_utc_time=False,
-                            )
-                            resp = response.html(content)
-                            # resp = response.redirect("/")
-                            resp.cookies[
-                                self.config.cookie_access_token_name()
-                            ] = access_token
-                            resp.cookies[self.config.cookie_access_token_name()][
-                                "httponly"
-                            ] = True
-                            resp.cookies[
-                                self.config.cookie_refresh_token_name()
-                            ] = refresh_token
-                            resp.cookies[self.config.cookie_refresh_token_name()][
-                                "httponly"
-                            ] = True
-                            return resp
-                        except Exception as e:
-                            logger.error("post login error:" + str(e))
-                else:
-                    form.username.errors = ["Username or password invalid"]
-            except Exception as e:
-                logger.info(f"Unable to login as the user {username}. " + str(e))
-                form.username.errors = ["Username or password invalid"]
-        errors["username_errors"] = "<br>".join(form.username.errors)
-        errors["password_errors"] = "<br>".join(form.password.errors)
+        form = request.form
+        error = ""
+        username = None
+        from app.api.operation_api import send_all_operations_message
+        try:
+            username = form["username"][0]
+            password = form["password"][0]
+            user = await app.db_objects.get(db_model.operator_query, username=username)
+            if user.id == 1 and user.failed_login_count > 10 and (user.last_failed_login_timestamp
+                        > datetime.datetime.utcnow() + datetime.timedelta(seconds=-60)):
+                # throttle their attempts to log in to 1 min between checks
+                error = "Too many failed login attempts, try again later"
+                user.failed_login_count += 1
+                user.last_failed_login_timestamp = datetime.datetime.utcnow()
+                await app.db_objects.update(user)
+                await send_all_operations_message(message=f"Throttling login attempts for {user.username} due to too many failed login attempts ",
+                                                  level="warning", source="throttled_login_" + user.username)
+            elif not user.active:
+                error = "Account is not active, cannot log in"
+                await send_all_operations_message(message=f"Deactivated account {user.username} trying to log in",
+                                                  level="warning", source="deactivated_login_" + user.username)
+            elif await user.check_password(password):
+                try:
+                    # update the last login time to be now
+                    user.last_login = datetime.datetime.utcnow()
+                    user.failed_login_count = 0
+                    await app.db_objects.update(user)
+                    if user.current_operation is not None:
+                        # update that operations' event log that the user just signed in
+                        await app.db_objects.create(
+                            db_model.OperationEventLog,
+                            operator=None,
+                            operation=user.current_operation,
+                            message="{} signed in".format(user.username),
+                        )
+                    (
+                        access_token,
+                        output,
+                    ) = await self.responses.get_access_token_output(
+                        request,
+                        {"user_id": user.id, "auth": "cookie"},
+                        self.config,
+                        self.instance,
+                    )
+                    refresh_token = (
+                        await self.instance.auth.generate_refresh_token(
+                            request, {"user_id": user.id, "auth": "cookie"}
+                        )
+                    )
+                    output.update(
+                        {self.config.refresh_token_name(): refresh_token}
+                    )
+                    template = env.get_template("login.html")
+                    content = template.render(
+                        links=await respect_pivot(links, request),
+                        error=error,
+                        access_token=access_token,
+                        ** await getSchemes(request),
+                        refresh_token=refresh_token,
+                        config={},
+                        view_utc_time=False,
+                    )
+                    resp = response.html(content)
+                    # resp = response.redirect("/")
+                    resp.cookies[
+                        self.config.cookie_access_token_name()
+                    ] = access_token
+                    resp.cookies[self.config.cookie_access_token_name()][
+                        "httponly"
+                    ] = True
+                    resp.cookies[
+                        self.config.cookie_refresh_token_name()
+                    ] = refresh_token
+                    resp.cookies[self.config.cookie_refresh_token_name()][
+                        "httponly"
+                    ] = True
+                    return resp
+                except Exception as e:
+                    print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                    logger.error("post login error:" + str(e))
+            else:
+                # user exists, but password is wrong
+                error = "Username or password invalid"
+                user.failed_login_count += 1
+                if user.failed_login_count >= 10 and user.active:
+                    user.last_failed_login_timestamp = datetime.datetime.utcnow()
+                    if user.id != 1:
+                        user.active = False
+                        await send_all_operations_message(message=f"Deactivating account {user.username} due to too many failed logins",
+                                                      level="warning")
+                await app.db_objects.update(user)
+        except Exception as e:
+            print("failed auth")
+            if username is not None:
+                await send_all_operations_message(message=f"Attempt to login with unknown user: {username}",
+                                                  level="warning", source="unknown_login_" + username)
         template = env.get_template("login.html")
         content = template.render(
             links=await respect_pivot(links, request),
-            form=form,
-            errors=errors,
-            config={},
-            view_utc_time=False,
-            ** await getSchemes(request)
-        )
-        return response.html(content)
-
-
-class Register(BaseEndpoint):
-    async def get(self, request, *args, **kwargs):
-        errors = {}
-        form = RegistrationForm(request)
-        template = env.get_template("register.html")
-        content = template.render(
-            links=await respect_pivot(links, request),
-            form=form,
-            errors=errors,
-            config={},
-            view_utc_time=False,
-            ** await getSchemes(request)
-        )
-        return response.html(content)
-
-    async def post(self, request, *args, **kwargs):
-        errors = {}
-        form = RegistrationForm(request)
-        if form.validate():
-            username = form.username.data
-            salt = str(uuid4())
-            password = await crypto.hash_SHA512(salt + form.password.data)
-            # we need to create a new user
-            try:
-                user = await db_objects.create(
-                    Operator, username=username, password=password, admin=False, active=False, salt=salt
-                )
-                query = await db_model.operation_query()
-                operations = await db_objects.execute(query)
-                for o in operations:
-                    await db_objects.create(
-                        db_model.OperationEventLog,
-                        operator=None,
-                        operation=o,
-                        message="New user {} created".format(user.username),
-                    )
-                await set_default_scripts(user)
-                return response.redirect("/login?success=true")
-            except Exception as e:
-                # failed to insert into database
-                logger.error("Failed to insert user into database: " + str(e))
-                form.username.errors = ["Failed to create user"]
-        errors["username_errors"] = "<br>".join(form.username.errors)
-        template = env.get_template("register.html")
-        content = template.render(
-            links=await respect_pivot(links, request),
-            form=form,
-            errors=errors,
-            successful_creation=False,
+            error=error,
             config={},
             view_utc_time=False,
             ** await getSchemes(request)
@@ -322,10 +282,9 @@ async def logout(request, user):
     resp = response.redirect("/login")
     del resp.cookies["access_token"]
     del resp.cookies["refresh_token"]
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, id=user["id"])
+    operator = await app.db_objects.get(db_model.operator_query, id=user["id"])
     if operator.current_operation is not None:
-        await db_objects.create(
+        await app.db_objects.create(
             db_model.OperationEventLog,
             operator=None,
             operation=operator.current_operation,
@@ -389,48 +348,72 @@ async def check_ips(request):
         return json({"error": "Not Found"}, status=404)
 
 
+@mythic.middleware("response")
+async def add_cors(request, response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Headers"] = "authorization,content-type"
+
+
 @mythic.listener("before_server_start")
-async def setup_initial_info(app, loop):
+async def setup_initial_info(sanic, loop):
+    app.db_objects = Manager(mythic_db, loop=loop)
+    await mythic_db.connect_async(loop=loop)
+    app.db_objects.database.allow_sync = True  # logging.WARNING
     await initial_setup()
+    await app.api.rabbitmq_api.start_listening()
 
 
 async def initial_setup():
     # create mythic_admin
-    operators = await db_objects.execute(Operator.select())
+    app.websocket_pool = await asyncpg.create_pool(mythic.config["DB_POOL_ASYNCPG_CONNECT_STRING"],
+                                                   max_size=400)
+    # redis automatically creates a pool behind the scenes
+    app.redis_pool = redis.Redis(host="127.0.0.1", port=app.redis_port, db=0)
+    # clear the database on start
+    keys = app.redis_pool.keys("*")
+    for k in keys:
+        app.redis_pool.delete(k)
+    operators = await app.db_objects.execute(Operator.select())
     if len(operators) != 0:
         logger.info("Users already exist, aborting initial install")
         return
     salt = str(uuid4())
     password = await crypto.hash_SHA512(salt + mythic_admin_password)
-    admin, created = await db_objects.get_or_create(
-        Operator, username=mythic_admin_user, password=password, admin=True, active=True, salt=salt
-    )
+    try:
+        admin, created = await app.db_objects.get_or_create(
+            Operator, username=mythic_admin_user, password=password, admin=True, active=True, salt=salt
+        )
+    except Exception as e:
+        print(e)
+        return
     logger.info("Created Admin")
     # create default operation
-    operation, created = await db_objects.get_or_create(
+    operation, created = await app.db_objects.get_or_create(
         Operation,
         name=default_operation_name,
         admin=admin,
         complete=False,
     )
     logger.info("Created Operation")
-    await db_objects.get_or_create(
+    await app.db_objects.get_or_create(
         OperatorOperation, operator=admin, operation=operation
     )
     admin.current_operation = operation
-    await db_objects.update(admin)
+    await app.db_objects.update(admin)
     logger.info("Registered Admin with the default operation")
     logger.info("Started parsing ATT&CK data...")
     file = open("./app/default_files/other_info/attack.json", "r")
     attack = js.load(file)  # this is a lot of data and might take a hot second to load
     for obj in attack["techniques"]:
-        await db_objects.create(ATTACK, **obj)
+        await app.db_objects.create(ATTACK, **obj)
     file.close()
     logger.info("Created all ATT&CK entries")
     file = open("./app/default_files/other_info/artifacts.json", "r")
     artifacts_file = js.load(file)
     for artifact in artifacts_file["artifacts"]:
-        await db_objects.get_or_create(
+        await app.db_objects.get_or_create(
             Artifact, name=artifact["name"], description=artifact["description"]
         )
     file.close()
@@ -439,10 +422,8 @@ async def initial_setup():
 
 
 # /static serves out static images and files
-mythic.static("/static", "./app/static")
-mythic.static("/favicon.ico", "./app/static/favicon.ico")
-# / serves out the payloads we wish to host, make user supply a path they want to use, or just use file name
-mythic.static("/", "./app/payloads/operations/_hosting_dir")
+mythic.static("/static", "./app/static", name="shared_files")
+mythic.static("/favicon.ico", "./app/static/favicon.ico", name="favicon")
 mythic.static("/strict_time.png", "./app/static/strict_time.png", name="strict_time")
 mythic.static(
     "/grouped_output.png", "./app/static/grouped_output.png", name="grouped_output"

@@ -3,6 +3,7 @@ services:
         postgres:
                 build: ./postgres-docker
                 container_name: mythic_postgres
+                command: postgres -c "max_connections=400"
                 volumes:
                  - ./postgres-docker/database:/var/lib/postgresql/data
                 labels:
@@ -18,7 +19,7 @@ services:
                         POSTGRES_USER: "${POSTGRES_USER}"
                         POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
                 ports:
-                        - "5432:${POSTGRES_PORT}"
+                        - "${POSTGRES_PORT}:5432"
         rabbitmq:
                 build: ./rabbitmq-docker
                 container_name: mythic_rabbitmq
@@ -37,7 +38,7 @@ services:
                         RABBITMQ_DEFAULT_VHOST: "${RABBITMQ_VHOST}"
                 restart: on-failure
                 ports:
-                        - "5672:${RABBITMQ_PORT}"
+                        - "${RABBITMQ_PORT}:5672"
         server:
                 build: ./mythic-docker
                 network_mode: host
@@ -52,23 +53,34 @@ services:
                 labels:
                         NAME: "mythic_server"
                 environment:
-                        - POSTGRES_HOST=${POSTGRES_HOST}
-                        - POSTGRES_PORT=${POSTGRES_PORT}
-                        - POSTGRES_DB=${POSTGRES_DB}
-                        - POSTGRES_USER=${POSTGRES_USER}
-                        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-                        - RABBITMQ_HOST=${RABBITMQ_HOST}
-                        - RABBITMQ_PORT=${RABBITMQ_PORT}
-                        - RABBITMQ_USER=${RABBITMQ_USER}
-                        - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-                        - RABBITMQ_VHOST=${RABBITMQ_VHOST}
-                        - JWT_SECRET=${JWT_SECRET}
-                        - DEBUG
-                #depends_on:
-                #        - postgres
-                #        - rabbitmq
+                        - MYTHIC_POSTGRES_HOST=${POSTGRES_HOST}
+                        - MYTHIC_POSTGRES_PORT=${POSTGRES_PORT}
+                        - MYTHIC_POSTGRES_DB=${POSTGRES_DB}
+                        - MYTHIC_POSTGRES_USER=${POSTGRES_USER}
+                        - MYTHIC_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+                        - MYTHIC_RABBITMQ_HOST=${RABBITMQ_HOST}
+                        - MYTHIC_RABBITMQ_PORT=${RABBITMQ_PORT}
+                        - MYTHIC_RABBITMQ_USER=${RABBITMQ_USER}
+                        - MYTHIC_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+                        - MYTHIC_RABBITMQ_VHOST=${RABBITMQ_VHOST}
+                        - MYTHIC_JWT_SECRET=${JWT_SECRET}
+                        - MYTHIC_REDIS_PORT=${REDIS_PORT}
+                        - MYTHIC_DEBUG
                 restart: on-failure
                 command: ["/bin/bash", "/Mythic/start_mythic_server.sh"]
+        redis:
+                build: ./redis-docker
+                logging:
+                        driver: "json-file"
+                        options:
+                                max-file: "1"
+                                max-size: "10m"
+                labels:
+                        NAME: "mythic_redis"
+                container_name: mythic_redis
+                restart: always
+                ports:
+                        - "${REDIS_PORT}:6379"
         graphql:
                 build: ./hasura-docker
                 volumes:
@@ -87,6 +99,7 @@ services:
                 restart: always
                 environment:
                         HASURA_GRAPHQL_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+                        HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
                         ## enable the console served by server
                         HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # set to "false" to disable console
                         ## enable debugging mode. It is recommended to disable this in production
@@ -96,6 +109,7 @@ services:
                         HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY: "true"
                         HASURA_GRAPHQL_SERVER_PORT: ${HASURA_PORT}
                         HASURA_GRAPHQL_METADATA_DIR: /metadata
+                        HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: 500
                         HASURA_GRAPHQL_AUTH_HOOK: http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/graphql/webhook
                         MYTHIC_ACTIONS_URL_BASE: http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT}/api/v1.4
         nginx:
@@ -121,7 +135,7 @@ services:
                         MYTHIC_SERVER_PORT: ${MYTHIC_SERVER_PORT}
                         HASURA_HOST: ${HASURA_HOST}
                         HASURA_PORT: ${HASURA_PORT}
-                        NEW_UI_HOST: 127.0.0.1
+                        NEW_UI_HOST: ${MYTHIC_SERVER_HOST}
                         NEW_UI_PORT: 3000
         react:
                 build: ./mythic-react-docker

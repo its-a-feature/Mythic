@@ -2,7 +2,7 @@ server {
     listen       0.0.0.0:${NGINX_PORT} ssl;
     ssl_certificate      /etc/ssl/private/mythic-cert.crt;
     ssl_certificate_key  /etc/ssl/private/mythic-ssl.key;
-
+    client_max_body_size 500M; # allows file uploads up to 500 megabytes
     ssl_session_timeout 1d;
 
 
@@ -76,7 +76,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
     }
-    location ~(/static/js|/sockjs-node|/favicon.ico|/static/media) {
+    location ~(/static/js|/sockjs-node|/static/media) {
         proxy_pass http://${NEW_UI_HOST}:${NEW_UI_PORT};
         proxy_pass_request_headers on;
         proxy_pass_request_body on;
@@ -98,7 +98,7 @@ server {
         proxy_redirect off;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
