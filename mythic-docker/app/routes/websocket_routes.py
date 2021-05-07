@@ -678,6 +678,7 @@ async def unified_callback_callback(ws, operation, callback):
                 ), db_model.callbacktoken_query)
                 obj = list(obj)[0]
                 obj_json = obj.to_json()
+                obj_json["payload_os"] = obj.registered_payload.os
             elif "task" in channel:
                 obj = await app.db_objects.get(
                     db_model.task_query, id=msg_id, callback=callback
@@ -788,6 +789,7 @@ async def updatedcallback_callback(ws, operation):
         obj = cb.to_json(get_tokens=False)
         obj["tokens"] = []
         obj["channel"] = "updatedcallback"
+        obj["payload_os"] = cb.registered_payload.os
         asyncio.ensure_future(ws.send(js.dumps(obj)))
     return callback
 

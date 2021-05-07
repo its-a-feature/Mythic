@@ -1593,6 +1593,7 @@ var task_data = new Vue({
             }
             // first check to see if we have any information about this payload time to leverage
             if (callbacks[data['cid']]['payload_type'] in this.ptype_cmd_params) {
+
                 //now loop through all of the commands we have to see if any of them match what was typed
                 for (let i = 0; i < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']].length; i++) {
                     //special category of trying to do a local help
@@ -1639,7 +1640,12 @@ var task_data = new Vue({
                         return;
                     }
                     //if we find our command that was typed
-                    else if (this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] === command) {
+                    else if (this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] === command){
+                        if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]["attributes"]["supported_os"].length > 0  &&
+                !this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]["attributes"]["supported_os"].includes(callbacks[data['cid']]["payload_os"])){
+                            alertTop("warning", "That command isn't supported by this OS type");
+                            return;
+                        }
                         // if they didn't type any parameters, but we have some registered for this command, display a GUI for them
                         if (params.length === 0 && this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length !== 0) {
                             //if somebody specified command arguments on the commandline without going through the GUI, by all means, let them
@@ -1706,7 +1712,7 @@ var task_data = new Vue({
                                                 if(!(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["cmd"] === "help" ||
                                                     this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["cmd"] === "clear")){
                                                     let match = true;
-                                                    let cmd_attributes = JSON.parse(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["attributes"]);
+                                                    let cmd_attributes = this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["attributes"];
                                                     for(const [key, value] of Object.entries(filter)){
                                                         if(key === "spawn_and_injectable"){
                                                             if(value !== cmd_attributes[key]){
@@ -1729,7 +1735,7 @@ var task_data = new Vue({
                                             for(let c = 0; c < meta[data['cid']]['commands'].length; c++){
                                                 if(!(meta[data['cid']]['commands'][c]["name"] === "help" || meta[data['cid']]['commands'][c]["name"] === "clear")){
                                                     let match = true;
-                                                    let cmd_attributes = JSON.parse(meta[data['cid']]['commands'][c]["attributes"]);
+                                                    let cmd_attributes = meta[data['cid']]['commands'][c]["attributes"];
                                                     for(const [key, value] of Object.entries(filter)){
                                                         if(key === "spawn_and_injectable"){
                                                             if(value !== cmd_attributes[key]){
@@ -3508,11 +3514,15 @@ function register_new_command_info(response) {
         if (data['status'] === "success") {
             delete data['status'];
             if (data['commands'].length > 0) {
+                for(let i = 0; i < data["commands"].length; i++){
+                    data["commands"][i]["attributes"] = JSON.parse(data["commands"][i]["attributes"]);
+                }
                 data['commands'].push({
                     "cmd": "help",
                     "params": [],
                     "help_cmd": "help [command]",
                     "supported_ui_features": [],
+                    "attributes": {"supported_os": []},
                     "description": "get the description and cmd  usage of a command"
                 });
                 data['commands'].push({
@@ -3520,8 +3530,10 @@ function register_new_command_info(response) {
                     "params": [],
                     "help_cmd": "clear [all|task_num]",
                     "supported_ui_features": [],
+                    "attributes": {"supported_os": []},
                     "description": "clear a task from the server before an agent has picked it up"
                 });
+
                 task_data.ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
             }
         } else {
@@ -3768,6 +3780,7 @@ function startwebsocket_commands() {
                 // we're dealing with new/update/delete for a command
                 if (data['notify'] === "newcommand") {
                     data['params'] = [];
+                    data["attributes"] = JSON.parse(data["attributes"]);
                     task_data.ptype_cmd_params[data['payload_type']].push(data);
                 } else if (data['notify'] === "deletedcommand") {
                     // we don't get 'payload_type' like normal, instead, we get payload_type_id which doesn't help
@@ -3783,6 +3796,7 @@ function startwebsocket_commands() {
                 } else {
                     for (let i = 0; i < task_data.ptype_cmd_params[data['payload_type']].length; i++) {
                         if (task_data.ptype_cmd_params[data['payload_type']][i]['cmd'] === data['cmd']) {
+                            data["attributes"] = JSON.parse(data["attributes"]);
                             Vue.set(task_data.ptype_cmd_params[data['payload_type']], i, Object.assign({}, task_data.ptype_cmd_params[data['payload_type']][i], data));
                         }
                     }
@@ -3891,13 +3905,13 @@ function update_loaded_commands(data){
         meta[data['callback']]['commands'] = [];
     }
     if(data['channel'].includes("new")){
-        meta[data['callback']]['commands'].push({"name": data['command'], "version": data["version"], "attributes": data["attributes"]});
+        meta[data['callback']]['commands'].push({"name": data['command'], "version": data["version"], "attributes": JSON.parse(data["attributes"])});
         meta[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
     }else if(data['channel'].includes("updated")){
         for(let i = 0; i < meta[data['callback']]['commands'].length; i++){
             if(meta[data['callback']]['commands'][i]["name"] === data["command"]){
                 meta[data['callback']]['commands'][i]["version"] = data["version"];
-                 meta[data['callback']]['commands'][i]["attributes"] = data["attributes"];
+                 meta[data['callback']]['commands'][i]["attributes"] = JSON.parse(data["attributes"]);
                 return;
             }
         }
@@ -3952,7 +3966,11 @@ function autocomplete(inp, arr) {
         let element_count = 0;
         for (i = 0; i < meta[task_data.input_field_placeholder['cid']]["commands"].length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase())) {
+            if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase()) &&
+                (meta[task_data.input_field_placeholder['cid']]["commands"][i]["attributes"]["supported_os"].length === 0  ||
+                meta[task_data.input_field_placeholder['cid']]["commands"][i]["attributes"]["supported_os"].includes(callbacks[task_data.input_field_placeholder['cid']]["payload_os"])
+        )
+            ) {
                 /*create a DIV element for each matching element:*/
                 if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length > longest) {
                     longest = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length;

@@ -95,6 +95,11 @@ var callback_table = new Vue({
                     }
                     //if we find our command that was typed
                     else if (this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['cmd'] === command) {
+                        if(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]["attributes"]["supported_os"].length > 0 &&
+                        !this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]["attributes"]["supported_os"].includes(this.callbacks[data['id']]["payload_os"])){
+                            alertTop("warning", "That command isn't supported by this OS type");
+                            return;
+                        }
                         // if they didn't type any parameters, but we have some registered for this command, display a GUI for them
                         if (params.length === 0 && this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length !== 0) {
                             //if somebody specified command arguments on the commandline without going through the GUI, by all means, let them
@@ -531,6 +536,7 @@ function get_all_tasking_callback(response) {
             temp['host'] = data['host'];
             temp['payload_type'] = data['payload_type'];
             temp['c2_profile'] = data['c2_profile'];
+            temp["payload_os"] = data["payload_os"];
             temp['input_field'] = "";
             temp['input_field_placeholder'] = data['user'] + "@" + data['host'] + "(" + data['pid'] + ")";
             temp['init_callback'] = data['init_callback'];
@@ -570,9 +576,11 @@ function register_new_command_info(response) {
         let data = JSON.parse(response);
         if (data['status'] === "success") {
             delete data['status'];
-            data['commands'].push({"cmd": "help", "params": []});
-            data['commands'].push({"cmd": "set", "params": []});
-            data['commands'].push({"cmd": "clear", "params": []});
+            for(let i = 0; i < data["commands"].length; i++){
+                data["commands"][i]["attributes"] = JSON.parse(data["commands"][i]["attributes"]);
+            }
+            data['commands'].push({"cmd": "help", "params": [], "attributes": {"supported_os": []}});
+            data['commands'].push({"cmd": "clear", "params": [], "attributes": {"supported_os": []}});
             callback_table.ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
             for (let id in callback_table.callbacks) {
                 if (callback_table.callbacks[id]['payload_type'] === data['commands'][0]['payload_type']) {
@@ -715,7 +723,8 @@ function update_loaded_commands(data){
         callback_table.callbacks[data['callback']]['commands'] = [];
     }
     if(data['channel'].includes("new")){
-        callback_table.callbacks[data['callback']]['commands'].push({"name": data['command'], "version": data["version"]});
+        data["attributes"] = JSON.parse(data['attributes']);
+        callback_table.callbacks[data['callback']]['commands'].push({"name": data['command'], "version": data["version"], "attributes": data["attributes"]});
         callback_table.callbacks[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
     }else if(data['channel'].includes("updated")){
         for(let i = 0; i < callback_table.callbacks[data['callback']]['commands'].length; i++){
@@ -1014,6 +1023,7 @@ function startwebsocket_commands() {
                 // we're dealing with new/update/delete for a command
                 if (data['notify'] === "newcommand") {
                     data['params'] = [];
+                    data["attributes"] = JSON.parse(data["attributes"]);
                     callback_table.ptype_cmd_params[data['payload_type']].push(data);
                 } else if (data['notify'] === "deletedcommand") {
                     // we don't get 'payload_type' like normal, instead, we get payload_type_id which doesn't help
@@ -1029,6 +1039,7 @@ function startwebsocket_commands() {
                 } else {
                     for (let i = 0; i < callback_table.ptype_cmd_params[data['payload_type']].length; i++) {
                         if (callback_table.ptype_cmd_params[data['payload_type']][i]['cmd'] === data['cmd']) {
+                            data["attributes"] = JSON.parse(data["attributes"]);
                             Vue.set(callback_table.ptype_cmd_params[data['payload_type']], i, Object.assign({}, callback_table.ptype_cmd_params[data['payload_type']][i], data));
                         }
                     }
@@ -1232,7 +1243,10 @@ function autocomplete(inp, arr) {
         /*for each item in the array...*/
         for (i = 0; i < callback_table.callbacks[callback_id]["commands"].length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if (callback_table.callbacks[callback_id]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase())) {
+            if (callback_table.callbacks[callback_id]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase()) &&
+                (callback_table.callbacks[callback_id]["commands"][i]["attributes"]["supported_os"].length === 0 ||
+                callback_table.callbacks[callback_id]["commands"][i]["attributes"]["supported_os"].includes(callback_table.callbacks[callback_id]["payload_os"]))
+            ) {
                 /*create a DIV element for each matching element:*/
                 if (callback_table.callbacks[callback_id]["commands"][i]["name"].length > longest) {
                     longest = callback_table.callbacks[callback_id]["commands"][i]["name"].length;

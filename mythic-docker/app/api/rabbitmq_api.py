@@ -394,7 +394,14 @@ async def get_file(task_id: int, filename: str = None, limit_by_callback: bool =
     :param limit_by_callback: Set this to True if you only want to search for files that are tied to this callback. This is useful if you're doing this as part of another command that previously loaded files into this callback's memory.
     :param max_results: The number of results you want back. 1 will be the latest file uploaded with that name, -1 will be all results.
     :param get_contents: Boolean of if you want to fetch file contents or just metadata
-    :return: An array of all the matching files
+    :return: An array of dictionaries representing the FileMeta.to_json() representation of all matching files. When "get_contents" is True, each entry in this array will also have a "contents" key with the base64 representation of the associated file if it hasn't been deleted, or None if it has.
+    For an example-
+    resp = await MythicRPC().execute("get_file", task_id=task.id, filename="myAssembly.exe")
+    resp.response <--- this is an array
+    resp.response[0] <--- this is the most recently registered matching file where filename="myAssembly.exe"
+    resp.response[0]["filename"] <-- the filename of that first result
+    resp.response[0]["contents"] <--- the base64 representation of that file
+    All of the possible dictionary keys are available at https://github.com/its-a-feature/Mythic/blob/master/mythic-docker/app/database_models/model.py for the FileMeta class
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -1350,6 +1357,28 @@ async def add_event_message(request):
         return {"status": "error", "error": str(e)}
 
 
+async def create_event_message(task_id: int, message: str, warning: bool = False):
+    """
+    Create a message in the Event feed within the UI as an info message or as a warning
+    :param task_id: The ID number of the task performing this action (task.id)
+    :param message: The message you want to send
+    :param warning: If this is True, the message will be a "warning" message
+    :return:
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        msg = await app.db_objects.create(
+            db_model.OperationEventLog,
+            level="warning" if warning else "info",
+            operation=task.callback.operation,
+            message=message
+        )
+        asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_new"))
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 async def add_command_attack_to_task(task, command):
     try:
         attack_mappings = await app.db_objects.execute(
@@ -1806,6 +1835,7 @@ exposed_rpc_endpoints = {
     "create_artifact": create_artifact,
     "create_keylog": create_keylog,
     "create_output": create_output,
+    "create_event_message": create_event_message,
     "create_credential": create_credential,
     "create_file_browser": create_file_browser,
     "create_payload_on_host": create_payload_on_host,

@@ -565,29 +565,30 @@ var profile_parameters_table = new Vue({
                         let data = JSON.parse(response);
                         profile_parameters_table.payload_command_options = [];
                         if (data['status'] === 'success') {
-                            data["commands"] = data["commands"].reduce((total, cur) => {
-                                try{
-                                    let attributes = JSON.parse(cur["attributes"]);
-                                    if(attributes.hasOwnProperty("supported_os")){
-                                        if(attributes["supported_os"].includes(profile_parameters_table.selected_os) || attributes["supported_os"].length === 0){
-                                            return [...total, cur];
-                                        }else{
-                                            return [...total];
-                                        }
-                                    }else{
-                                        return [...total, cur];
-                                    }
-                                }catch(error){
-                                    console.log("error trying to parse attributes: " + error.toString());
-                                    return [...total, cur];
-                                }
-                            }, []);
-                            profile_parameters_table.payload_command_options = data['commands'];
                             if (!all_payload_type_data[val]['supports_dynamic_loading']) {
                                 profile_parameters_table.command_message = "The selected payload type doesn't support dynamic loading of modules, so all commands are selected";
+                                profile_parameters_table.payload_command_options = data['commands'];
                                 profile_parameters_table.selected_payload_commands = profile_parameters_table.payload_command_options;
                                 profile_parameters_table.disable_commands = true;
                             } else {
+                                data["commands"] = data["commands"].reduce((total, cur) => {
+                                    try{
+                                        let attributes = JSON.parse(cur["attributes"]);
+                                        if(attributes.hasOwnProperty("supported_os")){
+                                            if(attributes["supported_os"].includes(profile_parameters_table.selected_os) || attributes["supported_os"].length === 0){
+                                                return [...total, cur];
+                                            }else{
+                                                return [...total];
+                                            }
+                                        }else{
+                                            return [...total, cur];
+                                        }
+                                    }catch(error){
+                                        console.log("error trying to parse attributes: " + error.toString());
+                                        return [...total, cur];
+                                    }
+                                }, []);
+                                profile_parameters_table.payload_command_options = data['commands'];
                                 profile_parameters_table.command_message = "Select the command functionality you want stamped into your initial payload. Commands can potentially loaded in later as well. Minimizing the number of commands in initial payloads can safeguard capabilities from defenders"
                                 profile_parameters_table.disable_commands = false;
                                 profile_parameters_table.selected_payload_commands = [];
@@ -710,7 +711,7 @@ function startwebsocket_rabbitmq_build_finished() {
                     global_uuids[data['uuid']] = true;
                 } else if (data['build_phase'] === "error") {
                     clearTop();
-                    alertTop("danger", data['build_error'] === "" ? data["build_message"] : data["build_error"], 0, "Uh oh, something went wrong.");
+                    alertTop("danger", data['build_stderr'] === "" ? data["build_message"] : data["build_stderr"], 0, "Uh oh, something went wrong.");
                     global_uuids[data['uuid']] = true;
                 }
             }
