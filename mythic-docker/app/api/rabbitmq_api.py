@@ -218,54 +218,56 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     await app.db_objects.update(payload)
                     asyncio.create_task(log_to_siem(mythic_object=payload, mythic_source="payload_new"))
                 elif pieces[3] == "command_transform":
-                    task = await app.db_objects.get(db_model.task_query, id=pieces[4])
-                    if pieces[5] == "error":
-                        # create a response that there was an error and set task to processed
-                        task.status = "error"
-                        task.completed = True
-                        task.timestamp = datetime.datetime.utcnow()
-                        task.status_timestamp_submitted = task.timestamp
-                        task.status_timestamp_processed = task.timestamp
-                        await app.db_objects.create(
-                            db_model.Response,
-                            task=task,
-                            response=message.body.decode("utf-8"),
-                        )
-                        await app.db_objects.update(task)
-                    elif pieces[5] == "opsec_pre":
-                        tmp = json.loads(message.body)
-                        task.opsec_pre_blocked = tmp["opsec_pre_blocked"]
-                        task.opsec_pre_message = tmp["opsec_pre_message"]
-                        task.opsec_pre_bypass_role = tmp["opsec_pre_bypass_role"]
-                        await app.db_objects.update(task)
-                    elif pieces[5] == "opsec_post":
-                        tmp = json.loads(message.body)
-                        task.opsec_post_blocked = tmp["opsec_post_blocked"]
-                        task.opsec_post_message = tmp["opsec_post_message"]
-                        task.opsec_post_bypass_role = tmp["opsec_post_bypass_role"]
-                        await app.db_objects.update(task)
-                    else:
-                        tmp = json.loads(message.body)
-                        task.params = tmp["args"]
-                        task.stdout = tmp["stdout"]
-                        task.stderr = tmp["stderr"]
-                        if "display_params" in tmp:
-                            task.display_params = tmp["display_params"]
-                        else:
-                            task.display_params = task.original_params
-                        task.timestamp = datetime.datetime.utcnow()
-                        if pieces[5] == "success":
-                            task.status = "submitted"
-                        elif pieces[5] == "completed":
-                            task.status = "processed"
-                            task.status_timestamp_processed = task.timestamp
+                    async with app.db_objects.atomic():
+                        task = await app.db_objects.execute(db_model.Task.select().where(db_model.Task.id == pieces[4]).for_update())
+                        task = list(task)[0]
+                        if pieces[5] == "error":
+                            # create a response that there was an error and set task to processed
+                            task.status = "error"
                             task.completed = True
+                            task.timestamp = datetime.datetime.utcnow()
+                            task.status_timestamp_submitted = task.timestamp
+                            task.status_timestamp_processed = task.timestamp
+                            await app.db_objects.create(
+                                db_model.Response,
+                                task=task,
+                                response=message.body.decode("utf-8"),
+                            )
+                            await app.db_objects.update(task)
+                        elif pieces[5] == "opsec_pre":
+                            tmp = json.loads(message.body)
+                            task.opsec_pre_blocked = tmp["opsec_pre_blocked"]
+                            task.opsec_pre_message = tmp["opsec_pre_message"]
+                            task.opsec_pre_bypass_role = tmp["opsec_pre_bypass_role"]
+                            await app.db_objects.update(task)
+                        elif pieces[5] == "opsec_post":
+                            tmp = json.loads(message.body)
+                            task.opsec_post_blocked = tmp["opsec_post_blocked"]
+                            task.opsec_post_message = tmp["opsec_post_message"]
+                            task.opsec_post_bypass_role = tmp["opsec_post_bypass_role"]
+                            await app.db_objects.update(task)
                         else:
-                            task.status = pieces[5]
-                        task.status_timestamp_submitted = task.timestamp
-                        await app.db_objects.update(task)
-                        asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_new"))
-                        asyncio.create_task(add_command_attack_to_task(task, task.command))
+                            tmp = json.loads(message.body)
+                            task.params = tmp["args"]
+                            task.stdout = tmp["stdout"]
+                            task.stderr = tmp["stderr"]
+                            if "display_params" in tmp:
+                                task.display_params = tmp["display_params"]
+                            else:
+                                task.display_params = task.original_params
+                            task.timestamp = datetime.datetime.utcnow()
+                            if pieces[5] == "success":
+                                task.status = "submitted"
+                            elif pieces[5] == "completed":
+                                task.status = "processed"
+                                task.status_timestamp_processed = task.timestamp
+                                task.completed = True
+                            else:
+                                task.status = pieces[5]
+                            task.status_timestamp_submitted = task.timestamp
+                            await app.db_objects.update(task)
+                            asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_new"))
+                            asyncio.create_task(add_command_attack_to_task(task, task.command))
                 elif pieces[3] == "sync_classes":
                     if pieces[6] == "":
                         # this was an auto sync from starting a container
