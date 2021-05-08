@@ -953,7 +953,7 @@
 </div>
 <!-- END MODAL FOR VIEW LOADED COMMANDS -->
 <!-- THIS IS OUR MODAL FOR ADDING A COMMENT -->
-<div class="modal fade" id="addCommentModal" role="dialog" style="max-height: calc(90vh)">
+<div class="modal fade" id="addCommentModal" role="dialog" style="display:table;max-height: calc(90vh);height:auto;overflow-y:auto">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
@@ -961,8 +961,8 @@
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             Shift+Enter to add a new line, Enter to submit
-              <div class="modal-body">
-                <textarea class="form-control" rows="5" style="width:100%" id="addCommentTextArea"></textarea>
+              <div class="modal-body" style="">
+                <textarea class="form-control" rows="25" style="width:100%" id="addCommentTextArea"></textarea>
               </div>
               <div class="modal-footer">
                 <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" id="addCommentSubmit" aria-hidden="true">Submit</button>
