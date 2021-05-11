@@ -1768,7 +1768,13 @@ var task_data = new Vue({
                                 }else if(param.type === "Number") {
                                     param.number_value = param.default_value;
                                 }else if(param.type === "File"){
-
+                                    try {
+                                        //if there is a file param
+                                        $('#fileparam' + param.id).val('');
+                                    } catch (error) {
+                                        console.log(error.toString());
+                                        // if this is the first time the parameter is created, it'll error out which is expected
+                                    }
                                 }else if(param.type === "Boolean"){
                                     if(typeof param.default_value === "string"){
                                         try{

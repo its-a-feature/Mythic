@@ -20,4 +20,5 @@ if [ ! -d "./postgres-docker/database" ]; then
     mkdir "./postgres-docker/database"
 fi
 echo -e "${GREEN}[+]${NC} Successfully removed the postgres database"
+echo -e "${BLUE}[*]${NC} If you're upgrading Mythic, be sure to delete your Mythic/.env file as well"
 echo -e "${BLUE}[*]${NC} Start Mythic again with ./start_mythic.sh"
