@@ -152,8 +152,15 @@ var searches = new Vue({
                          let data = JSON.parse(response);
                          task.response = data['responses'];
                          if(task['command_id'] in browser_scripts){
-                            task['use_scripted'] = true;
-                            task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
+                             try {
+                                 task['use_scripted'] = true;
+                                 task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
+                             }catch(error){
+                                task['use_scripted'] = false;
+                                task['scripted'] = "";
+                                console.log(error.toString());
+                                alertTop("warning", task["command"] + " hit a browserscript exception");
+                            }
                         }
                         searches.$forceUpdate();
                      }catch(error){

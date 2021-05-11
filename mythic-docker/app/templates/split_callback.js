@@ -356,8 +356,15 @@ var callback_table = new Vue({
                         let data = JSON.parse(response);
                         task.responses = data['responses'];
                         if (task['command_id'] in browser_scripts) {
-                            task['use_scripted'] = true;
-                            task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['responses']));
+                            try{
+                                task['use_scripted'] = true;
+                                task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['responses']));
+                            }catch(error){
+                                task["use_scripted"] = false;
+                                task["scripted"] = "";
+                                console.log(error.toString());
+                                alertTop("warning", task["command"] + " hit a browserscript exception");
+                            }
                         }
                     } catch (error) {
                         alertTop("danger", "Session expired, please refresh");
@@ -650,8 +657,15 @@ function add_new_response(rsp, from_websocket) {
                 'response': updated_response
             });
             if (rsp['task']['command_id'] in browser_scripts) {
-                callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = true;
-                callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['scripted'] = browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['responses']));
+                try{
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = true;
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['scripted'] = browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['responses']));
+                }catch(error){
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = false;
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['scripted'] = "";
+                    console.log(error.toString());
+                    alertTop("warning", rsp['task']["command"] + " hit a browserscript exception");
+                }
             }
             callback_table.$forceUpdate();
             if (from_websocket) {

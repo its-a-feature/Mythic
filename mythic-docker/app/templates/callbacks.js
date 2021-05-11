@@ -3649,7 +3649,13 @@ function add_new_response(rsp, from_websocket) {
             all_tasks[rsp['task']['callback']][rsp['task']['id']]['expanded'] = true;
             //now that the new response has been added, potentially update the scripted version
             if (Object.prototype.hasOwnProperty.call(browser_scripts, rsp['task']['command_id']) && all_tasks[rsp['task']['callback']][rsp['task']['id']]['use_scripted']) {
-                Vue.set(all_tasks[rsp['task']['callback']][rsp['task']['id']], 'scripted', browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(all_tasks[rsp['task']['callback']][rsp['task']['id']]['response'])));
+                try {
+                    Vue.set(all_tasks[rsp['task']['callback']][rsp['task']['id']], 'scripted', browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(all_tasks[rsp['task']['callback']][rsp['task']['id']]['response'])));
+                }catch(error){
+                    Vue.set(all_tasks[rsp['task']['callback']][rsp['task']['id']], "use_scripted", false);
+                    console.log(error.toString());
+                    alertTop("warning", rsp['task']["command"] + " hit a browserscript exception");
+                }
             }
             if (from_websocket) {
                 //we want to make sure we have this expanded by default
