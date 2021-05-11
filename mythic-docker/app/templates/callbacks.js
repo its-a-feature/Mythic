@@ -1595,6 +1595,7 @@ var task_data = new Vue({
             if (callbacks[data['cid']]['payload_type'] in this.ptype_cmd_params) {
 
                 //now loop through all of the commands we have to see if any of them match what was typed
+
                 for (let i = 0; i < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']].length; i++) {
                     //special category of trying to do a local help
                     if (command === "help") {
@@ -1644,6 +1645,16 @@ var task_data = new Vue({
                         if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]["attributes"]["supported_os"].length > 0  &&
                 !this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]["attributes"]["supported_os"].includes(callbacks[data['cid']]["payload_os"])){
                             alertTop("warning", "That command isn't supported by this OS type");
+                            return;
+                        }
+                        let command_in_callback = false;
+                        for(let j = 0; j < meta[task_data.input_field_placeholder['cid']]["commands"].length; j++){
+                            if(meta[task_data.input_field_placeholder['cid']]["commands"][j]["name"] === command){
+                                command_in_callback = true;
+                            }
+                        }
+                        if(!command_in_callback){
+                            alertTop("warning", command + " isn't in the current callback");
                             return;
                         }
                         // if they didn't type any parameters, but we have some registered for this command, display a GUI for them

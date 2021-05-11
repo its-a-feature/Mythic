@@ -100,6 +100,17 @@ var callback_table = new Vue({
                             alertTop("warning", "That command isn't supported by this OS type");
                             return;
                         }
+                        let command_in_callback = false;
+                        for(let j = 0; j < callback_table.callbacks[data["id"]]["commands"].length; j++){
+                            if(callback_table.callbacks[data["id"]]["commands"][j]["name"] === command){
+                                command_in_callback = true;
+                            }
+                        }
+                        if(!command_in_callback){
+                            alertTop("warning", command + " isn't in the current callback");
+                            return;
+                        }
+
                         // if they didn't type any parameters, but we have some registered for this command, display a GUI for them
                         if (params.length === 0 && this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length !== 0) {
                             //if somebody specified command arguments on the commandline without going through the GUI, by all means, let them
