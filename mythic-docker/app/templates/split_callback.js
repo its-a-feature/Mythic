@@ -225,9 +225,9 @@ var callback_table = new Vue({
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['array_value'];
                                     } else if (params_table.command_params[k]['type'] === "File") {
                                         let param_name = params_table.command_params[k]['name'];
-                                        file_data[param_name] = document.getElementById('fileparam' + param_name).files[0];
+                                        file_data[param_name] = document.getElementById('fileparam' + params_table.command_params[k]["id"]).files[0];
                                         param_data[param_name] = "FILEUPLOAD";
-                                        document.getElementById('fileparam' + param_name).value = "";
+                                        document.getElementById('fileparam' + params_table.command_params[k]["id"]).value = "";
                                         //console.log(document.getElementById('fileparam' + param_name));
                                     } else if (params_table.command_params[k]['type'] === 'PayloadList') {
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['payloadlist_value'];

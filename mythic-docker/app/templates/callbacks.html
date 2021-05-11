@@ -1064,7 +1064,7 @@
                                 <button class="btn btn{{config['outline-buttons']}}success btn-sm" @click="command_params_add_array_element(param);"><i class="fas fa-plus"></i> </button>
                             </span>
                             <span v-else-if="param.type == 'File'">
-                                <input class="form-control-file" type="file" :id="'fileparam' + param.name">
+                                <input class="form-control-file" type="file" :id="'fileparam' + param.id">
                             </span>
                             <span v-else-if="param.type === 'PayloadList'">
                                 <select :id="'paramindex' + pindex" class="form-control" v-model="param.payloadlist_value">

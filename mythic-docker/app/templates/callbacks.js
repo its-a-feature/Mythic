@@ -1765,8 +1765,10 @@ var task_data = new Vue({
                                     }
                                 }else if(param.type === "String"){
                                     param.string_value = param.default_value;
-                                }else if(param.type === "Number"){
+                                }else if(param.type === "Number") {
                                     param.number_value = param.default_value;
+                                }else if(param.type === "File"){
+
                                 }else if(param.type === "Boolean"){
                                     if(typeof param.default_value === "string"){
                                         try{
@@ -1880,9 +1882,10 @@ var task_data = new Vue({
                                         case "File": {
                                             try {
                                                 //if there is a file param
-                                                $('#fileparam' + param.name)[0].value = '';
+                                                $('#fileparam' + param.id).val('');
                                             } catch (error) {
-                                                // if this is the first time the paramer is created, it'll error out which is expected
+                                                console.log(error.toString());
+                                                // if this is the first time the parameter is created, it'll error out which is expected
                                             }
                                         }
                                     }
@@ -1988,7 +1991,8 @@ var task_data = new Vue({
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['array_value'];
                                     } else if (params_table.command_params[k]['type'] === "File") {
                                         let param_name = params_table.command_params[k]['name'];
-                                        file_data[param_name] = document.getElementById('fileparam' + param_name).files[0];
+                                        console.log(params_table.command_params[k]);
+                                        file_data[param_name] = document.getElementById('fileparam' + params_table.command_params[k]["id"]).files[0];
                                         param_data[param_name] = "FILEUPLOAD";
                                     } else if (params_table.command_params[k]['type'] === 'PayloadList') {
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['payloadlist_value'];

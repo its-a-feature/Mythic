@@ -1701,6 +1701,7 @@ async def callbacks_get_all_tasking(request, user, cid):
         callback = list(callback)[0]
         cb_json = callback.to_json()
         cb_json["tasks"] = []
+        cb_json["payload_os"] = callback.registered_payload.os
         tasks = await app.db_objects.execute(
             db_model.task_query.where(Task.callback == callback).order_by(Task.id)
         )
