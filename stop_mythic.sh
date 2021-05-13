@@ -18,6 +18,7 @@ output=`docker container rm $(docker container ps -aq --filter name="mythic_post
 output=`docker container rm $(docker container ps -aq --filter name="mythic_graphql") 2>/dev/null`
 output=`docker container rm $(docker container ps -aq --filter name="mythic_nginx") 2>/dev/null`
 output=`docker container rm $(docker container ps -aq --filter name="mythic_react") 2>/dev/null`
+output=`docker container rm $(docker container ps -aq --filter name="mythic_redis") 2>/dev/null`
 # stop the c2 profiles
 ./stop_c2_profiles.sh
 # stop the payload type containers
