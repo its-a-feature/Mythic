@@ -396,9 +396,10 @@ async def parse_agent_message(data: str, request, profile: str):
                 level="info", source="debug", operation=enc_key["payload"].operation)
         if decrypted["action"] == "get_tasking":
             response_data = await get_agent_tasks(decrypted, enc_key["callback"])
-            delegates = await get_routable_messages(enc_key["callback"], request)
-            if delegates is not None:
-                response_data["delegates"] = delegates
+            if "get_delegate_tasks" not in decrypted or decrypted["get_delegate_tasks"] is True:
+                delegates = await get_routable_messages(enc_key["callback"], request)
+                if delegates is not None:
+                    response_data["delegates"] = delegates
             agent_uuid = UUID
         elif decrypted["action"] == "post_response":
             response_data = await post_agent_response(decrypted, enc_key["callback"])
@@ -443,6 +444,9 @@ async def parse_agent_message(data: str, request, profile: str):
                 return "", 404, new_callback, agent_uuid
         elif decrypted["action"] == "update_info":
             response_data = await update_callback(decrypted, UUID)
+            delegates = await get_routable_messages(enc_key["callback"], request)
+            if delegates is not None:
+                response_data["delegates"] = delegates
             agent_uuid = UUID
         elif decrypted["action"] == "translation_staging":
             # this was already processed as part of our contact to the translation container
