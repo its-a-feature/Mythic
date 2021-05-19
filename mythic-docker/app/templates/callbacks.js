@@ -1653,6 +1653,7 @@ var task_data = new Vue({
                                 command_in_callback = true;
                             }
                         }
+                        if(command === "clear") { command_in_callback = true}
                         if(!command_in_callback){
                             alertTop("warning", command + " isn't in the current callback");
                             return;
