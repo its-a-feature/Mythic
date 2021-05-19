@@ -1025,7 +1025,7 @@ async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, ta
     except:
         # we're not using this port, so we can use it
         pass
-    print("starting rportfwd")
+    #print("starting rportfwd")
     server_address = ('0.0.0.0', port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(server_address)
@@ -1041,9 +1041,7 @@ async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, ta
         "state": 1,
         "sock":sock,
         "rport": rport,
-        "rip": rip,
-        "last_msg": 0,
-        "last_msg_send": 0
+        "rip": rip
     }
     callback_port[port] = callback
     #callback.port = port
@@ -1123,7 +1121,9 @@ def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
                     kwargs={"port": port,"connection": connection, "id": id, "callback_id": callback_id},
                 ),
                 "queue": deque(),
-                "queue_send":{}
+                "queue_send":{},
+                "last_msg":0,
+                "last_msg_send":0
             }
             cached_rportfwd[callback_id][port]["connections"].append(conn_sock)
             cached_rportfwd[callback_id][port]["connections"][id]["thread_read"].start()
@@ -1136,22 +1136,16 @@ def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
 def thread_write_rportfwd(port: int,connection: socket, id: int, callback_id: int) -> None:
     try:
         while (cached_rportfwd[callback_id][port]["state"] == 1):
-            if cached_rportfwd[callback_id][port]["last_msg"] in cached_rportfwd[callback_id][port]["connections"][id]["queue_send"]:
-                last_msg = cached_rportfwd[callback_id][port]["last_msg"]
+            if cached_rportfwd[callback_id][port]["connections"][id]["last_msg"] in cached_rportfwd[callback_id][port]["connections"][id]["queue_send"]:
+                last_msg = cached_rportfwd[callback_id][port]["connections"][id]["last_msg"]
                 msg = base64.b64decode(cached_rportfwd[callback_id][port]["connections"][id]["queue_send"][last_msg])
-                worked = False
-                while worked == False:
-                    try:
-                        cached_rportfwd[callback_id][port]["connections"][id]["connection"].sendall(msg)
-                        worked = True
-                        del cached_rportfwd[callback_id][port]["connections"][id]["queue_send"][last_msg]
-                    except:
-                        pass
-                        #print("error sending")
-                cached_rportfwd[callback_id][port]["last_msg"] = last_msg + 1
+                cached_rportfwd[callback_id][port]["connections"][id]["connection"].sendall(msg)
+                del cached_rportfwd[callback_id][port]["connections"][id]["queue_send"][last_msg]
+                cached_rportfwd[callback_id][port]["connections"][id]["last_msg"] = last_msg + 1
     except Exception as e:
         print("Thread Error: "+str(e))
         try:
+            cached_rportfwd[callback_id][port]["connections"][id]["last_msg_send"] = -1
             connection.close()
         except:
             pass
@@ -1169,6 +1163,7 @@ def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int
     except Exception as e:
             #print("*" * 10 + "Got exception from reading socket data" + "*" * 10)
         try:
+            cached_rportfwd[callback_id][port]["connections"][id]["last_msg_send"] = -1
             connection.close()
         except:
             pass
@@ -1194,8 +1189,8 @@ async def get_rportfwd_data(callback: Callback):
                     dict_conn[str(port)][str(rport)][str(rip)][str(id)] = {}
                     while (len(cached_rportfwd[callback.id][port]["connections"][id]["queue"]) > 0):
                         try:
-                            dict_conn[str(port)][str(rport)][str(rip)][str(id)][cached_rportfwd[callback.id][port]["last_msg_send"]] = connection["queue"].popleft()
-                            cached_rportfwd[callback.id][port]["last_msg_send"] = cached_rportfwd[callback.id][port]["last_msg_send"] + 1
+                            dict_conn[str(port)][str(rport)][str(rip)][str(id)][cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"]] = connection["queue"].popleft()
+                            cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] = cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] + 1
                         except Exception as e:
                             print("Get Forwarded data error: "+str(e))
                     #deque the rest for the next time, this avoids hanging connections
