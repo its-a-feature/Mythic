@@ -11,7 +11,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export function CallbacksTabs({callbacks, onCLoseTab, openTabs, clickedTabId, maxHeight, clearSelectedTab, tabHeight}) {
+export function CallbacksTabs({callbacks, onCloseTab, openTabs, clickedTabId, maxHeight, clearSelectedTab, tabHeight}) {
     const classes = useStyles();
     const [value, setValue] = React.useState(0);
     const handleChange = (event, newValue) => {
@@ -20,7 +20,7 @@ export function CallbacksTabs({callbacks, onCLoseTab, openTabs, clickedTabId, ma
     const getCallbackData = (tabID) => {
         return callbacks.filter( c => c.id === tabID.callbackID );
     }
-    const onCloseTab = ({tabID, index}) =>{
+    const onCloseTabLocal = ({tabID, index}) =>{
         if(index > 0){
             setValue(index-1);
         }else{
@@ -51,7 +51,7 @@ export function CallbacksTabs({callbacks, onCLoseTab, openTabs, clickedTabId, ma
             >
             {
                 openTabs.map( (tab, index) => (
-                    <CallbacksTabsTaskingLabel onCloseTab={onCloseTab} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index}/>
+                    <CallbacksTabsTaskingLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index}/>
                 ))
             }
             </Tabs>
