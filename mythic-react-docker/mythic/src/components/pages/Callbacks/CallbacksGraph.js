@@ -23,7 +23,7 @@ import {createTaskingMutation} from './CallbacksTabsTasking';
 
 export const loadedLinkCommandsQuery = gql`
 query loadedLinkCommandsQuery ($callback_id: Int!){
-  loadedcommands(where: {callback_id: {_eq: $callback_id}, command: {is_link: {_eq: true}, deleted: {_eq: false}}}) {
+  loadedcommands(where: {callback_id: {_eq: $callback_id}, command: {supported_ui_features: {_ilike: "graph_view:link"}, deleted: {_eq: false}}}) {
     command {
         id
         cmd
@@ -52,9 +52,7 @@ export function CallbacksGraph(props){
     const [edgeOptions, setEdgeOptions] = useState([]); // used for manuallyRemoveEdgeDialog
     const [addEdgeSource, setAddEdgeSource] = useState(null); // used for manuallyAddEdgeDialog
     const [getLinkCommands] = useLazyQuery(loadedLinkCommandsQuery, {fetchPolicy: "network-only",
-        onCompleted: data => {
-            console.log(data);
-            
+        onCompleted: data => {            
             if(data.loadedcommands.length === 1){
                 //no need for a popup, there's only one possible command
                 setSelectedLinkCommand(data.loadedcommands[0].command);
@@ -189,12 +187,12 @@ export function CallbacksGraph(props){
         options[index].click();
         setDropdownOpen(false);
     };
-    const options = [{name: 'Toggle Disconnected', click: () => {
+    const options = [{name: viewConfig["include_disconnected"] ? 'Show Only Active Edges' : "Show All Edges", click: () => {
                         const view = {...viewConfig, include_disconnected: !viewConfig["include_disconnected"]};
                         drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events);
                         setViewConfig(view);
                      }}, 
-                     {name: 'Toggle All Nodes', click: () => {
+                     {name: viewConfig["show_all_nodes"] ? 'Hide inactive callbacks' : 'Show All Callbacks', click: () => {
                         const view = {...viewConfig, show_all_nodes: !viewConfig["show_all_nodes"]};
                         drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events);
                         setViewConfig(view);
@@ -202,7 +200,7 @@ export function CallbacksGraph(props){
                      {name: 'Autosize', click: () => {
                         drawC2PathElements([...props.callbackgraphedges], dagreRef, true, viewConfig, node_events);
                      }}, 
-                     {name: 'Change Layout', click: () => {
+                     {name: viewConfig["rankDir"] === "LR" ? 'Change Layout to Top-Bottom' : "Change Layout to Left-Right", click: () => {
                         if(viewConfig["rankDir"] === "LR"){
                             const view = {...viewConfig, rankDir: "BT"};
                             drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events);
@@ -213,7 +211,7 @@ export function CallbacksGraph(props){
                             setViewConfig(view);
                         }
                      }},
-                     {name: "Change View", click: () => {
+                     {name: viewConfig["packet_flow_view"] ? "View Connection Directions" : "View Egress Routes" , click: () => {
                         const view = {...viewConfig, packet_flow_view: !viewConfig["packet_flow_view"]};
                         drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events);
                         setViewConfig(view);
@@ -223,10 +221,10 @@ export function CallbacksGraph(props){
                      }}];
     const getConfigString = () => {
         let config = "";
-        config += viewConfig["include_disconnected"] ? "Showing Disconnected Edges, " : "Showing Active Edges, ";
-        config += viewConfig["show_all_nodes"] ? "Showing all nodes, " : "Showing Active Nodes, ";
+        config += viewConfig["include_disconnected"] ? "Showing All Edges, " : "Showing Only Active Edges, ";
+        config += viewConfig["show_all_nodes"] ? "Showing All Callbacks, " : "Showing Active Callbacks, ";
         config += "Layout: " + viewConfig["rankDir"] + ", ";
-        config += viewConfig["packet_flow_view"] ? "Showing Egress Routes" : "Showing Connections";
+        config += viewConfig["packet_flow_view"] ? "Showing Egress Routes" : "Showing Connections Paths";
         return config;
     }
     const handleClose = (event) => {

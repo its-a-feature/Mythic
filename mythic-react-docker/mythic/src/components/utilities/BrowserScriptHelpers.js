@@ -1,16 +1,4 @@
 import { gql} from '@apollo/client';
-export const escapeHTMLDefinition = (content) =>{
-    if (typeof content === "string") {
-        return content
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    } else {
-        return content;
-    }
-}
 
 export const sort_tableDefinition = (th, content="string") =>{
     //sort the table
@@ -49,7 +37,7 @@ export const sort_tableDefinition = (th, content="string") =>{
 }
 export const scriptsQuery = gql`
 query browserscriptsQuery($operator_id: Int!, $operation_id: Int!) {
-  browserscript(where: {active: {_eq: true}, operator_id: {_eq: $operator_id}}) {
+  browserscript(where: {active: {_eq: true}, operator_id: {_eq: $operator_id}, for_new_ui: {_eq: true}}) {
     script
     id
     name
@@ -58,7 +46,7 @@ query browserscriptsQuery($operator_id: Int!, $operation_id: Int!) {
         ptype
     }
   }
-  browserscriptoperation(where: {operation_id: {_eq: $operation_id}}) {
+  browserscriptoperation(where: {operation_id: {_eq: $operation_id}, browserscript: {for_new_ui: {_eq:true}}}) {
     browserscript {
       script
       id

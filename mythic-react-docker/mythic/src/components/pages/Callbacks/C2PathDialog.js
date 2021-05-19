@@ -61,7 +61,7 @@ const add_edge_to_mythic = (g, edge, view_config) => {
 }
 const add_node = (g, node, view_config) => {
     g.setNode(node.id, {label: getLabel(node, view_config["label_components"]),  node: node, style: nodeColor, labelStyle: nodeLabelStyle, shape: 'circle'});
-    g.setNode(node.host, {label: node.host, clusterLabelPos: 'top', style: 'fill:#d3d7e8'});
+    g.setNode(node.host, {label: node.host, clusterLabelPos: 'top', style: 'fill:#d3d7e8', node: null});
     g.setParent(node.id, node.host);
 }
 const getLabel = (edge, label_components) => {
@@ -77,7 +77,9 @@ const add_edge_p2p = (g, edge, view_config) => {
         if(edge.source.active){add_node(g, edge.source, view_config)}
         if(edge.destination.active){add_node(g, edge.destination, view_config)}
         // not adding an edge because one of the nodes could be non-existent
-        return;
+        if(!edge.source.active || !edge.destination.active){
+            return;
+        }
     }else{
         add_node(g, edge.source, view_config);
         add_node(g, edge.destination, view_config);
@@ -176,11 +178,11 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
                 }
             }
         }
-    })
+    });
     var render = new dagreD3.render();
     var width = svg.node().getBoundingClientRect().width;
     var height = svg.node().getBoundingClientRect().height;
-    render.shapes().circle = function circle(parent, bbox, node) {
+         render.shapes().circle = function circle(parent, bbox, node) {
          var shapeSvg = parent.insert("image")
              .attr("class", "nodeImage")
              .attr("xlink:href", function(d) {
@@ -202,9 +204,7 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
          };
          return shapeSvg;
      };
-
     render(svgGroup, g);
-
     if(reZoom){
         var graphWidth = g.graph().width + 40;
         var graphHeight = g.graph().height + 40;

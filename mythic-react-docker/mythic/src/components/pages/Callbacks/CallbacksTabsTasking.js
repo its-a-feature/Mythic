@@ -247,7 +247,7 @@ export const CallbacksTabsTaskingPanel = (props) =>{
             {
              taskingLoading ? (<LinearProgress style={{marginTop: "10px"}}/>) : (taskingData &&
                 taskingData.task.map( (task) => (
-                    <TaskDisplay key={"taskinteractdisplay" + task.id} task={task} command_id={task.command.id} browserscripts={browserScripts}  />
+                    <TaskDisplay key={"taskinteractdisplay" + task.id} task={task} command_id={task.command == null ? 0 : task.command.id} browserscripts={browserScripts}  />
                 ))
              )
              

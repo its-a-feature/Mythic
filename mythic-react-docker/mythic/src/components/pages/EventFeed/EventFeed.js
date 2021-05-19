@@ -9,7 +9,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 
 const GET_Event_Feed = gql`
 query GetOperationEventLogs($operation_id: Int!) {
-  operationeventlog(where: {operation_id: {_eq: $operation_id}, deleted: {_eq: false}}, order_by: {id: desc}, limit: 50) {
+  operationeventlog(where: {operation_id: {_eq: $operation_id}, deleted: {_eq: false}}, order_by: {id: desc}, limit: 500) {
     id
     level
     message
@@ -32,7 +32,7 @@ mutation CreateOperationEventLog($message: String!, $level: String!) {
 
  const SUB_Event_Feed = gql`
 subscription OperationEventLogSubscription($operation_id: Int!) {
-  operationeventlog(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}, limit: 1, order_by: {id: desc}) {
+  operationeventlog(where: {deleted: {_eq: false}, operation_id: {_eq: $operation_id}}, limit: 500, order_by: {id: desc}) {
     id
     level
     message

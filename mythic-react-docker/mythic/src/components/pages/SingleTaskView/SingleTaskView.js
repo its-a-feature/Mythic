@@ -5,7 +5,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import  {useParams} from "react-router-dom";
 import {useReactiveVar} from '@apollo/client';
 import { meState } from '../../../cache';
-import {getBrowserScripts, getSupportScripts, scriptsQuery, sort_tableDefinition, escapeHTMLDefinition} from '../../utilities/BrowserScriptHelpers';
+import {getBrowserScripts, getSupportScripts, scriptsQuery} from '../../utilities/BrowserScriptHelpers';
 
 const subTaskQuery = gql`
 subscription subTaskQuery($task_id: Int!) {
@@ -36,8 +36,6 @@ subscription subTaskQuery($task_id: Int!) {
         opsec_post_bypassed
     }
 }`;
-const escapeHTML = escapeHTMLDefinition;
-const sort_table = sort_tableDefinition;
 var browserscripts = {};
 var support_scripts = {};
 export function SingleTaskView(props){

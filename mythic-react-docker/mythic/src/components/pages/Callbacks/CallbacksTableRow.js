@@ -111,6 +111,7 @@ export function CallbacksTableRow(props){
         const myEdges = getEdges(false);
         setCallbackgraphedges(myActiveEdges);
         setCallbackgraphedgesAll(myEdges);
+        console.log(myEdges, myActiveEdges);
     }, [props.callbackgraphedges, props.id]);
     
     useEffect( () => {

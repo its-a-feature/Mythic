@@ -44,7 +44,7 @@ function EventFeedTableEventsFunc(props){
                             component="span"
                             variant="body1"
                             className={classes.inline}
-                            style={{fontWeight: "bold", color: theme.text}}
+                            style={{fontWeight: "bold", color: theme.text, margin: 0, padding: 0}}
                           >
                             {props.operator ? props.operator.username : "Mythic"}
                             {props.count > 1 ? " ( " + props.count + " )" : ""}
@@ -53,14 +53,14 @@ function EventFeedTableEventsFunc(props){
                             component="span"
                             variant="caption"
                             className={classes.inline}
-                            style={{marginLeft: "10px", color: theme.text}}
+                            style={{margin: "0 0 0 10px", color: theme.text}}
                             >
                             {toLocalTime(props.timestamp, me.user.view_utc_time)}
                             </Typography>
                         </React.Fragment>
                     }
                     secondary={
-                          <pre >{props.message}</pre>
+                          <pre style={{margin: "0 0 0 0", padding: "0 0 0 0"}}>{props.message}</pre>
                     }
                     style={{overflowX: "auto"}}
                 />

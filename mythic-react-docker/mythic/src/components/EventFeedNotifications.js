@@ -15,6 +15,7 @@ subscription EventFeedNotificationSubscription($fromNow: timestamp!) {
     message
     level
     resolved
+    source
   }
 }
  `;
@@ -29,6 +30,9 @@ export function EventFeedNotifications(props) {
     useEffect( () => {
         //console.log(data, loading, error);
         if(!loading && !error && data && data.operationeventlog.length > 0){
+            if(data.operationeventlog[0].source == "debug"){
+                return;
+            }
             if(data.operationeventlog[0].operator && me.user.username !== data.operationeventlog[0].operator.username){
                 const message = data.operationeventlog[0].operator.username + ":" + data.operationaleventlog[0].message;
                 snackActions.toast(message, data.operationeventlog[0].level, { autoHideDuration: 4000});

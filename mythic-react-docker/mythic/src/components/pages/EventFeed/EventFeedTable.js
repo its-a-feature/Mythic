@@ -34,7 +34,7 @@ function EventFeedTableFunc(props){
         </Typography>
         <Paper elevation={5} style={{position: "relative", height: "calc(90vh)", backgroundColor: theme.body}}>
              <List style={{height: "calc(84vh)", overflow: "auto", maxWidth: "100%", backgroundColor: theme.eventMessageBackgroundColor}} dense>
-                {props.operationeventlog.map( (op) => (
+                {[...props.operationeventlog].reverse().map( (op) => (
                         <EventFeedTableEvents
                             onDeleteOperator={props.onDeleteOperator}
                             key={"event" + op.id}
