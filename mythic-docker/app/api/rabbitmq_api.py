@@ -493,6 +493,10 @@ async def create_payload_from_uuid(task_id: int, payload_uuid: str, generate_new
         host = task.callback.host if remote_host is None else remote_host.upper()
 
         data = await get_payload_build_config(payload_uuid, generate_new_random_values)
+        if data["status"] == "success":
+            data = data["data"]
+        else:
+            return data
         if new_description is not None:
             data["tag"] = new_description
         else:
