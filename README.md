@@ -13,18 +13,18 @@ A cross-platform, post-exploit, red teaming framework built with python3, docker
 
 ## Installing Agents and C2 Profiles
 
-The Mythic repository itself does not host any Payload Types or any C2 Profiles. Instead, Mythic provides a script, `./install_agent_from_github.sh`, that can be used to install agents into a current Mythic instance.
+The Mythic repository itself does not host any Payload Types or any C2 Profiles. Instead, Mythic provides a command, `./mythic-cli install github <url> [branch name] [-f]`, that can be used to install agents into a current Mythic instance.
 
 Payload Types are hosted on the [MythicAgents](https://github.com/MythicAgents) organization and C2 Profiles are hosted on the [MythiC2Profiles](https://github.com/MythicC2Profiles) organization.
 
 To install an agent, simply run the script and provide an argument of the path to the agent on GitHub:
 ```bash
-sudo ./install_agent_from_github.sh https://github.com/MythicAgents/apfell
+sudo ./mythic-cli install github https://github.com/MythicAgents/apfell
 ```
 
 The same is true for isntalling C2 Profiles:
 ```bash
-sudo ./install_agent_from_github.sh https://github.com/MythicC2Profiles/http
+sudo ./mythic-cli install github https://github.com/MythicC2Profiles/http
 ```
 
 This is a slight departure from previous Mythic versions which included a few default Payload Types and C2 Profiles within this repository. This change allows the agents and c2 profiles to be updated at a much more regular pace and finally separates out the Mythic Core components from the rest of Mythic. 
