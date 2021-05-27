@@ -70,14 +70,16 @@ async def get_current_operations_files_meta(request, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/files/download/<id:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/files/download/<fid:string>", methods=["GET"]
 )
-async def download_file(request, id):
+async def download_file(request, fid):
     try:
-        file_meta = await app.db_objects.get(db_model.filemeta_query, agent_file_id=id)
+        file_meta = await app.db_objects.get(db_model.filemeta_query, agent_file_id=fid)
     except Exception as e:
+        request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
+        request_ip = request.headers['x-real-ip'] if 'x-real-ip' in request.headers else request_ip
         asyncio.create_task(send_all_operations_message(level="warning", source="download_file",
-                                          message=f"Attempt to download file ID {id} through, but file not known.\nMetadata: From {request.socket} with headers: {request.headers}\nURL: {request.url}"))
+                                          message=f"Attempt to download file ID {fid}, but file not known.\nMetadata: Connection from {request_ip}"))
         return json({"status": "error", "error": "file not found"})
     # now that we have the file metadata, get the file if it's done downloading
     if not file_meta.deleted:
@@ -98,16 +100,19 @@ async def download_file(request, id):
             status=404,
         )
 
+
 @mythic.route(
     "/direct/download/<fid:string>", methods=["GET"]
 )
-async def download_file_direct(request, fid):
+async def download_file_direct(request, fid: str):
     try:
         file_meta = await app.db_objects.get(db_model.filemeta_query, agent_file_id=fid)
     except Exception as e:
+        request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
+        request_ip = request.headers['x-real-ip'] if 'x-real-ip' in request.headers else request_ip
         logger.warning("file_api.py - Failed to find file for direct download: " + str(e))
         asyncio.create_task(send_all_operations_message(level="warning", source="download_file_direct",
-                                          message=f"Attempt to download file ID {fid} through, but file not known.\nMetadata: From {request.socket} with headers: {request.headers}\nURL: {request.url}"))
+                                          message=f"Attempt to download file ID {fid} through, but file not known.\nMetadata: Connection from {request_ip}"))
         return json({"status": "error", "error": "file not found"})
     # now that we have the file metadata, get the file if it's done downloading
     if not file_meta.deleted:

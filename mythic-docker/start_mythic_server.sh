@@ -1,3 +1,4 @@
+#!/bin/bash
 ./wait-for-postgres.sh -h "$MYTHIC_POSTGRES_HOST" -p "$MYTHIC_POSTGRES_PORT" -q -s -t 30 -- echo "Postgres is listening at ${MYTHIC_POSTGRES_PORT}"
 if [[ $? -ne 0 ]]
 then

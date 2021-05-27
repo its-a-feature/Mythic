@@ -98,12 +98,18 @@ async def get_agent_message(request):
     # get the raw data first
     profile = None
     data = None
+    request_url = request.headers['x-forwarded-url'] if 'x-forwarded-url' in request.headers else request.url
+    request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
     if "Mythic" in request.headers:
         profile = request.headers["Mythic"]
     else:
+        error_message = f"Failed to find Mythic header in headers: \n{request.headers}\nConnection to: "
+        error_message += f"{request_url} via {request.method}\nFrom: "
+        error_message += f"{request_ip}\n"
+        error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}"
         asyncio.create_task(send_all_operations_message(
-            message=f"Failed to find Mythic header in headers: \n{request.headers}",
-            level="warning", source="get_agent_message"))
+            message=error_message,
+            level="warning", source="get_agent_message_mythic_header:" + request_ip))
         return raw(b"", 404)
     if request.body != b"":
         data = request.body
@@ -117,9 +123,14 @@ async def get_agent_message(request):
         data = urllib.parse.unquote(request.query_args[0][1])
         # print("Query: " + str(data))
     else:
+        error_message = f"Failed to find message in body, cookies, or query args\nConnection to: "
+        error_message += f"{request_url} via {request.method}\nFrom: "
+        error_message += f"{request_ip}\n"
+        error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}\n"
+        error_message += f"With extra headers: {request.headers}"
         asyncio.create_task(send_all_operations_message(
-            message=f"Failed to find message in body, cookies, or query args from {request.method} and {request.url} with headers:\n {request.headers}",
-            level="warning", source="get_agent_message"))
+            message=error_message,
+            level="warning", source="get_agent_message_body" + request_ip))
         return raw(b"", 404)
     if app.debugging_enabled:
         await send_all_operations_message(message=f"Parsing agent message - step 1 (get data): \n{data}", level="info", source="debug")
@@ -235,8 +246,8 @@ async def get_encryption_data(UUID: str, profile: str):
                         }
                     cached_keys[UUID] = c2info
                 except Exception as c:
-                    logger.exception(
-                        "Failed to find UUID in staging, payload's with AESPSK c2 param, or callback"
+                    logger.error(
+                        "Failed to find UUID in staging, payload's with AESPSK c2 param, or callback: " + UUID
                     )
                     raise c
         return cached_keys[UUID][profile]
@@ -248,14 +259,20 @@ async def get_encryption_data(UUID: str, profile: str):
 async def parse_agent_message(data: str, request, profile: str):
     new_callback = ""
     agent_uuid = ""
+    request_url = request.headers['x-forwarded-url'] if 'x-forwarded-url' in request.headers else request.url
+    request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
     try:
         decoded = base64.b64decode(data)
         # print(decoded)
         if app.debugging_enabled:
             await send_all_operations_message(message=f"Parsing agent message - step 2 (base64 decode): \n {decoded}", level="info", source="debug")
     except Exception as e:
-        asyncio.create_task(send_all_operations_message(message=f"Failed to base64 decode message from {request.method} URL {request.url} and with headers: \n{request.headers}",
-                                          level="warning", source="get_agent_message"))
+        error_message = f"Failed to base64 decode message\nConnection to: "
+        error_message += f"{request_url} via {request.method}\nFrom: "
+        error_message += f"{request_ip}\n"
+        error_message += f"With extra headers: {request.headers}"
+        asyncio.create_task(send_all_operations_message(message=error_message,
+                                          level="warning", source="get_agent_message" + request_ip))
         return "", 404, new_callback, agent_uuid
     try:
         try:
@@ -270,14 +287,23 @@ async def parse_agent_message(data: str, request, profile: str):
         if app.debugging_enabled:
             await send_all_operations_message(message=f"Parsing agent message - step 3 (get uuid): \n {UUID} with length {str(UUID_length)}", level="info", source="debug")
     except Exception as e:
-        asyncio.create_task(send_all_operations_message(message=f"Failed to get UUID in first 36 or 16 bytes for base64 input from URL {request.url} with headers: \n{request.headers}\n and data: {str(decoded)}",
-                                          level="warning", source="get_agent_message"))
+        error_message = f"Failed to get UUID in first 36 or 16 bytes for base64 input\nConnection to: "
+        error_message += f"{request_url} via {request.method}\nFrom: "
+        error_message += f"{request_ip}\n"
+        error_message += f"With extra headers: {request.headers}\nData: "
+        error_message += f"{str(decoded)}"
+        asyncio.create_task(send_all_operations_message(message= error_message,
+                                          level="warning", source="get_agent_message" + request_ip))
         return "", 404, new_callback, agent_uuid
     try:
         enc_key = await get_encryption_data(UUID, profile)
     except Exception as e:
-        asyncio.create_task(send_all_operations_message(message=f"Failed to correlate UUID, {UUID}, to something mythic knows with {request.method} method with headers: \n{request.headers}",
-                                          level="warning", source="get_agent_message_uuid"))
+        error_message = f"Failed to correlate UUID, {UUID}, to something mythic knows\nConnection to: "
+        error_message += f"{request_url} via {request.method}\nFrom: "
+        error_message += f"{request_ip}\n"
+        error_message += f"With extra headers: {request.headers}"
+        asyncio.create_task(send_all_operations_message(message= error_message, level="warning",
+                                                        source="get_agent_message_uuid:" + UUID + request_ip))
         return "", 404, new_callback, agent_uuid
     # now we have cached_keys[UUID] is the right AES key to use with this payload, now to decrypt
     if enc_key["stage"] == "callback":

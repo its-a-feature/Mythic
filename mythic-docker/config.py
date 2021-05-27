@@ -3,7 +3,6 @@ from dynaconf import Dynaconf
 
 settings = Dynaconf(
     envvar_prefix="MYTHIC",
-    settings_files=['config.json'],
 )
 
 # `envvar_prefix` = export envvars with `export MYTHIC_FOO=bar`.

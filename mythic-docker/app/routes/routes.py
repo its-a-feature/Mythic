@@ -116,10 +116,11 @@ class Login(BaseEndpoint):
         form = request.form
         error = ""
         username = None
+        ip = ip_address(request.headers["x-real-ip"] if "x-real-ip" in request.headers else request.ip)
         from app.api.operation_api import send_all_operations_message
         try:
-            username = form["username"][0]
-            password = form["password"][0]
+            username = form["username"][0] if 'username' in form and len(form['username']) > 0 else ""
+            password = form["password"][0] if 'password' in form and len(form['password']) > 0 else ""
             user = await app.db_objects.get(db_model.operator_query, username=username)
             if user.id == 1 and user.failed_login_count > 10 and (user.last_failed_login_timestamp
                         > datetime.datetime.utcnow() + datetime.timedelta(seconds=-60)):
@@ -128,11 +129,11 @@ class Login(BaseEndpoint):
                 user.failed_login_count += 1
                 user.last_failed_login_timestamp = datetime.datetime.utcnow()
                 await app.db_objects.update(user)
-                await send_all_operations_message(message=f"Throttling login attempts for {user.username} due to too many failed login attempts ",
+                await send_all_operations_message(message=f"Throttling login attempts for {user.username} due to too many failed login attempts\nLast connection from {ip}",
                                                   level="warning", source="throttled_login_" + user.username)
             elif not user.active:
                 error = "Account is not active, cannot log in"
-                await send_all_operations_message(message=f"Deactivated account {user.username} trying to log in",
+                await send_all_operations_message(message=f"Deactivated account {user.username} trying to log in from {ip}",
                                                   level="warning", source="deactivated_login_" + user.username)
             elif await user.check_password(password):
                 try:
@@ -146,7 +147,7 @@ class Login(BaseEndpoint):
                             db_model.OperationEventLog,
                             operator=None,
                             operation=user.current_operation,
-                            message="{} signed in".format(user.username),
+                            message="{} signed in from {}".format(user.username, ip),
                         )
                     (
                         access_token,
@@ -201,14 +202,15 @@ class Login(BaseEndpoint):
                     user.last_failed_login_timestamp = datetime.datetime.utcnow()
                     if user.id != 1:
                         user.active = False
-                        await send_all_operations_message(message=f"Deactivating account {user.username} due to too many failed logins",
+                        await send_all_operations_message(message=f"Deactivating account {user.username} due to too many failed logins.\nLast connection from {ip}",
                                                       level="warning")
                 await app.db_objects.update(user)
         except Exception as e:
-            print("failed auth")
             if username is not None:
-                await send_all_operations_message(message=f"Attempt to login with unknown user: {username}",
-                                                  level="warning", source="unknown_login_" + username)
+                logger.warning("login error: " + str(e))
+                error = "Username or password invalid"
+                await send_all_operations_message(message=f"Attempt to login with unknown user: {username}, from {ip}",
+                                                  level="warning", source="unknown_login" + ip)
         template = env.get_template("login.html")
         content = template.render(
             links=await respect_pivot(links, request),
@@ -341,7 +343,7 @@ async def check_ips(request):
         request.path in ["/login", "/register", "/auth", "/"]
         or "/payloads/download/" in request.path
     ):
-        ip = ip_address(request.ip)
+        ip = ip_address(request.headers["x-real-ip"] if "x-real-ip" in request.headers else request.ip)
         for block in mythic.config["ALLOWED_IPS"]:
             if ip in block:
                 return

@@ -12,6 +12,7 @@ server {
          proxy_http_version 1.1;
          proxy_set_header Upgrade $http_upgrade;
          proxy_set_header Connection "upgrade";
+         proxy_set_header X-Real-IP $remote_addr;
          proxy_redirect off;
      }
      # proxy connections to the documentation container
@@ -20,13 +21,16 @@ server {
          proxy_http_version 1.1;
          proxy_set_header Upgrade $http_upgrade;
          proxy_set_header Connection "upgrade";
+         proxy_set_header X-Real-IP $remote_addr;
          proxy_redirect off;
+         proxy_set_header Host $http_host;
      }
     location /auth {
          proxy_pass http://${MYTHIC_SERVER_HOST}:${MYTHIC_SERVER_PORT};
          proxy_http_version 1.1;
          proxy_set_header Upgrade $http_upgrade;
          proxy_set_header Connection "upgrade";
+         proxy_set_header X-Real-IP $remote_addr;
          proxy_redirect off;
     }
     location /direct {
@@ -34,6 +38,7 @@ server {
          proxy_http_version 1.1;
          proxy_set_header Upgrade $http_upgrade;
          proxy_set_header Connection "upgrade";
+         proxy_set_header X-Real-IP $remote_addr;
          proxy_redirect off;
     }
     location /new/agents/{
