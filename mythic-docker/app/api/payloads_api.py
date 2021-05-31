@@ -440,18 +440,18 @@ async def register_new_payload_func(data, user):
                                         if successfully_sent:
                                             # we successfully sent the message, but got blank bytes back, raise an error
                                             asyncio.create_task(send_all_operations_message(
-                                                message=f"Failed to have {payload.payload_type.translation_container.name} container process generate_keys. Check the container's logs with './display_output.sh {payload.payload_type.translation_container.name}",
+                                                message=f"Failed to have {payload.payload_type.translation_container.name} container process generate_keys. Check the container's logs with './mythic-cli logs {payload.payload_type.translation_container.name}",
                                                 level="warning", source="generate_keys_success", operation=payload.operation))
                                             payload.build_phase = "error"
-                                            payload.build_stderr = f"Failed to have {payload.payload_type.translation_container.name} container process generate_keys. Check the container's logs with './display_output.sh {payload.payload_type.translation_container.name}"
+                                            payload.build_stderr = f"Failed to have {payload.payload_type.translation_container.name} container process generate_keys. Check the container's logs with './mythic-cli logs {payload.payload_type.translation_container.name}"
                                             await app.db_objects.update(payload)
                                             return {"status": "error", "error": "Failed to create payload parameters"}
                                         else:
                                             asyncio.create_task(send_all_operations_message(
-                                                message=f"Failed to contact {payload.payload_type.translation_container.name} container. Is it running? Check with './status_check.sh' or check the container's logs",
+                                                message=f"Failed to contact {payload.payload_type.translation_container.name} container. Is it running? Check with './mythic-cli status' or check the container's logs",
                                                 level="warning", source="generate_keys_error", operation=payload.operation))
                                             payload.build_phase = "error"
-                                            payload.build_stderr = f"Failed to contact {payload.payload_type.translation_container.name} container. Is it running? Check with './status_check.sh' or check the container's logs"
+                                            payload.build_stderr = f"Failed to contact {payload.payload_type.translation_container.name} container. Is it running? Check with './mythic-cli status' or check the container's logs"
                                             await app.db_objects.update(payload)
                                             return {"status": "error", "error": "Failed to generate crypto keys in " + payload.payload_type.translation_container.name}
                                     else:
@@ -609,7 +609,7 @@ async def write_payload(uuid, user, data):
 
     if not payload.payload_type.container_running:
         payload.build_phase = "error"
-        payload.build_stderr = f"{payload.payload_type.ptype} container is not running. Check with './status_check.sh'"
+        payload.build_stderr = f"{payload.payload_type.ptype} container is not running. Check with './mythic-cli status'"
         await app.db_objects.update(payload)
         return {"status": "error", "error": "build container not running"}
     if payload.payload_type.last_heartbeat < datetime.utcnow() + timedelta(seconds=-30):
@@ -617,11 +617,11 @@ async def write_payload(uuid, user, data):
         payload_type.container_running = False
         await app.db_objects.update(payload_type)
         payload.build_phase = "error"
-        payload.build_stderr = f"{payload.payload_type.ptype} container is not running. Check with './status_check.sh'"
+        payload.build_stderr = f"{payload.payload_type.ptype} container is not running. Check with './mythic-cli status'"
         await app.db_objects.update(payload)
         return {
             "status": "error",
-            "error": "build container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./status_check.sh`",
+            "error": "build container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./mythic-cli status`",
         }
     commands = await app.db_objects.execute(db_model.payloadcommand_query.where(PayloadCommand.payload == payload))
     commands = [c.command.cmd for c in commands]
@@ -672,7 +672,7 @@ async def write_payload(uuid, user, data):
             await app.db_objects.update(payload)
             return {
                 "status": "error",
-                "error": f"C2 Profile {pc2p.c2_profile.name}'s container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./status_check.sh`",
+                "error": f"C2 Profile {pc2p.c2_profile.name}'s container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./mythic-cli status`",
             }
         status = js.loads(status)
         if status["status"] == "error":
