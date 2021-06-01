@@ -417,7 +417,7 @@ async def get_file(task_id: int, filename: str = None, limit_by_callback: bool =
     :param limit_by_callback: Set this to True if you only want to search for files that are tied to this callback. This is useful if you're doing this as part of another command that previously loaded files into this callback's memory.
     :param max_results: The number of results you want back. 1 will be the latest file uploaded with that name, -1 will be all results.
     :param get_contents: Boolean of if you want to fetch file contents or just metadata
-    :return: An array of dictionaries representing the FileMeta.to_json() representation of all matching files. When "get_contents" is True, each entry in this array will also have a "contents" key with the base64 representation of the associated file if it hasn't been deleted, or None if it has.
+    :return: An array of dictionaries representing the FileMeta objects of all matching files. When "get_contents" is True, each entry in this array will also have a "contents" key with the base64 representation of the associated file if it hasn't been deleted, or None if it has.
     For an example-
     resp = await MythicRPC().execute("get_file", task_id=task.id, filename="myAssembly.exe")
     resp.response <--- this is an array
