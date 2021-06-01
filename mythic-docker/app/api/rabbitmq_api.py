@@ -332,7 +332,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
 async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
                       saved_file_name: str = None, is_screenshot: bool = False,
                       is_download: bool = False, remote_path: str = None,
-                      host: str = None):
+                      host: str = None) -> dict:
     """
     Creates a FileMeta object in Mythic's database and writes contents to disk with a random UUID filename.
     This file can then be fetched via the returned file UUID.
@@ -344,7 +344,28 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
     :param is_download: Is this file the result of downloading something from the agent? If so, this will cause it to show up in the Files page under Downloads
     :param remote_path: Does this file exist on target? If so, provide the full remote path here
     :param host: If this file exists on a target host, indicate it here in conjunction with the remote_path argument
-    :return: JSON representation of the new FileMeta object
+    :return: Dict of a FileMeta object
+    Example: this takes two arguments - ParameterType.String for `remote_path` and ParameterType.File for `file`
+        async def create_tasking(self, task: MythicTask) -> MythicTask:
+            try:
+                original_file_name = json.loads(task.original_params)["file"]
+                if len(task.args.get_arg("remote_path")) == 0:
+                    task.args.add_arg("remote_path", original_file_name)
+                elif task.args.get_arg("remote_path")[-1] == "/":
+                    task.args.add_arg("remote_path", task.args.get_arg("remote_path") + original_file_name)
+                file_resp = await MythicRPC().execute("create_file", task_id=task.id,
+                    file=base64.b64encode(task.args.get_arg("file")).decode(),
+                    saved_file_name=original_file_name,
+                    delete_after_fetch=False,
+                )
+                if file_resp.status == MythicStatus.Success:
+                    task.args.add_arg("file", file_resp.response["agent_file_id"])
+                    task.display_params = f"{original_file_name} to {task.args.get_arg('remote_path')}"
+                else:
+                    raise Exception("Error from Mythic: " + str(file_resp.error))
+            except Exception as e:
+                raise Exception("Error from Mythic: " + str(sys.exc_info()[-1].tb_lineno) + str(e))
+            return task
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -386,7 +407,7 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
 
 
 async def get_file(task_id: int, filename: str = None, limit_by_callback: bool = True, max_results: int = 1,
-                   file_id: str = None, get_contents: bool = True):
+                   file_id: str = None, get_contents: bool = True) -> dict:
     """
     Get file data and contents by name (ex: from create_file and a specified saved_file_name parameter).
     The search can be limited to just this callback (or the entire operation) and return just the latest or some number of matching results.
@@ -444,12 +465,39 @@ async def get_file(task_id: int, filename: str = None, limit_by_callback: bool =
         return {"status": "error", "error": str(e)}
 
 
-async def get_payload(payload_uuid: str, get_contents: bool = True):
+async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
     """
     Get information about a payload and its contents
     :param payload_uuid: The UUID for the payload you're interested in
     :param get_contents: Whether or not you want to fetch the contents of the file or just the metadata
-    :return: JSON representation of the Payload object
+    :return: dictionary representation of the Payload object
+    Example:
+        async def create_tasking(self, task: MythicTask) -> MythicTask:
+            try:
+                gen_resp = await MythicRPC().execute("create_payload_from_uuid", task_id=task.id,
+                                                     payload_uuid=task.args.get_arg("template"))
+                if gen_resp.status == MythicStatus.Success:
+                    # we know a payload is building, now we want it
+                    while True:
+                        resp = await MythicRPC().execute("get_payload", payload_uuid=gen_resp.response["uuid"])
+                        if resp.status == MythicStatus.Success:
+                            if resp.response["build_phase"] == "success":
+                                task.args.add_arg("template", resp.response["file"]["agent_file_id"])
+                                task.display_params = f"new Apfell payload ({resp.response['uuid']}) with description {resp.response['tag']}"
+                                break
+                            elif resp.response["build_phase"] == "error":
+                                raise Exception(
+                                    "Failed to build new payload: " + str(resp.error)
+                                )
+                            else:
+                                await asyncio.sleep(1)
+                        if resp.status == MythicStatus.Error:
+                            raise Exception("Failed to get information about new payload:\\n" + resp.error)
+                else:
+                    raise Exception("Failed to generate new payload:\\n" + gen_resp.error)
+            except Exception as e:
+                raise Exception("Error trying to call RPC:\\n" + str(e))
+            return task
     """
     try:
         payload = await app.db_objects.prefetch(db_model.payload_query.where(db_model.Payload.uuid == payload_uuid),
@@ -474,7 +522,7 @@ async def get_payload(payload_uuid: str, get_contents: bool = True):
 
 
 async def create_payload_from_uuid(task_id: int, payload_uuid: str, generate_new_random_values: bool = True,
-                                   new_description: str = None, remote_host: str = None, filename: str = None):
+                                   new_description: str = None, remote_host: str = None, filename: str = None) -> dict:
     """
     Given an existing Payload UUID, generate a new copy with a potentially new description, new filename, new random values, and specify that it'll exist on a certain host. This is useful for spawn or lateral movement tasks where you want to potentially change up IOCs and provide new, more informative, descriptions for callbacks.
     :param task_id: The ID number of the task performing this action (task.id)
@@ -483,7 +531,34 @@ async def create_payload_from_uuid(task_id: int, payload_uuid: str, generate_new
     :param new_description: Provide a custom new description for the payload and callbacks associated from it. If you don't provide one, a generic one will be generated
     :param remote_host: Indicate the hostname of the host this new payload is deployed to. If one isn't specified, you won't be able to link to it without first telling Mythic that this payload exists on a certain host via the Popup Modals.
     :param filename: New filename for the payload. If one isn't supplied, a random UUID will be generated
-    :return:
+    :return: dictionary representation of the payload that was created
+    Example:
+        async def create_tasking(self, task: MythicTask) -> MythicTask:
+            try:
+                gen_resp = await MythicRPC().execute("create_payload_from_uuid", task_id=task.id,
+                                                     payload_uuid=task.args.get_arg("template"))
+                if gen_resp.status == MythicStatus.Success:
+                    # we know a payload is building, now we want it
+                    while True:
+                        resp = await MythicRPC().execute("get_payload", payload_uuid=gen_resp.response["uuid"])
+                        if resp.status == MythicStatus.Success:
+                            if resp.response["build_phase"] == "success":
+                                task.args.add_arg("template", resp.response["file"]["agent_file_id"])
+                                task.display_params = f"new Apfell payload ({resp.response['uuid']}) with description {resp.response['tag']}"
+                                break
+                            elif resp.response["build_phase"] == "error":
+                                raise Exception(
+                                    "Failed to build new payload: " + str(resp.error)
+                                )
+                            else:
+                                await asyncio.sleep(1)
+                        if resp.status == MythicStatus.Error:
+                            raise Exception("Failed to get information about new payload:\\n" + resp.error)
+                else:
+                    raise Exception("Failed to generate new payload:\\n" + gen_resp.error)
+            except Exception as e:
+                raise Exception("Error trying to call RPC:\\n" + str(e))
+            return task
     """
     # check to make sure we have the right parameters (host, template)
     from app.api.payloads_api import register_new_payload_func
@@ -591,7 +666,7 @@ async def get_payload_build_config(payload_uuid: str, generate_new_random_values
 
 async def create_payload_from_parameters(task_id: int, payload_type: str, c2_profiles: list, commands: list,
                                          build_parameters: list, filename: str = None, description: str = None,
-                                         destination_host: str = None, wrapped_payload_uuid: str = None):
+                                         destination_host: str = None, wrapped_payload_uuid: str = None) -> dict:
     """
     Create a payload by specifying all of the parameters yourself for what you want to build
     :param task_id: The ID number of the task performing this action (task.id)
@@ -610,7 +685,7 @@ async def create_payload_from_parameters(task_id: int, payload_type: str, c2_pro
     :param description: Description for the payload that'll appear in the UI when a callback is created
     :param destination_host: Name of the host where the payload goes. If this isn't specified, then it's assumed to be the same host as the callback where the task is issued
     :param wrapped_payload_uuid: If you're creating a payload that wraps another payload, specify the UUID of the internal payload here
-    :return:
+    :return: dictionary representation of a payload object
     """
     try:
         task = app.db_objects.get(db_model.task_query, id=task_id)
@@ -717,14 +792,27 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
         }
 
 
-async def control_socks(task_id: int, port: int, start: bool = False, stop: bool = False):
+async def control_socks(task_id: int, port: int, start: bool = False, stop: bool = False) -> dict:
     """
     Start or stop SOCKS 5 on a specific port for this task's callback
     :param task_id: The ID number of the task performing this action (task.id)
     :param port: The port to open for SOCKS 5
     :param start: Boolean for if SOCKS should start
     :param stop: Boolean for if SOCKS should stop
-    :return: Status message of if it completed successfully
+    :return: Status message of if it completed successfully (nothing in the `response` attribute)
+    Example:
+        async def create_tasking(self, task: MythicTask) -> MythicTask:
+            if task.args.get_arg("action") == "start":
+                resp = await MythicRPC().execute("control_socks", task_id=task.id, start=True, port=task.args.get_arg("port"))
+                if resp.status != MythicStatus.Success:
+                    task.status = MythicStatus.Error
+                    raise Exception(resp.error)
+            else:
+                resp = await MythicRPC().execute("control_socks", task_id=task.id, stop=True, port=task.args.get_arg("port"))
+                if resp.status != MythicStatus.Success:
+                    task.status = MythicStatus.Error
+                    raise Exception(resp.error)
+            return task
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -741,12 +829,19 @@ async def control_socks(task_id: int, port: int, start: bool = False, stop: bool
         return {"status": "error", "error": "Exception trying to handle socks control:\n" + str(e)}
 
 
-async def create_output(task_id: int, output: str):
+async def create_output(task_id: int, output: str) -> dict:
     """
     Add a message to the output for a task that the operator can see
     :param task_id: The ID number of the task performing this action (task.id)
     :param output: The message you want to send.
-    :return:
+    :return: Status of if you successfully posted or not (nothing in the `response` attribute)
+    Example:
+        async def create_tasking(self, task: MythicTask) -> MythicTask:
+            resp = await MythicRPC().execute("create_output", task_id=task.id, output="hello")
+            if resp.status != MythicStatus.Success:
+                task.status = MythicStatus.Error
+                raise Exception(resp.error)
+            return task
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -763,7 +858,7 @@ async def create_output(task_id: int, output: str):
 async def update_callback(task_id: int, user: str = None, host: str = None, pid: int = None, ip: str = None,
                           external_ip: str = None, description: str = None, integrity_level: int = None,
                           os: str = None, architecture: str = None, domain: str = None, extra_info: str = None,
-                          sleep_info: str = None):
+                          sleep_info: str = None) -> dict:
     """
     Update this task's associated callback data.
     :param task_id: The ID number of the task performing this action (task.id)
@@ -779,7 +874,7 @@ async def update_callback(task_id: int, user: str = None, host: str = None, pid:
     :param domain: The new domain
     :param extra_info: The new "extra info" you want to store
     :param sleep_info: The new sleep information for the callback
-    :return:
+    :return: Success or error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -818,14 +913,14 @@ async def update_callback(task_id: int, user: str = None, host: str = None, pid:
         return {"status": "error", "error": str(e)}
 
 
-async def create_artifact(task_id: int, artifact_type: str, artifact: str, host: str = None):
+async def create_artifact(task_id: int, artifact_type: str, artifact: str, host: str = None) -> dict:
     """
     Create a new artifact for a certain task on a host
     :param task_id: The ID number of the task performing this action (task.id)
     :param artifact_type: What kind of artifact is this (Process Create, File Write, etc). If the type specified doesn't exist, it will be created
     :param artifact: The actual artifact that was created
     :param host: Which host the artifact was created on. If none is provided, the current task's host is used
-    :return:
+    :return: Success or error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -852,13 +947,13 @@ async def create_artifact(task_id: int, artifact_type: str, artifact: str, host:
         return {"status": "error", "error": "failed to create task artifact: " + str(e)}
 
 
-async def create_payload_on_host(task_id: int, payload_uuid: str, host: str):
+async def create_payload_on_host(task_id: int, payload_uuid: str, host: str) -> dict:
     """
     Register within Mythic that the specified payload exists on the specified host as a result of this tasking
     :param task_id: The ID number of the task performing this action (task.id)
     :param payload_uuid: The payload that will be associated with the host
     :param host: The host that will have the payload on it
-    :return:
+    :return: success or error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -870,12 +965,12 @@ async def create_payload_on_host(task_id: int, payload_uuid: str, host: str):
         return {"status": "error", "error": "Failed to register payload on host:\n" + str(e)}
 
 
-async def get_tasks(task_id: int, host: str = None, ):
+async def get_tasks(task_id: int, host: str = None, ) -> dict:
     """
     Get all of the currently running tasks on the current host or on a specific host
     :param task_id: The ID number of the task performing this action (task.id)
     :param host: The name of the host to check for running tasks
-    :return: An array of JSON objects representing the tasks running
+    :return: An array of dictionaries representing the tasks running
     """
     # this needs host name, task_id
     # this returns a list of all jobs that are not errored or completed on that host for the task's callback
@@ -899,14 +994,14 @@ async def get_tasks(task_id: int, host: str = None, ):
         return {"status": "error", "error": str(e)}
 
 
-async def create_token(task_id: int, TokenId: int, host: str = None, **kwargs):
+async def create_token(task_id: int, TokenId: int, host: str = None, **kwargs) -> dict:
     """
     Create or update a token on a host. The `TokenId` is a unique identifier for the token on the host and is how Mythic identifies tokens as well. A token's `AuthenticationId` is used to link a Token to a LogonSession per Windows documentation, so when setting that value, if the associated LogonSession object doesnt' exist, Mythic will make it.
     :param task_id: The ID number of the task performing this action (task.id)
     :param TokenId: The integer token identifier value that uniquely identifies this token on this host
     :param host: The host where the token exists
     :param kwargs: The `Mythic/mythic-docker/app/database_models/model.py` Token class has all of the possible values you can set when creating/updating tokens. There are too many to list here individually, so a generic kwargs is specified.
-    :return: Success or Error
+    :return: Dictionary representation of the token created
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -935,12 +1030,12 @@ async def create_token(task_id: int, TokenId: int, host: str = None, **kwargs):
         return {"status": "error", "error": "Failed to create/update token:\n" + str(e)}
 
 
-async def delete_token(TokenId: int, host: str):
+async def delete_token(TokenId: int, host: str) -> dict:
     """
     Mark a specific token as "deleted" on a specific host.
     :param TokenId: The token that should be deleted
     :param host: The host where this token exists
-    :return: Success or Error
+    :return: success or error (nothing in the `response` attribute)
     """
     try:
         token = await app.db_objects.get(db_model.token_query, TokenId=TokenId, host=host.upper())
@@ -951,14 +1046,14 @@ async def delete_token(TokenId: int, host: str):
     return {"status": "success"}
 
 
-async def create_logon_session(task_id: int, LogonId: int, host: str = None, **kwargs):
+async def create_logon_session(task_id: int, LogonId: int, host: str = None, **kwargs) -> dict:
     """
     Create a new logon session for this host
     :param task_id: The ID number of the task performing this action (task.id)
     :param LogonId: The integer logon identifier value that uniquely identifies this logon session on this host
     :param host: The host where this logon session exists
     :param kwargs: The `Mythic/mythic-docker/app/database_models/model.py` LogonSession class has all of the possible values you can set when creating/updating logon sessions. There are too many to list here individually, so a generic kwargs is specified.
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -977,12 +1072,12 @@ async def create_logon_session(task_id: int, LogonId: int, host: str = None, **k
         return {"status": "error", "error": "Failed to create logon session:\n" + str(d)}
 
 
-async def delete_logon_session(LogonId: int, host: str):
+async def delete_logon_session(LogonId: int, host: str) -> dict:
     """
     Mark a specified logon session as "deleted" on a specific host
     :param LogonId: The Logon Session that should be deleted
     :param host: The host where the logon session used to be
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         session = await app.db_objects.get(db_model.logonsession_query, LogonId=LogonId, host=host.upper())
@@ -993,13 +1088,13 @@ async def delete_logon_session(LogonId: int, host: str):
         return {"status": "error", "error": "Failed to find/delete that logon session on that host:\n" + str(e)}
 
 
-async def create_callback_token(task_id: int, TokenID: int, host: str = None):
+async def create_callback_token(task_id: int, TokenID: int, host: str = None) -> dict:
     """
     Associate a token with a callback for usage in further tasking.
     :param task_id: The ID number of the task performing this action (task.id)
     :param TokenID: The token you want to associate with this callback
     :param host: The host where the token exists
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.token_query, id=task_id)
@@ -1020,13 +1115,13 @@ async def create_callback_token(task_id: int, TokenID: int, host: str = None):
         return {"status": "error", "error": "Failed to get token and associate it:\n" + str(d)}
 
 
-async def delete_callback_token(task_id: int, TokenID: int, host: str = None):
+async def delete_callback_token(task_id: int, TokenID: int, host: str = None) -> dict:
     """
     Mark a callback token as no longer being associated
     :param task_id: The ID number of the task performing this action (task.id)
     :param TokenID: The Token you want to disassociate from the task's callback
     :param host: The host where the token exists
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.token_query, id=task_id)
@@ -1044,12 +1139,12 @@ async def delete_callback_token(task_id: int, TokenID: int, host: str = None):
         return {"status": "error", "error": "Failed to find task:\n" + str(d)}
 
 
-async def create_processes_rpc(task_id: int, processes: dict):
+async def create_processes_rpc(task_id: int, processes: dict) -> dict:
     """
     Create processes in bulk. The parameters in the "processes" dictionary are the same as those in the `create_process` RPC call.
     :param task_id: The ID number of the task performing this action (task.id)
     :param processes: Dictionary of the processes you want to create - the key value pairs are the same as the parameters to the `create_process` RPC call.
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -1061,7 +1156,7 @@ async def create_processes_rpc(task_id: int, processes: dict):
 async def create_process(task_id: int, host: str, process_id: int, parent_process_id: int = None,
                          architecture: str = None, name: str = None, bin_path: str = None,
                          user: str = None, command_line: str = None, integrity_level: int = None,
-                         start_time: str = None, description: str = None, signer: str = None):
+                         start_time: str = None, description: str = None, signer: str = None) -> dict:
     """
     Create a new process within Mythic.
     :param task_id: The ID number of the task performing this action (task.id)
@@ -1077,7 +1172,7 @@ async def create_process(task_id: int, host: str, process_id: int, parent_proces
     :param start_time: When the process started
     :param description: The description of the process
     :param signer: The process' signing information
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -1149,13 +1244,13 @@ async def search_processes(task, **request):
     return result
 
 
-async def search_database(task_id: int, table: str, **kwargs):
+async def search_database(task_id: int, table: str, **kwargs) -> dict:
     """
     Search the Mythic database for some data. Data is searched by regular expression for the fields specified. Because the available fields depends on the table you're searching, that argument is a generic python "kwargs" value.
     :param task_id: The ID number of the task performing this action (task.id)
     :param table: The name of the table you want to query (the is the same as the class name from `Mythic/mythic-docker/app/database_models/model.py`)
     :param kwargs: These are the key=value pairs for how you're going to search the table specified. For example, searching processes where the name of "bob" and host that starts with "spooky" would have kwargs of: name="bob", host="spooky*"
-    :return:
+    :return: an array of dictionaries that represent your search. If your search had no results, you'll get back an empty array
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -1169,13 +1264,13 @@ async def search_database(task_id: int, table: str, **kwargs):
         return {"status": "error", "error": "Failed to find task or search database:\n" + str(e)}
 
 
-async def delete_file_browser(task_id: int, file_path: str, host: str = None):
+async def delete_file_browser(task_id: int, file_path: str, host: str = None) -> dict:
     """
     Mark a file in the file browser as deleted (typically as part of a manual removal via a task)
     :param task_id: The ID number of the task performing this action (task.id)
     :param file_path: The full path to the file that's being removed
     :param host: The host where the file existed. If you don't specify a host, the callback's host is used
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -1199,14 +1294,14 @@ async def delete_file_browser(task_id: int, file_path: str, host: str = None):
         return {"status": "error", "error": "Failed to find task:\n" + str(d)}
 
 
-async def create_keylog(task_id: int, keystrokes: str, user: str = None, window_title: str = None):
+async def create_keylog(task_id: int, keystrokes: str, user: str = None, window_title: str = None) -> dict:
     """
     Create a new keylog entry in Mythic.
     :param task_id: The ID number of the task performing this action (task.id)
     :param keystrokes: The keys that are being registered
     :param user: The user that performed the keystrokes. If you don't supply this, "UNKNOWN" will be used.
     :param window_title: The title of the window where the keystrokes came from. If you don't supply this, "UNKNOWN" will be used.
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -1225,7 +1320,7 @@ async def create_keylog(task_id: int, keystrokes: str, user: str = None, window_
 
 
 async def create_credential(task_id: int, credential_type: str, account: str, realm: str, credential: str,
-                            metadata: str = "", comment: str = None):
+                            metadata: str = "", comment: str = None) -> dict:
     """
     Create a new credential within Mythic to be leveraged in future tasks
     :param task_id: The ID number of the task performing this action (task.id)
@@ -1235,7 +1330,7 @@ async def create_credential(task_id: int, credential_type: str, account: str, re
     :param credential: The credential value itself
     :param metadata: Any additional metadata you want to store about the credential
     :param comment: Any comment you want to store about it the credential
-    :return: Success or Error
+    :return: Success or Error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
@@ -1249,9 +1344,7 @@ async def create_credential(task_id: int, credential_type: str, account: str, re
             "comment": comment,
             "metadata": metadata
         }
-        asyncio.create_task(create_credential_func(
-            task.operator, task.callback.operation, cred
-        ))
+        await create_credential_func(task.operator, task.callback.operation, cred)
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
@@ -1260,7 +1353,7 @@ async def create_credential(task_id: int, credential_type: str, account: str, re
 async def create_file_browser(task_id: int, host: str, name: str, full_path: str, permissions: dict = None,
                               access_time: str = "", modify_time: str = "", comment: str = "",
                               is_file: bool = True, size: str = "", success: bool = True, files: [dict] = None,
-                              update_deleted: bool = False):
+                              update_deleted: bool = False) -> dict:
     """
     Add file browser content to the file browser user interface.
     :param task_id: The ID number of the task performing this action (task.id)
@@ -1276,7 +1369,7 @@ async def create_file_browser(task_id: int, host: str, name: str, full_path: str
     :param success: True/False if you successfully listed this file. A False value (like from an access denied) will appear as a red X in the UI
     :param files: Array of dictionaries of information for all of the files in this folder (or an empty array of this is a file). Each dictionary has all of the same pieces of information as the main folder itself.
     :param update_deleted: True or False indicating if this file browser data should be used to automatically update deleted files for the listed folder. This defaults to false, but if set to true and there are files that Mythic knows about for this folder that the passed-in data doesn't include, it will be marked as deleted.
-    :return:
+    :return: success or error (nothing in the `response` attribute)
     """
     if permissions is None:
         permissions = {}
@@ -1363,13 +1456,13 @@ async def add_event_message(request):
         return {"status": "error", "error": str(e)}
 
 
-async def create_event_message(task_id: int, message: str, warning: bool = False):
+async def create_event_message(task_id: int, message: str, warning: bool = False) -> dict:
     """
     Create a message in the Event feed within the UI as an info message or as a warning
     :param task_id: The ID number of the task performing this action (task.id)
     :param message: The message you want to send
     :param warning: If this is True, the message will be a "warning" message
-    :return:
+    :return: success or error (nothing in the `response` attribute)
     """
     try:
         task = await app.db_objects.get(db_model.task_query, id=task_id)
