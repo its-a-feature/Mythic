@@ -116,7 +116,7 @@ class Login(BaseEndpoint):
         form = request.form
         error = ""
         username = None
-        ip = ip_address(request.headers["x-real-ip"] if "x-real-ip" in request.headers else request.ip)
+        ip = request.headers["x-real-ip"] if "x-real-ip" in request.headers else request.ip
         from app.api.operation_api import send_all_operations_message
         try:
             username = form["username"][0] if 'username' in form and len(form['username']) > 0 else ""
