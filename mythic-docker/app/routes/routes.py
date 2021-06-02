@@ -180,7 +180,7 @@ class Login(BaseEndpoint):
                     form.username.errors = ["Username or password invalid"]
             except Exception as e:
                 print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                form.username.errors = ["username or password invalid"]
+                form.username.errors = ["Username or password invalid"]
         errors["username_errors"] = "<br>".join(form.username.errors)
         errors["password_errors"] = "<br>".join(form.password.errors)
         template = env.get_template("login.html")
