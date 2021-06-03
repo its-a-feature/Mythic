@@ -269,7 +269,7 @@ var callback_table = new Vue({
             this.deselect_all_but_callback(callback);
             Vue.set(task_data.meta[callback.id], 'process_list_selected', true);
             Vue.set(callback_table.callbacks[callback['id']], 'selected', true);
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/process_list/" + btoa(callback.host), function (response) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/process_list/", function (response) {
                 try {
                     //console.log(response);
                     let data = JSON.parse(response);
@@ -295,7 +295,7 @@ var callback_table = new Vue({
                     //console.log(error);
                     alertTop("danger", "session expired, refresh please");
                 }
-            }, "GET");
+            }, "POST", {"host": callback.host});
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 $('#process_list' + callback.id.toString() + 'tab').click();

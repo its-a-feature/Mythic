@@ -34,13 +34,13 @@ async def get_all_process_lists(request, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/process_list/<host:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/process_list/", methods=["POST"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_a_process_list(request, user, host):
+async def get_a_process_list(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -50,7 +50,10 @@ async def get_a_process_list(request, user, host):
         operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
-    host = base64.b64decode(host).decode("utf-8").upper()
+    data = request.json
+    if "host" not in data or data["host"] is None:
+        return json({"status": "error", "error": "missing host field"})
+    host = data["host"].upper()
     # get the latest one
     latest = await app.db_objects.execute(
         db_model.process_query.where(
