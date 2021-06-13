@@ -239,7 +239,7 @@ function container_heartbeat_check() {
     for (let i = 0; i < payloadtypes_table.payloadtypes.length; i++) {
         let heartbeat = new Date(payloadtypes_table.payloadtypes[i].last_heartbeat);
         let difference = (now - heartbeat.getTime()) / 1000;
-        if (difference < 30) {
+        if (difference < 30 && payloadtypes_table.payloadtypes[i]["container_count"] > 0) {
             payloadtypes_table.payloadtypes[i]['container_running'] = true;
         } else {
             if (payloadtypes_table.payloadtypes[i]['container_running'] === true) {

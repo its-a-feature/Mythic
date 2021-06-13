@@ -491,6 +491,7 @@ async def import_command_func(payload_type, operator, command_list):
             command.supported_ui_features = "\n".join(cmd["supported_ui_features"])
             command.author = cmd["author"]
             command.attributes = js.dumps(cmd["attributes"])
+            command.script_only = cmd["script_only"]
             await add_update_opsec_for_command(command, cmd)
             await app.db_objects.update(command)
 
@@ -527,6 +528,7 @@ async def import_command_func(payload_type, operator, command_list):
                         param["choice_filter_by_command_attributes"])
                     cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
                     cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
+                    cmd_param.dynamic_query_function = param["dynamic_query_function"] if "dynamic_query_function" in param else None
                     await app.db_objects.update(cmd_param)
                     current_param_dict.pop(param["name"], None)
                 except:  # param doesn't exist yet, so create it
@@ -703,6 +705,7 @@ async def import_command_func(payload_type, operator, command_list):
             command.help_cmd = cmd["help_cmd"]
             command.supported_ui_features = "\n".join(cmd["supported_ui_features"])
             command.author = cmd["author"]
+            command.script_only = cmd["script_only"]
             command.attributes = js.dumps(cmd["attributes"])
             await add_update_opsec_for_command(command, cmd)
             await app.db_objects.update(command)
@@ -717,6 +720,7 @@ async def import_command_func(payload_type, operator, command_list):
                 help_cmd=cmd["help_cmd"],
                 supported_ui_features="\n".join(cmd["supported_ui_features"]),
                 author=cmd["author"],
+                script_only=cmd["script_only"],
                 attributes=js.dumps(cmd["attributes"])
             )
             await add_update_opsec_for_command(command, cmd)
@@ -749,6 +753,7 @@ async def import_command_func(payload_type, operator, command_list):
                 cmd_param.choice_filter_by_command_attributes = js.dumps(param["choice_filter_by_command_attributes"])
                 cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
                 cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
+                cmd_param.dynamic_query_function = param["dynamic_query_function"] if "dynamic_query_function" in param else None
                 await app.db_objects.update(cmd_param)
                 current_param_dict.pop(param["name"], None)
             except:  # param doesn't exist yet, so create it

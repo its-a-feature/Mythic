@@ -267,8 +267,9 @@ async def register_new_payload_func(data, user):
         tag = data["tag"] if "tag" in data else ""
         # if the type of payload is a wrapper, then it doesn't have any commands associated with it
         # otherwise, get all of the commands and make sure they're valid
+        db_commands = {}
         if not payload_type.wrapper:
-            db_commands = {}
+
             if "commands" not in data or data["commands"] is None:
                 data["commands"] = []
             for cmd in data["commands"]:
@@ -722,6 +723,12 @@ async def write_payload(uuid, user, data):
         user["username"],
         payload.uuid
     )
+    if result["status"] == "error" and "type" in result:
+        payload.build_phase = "error"
+        payload.build_stderr = "Container not online"
+        payload.payload_type.container_count = 0
+        await app.db_objects.update(payload.payload_type)
+        await app.db_objects.update(payload)
     return {**result, "uuid": payload.uuid}
 
 

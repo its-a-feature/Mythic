@@ -17,6 +17,15 @@ try {
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/{{cid}}/all_tasking", get_all_tasking_callback, "GET", null);
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/", get_callback_options_callback, "GET", null);
 // Vue that we'll use to display everything
+var tag_info = new Vue({
+    el: '#addTagModalData',
+    data: {
+        tags: [],
+        selected_tag: "Select One...",
+        current_tags: ""
+    },
+    delimiters: ['[[',']]']
+})
 var callback_table = new Vue({
     el: '#callback_table',
     data: {
@@ -140,8 +149,92 @@ var callback_table = new Vue({
                                     blank_vals['payloadlist_value'] = params_table.payloads[0].uuid
                                 }
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]);
-                                if (param.choices.length > 0) {
-                                    param.choice_value = param.choices.split("\n")[0];
+                                if(param.type === "Choice" || param.type === "ChoiceMultiple"){
+                                    if(param.dynamic_query_function !== null){
+                                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
+                                            try {
+                                                param.choices = JSON.parse(response);
+                                                if(param.choices.length > 0){
+                                                    param.choice_value = param.choices[0];
+                                                    param.choicemultiple_value = [param.choices[0]];
+                                                }
+                                                params_table.command_params.push(param);
+                                                params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
+                                            } catch (error) {
+                                                console.log(error.toString());
+                                                alertTop("danger", "Session expired, please refresh");
+                                            }
+                                        }, "POST", {
+                                            "callback": data["id"],
+                                            "command": command,
+                                            "parameter_name": param.name,
+                                            "payload_type": callback_table.callbacks[data['id']]['payload_type']
+                                        });
+                                        continue;
+                                    }
+                                    if(param.choices.length > 0){
+                                        param.choice_value = param.choices[0];
+                                        param.choicemultiple_value = [param.choices[0]];
+                                    }
+                                    else{
+                                        let filter = JSON.parse(param.choice_filter_by_command_attributes);
+                                        function intersect(a, b) {
+                                          let setB = new Set(b);
+                                          return [...new Set(a)].filter(x => setB.has(x));
+                                        }
+                                        if(param.choices_are_all_commands){
+                                            let choices = [];
+                                            for(let c = 0; c < this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']].length; c++){
+                                                if(!(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["cmd"] === "help" ||
+                                                    this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["cmd"] === "clear")){
+                                                    let match = true;
+                                                    let cmd_attributes = this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["attributes"];
+                                                    for(const [key, value] of Object.entries(filter)){
+                                                        if(key === "spawn_and_injectable"){
+                                                            if(value !== cmd_attributes[key]){
+                                                                match = false;
+                                                            }
+                                                        }else if(key === "supported_os" && value.length >0){
+                                                            if(intersect(value, cmd_attributes[key]).length === 0){
+                                                                match = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    if(match){
+                                                        choices.push(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["cmd"]);
+                                                    }
+                                                }
+                                            }
+                                            param.choices = choices;
+                                        }
+                                        else if(param.choices_are_loaded_commands){
+                                            let choices = [];
+                                            for(let c = 0; c < callback_table.callbacks[data["id"]]["commands"].length; c++){
+                                                if(!(callback_table.callbacks[data["id"]]["commands"][c]["name"] === "help" || callback_table.callbacks[data["id"]]["commands"][c]["name"] === "clear")){
+                                                    let match = true;
+                                                    let cmd_attributes =callback_table.callbacks[data["id"]]["commands"][c]["attributes"];
+                                                    for(const [key, value] of Object.entries(filter)){
+                                                        if(key === "spawn_and_injectable"){
+                                                            if(value !== cmd_attributes[key]){
+                                                                match = false;
+                                                            }
+                                                        }else if(key === "supported_os" && value.length >0){
+                                                            if(intersect(value, cmd_attributes[key]).length === 0){
+                                                                match = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    if(match){
+                                                        choices.push(callback_table.callbacks[data["id"]]["commands"][c]["name"]);
+                                                    }
+                                                }
+                                            }
+                                            param.choices = choices;
+                                        }
+                                        if(param.choices.length > 0){
+                                            param.choice_value = param.choices[0];
+                                        }
+                                    }
                                 }
                                 if(param.type === "Array"){
                                     if(param.default_value.length > 0){
@@ -448,6 +541,63 @@ var callback_table = new Vue({
 
             }, "GET", null);
         },
+        add_tag: function(){
+            tag_info.current_tags += "\n" + tag_info.selected_tag;
+        },
+        view_all_tags: function(task){
+            tag_info.selected_tag = "Select One...";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/", (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                       tag_info.tags = data["tags"].sort();
+                       tag_info.tags.unshift("Select One...");
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                        tag_info.current_tags = data["tags"].join("\n");
+                        $('#addTagModal').modal('show');
+                        $('#addTagModal').on('shown.bs.modal', function () {
+                            $('#addTagTextArea').focus();
+                            $("#addTagTextArea").unbind('keyup').on('keyup', function (e) {
+                                if (e.keyCode === 13 && !e.shiftKey) {
+                                    $('#addTagSubmit').click();
+                                }
+                            });
+                        });
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            $('#addTagSubmit').unbind('click').click(function () {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                    try{
+                        let data = JSON.parse(response);
+                        if( data["status"] === "success"){
+                            alertTop("success","Successfully updated tags");
+                        }else{
+                            alertTop("warning", data["error"]);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Failed to make web request: " + error.toString());
+                    }
+                }, "PUT", {"tags": tag_info.current_tags.split("\n")});
+            });
+        },
         view_opsec_block: function(task){
             let text_msg = "";
             if (task.opsec_pre_blocked !== null){
@@ -477,6 +627,18 @@ var callback_table = new Vue({
           httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + task.id + "/request_bypass/" , (response) => {
 
             }, "GET", null);
+        },
+        reissue_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/reissue_task_webhook" , (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "error"){
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                }
+            }, "POST", {"input": {"task_id": task.id}});
         },
         remove_comment: function (id) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, remove_comment_callback, "DELETE", null);

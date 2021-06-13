@@ -286,6 +286,42 @@ async def view_shared_task(request, user, tid):
     return response.html(content)
 
 
+@mythic.route("/tasks/by_range", methods=["GET"])
+@inject_user()
+@scoped("auth:user")
+async def view_shared_task_range(request, user):
+    template = env.get_template("share_task.html")
+    browser_scripts, final_support_scripts = await get_scripts(user)
+    content = template.render(
+        links=await respect_pivot(links, request),
+        name=user["username"],
+        ** await getSchemes(request),
+        config=user["ui_config"],
+        browser_scripts=browser_scripts,
+        support_scripts=final_support_scripts,
+        view_utc_time=user["view_utc_time"],
+    )
+    return response.html(content)
+
+
+@mythic.route("/tasks/by_tag", methods=["GET"])
+@inject_user()
+@scoped("auth:user")
+async def view_tasks_by_tag(request, user):
+    template = env.get_template("task_tags_view.html")
+    browser_scripts, final_support_scripts = await get_scripts(user)
+    content = template.render(
+        links=await respect_pivot(links, request),
+        name=user["username"],
+        ** await getSchemes(request),
+        config=user["ui_config"],
+        browser_scripts=browser_scripts,
+        support_scripts=final_support_scripts,
+        view_utc_time=user["view_utc_time"],
+    )
+    return response.html(content)
+
+
 @mythic.route("/split_callbacks/<cid:int>", methods=["GET"])
 @inject_user()
 @scoped("auth:user")
@@ -439,3 +475,4 @@ links["web_log"] = mythic.url_for("web_log")
 links["live_feed"] = mythic.url_for("live_task_feed")
 links["live_event_feed"] = mythic.url_for("live_event_feed")
 links["search"] = mythic.url_for("search")
+links["tasks_by_tag"] = mythic.url_for("view_tasks_by_tag")

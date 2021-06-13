@@ -696,13 +696,13 @@ async def create_callback_func(data, request):
     if not data:
         return {"status": "error", "error": "Data is required for POST"}
     if "user" not in data:
-        return {"status": "error", "error": "User required"}
+        data["user"] = ""
     if "host" not in data:
-        return {"status": "error", "error": "Host required"}
+        data["host"] = ""
     if "pid" not in data:
-        return {"status": "error", "error": "PID required"}
+        data["pid"] = -1
     if "ip" not in data:
-        return {"status": "error", "error": "IP required"}
+        data["ip"] = ""
     if "uuid" not in data:
         return {"status": "error", "error": "uuid required"}
     # Get the corresponding Payload object based on the uuid
@@ -716,22 +716,24 @@ async def create_callback_func(data, request):
     if "integrity_level" not in data:
         data["integrity_level"] = 2  # default medium integrity level
     if "os" not in data:
-        data["os"] = None
+        data["os"] = ""
     if "domain" not in data:
-        data["domain"] = None
+        data["domain"] = ""
     if "architecture" not in data:
-        data["architecture"] = None
+        data["architecture"] = ""
     if "external_ip" not in data:
         if "x-forwarded-for" in request.headers:
             data["external_ip"] = request.headers["x-forwarded-for"].split(",")[-1]
         elif "X-Forwarded-For" in request.headers:
             data["external_ip"] = request.headers["X-Forwarded-For"].split(",")[-1]
         else:
-            data["external_ip"] = None
+            data["external_ip"] = ""
     if "extra_info" not in data:
         data["extra_info"] = ""
     if "sleep_info" not in data:
         data["sleep_info"] = ""
+    if "process_name" not in data:
+        data["process_name"] = ""
     try:
         if payload.operation.complete:
             await app.db_objects.create(
@@ -761,7 +763,8 @@ async def create_callback_func(data, request):
                 architecture=data["architecture"],
                 external_ip=data["external_ip"],
                 extra_info=data["extra_info"],
-                sleep_info=data["sleep_info"]
+                sleep_info=data["sleep_info"],
+                process_name=data["process_name"]
             )
             await app.db_objects.create(
                 db_model.OperationEventLog,
@@ -968,6 +971,8 @@ async def update_callback(data, UUID):
             cal.sleep_info = data["sleep_info"]
         if "description" in data:
             cal.description = data["description"]
+        if "process_name" in data:
+            cal.process_name = data["process_name"]
         await app.db_objects.update(cal)
         return {"action": "update_info", "status": "success"}
     except Exception as e:
@@ -1470,6 +1475,16 @@ async def get_one_callback(request, cid, user):
             }
             for lc in loaded_commands
         ]
+        script_commands = await app.db_objects.execute(db_model.command_query.where(
+            (db_model.Command.payload_type == callback.registered_payload.payload_type) &
+            (db_model.Command.script_only == True)
+        ))
+        for c in script_commands:
+            return_json["loaded_commands"].append(
+                {"command": c.cmd,
+                 "version": c.version,
+                 "mythic_version": c.version}
+            )
         callbackc2profiles = await app.db_objects.execute(
             db_model.callbackc2profiles_query.where(db_model.CallbackC2Profiles.callback == callback)
         )

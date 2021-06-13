@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 {% block body %}
-<div id="task_info">
-    <div class="card border border-dark shadow bg-card-body"  style="overflow-y:visible;margin-top:5px">
-        <div class="card-header bg-header border border-dark shadow text-white">
-            <span style="display:inline-block"><h2 style="display:inline-block"><span class="operator" >[[title]]</span> </h2></span>
-            <span style="display:inline-block;float:right">
-                <span class="input-group" style="display:inline-block">
-                    <template v-if="remove_tasks">
-                        <button style="float:right;display:inline-block" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_selected_tasks()">Remove Selected Tasks</button>
-                    </template>
-                    <template v-else>
-                        <button style="float:right;display:inline-block" class="btn btn{{config['outline-buttons']}}warning btn-sm" @click="mark_for_removal()">Remove Tasks</button>
-                    </template>
-                    <button style="float:right;display:inline-block" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="add_tag_to_all()">Add Tags</button>
-                </span>
+
+<div style="resize: vertical;margin-top:5px" class="card border-0 shadow" id="feed">
+    <div class="card-header bg-header border border-dark shadow text-white">
+        <h2 style="display:inline-block">Tasks By Tag</h2>
+        <span style="display:inline-block; float:right">
+            <span class="input-group" >
+                <select class="form-control" v-model="selected_tag" style="width:auto;color:white" @change="selected_tag_changed" >
+                    <option  v-for="o in tags" :value="o">[[o]]</option>
+                </select>
+                <template v-if="tasks.length > 0">
+                    <button style="float:right;display:inline-block" class="btn btn{{config['outline-buttons']}}info btn-sm" @click="get_shareable_link()">Get Shareable Link</button>
+                    <button style="float:right;display:inline-block" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_tag()">Delete Tag</button>
+                </template>
             </span>
-        </div>
+        </span>
+    </div>
+    <div style="overflow-y:auto;padding:0;" class="card-body bg-card-body border border-dark shadow" >
         <div v-for="(task, index) in tasks" class="card-body response-background border border-dark shadow" style="word-wrap: break-word;padding:0;margin:0;">
             <div class="card-body response-background border border-dark shadow" style="word-wrap: break-word;padding:0;margin:0;">
                 <template v-if="task['type'] === 'task'">
                     <div class="card-header border-dark bg-header-dark" :key="'headera' + task.id" style="position:-webkit-sticky;position:static;top:0;padding-bottom:0;padding-top:0px;padding-left:0;white-space:nowrap;overflow-x:auto;max-width:100%">
-
-                    <transition-group>
+                        <transition-group>
                      <button v-if="task.comment != '' && task.comment_visible" :key="'keya' + task.id" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="remove_comment(task)" style="padding:0px 4px;margin-left:2px;margin-top:2px;border:0"><i class="fas fa-trash-alt"></i></button>
                      <p v-if="task.comment != '' && task.comment_visible" :key="'keyb' + task.id" class="card-text" style="margin:0;display:inline-block">
                         <small class="text-muted">[[task.comment_operator]]'s comment:</small></p>
@@ -84,20 +84,12 @@
                         - at [[toLocalTime(task.timestamp)]]
                      </small></p>
                      <a :key="'commentdots' + task.id" v-if="task.comment !== ''" style="padding-bottom:0" class="btn btn-link" type="button" @click="toggle_comment(task)"><i class="far fa-comment-dots" ></i></a>
-                     <span style="display:inline-block;float:right;margin-top:5px" v-if="remove_tasks" :key="'delete_task' + task.id">
-                        <span class="material-switch pull-right" style="margin-left:10px">
-                            <input class="form-control" type="checkbox" :id="'task_delete' + task.id" v-model="task.to_delete">
-                            <label :for="'task_delete' + task.id" class="btn-danger"></label>
-                        </span>
-                    </span>
                      <br :key="'br' + task.id">
                      <a :key="'toggleoutput' + task.id" class="btn btn-link" type="button" style="border:0;padding:0 0 5px 5px" data-toggle="collapse" :data-target="'#cardbody' + task.id" aria-expanded="false" :aria-controls="'cardbody' + task.id" @click="toggle_arrow(task)"><i :id="'color-arrow' + task.id" class="fas fa-plus fa-xs" data-toggle="tooltip" title="view / hide task output"></i></a>
                         <div style="display:inline-block" :key="'taskcommand' + task.id"><b>&nbsp;[[task.command]]&nbsp;</b></div>
                      <div style="display:inline-block" :key="'taskparams' + task.id">[[task.display_params]]</div>
                     </transition-group>
-
-                </div>
-
+                    </div>
                     <div :key="'outputcontent' + task.id" class="collapse" :id="'cardbody' + task.id" >
             <div :key="'outputcontentcardbody' + task.id" class="response-background card-body shadow" style="padding-top:0;padding-bottom: 0" >
                 <div :key="'showparams' + task.id" v-if="task.show_params">
@@ -110,25 +102,24 @@
                 </template>
                 <template v-else>
                     <h5 style="padding-left:10px;display:inline-block"><template v-if="task['domain'] !== ''">[[task.domain]]\</template>[[task.user]]<template v-if="task['integrity_level'] > 2">*</template>@[[task.host]] (<a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/split_callbacks/' + task.id" target="_blank">[[task.id]]</a>)</h5>
-                     <button class="btn btn{{config['outline-buttons']}}secondary btn-sm" :key="'statusdropdown' + task.id + '_' + index" style="margin-right:20px;display:inline-block;float:right" @click="add_more_tasks(task, index)"><span class="card-text">Include More Tasks</span></button>
-                </template>
+                 </template>
         </div>
         </div>
     </div>
     <div v-if="artifacts.length > 0" class="card border border-dark shadow bg-card-body" id="task_artifacts" style="overflow-y:auto;margin-top:5px">
         <div class="card-header bg-header border border-dark shadow text-white">
-            <h2>Artifacts</h2>
+            <h2><span class="operator">Task</span> Artifacts</h2>
         </div>
         <div class="card-body response-background border border-dark shadow" style="word-wrap: break-word;padding:0;margin:0;">
             <table class="table table-striped {{config['table-color']}}">
                 <tr>
-                    <th onclick="sort_table(this)" style="text-align:left;width:8rem"><b>Task</b></th>
+                    <th onclick="sort_table(this)" style="text-align:left"><b>Task</b></th>
                     <th onclick="sort_table(this)" style="text-align:left"><b>Type</b></th>
                     <th onclick="sort_table(this)" style="text-align:left"><b>Artifact</b></th>
                 </tr>
                 <!-- Repeat this for each base artifact -->
                 <tr v-for="(artifact, i) in artifacts" :key="artifact.id">
-                    <td style="padding-left:10px"><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + artifact.task_id" target="_blank">[[artifact.task_id]]</a></td>
+                    <td style="padding-left:10px; width:8rem"><a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}/tasks/' + artifact.task_id" target="_blank">[[artifact.task_id]]</a></td>
                     <td style="padding-left:10px">[[ artifact.artifact ]]</td>
                     <td>[[ artifact.artifact_instance ]]</td>
                 </tr>
@@ -137,7 +128,7 @@
     </div>
     <div v-if="files.length > 0" class="card border border-dark shadow bg-card-body"  style="overflow-y:auto;margin-top:5px">
         <div class="card-header bg-header border border-dark shadow text-white">
-            <h2>Files/Screenshots</h2>
+            <h2><span class="operator">Task</span> Files/Screenshots</h2>
         </div>
         <div class="card-body response-background border border-dark shadow" style="word-wrap: break-word;padding:0;margin:0;">
             <table class="table table-striped {{config['table-color']}}">
@@ -183,7 +174,7 @@
     </div>
     <div v-if="credentials.length > 0 " class="card border border-dark shadow bg-card-body" id="task_credentials" style="overflow-y:auto;margin-top:5px">
         <div class="card-header bg-header border border-dark shadow text-white">
-            <h2>Credentials</h2>
+            <h2><span class="operator">Task</span> Credentials</h2>
         </div>
         <div class="card-body response-background border border-dark shadow" style="word-wrap: break-word;padding:0;margin:0;">
             <table class="table table-striped {{config['table-color']}}">
@@ -207,7 +198,7 @@
     </div>
     <div v-if="attack.length > 0" class="card border border-dark shadow bg-card-body"  style="overflow-y:auto;margin-top:5px">
         <div class="card-header bg-header border border-dark shadow text-white">
-            <h2> MITRE ATT&CK Mappings</h2>
+            <h2><span class="operator">Task</span> MITRE ATT&CK Mappings</h2>
         </div>
         <div class="card-body response-background border border-dark shadow" style="word-wrap: break-word;padding:0;margin:0;">
             <table class="table table-striped {{config['table-color']}}">
@@ -224,8 +215,6 @@
         </div>
     </div>
 </div>
-
-
 <!-- THIS IS OUR MODAL FOR ADDING A COMMENT -->
 <div class="modal fade" id="addCommentModal" role="dialog" >
     <div class="modal-dialog modal-xl" role="document">
@@ -271,67 +260,30 @@
     </div>
 </div>
 <!-- END MODAL FOR ADDING A TAG -->
-<!-- THIS IS OUR MODAL FOR ADDING MORE TASKS -->
-<div class="modal fade" id="addTasksModal" role="dialog" >
-    <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content" >
+<!-- THIS IS OUR MODAL FOR DELETING TAG -->
+<div class="modal fade" id="tagDeleteModal" role="dialog">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
             <div class="modal-header bg-dark text-white">
-                <h3>Add More Tasks</h3>
+                <h3 id="modalLabel">Are you sure?</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
-          <div class="modal-body">
-                <table class="table table-striped {{config['table-color']}}">
-                    <tr>
-                        <th onclick="sort_table(this)" style="text-align:left"><b>Include Type</b></th>
-                        <th onclick="sort_table(this)" style="text-align:left"><b>Configuration</b></th>
-                    </tr>
-                    <!-- Repeat this for each base artifact -->
-                    <tr>
-                        <td>View more tasks around task: </td>
-                        <td>
-                            <select class="form-control" v-model="task_id" style="width:auto;display:inline-block">
-                                <option v-for="t in task_options" :value="t">[[t]]</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr >
-                        <td>Number of tasks to include before task [[task_id]]</td>
-                        <td><input class="form-control" type="number" v-model="before"/></td>
-                    </tr>
-                    <tr>
-                        <td>Number of tasks to include after task [[task_id]]</td>
-                        <td><input class="form-control" type="number" v-model="after"/></td>
-                    </tr>
-                    <tr>
-                        <td>Include results from: </td>
-                        <td>
-                            <select class="form-control" v-model="search" style="width:auto;display:inline-block">
-                                <option value="all">All Callbacks</option>
-                                <option value="callback">Current Callback Only</option>
-                                <option value="operator">All Callbacks but limited by operator</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr v-if="search === 'operator'">
-                        <td>Operator username</td>
-                        <td><input type="text" class="form-control" v-model="operator" style="display:inline-block"/></td>
-                    </tr>
-                </table>
-          </div>
-          <div class="modal-footer">
-              <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-            <button class="btn btn{{config['outline-buttons']}}success" data-dismiss="modal" id="addTasksSubmit" aria-hidden="true">Submit</button>
-          </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}danger" data-dismiss="modal" id="tagDeleteSubmit">Submit</button>
+              </div>
         </div>
     </div>
 </div>
-<!-- END MODAL FOR ADDING MORE TASKS -->
+<!-- END MODAL FOR DELETING TAG -->
 {% endblock %}
 
 {% block scripts %}
-{% include "share_task.js" %}
+{% include "task_tags_view.js" %}
 {% endblock %}
 
 {% block body_config %}
-
+.btn.disabled, .btn:disabled {
+    opacity: 1 !important;
+}
 {% endblock %}

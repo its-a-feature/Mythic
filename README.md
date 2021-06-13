@@ -9,7 +9,7 @@ A cross-platform, post-exploit, red teaming framework built with python3, docker
 * Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf  
 * Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
 
-* Current Version: 2.2.4
+* Current Version: 2.2.6
 
 ## Installing Agents and C2 Profiles
 
@@ -42,8 +42,8 @@ All of this can be found on the [MythicMeta](https://github.com/MythicMeta):
 
 ## Current Container PyPi Package requirements
 
-Supported payload types must have the `mythic_payloadtype_container` PyPi package of 0.0.42.  
-* The Payload Type container reports this as version 6  
+Supported payload types must have the `mythic_payloadtype_container` PyPi package of 0.0.43.  
+* The Payload Type container reports this as version 7.  
 
 Supported c2 profiles must have the `mythic_c2_container` PyPi package of 0.0.22.  
 * The C2 Profile container reports this as version 3.  

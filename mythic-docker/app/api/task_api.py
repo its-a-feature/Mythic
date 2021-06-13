@@ -19,7 +19,7 @@ import sys
 import os
 import base64
 import app.database_models.model as db_model
-from app.api.rabbitmq_api import send_pt_rabbitmq_message
+from app.api.rabbitmq_api import send_pt_rabbitmq_message, MythicBaseRPC
 from sanic.exceptions import abort
 from math import ceil
 from sanic.log import logger
@@ -637,7 +637,7 @@ async def add_task_to_callback(request, cid, user):
         db_model.operatoroperation_query, operator=operator, operation=operation
     )
     if operatoroperation.base_disabled_commands is not None:
-        if data["command"] not in ["tasks", "clear"]:
+        if data["command"] not in ["clear"]:
             cmd = await app.db_objects.get(
                 db_model.command_query,
                 cmd=data["command"],
@@ -677,7 +677,7 @@ async def add_task_to_callback(request, cid, user):
         data["params"] = js.dumps(params)
         data["original_params"] = js.dumps(original_params_with_names)
     return json(
-        await add_task_to_callback_func(data, cid, user, operator, operation, cb)
+        await add_task_to_callback_func(data, cid, operator, cb)
     )
 
 
@@ -762,7 +762,7 @@ async def add_task_to_callback_webhook(request, user):
             data["params"][f] = v
         data["params"] = js.dumps(data["params"])
         data.pop("files", None)
-    output = await add_task_to_callback_func(data, data["callback_id"], user, operator, operation, cb)
+    output = await add_task_to_callback_func(data, data["callback_id"], operator, cb)
     return json({
         "status": output.pop("status"),
         "error": output.pop("error", None),
@@ -771,14 +771,15 @@ async def add_task_to_callback_webhook(request, user):
 
 
 cached_payload_info = {}
+payload_rpc = MythicBaseRPC()
 
 
-async def add_task_to_callback_func(data, cid, user, op, operation, cb):
+async def add_task_to_callback_func(data, cid, op, cb):
+    task = None
     try:
         # first see if the operator and callback exists
-        if user["view_mode"] == "spectator":
-            return {"status": "error", "error": "Spectators cannot issue tasking"}
-        task = None
+
+
         # now check the task and add it if it's valid and valid for this callback's payload type
         try:
             cmd = await app.db_objects.get(
@@ -796,14 +797,21 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                     Task,
                     callback=cb,
                     operator=op,
+                    parent_task=data["parent_task"] if "parent_task" in data else None,
+                    subtask_callback_function=data["subtask_callback_function"] if "subtask_callback_function" in data else None,
+                    group_callback_function=data["group_callback_function"] if "group_callback_function" in data else None,
+                    completed_callback_function=data["completed_callback_function"] if "completed_callback_function" in data else None,
+                    subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
                     params="clear " + data["params"],
                     status="processed",
                     original_params="clear " + data["params"],
                     completed=True,
                     display_params="clear " + data["params"]
                 )
+                if "tags" in data:
+                    await add_tags_to_task(task, data["tags"])
                 raw_rsp = await clear_tasks_for_callback_func(
-                    {"task": data["params"]}, cb.id, user
+                    {"task": data["params"]}, cb.id, op
                 )
                 if raw_rsp["status"] == "success":
                     rsp = "Removed the following:"
@@ -839,6 +847,17 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                 "params": data["params"],
                 "callback": cid,
             }
+        try:
+            if not cmd.script_only:
+                loaded_commands = await app.db_objects.get(db_model.loadedcommands_query, callback=cb, command=cmd)
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": data["command"] + " is not loaded in this callback and is not a scripted command",
+                "cmd": data["command"],
+                "params": data["params"],
+                "callback": cid,
+            }
         file_meta = ""
         # check and update if the corresponding container is running or not
         payload_type = await app.db_objects.get(
@@ -870,13 +889,20 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
                 token=token,
                 params=data["params"],
                 original_params=data["original_params"],
-                display_params=data["original_params"]
+                display_params=data["original_params"],
+                parent_task=data["parent_task"] if "parent_task" in data else None,
+                subtask_callback_function=data[
+                    "subtask_callback_function"] if "subtask_callback_function" in data else None,
+                group_callback_function=data["group_callback_function"] if "group_callback_function" in data else None,
+                subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
             )
-            result = await submit_task_to_container(task, user["username"])
+            if "tags" in data:
+                await add_tags_to_task(task, data["tags"])
+            result = await submit_task_to_container(task, op.username)
         else:
             return {
                 "status": "error",
-                "error": f"{payload_type.ptype}'s container isn't running - no heartbeat in over 30 seconds, so it cannot process tasking.\nUse ./status_check.sh to check if the container is still online.\nUse './display_output.sh {payload_type.ptype}' to get any error logs from the container.\nUse './start_payload_types.sh {payload_type.ptype}' to start the container again.",
+                "error": f"{payload_type.ptype}'s container isn't running - no heartbeat in over 30 seconds, so it cannot process tasking.\nUse ./mythic-cli status to check if the container is still online.\nUse './display_output.sh {payload_type.ptype}' to get any error logs from the container.\nUse './start_payload_types.sh {payload_type.ptype}' to start the container again.",
                 "cmd": cmd.cmd,
                 "params": data["original_params"],
                 "callback": cid,
@@ -886,7 +912,7 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             "status"
         ]  # we don't want the two status keys to conflict
         task_json.pop("status")
-        return {**result, **task_json}
+        return {**result, **task_json, "cmd": cmd.cmd, "params": data["original_params"], "callback": cid}
     except Exception as e:
         logger.warning(
             "failed to get something in add_task_to_callback_func "
@@ -894,6 +920,10 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             + " "
             + str(e)
         )
+        if task is not None:
+            task.completed = True
+            task.status = "error in Mythic"
+            await app.db_objects.update(task)
         return {
             "status": "error",
             "error": "Failed to create task: "
@@ -904,6 +934,103 @@ async def add_task_to_callback_func(data, cid, user, op, operation, cb):
             "params": data["params"],
             "callback": cid,
         }
+
+
+async def check_and_issue_task_callback_functions(taskOriginal: Task):
+    # pull updated information for the task in case it didn't propagate for whatever reason
+    task = await app.db_objects.get(db_model.task_query, id=taskOriginal.id)
+    if task.completed:
+        if task.parent_task is not None:
+            # pass execution to parent_task's functions for subtask_callback_function and group_callback_function
+            if task.subtask_callback_function is not None:
+                status = await submit_task_callback_to_container(task.parent_task, task.subtask_callback_function, task.operator.username,
+                                                        task)
+                if status["status"] == "error":
+                    task.subtask_callback_function_completed = False
+                    logger.warning("error from subtask_callback_function submit_task_callback_to_container: " + status["error"])
+                else:
+                    task.subtask_callback_function_completed = True
+                await app.db_objects.update(task)
+            if task.subtask_group_name != "" and task.group_callback_function is not None:
+                # we need to check if all tasks are done that have that same group name
+                group_tasks = await app.db_objects.count(db_model.task_query.where(
+                    (db_model.Task.subtask_group_name == task.subtask_group_name) &
+                    (db_model.Task.completed == False) &
+                    (db_model.Task.parent_task == task.parent_task)
+                ))
+                if group_tasks == 0:
+                    # there are no more tasks with this same group name and same parent task, so call the group_callback_function
+                    status = await submit_task_callback_to_container(task.parent_task, task.group_callback_function, task.operator.username,
+                                                            task, subtask_group_name=task.subtask_group_name)
+                    if status["status"] == "error":
+                        task.group_callback_function_completed = False
+                        logger.warning("error from grouptasks == 0, submit_task_callback_to_container: " + status["error"])
+                    else:
+                        task.group_callback_function_completed = True
+                    await app.db_objects.update(task)
+        if task.completed_callback_function is not None:
+            # pass execution back to task's function called completed_callback_function
+            status = await submit_task_callback_to_container(task, task.completed_callback_function, task.operator.username)
+            if status["status"] == "error":
+                task.completed_callback_function_completed = False
+                logger.warning("error in completed_callback_function not None submit_task_callback_to_container: " + status["error"])
+            else:
+                task.completed_callback_function_completed = True
+            await app.db_objects.update(task)
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/tasks/dynamic_query",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_dynamic_query_params(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    return json(await process_dynamic_request(request.json))
+
+
+async def process_dynamic_request(data):
+    if "command" not in data:
+        return {"status": "error", "error": "command is a required field"}
+    if "parameter_name" not in data:
+        return {"status": "error", "error": "parameter_name is a required field"}
+    if "payload_type" not in data:
+        return {"status": "error", "error": "payload_type is a required field"}
+    if "callback" not in data:
+        return {"status": "error", "error": "callback is a required field"}
+    try:
+        callback = await app.db_objects.get(db_model.callback_query, id=data["callback"])
+        return await issue_dynamic_parameter_call(data["command"], data["parameter_name"], data["payload_type"], callback)
+    except Exception as e:
+        return {"status": "error", "error": "Failed to get callback data: " + str(e)}
+
+
+async def issue_dynamic_parameter_call(command: str, parameter_name: str, payload_type: str, callback: Callback):
+    try:
+        rabbitmq_message = callback.to_json()
+        # get the information for the callback's associated payload
+        payload_info = await add_all_payload_info(callback.registered_payload)
+        rabbitmq_message["build_parameters"] = payload_info[
+            "build_parameters"
+        ]
+        rabbitmq_message["c2info"] = payload_info["c2info"]
+    except Exception as e:
+        return {"status": "error", "error": "Failed to get callback and payload information"}, False
+    status, successfully_sent = await payload_rpc.call(message={
+        "action": parameter_name,
+        "command": command,
+        "callback": rabbitmq_message
+    }, receiver="{}_mythic_rpc_queue".format(payload_type))
+    if not successfully_sent:
+        return {"status": "error", "error": "Failed to connect to rabbitmq, is the container running?"}
+    return js.loads(status)
 
 
 @mythic.route(
@@ -932,7 +1059,7 @@ async def request_bypass_for_opsec_check(request, tid, user):
         else:
             return json({"status": "error", "error": "Task doesn't exist or isn't part of your operation"})
     except Exception as e:
-        logger.warning(str(e))
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": "Failed to find components"})
 
 
@@ -960,7 +1087,7 @@ async def request_bypass_for_opsec_check_webhook(request, user):
         else:
             return json({"status": "error", "error": "Task doesn't exist or isn't part of your operation"})
     except Exception as e:
-        logger.warning(str(e))
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": "Failed to find components"})
 
 
@@ -970,21 +1097,42 @@ async def process_bypass_request(user, task):
             # we just need an operator to acknowledge the risk, not a lead to approve it necessarily
             task.opsec_pre_bypass_user = user
             task.opsec_pre_bypassed = True
-            task.status = "creating task"
+            task.status = "bypassing opsec_pre"
             await app.db_objects.update(task)
-            await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
-                                    message=f"{user.username} bypassed an OPSEC PreCheck for task {task.id}")
-            return await submit_task_to_container(task, user.username)
+            status = await submit_task_to_container(task, user.username)
+            if status["status"] == "error":
+                task.opsec_pre_bypass_user = None
+                task.opsec_pre_bypassed = False
+                task.status = "opsec pre blocked (container down)"
+                await app.db_objects.update(task)
+                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                            message=f"OPSEC PreCheck for task {task.id} failed - container down")
+            else:
+                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                            message=f"{user.username} bypassed an OPSEC PreCheck for task {task.id}")
+            return status
         elif task.opsec_pre_bypass_role == "lead":
             # only the lead of an operation can bypass the check
             if task.callback.operation.admin == user:
                 task.opsec_pre_bypass_user = user
                 task.opsec_pre_bypassed = True
-                task.status = "creating task"
+                task.status = "bypassing opsec_pre"
                 await app.db_objects.update(task)
-                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
-                                        message=f"{user.username} bypassed an OPSEC PreCheck for task {task.id}")
-                return await submit_task_to_container(task, user.username)
+
+                status = await submit_task_to_container(task, user.username)
+                if status["status"] == "error":
+                    task.opsec_pre_bypass_user = None
+                    task.opsec_pre_bypassed = False
+                    task.status = "opsec pre blocked (container down)"
+                    await app.db_objects.update(task)
+                    await app.db_objects.create(db_model.OperationEventLog, level="info",
+                                                operation=task.callback.operation,
+                                                message=f"OPSEC PreCheck for task {task.id} failed - container down")
+                else:
+                    await app.db_objects.create(db_model.OperationEventLog, level="info",
+                                                operation=task.callback.operation,
+                                                message=f"{user.username} bypassed an OPSEC PreCheck for task {task.id}")
+                return status
             else:
                 await app.db_objects.create(db_model.OperationEventLog, level="warning", operation=task.callback.operation,
                                         message=f"{user.username} failed to bypass an OPSEC PreCheck for task {task.id}")
@@ -994,27 +1142,80 @@ async def process_bypass_request(user, task):
             # we just need an operator to acknowledge the risk, not a lead to approve it necessarily
             task.opsec_post_bypass_user = user
             task.opsec_post_bypassed = True
-            task.status = "creating task"
+            task.status = "bypassing opsec post"
             await app.db_objects.update(task)
-            await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
-                                    message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
-            return await submit_task_to_container(task, user.username)
+            status = await submit_task_to_container(task, user.username)
+            if status["status"] == "error":
+                task.opsec_post_bypass_user = None
+                task.opsec_post_bypassed = False
+                task.status = "opsec post blocked (container down)"
+                await app.db_objects.update(task)
+                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                            message=f"OPSEC PostCheck for task {task.id} failed - container down")
+            else:
+                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
+                                            message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
+            return status
         elif task.opsec_post_bypass_role == "lead":
             # only the lead of an operation can bypass the check
             if task.callback.operation.admin == user:
                 task.opsec_post_bypass_user = user
                 task.opsec_post_bypassed = True
-                task.status = "creating task"
+                task.status = "bypass opsec post"
                 await app.db_objects.update(task)
-                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
-                                        message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
-                return await submit_task_to_container(task, user.username)
+                status = await submit_task_to_container(task, user.username)
+                if status["status"] == "error":
+                    task.opsec_post_bypass_user = None
+                    task.opsec_post_bypassed = False
+                    task.status = "opsec post blocked (container down)"
+                    await app.db_objects.update(task)
+                    await app.db_objects.create(db_model.OperationEventLog, level="info",
+                                                operation=task.callback.operation,
+                                                message=f"OPSEC PostCheck for task {task.id} failed - container down")
+                else:
+                    await app.db_objects.create(db_model.OperationEventLog, level="info",
+                                                operation=task.callback.operation,
+                                                message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
+                return status
             else:
                 await app.db_objects.create(db_model.OperationEventLog, level="warning", operation=task.callback.operation,
                                         message=f"{user.username} failed to bypass an OPSEC PostCheck for task {task.id}")
                 return {"status": "error", "error": "Not Authorized"}
     else:
         return {"status": "error", "error": "nothing to bypass"}
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/tasks/reissue_task_webhook",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def reissue_task_for_down_container(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        data = request.json["input"]
+        task = await app.db_objects.get(db_model.task_query, id=data["task_id"])
+        if task.status == "error: container down" and task.callback.operation == operation:
+            task.status = "preprocessing"
+            await app.db_objects.update(task)
+            status = await submit_task_to_container(task, user["username"])
+            if status["status"] == "error":
+                task.status = "error: container down"
+                await app.db_objects.update(task)
+            return json(status)
+        else:
+            return json({"status": "error", "error": "bad task status for re-issuing"})
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({"status": "error", "error": "Failed to find components"})
 
 
 async def submit_task_to_container(task, username):
@@ -1034,6 +1235,8 @@ async def submit_task_to_container(task, username):
             "build_parameters"
         ]
         rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+        tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
+        rabbit_message["task"]["tags"] = [t.tag for t in tags]
         rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
         # by default tasks are created in a preprocessing state,
         result = await send_pt_rabbitmq_message(
@@ -1043,6 +1246,53 @@ async def submit_task_to_container(task, username):
             username,
             task.id
         )
+        if result["status"] == "error" and "type" in result:
+            task.status = "error: container down"
+            task.callback.registered_payload.payload_type.container_running = False
+            task.callback.registered_payload.payload_type.container_count = 0
+            await app.db_objects.update(task.callback.registered_payload.payload_type)
+            await app.db_objects.update(task)
+        return result
+    else:
+        return {"status": "error", "error": "Container not running"}
+
+
+async def submit_task_callback_to_container(task: Task, function_name: str, username: str,
+                                            subtask: Task = None, subtask_group_name: str = None):
+    if (
+            task.callback.registered_payload.payload_type.last_heartbeat
+            < datetime.utcnow() + timedelta(seconds=-30)
+    ):
+        task.callback.registered_payload.payload_type.container_running = False
+        await app.db_objects.update(task.callback.registered_payload.payload_type)
+        return {"status": "error", "error": "Payload Type container not running"}
+    if task.callback.registered_payload.payload_type.container_running:
+        rabbit_message = {"params": task.params, "command": task.command.cmd, "task": task.to_json()}
+        rabbit_message["task"]["callback"] = task.callback.to_json()
+        # get the information for the callback's associated payload
+        payload_info = await add_all_payload_info(task.callback.registered_payload)
+        rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
+            "build_parameters"
+        ]
+        rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+        rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
+        rabbit_message["subtask_group_name"] = subtask_group_name
+        rabbit_message["function_name"] = function_name
+        rabbit_message["subtask"] = subtask.to_json() if subtask is not None else None
+        tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
+        rabbit_message["task"]["tags"] = [t.tag for t in tags]
+        # by default tasks are created in a preprocessing state,
+        result = await send_pt_rabbitmq_message(
+            task.callback.registered_payload.payload_type.ptype,
+            "task_callback_function",
+            base64.b64encode(js.dumps(rabbit_message).encode()).decode("utf-8"),
+            username,
+            task.id
+        )
+        if result["status"] == "error" and "type" in result:
+            task.callback.registered_payload.payload_type.container_running = False
+            task.callback.registered_payload.payload_type.container_count = 0
+            await app.db_objects.update(task.callback.registered_payload.payload_type)
         return result
     else:
         return {"status": "error", "error": "Container not running"}
@@ -1156,6 +1406,140 @@ async def get_all_not_completed_tasks_for_callback_func(cid, user):
         }
 
 
+@mythic.route(
+    mythic.config["API_BASE"] + "/tasks/tags/<tid:int>",
+    methods=["PUT"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def update_task(request, tid, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json(
+            {"status": "error", "error": "Spectators cannot adjust tags on tasks"}
+        )
+    try:
+        data = request.json
+        if "tags" not in data:
+            return json({"status": "error", "error": "tags is a required field"})
+        task = await app.db_objects.get(db_model.task_query, id=tid)
+        if task.callback.operation.name in user["operations"] or task.callback.operation.name in user["admin_operations"] or user["admin"]:
+            status = await add_tags_to_task(task, data["tags"])
+            return json(status)
+        return json({"status": "success"})
+    except Exception as e:
+        return json({"status": "error", "error": str(e)})
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/tasks/add_tags/",
+    methods=["PUT"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def update_tasks_with_tags(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json(
+            {"status": "error", "error": "Spectators cannot adjust tags on tasks"}
+        )
+    try:
+        data = request.json
+        if "tags" not in data:
+            return json({"status": "error", "error": "tags is a required field"})
+        if "tasks" not in data:
+            return json({"status": "error", "error": "tasks is a required array of task ids"})
+        operation = await app.db_objects.get(db_model.operation_query, name=user['current_operation'])
+        tasks = await app.db_objects.execute(db_model.task_query.where(
+            (db_model.Callback.operation == operation) &
+            (db_model.Task.id.in_(data["tasks"]))
+        ))
+        errors = ""
+        status = "success"
+        for t in tasks:
+            ret_status = await add_tags_to_task(t, data["tags"][:])
+            if ret_status["status"] == "error":
+                status = "error"
+                errors += ret_status["error"] + "\n"
+        if status == "success":
+            return json({"status": "success"})
+        else:
+            return json({"status": "error", "error": errors})
+    except Exception as e:
+        return json({"status": "error", "error": str(e)})
+
+
+@mythic.route(
+    mythic.config["API_BASE"] + "/tasks/tags/<tid:int>",
+    methods=["GET"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_task_tags(request, tid, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json(
+            {"status": "error", "error": "Spectators cannot adjust tags on tasks"}
+        )
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=tid)
+        if task.callback.operation.name in user["operations"] or task.callback.operation.name in user["admin_operations"] or user["admin"]:
+            tags = await app.db_objects.execute(db_model.tasktag_query.where(
+                db_model.TaskTag.task == task
+            ))
+            return json({"status": "success", "tags": [t.tag for t in tags]})
+        else:
+            return json({"status": "error", "error": "Not authorized to view task"})
+    except Exception as e:
+        return json({"status": "error", "error": str(e)})
+
+
+async def add_tags_to_task(task: Task, tags: [str]):
+    try:
+        # get all of the tags that exist for the task
+        original_tags = await app.db_objects.execute(db_model.tasktag_query.where(
+            db_model.TaskTag.task == task
+        ))
+        for tag in original_tags:
+            if tag.tag not in tags:
+                await app.db_objects.delete(tag)
+            else:
+                tags.remove(tag.tag)
+        for t in tags:
+            if t != "" and t is not None:
+                await app.db_objects.create(db_model.TaskTag, task=task, tag=t, operation=task.callback.operation)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def remove_tag_from_task(task: Task, tag: str):
+    try:
+        desiredTag = await app.db_objects.get(db_model.tasktag_query, task=task, tag=tag)
+        await app.db_objects.delete(desiredTag)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find task and tag combination"}
+
+
 async def clear_tasks_for_callback_func(data, cid, user):
     try:
         callback = await app.db_objects.get(db_model.callback_query, id=cid)
@@ -1165,35 +1549,37 @@ async def clear_tasks_for_callback_func(data, cid, user):
         if "all" == data["task"]:
             tasks = await app.db_objects.prefetch(
                 db_model.task_query.where(
-                    (Task.callback == callback) & (Task.status == "submitted")
+                    (Task.callback == callback) & (Task.completed == False)
                 ).order_by(Task.timestamp),
                 Command.select(),
             )
         elif len(data["task"]) > 0:
             #  if the user specifies a task, make sure that it's not being processed or already done
             tasks = await app.db_objects.prefetch(
-                db_model.task_query.where((Task.id == data["task"]) & (Task.status == "submitted")),
+                db_model.task_query.where((Task.id == data["task"]) & (Task.completed == False)),
                 Command.select(),
             )
         else:
             # if you don't actually specify a task, remove the the last task that was entered
             tasks = await app.db_objects.prefetch(
-                db_model.task_query.where((Task.status == "submitted") & (Task.callback == callback))
+                db_model.task_query.where((Task.completed == False) & (Task.callback == callback))
                 .order_by(-Task.timestamp)
                 .limit(1),
                 Command.select(),
             )
         for t in list(tasks):
-            if operation.name in user["operations"]:
+            if operation.name == user.current_operation.name:
+                logger.warn("operation.name == user.current_op")
                 try:
                     t_removed = t.to_json()
                     # don't actually delete it, just mark it as completed with a response of "CLEARED TASK"
-                    t.status = "processed"
+                    t.status = "cleared"
                     t.status_processed_timestamp = datetime.utcnow()
                     t.status_processing_timestamp = t.status_processed_timestamp
                     t.completed = True
                     t.timestamp = datetime.utcnow()
                     await app.db_objects.update(t)
+                    await check_and_issue_task_callback_functions(t)
                     # we need to adjust all of the things associated with this task now since it didn't actually happen
                     # find/remove ATTACKTask, TaskArtifact, FileMeta
                     attack_tasks = await app.db_objects.execute(
@@ -1213,7 +1599,7 @@ async def clear_tasks_for_callback_func(data, cid, user):
                         os.remove(fm.path)
                         await app.db_objects.delete(fm, recursive=True)
                     # now create the response so it's easy to track what happened with it
-                    response = "CLEARED TASK by " + user["username"]
+                    response = "CLEARED TASK by " + user.username
                     await app.db_objects.create(Response, task=t, response=response)
                     tasks_removed.append(t_removed)
                 except Exception as e:
@@ -1248,19 +1634,57 @@ async def get_one_task_and_responses(request, tid, user):
             {"status": "error", "error": "failed to find that task: " + str(tid)}
         )
     try:
-        if task.callback.operation.name in user["operations"]:
+        if task.callback.operation.name in user["operations"] or user["admin"]:
             responses = await app.db_objects.prefetch(
                 db_model.response_query.where(Response.task == task).order_by(Response.id),
                 db_model.task_query
             )
             callback = await app.db_objects.prefetch(db_model.callback_query.where(Callback.id == task.callback), db_model.CallbackToken.select())
             callback = list(callback)[0]
+            # get all artifacts associated with the task
+            artifacts = await app.db_objects.execute(db_model.taskartifact_query.where(
+                db_model.TaskArtifact.task == task
+            ))
+            # get all files associated with the task
+            files = await app.db_objects.execute(db_model.filemeta_query.where(
+                db_model.FileMeta.task == task
+            ))
+            # get all credentials associated with the task
+            credentials = await app.db_objects.execute(db_model.credential_query.where(
+                db_model.Credential.task == task
+            ))
+            attack = await app.db_objects.execute(db_model.attacktask_query.where(
+                db_model.ATTACKTask.task == task
+            ))
+            subtasks = await app.db_objects.execute(db_model.task_query.where(
+                db_model.Task.parent_task == task
+            ))
+            task_json = task.to_json()
+            task_json["callback"] = {"user": task.callback.user,
+                                     "host": task.callback.host,
+                                     "id": task.callback.id,
+                                     "integrity_level": task.callback.integrity_level,
+                                     "domain": task.callback.domain}
+            subtask_json = []
+            for s in subtasks:
+                subtask_json.append({
+                    **s.to_json(), "callback": {"user": s.callback.user,
+                                     "host": s.callback.host,
+                                     "id": s.callback.id,
+                                     "integrity_level": s.callback.integrity_level,
+                                     "domain": s.callback.domain}
+                })
             return json(
                 {
                     "status": "success",
                     "callback": callback.to_json(),
-                    "task": task.to_json(),
+                    "task": task_json,
                     "responses": [r.to_json() for r in responses],
+                    "artifacts": [a.to_json() for a in artifacts],
+                    "files": [f.to_json() for f in files],
+                    "credentials": [c.to_json() for c in credentials],
+                    "attack": [a.to_json() for a in attack],
+                    "subtasks": subtask_json
                 }
             )
         else:
@@ -1273,6 +1697,304 @@ async def get_one_task_and_responses(request, tid, user):
             {
                 "status": "error",
                 "error": "Failed to fetch task: "
+                + str(sys.exc_info()[-1].tb_lineno)
+                + " "
+                + str(e),
+            }
+        )
+
+
+@mythic.route(mythic.config["API_BASE"] + "/tasks/by_tag", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_tasks_by_tag(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        data = request.json
+        if "tag" not in data:
+            return json({"status": "error", "error": "missing tags field"})
+        tasks = await app.db_objects.execute(db_model.tasktag_query.where(
+            (db_model.TaskTag.operation == operation) &
+            (db_model.TaskTag.tag == data["tag"])
+        ).order_by(Task.id))
+        task_info = []
+        task_ids = []
+        for t in tasks:
+            task_ids.append(t.task.id)
+            task_info.append({**t.task.to_json(), "callback": {"user": t.task.callback.user,
+                                                               "host": t.task.callback.host,
+                                                               "id": t.task.callback.id,
+                                                               "integrity_level": t.task.callback.integrity_level,
+                                                               "domain": t.task.callback.domain}})
+        # get all artifacts associated with the task
+        artifacts = await app.db_objects.execute(db_model.taskartifact_query.where(
+            db_model.TaskArtifact.task.id.in_(task_ids)
+        ).order_by(db_model.TaskArtifact.task.id))
+        # get all files associated with the task
+        files = await app.db_objects.execute(db_model.filemeta_query.where(
+            db_model.FileMeta.task.id.in_(task_ids)
+        ))
+        # get all credentials associated with the task
+        credentials = await app.db_objects.execute(db_model.credential_query.where(
+            db_model.Credential.task.id.in_(task_ids)
+        ))
+        attack = await app.db_objects.execute(db_model.attacktask_query.where(
+            db_model.ATTACKTask.task.id.in_(task_ids)
+        ).distinct(db_model.ATTACK.t_num).order_by(db_model.ATTACK.t_num))
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {"status": "error", "error": "failed to find that tag: " + str(e)}
+        )
+    try:
+        return json({"status": "success",
+                     "tasks": task_info,
+                     "artifacts": [a.to_json() for a in artifacts],
+                     "files": [f.to_json() for f in files],
+                     "credentials": [c.to_json() for c in credentials],
+                     "attack": [a.to_json() for a in attack]
+                     })
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {
+                "status": "error",
+                "error": "Failed to fetch task: "
+                + str(sys.exc_info()[-1].tb_lineno)
+                + " "
+                + str(e),
+            }
+        )
+
+
+@mythic.route(mythic.config["API_BASE"] + "/tags/delete", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def delete_tag_on_tasks(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        data = request.json
+        if "tag" not in data:
+            return json({"status": "error", "error": "missing tags field"})
+        if "tasks" not in data:
+            return json({"status": "error", "error": "missing tasks array"})
+        tasks = await app.db_objects.execute(db_model.task_query.where(
+            (db_model.Callback.operation == operation) &
+            (db_model.Task.id.in_(data["tasks"]))
+        ))
+        status = "success"
+        error = ""
+        for t in tasks:
+            status_resp = await remove_tag_from_task(t, data["tag"])
+            if status_resp["status"] == "error":
+                error += status_resp["status"] + "\n"
+                status = "error"
+        if status == "error":
+            return json({"status": "error", "error": error})
+        else:
+            return json({"status": "success"})
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {
+                "status": "error",
+                "error": "Failed to fetch task: "
+                + str(sys.exc_info()[-1].tb_lineno)
+                + " "
+                + str(e),
+            }
+        )
+
+
+@mythic.route(mythic.config["API_BASE"] + "/tasks/by_range", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_tasks_by_ranges(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        data = request.json
+        tasks_before = []
+        tasks_after = []
+        task = None
+        before = 0
+        after = 0
+        if "after" in data:
+            after = int(data["after"])
+        if "before" in data:
+            before = int(data["before"])
+        if "tasks" not in data:
+            return json({"status": "error", "error": "missing tasks field"})
+        elif len(data["tasks"]) > 1 or (len(data["tasks"]) == 1 and "-" in data["tasks"][0]):
+            # we're just getting a set of tasks
+            task_ids_to_pull = []
+            for t in data["tasks"]:
+                if "-" in t:
+                    low, high = map(int, t.split("-"))
+                    task_ids_to_pull += range(low, high+1)
+                else:
+                    task_ids_to_pull.append(int(t))
+            tasks_before = await app.db_objects.execute(db_model.task_query.where(
+                (db_model.Callback.operation == operation) &
+                (db_model.Task.id.in_(task_ids_to_pull))
+            ).order_by(-db_model.Task.id))
+        elif len(data["tasks"]) == 1 and "-" not in data["tasks"][0]:
+            # this means we have a base task and want to search around it
+            if "search" not in data:
+                data["search"] = "callback"
+            task = await app.db_objects.get(db_model.task_query, id=data["tasks"][0])
+            if task.callback.operation.name != operation.name:
+                return json({"status": "error", "error": "Task not in your operation"})
+            if data["search"] == "all":
+                tasks_before = await app.db_objects.execute(db_model.task_query.where(
+                    (db_model.Callback.operation == operation) &
+                    (db_model.Task.id < task.id)
+                ).order_by(-db_model.Task.id).limit(before))
+                tasks_after = await app.db_objects.execute(db_model.task_query.where(
+                    (db_model.Callback.operation == operation) &
+                    (db_model.Task.id > task.id)
+                ).order_by(db_model.Task.id).limit(after))
+            elif data["search"] == "callback":
+                tasks_before = await app.db_objects.execute(db_model.task_query.where(
+                    (db_model.Callback.operation == operation) &
+                    (db_model.Task.callback == task.callback) &
+                    (db_model.Task.id < task.id)
+                ).order_by(-db_model.Task.id).limit(before))
+                tasks_after = await app.db_objects.execute(db_model.task_query.where(
+                    (db_model.Callback.operation == operation) &
+                    (db_model.Task.callback == task.callback) &
+                    (db_model.Task.id > task.id)
+                ).order_by(db_model.Task.id).limit(after))
+            else:
+                try:
+                    search_operator = await app.db_objects.get(db_model.operator_query, username=data["search"])
+                except Exception as search_exception:
+                    return json({"status": "error", "error": "Unknown operator"})
+                tasks_before = await app.db_objects.execute(db_model.task_query.where(
+                    (db_model.Callback.operation == operation) &
+                    (db_model.Task.operator == search_operator) &
+                    (db_model.Task.id < task.id)
+                ).order_by(-db_model.Task.id).limit(before))
+                tasks_after = await app.db_objects.execute(db_model.task_query.where(
+                    (db_model.Callback.operation == operation) &
+                    (db_model.Task.operator == search_operator) &
+                    (db_model.Task.id > task.id)
+                ).order_by(db_model.Task.id).limit(after))
+        else:
+            return json({"status": "error", "error": "tasks must be an array of at least one task id"})
+        task_info = []
+        task_ids = []
+        for t in tasks_before:
+            task_ids.append(t.id)
+            task_info.insert(0, {**t.to_json(), "callback": {"user": t.callback.user,
+                                                               "host": t.callback.host,
+                                                               "id": t.callback.id,
+                                                               "integrity_level": t.callback.integrity_level,
+                                                               "domain": t.callback.domain}})
+        if task is not None:
+            task_ids.append(task.id)
+            task_info.append({**task.to_json(), "callback": {"user": task.callback.user,
+                                                             "host": task.callback.host,
+                                                             "id": task.callback.id,
+                                                             "integrity_level": task.callback.integrity_level,
+                                                             "domain": task.callback.domain}})
+        for t in tasks_after:
+            task_ids.append(t.id)
+            task_info.append({**t.to_json(), "callback": {"user": t.callback.user,
+                                                               "host": t.callback.host,
+                                                               "id": t.callback.id,
+                                                               "integrity_level": t.callback.integrity_level,
+                                                               "domain": t.callback.domain}})
+        # get all artifacts associated with the task
+        artifacts = await app.db_objects.execute(db_model.taskartifact_query.where(
+            db_model.TaskArtifact.task.id.in_(task_ids)
+        ).order_by(db_model.TaskArtifact.task.id))
+        # get all files associated with the task
+        files = await app.db_objects.execute(db_model.filemeta_query.where(
+            db_model.FileMeta.task.id.in_(task_ids)
+        ))
+        # get all credentials associated with the task
+        credentials = await app.db_objects.execute(db_model.credential_query.where(
+            db_model.Credential.task.id.in_(task_ids)
+        ))
+        attack = await app.db_objects.execute(db_model.attacktask_query.where(
+            db_model.ATTACKTask.task.id.in_(task_ids)
+        ).distinct(db_model.ATTACK.t_num).order_by(db_model.ATTACK.t_num))
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {"status": "error", "error": "failed to search tasks: " + str(e)}
+        )
+    try:
+        return json({"status": "success",
+                     "tasks": task_info,
+                     "artifacts": [a.to_json() for a in artifacts],
+                     "files": [f.to_json() for f in files],
+                     "credentials": [c.to_json() for c in credentials],
+                     "attack": [a.to_json() for a in attack]
+                     })
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {
+                "status": "error",
+                "error": "Failed to fetch task: "
+                + str(sys.exc_info()[-1].tb_lineno)
+                + " "
+                + str(e),
+            }
+        )
+
+
+@mythic.route(mythic.config["API_BASE"] + "/tasks/tags", methods=["GET"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_tags(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        tags = await app.db_objects.execute(db_model.tasktag_query.where(
+            (db_model.TaskTag.operation == operation)
+        ).order_by(db_model.TaskTag.tag).distinct(db_model.TaskTag.tag))
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {"status": "error", "error": "failed to find tags: " + str(e)}
+        )
+    try:
+        return json({"status": "success", "tags": [t.tag for t in tags]})
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {
+                "status": "error",
+                "error": "Failed to fetch tags: "
                 + str(sys.exc_info()[-1].tb_lineno)
                 + " "
                 + str(e),

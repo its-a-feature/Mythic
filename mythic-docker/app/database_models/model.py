@@ -171,7 +171,7 @@ class PayloadType(p.Model):
     supported_os = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # information about getting information to/from another container or machine for building/loading/transforming
     last_heartbeat = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
-    container_running = p.BooleanField(null=False,constraints=[p.SQL("DEFAULT FALSE")])
+    container_running = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     service = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'rabbitmq'")])
     # who created the code for the payload type, not just who imported it
     author = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
@@ -179,6 +179,7 @@ class PayloadType(p.Model):
     supports_dynamic_loading = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     deleted = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     translation_container = p.ForeignKeyField(TranslationContainer, null=True)
+    container_count = p.IntegerField(null=False, default=0, constraints=[p.SQL("DEFAULT 0")])
 
     class Meta:
         database = mythic_db
@@ -199,7 +200,8 @@ class PayloadType(p.Model):
             "note": self.note,
             "supports_dynamic_loading": self.supports_dynamic_loading,
             "deleted": self.deleted,
-            "translation_container": self.translation_container.to_json() if self.translation_container is not None else None
+            "translation_container": self.translation_container.to_json() if self.translation_container is not None else None,
+            "container_count": self.container_count
         }
         if getattr(self, "build_parameters") is not None:
             r["build_parameters"] = []
@@ -318,6 +320,8 @@ class Command(p.Model):
     attributes = p.TextField(null=False,  constraints=[p.SQL("DEFAULT '{}'")])
     # specify any opsec considerations for the command
     opsec = p.ForeignKeyField(CommandOPSEC, null=True)
+    # indicate if the command is only a script to create subtasks and doesn't get compiled into an agent
+    script_only = p.BooleanField(null=False, default=False, constraints=[p.SQL("DEFAULT FALSE")])
 
     class Meta:
         indexes = ((("cmd", "payload_type"), True),)
@@ -337,7 +341,8 @@ class Command(p.Model):
             "author": self.author,
             "deleted": self.deleted,
             "attributes": self.attributes,
-            "opsec": self.opsec.to_json() if self.opsec is not None else None
+            "opsec": self.opsec.to_json() if self.opsec is not None else None,
+            "script_only": self.script_only
         }
         return r
 
@@ -365,6 +370,8 @@ class CommandParameters(p.Model):
     choices_are_all_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     choices_are_loaded_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     ui_position = p.IntegerField(null=False)
+    # indicate the name of the function to call to dynamically populate the parameter values
+    dynamic_query_function = p.TextField(null=True)
 
     class Meta:
         indexes = ((("command", "name"), True),)
@@ -822,6 +829,7 @@ class Callback(p.Model):
     pid = p.IntegerField(null=False)
     ip = p.CharField(max_length=100, null=False)
     external_ip = p.TextField(null=True)
+    process_name = p.TextField(null=True)
     description = p.TextField(null=True)
     operator = p.ForeignKeyField(Operator, null=False)
     active = p.BooleanField(constraints=[p.SQL("DEFAULT TRUE")], null=False)
@@ -881,7 +889,8 @@ class Callback(p.Model):
             "port": self.port,
             "socks_task": self.socks_task.id if self.socks_task is not None else None,
             "extra_info": self.extra_info,
-            "sleep_info": self.sleep_info
+            "sleep_info": self.sleep_info,
+            "process_name": self.process_name
         }
         if get_tokens:
             r["tokens"] = []
@@ -1070,6 +1079,24 @@ class Task(p.Model):
     opsec_post_bypassed = p.BooleanField(null=False, default=False, constraints=[p.SQL("DEFAULT FALSE")])
     opsec_post_bypass_role = p.TextField(null=False, default="lead", constraints=[p.SQL("DEFAULT 'lead'")])
     opsec_post_bypass_user = p.ForeignKeyField(Operator, null=True)
+    # track if this task is a subtask of others
+    parent_task = p.ForeignKeyField('self', null=True)
+    # can register callback function for when this subtask is complete (called on parent_task command file)
+    subtask_callback_function = p.TextField(null=True)
+    # null means we haven't tried to submit the function yet, then T/F indicates if we successfully called the function
+    subtask_callback_function_completed = p.BooleanField(null=True)
+    # can register callback function for when an entire group of subtasks completes
+    #  this is called on the parent_task's command file
+    group_callback_function = p.TextField(null=True)
+    # null means we haven't tried to submit the function yet, then T/F indicates if we successfully called the function
+    group_callback_function_completed = p.BooleanField(null=True)
+    # can register callback function for when task has no more subtasks in a non-completed state
+    #  this can apply to normal tasks or to tasks with subtasks
+    completed_callback_function = p.TextField(null=True)
+    # null means we haven't tried to submit the function yet, then T/F indicates if we successfully called the function
+    completed_callback_function_completed = p.BooleanField(null=True)
+    # can logically group a set of subtasks together and execute completion handlers when they're all done
+    subtask_group_name = p.TextField(null=True)
 
     class Meta:
         database = mythic_db
@@ -1105,9 +1132,33 @@ class Task(p.Model):
             "opsec_post_message": self.opsec_post_message,
             "opsec_post_bypass_role": self.opsec_post_bypass_role,
             "opsec_post_bypass_user": self.opsec_post_bypass_user.username if self.opsec_post_bypass_user is not None else "",
-            "display_params": self.display_params
+            "display_params": self.display_params,
+            "parent_task": self.parent_task.id if self.parent_task is not None else None,
+            "subtask_callback_function": self.subtask_callback_function,
+            "group_callback_function": self.group_callback_function,
+            "completed_callback_function": self.completed_callback_function,
+            "subtask_group_name": self.subtask_group_name
         }
         return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class TaskTag(p.Model):
+    task = p.ForeignKeyField(Task, null=False, backref="tags")
+    operation = p.ForeignKeyField(Operation, null=False)
+    tag = p.TextField(null=False, default="", constraints=[p.SQL("default ''")])
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        return {
+            "task": self.task.id,
+            "tag": self.tag,
+            "operation": self.operation.name
+        }
 
     def __str__(self):
         return json.dumps(self.to_json())
@@ -2247,6 +2298,7 @@ disabledcommands_query = query_disabledcommands()
 def query_task():
     comment_operator = Operator.alias()
     callback_operator = Operator.alias()
+    parent_task = Task.alias()
     callback_lock_operator = Operator.alias()
     opsec_pre_bypass_user_operator = Operator.alias()
     opsec_post_bypass_user_operator = Operator.alias()
@@ -2256,7 +2308,7 @@ def query_task():
         Task.select(
             Task, Callback, Operator, comment_operator, Operation, Command, PayloadType, callback_operator,
             callback_lock_operator, callback_payload_type, callback_payload, opsec_pre_bypass_user_operator,
-            opsec_post_bypass_user_operator
+            opsec_post_bypass_user_operator, parent_task
         )
         .join(Callback)
         .join(Operation)
@@ -2267,6 +2319,8 @@ def query_task():
         .switch(Callback)
         .join(callback_payload)
         .join(callback_payload_type)
+        .switch(Task)
+        .join(parent_task, p.JOIN.LEFT_OUTER, on=(Task.parent_task == parent_task.id).alias("parent_task"),)
         .switch(Task)
         .join(Operator)
         .switch(Task)
@@ -2284,6 +2338,16 @@ def query_task():
         .join(opsec_post_bypass_user_operator, p.JOIN.LEFT_OUTER, on=(Task.opsec_post_bypass_user == opsec_post_bypass_user_operator.id).alias("opsec_post_bypass_user"))
     )
 task_query = query_task()
+
+def query_tasktag():
+    return (
+        TaskTag.select(TaskTag, Task, Operation)
+        .join(Task)
+        .switch(TaskTag)
+        .join(Operation)
+        .switch(TaskTag)
+    )
+tasktag_query = query_tasktag()
 
 def query_response():
     comment_operator = Operator.alias()
@@ -2359,10 +2423,12 @@ attacktask_query = query_attacktask()
 
 def query_credential():
     return (
-        Credential.select(Credential, Operation, Operator)
+        Credential.select(Credential, Operation, Operator, Task)
         .join(Operation)
         .switch(Credential)
         .join(Operator)
+        .switch(Credential)
+        .join(Task, p.JOIN.LEFT_OUTER)
         .switch(Credential)
     )
 credential_query = query_credential()
@@ -2889,6 +2955,7 @@ BuildParameterInstance.create_table(True)
 PayloadOnHost.create_table(True)
 Callback.create_table(True)
 Task.create_table(True)
+TaskTag.create_table(True)
 Process.create_table(True)
 LogonSession.create_table(True)
 Token.create_table(True)

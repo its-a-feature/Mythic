@@ -17,6 +17,15 @@ try {
 //[{callback info, "tasks": [{task info, "responses": [{response info}]}]},
 // {callback2, "tasks": [{task_info, "responses": [{response info}]}]}
 //]
+var tag_info = new Vue({
+    el: '#addTagModalData',
+    data: {
+        tags: [],
+        selected_tag: "Select One...",
+        current_tags: ""
+    },
+    delimiters: ['[[',']]']
+})
 var tasks_div = new Vue({
     el: '#tasks_div',
     data: {
@@ -152,6 +161,63 @@ var tasks_div = new Vue({
 
             }, "GET", null);
         },
+        add_tag: function(){
+            tag_info.current_tags += "\n" + tag_info.selected_tag;
+        },
+        view_all_tags: function(task){
+            tag_info.selected_tag = "Select One...";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/", (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                       tag_info.tags = data["tags"].sort();
+                       tag_info.tags.unshift("Select One...");
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                        tag_info.current_tags = data["tags"].join("\n");
+                        $('#addTagModal').modal('show');
+                        $('#addTagModal').on('shown.bs.modal', function () {
+                            $('#addTagTextArea').focus();
+                            $("#addTagTextArea").unbind('keyup').on('keyup', function (e) {
+                                if (e.keyCode === 13 && !e.shiftKey) {
+                                    $('#addTagSubmit').click();
+                                }
+                            });
+                        });
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            $('#addTagSubmit').unbind('click').click(function () {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                    try{
+                        let data = JSON.parse(response);
+                        if( data["status"] === "success"){
+                            alertTop("success","Successfully updated tags");
+                        }else{
+                            alertTop("warning", data["error"]);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Failed to make web request: " + error.toString());
+                    }
+                }, "PUT", {"tags": tag_info.current_tags.split("\n")});
+            });
+        },
         view_opsec_block: function(task){
             let text_msg = "";
             if (task.opsec_pre_blocked !== null){
@@ -181,6 +247,18 @@ var tasks_div = new Vue({
           httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + task.id + "/request_bypass/" , (response) => {
 
             }, "GET", null);
+        },
+        reissue_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/reissue_task_webhook" , (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "error"){
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                }
+            }, "POST", {"input": {"task_id": task.id}});
         },
         remove_comment: function(id){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, update_callback_comment_callback, "DELETE", null);

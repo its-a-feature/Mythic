@@ -565,6 +565,13 @@ var profile_parameters_table = new Vue({
                         let data = JSON.parse(response);
                         profile_parameters_table.payload_command_options = [];
                         if (data['status'] === 'success') {
+                            data["commands"] = data["commands"].reduce((prev, cur) => {
+                                if(cur["script_only"] === true){
+                                    return [...prev];
+                                }else{
+                                    return [...prev, cur];
+                                }
+                            }, [])
                             if (!all_payload_type_data[val]['supports_dynamic_loading']) {
                                 profile_parameters_table.command_message = "The selected payload type doesn't support dynamic loading of modules, so all commands are selected";
                                 profile_parameters_table.payload_command_options = data['commands'];

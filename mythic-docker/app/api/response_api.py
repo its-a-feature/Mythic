@@ -31,6 +31,7 @@ from app.api.rabbitmq_api import send_pt_rabbitmq_message
 from app.api.task_api import add_all_payload_info
 from app.api.operation_api import send_all_operations_message
 from app.api.rabbitmq_api import create_processes
+from app.api.task_api import check_and_issue_task_callback_functions
 from sanic.log import logger
 
 
@@ -146,7 +147,7 @@ async def search_responses(request, user):
             .switch(Task)
             .where(Callback.operation == operation)
             .order_by(Task.id)
-            .distinct()
+            .distinct(Task.id)
         )
         if "page" not in data:
             # allow a blanket search to still be performed
@@ -156,7 +157,7 @@ async def search_responses(request, user):
                 .switch(Task)
                 .where(Callback.operation == operation)
                 .order_by(Task.id)
-                .distinct()
+                .distinct(Task.id)
             )
             data["page"] = 1
             data["size"] = count
@@ -185,7 +186,7 @@ async def search_responses(request, user):
                 .switch(Task)
                 .where(Callback.operation == operation)
                 .order_by(Task.id)
-                .distinct()
+                .distinct(Task.id)
                 .paginate(data["page"], data["size"])
             )
         output = []
@@ -253,11 +254,13 @@ async def post_agent_response(agent_message, callback):
                 continue
             json_return_info = {"status": "success", "task_id": task_id}
             final_output = ""  # we're resetting it since we're going to be doing some processing on the response
+            marked_as_complete = False
             try:
                 try:
                     if "completed" in parsed_response:
                         if parsed_response["completed"]:
                             task.completed = True
+                            marked_as_complete = True
                             asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
                         parsed_response.pop("completed", None)
                     if "user_output" in parsed_response:
@@ -437,6 +440,17 @@ async def post_agent_response(agent_message, callback):
                             task.status = str(parsed_response["status"]).lower()
                             if task.status_timestamp_processed is None:
                                 task.status_timestamp_processed = datetime.datetime.utcnow()
+                            if task.status == "error":
+                                task.completed = True
+                                marked_as_complete = True
+                            elif task.status == "completed" or task.status == "complete":
+                                task.completed = True
+                                marked_as_complete = True
+                        else:
+                            if task.status_timestamp_processed is None:
+                                task.status_timestamp_processed = datetime.datetime.utcnow()
+                            if task.status == "processing":
+                                task.status = "processed"
                         parsed_response.pop("status", None)
                     else:
                         if task.status_timestamp_processed is None:
@@ -538,6 +552,9 @@ async def post_agent_response(agent_message, callback):
                                 "build_parameters"
                             ]
                             rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+                            tags = await app.db_objects.execute(
+                                db_model.tasktag_query.where(db_model.TaskTag.task == task))
+                            rabbit_message["task"]["tags"] = [t.tag for t in tags]
                             rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
                             rabbit_message["response"] = parsed_response["process_response"]
                             if app.debugging_enabled:
@@ -549,6 +566,13 @@ async def post_agent_response(agent_message, callback):
                                                                     username="",
                                                                     reference_id=task.id,
                                                                     message_body=js.dumps(rabbit_message))
+                            if status["status"] == "error" and "type" in status:
+                                logger.error("response_api.py: sending process_response message: " + status["error"])
+                                await app.db_objects.create(Response, task=task,
+                                                            response="Container not running, failed to process process_response data, saving here")
+                                await app.db_objects.create(Response, task=task, response=parsed_response["process_response"])
+                                task.callback.registered_payload.payload_type.container_count = 0
+                                await app.db_objects.update(task.callback.registered_payload.payload_type)
                             if status["status"] == "error":
                                 logger.error("response_api.py: sending process_response message: " + status["error"])
                         except Exception as pc:
@@ -592,6 +616,8 @@ async def post_agent_response(agent_message, callback):
                 asyncio.create_task(log_to_siem(mythic_object=resp, mythic_source="response_new"))
             task.timestamp = datetime.datetime.utcnow()
             await app.db_objects.update(task)
+            if marked_as_complete:
+                asyncio.create_task(check_and_issue_task_callback_functions(task))
             response_message["responses"].append(json_return_info)
         except Exception as e:
             logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))

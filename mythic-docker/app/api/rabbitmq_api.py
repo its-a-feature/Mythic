@@ -16,9 +16,8 @@ import uuid
 from app.api.operation_api import send_all_operations_message
 from app.api.siem_logger import log_to_siem
 import operator
-from peewee import reduce
+from peewee import reduce, TextField, BooleanField, IntegerField, fn
 from app.api.file_browser_api import mark_nested_deletes, add_upload_file_to_file_browser
-
 # Keep track of sending sync requests to containers so we don't go crazy
 sync_tasks = {}
 
@@ -82,9 +81,14 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     for pt in pts:
                         if pt.ptype not in sync_tasks:
                             sync_tasks[pt.ptype] = True
-                            await send_pt_rabbitmq_message(
+                            stats = await send_pt_rabbitmq_message(
                                 pt.ptype, "sync_classes", "", sync_operator, ""
                             )
+                            if stats["status"] == "error":
+                                asyncio.create_task(send_all_operations_message(
+                                    message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                        pt.ptype, status["error"]
+                                    ), level="warning", source="payload_import_sync_error"))
                 if not profile.is_p2p:
                     from app.api.c2profiles_api import start_stop_c2_profile
                     run_stat, successfully_started = await start_stop_c2_profile(action="start", profile=profile)
@@ -149,8 +153,13 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             message="Payload container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}. Sending Exit command".format(
                                 pieces[2], pieces[7], str(valid_payload_container_version_bounds[0]),
                                 str(valid_payload_container_version_bounds[1])
-                            ), level="warning", source="bad_payload_version"))
-                    await send_pt_rabbitmq_message(pieces[2], "exit_container", "", "", "")
+                            ), level="warning", source="bad_payload_version_" + pieces[2]))
+                    stats = await send_pt_rabbitmq_message(pieces[2], "exit_container", "", "", "")
+                    if stats["status"] == "error":
+                        asyncio.create_task(send_all_operations_message(
+                            message="Failed to contact {} service to task it to exit: {}\nIs the container online and at least version 7?".format(
+                                pieces[2], stats["error"]
+                            ), level="warning", source="payload_import_sync_error"))
                     return
             else:
                 asyncio.create_task(
@@ -158,7 +167,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         message="Payload container, {}, of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
                             pieces[2], str(valid_payload_container_version_bounds[0]),
                             str(valid_payload_container_version_bounds[1])
-                        ), level="warning", source="bad_payload_version"))
+                        ), level="warning", source="bad_payload_version_" + pieces[2]))
                 return
             try:
                 if pieces[3] == "create_payload_with_code":
@@ -218,6 +227,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     await app.db_objects.update(payload)
                     asyncio.create_task(log_to_siem(mythic_object=payload, mythic_source="payload_new"))
                 elif pieces[3] == "command_transform":
+                    from app.api.task_api import check_and_issue_task_callback_functions
                     async with app.db_objects.atomic():
                         task = await app.db_objects.execute(db_model.Task.select().where(db_model.Task.id == pieces[4]).for_update())
                         task = list(task)[0]
@@ -228,12 +238,29 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             task.timestamp = datetime.datetime.utcnow()
                             task.status_timestamp_submitted = task.timestamp
                             task.status_timestamp_processed = task.timestamp
-                            await app.db_objects.create(
-                                db_model.Response,
-                                task=task,
-                                response=message.body.decode("utf-8"),
-                            )
+                            try:
+                                tmp = json.loads(message.body)
+                                if "display_params" in tmp:
+                                    task.display_params = tmp["display_params"]
+                                if "stdout" in tmp:
+                                    task.stdout = tmp["stdout"]
+                                if "stderr" in tmp:
+                                    task.stderr = tmp["stderr"]
+                                if "params" in tmp:
+                                    task.params = tmp["params"]
+                                await app.db_objects.create(
+                                    db_model.Response,
+                                    task=task,
+                                    response=task.stderr,
+                                )
+                            except:
+                                await app.db_objects.create(
+                                    db_model.Response,
+                                    task=task,
+                                    response=message.body.decode("utf-8"),
+                                )
                             await app.db_objects.update(task)
+                            asyncio.create_task(check_and_issue_task_callback_functions(task))
                         elif pieces[5] == "opsec_pre":
                             tmp = json.loads(message.body)
                             task.opsec_pre_blocked = tmp["opsec_pre_blocked"]
@@ -251,23 +278,86 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             task.params = tmp["args"]
                             task.stdout = tmp["stdout"]
                             task.stderr = tmp["stderr"]
+                            task.completed_callback_function = tmp["completed_callback_function"] if "completed_callback_function" in tmp else None
                             if "display_params" in tmp:
                                 task.display_params = tmp["display_params"]
                             else:
                                 task.display_params = task.original_params
                             task.timestamp = datetime.datetime.utcnow()
                             if pieces[5] == "success":
-                                task.status = "submitted"
+                                # check if there are subtasks created for this task, if so, this should not go to submitted
+                                subtasks = await app.db_objects.count(db_model.task_query.where(
+                                    (db_model.Task.parent_task == task) &
+                                    (db_model.Task.completed == False)
+                                ))
+                                if subtasks > 0:
+                                    task.status = "delegating"
+                                else:
+                                    if task.command.script_only and not task.completed:
+                                        task.status = "processed"
+                                        task.status_timestamp_processed = task.timestamp
+                                        task.completed = True
+                                    else:
+                                        task.status = "submitted"
                             elif pieces[5] == "completed":
                                 task.status = "processed"
                                 task.status_timestamp_processed = task.timestamp
                                 task.completed = True
                             else:
-                                task.status = pieces[5]
+                                task.status = pieces[5].lower()
                             task.status_timestamp_submitted = task.timestamp
                             await app.db_objects.update(task)
+                            if task.completed:
+                                asyncio.create_task(check_and_issue_task_callback_functions(task))
                             asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_new"))
                             asyncio.create_task(add_command_attack_to_task(task, task.command))
+                elif pieces[3] == "task_callback_function":
+                    from app.api.task_api import check_and_issue_task_callback_functions
+                    async with app.db_objects.atomic():
+                        task = await app.db_objects.execute(
+                            db_model.Task.select().where(db_model.Task.id == pieces[4]).for_update())
+                        task = list(task)[0]
+                        if "error" in pieces[5]:
+                            task.status = pieces[5].lower()
+                            task.completed = True
+                            task.timestamp = datetime.datetime.utcnow()
+                            task.status_timestamp_processed = task.timestamp
+                            await app.db_objects.update(task)
+                            asyncio.create_task(check_and_issue_task_callback_functions(task))
+                        else:
+                            tmp = json.loads(message.body)
+                            task.params = tmp["args"]
+                            task.stdout = tmp["stdout"]
+                            task.stderr = tmp["stderr"]
+                            if "display_params" in tmp:
+                                task.display_params = tmp["display_params"]
+                            else:
+                                task.display_params = task.original_params
+                            task.timestamp = datetime.datetime.utcnow()
+                            if pieces[5] == "success":
+                                # check if there are subtasks created for this task, if so, this should not go to submitted
+                                subtasks = await app.db_objects.count(db_model.task_query.where(
+                                    (db_model.Task.parent_task == task) &
+                                    (db_model.Task.completed == False)
+                                ))
+                                if subtasks > 0:
+                                    task.status = "delegating"
+                                elif not task.completed and not task.command.script_only:
+                                    task.status = "submitted"
+                                elif task.command.script_only and not task.completed:
+                                    task.status = "processed"
+                                    task.completed = True
+                                    asyncio.create_task(check_and_issue_task_callback_functions(task))
+                            elif pieces[5] == "completed":
+                                task.status = "processed"
+                                task.status_timestamp_processed = task.timestamp
+                                if not task.completed:
+                                    task.completed = True
+                                    asyncio.create_task(check_and_issue_task_callback_functions(task))
+                            else:
+                                task.status = pieces[5].lower()
+                            task.status_timestamp_submitted = task.timestamp
+                            await app.db_objects.update(task)
                 elif pieces[3] == "sync_classes":
                     if pieces[6] == "":
                         # this was an auto sync from starting a container
@@ -301,11 +391,16 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     for pt in pts:
                                         if pt.ptype not in sync_tasks:
                                             sync_tasks[pt.ptype] = True
-                                            logger.debug(
+                                            logger.info(
                                                 "got sync from {}, sending sync to {}".format(pieces[2], pt.ptype))
-                                            await send_pt_rabbitmq_message(
+                                            stats = await send_pt_rabbitmq_message(
                                                 pt.ptype, "sync_classes", "", sync_operator, ""
                                             )
+                                            if stats["status"] == "error":
+                                                asyncio.create_task(send_all_operations_message(
+                                                    message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                                        pt.ptype, status["error"]
+                                                    ), level="warning", source="payload_import_sync_error"))
                             else:
                                 asyncio.create_task(send_all_operations_message(
                                     message="Failed Sync-ed database import with {} payload files: {}".format(
@@ -406,12 +501,13 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
         return {"status": "error", "error": str(e)}
 
 
-async def get_file(task_id: int, filename: str = None, limit_by_callback: bool = True, max_results: int = 1,
+async def get_file(task_id: int = None, callback_id: int = None, filename: str = None, limit_by_callback: bool = True, max_results: int = 1,
                    file_id: str = None, get_contents: bool = True) -> dict:
     """
     Get file data and contents by name (ex: from create_file and a specified saved_file_name parameter).
     The search can be limited to just this callback (or the entire operation) and return just the latest or some number of matching results.
-    :param task_id: The ID number of the task performing this action (task.id)
+    :param task_id: The ID number of the task performing this action (task.id) - if this isn't provided, the callback id must be provided
+    :param callback_id: The ID number of the callback for this action - if this isn't provided, the task_id must be provided
     :param filename: The name of the file to search for (Case sensitive)
     :param file_id: If no filename specified, then can search for a specific file by this UUID
     :param limit_by_callback: Set this to True if you only want to search for files that are tied to this callback. This is useful if you're doing this as part of another command that previously loaded files into this callback's memory.
@@ -427,31 +523,39 @@ async def get_file(task_id: int, filename: str = None, limit_by_callback: bool =
     All of the possible dictionary keys are available at https://github.com/its-a-feature/Mythic/blob/master/mythic-docker/app/database_models/model.py for the FileMeta class
     """
     try:
-        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        if task_id is not None:
+            task = await app.db_objects.get(db_model.task_query, id=task_id)
+            operation = task.callback.operation
+            callback = task.callback
+        elif callback_id is not None:
+            callback = await app.db_objects.get(db_model.callback_query, id=callback_id)
+            operation = callback.operation
+        else:
+            return {"status": "error", "error": "task_id or callback_id must be provided", "response": []}
         output = []
         if filename is not None:
             files = await app.db_objects.execute(
                 db_model.filemeta_query.where(
                     (db_model.FileMeta.deleted == False)
-                    & (db_model.FileMeta.filename == filename)
-                    & (db_model.FileMeta.operation == task.callback.operation)
+                    & (fn.encode(db_model.FileMeta.filename, "escape").regexp(filename))
+                    & (db_model.FileMeta.operation == operation)
                 ).order_by(-db_model.FileMeta.id)
             )
             count = 0
             for f in files:
                 if count < max_results or max_results == -1:
                     if limit_by_callback:
-                        if f.task is not None and f.task.callback == task.callback:
+                        if f.task is not None and f.task.callback == callback:
                             output.append(f.to_json())
                     else:
                         output.append(f.to_json())
         elif file_id is not None:
             try:
                 file = await app.db_objects.get(db_model.filemeta_query, agent_file_id=file_id,
-                                                operation=task.operation)
+                                                operation=operation)
                 output.append(file.to_json())
             except Exception as d:
-                return {"status": "error", "error": "File does not exist in this operation"}
+                return {"status": "error", "error": "File does not exist in this operation", "response": []}
         if get_contents:
             for f in output:
                 if os.path.exists(f["path"]):
@@ -462,7 +566,7 @@ async def get_file(task_id: int, filename: str = None, limit_by_callback: bool =
                     f["contents"] = None
         return {"status": "success", "response": output}
     except Exception as e:
-        return {"status": "error", "error": str(e)}
+        return {"status": "error", "error": str(e), "response": []}
 
 
 async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
@@ -1231,37 +1335,87 @@ async def create_processes(request, task):
         return {"status": "error", "error": str(e)}
 
 
-async def search_processes(task, **request):
+async def search_processes(callback, **request):
     clauses = []
     for k, v in request.items():
         if k != "operation":
-            clauses.append(getattr(db_model.Process, k).regexp(v))
+            if hasattr(db_model.Process, k):
+                clauses.append(getattr(db_model.Process, k).regexp(v))
     results = await app.db_objects.execute(db_model.process_query.where(
-        (db_model.Process.operation == task.callback.operation) &
+        (db_model.Process.operation == callback.operation) &
         reduce(operator.and_, clauses)
     ))
     result = {"status": "success", "response": [r.to_json() for r in results]}
     return result
 
 
-async def search_database(task_id: int, table: str, **kwargs) -> dict:
+async def search_tokens(callback, **request):
+    clauses = []
+    for k, v in request.items():
+        if k == "AuthenticationId":
+            clauses.append(db_model.LogonSession.id == v)
+        elif hasattr(db_model.Token, k):
+            if isinstance(getattr(db_model.Token, k), TextField):
+                clauses.append(getattr(db_model.Token, k).regexp(v))
+            elif isinstance(getattr(db_model.Token, k), BooleanField):
+                clauses.append(getattr(db_model.Token, k) == v)
+            elif isinstance(getattr(db_model.Token, k), IntegerField):
+                clauses.append(getattr(db_model.Token, k).regexp(v))
+    results = await app.db_objects.execute(db_model.token_query.where(
+        (db_model.Callback.operation == callback.operation) &
+        reduce(operator.and_, clauses)
+    ))
+    result = {"status": "success", "response": [r.to_json() for r in results]}
+    return result
+
+
+async def search_file_browser(callback, **request):
+    clauses = []
+    for k, v in request.items():
+        if hasattr(db_model.Token, k):
+            if isinstance(getattr(db_model.Token, k), TextField):
+                clauses.append(getattr(db_model.Token, k).regexp(v))
+            elif isinstance(getattr(db_model.Token, k), BooleanField):
+                clauses.append(getattr(db_model.Token, k) == v)
+            elif isinstance(getattr(db_model.Token, k), IntegerField):
+                clauses.append(getattr(db_model.Token, k).regexp(v))
+    results = await app.db_objects.execute(db_model.filebrowserobj_query.where(
+        (db_model.FileBrowserObj.operation == callback.operation) &
+        reduce(operator.and_, clauses)
+    ))
+    result = {"status": "success", "response": [r.to_json() for r in results]}
+    return result
+
+
+async def search_database(table: str, task_id: int = None, callback_id: int = None, **kwargs) -> dict:
     """
     Search the Mythic database for some data. Data is searched by regular expression for the fields specified. Because the available fields depends on the table you're searching, that argument is a generic python "kwargs" value.
-    :param task_id: The ID number of the task performing this action (task.id)
-    :param table: The name of the table you want to query (the is the same as the class name from `Mythic/mythic-docker/app/database_models/model.py`)
+    :param task_id: The ID number of the task performing this action (task.id) - if this isn't supplied, callback_id must be supplied
+    :param callback_id: The ID number of the callback performing this action - if this isn't supplied, task_id must be supplied
+    :param table: The name of the table you want to query. Currently only options are: process, token, file_browser. To search files (uploads/downloads/hosted), use `get_file`
     :param kwargs: These are the key=value pairs for how you're going to search the table specified. For example, searching processes where the name of "bob" and host that starts with "spooky" would have kwargs of: name="bob", host="spooky*"
     :return: an array of dictionaries that represent your search. If your search had no results, you'll get back an empty array
     """
     try:
-        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        if task_id is not None:
+            task = await app.db_objects.get(db_model.task_query, id=task_id)
+            callback = task.callback
+        elif callback_id is not None:
+            callback = await app.db_objects.get(db_model.callback_query, id=callback_id)
+        else:
+            return {"status": "error", "error": "task_id or callback_id must be supplied", "response": []}
         # this is the single entry point to do queries across the back-end database
         #   for RPC calls from payload types
         if table.lower() == "process":
-            return await search_processes(task, **kwargs)
+            return await search_processes(callback, **kwargs)
+        elif table.lower() == "token":
+            return await search_tokens(callback, **kwargs)
+        elif table.lower() == "file_browser":
+            return await search_file_browser(callback, **kwargs)
         else:
-            return {"status": "error", "error": "Search not supported yet for that table"}
+            return {"status": "error", "error": "Search not supported yet for that table", "response": []}
     except Exception as e:
-        return {"status": "error", "error": "Failed to find task or search database:\n" + str(e)}
+        return {"status": "error", "error": "Failed to find task or search database:\n" + str(e), "response": []}
 
 
 async def delete_file_browser(task_id: int, file_path: str, host: str = None) -> dict:
@@ -1396,6 +1550,147 @@ async def create_file_browser(task_id: int, host: str, name: str, full_path: str
         return status
     except Exception as e:
         return {"status": "error", "error": "Failed to find task or store data:\n" + str(e)}
+
+
+async def create_subtask(parent_task_id: int, command: str,  params: str = "", files: dict = None,
+                         subtask_callback_function: str = None, subtask_group_name: str = None, tags: [str] = None,
+                         group_callback_function: str = None) -> dict:
+    """
+    Issue a new task to the current callback as a child of the current task.
+    You can use the "subtask_callback_function" to provide the name of the function you want to call when this new task enters a "completed=True" state.
+    If you issue create_subtask_group, the group name and group callback functions are propagated here
+    :param parent_task_id: The id of the current task (task.id)
+    :param command: The name of the command you want to use
+    :param params: The parameters you want to issue to that command
+    :param files: If you want to pass along a file to the task, provide it here (example provided)
+    :param subtask_callback_function: The name of the function to call on the _parent_ task when this function exits
+    :param subtask_group_name: An optional name of a group so that tasks can share a single callback function
+    :param tags: A list of strings of tags you want to apply to this new task
+    :param group_callback_function: If you're grouping tasks together, this is the name of the shared callback function for when they're all in a "completed=True" state
+    :return: Information about the task you just created
+    """
+    try:
+        logger.warning(subtask_callback_function)
+        parent_task = await app.db_objects.get(db_model.task_query, id=parent_task_id)
+        operatoroperation = await app.db_objects.get(
+            db_model.operatoroperation_query, operator=parent_task.operator, operation=parent_task.callback.operation
+        )
+        if operatoroperation.base_disabled_commands is not None:
+            if command not in ["clear"]:
+                cmd = await app.db_objects.get(
+                    db_model.command_query,
+                    cmd=command,
+                    payload_type=parent_task.callback.registered_payload.payload_type,
+                )
+                try:
+                    disabled_command = await app.db_objects.get(
+                        db_model.disabledcommandsprofile_query,
+                        name=operatoroperation.base_disabled_commands.name,
+                        command=cmd,
+                    )
+                    return {"status": "error", "error": "Not authorized to execute that command"}
+                except Exception as e:
+                    pass
+        # if we create new files throughout this process, be sure to tag them with the right task at the end
+        data = {
+            "command": command,
+            "params": params,
+            "original_params": params,
+            "subtask_callback_function": subtask_callback_function,
+            "subtask_group_name": subtask_group_name,
+            "group_callback_function": group_callback_function,
+            "tags": tags if tags is not None else [],
+            "parent_task": parent_task
+        }
+        if files is not None and len(files) > 0:
+            data["params"] = json.loads(data["params"])
+            for f, v in files.items():
+                data["params"][f] = v
+            data["params"] = json.dumps(data["params"])
+            data.pop("files", None)
+        from app.api.task_api import add_task_to_callback_func
+        output = await add_task_to_callback_func(data, parent_task.callback.id, parent_task.operator, parent_task.callback)
+        if output["status"] == "success":
+            output.pop("status", None)
+            return {"status": "success", "response": output}
+        else:
+            return {"status": "error", "error": output["error"]}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def create_subtask_group(parent_task_id: int, tasks: [dict], subtask_group_name: str = None, tags: [str] = None,
+                               group_callback_function: str = None) -> dict:
+    """
+    Create a group of subtasks at once and register a single callback function when the entire group is done executing.
+    :param parent_task_id: The id of the parent task (i.e. task.id)
+    :param tasks: An array of dictionaries representing the tasks to create. An example is shown below.
+    :param subtask_group_name: The name for the group. If one isn't provided, a random UUID will be used instead
+    :param tags: An optional list of tags to apply to all of the subtasks created.
+    :param group_callback_function: The name of the function to call in the _parent_ task when all of these subtasks are done.
+    :return: An array of dictionaries representing information about all of the subtasks created.
+    """
+    try:
+        task_responses = []
+        overall_status = "success"
+        for t in tasks:
+            response = await create_subtask(
+                parent_task_id=parent_task_id,
+                command=t["command"],
+                params=t["params"],
+                files=t["files"] if "files" in t else None,
+                subtask_callback_function=t["subtask_callback_function"] if "subtask_callback_function" in t else None,
+                subtask_group_name=subtask_group_name,
+                group_callback_function=group_callback_function,
+                tags=tags
+            )
+            if response["status"] == "error":
+                overall_status = "error"
+            task_responses.append(response)
+        return {"status": overall_status, "response": task_responses}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def get_responses(task_id: int) -> dict:
+    """
+    For a given Task, get all of the user_output, artifacts, files, and credentials that task as created within Mythic
+    :param task_id: The TaskID you're interested in (i.e. task.id)
+    :return: A dictionary of the following format:
+    {
+      "user_output": array of dictionaries where each dictionary is user_output message for the task,
+      "artifacts": array of dictionaries where each dictionary is an artifact created for the task,
+      "files": array of dictionaries where each dictionary is a file registered as part of the task,
+      "credentials": array of dictionaries where each dictionary is a credential created as part of the task.
+    }
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        responses = await app.db_objects.prefetch(
+            db_model.response_query.where(db_model.Response.task == task).order_by(db_model.Response.id),
+            db_model.task_query
+        )
+        # get all artifacts associated with the task
+        artifacts = await app.db_objects.execute(db_model.taskartifact_query.where(
+            db_model.TaskArtifact.task == task
+        ))
+        # get all files associated with the task
+        files = await app.db_objects.execute(db_model.filemeta_query.where(
+            db_model.FileMeta.task == task
+        ))
+        # get all credentials associated with the task
+        credentials = await app.db_objects.execute(db_model.credential_query.where(
+            db_model.Credential.task == task
+        ))
+        response = {
+            "user_output": [r.to_json() for r in responses],
+            "artifacts": [a.to_json() for a in artifacts],
+            "files": [f.to_json() for f in files],
+            "credentials": [c.to_json() for c in credentials]
+        }
+        return {"status": "success", "response": response}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 async def rabbit_c2_rpc_callback(
@@ -1536,6 +1831,12 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                     )
                     payload_type.container_running = True
                     payload_type.last_heartbeat = datetime.datetime.utcnow()
+                    if len(pieces) == 5:
+                        payload_type.container_count = int(pieces[4])
+                    elif payload_type.container_running:
+                        payload_type.container_count = 1
+                    else:
+                        payload_type.container_count = 0
                     await app.db_objects.update(payload_type)
                 except Exception as e:
                     if pieces[2] not in sync_tasks:
@@ -1547,7 +1848,12 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                         asyncio.create_task(
                             send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
                                                         level="info", source="payload_sync_send"))
-                        await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "", "")
+                        stats = await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "", "")
+                        if stats["status"] == "error":
+                            asyncio.create_task(send_all_operations_message(
+                                message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                    pieces[2], stats["error"]
+                                ), level="warning", source="payload_import_sync_error"))
             elif pieces[0] == "tr":
                 if len(pieces) == 4:
                     if int(pieces[3]) > valid_translation_container_version_bounds[1] or \
@@ -1578,9 +1884,14 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                     payloads = await app.db_objects.execute(db_model.payloadtype_query)
                     for p in payloads:
                         if not p.deleted:
-                            await send_pt_rabbitmq_message(
+                            stats = await send_pt_rabbitmq_message(
                                 p.ptype, "sync_classes", "", "", ""
                             )
+                            if stats["status"] == "error":
+                                asyncio.create_task(send_all_operations_message(
+                                    message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                        p.ptype, stats["error"]
+                                    ), level="warning", source="payload_import_sync_error"))
                 translation_container.last_heartbeat = datetime.datetime.utcnow()
                 translation_container.container_running = True
                 await app.db_objects.update(translation_container)
@@ -1836,6 +2147,12 @@ async def send_pt_rabbitmq_message(payload_type, command, message_body, username
                 command,
                 reference_id,
                 base64.b64encode(username.encode("utf-8")).decode("utf-8"))
+        try:
+            queue = await channel.get_queue(payload_type + "_tasking")
+            if queue.declaration_result.consumer_count == 0:
+                return {"status": "error", "error": "No containers online for {}".format(payload_type), "type": "no_queue"}
+        except Exception as d:
+            return {"status": "error", "error": "Container not online: " + str(d), "type": "no_queue"}
         await exchange.publish(
             message,
             routing_key=routing_key,
@@ -1844,7 +2161,7 @@ async def send_pt_rabbitmq_message(payload_type, command, message_body, username
         return {"status": "success"}
     except Exception as e:
         logger.exception("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        return {"status": "error", "error": "Failed to connect to rabbitmq, refresh"}
+        return {"status": "error", "error": "Failed to connect to rabbitmq: " + str(e)}
 
 
 class MythicBaseRPC:
@@ -1927,6 +2244,7 @@ exposed_rpc_endpoints = {
     "get_file": get_file,
     "get_payload": get_payload,
     "get_tasks": get_tasks,
+    "get_responses": get_responses,
     "create_payload_from_uuid": create_payload_from_uuid,
     "create_payload_from_parameters": create_payload_from_parameters,
     "create_processes": create_processes_rpc,
@@ -1947,5 +2265,7 @@ exposed_rpc_endpoints = {
     "delete_callback_token": delete_callback_token,
     "update_callback": update_callback,
     "search_database": search_database,
-    "control_socks": control_socks
+    "control_socks": control_socks,
+    "create_subtask": create_subtask,
+    "create_subtask_group": create_subtask_group
 }

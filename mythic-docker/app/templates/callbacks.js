@@ -1548,7 +1548,15 @@ function edit_description_callback(response) {
     }
 
 }
-
+var tag_info = new Vue({
+    el: '#addTagModalData',
+    data: {
+        tags: [],
+        selected_tag: "Select One...",
+        current_tags: ""
+    },
+    delimiters: ['[[',']]']
+})
 var task_data = new Vue({
     el: '#bottom-data',
     data: {
@@ -1682,7 +1690,7 @@ var task_data = new Vue({
                                     }
                                 }
                             }
-                            if (last_vals === undefined) {
+                            if (last_vals === undefined || last_vals.constructor !== Object) {
                                 last_vals = {}
                             }
                             for (let j = 0; j < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length; j++) {
@@ -1707,6 +1715,28 @@ var task_data = new Vue({
                                 }
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
                                 if(param.type === "Choice" || param.type === "ChoiceMultiple"){
+                                    if(param.dynamic_query_function !== null){
+                                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
+                                            try {
+                                                param.choices = JSON.parse(response);
+                                                if(param.choices.length > 0){
+                                                    param.choice_value = param.choices[0];
+                                                    param.choicemultiple_value = [param.choices[0]];
+                                                }
+                                                params_table.command_params.push(param);
+                                                params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
+                                            } catch (error) {
+                                                console.log(error.toString());
+                                                alertTop("danger", "Session expired, please refresh");
+                                            }
+                                        }, "POST", {
+                                            "callback": data["cid"],
+                                            "command": command,
+                                            "parameter_name": param.name,
+                                            "payload_type": callbacks[data['cid']]['payload_type']
+                                        });
+                                        continue;
+                                    }
                                     if(param.choices.length > 0){
                                         param.choices = param.choices.split("\n");
                                         param.choice_value = param.choices[0];
@@ -1742,7 +1772,8 @@ var task_data = new Vue({
                                                 }
                                             }
                                             param.choices = choices;
-                                        }else if(param.choices_are_loaded_commands){
+                                        }
+                                        else if(param.choices_are_loaded_commands){
                                             let choices = [];
                                             for(let c = 0; c < meta[data['cid']]['commands'].length; c++){
                                                 if(!(meta[data['cid']]['commands'][c]["name"] === "help" || meta[data['cid']]['commands'][c]["name"] === "clear")){
@@ -1775,11 +1806,13 @@ var task_data = new Vue({
                                     if(param.default_value.length > 0){
                                         param.array_value = JSON.parse(param.default_value);
                                     }
-                                }else if(param.type === "String"){
+                                }
+                                else if(param.type === "String"){
                                     param.string_value = param.default_value;
                                 }else if(param.type === "Number") {
                                     param.number_value = param.default_value;
-                                }else if(param.type === "File"){
+                                }
+                                else if(param.type === "File"){
                                     try {
                                         //if there is a file param
                                         $('#fileparam' + param.id).val('');
@@ -1787,7 +1820,8 @@ var task_data = new Vue({
                                         console.log(error.toString());
                                         // if this is the first time the parameter is created, it'll error out which is expected
                                     }
-                                }else if(param.type === "Boolean"){
+                                }
+                                else if(param.type === "Boolean"){
                                     if(typeof param.default_value === "string"){
                                         try{
                                             param.boolean_value = JSON.parse(param.default_value.toLowerCase());
@@ -1797,7 +1831,8 @@ var task_data = new Vue({
                                         }
                                     }
                                 	else{param.boolean_value = param.default_value;}
-                                }else if(param.type === "LinkInfo"){
+                                }
+                                else if(param.type === "LinkInfo"){
                                     param.links = [];
                                     param.links_value = undefined;
                                     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + data['cid'] + "/edges", (response) => {
@@ -1959,7 +1994,6 @@ var task_data = new Vue({
                                 let param_data = {};
                                 let file_data = {};  //mapping of param_name to uploaded file data
                                 for (let k = 0; k < params_table.command_params.length; k++) {
-                                    console.log(params_table.command_params[k]);
                                     if (params_table.command_params[k]['type'] === "String") {
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['string_value'];
                                     } else if (params_table.command_params[k]['type'] === "Credential-JSON") {
@@ -2009,7 +2043,6 @@ var task_data = new Vue({
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['array_value'];
                                     } else if (params_table.command_params[k]['type'] === "File") {
                                         let param_name = params_table.command_params[k]['name'];
-                                        console.log(params_table.command_params[k]);
                                         file_data[param_name] = document.getElementById('fileparam' + params_table.command_params[k]["id"]).files[0];
                                         param_data[param_name] = "FILEUPLOAD";
                                     } else if (params_table.command_params[k]['type'] === 'PayloadList') {
@@ -2472,6 +2505,63 @@ var task_data = new Vue({
 
             }, "GET", null);
         },
+        add_tag: function(){
+            tag_info.current_tags += "\n" + tag_info.selected_tag;
+        },
+        view_all_tags: function(task){
+            tag_info.selected_tag = "Select One...";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/", (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                       tag_info.tags = data["tags"].sort();
+                       tag_info.tags.unshift("Select One...");
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                        tag_info.current_tags = data["tags"].join("\n");
+                        $('#addTagModal').modal('show');
+                        $('#addTagModal').on('shown.bs.modal', function () {
+                            $('#addTagTextArea').focus();
+                            $("#addTagTextArea").unbind('keyup').on('keyup', function (e) {
+                                if (e.keyCode === 13 && !e.shiftKey) {
+                                    $('#addTagSubmit').click();
+                                }
+                            });
+                        });
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            $('#addTagSubmit').unbind('click').click(function () {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                    try{
+                        let data = JSON.parse(response);
+                        if( data["status"] === "success"){
+                            alertTop("success","Successfully updated tags");
+                        }else{
+                            alertTop("warning", data["error"]);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Failed to make web request: " + error.toString());
+                    }
+                }, "PUT", {"tags": tag_info.current_tags.split("\n")});
+            });
+        },
         view_opsec_block: function(task){
             let text_msg = "";
             if (task.opsec_pre_blocked !== null){
@@ -2501,6 +2591,18 @@ var task_data = new Vue({
           httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + task.id + "/request_bypass/" , (response) => {
 
             }, "GET", null);
+        },
+        reissue_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/reissue_task_webhook" , (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "error"){
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                }
+            }, "POST", {"input": {"task_id": task.id}});
         },
         remove_comment: function (id) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, remove_comment_callback, "DELETE", null);
@@ -2794,7 +2896,6 @@ var task_data = new Vue({
         set_manually_change_file_browser_callback_num: function(evt){
             this.manual_file_browser_callback_num = evt.target.value;
             this.manually_edit_file_browser_callback = true;
-            console.log(evt.target.value);
         },
         reset_manually_change_file_browser_callback_num: function(){
             this.manually_edit_file_browser_callback = false;

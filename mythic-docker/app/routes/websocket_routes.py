@@ -232,6 +232,8 @@ async def ws_tasks_current_operation(request, ws, user):
                                         **t.to_json(),
                                         "host": t.callback.host,
                                         "user": t.callback.user,
+                                        "integrity_level": t.callback.integrity_level,
+                                        "domain": t.callback.domain
                                     }
                                 )
                             )
@@ -249,6 +251,8 @@ async def ws_tasks_current_operation(request, ws, user):
                                                 **t.to_json(),
                                                 "host": t.callback.host,
                                                 "user": t.callback.user,
+                                                "integrity_level": t.callback.integrity_level,
+                                                "domain": t.callback.domain
                                             }
                                         )
                                     )
@@ -766,6 +770,19 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
         ))
         for c in cur_loaded:
             await ws.send(js.dumps({**c.to_json(), "channel": "newloadedcommand"}))
+        scripts_loaded = await app.db_objects.execute(db_model.command_query.where(
+            (db_model.Command.payload_type == callback.registered_payload.payload_type) &
+            (db_model.Command.script_only == True)
+        ))
+        for c in scripts_loaded:
+            await ws.send(js.dumps({
+                "id": 0,
+                "command": c.cmd,
+                "version": c.version,
+                "callback": cid,
+                "operator": "",
+                "attributes": c.attributes,
+                "channel": "newloadedcommand"}))
         await ws.send("")
         while True:
             await ws.send("")

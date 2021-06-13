@@ -31,6 +31,9 @@
                         <h3 style="display:inline-block;padding-left:10px">[[p.ptype]]</h3><br>
                         <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Supported OS: [[p.supported_os]]</pre><br>
                         <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Authors: [[p.author]]</pre><br>
+                        <template v-if="p.container_count !== 1">
+                            <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Online Container Count: [[p.container_count]]</pre><br>
+                        </template>
                         <template v-if="p.translation_container !== null">
                             <template v-if="p.translation_container.container_running">
                                 <div class="led-green" data-toggle="tooltip" title="translation container is checking in" style="display:inline-block"></div>
@@ -180,46 +183,6 @@
                     <tr>
                         <td> Currently Using Version: </td>
                         <td> [[version]]</td>
-                    </tr>
-                    <tr>
-                        <td> Is Exit Command:</td>
-                        <td><span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsExit" v-model="is_exit">
-                        <label for="commandEditIsExit" class="btn-info"></label></span></td>
-                    </tr>
-                    <tr>
-                        <td> Is Used For File Browsing:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsFileBrowse" v-model="is_file_browse">
-                                <label for="commandEditIsFileBrowse" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Process Listing:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsProcessList" v-model="is_process_list">
-                                <label for="commandEditIsProcessList" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Downloading Files:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsDownloadFile" v-model="is_download_file">
-                                <label for="commandEditIsDownloadFile" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Removing Files:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" id="commandEditIsRemoveFile" v-model="is_remove_file">
-                                <label for="commandEditIsRemoveFile" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Uploading Files:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" id="commandEditIsUploadFile" v-model="is_upload_file">
-                                <label for="commandEditIsUploadFile" class="btn-info"></label></span>
-                        </td>
                     </tr>
                 </table>
                   <h3>Command Parameters:</h3>
