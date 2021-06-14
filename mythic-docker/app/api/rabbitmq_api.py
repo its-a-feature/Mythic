@@ -345,7 +345,8 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 ))
                                 if subtasks > 0:
                                     task.status = "delegating"
-                                elif not task.completed and not task.command.script_only:
+                                elif not task.completed and not task.command.script_only and not (task.opsec_pre_blocked and not task.opsec_pre_bypassed)\
+                                        and not (task.opsec_post_blocked and not task.opsec_post_bypassed):
                                     task.status = "submitted"
                                 elif task.command.script_only and not task.completed:
                                     task.status = "processed"
