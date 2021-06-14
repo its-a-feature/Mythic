@@ -297,6 +297,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                         task.status = "processed"
                                         task.status_timestamp_processed = task.timestamp
                                         task.completed = True
+                                    elif task.completed:
+                                        # this means it was already previously marked as completed
+                                        task.status = "processed"
                                     else:
                                         task.status = "submitted"
                             elif pieces[5] == "completed":
@@ -353,6 +356,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 task.status_timestamp_processed = task.timestamp
                                 if not task.completed:
                                     task.completed = True
+                                    await app.db_objects.update(task)
                                     asyncio.create_task(check_and_issue_task_callback_functions(task))
                             else:
                                 task.status = pieces[5].lower()
@@ -1570,7 +1574,6 @@ async def create_subtask(parent_task_id: int, command: str,  params: str = "", f
     :return: Information about the task you just created
     """
     try:
-        logger.warning(subtask_callback_function)
         parent_task = await app.db_objects.get(db_model.task_query, id=parent_task_id)
         operatoroperation = await app.db_objects.get(
             db_model.operatoroperation_query, operator=parent_task.operator, operation=parent_task.callback.operation

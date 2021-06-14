@@ -772,7 +772,8 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
             await ws.send(js.dumps({**c.to_json(), "channel": "newloadedcommand"}))
         scripts_loaded = await app.db_objects.execute(db_model.command_query.where(
             (db_model.Command.payload_type == callback.registered_payload.payload_type) &
-            (db_model.Command.script_only == True)
+            (db_model.Command.script_only == True) &
+            (db_model.Command.deleted == False)
         ))
         for c in scripts_loaded:
             await ws.send(js.dumps({
