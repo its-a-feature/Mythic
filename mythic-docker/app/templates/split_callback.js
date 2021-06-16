@@ -285,7 +285,7 @@ var callback_table = new Vue({
                                                        }
                                                     }
                                                 }
-                                                if(matched && !m["auto_generated"]){
+                                                if(matched && !params_table.payloads[m]["auto_generated"]){
                                                     param.payloads.push(params_table.payloads[m]);
                                                 }
 
