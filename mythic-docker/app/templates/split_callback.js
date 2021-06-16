@@ -262,11 +262,33 @@ var callback_table = new Vue({
                                         supported_agents.splice(supported_agents.indexOf(""), 1);
                                     }
                                     if (supported_agents.length === 0) {
-                                        param.payloads = params_table.payloads;
+                                        param.payloads = params_table.payloads.reduce( (total, cur) => {
+                                            if(cur["auto_generated"] === false){
+                                                return [...total, cur];
+                                            }
+                                            return [...total];
+                                        }, []);
                                     } else {
-                                        for (let k = 0; k < params_table.payloads.length; k++) {
-                                            if (supported_agents.includes(params_table.payloads[k]['payload_type'])) {
-                                                param.payloads.push(params_table.payloads[k]);
+                                        for (let m= 0; m < params_table.payloads.length; m++) {
+                                            if (supported_agents.includes(params_table.payloads[m]['payload_type'])) {
+                                                // now that we see it as a supported agent, check that it matches the supported build parameters
+                                                let build_reqs = JSON.parse(param.supported_agent_build_parameters);
+                                                let matched = true;
+                                                if(params_table.payloads[m]['payload_type'] in build_reqs){
+                                                    for (const [key, value] of Object.entries(build_reqs[params_table.payloads[m]['payload_type']])) {
+                                                       for(let b = 0; b < params_table.payloads[m]["build_parameters"].length; b++){
+                                                           if(params_table.payloads[m]["build_parameters"][b]["name"] === key){
+                                                               if (params_table.payloads[m]["build_parameters"][b]["value"] !== value){
+                                                                   matched = false;
+                                                               }
+                                                           }
+                                                       }
+                                                    }
+                                                }
+                                                if(matched && !m["auto_generated"]){
+                                                    param.payloads.push(params_table.payloads[m]);
+                                                }
+
                                             }
                                         }
                                     }

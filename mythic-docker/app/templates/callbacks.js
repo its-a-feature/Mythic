@@ -1951,7 +1951,12 @@ var task_data = new Vue({
                                         supported_agents.splice(supported_agents.indexOf(""), 1);
                                     }
                                     if (supported_agents.length === 0) {
-                                        param.payloads = params_table.payloads;
+                                        param.payloads = params_table.payloads.reduce( (total, cur) => {
+                                            if(cur["auto_generated"] === false){
+                                                return [...total, cur];
+                                            }
+                                            return [...total];
+                                        }, []);
                                     } else {
                                         for (let m= 0; m < params_table.payloads.length; m++) {
                                             if (supported_agents.includes(params_table.payloads[m]['payload_type'])) {
@@ -1969,7 +1974,7 @@ var task_data = new Vue({
                                                        }
                                                     }
                                                 }
-                                                if(matched){
+                                                if(matched && !m["auto_generated"]){
                                                     param.payloads.push(params_table.payloads[m]);
                                                 }
 
