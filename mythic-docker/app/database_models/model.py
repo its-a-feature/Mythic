@@ -1246,7 +1246,13 @@ class Process(p.Model):
             "architecture": self.architecture,
             "parent_process_id": self.parent_process_id,
             "bin_path": self.bin_path,
-            "name": self.name
+            "name": self.name,
+            "user": self.user,
+            "command_line": self.command_line,
+            "integrity_level": self.integrity_level,
+            "description": self.description,
+            "signer": self.signer,
+            "start_time": self.start_time.strftime("%m/%d/%Y %H:%M:%S.%f") if self.start_time is not None else None
         }
         return r
 
