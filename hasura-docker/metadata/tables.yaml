@@ -2894,6 +2894,13 @@
         table:
           schema: public
           name: taskartifact
+  - name: tasktags
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          schema: public
+          name: tasktag
   select_permissions:
   - role: developer
     permission:
@@ -4419,6 +4426,9 @@
   - name: opsec_pre_bypass_user
     using:
       foreign_key_constraint_on: opsec_pre_bypass_user_id
+  - name: task
+    using:
+      foreign_key_constraint_on: parent_task_id
   - name: token
     using:
       foreign_key_constraint_on: token_id
@@ -4535,6 +4545,20 @@
         table:
           schema: public
           name: taskartifact
+  - name: tasks
+    using:
+      foreign_key_constraint_on:
+        column: parent_task_id
+        table:
+          schema: public
+          name: task
+  - name: tasktags
+    using:
+      foreign_key_constraint_on:
+        column: task_id
+        table:
+          schema: public
+          name: tasktag
   - name: tokens
     using:
       foreign_key_constraint_on:
@@ -4567,6 +4591,7 @@
       - opsec_pre_message
       - original_params
       - params
+      - parent_task_id
       - status
       - status_timestamp_preprocessing
       - status_timestamp_processed
@@ -4574,6 +4599,7 @@
       - status_timestamp_submitted
       - stderr
       - stdout
+      - subtask_group_name
       - timestamp
       - token_id
       filter:
@@ -4604,6 +4630,7 @@
       - opsec_pre_message
       - original_params
       - params
+      - parent_task_id
       - status
       - status_timestamp_preprocessing
       - status_timestamp_processed
@@ -4611,6 +4638,7 @@
       - status_timestamp_submitted
       - stderr
       - stdout
+      - subtask_group_name
       - timestamp
       - token_id
       filter:
@@ -4641,6 +4669,7 @@
       - opsec_pre_message
       - original_params
       - params
+      - parent_task_id
       - status
       - status_timestamp_preprocessing
       - status_timestamp_processed
@@ -4648,6 +4677,7 @@
       - status_timestamp_submitted
       - stderr
       - stdout
+      - subtask_group_name
       - timestamp
       - token_id
       filter:
@@ -4678,6 +4708,7 @@
       - opsec_pre_message
       - original_params
       - params
+      - parent_task_id
       - status
       - status_timestamp_preprocessing
       - status_timestamp_processed
@@ -4685,6 +4716,7 @@
       - status_timestamp_submitted
       - stderr
       - stdout
+      - subtask_group_name
       - timestamp
       - token_id
       filter:
@@ -4715,6 +4747,7 @@
       - opsec_pre_message
       - original_params
       - params
+      - parent_task_id
       - status
       - status_timestamp_preprocessing
       - status_timestamp_processed
@@ -4722,6 +4755,7 @@
       - status_timestamp_submitted
       - stderr
       - stdout
+      - subtask_group_name
       - timestamp
       - token_id
       filter:
@@ -4734,48 +4768,49 @@
       columns:
       - comment
       - comment_operator_id
-      - params
-      - status
       filter:
         callback:
           operation_id:
             _in: X-Hasura-operations
       check: null
+      set:
+        comment_operator_id: x-hasura-User-Id
   - role: mythic_admin
     permission:
       columns:
       - comment
       - comment_operator_id
-      - params
-      - status
       filter:
         callback:
           operation_id:
             _in: X-Hasura-operations
       check: null
+      set:
+        comment_operator_id: x-hasura-User-Id
   - role: operation_admin
     permission:
       columns:
       - comment
       - comment_operator_id
-      - params
-      - status
       filter:
         callback:
           operation_id:
             _in: X-Hasura-operations
       check: null
+      set:
+        comment_operator_id: x-hasura-User-Id
   - role: operator
     permission:
       columns:
       - comment
       - comment_operator_id
-      - status
       filter:
         callback:
           operation_id:
             _in: X-Hasura-operations
       check: null
+      set:
+        comment_operator_id: x-hasura-User-Id
 - table:
     schema: public
     name: taskartifact
@@ -4880,6 +4915,288 @@
             callback:
               operation_id:
                 _in: X-Hasura-operations
+- table:
+    schema: public
+    name: tasktag
+  object_relationships:
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+  insert_permissions:
+  - role: developer
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - operation_id
+      - tag
+      - task_id
+      backend_only: false
+  - role: mythic_admin
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - operation_id
+      - tag
+      - task_id
+      backend_only: false
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - operation_id
+      - tag
+      - task_id
+      backend_only: false
+  - role: operator
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - operation_id
+      - tag
+      - task_id
+      backend_only: false
+  select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - id
+      - operation_id
+      - tag
+      - task_id
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+      - id
+      - operation_id
+      - tag
+      - task_id
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+      - id
+      - operation_id
+      - tag
+      - task_id
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+      - id
+      - operation_id
+      - tag
+      - task_id
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+      - id
+      - operation_id
+      - tag
+      - task_id
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - tag
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      columns:
+      - tag
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+  - role: operation_admin
+    permission:
+      columns:
+      - tag
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+  - role: operator
+    permission:
+      columns:
+      - tag
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+  - role: operation_admin
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
+  - role: operator
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: X-Hasura-current-operation-id
+        - task:
+            callback:
+              operation_id:
+                _eq: X-Hasura-current-operation-id
 - table:
     schema: public
     name: token
