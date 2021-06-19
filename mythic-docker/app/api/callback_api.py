@@ -487,7 +487,7 @@ async def create_callback_func(data, request):
             cal = await db_objects.create(
                 Callback,
                 user=data["user"],
-                host=data["host"],
+                host=data["host"].upper(),
                 pid=data["pid"],
                 ip=data["ip"],
                 description=payload.tag,
@@ -512,7 +512,7 @@ async def create_callback_func(data, request):
             )
             await db_objects.create(
                 db_model.PayloadOnHost,
-                host=data["host"],
+                host=data["host"].upper(),
                 payload=payload,
                 operation=payload.operation,
             )
@@ -736,7 +736,7 @@ async def update_callback(data, UUID):
         if "ip" in data:
             cal.ip = data["ip"]
         if "host" in data:
-            cal.host = data["host"]
+            cal.host = data["host"].upper()
         if "external_ip" in data:
             cal.external_ip = data["external_ip"]
         if "integrity_level" in data:

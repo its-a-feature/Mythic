@@ -84,7 +84,8 @@ func (p *UnixProcess) BundleID() string {
 func getProcessCmdline(pid int) string {
 	filename := fmt.Sprintf("/proc/%d/cmdline", pid)
 	f, _ := ioutil.ReadFile(filename)
-	return string(f)
+	p := strings.ReplaceAll(string(f), "\x00", " ")
+	return p
 }
 func getProcessOwner(pid int) (string, error) {
 	filename := fmt.Sprintf("/proc/%d/task", pid)

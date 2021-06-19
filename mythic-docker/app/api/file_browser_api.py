@@ -62,9 +62,9 @@ async def get_filebrowser_tree_for_operation(operation_name):
         final_output = {}
         for e in objs:
             e_json = e.to_json()
-            if e_json["host"] not in final_output:
-                final_output[e_json["host"]] = []
-            final_output[e_json["host"]].append(e_json)
+            if e_json["host"].upper() not in final_output:
+                final_output[e_json["host"].upper()] = []
+            final_output[e_json["host"].upper()].append(e_json)
         return {"status": "success", "output": final_output}
     except Exception as e:
         print(e)
@@ -102,7 +102,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
             filebrowserobj = await db_objects.get(
                 query,
                 operation=operation,
-                host=response["host"].encode("unicode-escape"),
+                host=response["host"].upper().encode("unicode-escape"),
                 name=response["name"].encode("unicode-escape"),
                 is_file=response["is_file"],
                 parent=parent,
@@ -127,7 +127,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
                 db_model.FileBrowserObj,
                 task=task,
                 operation=operation,
-                host=response["host"].encode("unicode-escape"),
+                host=response["host"].upper().encode("unicode-escape"),
                 name=response["name"].encode("unicode-escape"),
                 permissions=js.dumps(response["permissions"]).encode("unicode-escape"),
                 parent=parent,
@@ -152,7 +152,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
                     newfileobj = await db_objects.get(
                         query,
                         operation=operation,
-                        host=response["host"].encode("unicode-escape"),
+                        host=response["host"].upper().encode("unicode-escape"),
                         name=f["name"].encode("unicode-escape"),
                         is_file=f["is_file"],
                         parent=filebrowserobj,
@@ -172,7 +172,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
                         db_model.FileBrowserObj,
                         task=task,
                         operation=operation,
-                        host=response["host"].encode("unicode-escape"),
+                        host=response["host"].upper().encode("unicode-escape"),
                         parent=filebrowserobj,
                         permissions=js.dumps(f["permissions"]).encode("unicode-escape"),
                         parent_path=str(parent_path).encode("unicode-escape"),
@@ -213,7 +213,7 @@ async def add_upload_file_to_file_browser(operation, task, file, data):
         await store_response_into_filebrowserobj(operation, task, data)
         fbo_query = await db_model.filebrowserobj_query()
         fbo = await db_objects.get(fbo_query, operation=operation,
-                                   host=data["host"].encode("unicode-escape"),
+                                   host=data["host"].upper().encode("unicode-escape"),
                                    full_path=data["full_path"].encode("unicode-escape"))
         file.file_browser = fbo
     except Exception as e:
@@ -267,7 +267,7 @@ async def create_and_check_parents(operation, task, response):
             try:
                 parent = await db_objects.get(
                     query,
-                    host=response["host"].encode("unicode-escape"),
+                    host=response["host"].upper().encode("unicode-escape"),
                     parent=parent_obj,
                     name=name.encode("unicode-escape"),
                     operation=operation,
@@ -280,7 +280,7 @@ async def create_and_check_parents(operation, task, response):
                     db_model.FileBrowserObj,
                     task=task,
                     operation=operation,
-                    host=response["host"].encode("unicode-escape"),
+                    host=response["host"].upper().encode("unicode-escape"),
                     name=name.encode("unicode-escape"),
                     parent=parent_obj,
                     parent_path=parent_path_name.encode("unicode-escape"),
@@ -503,7 +503,7 @@ async def get_filebrowsobj_permissions_by_path(request, user):
             return json({"status": "error", "error": "Missing host parameter"})
         if "full_path" not in data:
             return json({"status": "error", "error": "Missing full_path parameter"})
-        file = await db_objects.get(query, operation=operation, host=data["host"].encode("unicode-escape"),
+        file = await db_objects.get(query, operation=operation, host=data["host"].upper().encode("unicode-escape"),
                                     full_path=data["full_path"].encode("unicode-escape"))
         return json({"status": "success", "permissions": file.permissions})
     except Exception as e:

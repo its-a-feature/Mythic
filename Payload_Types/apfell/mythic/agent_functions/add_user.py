@@ -66,7 +66,7 @@ class AddUserArguments(TaskArguments):
                 description="Full user name",
             ),
             "username": CommandParameter(
-                name="usernane",
+                name="username",
                 type=ParameterType.String,
                 required=False,
                 default_value=".jamf_support",

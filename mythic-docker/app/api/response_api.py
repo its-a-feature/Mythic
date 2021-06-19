@@ -320,7 +320,7 @@ async def post_agent_response(agent_message, UUID):
                                     fobj = await db_objects.get(
                                         filebrowserquery,
                                         operation=task.callback.operation,
-                                        host=f["host"].encode("unicode-escape"),
+                                        host=f["host"].upper().encode("unicode-escape"),
                                         full_path=f["path"].encode("unicode-escape"),
                                         deleted=False,
                                     )
@@ -490,7 +490,7 @@ async def post_agent_response(agent_message, UUID):
                                 f = await db_objects.create(
                                     db_model.FileMeta,
                                     task=task,
-                                    host=host.encode("unicode-escape"),
+                                    host=host.upper().encode("unicode-escape"),
                                     total_chunks=file_meta.total_chunks,
                                     chunks_received=file_meta.chunks_received,
                                     chunk_size=file_meta.chunk_size,
@@ -519,7 +519,7 @@ async def post_agent_response(agent_message, UUID):
                                         + parsed_response["full_path"]
                                     ).encode("unicode-escape")
                                 if host != file_meta.host:
-                                    file_meta.host = host.encode("unicode-escape")
+                                    file_meta.host = host.upper().encode("unicode-escape")
                                 await db_objects.update(file_meta)
                                 if file_meta.full_remote_path != "":
                                     await add_upload_file_to_file_browser(task.callback.operation, task, file_meta,

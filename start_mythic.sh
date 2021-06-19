@@ -1,4 +1,8 @@
 #! /bin/bash
+
+# Set working directory for unattended starts
+cd "${0%/*}"
+
 RED='\033[1;31m'
 NC='\033[0m' # No Color
 GREEN='\033[1;32m'
@@ -39,7 +43,7 @@ fi
 
 if [ ! -f "./mythic-docker/app/ssl/mythic-ssl.key" ]; then
    echo -e "${BLUE}[*]${NC} Failed to find ssl keys, generating new ones"
-   openssl req -new -x509 -keyout ./mythic-docker/app/ssl/mythic-ssl.key -out ./mythic-docker/app/ssl/mythic-cert.pem -days 365 -nodes -subj "/C=US" >/dev/null 2>&1
+   openssl req -new -x509 -keyout ./mythic-docker/app/ssl/mythic-ssl.key -out ./mythic-docker/app/ssl/mythic-cert.pem -days 365 -extensions v3_req -nodes -subj "/C=US" >/dev/null 2>&1
    echo -e "${GREEN}[+]${NC} Generated new SSL self signed certificates"
 fi
 server_port=`jq ".listen_port" "mythic-docker/config.json"`

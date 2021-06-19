@@ -22,13 +22,13 @@ Add a local user to the system by wrapping the Apple binary, dscl.
 
 #### passwd
 
-- Description: password of the user that will execute the commands  
+- Description: password of the user that will execute the commands.  
 - Required Value: True  
 - Default Value: None  
 
 #### user
 
-- Description: username that will execute the commands  
+- Description: username that will execute the commands.
 - Required Value: True  
 - Default Value: None  
 
@@ -68,7 +68,7 @@ Add a local user to the system by wrapping the Apple binary, dscl.
 - Required Value: False  
 - Default Value: Jamf Support User  
 
-#### usernane
+#### username
 
 - Description: POSIX username for account  
 - Required Value: False  

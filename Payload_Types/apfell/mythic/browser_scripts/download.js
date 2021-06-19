@@ -7,7 +7,7 @@ function(task, responses){
 		      return "<div class='card'><div class='card-header border border-dark shadow'>Finished Downloading <span class='display'>" + escapeHTML(file_name) + "</span>. Click <a href='/api/v1.4/files/download/" + status['agent_file_id'] + "'>here</a> to download</div></div>";
 	    	}
     }catch(error){
-       return "<pre>Error: " + error.toString() + "\n" + JSON.stringify(responses, null, 2) + "</pre>";
+       return "<pre>Error: " + error.toString() + "\n" + escapeHTML(JSON.stringify(responses, null, 2)) + "</pre>";
     }
   }
   if(task.status === 'error'){

@@ -587,7 +587,7 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
             await db_objects.update(task)
             await db_objects.create(
                 db_model.PayloadOnHost,
-                host=host,
+                host=host.upper(),
                 payload=payload,
                 operation=payload.operation,
                 task=task,
@@ -799,7 +799,7 @@ async def register_artifact(request):
             task=task,
             artifact_instance=request["artifact_instance"].encode(),
             artifact=artifact,
-            host=request["host"],
+            host=request["host"].upper(),
             operation=task.callback.operation,
         )
         await log_to_siem(art.to_json(), mythic_object="artifact_new")
@@ -823,7 +823,7 @@ async def register_payload_on_host(request):
         payloadquery = await db_model.payload_query()
         payload = await db_objects.get(payloadquery, uuid=request["uuid"], operation=task.operation)
         payload_on_host = await db_objects.create(db_model.PayloadOnHost, payload=payload,
-                                                  host=request["host"].encode(), operation=task.operation, task=task)
+                                                  host=request["host"].upper().encode(), operation=task.operation, task=task)
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": "Failed to find payload"}
