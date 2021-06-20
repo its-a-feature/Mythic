@@ -1,3 +1,5 @@
+from collections import deque
+
 from app import mythic
 import app
 from sanic.response import json, raw
@@ -32,6 +34,8 @@ from app.api.siem_logger import log_to_siem
 import sys
 import asyncio
 import uuid
+from time import sleep as tsleep
+import json as jsonlib
 
 
 @mythic.route(mythic.config["API_BASE"] + "/callbacks/", methods=["GET"])
@@ -1165,6 +1169,251 @@ async def remove_graph_edge(request, eid, user):
 
 
 cached_socks = {}
+cached_rportfwd = {}
+callback_port = {}
+
+
+async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, task: Task):
+    try:
+        if port in callback_port:
+            return {"status": "error", "error": "Port Forward already started on that port"}
+    except:
+        # we're not using this port, so we can use it
+        pass
+    try:
+        #print("starting rportfwd")
+        server_address = ('0.0.0.0', port)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(server_address)
+        if (callback.id not in cached_rportfwd):
+            cached_rportfwd[callback.id] = {}
+        cached_rportfwd[callback.id][port] = {
+            "connections": [],
+            #list of dictionary: connection, thread_read, queue
+            "thread_handle": threading.Thread(
+                target=thread_handle_connections,
+                kwargs={"port": port,"sock": sock, "callback_id": callback.id},
+            ),
+            "state": 1,
+            "sock":sock,
+            "rport": rport,
+            "rip": rip
+        }
+        callback_port[port] = callback
+        #callback.port = port
+        #callback.rportfwd_task = task
+        cached_rportfwd[callback.id][port]["thread_handle"].start()
+        app.redis_pool.set(f"RPORTFWD_RUNNING:{callback.id}_{port}", "True")
+    except Exception as e:
+        return {"status":"error", "error":str(e)}
+    return {"status": "success"}
+
+async def stop_rportfwd(port: int, callback: Callback, task: Task):
+    app.redis_pool.delete(f"RPORTFWD_RUNNING:{callback.id}_{port}")
+    if callback.id in cached_rportfwd:
+        if port in cached_rportfwd[callback.id]:
+            cached_rportfwd[callback.id][port]["state"] = 0
+        for connection in cached_rportfwd[callback.id][port]["connections"]:
+            try:
+                connection["connection"].shutdown(socket.SHUT_RDWR)
+                connection["connection"].close()
+            except:
+                pass
+        try:
+            cached_rportfwd[callback.id][port]["sock"].shutdown(socket.SHUT_RDWR)
+            cached_rportfwd[callback.id][port]["sock"].close()
+        except:
+            pass
+        del cached_rportfwd[callback.id][port]
+        if bool(cached_rportfwd[callback.id]) == False:
+            del cached_rportfwd[callback.id]
+
+        del callback_port[port]
+
+    try:
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": "failed to find socks instance: " + str(e)}
+
+
+async def flush_rportfwd(callback: Callback, task: Task):
+    try:
+        if callback.id in cached_rportfwd:
+            for port in cached_rportfwd[callback.id]:
+                cached_rportfwd[callback.id][port]["state"] = 0
+                try:
+                    for connection in cached_rportfwd[callback.id][port]["connections"]:
+                        try:
+                            connection["connection"].shutdown(socket.SHUT_RDWR)
+                            connection["connection"].close()
+                        except:
+                            pass
+                    cached_rportfwd[callback.id][port]["sock"].shutdown(socket.SHUT_RDWR)
+                    cached_rportfwd[callback.id][port]["sock"].close()
+                    del callback_port[port]
+                except:
+                    pass
+        try:
+            del cached_rportfwd[callback.id]
+        except:
+            pass
+
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": "failed to find rportfwd instance: " + str(e)}
+
+def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
+    sock.listen(1)
+    id = 0
+
+    try:
+        while cached_rportfwd[callback_id][port]["state"] == 1:
+            connection, client_address = sock.accept()
+            conn_sock = {
+                "connection": connection,
+                "thread_read": threading.Thread(
+                    target=thread_read_rportfwd,
+                    kwargs={"port": port,"connection": connection, "id": id, "callback_id": callback_id},
+                ),
+                "thread_write": threading.Thread(
+                    target=thread_write_rportfwd,
+                    kwargs={"port": port,"connection": connection, "id": id, "callback_id": callback_id},
+                ),
+                "toAgentThread":threading.Thread(target=thread_send_rportfwds_data,
+                                                 kwargs={"callback_id": callback_id,"port": port}),
+                "thread_"
+                "queue": deque(),
+                "queue_send":{},
+                "last_msg":0,
+                "last_msg_send":0
+            }
+            cached_rportfwd[callback_id][port]["connections"].append(conn_sock)
+            cached_rportfwd[callback_id][port]["connections"][id]["thread_read"].start()
+            cached_rportfwd[callback_id][port]["connections"][id]["thread_write"].start()
+            id = id + 1
+    except:
+        pass
+        #connection closd
+
+
+def thread_write_rportfwd(port: int,connection: socket, id: int, callback_id: int) -> None:
+    try:
+        while (cached_rportfwd[callback_id][port]["state"] == 1):
+            if cached_rportfwd[callback_id][port]["connections"][id]["last_msg"] in cached_rportfwd[callback_id][port]["connections"][id]["queue_send"]:
+                last_msg = cached_rportfwd[callback_id][port]["connections"][id]["last_msg"]
+                msg = base64.b64decode(cached_rportfwd[callback_id][port]["connections"][id]["queue_send"][last_msg])
+                cached_rportfwd[callback_id][port]["connections"][id]["connection"].sendall(msg)
+                del cached_rportfwd[callback_id][port]["connections"][id]["queue_send"][last_msg]
+                cached_rportfwd[callback_id][port]["connections"][id]["last_msg"] = last_msg + 1
+    except Exception as e:
+        print("Thread Error: "+str(e))
+        try:
+            cached_rportfwd[callback_id][port]["connections"][id]["last_msg_send"] = -1
+            connection.close()
+        except:
+            pass
+        tsleep(1)
+
+def thread_read_rportfwd(port: int,connection: socket, id: int, callback_id: int) -> None:
+    try:
+        data = connection.recv(8192)
+        while (data and cached_rportfwd[callback_id][port]["state"] == 1):
+            data = base64.b64encode(data)
+            data = data.decode('ascii')
+            cached_rportfwd[callback_id][port]["connections"][id]["queue"].append(data)
+            data = connection.recv(8192)
+    except Exception as e:
+            #print("*" * 10 + "Got exception from reading socket data" + "*" * 10)
+        try:
+            cached_rportfwd[callback_id][port]["connections"][id]["last_msg_send"] = -1
+            connection.close()
+        except:
+            pass
+        tsleep(1)
+
+
+async def get_rportfwd_data(callback: Callback):
+    default_struct = []
+    if (bool(cached_rportfwd) == False):
+        return default_struct
+    dict_conn = {}
+    if callback.id in cached_rportfwd:
+        for port in cached_rportfwd[callback.id]:
+            id = 0
+            rport = cached_rportfwd[callback.id][port]["rport"]
+            rip = cached_rportfwd[callback.id][port]["rip"]
+            dict_conn[str(port)] = {}
+            dict_conn[str(port)][str(rport)] = {}
+            dict_conn[str(port)][str(rport)][str(rip)] = {}
+            if len(cached_rportfwd[callback.id][port]["connections"]) > 0:
+                for connection in cached_rportfwd[callback.id][port]["connections"]:
+                    deq = 0
+                    dict_conn[str(port)][str(rport)][str(rip)][str(id)] = {}
+                    while (len(cached_rportfwd[callback.id][port]["connections"][id]["queue"]) > 0):
+                        try:
+                            dict_conn[str(port)][str(rport)][str(rip)][str(id)][
+                                cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"]] = connection[
+                                "queue"].popleft()
+                            cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] = \
+                            cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] + 1
+                        except Exception as e:
+                            print("Get Forwarded data error: " + str(e))
+                    # deque the rest for the next time, this avoids hanging connections
+                    id = id + 1
+
+    # if len(data) > 0:
+    # print("******* SENDING THE FOLLOWING TO THE AGENT ******")
+    # print(data)
+    # json data in format:
+    # {"9090":{"445":{"10.0.0.1":{
+    #           "1":["base64Str","base64Str","base64Str"]
+    #           "2":["base64Str","base64Str","base64Str"]
+    #           "3":["base64Str","base64Str","base64Str"]
+    #         }}}
+    #  "9091":{"3389":{"10.0.0.2":{
+    #           "1":["base64Str","base64Str","base64Str"]
+    #           "2":["base64Str","base64Str","base64Str"]
+    #           "3":["base64Str","base64Str","base64Str"]
+    #         }}}
+    #   }
+    # }
+    if (bool(dict_conn) == False):
+        return default_struct
+    dict_conn = jsonlib.dumps(dict_conn)
+    default_struct.append(dict_conn)
+    return default_struct
+
+def thread_send_rportfwds_data(callback_id: int,port: int):
+    #data = agent_message["rportfwd"]
+    while cached_rportfwd[callback_id][port]["state"] == 1:
+        try:
+            sub_class = app.redis_pool.pubsub(ignore_subscribe_messages=True)
+            sub_class.subscribe(f"RPORTFWD:{callback_id}:FromAgent")
+            for message in sub_class.listen():
+                print("******* MESSAGE REDIS ******* "+"\n"+message)
+                if message["type"] == "message":
+                    data = js.loads(message["data"])
+                    data = data[0]
+                    id = 0
+                    try:
+                        for data_key in data:
+                            for port in data[data_key]:
+                                for rport in data[data_key][port]:
+                                    for rip in data[data_key][port][rport]:
+                                        id = 0
+                                        for i in data[data_key][port][rport][rip]:
+                                            total_msg = b''
+                                            for d in data[data_key][port][rport][rip][i]:
+                                                cached_rportfwd[callback_id][int(port)]["connections"][int(i)]["queue_send"][int(d)] = data[data_key][port][rport][rip][i][d]
+                                                                                    #else:
+                                                    #print("****** NO CACHED PORTFWD, MUST BE CLOSED *******")
+                    except:
+                        pass
+        except Exception as e:
+            #print("******** EXCEPTION IN SEND RPORTFWD DATA *****\n{}".format(str(e)))
+            print(str(e))
+            return {"status": "error", "error": str(e)}
+
 
 
 async def start_socks(port: int, callback: Callback, task: Task):

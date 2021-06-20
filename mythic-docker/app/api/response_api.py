@@ -642,7 +642,17 @@ async def post_agent_response(agent_message, callback):
         app.redis_pool.publish(f"SOCKS:{callback.id}:FromAgent", js.dumps(agent_message["socks"]))
         agent_message.pop("socks", None)
     # echo back any additional parameters here as well
+    if (
+        "rportfwds" in agent_message
+        and agent_message["rportfwds"] != ""
+        and agent_message["rportfwds"] != []
+        and agent_message["rportfwds"] is not None
+    ):
+
+        app.redis_pool.publish(f"RPORTFWD:{callback.id}:FromAgent", js.dumps(agent_message["rportfwds"]))
+        agent_message.pop("rportfwds", None)
+
     for k in agent_message:
-        if k not in ["action", "responses", "delegates", "socks", "edges"]:
+        if k not in ["action", "responses", "delegates", "socks", "edges","rportfwds"]:
             response_message[k] = agent_message[k]
     return response_message

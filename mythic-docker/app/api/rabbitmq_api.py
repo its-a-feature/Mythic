@@ -937,6 +937,28 @@ async def control_socks(task_id: int, port: int, start: bool = False, stop: bool
     except Exception as e:
         return {"status": "error", "error": "Exception trying to handle socks control:\n" + str(e)}
 
+async def control_rportfwd(task_id: int, port: int,rport: int, rip: str,  start: bool = False, stop: bool = False,flush: bool = False) -> dict:
+    task = await app.db_objects.get(db_model.task_query, id=task_id)
+    if start:
+        print("RABBIT HERE")
+        from app.api.callback_api import start_rportfwd
+        print("RABBIT HERE2")
+        resp = await start_rportfwd(port,rport,rip, task.callback, task)
+        print("RABBIT HERE3")
+        return resp
+    if stop:
+        from app.api.callback_api import stop_rportfwd
+
+        resp = await stop_rportfwd(port, task.callback, task.operator)
+        return resp
+    if flush:
+        from app.api.callback_api import flush_rportfwd
+
+        resp = await flush_rportfwd(task.callback, task.operator)
+        return resp
+    return {"status": "error", "error": "unknown rportfwd tasking"}
+
+
 
 async def create_output(task_id: int, output: str) -> dict:
     """
@@ -2270,6 +2292,7 @@ exposed_rpc_endpoints = {
     "update_callback": update_callback,
     "search_database": search_database,
     "control_socks": control_socks,
+    "control_rportfwd":control_rportfwd,
     "create_subtask": create_subtask,
     "create_subtask_group": create_subtask_group
 }
