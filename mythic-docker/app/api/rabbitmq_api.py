@@ -940,11 +940,8 @@ async def control_socks(task_id: int, port: int, start: bool = False, stop: bool
 async def control_rportfwd(task_id: int, port: int,rport: int, rip: str,  start: bool = False, stop: bool = False,flush: bool = False) -> dict:
     task = await app.db_objects.get(db_model.task_query, id=task_id)
     if start:
-        print("RABBIT HERE")
         from app.api.callback_api import start_rportfwd
-        print("RABBIT HERE2")
         resp = await start_rportfwd(port,rport,rip, task.callback, task)
-        print("RABBIT HERE3")
         return resp
     if stop:
         from app.api.callback_api import stop_rportfwd

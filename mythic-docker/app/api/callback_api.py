@@ -1233,7 +1233,7 @@ async def stop_rportfwd(port: int, callback: Callback, task: Task):
     try:
         return {"status": "success"}
     except Exception as e:
-        return {"status": "error", "error": "failed to find socks instance: " + str(e)}
+        return {"status": "error", "error": "failed to find rportfwd instance: " + str(e)}
 
 
 async def flush_rportfwd(callback: Callback, task: Task):
