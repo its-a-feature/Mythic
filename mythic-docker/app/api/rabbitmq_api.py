@@ -937,6 +937,7 @@ async def control_socks(task_id: int, port: int, start: bool = False, stop: bool
     except Exception as e:
         return {"status": "error", "error": "Exception trying to handle socks control:\n" + str(e)}
 
+
 async def control_rportfwd(task_id: int, port: int,rport: int, rip: str,  start: bool = False, stop: bool = False,flush: bool = False) -> dict:
     task = await app.db_objects.get(db_model.task_query, id=task_id)
     if start:
@@ -945,8 +946,7 @@ async def control_rportfwd(task_id: int, port: int,rport: int, rip: str,  start:
         return resp
     if stop:
         from app.api.callback_api import stop_rportfwd
-
-        resp = await stop_rportfwd(port, task.callback, task.operator)
+        resp = await stop_rportfwd(port, task.callback)
         return resp
     if flush:
         from app.api.callback_api import flush_rportfwd

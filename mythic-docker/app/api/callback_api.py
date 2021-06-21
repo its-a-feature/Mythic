@@ -1184,6 +1184,7 @@ async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, ta
         #print("starting rportfwd")
         server_address = ('0.0.0.0', port)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(server_address)
         if (callback.id not in cached_rportfwd):
             cached_rportfwd[callback.id] = {}
@@ -1207,7 +1208,8 @@ async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, ta
         return {"status":"error", "error":str(e)}
     return {"status": "success"}
 
-async def stop_rportfwd(port: int, callback: Callback, task: Task):
+
+async def stop_rportfwd(port: int, callback: Callback):
     if callback.id in cached_rportfwd:
         if port in cached_rportfwd[callback.id]:
             cached_rportfwd[callback.id][port]["state"] = 0
