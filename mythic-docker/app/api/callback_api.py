@@ -1387,7 +1387,6 @@ def thread_send_rportfwds_data(callback_id: int,port: int):
             sub_class = app.redis_pool.pubsub(ignore_subscribe_messages=True)
             sub_class.subscribe(f"RPORTFWD:{callback_id}:FromAgent")
             for message in sub_class.listen():
-                print("******* MESSAGE REDIS ******* "+"\n"+message)
                 if message["type"] == "message":
                     data = js.loads(message["data"])
                     data = data[0]
