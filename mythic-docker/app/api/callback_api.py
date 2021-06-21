@@ -1203,13 +1203,11 @@ async def start_rportfwd(port: int, rport: int, rip: str, callback: Callback, ta
         #callback.port = port
         #callback.rportfwd_task = task
         cached_rportfwd[callback.id][port]["thread_handle"].start()
-        app.redis_pool.set(f"RPORTFWD_RUNNING:{callback.id}_{port}", "True")
     except Exception as e:
         return {"status":"error", "error":str(e)}
     return {"status": "success"}
 
 async def stop_rportfwd(port: int, callback: Callback, task: Task):
-    app.redis_pool.delete(f"RPORTFWD_RUNNING:{callback.id}_{port}")
     if callback.id in cached_rportfwd:
         if port in cached_rportfwd[callback.id]:
             cached_rportfwd[callback.id][port]["state"] = 0
