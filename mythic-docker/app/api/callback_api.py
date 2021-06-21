@@ -1227,7 +1227,8 @@ async def stop_rportfwd(port: int, callback: Callback, task: Task):
             del cached_rportfwd[callback.id]
 
         del callback_port[port]
-
+    else:
+        return {"status": "error", "error": "could not find callback id"}
     try:
         return {"status": "success"}
     except Exception as e:
