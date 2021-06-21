@@ -1289,6 +1289,7 @@ def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
             cached_rportfwd[callback_id][port]["connections"].append(conn_sock)
             cached_rportfwd[callback_id][port]["connections"][id]["thread_read"].start()
             cached_rportfwd[callback_id][port]["connections"][id]["thread_write"].start()
+            cached_rportfwd[callback_id][port]["connections"][id]["toAgentThread"].start()
             id = id + 1
     except:
         pass
@@ -1350,11 +1351,8 @@ async def get_rportfwd_data(callback: Callback):
                     dict_conn[str(port)][str(rport)][str(rip)][str(id)] = {}
                     while (len(cached_rportfwd[callback.id][port]["connections"][id]["queue"]) > 0):
                         try:
-                            dict_conn[str(port)][str(rport)][str(rip)][str(id)][
-                                cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"]] = connection[
-                                "queue"].popleft()
-                            cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] = \
-                            cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] + 1
+                            dict_conn[str(port)][str(rport)][str(rip)][str(id)][cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"]] = connection["queue"].popleft()
+                            cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] = cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] + 1
                         except Exception as e:
                             print("Get Forwarded data error: " + str(e))
                     # deque the rest for the next time, this avoids hanging connections
