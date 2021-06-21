@@ -1254,6 +1254,8 @@ async def flush_rportfwd(callback: Callback, task: Task):
                     del callback_port[port]
                 except:
                     pass
+        else:
+            return {"status": "error", "error": "failed to find rportfwd instance: "}
         try:
             del cached_rportfwd[callback.id]
         except:
