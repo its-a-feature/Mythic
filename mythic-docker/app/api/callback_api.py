@@ -1281,7 +1281,6 @@ def thread_handle_connections(port: int,sock: socket, callback_id: int) -> None:
                 ),
                 "toAgentThread":threading.Thread(target=thread_send_rportfwds_data,
                                                  kwargs={"callback_id": callback_id,"port": port}),
-                "thread_"
                 "queue": deque(),
                 "queue_send":{},
                 "last_msg":0,
