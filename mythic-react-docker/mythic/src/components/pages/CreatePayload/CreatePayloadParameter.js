@@ -5,9 +5,15 @@ import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import DeleteIcon from '@material-ui/icons/Delete';
-import {IconButton, Input, Button, MenuItem} from '@material-ui/core';
+import {IconButton, Input, Button, MenuItem, Grid} from '@material-ui/core';
 import {muiTheme} from '../../../themes/Themes';
 import AddCircleIcon from '@material-ui/icons/AddCircle';
+import {
+    MuiPickersUtilsProvider,
+    KeyboardDatePicker,
+  } from '@material-ui/pickers';
+import 'date-fns';
+import DateFnsUtils from '@date-io/date-fns';
 
 export function CreatePayloadParameter(props){
     const [value, setValue] = React.useState("");
@@ -16,6 +22,7 @@ export function CreatePayloadParameter(props){
     const [dictSelectOptions, setDictSelectOptions] = React.useState([]);
     const [dictSelectOptionsChoice, setDictSelectOptionsChoice] = React.useState("");
     const [chooseOptions, setChooseOptions] = React.useState([]);
+    const [dateValue, setDateValue] = React.useState(new Date());
     const submitDictChange = (list) => {
         const condensed = list.map( (opt) => {
             return {[opt.key]: opt.value};
@@ -37,10 +44,16 @@ export function CreatePayloadParameter(props){
                 }
                 setChooseOptions(options)
             }
+        }else if(props.parameter_type === "Date"){
+            if(props.devault_value !== ""){
+                var tmpDate = new Date();
+                tmpDate.setDate(tmpDate.getDate() + parseInt(props.default_value));
+                setDateValue(tmpDate);
+                props.onChange(props.name, tmpDate.toISOString().slice(0,10), "");
+            }
         }else if(props.parameter_type === "Dictionary"){
             const options = JSON.parse(props.default_value);
             setDictOptions(options);
-            console.log(options);
             let initial = options.reduce( (prev, op) => {
                 // find all the options that have a default_show of true
                 if(op.default_show){
@@ -167,8 +180,30 @@ export function CreatePayloadParameter(props){
             setDictSelectOptionsChoice(dictSelectOptionsInitial[0]);
         }
     }
+    const onChangeDate = (date) => {
+        setDateValue(date)
+        props.onChange(props.name, date.toISOString().slice(0,10), "");
+    }
     const getParameterObject = () => {
         switch(props.parameter_type){
+            case "Date":
+                return (
+                    <MuiPickersUtilsProvider utils={DateFnsUtils}>
+                        <Grid container justify="flex-start">
+                            <KeyboardDatePicker
+                            disableToolbar
+                            variant="inline"
+                            format="MM/dd/yyyy"
+                            margin="normal"
+                            value={dateValue}
+                            onChange={onChangeDate}
+                            KeyboardButtonProps={{
+                                'aria-label': 'change date',
+                            }}
+                            />
+                        </Grid>
+                    </MuiPickersUtilsProvider>
+                )
             case "ChooseOne":
                 return (
                     <FormControl>

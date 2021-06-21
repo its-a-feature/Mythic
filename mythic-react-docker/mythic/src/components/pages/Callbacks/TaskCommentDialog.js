@@ -9,8 +9,8 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import { meState } from '../../../cache';
 
 const updateCommentMutation = gql`
-mutation updateComment ($task_id: Int!, $comment: String, $commentOperator_id: Int) {
-  update_task_by_pk(pk_columns: {id: $task_id}, _set: {comment: $comment, comment_operator_id: $commentOperator_id}) {
+mutation updateComment ($task_id: Int!, $comment: String) {
+  update_task_by_pk(pk_columns: {id: $task_id}, _set: {comment: $comment}) {
     comment
     commentOperator {
       username
@@ -54,7 +54,7 @@ export function TaskCommentDialog(props) {
      return <div>Error!</div>;
     }
     const onCommitSubmit = () => {
-        updateComment({variables: {task_id: props.task_id, comment: comment, commentOperator_id: me.user.id}});
+        updateComment({variables: {task_id: props.task_id, comment: comment}});
         props.onClose();
     }
     const onChange = (name, value, error) => {

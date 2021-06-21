@@ -1,6 +1,5 @@
 import React, {useEffect} from 'react';
 import { gql, useMutation} from '@apollo/client';
-import { useSnackbar } from 'notistack';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import Typography from '@material-ui/core/Typography';
 import {PayloadSubscriptionNotification} from './PayloadSubscriptionNotification';
@@ -19,7 +18,6 @@ import {snackActions} from '../../utilities/Snackbar';
 
 
 export function Step5Build(props){
-    const { enqueueSnackbar } = useSnackbar();
     const [filename, setFilename] = React.useState("");
     const [description, setDescription] = React.useState();
     const [createPayloadMutation] = useMutation(create_payload, {

@@ -27,11 +27,9 @@ function EventFeedTableEventsFunc(props){
     const classes = useStyles();
     const theme = useContext(ThemeContext);
     const me = useReactiveVar(meState);
-    const onUpdateDeleted = () => {
-        props.onUpdateDeleted(props.id);
-    }
+
     return (
-            <ListItem alignItems="flex-start" style={{backgroundColor: props.level === "warning" && props.resolved ? muiTheme.palette.success.main : (props.level === "warning" && !props.resolved ? muiTheme.palette.error.main : theme.eventMessageBackgroundColor)}}>
+            <ListItem alignItems="flex-start" style={{...props.style, backgroundColor: props.level === "warning" && props.resolved ? muiTheme.palette.success.main : (props.level === "warning" && !props.resolved ? muiTheme.palette.error.main : theme.eventMessageBackgroundColor)}}>
                 <ListItemAvatar>
                     <Avatar>
                         {props.operator ? props.operator.username[0] : "M"}
@@ -64,7 +62,13 @@ function EventFeedTableEventsFunc(props){
                     }
                     style={{overflowX: "auto"}}
                 />
-                <EventFeedTableEventsActions id={props.id} level={props.level} onUpdateDeleted={onUpdateDeleted} resolved={props.resolved} theme={theme}/>
+                <EventFeedTableEventsActions id={props.id} level={props.level} 
+                  onUpdateDeleted={props.onUpdateDeleted}
+                  onUpdateResolution={props.onUpdateResolution} 
+                  onUpdateLevel={props.onUpdateLevel} 
+                  getSurroundingEvents={props.getSurroundingEvents} 
+                  resolved={props.resolved} 
+                  theme={theme}/>
 
             </ListItem>
         )
@@ -75,5 +79,4 @@ export const EventFeedTableEvents = React.memo(EventFeedTableEventsFunc, (prev, 
     }
     return true;
 });
-EventFeedTableEvents.whyDidYouRender = true;
 

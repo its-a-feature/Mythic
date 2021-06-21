@@ -13,7 +13,7 @@ import WifiIcon from '@material-ui/icons/Wifi';
 import InsertLinkTwoToneIcon from '@material-ui/icons/InsertLinkTwoTone';
 import {C2PathDialog} from './C2PathDialog';
 import {muiTheme} from "../../../themes/Themes";
-import { useSnackbar } from 'notistack';
+import {snackActions} from '../../utilities/Snackbar';
 import Paper from '@material-ui/core/Paper';
 import Grow from '@material-ui/core/Grow';
 import Popper from '@material-ui/core/Popper';
@@ -28,7 +28,6 @@ import SnoozeIcon from '@material-ui/icons/Snooze';
 
 export function CallbacksTableRow(props){
     const dropdownAnchorRef = React.useRef(null);
-    const { enqueueSnackbar } = useSnackbar();
     const [displayTime, setDisplayTime] = React.useState("");
     const [activeEgress, setActiveEgress] = React.useState(muiTheme.palette.success.main);
     const [activeEgressBool, setActiveEgressBool] = React.useState(true);
@@ -50,7 +49,7 @@ export function CallbacksTableRow(props){
     });
     const onOpenTab = (tabType) => {
         if(!activeEgressBool){
-            enqueueSnackbar("Agent has no egress route! Re-link before tasking", {variant: "warning"});
+            snackActions.warning("Agent has no egress route! Re-link before tasking");
         }
         props.onOpenTab({tabType, tabID: props.id + tabType, callbackID: props.id});
     }
@@ -111,7 +110,6 @@ export function CallbacksTableRow(props){
         const myEdges = getEdges(false);
         setCallbackgraphedges(myActiveEdges);
         setCallbackgraphedgesAll(myEdges);
-        console.log(myEdges, myActiveEdges);
     }, [props.callbackgraphedges, props.id]);
     
     useEffect( () => {
@@ -144,9 +142,9 @@ export function CallbacksTableRow(props){
       const [hideCallback] = useMutation(hideCallbackMutation, {
         update: (cache, {data}) => {
             if(data.updateCallback.status === "success"){
-                enqueueSnackbar("Hiding Callback.", {variant: "success", autoHideDuration: 2000});
+                snackActions.success("Hiding callback");
             }else{
-                enqueueSnackbar(data.updateCallback.error, {variant: "warning"});
+                snackActions.warning(data.updateCallback.error);
             }
             
         },
@@ -178,7 +176,7 @@ export function CallbacksTableRow(props){
                     <ArrowDropDownIcon />
                   </Button>
                 </ButtonGroup>
-                <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal>
+                <Popper open={dropdownOpen} anchorEl={dropdownAnchorRef.current} role={undefined} transition disablePortal style={{zIndex: 4}}>
                   {({ TransitionProps, placement }) => (
                     <Grow
                       {...TransitionProps}

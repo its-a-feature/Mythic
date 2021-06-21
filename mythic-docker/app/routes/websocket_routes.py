@@ -783,6 +783,7 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
                 "callback": cid,
                 "operator": "",
                 "attributes": c.attributes,
+                "supported_ui_features": c.supported_ui_features,
                 "channel": "newloadedcommand"}))
         await ws.send("")
         while True:

@@ -1024,6 +1024,7 @@ class LoadedCommands(p.Model):
             "operator": self.operator.username,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
             "attributes": self.command.attributes,
+            "supported_ui_features": self.command.supported_ui_features
         }
         return r
 

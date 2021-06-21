@@ -167,6 +167,13 @@
       - name
       backend_only: false
   select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - description
+      - name
+      - id
+      filter: {}
   - role: mythic_admin
     permission:
       columns:
@@ -347,6 +354,62 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - id
+      - attack_id
+      - task_id
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      columns:
+      - id
+      - attack_id
+      - task_id
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: operation_admin
+    permission:
+      columns:
+      - id
+      - attack_id
+      - task_id
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: operator
+    permission:
+      columns:
+      - id
+      - attack_id
+      - task_id
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: spectator
+    permission:
+      columns:
+      - id
+      - attack_id
+      - task_id
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
 - table:
     schema: public
     name: authenticationpackage
@@ -1856,82 +1919,92 @@
   - role: developer
     permission:
       columns:
-      - attributes
-      - author
-      - cmd
-      - creation_time
-      - deleted
-      - description
-      - help_cmd
       - id
       - needs_admin
-      - opsec_id
+      - help_cmd
+      - description
+      - cmd
       - payload_type_id
+      - creation_time
       - version
+      - supported_ui_features
+      - author
+      - deleted
+      - attributes
+      - opsec_id
+      - script_only
       filter: {}
   - role: mythic_admin
     permission:
       columns:
-      - attributes
-      - author
-      - cmd
-      - creation_time
-      - deleted
-      - description
-      - help_cmd
       - id
       - needs_admin
-      - opsec_id
+      - help_cmd
+      - description
+      - cmd
       - payload_type_id
+      - creation_time
       - version
+      - supported_ui_features
+      - author
+      - deleted
+      - attributes
+      - opsec_id
+      - script_only
       filter: {}
   - role: operation_admin
     permission:
       columns:
-      - attributes
-      - author
-      - cmd
-      - creation_time
-      - deleted
-      - description
-      - help_cmd
       - id
       - needs_admin
-      - opsec_id
+      - help_cmd
+      - description
+      - cmd
       - payload_type_id
+      - creation_time
       - version
+      - supported_ui_features
+      - author
+      - deleted
+      - attributes
+      - opsec_id
+      - script_only
       filter: {}
   - role: operator
     permission:
       columns:
-      - attributes
-      - author
-      - cmd
-      - creation_time
-      - deleted
-      - description
-      - help_cmd
       - id
       - needs_admin
-      - opsec_id
+      - help_cmd
+      - description
+      - cmd
       - payload_type_id
+      - creation_time
       - version
+      - supported_ui_features
+      - author
+      - deleted
+      - attributes
+      - opsec_id
+      - script_only
       filter: {}
   - role: spectator
     permission:
       columns:
-      - attributes
-      - author
-      - cmd
-      - creation_time
-      - deleted
-      - description
-      - help_cmd
       - id
       - needs_admin
-      - opsec_id
+      - help_cmd
+      - description
+      - cmd
       - payload_type_id
+      - creation_time
       - version
+      - supported_ui_features
+      - author
+      - deleted
+      - attributes
+      - opsec_id
+      - script_only
       filter: {}
 - table:
     schema: public
@@ -2132,7 +2205,7 @@
       - timestamp
       filter:
         operation_id:
-          _in: X-Hasura-operationss
+          _in: X-Hasura-operations
   - role: operation_admin
     permission:
       columns:
@@ -3694,6 +3767,7 @@
       columns:
       - callback_alert
       - deleted
+      - tag
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -3703,6 +3777,7 @@
       columns:
       - callback_alert
       - deleted
+      - tag
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -3712,6 +3787,7 @@
       columns:
       - callback_alert
       - deleted
+      - tag
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -5229,95 +5305,97 @@
   - role: developer
     permission:
       columns:
-      - id
-      - TokenId
-      - User
-      - Groups
-      - EnabledGroups
-      - DenyOnlyGroups
-      - GroupCount
-      - AuthenticationId_id
-      - TokenType
-      - ExpirationTime
-      - ModifiedId
-      - Owner
-      - PrimaryGroup
-      - DefaultDacl
-      - Source
-      - RestrictedSids
-      - RestrictedSidsCount
-      - ImpersonationLevel
-      - SessionId
-      - SandboxInert
-      - Origin
-      - ElevationType
-      - Elevated
-      - HasRestrictions
-      - UIAccess
-      - VirtualizationAllowed
-      - VirtualizationEnabled
-      - Restricted
-      - WriteRestricted
-      - Filtered
-      - NotLow
-      - Flags
-      - NoChildProcess
-      - Capabilities
-      - MandatoryPolicy
-      - LogonSid
-      - IntegrityLevelSid
-      - AppContainerNumber
-      - IntegrityLevel
-      - SecurityAttributes
-      - DeviceClaimAttributes
-      - UserClaimAttributes
-      - RestrictedUserClaimAttributes
-      - RestrictedDeviceClaimAttributes
+      - Address
       - AppContainer
-      - LowPrivilegeAppContainer
+      - AppContainerNumber
       - AppContainerSid
-      - PackageName
-      - DeviceGroups
-      - RestrictedDeviceGroups
-      - Privileges
-      - FullPath
-      - TrustLevel
-      - IsPseudoToken
-      - IsSandbox
-      - PackageFullName
       - AppId
       - AppModelPolicies
       - AppModelPolicyDictionary
-      - BnoIsolationPrefix
-      - PackageIdentity
+      - AttributesFlags
       - AuditPolicy
-      - PrivateNamespace
-      - IsRestricted
-      - ProcessUniqueAttribute
+      - AuthenticationId_id
+      - BnoIsolationPrefix
+      - CanSynchronize
+      - Capabilities
+      - CreationTime
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
+      - Elevated
+      - ElevationType
+      - EnabledGroups
+      - ExpirationTime
+      - Filtered
+      - Flags
+      - FullPath
       - GrantedAccess
       - GrantedAccessGeneric
       - GrantedAccessMask
-      - SecurityDescriptor
-      - Sddl
+      - GroupCount
+      - Groups
       - Handle
-      - NtTypeName
-      - NtType
-      - Name
-      - CanSynchronize
-      - CreationTime
-      - AttributesFlags
       - HandleReferenceCount
-      - PointerReferenceCount
+      - HasRestrictions
+      - ImpersonationLevel
       - Inherit
-      - ProtectFromClose
-      - Address
-      - IsContainer
+      - IntegrityLevel
+      - IntegrityLevelSid
       - IsClosed
-      - os
-      - task_id
-      - timestamp_created
+      - IsContainer
+      - IsPseudoToken
+      - IsRestricted
+      - IsSandbox
+      - LogonSid
+      - LowPrivilegeAppContainer
+      - MandatoryPolicy
+      - ModifiedId
+      - Name
+      - NoChildProcess
+      - NotLow
+      - NtType
+      - NtTypeName
+      - Origin
+      - Owner
+      - PackageFullName
+      - PackageIdentity
+      - PackageName
+      - PointerReferenceCount
+      - PrimaryGroup
+      - PrivateNamespace
+      - Privileges
+      - ProcessUniqueAttribute
+      - ProtectFromClose
+      - Restricted
+      - RestrictedDeviceClaimAttributes
+      - RestrictedDeviceGroups
+      - RestrictedSids
+      - RestrictedSidsCount
+      - RestrictedUserClaimAttributes
+      - SandboxInert
+      - Sddl
+      - SecurityAttributes
+      - SecurityDescriptor
+      - SessionId
+      - Source
+      - ThreadID
+      - TokenId
+      - TokenType
+      - TrustLevel
+      - UIAccess
+      - User
+      - UserClaimAttributes
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
       - deleted
       - host
+      - id
+      - os
+      - process_id
+      - task_id
+      - timestamp_created
       filter:
         task:
           callback:
@@ -5326,94 +5404,96 @@
   - role: mythic_admin
     permission:
       columns:
+      - Address
       - AppContainer
+      - AppContainerNumber
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AttributesFlags
+      - AuditPolicy
+      - AuthenticationId_id
+      - BnoIsolationPrefix
       - CanSynchronize
+      - Capabilities
+      - CreationTime
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
       - Elevated
+      - ElevationType
+      - EnabledGroups
+      - ExpirationTime
       - Filtered
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - GrantedAccessMask
+      - GroupCount
+      - Groups
+      - Handle
+      - HandleReferenceCount
       - HasRestrictions
+      - ImpersonationLevel
       - Inherit
+      - IntegrityLevel
+      - IntegrityLevelSid
       - IsClosed
       - IsContainer
       - IsPseudoToken
       - IsRestricted
       - IsSandbox
+      - LogonSid
       - LowPrivilegeAppContainer
+      - MandatoryPolicy
+      - ModifiedId
+      - Name
       - NoChildProcess
       - NotLow
-      - PrivateNamespace
-      - ProtectFromClose
-      - Restricted
-      - SandboxInert
-      - UIAccess
-      - VirtualizationAllowed
-      - VirtualizationEnabled
-      - WriteRestricted
-      - deleted
-      - Address
-      - AppContainerNumber
-      - AttributesFlags
-      - AuthenticationId_id
-      - ElevationType
-      - GrantedAccessMask
-      - GroupCount
-      - Handle
-      - HandleReferenceCount
-      - ImpersonationLevel
-      - IntegrityLevel
-      - IntegrityLevelSid
-      - ModifiedId
       - NtType
-      - Origin
-      - PointerReferenceCount
-      - SessionId
-      - TokenId
-      - TokenType
-      - id
-      - task_id
-      - CreationTime
-      - ExpirationTime
-      - AppContainerSid
-      - AppId
-      - AppModelPolicies
-      - AppModelPolicyDictionary
-      - AuditPolicy
-      - BnoIsolationPrefix
-      - Capabilities
-      - DefaultDacl
-      - DenyOnlyGroups
-      - DeviceClaimAttributes
-      - DeviceGroups
-      - EnabledGroups
-      - Flags
-      - FullPath
-      - GrantedAccess
-      - GrantedAccessGeneric
-      - Groups
-      - LogonSid
-      - MandatoryPolicy
-      - Name
       - NtTypeName
+      - Origin
       - Owner
       - PackageFullName
       - PackageIdentity
       - PackageName
+      - PointerReferenceCount
       - PrimaryGroup
+      - PrivateNamespace
       - Privileges
       - ProcessUniqueAttribute
+      - ProtectFromClose
+      - Restricted
       - RestrictedDeviceClaimAttributes
       - RestrictedDeviceGroups
       - RestrictedSids
       - RestrictedSidsCount
       - RestrictedUserClaimAttributes
+      - SandboxInert
       - Sddl
       - SecurityAttributes
       - SecurityDescriptor
+      - SessionId
       - Source
+      - ThreadID
+      - TokenId
+      - TokenType
       - TrustLevel
+      - UIAccess
       - User
       - UserClaimAttributes
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
       - host
+      - id
       - os
+      - process_id
+      - task_id
       - timestamp_created
       filter:
         task:
@@ -5423,94 +5503,96 @@
   - role: operation_admin
     permission:
       columns:
+      - Address
       - AppContainer
+      - AppContainerNumber
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AttributesFlags
+      - AuditPolicy
+      - AuthenticationId_id
+      - BnoIsolationPrefix
       - CanSynchronize
+      - Capabilities
+      - CreationTime
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
       - Elevated
+      - ElevationType
+      - EnabledGroups
+      - ExpirationTime
       - Filtered
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - GrantedAccessMask
+      - GroupCount
+      - Groups
+      - Handle
+      - HandleReferenceCount
       - HasRestrictions
+      - ImpersonationLevel
       - Inherit
+      - IntegrityLevel
+      - IntegrityLevelSid
       - IsClosed
       - IsContainer
       - IsPseudoToken
       - IsRestricted
       - IsSandbox
+      - LogonSid
       - LowPrivilegeAppContainer
+      - MandatoryPolicy
+      - ModifiedId
+      - Name
       - NoChildProcess
       - NotLow
-      - PrivateNamespace
-      - ProtectFromClose
-      - Restricted
-      - SandboxInert
-      - UIAccess
-      - VirtualizationAllowed
-      - VirtualizationEnabled
-      - WriteRestricted
-      - deleted
-      - Address
-      - AppContainerNumber
-      - AttributesFlags
-      - AuthenticationId_id
-      - ElevationType
-      - GrantedAccessMask
-      - GroupCount
-      - Handle
-      - HandleReferenceCount
-      - ImpersonationLevel
-      - IntegrityLevel
-      - IntegrityLevelSid
-      - ModifiedId
       - NtType
-      - Origin
-      - PointerReferenceCount
-      - SessionId
-      - TokenId
-      - TokenType
-      - id
-      - task_id
-      - CreationTime
-      - ExpirationTime
-      - AppContainerSid
-      - AppId
-      - AppModelPolicies
-      - AppModelPolicyDictionary
-      - AuditPolicy
-      - BnoIsolationPrefix
-      - Capabilities
-      - DefaultDacl
-      - DenyOnlyGroups
-      - DeviceClaimAttributes
-      - DeviceGroups
-      - EnabledGroups
-      - Flags
-      - FullPath
-      - GrantedAccess
-      - GrantedAccessGeneric
-      - Groups
-      - LogonSid
-      - MandatoryPolicy
-      - Name
       - NtTypeName
+      - Origin
       - Owner
       - PackageFullName
       - PackageIdentity
       - PackageName
+      - PointerReferenceCount
       - PrimaryGroup
+      - PrivateNamespace
       - Privileges
       - ProcessUniqueAttribute
+      - ProtectFromClose
+      - Restricted
       - RestrictedDeviceClaimAttributes
       - RestrictedDeviceGroups
       - RestrictedSids
       - RestrictedSidsCount
       - RestrictedUserClaimAttributes
+      - SandboxInert
       - Sddl
       - SecurityAttributes
       - SecurityDescriptor
+      - SessionId
       - Source
+      - ThreadID
+      - TokenId
+      - TokenType
       - TrustLevel
+      - UIAccess
       - User
       - UserClaimAttributes
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
       - host
+      - id
       - os
+      - process_id
+      - task_id
       - timestamp_created
       filter:
         task:
@@ -5520,94 +5602,96 @@
   - role: operator
     permission:
       columns:
+      - Address
       - AppContainer
+      - AppContainerNumber
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AttributesFlags
+      - AuditPolicy
+      - AuthenticationId_id
+      - BnoIsolationPrefix
       - CanSynchronize
+      - Capabilities
+      - CreationTime
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
       - Elevated
+      - ElevationType
+      - EnabledGroups
+      - ExpirationTime
       - Filtered
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - GrantedAccessMask
+      - GroupCount
+      - Groups
+      - Handle
+      - HandleReferenceCount
       - HasRestrictions
+      - ImpersonationLevel
       - Inherit
+      - IntegrityLevel
+      - IntegrityLevelSid
       - IsClosed
       - IsContainer
       - IsPseudoToken
       - IsRestricted
       - IsSandbox
+      - LogonSid
       - LowPrivilegeAppContainer
+      - MandatoryPolicy
+      - ModifiedId
+      - Name
       - NoChildProcess
       - NotLow
-      - PrivateNamespace
-      - ProtectFromClose
-      - Restricted
-      - SandboxInert
-      - UIAccess
-      - VirtualizationAllowed
-      - VirtualizationEnabled
-      - WriteRestricted
-      - deleted
-      - Address
-      - AppContainerNumber
-      - AttributesFlags
-      - AuthenticationId_id
-      - ElevationType
-      - GrantedAccessMask
-      - GroupCount
-      - Handle
-      - HandleReferenceCount
-      - ImpersonationLevel
-      - IntegrityLevel
-      - IntegrityLevelSid
-      - ModifiedId
       - NtType
-      - Origin
-      - PointerReferenceCount
-      - SessionId
-      - TokenId
-      - TokenType
-      - id
-      - task_id
-      - CreationTime
-      - ExpirationTime
-      - AppContainerSid
-      - AppId
-      - AppModelPolicies
-      - AppModelPolicyDictionary
-      - AuditPolicy
-      - BnoIsolationPrefix
-      - Capabilities
-      - DefaultDacl
-      - DenyOnlyGroups
-      - DeviceClaimAttributes
-      - DeviceGroups
-      - EnabledGroups
-      - Flags
-      - FullPath
-      - GrantedAccess
-      - GrantedAccessGeneric
-      - Groups
-      - LogonSid
-      - MandatoryPolicy
-      - Name
       - NtTypeName
+      - Origin
       - Owner
       - PackageFullName
       - PackageIdentity
       - PackageName
+      - PointerReferenceCount
       - PrimaryGroup
+      - PrivateNamespace
       - Privileges
       - ProcessUniqueAttribute
+      - ProtectFromClose
+      - Restricted
       - RestrictedDeviceClaimAttributes
       - RestrictedDeviceGroups
       - RestrictedSids
       - RestrictedSidsCount
       - RestrictedUserClaimAttributes
+      - SandboxInert
       - Sddl
       - SecurityAttributes
       - SecurityDescriptor
+      - SessionId
       - Source
+      - ThreadID
+      - TokenId
+      - TokenType
       - TrustLevel
+      - UIAccess
       - User
       - UserClaimAttributes
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
       - host
+      - id
       - os
+      - process_id
+      - task_id
       - timestamp_created
       filter:
         task:
@@ -5617,94 +5701,96 @@
   - role: spectator
     permission:
       columns:
+      - Address
       - AppContainer
+      - AppContainerNumber
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AttributesFlags
+      - AuditPolicy
+      - AuthenticationId_id
+      - BnoIsolationPrefix
       - CanSynchronize
+      - Capabilities
+      - CreationTime
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
       - Elevated
+      - ElevationType
+      - EnabledGroups
+      - ExpirationTime
       - Filtered
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - GrantedAccessMask
+      - GroupCount
+      - Groups
+      - Handle
+      - HandleReferenceCount
       - HasRestrictions
+      - ImpersonationLevel
       - Inherit
+      - IntegrityLevel
+      - IntegrityLevelSid
       - IsClosed
       - IsContainer
       - IsPseudoToken
       - IsRestricted
       - IsSandbox
+      - LogonSid
       - LowPrivilegeAppContainer
+      - MandatoryPolicy
+      - ModifiedId
+      - Name
       - NoChildProcess
       - NotLow
-      - PrivateNamespace
-      - ProtectFromClose
-      - Restricted
-      - SandboxInert
-      - UIAccess
-      - VirtualizationAllowed
-      - VirtualizationEnabled
-      - WriteRestricted
-      - deleted
-      - Address
-      - AppContainerNumber
-      - AttributesFlags
-      - AuthenticationId_id
-      - ElevationType
-      - GrantedAccessMask
-      - GroupCount
-      - Handle
-      - HandleReferenceCount
-      - ImpersonationLevel
-      - IntegrityLevel
-      - IntegrityLevelSid
-      - ModifiedId
       - NtType
-      - Origin
-      - PointerReferenceCount
-      - SessionId
-      - TokenId
-      - TokenType
-      - id
-      - task_id
-      - CreationTime
-      - ExpirationTime
-      - AppContainerSid
-      - AppId
-      - AppModelPolicies
-      - AppModelPolicyDictionary
-      - AuditPolicy
-      - BnoIsolationPrefix
-      - Capabilities
-      - DefaultDacl
-      - DenyOnlyGroups
-      - DeviceClaimAttributes
-      - DeviceGroups
-      - EnabledGroups
-      - Flags
-      - FullPath
-      - GrantedAccess
-      - GrantedAccessGeneric
-      - Groups
-      - LogonSid
-      - MandatoryPolicy
-      - Name
       - NtTypeName
+      - Origin
       - Owner
       - PackageFullName
       - PackageIdentity
       - PackageName
+      - PointerReferenceCount
       - PrimaryGroup
+      - PrivateNamespace
       - Privileges
       - ProcessUniqueAttribute
+      - ProtectFromClose
+      - Restricted
       - RestrictedDeviceClaimAttributes
       - RestrictedDeviceGroups
       - RestrictedSids
       - RestrictedSidsCount
       - RestrictedUserClaimAttributes
+      - SandboxInert
       - Sddl
       - SecurityAttributes
       - SecurityDescriptor
+      - SessionId
       - Source
+      - ThreadID
+      - TokenId
+      - TokenType
       - TrustLevel
+      - UIAccess
       - User
       - UserClaimAttributes
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
       - host
+      - id
       - os
+      - process_id
+      - task_id
       - timestamp_created
       filter:
         task:

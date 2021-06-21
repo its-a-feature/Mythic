@@ -636,6 +636,7 @@
                                   <div class="dropdown-divider"></div>
                                   <button class="dropdown-item"  @click="task_list_file(Object.values(f)[0].data)">Task a File Listing</button>
                                   <button class="dropdown-item"  @click="task_download_file(Object.values(f)[0].data)">Task a Download</button>
+                                  <button class="dropdown-item"  @click="task_remove_file(Object.values(f)[0].data)">Delete a File</button>
                               </div>
                             </div>
                         </td>
@@ -1276,6 +1277,25 @@
     </div>
 </div>
 <!-- END MODEL FOR ISSUING MASS TASKING -->
+<!-- THIS IS OUR MODAL FOR DELETING PAYLOAD -->
+<div class="modal fade" id="fileDeleteModal" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h3 id="modalLabel">Are you sure you want to delete the following?</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+            <div class="modal-body" style="">
+                <textarea disabled class="form-control" rows="10" style="width:100%" id="fileDeleteTextArea"></textarea>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                <button class="btn btn{{config['outline-buttons']}}danger" data-dismiss="modal" id="fileDeleteSubmit">Delete File</button>
+              </div>
+        </div>
+    </div>
+</div>
+<!-- END MODAL FOR DELETING PAYLOAD -->
 {% endblock %}
 
 {% block scripts %}

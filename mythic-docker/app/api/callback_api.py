@@ -431,7 +431,7 @@ async def parse_agent_message(data: str, request, profile: str):
             response_data = await post_agent_response(decrypted, enc_key["callback"])
             agent_uuid = UUID
         elif decrypted["action"] == "upload":
-            response_data = await download_agent_file(decrypted, enc_key["callback"])
+            response_data = await download_agent_file(decrypted, in_response=False)
             agent_uuid = UUID
         elif decrypted["action"] == "delegate":
             # this is an agent message that is just requesting or forwarding along delegate messages

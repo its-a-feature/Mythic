@@ -1,6 +1,6 @@
 import React from 'react';
 import {useQuery, gql} from '@apollo/client';
-import { useSnackbar } from 'notistack';
+import {snackActions} from '../../utilities/Snackbar';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { CreatePayloadNavigationButtons} from './CreatePayloadNavigationButtons';
 import {CreatePayloadC2ProfileParametersTable} from './CreatePayloadC2ProfileParametersTable';
@@ -34,7 +34,6 @@ query getPayloadTypesC2ProfilesQuery($payloadType: String!) {
 
 export function Step4C2Profiles(props){
     const [c2Profiles, setC2Profiles] = React.useState([]);
-    const { enqueueSnackbar } = useSnackbar();
     const { loading, error } = useQuery(GET_Payload_Types, {variables:{payloadType: props.buildOptions["payload_type"]},
         onCompleted: data => {
             const profiles = data.c2profile.map( (c2) => {
@@ -70,11 +69,8 @@ export function Step4C2Profiles(props){
             if(c2.selected){
                 c2.c2profileparameters.forEach( (param) => {
                     if(param.error){
+                        snackActions.warning(c2.name + "'s parameter " + param.name + " is invalid");
                         allValid = false;
-                        enqueueSnackbar(c2.name + "'s parameter " + param.name + " is invalid", {
-                            variant: 'warning',
-                            autoHideDuration: 2000
-                        });
                     }
                 });
             }
