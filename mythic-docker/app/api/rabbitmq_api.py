@@ -951,7 +951,7 @@ async def control_rportfwd(task_id: int, port: int,rport: int, rip: str,  start:
     if flush:
         from app.api.callback_api import flush_rportfwd
 
-        resp = await flush_rportfwd(task.callback, task.operator)
+        resp = await flush_rportfwd(task.callback)
         return resp
     return {"status": "error", "error": "unknown rportfwd tasking"}
 

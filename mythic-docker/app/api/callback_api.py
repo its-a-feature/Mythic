@@ -1237,7 +1237,7 @@ async def stop_rportfwd(port: int, callback: Callback):
         return {"status": "error", "error": "failed to find rportfwd instance: " + str(e)}
 
 
-async def flush_rportfwd(callback: Callback, task: Task):
+async def flush_rportfwd(callback: Callback):
     try:
         if callback.id in cached_rportfwd:
             for port in cached_rportfwd[callback.id]:
