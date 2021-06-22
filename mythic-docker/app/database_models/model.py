@@ -2893,6 +2893,20 @@ $function$"""
 AS $function$
   SELECT convert_from(fileobj_row.full_path, 'utf8')
 $function$"""
+    func_artifact_instance = """CREATE OR REPLACE FUNCTION public.taskartifact_artifact_instance(taskartifact_row taskartifact)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(taskartifact_row.artifact_instance, 'utf8')
+$function$"""
+    func_credential = """CREATE OR REPLACE FUNCTION public.credential_credentials(credential_row credential)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(credential_row.credential, 'utf8')
+$function$"""
     try:
         mythic_db.execute_sql(func_response_response)
         mythic_db.execute_sql(func_filemeta_filename)
@@ -2900,7 +2914,8 @@ $function$"""
         mythic_db.execute_sql(func_fileobj_name)
         mythic_db.execute_sql(func_fileobj_parent_path)
         mythic_db.execute_sql(func_fileobj_full_path)
-
+        mythic_db.execute_sql(func_artifact_instance)
+        mythic_db.execute_sql(func_credential)
     except Exception as e:
         print(e)
 

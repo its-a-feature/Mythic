@@ -36,16 +36,19 @@ subscription CallbacksSubscription ($operation_id: Int!){
     agent_callback_id
     operation_id
     payload {
+      os
       payloadtype {
         ptype
         id
       }
+      id
     }
     callbacktokens(where: {deleted: {_eq: false}}) {
       token {
         TokenId
         id
       }
+      id
     }
   }
 }
@@ -151,7 +154,9 @@ export function Callbacks(props){
         if(!found){
             for(let i = 0; i < data.callback.length; i++){
               if(data.callback[i]["id"] === callbackID){
-                const tabs = [...openTabs, {tabID, tabType, callbackID, payloadtype: data.callback[i]["payload"]["payloadtype"]["ptype"]}];
+                const tabs = [...openTabs, {tabID, tabType, callbackID, 
+                    payloadtype: data.callback[i]["payload"]["payloadtype"]["ptype"],
+                    os: data.callback[i]["payload"]["os"]}];
                 setOpenTabs(tabs);
               }
             }

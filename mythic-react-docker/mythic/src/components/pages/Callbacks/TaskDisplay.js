@@ -21,6 +21,7 @@ import {ResponseDisplay} from './ResponseDisplay';
 import RateReviewOutlinedIcon from '@material-ui/icons/RateReviewOutlined';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {TaskCommentDialog} from './TaskCommentDialog';
+import {TaskTagDialog} from './TaskTagDialog';
 import {muiTheme} from '../../../themes/Themes.js';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
@@ -33,6 +34,7 @@ import TreeItem from '@material-ui/lab/TreeItem';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import {gql, useLazyQuery } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
+import LocalOfferOutlinedIcon from '@material-ui/icons/LocalOfferOutlined';
 
 const getSubTaskingQuery = gql`
 query getSubTasking($task_id: Int!){
@@ -206,6 +208,7 @@ const TaskRow = (props) => {
     const [openCommentDialog, setOpenCommentDialog] = React.useState(false);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [openOpsecDialog, setOpenOpsecDialog] = React.useState(false);
+    const [openTaskTagDialog, setOpenTaskTagDialog] = React.useState(false);
     const [commandID, setCommandID] = React.useState(0);
     const [task, setTask] = React.useState({});
     const classes = useStyles();
@@ -366,6 +369,7 @@ const TaskRow = (props) => {
 	          </div>
 	          <div className={classes.column}>
 	              <Tooltip title="Download output"><IconButton size="small" style={{color: muiTheme.palette.info.main}}><GetAppIcon/></IconButton></Tooltip>
+                <Tooltip title="Edit Tags"><IconButton size="small" style={{color: muiTheme.palette.info.main}} onClick={()=>{setOpenTaskTagDialog(true);}}><LocalOfferOutlinedIcon/></IconButton></Tooltip>
 	              <Tooltip title="Link Task"><IconButton size="small" style={{color: muiTheme.palette.info.main}} href={'/new/task/' + props.task.id} target="_blank" onClick={()=> {window.open('/new/task/' + props.task.id, "_blank")}}><LinkIcon /></IconButton></Tooltip>
 	              <Tooltip title="Copy original params to clipboard"><IconButton size="small" style={{color: muiTheme.palette.info.main}} onClick={copyToClipboard}><FileCopyOutlinedIcon/></IconButton></Tooltip>
 	              <Tooltip title="Edit Comment"><IconButton size="small" style={{color: muiTheme.palette.info.main}} onClick={()=>{setOpenCommentDialog(true);}}><RateReviewOutlinedIcon/></IconButton></Tooltip>
@@ -399,6 +403,10 @@ const TaskRow = (props) => {
 	              <MythicDialog fullWidth={true} maxWidth="md" open={openParametersDialog} 
 	                    onClose={()=>{setOpenParametersDialog(false);}} 
 	                    innerDialog={<TaskViewParametersDialog task_id={props.task.id} onClose={()=>{setOpenParametersDialog(false);}} />}
+	                />
+                <MythicDialog fullWidth={true} maxWidth="md" open={openTaskTagDialog} 
+	                    onClose={()=>{setOpenTaskTagDialog(false);}} 
+	                    innerDialog={<TaskTagDialog task_id={props.task.id} onClose={()=>{setOpenTaskTagDialog(false);}} />}
 	                />
 	          </div>
 				        </AccordionActions>

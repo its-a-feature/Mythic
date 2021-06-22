@@ -2,12 +2,10 @@ import {MythicTabPanel, MythicTabLabel} from '../../../components/MythicComponen
 import React, {useEffect, useRef} from 'react';
 import {useQuery, gql, useMutation, useLazyQuery } from '@apollo/client';
 import { TaskDisplay } from './TaskDisplay';
-import { useSnackbar } from 'notistack';
+import {snackActions} from '../../utilities/Snackbar';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {TaskParametersDialog} from './TaskParametersDialog';
 import {CallbacksTabsTaskingInput} from './CallbacksTabsTaskingInput';
-import {useReactiveVar} from '@apollo/client';
-import { meState } from '../../../cache';
 
 
 export function CallbacksTabsTaskingLabel(props){
@@ -26,6 +24,7 @@ query GetLoadedCommandsQuery($callback_id: Int!, $payloadtype: String!) {
       id
       needs_admin
       payload_type_id
+      attributes
       commandparameters {
         id
         type 
@@ -38,6 +37,7 @@ query GetLoadedCommandsQuery($callback_id: Int!, $payloadtype: String!) {
       help_cmd
       description
       needs_admin
+      attributes
       payload_type_id
       commandparameters {
           id
@@ -90,8 +90,6 @@ query getTasking($callback_id: Int!){
  `;
 
 export const CallbacksTabsTaskingPanel = (props) =>{
-    const { enqueueSnackbar } = useSnackbar();
-    const me = useReactiveVar(meState);
     const [commands, setCommands] = React.useState([]);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
@@ -99,9 +97,9 @@ export const CallbacksTabsTaskingPanel = (props) =>{
     const [createTask] = useMutation(createTaskingMutation, {
         update: (cache, {data}) => {
             if(data.createTask.status === "error"){
-                enqueueSnackbar(data.createTask.error, {variant: "error"});
+                snackActions.error(data.createTask.error);
             }else{
-                enqueueSnackbar("task created", {variant: "success"});
+                snackActions.success("Task created");
             }
         },
         onError: data => {
@@ -111,11 +109,28 @@ export const CallbacksTabsTaskingPanel = (props) =>{
     const {loading, error} = useQuery(GetLoadedCommandsQuery, {
         variables: {callback_id: props.tabInfo.callbackID, payloadtype: props.tabInfo.payloadtype},
         onCompleted: data => {
-            const cmds = data.loadedcommands.map( (cmd) => {
-                return cmd.command;
-            } );
-            cmds.sort((a, b) => -b.cmd.localeCompare(a.cmd))
-            setCommands(cmds);
+            const cmds = data.loadedcommands.reduce( (prev, cur) => {
+                const attributes = JSON.parse(cur.command.attributes);
+                if(attributes["supported_os"].length === 0 || attributes["supported_os"].includes(props.tabInfo.os)){
+                    return [...prev, cur.command];
+                }else{
+                    return [...prev];
+                }
+            }, [] );
+            const allCmds = data.command.reduce( (prev, cur) => {
+                if(prev.includes(cur.cmd)){
+                    return [...prev];
+                }else{
+                    const attributes = JSON.parse(cur.attributes);
+                    if(attributes["supported_os"].length === 0 || attributes["supported_os"].includes(props.tabInfo.os)){
+                        return [...prev, cur];
+                    }else{
+                        return [...prev];
+                    }
+                }
+            }, [...cmds]);
+            allCmds.sort((a, b) => -b.cmd.localeCompare(a.cmd));
+            setCommands(allCmds);
         },
         onError: data => {
             console.error(data)
@@ -157,7 +172,7 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         }
         const commandParams = commands.find(com => com.cmd === command);
         if(commandParams === undefined){
-            enqueueSnackbar("Unknown command", {variant: "warning"});
+            snackActions.warning("Unknown command");
             return; 
         }else if(commandParams.commandparameters.length === 0){
             // if there are no parameters, just send whatever the user types along

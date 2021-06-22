@@ -11,7 +11,6 @@ query GetPayloadsQuery($operation_id: Int!) {
     auto_generated
     build_message
     build_phase
-    build_stderr
     callback_alert
     creation_time
     id
@@ -105,7 +104,18 @@ export function Payloads(props){
 
     const [deletePayload] = useMutation(payloadsDelete, {
         update: (cache, {data}) => {
-        }
+          const existingPayloads = cache.readQuery({
+            query: GET_Payloads,
+            variables: {operation_id: me.user.current_operation_id}
+          });
+          console.log(existingPayloads);
+          const existingMinusDeleted = existingPayloads.payload.filter( (payload) => payload.id !== data.update_payload_by_pk.id);
+          console.log(existingMinusDeleted);
+          cache.writeQuery({
+            query: GET_Payloads,
+            data: {payloads: [...existingMinusDeleted]}
+          });
+        },
     });
     const [callbackAlert] = useMutation(payloadsCallbackAlert);
 
@@ -135,7 +145,7 @@ export function Payloads(props){
                 if(!subscriptionData.data) return prev;
                 let found = false;
                 const updated = prev.payload.map( (p) => {
-                    if(p.id === subscriptionData.data.payload[0].id){
+                    if(subscriptionData.data.payload.length > 0 && p.id === subscriptionData.data.payload[0].id){
                         found = true;
                         return {...p, ...subscriptionData.data.payload[0]};
                     }

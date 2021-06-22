@@ -12,11 +12,9 @@ subscription subResponsesQuery($task_id: Int!) {
 }`;
 
 export const ResponseDisplay = (props) =>{
-    const [commandID, setCommandID] = React.useState(0);
     const [task, setTask] = React.useState({});
     const {loading, error, data} = useSubscription(subResponsesQuery, {variables: {task_id: props.task.id}, fetchPolicy: "cache-and-network"});
     useEffect( () => {
-        setCommandID(props.command_id);
         setTask(props.task);
     }, [props.command_id, props.task]);
     
@@ -28,15 +26,13 @@ export const ResponseDisplay = (props) =>{
      return <div>Error!</div>;
     }
     
-    if (!data) {
-        return <LinearProgress style={{paddingTop: "10px"}}/>;
-    }else if(data.response.length === 0){
-        return (
-            <div style={{overflow: "auto", width: "100%"}}> 
-                <pre>No data for task</pre>
-          </div>
-        )
-    }
+  if(data.response.length === 0){
+    return (
+        <div style={{overflow: "auto", width: "100%"}}> 
+            <pre>No data for task</pre>
+      </div>
+    )
+  }
 
   return (
       <div style={{overflow: "auto", width: "100%"}}>
@@ -44,7 +40,6 @@ export const ResponseDisplay = (props) =>{
                 <pre key={"task" + task.id + "resp" + response.id}>{response.response}</pre>
         ) ) 
         }
-        
       </div>
   )
       

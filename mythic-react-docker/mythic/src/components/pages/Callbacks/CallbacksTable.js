@@ -14,6 +14,9 @@ import Tooltip from '@material-ui/core/Tooltip';
 import VisibilityOffOutlinedIcon from '@material-ui/icons/VisibilityOffOutlined';
 import {ThemeContext} from 'styled-components';
 import { useContext} from 'react';
+import {hideCallbackMutation} from './CallbackMutations';
+import {snackActions} from '../../utilities/Snackbar';
+import {useMutation } from '@apollo/client';
 
 const useToolbarStyles = makeStyles((theme) => ({
   root: {
@@ -39,7 +42,6 @@ const EnhancedTableToolbar = (props) => {
   const classes = useToolbarStyles();
   const theme = useContext(ThemeContext);
   const { numSelected } = props;
-
   return (
     <React.Fragment>
         {numSelected > 1 ? (
@@ -49,7 +51,7 @@ const EnhancedTableToolbar = (props) => {
                 {numSelected} selected
               </Typography>
               <Tooltip title="Hide Selected">
-                <IconButton aria-label="hide">
+                <IconButton aria-label="hide" onClick={props.onHideSelected}>
                   <VisibilityOffOutlinedIcon />
                 </IconButton>
               </Tooltip>
@@ -130,6 +132,27 @@ export function CallbacksTable(props){
         setOrder(isAsc ? 'desc' : 'asc');
         setOrderBy(property);
       };
+      const [hideCallback] = useMutation(hideCallbackMutation, {
+        update: (cache, {data}) => {
+            if(data.updateCallback.status === "success"){
+                snackActions.success("Hiding callback");
+            }else{
+                snackActions.warning(data.updateCallback.error);
+            }
+            
+        },
+        onError: data => {
+            console.log(data);
+        }
+    });
+    const hideSelected = () => {
+      for(let i = 0; i < props.callbacks.length; i++){
+        if(selected.includes(props.callbacks[i]["id"])){
+          hideCallback({variables: {callback_id: props.callbacks[i]["id"]}});
+        }
+      }
+      //
+    }
     const tableHeadCells = [
         {id: "id", numeric: true, disablePadding: false, label: "Interact"},
         {id: "ip", numeric: false, disablePadding: false, label: "IP"},
@@ -147,7 +170,7 @@ export function CallbacksTable(props){
     return (
         <div>  
             <TableContainer component={Paper} className="mythicElement" style={{"maxWidth": "100%", "overflow": "auto", height: "calc(" + props.topHeight + "vh)"}}>
-                <EnhancedTableToolbar numSelected={selected.length}/>
+                <EnhancedTableToolbar numSelected={selected.length} onHideSelected={hideSelected}/>
                 <Table size="small" >
                     <EnhancedTableHead numSelected={selected.length} rowCount={props.callbacks.length} classes={classes} headCells={tableHeadCells} onSelectAllClick={handleSelectAllClick} onRequestSort={handleRequestSort} orderBy={orderBy} order={order}/>
                     <TableBody >

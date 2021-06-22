@@ -50,8 +50,10 @@ export function Step4C2Profiles(props){
                     }
                     return {...param, error: param.required}
                 });
+                parameters.sort((a,b) => -b.description.localeCompare(a.description));
                 return {...c2, "selected": false, c2profileparameters: parameters};
             });
+            profiles.sort((a, b) => -b.name.localeCompare(a.name))
             setC2Profiles(profiles);
         }
     });

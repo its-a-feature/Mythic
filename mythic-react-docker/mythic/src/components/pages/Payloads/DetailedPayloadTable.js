@@ -40,6 +40,7 @@ query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
         description
       }
     }
+    os
     c2profileparametersinstances(order_by: {c2profile: {name: asc}}) {
       value
       c2profileparameter {
@@ -110,6 +111,10 @@ export function DetailedPayloadTable(props){
                     <TableRow>
                         <TableCell>Payload Type</TableCell>
                         <TableCell>{data.payload[0].payloadtype.ptype}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell>Selected OS</TableCell>
+                        <TableCell>{data.payload[0].os}</TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell>UUID</TableCell>

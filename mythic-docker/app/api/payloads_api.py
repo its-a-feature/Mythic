@@ -708,18 +708,16 @@ async def write_payload(uuid, user, data):
     result = await send_pt_rabbitmq_message(
         payload.payload_type.ptype,
         "create_payload_with_code",
-        base64.b64encode(
-            js.dumps(
-                {
-                    "build_parameters": build_parameters,
-                    "commands": commands,
-                    "selected_os": data["selected_os"],
-                    "c2_profile_parameters": c2_profile_parameters,
-                    "uuid": payload.uuid,
-                    "wrapped_payload": wrapped_payload,
-                }
-            ).encode("utf-8")
-        ).decode("utf-8"),
+        js.dumps(
+            {
+                "build_parameters": build_parameters,
+                "commands": commands,
+                "selected_os": data["selected_os"],
+                "c2_profile_parameters": c2_profile_parameters,
+                "uuid": payload.uuid,
+                "wrapped_payload": wrapped_payload,
+            }
+        ),
         user["username"],
         payload.uuid
     )

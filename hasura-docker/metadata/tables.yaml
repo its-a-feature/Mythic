@@ -4890,6 +4890,10 @@
 - table:
     schema: public
     name: taskartifact
+  configuration:
+    custom_root_fields: {}
+    custom_column_names:
+      artifact_instance: artifact_instance_raw
   object_relationships:
   - name: artifact
     using:
@@ -4900,6 +4904,12 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  computed_fields:
+  - name: artifact_instance_text
+    definition:
+      function:
+        schema: public
+        name: taskartifact_artifact_instance
   select_permissions:
   - role: developer
     permission:
@@ -4911,6 +4921,8 @@
       - artifact_id
       - operation_id
       - host
+      computed_fields:
+      - artifact_instance_text
       filter:
         _or:
         - operation_id:
@@ -4922,13 +4934,15 @@
   - role: mythic_admin
     permission:
       columns:
+      - id
+      - task_id
+      - timestamp
       - artifact_instance
       - artifact_id
-      - id
       - operation_id
-      - task_id
       - host
-      - timestamp
+      computed_fields:
+      - artifact_instance_text
       filter:
         _or:
         - operation_id:
@@ -4940,13 +4954,15 @@
   - role: operation_admin
     permission:
       columns:
+      - id
+      - task_id
+      - timestamp
       - artifact_instance
       - artifact_id
-      - id
       - operation_id
-      - task_id
       - host
-      - timestamp
+      computed_fields:
+      - artifact_instance_text
       filter:
         _or:
         - operation_id:
@@ -4958,13 +4974,15 @@
   - role: operator
     permission:
       columns:
+      - id
+      - task_id
+      - timestamp
       - artifact_instance
       - artifact_id
-      - id
       - operation_id
-      - task_id
       - host
-      - timestamp
+      computed_fields:
+      - artifact_instance_text
       filter:
         _or:
         - operation_id:
@@ -4976,13 +4994,15 @@
   - role: spectator
     permission:
       columns:
+      - id
+      - task_id
+      - timestamp
       - artifact_instance
       - artifact_id
-      - id
       - operation_id
-      - task_id
       - host
-      - timestamp
+      computed_fields:
+      - artifact_instance_text
       filter:
         _or:
         - operation_id:

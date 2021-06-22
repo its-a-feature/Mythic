@@ -46,6 +46,7 @@ export function Step2SelectPayloadType(props){
                     }
                     return prev;
                 }, []);
+                payloadtypedata.sort((a,b) => -b.ptype.localeCompare(a.ptype));
                 setSelectedPayloadTypeParameters(payloadtypedata);
             }
         }

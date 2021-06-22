@@ -887,7 +887,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                 operator=op,
                 command=cmd,
                 token=token,
-                params=data["params"],
+                params=data["original_params"],
                 original_params=data["original_params"],
                 display_params=data["original_params"],
                 parent_task=data["parent_task"] if "parent_task" in data else None,
@@ -898,7 +898,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
             )
             if "tags" in data:
                 await add_tags_to_task(task, data["tags"])
-            result = await submit_task_to_container(task, op.username)
+            result = await submit_task_to_container(task, op.username, data["params"])
         else:
             return {
                 "status": "error",
@@ -1218,7 +1218,7 @@ async def reissue_task_for_down_container(request, user):
         return json({"status": "error", "error": "Failed to find components"})
 
 
-async def submit_task_to_container(task, username):
+async def submit_task_to_container(task, username, params: str = None):
     if (
             task.callback.registered_payload.payload_type.last_heartbeat
             < datetime.utcnow() + timedelta(seconds=-30)
@@ -1237,12 +1237,14 @@ async def submit_task_to_container(task, username):
         rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
         tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
         rabbit_message["task"]["tags"] = [t.tag for t in tags]
+        if params is not None:
+            rabbit_message["params"] = params
         rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
         # by default tasks are created in a preprocessing state,
         result = await send_pt_rabbitmq_message(
             task.callback.registered_payload.payload_type.ptype,
             "command_transform",
-            base64.b64encode(js.dumps(rabbit_message).encode()).decode("utf-8"),
+            js.dumps(rabbit_message),
             username,
             task.id
         )
@@ -1285,7 +1287,7 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
         result = await send_pt_rabbitmq_message(
             task.callback.registered_payload.payload_type.ptype,
             "task_callback_function",
-            base64.b64encode(js.dumps(rabbit_message).encode()).decode("utf-8"),
+            js.dumps(rabbit_message),
             username,
             task.id
         )

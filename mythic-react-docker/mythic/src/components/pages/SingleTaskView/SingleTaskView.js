@@ -5,7 +5,11 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import  {useParams} from "react-router-dom";
 import {useReactiveVar} from '@apollo/client';
 import { meState } from '../../../cache';
-import {getBrowserScripts, getSupportScripts, scriptsQuery} from '../../utilities/BrowserScriptHelpers';
+import {TaskMetadataTable} from './MetadataTable';
+import Typography from '@material-ui/core/Typography';
+import Paper from '@material-ui/core/Paper';
+import { useContext} from 'react';
+import {ThemeContext} from 'styled-components';
 
 const subTaskQuery = gql`
 subscription subTaskQuery($task_id: Int!) {
@@ -39,39 +43,29 @@ subscription subTaskQuery($task_id: Int!) {
         }
     }
 }`;
-var browserscripts = {};
-var support_scripts = {};
 export function SingleTaskView(props){
    const {taskId} = useParams();
+   const [taskIDs, setTaskIDs] = React.useState([]);
    const [commandId, setCommandId] = React.useState(0);
-   const me = useReactiveVar(meState);
-   const [getScripts, { loading: scriptLoading}] = useLazyQuery(scriptsQuery, {
-        onCompleted: data => {
-            console.log(data);
-            //consolidate the browserscriptoperation and browserscript 
-            // operation scripts get applied instead of operator-specific scripts
-            
-            try{
-                eval(getSupportScripts(data));
-                eval(getBrowserScripts(data));
-            }catch(error){
-                console.error(error);
-            }
-            console.log(browserscripts);
-            console.log(support_scripts);
-        },
-        onError: data => {
-            console.log("error!", data)
-        }
-    });
+   const theme = useContext(ThemeContext);
+
    const {loading, error, data} = useSubscription(subTaskQuery, {
      variables: {task_id: parseInt(taskId)},
      onSubscriptionData: completedData => {
+        console.log(completedData.subscriptionData.data.task_by_pk.tasks);
+        const tasks = completedData.subscriptionData.data.task_by_pk.tasks.reduce( (prev, cur) => {
+            if(taskIDs.includes(cur.id)){
+                return [...prev];
+            }else{
+                return [...prev, cur.id];
+            }
+        }, [...taskIDs]);
+        setTaskIDs(tasks);
         setCommandId(completedData.subscriptionData.data.task_by_pk.command.id);
      }
     });
     useEffect( () => {
-        getScripts({variables: {operator_id: me.user.id, operation_id: me.user.current_operation_id } });
+        setTaskIDs([parseInt(taskId)]);
     }, []);
     if (loading) {
      return <LinearProgress style={{marginTop: "10px"}}/>;
@@ -82,7 +76,13 @@ export function SingleTaskView(props){
     }
   return (
     <div style={{marginTop: "10px", maxHeight: "calc(92vh)"}}>
-        <TaskDisplay task={data.task_by_pk} command_id={commandId} browserscripts={browserscripts} />
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+                Task View
+            </Typography>
+        </Paper>
+        <TaskDisplay task={data.task_by_pk} command_id={commandId} />
+        <TaskMetadataTable taskIDs={taskIDs} />
     </div>
   );
 }

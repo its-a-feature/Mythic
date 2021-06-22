@@ -30,6 +30,7 @@ export function CreatePayloadParameter(props){
         props.onChange(props.name, condensed, false);
     }
     useEffect( () => {
+        console.log("in useEffect");
         if(props.parameter_type === "ChooseOne"){
             if(props.default_value){
                 const options = props.default_value.split("\n");
@@ -85,7 +86,7 @@ export function CreatePayloadParameter(props){
         }else{
             setValue(props.default_value);
         }
-    }, [props.default_value, props.parameter, props.parameter_type, value]);
+    }, [props.default_value, props.parameter, props.parameter_type]);
     
     const onChangeValue = (evt) => {
         setValue(evt.target.value);

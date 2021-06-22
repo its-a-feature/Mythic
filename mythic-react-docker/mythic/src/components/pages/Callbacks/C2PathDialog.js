@@ -7,6 +7,7 @@ import * as d3 from 'd3';
 import {createContextMenu} from './D3ContextMenu';
 import dagreD3 from 'dagre-d3';
 import {muiTheme} from '../../../themes/Themes.js';
+import { autoType } from 'd3';
 
 export function C2PathDialog(props) {
     const dagreRef = useRef(null);   

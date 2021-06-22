@@ -56,11 +56,11 @@ export function PayloadsTableRow(props){
                      {name: 'Edit Description', click: () => {
                         setOpenDescriptionDialog(true);
                      }},
-                     {name: 'View Build Message', click: () => {
+                     {name: 'View Build Message/Stdout', click: () => {
                         setViewError(false);
                         setOpenBuildMessageDialog(true);
                      }},
-                     {name: 'View Build Error', click: () => {
+                     {name: 'View Build Errors', click: () => {
                         setViewError(true);
                         setOpenBuildMessageDialog(true);
                      }}
@@ -161,5 +161,4 @@ export function PayloadsTableRow(props){
         </React.Fragment>
         )
 }
-PayloadsTableRow.whyDidYouRender = true;
 
