@@ -33,9 +33,36 @@ var profile_parameters_table = new Vue({
         c2_buttons: true,
         pt_buttons: false,
         command_buttons: false,
-        create_buttons: false
+        create_buttons: false,
+        upload_randomize: false
     },
     methods: {
+        import_payload_config: function(){
+            $('#uploadConfigModal').modal('show');
+            $('#uploadConfigModalSubmit').unbind('click').click(function () {
+                let uploaded_file = document.getElementById('upload_file').files[0];
+                let reader = new FileReader();
+                reader.onload = (function(theFile){
+                    return function(e){
+                        try{
+                            let data = JSON.parse(e.target.result);
+                            data["randomize"] = profile_parameters_table.upload_randomize;
+                            alertTop("info", "Submitted creation request...", 1);
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/create", submit_payload_callback, "POST", data);
+                        }catch(error){
+                            alertTop("error", "Failed to process uploaded file as JSON");
+                        }
+                    }
+                })(uploaded_file);
+                try{
+                    reader.readAsText(uploaded_file);
+                }catch(error){
+                    alertTop("warning", "Failed to process the file");
+                }
+
+            });
+
+        },
         move_to_c2: function () {
             if (this.selected_os !== " Select Target OS") {
                 $('#c2-card-body').collapse('show');
@@ -151,6 +178,7 @@ var profile_parameters_table = new Vue({
             if (this.tag !== "") {
                 data['tag'] = this.tag;
             }
+            data["selected_os"] = this.selected_os;
             for (let j = 0; j < this.c2_profile_list.length; j++) {
                 // now get the c2 profile values into a dictionary
                 let c2_profile_parameters_dict = {};
@@ -165,7 +193,7 @@ var profile_parameters_table = new Vue({
             let found_exit = false;
             data['commands'] = [];
             this.selected_payload_commands.forEach((x) => {
-                if (x['is_exit']) {
+                if (x["supported_ui_features"].includes("callback_table:exit")) {
                     found_exit = true;
                 }
                 data['commands'].push(x['cmd']);
@@ -268,8 +296,8 @@ var profile_parameters_table = new Vue({
                     element['options'][i]["current"] += 1;
                     element['parameter'].push({
                          "name": element['options'][i]["name"],
-                         "key": "",
-                         "value": element['options'][i]["default_value"],
+                         "key": element['options'][i]["name"] === "*" ? "" : element['options'][i]["name"],
+                         "value": element['options'][i]["default_value"] ? element['options'][i]["default_value"] : "",
                          "custom": element['options'][i]["name"] === "*"
                     });
                     let new_opt = this.add_options(element);
@@ -537,12 +565,37 @@ var profile_parameters_table = new Vue({
                         let data = JSON.parse(response);
                         profile_parameters_table.payload_command_options = [];
                         if (data['status'] === 'success') {
-                            profile_parameters_table.payload_command_options = data['commands'];
+                            data["commands"] = data["commands"].reduce((prev, cur) => {
+                                if(cur["script_only"] === true){
+                                    return [...prev];
+                                }else{
+                                    return [...prev, cur];
+                                }
+                            }, [])
                             if (!all_payload_type_data[val]['supports_dynamic_loading']) {
                                 profile_parameters_table.command_message = "The selected payload type doesn't support dynamic loading of modules, so all commands are selected";
+                                profile_parameters_table.payload_command_options = data['commands'];
                                 profile_parameters_table.selected_payload_commands = profile_parameters_table.payload_command_options;
                                 profile_parameters_table.disable_commands = true;
                             } else {
+                                data["commands"] = data["commands"].reduce((total, cur) => {
+                                    try{
+                                        let attributes = JSON.parse(cur["attributes"]);
+                                        if(attributes.hasOwnProperty("supported_os")){
+                                            if(attributes["supported_os"].includes(profile_parameters_table.selected_os) || attributes["supported_os"].length === 0){
+                                                return [...total, cur];
+                                            }else{
+                                                return [...total];
+                                            }
+                                        }else{
+                                            return [...total, cur];
+                                        }
+                                    }catch(error){
+                                        console.log("error trying to parse attributes: " + error.toString());
+                                        return [...total, cur];
+                                    }
+                                }, []);
+                                profile_parameters_table.payload_command_options = data['commands'];
                                 profile_parameters_table.command_message = "Select the command functionality you want stamped into your initial payload. Commands can potentially loaded in later as well. Minimizing the number of commands in initial payloads can safeguard capabilities from defenders"
                                 profile_parameters_table.disable_commands = false;
                                 profile_parameters_table.selected_payload_commands = [];
@@ -661,11 +714,11 @@ function startwebsocket_rabbitmq_build_finished() {
                 if (data['build_phase'] === "success") {
                     clearTop();
                     alertTop("success", "<b>Build Message:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid']
-                        + "<br><a class='btn btn-info' href='{{links.payload_management}}'>Manage Payload</a><a class='btn btn-info' href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + data['uuid'] + "'>Download Payload</a>", 0, "Success! Your agent, " + data['file_id']['filename'] + ", was successfully built.", false);
+                        + "<br><a class='btn btn-info' href='{{links.payload_management}}'>Manage Payload</a><a class='btn btn-info' href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + data['uuid'] + "'>Download Payload</a>", 0, "Success! Your agent, " + data['file']['filename'] + ", was successfully built.", false);
                     global_uuids[data['uuid']] = true;
                 } else if (data['build_phase'] === "error") {
                     clearTop();
-                    alertTop("danger", data['build_message'], 0, "Uh oh, something went wrong.");
+                    alertTop("danger", data['build_stderr'] === "" ? data["build_message"] : data["build_stderr"], 0, "Uh oh, something went wrong.");
                     global_uuids[data['uuid']] = true;
                 }
             }

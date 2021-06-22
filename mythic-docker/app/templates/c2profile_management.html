@@ -1,7 +1,5 @@
 {% extends "base.html" %}
 {% block body %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker3.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <div class="card border border-dark shadow" id="c2profiles_table" style="margin-top:5px">
     <div class="card-header border border-dark bg-header text-white shadow">
         <h2 style="display:inline-block"><span class="operator">Global C2 Profile</span> Configurations</h2>
@@ -63,7 +61,7 @@
                     {% if view_mode == 'operator' %}
                     <button :disabled="!p.container_running" class="btn btn{{config['outline-buttons']}}warning btn-sm" type="button" @click="configure_server(p)"><i class="fas fa-edit"></i> Configure</button>
                     {% endif %}
-                    <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/c2-profiles/' + p.name.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
+                    <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'/docs/c2-profiles/' + p.name.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
                 </td>
                 <td style="text-align:center"><br>
                     Saved instances:

@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import Artifact, Task, Callback, TaskArtifact
 from sanic_jwt.decorators import scoped, inject_user
@@ -19,8 +20,7 @@ async def get_all_artifacts(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    query = await db_model.artifact_query()
-    artifacts = await db_objects.execute(query)
+    artifacts = await app.db_objects.execute(db_model.artifact_query)
     return json({"status": "success", "artifacts": [a.to_json() for a in artifacts]})
 
 
@@ -47,7 +47,7 @@ async def create_artifact(request, user):
             {"status": "error", "error": '"description" is a required parameter'}
         )
     try:
-        artifact = await db_objects.create(
+        artifact = await app.db_objects.create(
             Artifact, name=data["name"], description=data["description"]
         )
         return json({"status": "success", **artifact.to_json()})
@@ -57,12 +57,12 @@ async def create_artifact(request, user):
         )
 
 
-@mythic.route(mythic.config["API_BASE"] + "/artifacts/<id:int>", methods=["PUT"])
+@mythic.route(mythic.config["API_BASE"] + "/artifacts/<aid:int>", methods=["PUT"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def update_artifact(request, user, id):
+async def update_artifact(request, user, aid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -74,8 +74,7 @@ async def update_artifact(request, user, id):
         )
     data = request.json
     try:
-        query = await db_model.artifact_query()
-        artifact = await db_objects.get(query, id=id)
+        artifact = await app.db_objects.get(db_model.artifact_query, id=aid)
     except Exception as e:
         return json({"status": "error", "error": "Could not find artifact"})
     if "name" in data:
@@ -83,7 +82,7 @@ async def update_artifact(request, user, id):
     if "description" in data:
         artifact.description = data["description"]
     try:
-        await db_objects.update(artifact)
+        await app.db_objects.update(artifact)
     except Exception as e:
         return json(
             {"status": "error", "error": "Failed to update artifact: {}".format(str(e))}
@@ -91,12 +90,12 @@ async def update_artifact(request, user, id):
     return json({"status": "success", **artifact.to_json()})
 
 
-@mythic.route(mythic.config["API_BASE"] + "/artifacts/<id:int>", methods=["DELETE"])
+@mythic.route(mythic.config["API_BASE"] + "/artifacts/<aid:int>", methods=["DELETE"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def delete_artifact(request, user, id):
+async def delete_artifact(request, user, aid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -107,19 +106,17 @@ async def delete_artifact(request, user, id):
             {"status": "error", "error": "Spectators cannot remove base artifacts"}
         )
     try:
-        query = await db_model.artifact_query()
-        artifact = await db_objects.get(query, id=id)
+        artifact = await app.db_objects.get(db_model.artifact_query, id=aid)
     except Exception as e:
         return json({"status": "error", "error": "Could not find artifact"})
     try:
         artifact_json = artifact.to_json()
-        query = await db_model.taskartifact_query()
-        task_artifacts = await db_objects.execute(
-            query.where(TaskArtifact.artifact == artifact)
+        task_artifacts = await app.db_objects.execute(
+            db_model.taskartifact_query.where(TaskArtifact.artifact == artifact)
         )
         for t in task_artifacts:
-            await db_objects.delete(t)
-        await db_objects.delete(artifact)
+            await app.db_objects.delete(t)
+        await app.db_objects.delete(artifact)
     except Exception as e:
         return json(
             {"status": "error", "error": "Failed to delete artifact: {}".format(str(e))}
@@ -140,15 +137,12 @@ async def get_all_artifact_tasks(request, user):
         )
     # get all of the artifact tasks for the current operation
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
-    query = await db_model.callback_query()
-    callbacks = query.where(Callback.operation == operation).select(Callback.id)
-    task_query = await db_model.taskartifact_query()
-    tasks = await db_objects.execute(
-        task_query.where(
+    callbacks = db_model.callback_query.where(Callback.operation == operation).select(Callback.id)
+    tasks = await app.db_objects.execute(
+        db_model.taskartifact_query.where(
             (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation)
         )
     )
@@ -172,15 +166,12 @@ async def get_pageinate_artifact_tasks(request, user, page, size):
     if page <= 0 or size <= 0:
         return json({"status": "error", "error": "page or size must be greater than 0"})
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
-    query = await db_model.callback_query()
-    callbacks = query.where(Callback.operation == operation).select(Callback.id)
-    task_query = await db_model.taskartifact_query()
-    count = await db_objects.count(
-        task_query.where(
+    callbacks = db_model.callback_query.where(Callback.operation == operation).select(Callback.id)
+    count = await app.db_objects.count(
+        db_model.taskartifact_query.where(
             (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation)
         )
     )
@@ -188,8 +179,8 @@ async def get_pageinate_artifact_tasks(request, user, page, size):
         page = ceil(count / size)
         if page == 0:
             page = 1
-    tasks = await db_objects.execute(
-        task_query.where(
+    tasks = await app.db_objects.execute(
+        db_model.taskartifact_query.where(
             (Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation)
         )
         .order_by(-TaskArtifact.timestamp)
@@ -221,16 +212,13 @@ async def search_artifact_tasks(request, user):
         data = request.json
         if "search" not in data:
             return json({"status": "error", "error": "must supply a search term"})
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "Cannot find operation"})
-    query = await db_model.callback_query()
-    callbacks = query.where(Callback.operation == operation).select(Callback.id)
-    task_query = await db_model.taskartifact_query()
+    callbacks = db_model.callback_query.where(Callback.operation == operation).select(Callback.id)
     try:
-        count = await db_objects.count(
-            task_query.where(
+        count = await app.db_objects.count(
+            db_model.taskartifact_query.where(
                 ((Task.callback.in_(callbacks)) | (TaskArtifact.operation == operation))
                 & fn.encode(TaskArtifact.artifact_instance, "escape").regexp(
                     data["search"]
@@ -238,8 +226,8 @@ async def search_artifact_tasks(request, user):
             )
         )
         if "page" not in data:
-            tasks = await db_objects.execute(
-                task_query.where(
+            tasks = await app.db_objects.execute(
+                db_model.taskartifact_query.where(
                     (
                         (Task.callback.in_(callbacks))
                         | (TaskArtifact.operation == operation)
@@ -270,8 +258,8 @@ async def search_artifact_tasks(request, user):
                 data["page"] = ceil(count / data["size"])
                 if data["page"] == 0:
                     data["page"] = 1
-            tasks = await db_objects.execute(
-                task_query.where(
+            tasks = await app.db_objects.execute(
+                db_model.taskartifact_query.where(
                     (
                         (Task.callback.in_(callbacks))
                         | (TaskArtifact.operation == operation)
@@ -314,13 +302,12 @@ async def remove_artifact_tasks(request, user, aid):
             {"status": "error", "error": "Spectators cannot remove task artifacts"}
         )
     try:
-        query = await db_model.taskartifact_query()
-        artifact_task = await db_objects.get(query, id=aid)
+        artifact_task = await app.db_objects.get(db_model.taskartifact_query, id=aid)
     except Exception as e:
         return json({"status": "error", "error": "failed to find that artifact task"})
     try:
         artifact_task_json = artifact_task.to_json()
-        await db_objects.delete(artifact_task)
+        await app.db_objects.delete(artifact_task)
         return json({"status": "success", **artifact_task_json})
     except Exception as e:
         return json(
@@ -345,15 +332,13 @@ async def create_artifact_task_manually(request, user):
         )
     # get all of the artifact tasks for the current operation
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
     if "task_id" in data:
         try:
-            query = await db_model.task_query()
-            task = await db_objects.get(query, id=data["task_id"])
+            task = await app.db_objects.get(db_model.task_query, id=data["task_id"])
             # make sure this task belongs to a callback in the current operation
             if operation.name != task.callback.operation.name:
                 return json(
@@ -380,18 +365,17 @@ async def create_artifact_task_manually(request, user):
     if "host" not in data:
         data["host"] = ""
     try:
-        query = await db_model.artifact_query()
-        artifact = await db_objects.get(query, name=data["artifact"].encode())
+        artifact = await app.db_objects.get(db_model.artifact_query, name=data["artifact"].encode())
     except Exception as e:
         return json({"status": "error", "error": "failed to find the artifact"})
     try:
-        task_artifact = await db_objects.create(
+        task_artifact = await app.db_objects.create(
             TaskArtifact,
             task=task,
-            artifact_instance=data["artifact_instance"].encode("unicode-escape"),
+            artifact_instance=data["artifact_instance"].encode(),
             artifact=artifact,
             operation=operation,
-            host=data["host"].encode("unicode-escape"),
+            host=data["host"].upper(),
         )
         return json({"status": "success", **task_artifact.to_json()})
     except Exception as e:

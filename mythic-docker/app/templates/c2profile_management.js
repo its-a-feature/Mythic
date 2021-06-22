@@ -56,13 +56,24 @@ var payloads_table = new Vue({
             $('#profileUpdateModal').modal('show');
         },
         check_status_button: function (p) {
-            alertTop("info", "Get a few lines of stdout/stderr ...");
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/status", check_status_callback, "GET", null);
+            alertTop("info", "Getting a few lines of stdout/stderr ...");
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profile_status_webhook", (response) => {
+                $('#stdoutStderrModal').modal('show');
+                $('#stdoutstderrText').text(JSON.parse(response)["output"]);
+
+            }, "POST", {
+                "input": {"id": p.id}
+            });
         },
         running_button: function (p) {
             let command = p.running ? "stop" : "start";
             alertTop("info", "Submitting " + command + " task to container...");
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/" + command, update_profile_running, "GET", null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/start_stop_profile_webhook", (response) => {
+                $('#stdoutStderrModal').modal('show');
+                $('#stdoutstderrText').text(JSON.parse(response)["output"]);
+            }, "POST", {
+                "input": {"id": p.id, "action": command}
+            });
         },
         parameters_button: function (p) {
             // first clear the current profileEditParametersTable
@@ -188,23 +199,24 @@ var payloads_table = new Vue({
         configure_server: function (p) {
             profile_files_modal.profile_name = p.name;
             profile_files_modal.profile_id = p.id;
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/files/container_config_download", (response) => {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profile_download_file_webhook", (response) => {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] === 'success') {
                         alertTop("info", "Fetching config ...", 1);
                         $('#profileFilesModal').modal('show');
+                        profile_files_modal.code = atob(data['data']);
                     } else {
                         alertTop("warning", data['error']);
                     }
                 } catch (error) {
                     alertTop("danger", "Session expired, please refresh");
                 }
-            }, "GET", null);
+            }, "POST", {"input":{"id": p.id, "filename": "config.json"}});
             $('#profileFilesSubmit').unbind('click').click(function () {
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/files/container_config_upload", (response) => {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profile_upload_file_webhook", (response) => {
                     console.log(response);
-                }, "POST", {"code": btoa(profile_files_modal.code)});
+                }, "POST", {"input":{"id": p.id, "file_path": "config.json", "data": btoa(profile_files_modal.code)}});
             });
         },
 
@@ -320,7 +332,7 @@ var profile_files_modal = new Vue({
             this.profile_id = "";
         },
         send_to_edit_container: function (folder, file) {
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_id + "/files/container_download", (response) => {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profile_download_file_webhook", (response) => {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] === 'error') {
@@ -330,10 +342,10 @@ var profile_files_modal = new Vue({
                     console.log(error.toString());
                     alertTop("danger", "Session expired, please refresh");
                 }
-            }, "POST", {"folder": folder, "file": file});
+            }, "POST", {"input":{"id": this.profile_id, "filename": "config.json"}});
         },
         save_changes: function () {
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + this.profile_id + "/upload", (response) => {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profile_upload_file_webhook", (response) => {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] === 'error') {
@@ -346,10 +358,7 @@ var profile_files_modal = new Vue({
                     alertTop("danger", "Session expired, please refresh");
                 }
             }, "POST", {
-                "file_name": this.filename,
-                "folder": this.folder,
-                "code": btoa(profile_files_modal.code),
-                "payload_type": ""
+                "input":{"id": this.profile_id, "file_path": this.filename, "data": btoa(profile_files_modal.code)},
             });
 
         },
@@ -476,60 +485,6 @@ function startwebsocket_payloadtypec2profile() {
     };
 }
 
-function startwebsocket_rabbitmqresponses() {
-    let ws = new WebSocket("{{ws}}://{{links.server_ip}}:{{links.server_port}}/ws/rabbitmq/c2_status");
-    ws.onmessage = function (event) {
-        if (event.data === "no_operation") {
-            alertTop("warning", "No operation selected");
-        } else if (event.data !== "") {
-            let rdata = JSON.parse(event.data);
-            //console.log(rdata);
-            let pieces = rdata['routing_key'].split(".");
-            //console.log(rdata['body']);
-            //console.log(pieces);
-            //{"status": "success", "body": "C2 is not running", "routing_key": "c2.status.RESTful Patchthrough.stopped"}
-            if (rdata['status'] === "success") {
-                if (pieces[4] === "get_config") {
-                    let data = JSON.parse(rdata['body']);
-                    //clearAlertTop();
-                    profile_files_modal.code = atob(data['data']);
-                } else if (pieces[4] === "writefile") {
-                    let data = JSON.parse(rdata['body']);
-                    if (data['status'] === 'success') {
-                        alertTop("success", "File written");
-                    } else {
-                        alertTop("warning", data['error']);
-                    }
-                } else if (pieces[4] === "status" || pieces[4] === "stop" || pieces[4] === "start") {
-                    if (rdata['body'].length > 512000) {
-                        download_from_memory("c2_status_output.txt", btoa(rdata['body']));
-                    } else {
-                        $('#stdoutStderrModal').modal('show');
-                        $('#stdoutstderrText').text(rdata['body']);
-                    }
-                }
-            } else {
-                alertTop("danger", rdata['error']);
-            }
-            //console.log(event.data);
-            pieces = rdata['routing_key'].split(".");
-            for (let i = 0; i < profiles.length; i++) {
-                if (payloads_table.profiles[i].name === pieces[2]) {
-                    payloads_table.profiles[i].running = pieces[3] === "running";
-                    return;
-                }
-            }
-        }
-    };
-    ws.onclose = function (event) {
-        wsonclose(event);
-    };
-    ws.onerror = function (event) {
-        wsonerror(event);
-    };
-}
-
-startwebsocket_rabbitmqresponses();
 startwebsocket_c2profiles();
 
 function container_heartbeat_check() {

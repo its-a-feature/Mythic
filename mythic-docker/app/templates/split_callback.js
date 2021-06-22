@@ -17,6 +17,15 @@ try {
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/{{cid}}/all_tasking", get_all_tasking_callback, "GET", null);
 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/", get_callback_options_callback, "GET", null);
 // Vue that we'll use to display everything
+var tag_info = new Vue({
+    el: '#addTagModalData',
+    data: {
+        tags: [],
+        selected_tag: "Select One...",
+        current_tags: ""
+    },
+    delimiters: ['[[',']]']
+})
 var callback_table = new Vue({
     el: '#callback_table',
     data: {
@@ -95,6 +104,23 @@ var callback_table = new Vue({
                     }
                     //if we find our command that was typed
                     else if (this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['cmd'] === command) {
+                        if(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]["attributes"]["supported_os"].length > 0 &&
+                        !this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]["attributes"]["supported_os"].includes(this.callbacks[data['id']]["payload_os"])){
+                            alertTop("warning", "That command isn't supported by this OS type");
+                            return;
+                        }
+                        let command_in_callback = false;
+                        for(let j = 0; j < callback_table.callbacks[data["id"]]["commands"].length; j++){
+                            if(callback_table.callbacks[data["id"]]["commands"][j]["name"] === command){
+                                command_in_callback = true;
+                            }
+                        }
+                        if(command === "clear") { command_in_callback = true}
+                        if(!command_in_callback){
+                            alertTop("warning", command + " isn't in the current callback");
+                            return;
+                        }
+
                         // if they didn't type any parameters, but we have some registered for this command, display a GUI for them
                         if (params.length === 0 && this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'].length !== 0) {
                             //if somebody specified command arguments on the commandline without going through the GUI, by all means, let them
@@ -123,8 +149,92 @@ var callback_table = new Vue({
                                     blank_vals['payloadlist_value'] = params_table.payloads[0].uuid
                                 }
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]);
-                                if (param.choices.length > 0) {
-                                    param.choice_value = param.choices.split("\n")[0];
+                                if(param.type === "Choice" || param.type === "ChoiceMultiple"){
+                                    if(param.dynamic_query_function !== undefined){
+                                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
+                                            try {
+                                                param.choices = JSON.parse(response);
+                                                if(param.choices.length > 0){
+                                                    param.choice_value = param.choices[0];
+                                                    param.choicemultiple_value = [param.choices[0]];
+                                                }
+                                                params_table.command_params.push(param);
+                                                params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
+                                            } catch (error) {
+                                                console.log(error.toString());
+                                                alertTop("danger", "Session expired, please refresh");
+                                            }
+                                        }, "POST", {
+                                            "callback": data["id"],
+                                            "command": command,
+                                            "parameter_name": param.name,
+                                            "payload_type": callback_table.callbacks[data['id']]['payload_type']
+                                        });
+                                        continue;
+                                    }
+                                    if(param.choices.length > 0){
+                                        param.choice_value = param.choices[0];
+                                        param.choicemultiple_value = [param.choices[0]];
+                                    }
+                                    else{
+                                        let filter = JSON.parse(param.choice_filter_by_command_attributes);
+                                        function intersect(a, b) {
+                                          let setB = new Set(b);
+                                          return [...new Set(a)].filter(x => setB.has(x));
+                                        }
+                                        if(param.choices_are_all_commands){
+                                            let choices = [];
+                                            for(let c = 0; c < this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']].length; c++){
+                                                if(!(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["cmd"] === "help" ||
+                                                    this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["cmd"] === "clear")){
+                                                    let match = true;
+                                                    let cmd_attributes = this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["attributes"];
+                                                    for(const [key, value] of Object.entries(filter)){
+                                                        if(key === "spawn_and_injectable"){
+                                                            if(value !== cmd_attributes[key]){
+                                                                match = false;
+                                                            }
+                                                        }else if(key === "supported_os" && value.length >0){
+                                                            if(intersect(value, cmd_attributes[key]).length === 0){
+                                                                match = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    if(match){
+                                                        choices.push(this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][c]["cmd"]);
+                                                    }
+                                                }
+                                            }
+                                            param.choices = choices;
+                                        }
+                                        else if(param.choices_are_loaded_commands){
+                                            let choices = [];
+                                            for(let c = 0; c < callback_table.callbacks[data["id"]]["commands"].length; c++){
+                                                if(!(callback_table.callbacks[data["id"]]["commands"][c]["name"] === "help" || callback_table.callbacks[data["id"]]["commands"][c]["name"] === "clear")){
+                                                    let match = true;
+                                                    let cmd_attributes =callback_table.callbacks[data["id"]]["commands"][c]["attributes"];
+                                                    for(const [key, value] of Object.entries(filter)){
+                                                        if(key === "spawn_and_injectable"){
+                                                            if(value !== cmd_attributes[key]){
+                                                                match = false;
+                                                            }
+                                                        }else if(key === "supported_os" && value.length >0){
+                                                            if(intersect(value, cmd_attributes[key]).length === 0){
+                                                                match = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    if(match){
+                                                        choices.push(callback_table.callbacks[data["id"]]["commands"][c]["name"]);
+                                                    }
+                                                }
+                                            }
+                                            param.choices = choices;
+                                        }
+                                        if(param.choices.length > 0){
+                                            param.choice_value = param.choices[0];
+                                        }
+                                    }
                                 }
                                 if(param.type === "Array"){
                                     if(param.default_value.length > 0){
@@ -132,8 +242,16 @@ var callback_table = new Vue({
                                     }
                                 }else if(param.type === "String"){
                                     param.string_value = param.default_value;
-                                }else if(param.type === "Number"){
+                                }else if(param.type === "Number") {
                                     param.number_value = param.default_value;
+                                }else if(param.type === "File"){
+                                    try {
+                                        //if there is a file param
+                                        $('#fileparam' + param.id).val('');
+                                    } catch (error) {
+                                        console.log(error.toString());
+                                        // if this is the first time the parameter is created, it'll error out which is expected
+                                    }
                                 }else if(param.type === "Boolean"){
                                     param.boolean_value = param.default_value;
                                 }
@@ -144,11 +262,33 @@ var callback_table = new Vue({
                                         supported_agents.splice(supported_agents.indexOf(""), 1);
                                     }
                                     if (supported_agents.length === 0) {
-                                        param.payloads = params_table.payloads;
+                                        param.payloads = params_table.payloads.reduce( (total, cur) => {
+                                            if(cur["auto_generated"] === false){
+                                                return [...total, cur];
+                                            }
+                                            return [...total];
+                                        }, []);
                                     } else {
-                                        for (let k = 0; k < params_table.payloads.length; k++) {
-                                            if (supported_agents.includes(params_table.payloads[k]['payload_type'])) {
-                                                param.payloads.push(params_table.payloads[k]);
+                                        for (let m= 0; m < params_table.payloads.length; m++) {
+                                            if (supported_agents.includes(params_table.payloads[m]['payload_type'])) {
+                                                // now that we see it as a supported agent, check that it matches the supported build parameters
+                                                let build_reqs = JSON.parse(param.supported_agent_build_parameters);
+                                                let matched = true;
+                                                if(params_table.payloads[m]['payload_type'] in build_reqs){
+                                                    for (const [key, value] of Object.entries(build_reqs[params_table.payloads[m]['payload_type']])) {
+                                                       for(let b = 0; b < params_table.payloads[m]["build_parameters"].length; b++){
+                                                           if(params_table.payloads[m]["build_parameters"][b]["name"] === key){
+                                                               if (params_table.payloads[m]["build_parameters"][b]["value"] !== value){
+                                                                   matched = false;
+                                                               }
+                                                           }
+                                                       }
+                                                    }
+                                                }
+                                                if(matched && !params_table.payloads[m]["auto_generated"]){
+                                                    param.payloads.push(params_table.payloads[m]);
+                                                }
+
                                             }
                                         }
                                     }
@@ -157,8 +297,16 @@ var callback_table = new Vue({
                                 }
                                 params_table.command_params.push(param);
                             }
-                            params_table.command_params.sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+                            params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
                             $('#paramsModal').modal('show');
+                            $('#paramsModal').on('shown.bs.modal', function () {
+                                $('#paramindex0').focus();
+                                $("#paramsModal").unbind('keyup').on('keyup', function (e) {
+                                    if (e.keyCode === 13 && e.ctrlKey) {
+                                        $('#paramsSubmit').click();
+                                    }
+                                });
+                            });
                             $('#paramsSubmit').unbind('click').click(function () {
                                 let param_data = {};
                                 let file_data = {};  //mapping of param_name to uploaded file data
@@ -212,9 +360,9 @@ var callback_table = new Vue({
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['array_value'];
                                     } else if (params_table.command_params[k]['type'] === "File") {
                                         let param_name = params_table.command_params[k]['name'];
-                                        file_data[param_name] = document.getElementById('fileparam' + param_name).files[0];
+                                        file_data[param_name] = document.getElementById('fileparam' + params_table.command_params[k]["id"]).files[0];
                                         param_data[param_name] = "FILEUPLOAD";
-                                        document.getElementById('fileparam' + param_name).value = "";
+                                        document.getElementById('fileparam' + params_table.command_params[k]["id"]).value = "";
                                         //console.log(document.getElementById('fileparam' + param_name));
                                     } else if (params_table.command_params[k]['type'] === 'PayloadList') {
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['payloadlist_value'];
@@ -335,8 +483,15 @@ var callback_table = new Vue({
                         let data = JSON.parse(response);
                         task.responses = data['responses'];
                         if (task['command_id'] in browser_scripts) {
-                            task['use_scripted'] = true;
-                            task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['responses']));
+                            try{
+                                task['use_scripted'] = true;
+                                task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['responses']));
+                            }catch(error){
+                                task["use_scripted"] = false;
+                                task["scripted"] = "";
+                                console.log(error.toString());
+                                alertTop("warning", task["command"] + " hit a browserscript exception");
+                            }
                         }
                     } catch (error) {
                         alertTop("danger", "Session expired, please refresh");
@@ -362,6 +517,150 @@ var callback_table = new Vue({
             $('#addCommentSubmit').unbind('click').click(function () {
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, add_comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});
             });
+        },
+        view_stdout_stderr: function(task){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/stdoutstderr/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "stdout:\n" + data["stdout"] + "\n\nstderr:\n" + data["stderr"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("Stdout/Stderr");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
+        },
+        view_all_parameters: function(task){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/all_params/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "Display Parameters:\n" + data["display_params"] + "\n\nOriginal Parameters:\n" + data["original_params"];
+                        text_msg += "\n\nFinal Params:\n" + data["params"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("All Parameters");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
+        },
+        add_tag: function(){
+            tag_info.current_tags += "\n" + tag_info.selected_tag;
+        },
+        view_all_tags: function(task){
+            tag_info.selected_tag = "Select One...";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/", (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                       tag_info.tags = data["tags"].sort();
+                       tag_info.tags.unshift("Select One...");
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                        tag_info.current_tags = data["tags"].join("\n");
+                        $('#addTagModal').modal('show');
+                        $('#addTagModal').on('shown.bs.modal', function () {
+                            $('#addTagTextArea').focus();
+                            $("#addTagTextArea").unbind('keyup').on('keyup', function (e) {
+                                if (e.keyCode === 13 && !e.shiftKey) {
+                                    $('#addTagSubmit').click();
+                                }
+                            });
+                        });
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            $('#addTagSubmit').unbind('click').click(function () {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                    try{
+                        let data = JSON.parse(response);
+                        if( data["status"] === "success"){
+                            alertTop("success","Successfully updated tags");
+                        }else{
+                            alertTop("warning", data["error"]);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Failed to make web request: " + error.toString());
+                    }
+                }, "PUT", {"tags": tag_info.current_tags.split("\n")});
+            });
+        },
+        view_opsec_block: function(task){
+            let text_msg = "";
+            if (task.opsec_pre_blocked !== null){
+                text_msg += "OPSEC PreCheck Message";
+                if (task.opsec_pre_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_pre_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_pre_message + "\n";
+            }
+            if (task.opsec_post_blocked !== null){
+                text_msg += "OPSEC PostCheck Message";
+                if (task.opsec_post_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_post_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_post_message + "\n";
+            }
+
+            $('#addCommentTextArea').val(text_msg);
+            $('#commentModalTitle').text("OPSEC Messages");
+            $('#addCommentModal').modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+            });
+            $('#addCommentSubmit').unbind('click').click(function () {});
+        },
+        submit_opsec_bypass_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + task.id + "/request_bypass/" , (response) => {
+
+            }, "GET", null);
+        },
+        reissue_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/reissue_task_webhook" , (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "error"){
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                }
+            }, "POST", {"input": {"task_id": task.id}});
         },
         remove_comment: function (id) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, remove_comment_callback, "DELETE", null);
@@ -448,6 +747,7 @@ function get_all_tasking_callback(response) {
             temp['host'] = data['host'];
             temp['payload_type'] = data['payload_type'];
             temp['c2_profile'] = data['c2_profile'];
+            temp["payload_os"] = data["payload_os"];
             temp['input_field'] = "";
             temp['input_field_placeholder'] = data['user'] + "@" + data['host'] + "(" + data['pid'] + ")";
             temp['init_callback'] = data['init_callback'];
@@ -487,9 +787,11 @@ function register_new_command_info(response) {
         let data = JSON.parse(response);
         if (data['status'] === "success") {
             delete data['status'];
-            data['commands'].push({"cmd": "help", "params": []});
-            data['commands'].push({"cmd": "set", "params": []});
-            data['commands'].push({"cmd": "clear", "params": []});
+            for(let i = 0; i < data["commands"].length; i++){
+                data["commands"][i]["attributes"] = JSON.parse(data["commands"][i]["attributes"]);
+            }
+            data['commands'].push({"cmd": "help", "params": [], "attributes": {"supported_os": []}});
+            data['commands'].push({"cmd": "clear", "params": [], "attributes": {"supported_os": []}});
             callback_table.ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
             for (let id in callback_table.callbacks) {
                 if (callback_table.callbacks[id]['payload_type'] === data['commands'][0]['payload_type']) {
@@ -551,8 +853,15 @@ function add_new_response(rsp, from_websocket) {
                 'response': updated_response
             });
             if (rsp['task']['command_id'] in browser_scripts) {
-                callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = true;
-                callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['scripted'] = browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['responses']));
+                try{
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = true;
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['scripted'] = browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['responses']));
+                }catch(error){
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['use_scripted'] = false;
+                    callback_table.callbacks[rsp['task']['callback']]['tasks'][rsp['task']['id']]['scripted'] = "";
+                    console.log(error.toString());
+                    alertTop("warning", rsp['task']["command"] + " hit a browserscript exception");
+                }
             }
             callback_table.$forceUpdate();
             if (from_websocket) {
@@ -632,7 +941,8 @@ function update_loaded_commands(data){
         callback_table.callbacks[data['callback']]['commands'] = [];
     }
     if(data['channel'].includes("new")){
-        callback_table.callbacks[data['callback']]['commands'].push({"name": data['command'], "version": data["version"]});
+        data["attributes"] = JSON.parse(data['attributes']);
+        callback_table.callbacks[data['callback']]['commands'].push({"name": data['command'], "version": data["version"], "attributes": data["attributes"]});
         callback_table.callbacks[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
     }else if(data['channel'].includes("updated")){
         for(let i = 0; i < callback_table.callbacks[data['callback']]['commands'].length; i++){
@@ -931,6 +1241,7 @@ function startwebsocket_commands() {
                 // we're dealing with new/update/delete for a command
                 if (data['notify'] === "newcommand") {
                     data['params'] = [];
+                    data["attributes"] = JSON.parse(data["attributes"]);
                     callback_table.ptype_cmd_params[data['payload_type']].push(data);
                 } else if (data['notify'] === "deletedcommand") {
                     // we don't get 'payload_type' like normal, instead, we get payload_type_id which doesn't help
@@ -946,6 +1257,7 @@ function startwebsocket_commands() {
                 } else {
                     for (let i = 0; i < callback_table.ptype_cmd_params[data['payload_type']].length; i++) {
                         if (callback_table.ptype_cmd_params[data['payload_type']][i]['cmd'] === data['cmd']) {
+                            data["attributes"] = JSON.parse(data["attributes"]);
                             Vue.set(callback_table.ptype_cmd_params[data['payload_type']], i, Object.assign({}, callback_table.ptype_cmd_params[data['payload_type']][i], data));
                         }
                     }
@@ -978,7 +1290,7 @@ function startwebsocket_parameter_hints() {
                     if (data['tag'].includes("Autogenerated from task")) {
                         return;
                     }
-                    data['location'] = data['file_id']['filename'];
+                    data['location'] = data['file']['filename'];
                     payload_list_selection += data.location + " - ";
                     let profiles = new Set();
                     for (let i = 0; i < data.supported_profiles.length; i++) {
@@ -1002,7 +1314,7 @@ function startwebsocket_parameter_hints() {
                                 return;
                             }
                             let payload_list_selection = "";
-                            data['location'] = data['file_id']['filename'];
+                            data['location'] = data['file']['filename'];
                             payload_list_selection += data.location + " - ";
                             let profiles = new Set();
                             for (let j = 0; j < data.supported_profiles.length; j++) {
@@ -1149,7 +1461,10 @@ function autocomplete(inp, arr) {
         /*for each item in the array...*/
         for (i = 0; i < callback_table.callbacks[callback_id]["commands"].length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if (callback_table.callbacks[callback_id]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase())) {
+            if (callback_table.callbacks[callback_id]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase()) &&
+                (callback_table.callbacks[callback_id]["commands"][i]["attributes"]["supported_os"].length === 0 ||
+                callback_table.callbacks[callback_id]["commands"][i]["attributes"]["supported_os"].includes(callback_table.callbacks[callback_id]["payload_os"]))
+            ) {
                 /*create a DIV element for each matching element:*/
                 if (callback_table.callbacks[callback_id]["commands"][i]["name"].length > longest) {
                     longest = callback_table.callbacks[callback_id]["commands"][i]["name"].length;

@@ -72,7 +72,7 @@ var profile_parameters_table = new Vue({
         },
         payload_select_view: function (p) {
             let output = p.payload_type;
-            output += " - " + p['file_id']['filename'];
+            output += " - " + p['file']['filename'];
             output += " - " + p.tag;
             return output;
         },
@@ -177,7 +177,7 @@ function startwebsocket_rabbitmq_build_finished() {
                     clearTop();
                     alertTop("success", "<b>Execution help:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid']
                         + "<br><a class='btn btn-info' href='{{links.payload_management}}'>Manage Payload</a><a class='btn btn-info' href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + data['uuid'] + "'>Download Payload</a>", 0,
-                        "Success! Your agent, " + data['file_id']['filename'] + ", was successfully built.", false);
+                        "Success! Your agent, " + data['file']['filename'] + ", was successfully built.", false);
                     global_uuids[data['uuid']] = true;
                 } else if (data['build_phase'] === "error") {
                     clearTop();

@@ -128,13 +128,18 @@ var callback_table = new Vue({
             this.deselect_all_but_callback(callback);
             Vue.set(task_data.meta[callback.id], 'tasks', true);
             Vue.set(task_data.meta[callback.id], 'console_selected', true);
+            task_data.callback_tokens = meta[callback.id].tokens;
+            if(task_data.callback_tokens.length > 0){
+                task_data.selected_token = task_data.callback_tokens[0]["token"]["TokenId"];
+            }else{task_data.selected_token = undefined;}
+
             task_data.meta[callback.id]['display'] = callback.user + "@" + callback.host + "(Callback: " + callback.id + ")";
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 $('#tasks' + callback.id.toString() + 'tab').click();
+                $('#commandline').focus();
 
             }, 0);
-
             //set the autocomplete for the input field
             autocomplete(document.getElementById("commandline"), meta[callback.id]['commands']);
             meta[callback.id]['badges'] = 0;
@@ -161,13 +166,18 @@ var callback_table = new Vue({
         },
         exit_callback: function (callback) {
             //task the callback to exit on the host
+            let tasked = false;
             for (let i = 0; i < task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']].length; i++) {
-                if (task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i]['is_exit']) {
+                if (task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i]["supported_ui_features"].includes("callback_table:exit") && !tasked){
                     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + callback['id'], null, "POST", {
                         "command": task_data.ptype_cmd_params[callbacks[callback.id]['payload_type']][i].cmd,
                         "params": ""
                     });
+                    tasked = true;
                 }
+            }
+            if(!tasked){
+                alertTop("warning", "Failed to find a command that supports 'callback_table:exit'");
             }
         },
         remove_callback: function (callback) {
@@ -178,7 +188,7 @@ var callback_table = new Vue({
             //if(meta[callback.id]['selected']){
             //    move('left', true);
             //}
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'], null, "PUT", {"active": "false"});
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'], null, "PUT", {"active": false});
             stop_getting_callback_updates(callback.id, true);
         },
         show_screencaptures: function (callback) {
@@ -191,6 +201,7 @@ var callback_table = new Vue({
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 $('#screencaptures' + callback.id.toString() + 'tab').click();
+                $('#commandline').focus();
             }, 0);
         },
         show_keylogs: function (callback) {
@@ -203,6 +214,7 @@ var callback_table = new Vue({
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 $('#keylogs' + callback.id.toString() + 'tab').click();
+                $('#commandline').focus();
             }, 0);
         },
         show_file_browser: function (callback) {
@@ -220,6 +232,7 @@ var callback_table = new Vue({
                 task_data.host = callback.host;
                 task_data.callback = callback.id;
                 task_data.path = ".";
+                $('#commandline').focus();
             }, 0);
         },
         show_proxies: function (callback) {
@@ -246,6 +259,7 @@ var callback_table = new Vue({
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 $('#proxies' + callback.id.toString() + 'tab').click();
+                $('#commandline').focus();
             }, 0);
         },
         show_process_list: function (callback) {
@@ -255,7 +269,7 @@ var callback_table = new Vue({
             this.deselect_all_but_callback(callback);
             Vue.set(task_data.meta[callback.id], 'process_list_selected', true);
             Vue.set(callback_table.callbacks[callback['id']], 'selected', true);
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/process_list/-1/" + btoa(callback.host), function (response) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/process_list/", function (response) {
                 try {
                     //console.log(response);
                     let data = JSON.parse(response);
@@ -276,11 +290,12 @@ var callback_table = new Vue({
                     }
                     startwebsocket_processlist(callback.id);
                     task_data.$forceUpdate();
+                    $('#commandline').focus();
                 } catch (error) {
                     //console.log(error);
                     alertTop("danger", "session expired, refresh please");
                 }
-            }, "GET");
+            }, "POST", {"host": callback.host});
             setTimeout(() => { // setTimeout to put this into event queue
                 // executed after render
                 $('#process_list' + callback.id.toString() + 'tab').click();
@@ -327,7 +342,7 @@ var callback_table = new Vue({
             $('#group_modify').modal('show');
             $('#group_modify_submit').unbind('click').click(function () {
                 for (let i in selected_list) {
-                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + selected_list[i], null, "PUT", {"active": "false"});
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + selected_list[i], null, "PUT", {"active": false});
                     stop_getting_callback_updates(selected_list[i], true);
                 }
                 group_modify.callbacks = [];
@@ -344,8 +359,9 @@ var callback_table = new Vue({
             $('#group_modify').modal('show');
             $('#group_modify_submit').unbind('click').click(function () {
                 for (let i in selected_list) {
+                    let tasked = false;
                     for (let j = 0; j < task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']].length; j++) {
-                        if (task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']][j]['is_exit']) {
+                        if(task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']][j]["supported_ui_features"].includes("callback_table:exit") && !tasked){
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + selected_list[i], null, "POST", {
                                 "command": task_data.ptype_cmd_params[callbacks[selected_list[i]]['payload_type']][j].cmd,
                                 "params": ""
@@ -1233,7 +1249,11 @@ function add_edge_for_graph_view(event) {
     let cb = JSON.parse(event.data);
     cb['tmp_src'] = JSON.parse(cb['source']);
     cb['source'] = cb['tmp_src']['id'];
+    if(cb['tmp_src']['active'] === false && JSON.parse(cb['destination'])["active"] === false){
+        return;
+    }
     cb['target'] = JSON.parse(cb['destination'])['id'];
+
     if ("name" in cb) {
         //console.log("adding c2 node and edge");
         // add the c2 node
@@ -1528,12 +1548,22 @@ function edit_description_callback(response) {
     }
 
 }
-
+var tag_info = new Vue({
+    el: '#addTagModalData',
+    data: {
+        tags: [],
+        selected_tag: "Select One...",
+        current_tags: ""
+    },
+    delimiters: ['[[',']]']
+})
 var task_data = new Vue({
     el: '#bottom-data',
     data: {
         tasks,
         input_field: "",
+        callback_tokens: [],
+        selected_token: 0,
         task_filters: {
             "task": {"active": false, "range_low": 0, "range_high": 1000000},
             "operator": {"active": false, "username": ""},
@@ -1545,9 +1575,11 @@ var task_data = new Vue({
         all_tasks,
         ptype_cmd_params, // list of transforms for the currently typed command and their 'active' status
         // info for our browser table
-        folder: {"data": {}, "children": []},
+        folder: {"data": {}, "children": [], "parent": undefined},
         host: "",
         path: "",
+        manually_edit_file_browser_callback: false,
+        manual_file_browser_callback_num: -1,
         callback: -1,
         file_browser_permissions: {},
         file_browser_history_files: [],
@@ -1569,21 +1601,23 @@ var task_data = new Vue({
             }
             // first check to see if we have any information about this payload time to leverage
             if (callbacks[data['cid']]['payload_type'] in this.ptype_cmd_params) {
+
                 //now loop through all of the commands we have to see if any of them match what was typed
+
                 for (let i = 0; i < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']].length; i++) {
                     //special category of trying to do a local help
                     if (command === "help") {
                         if (this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] === params) {
                             alertTop("info", "<b>Usage: </b>" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['help_cmd'] +
                                 "<br><b>Description:</b><pre style=\"word-wrap:break-word;white-space:pre-wrap\">" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['description'] +
-                                "</pre><br><b>Note: </b>All commands for " + callbacks[data['cid']]['payload_type'] +
-                                " can be found in the <a target='_blank' href=\"http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/\" style='color:darkblue'> Help Container</a>", 0,
+                                "</pre><br><b>Note: </b>Documentation for " + callbacks[data['cid']]['payload_type'] +
+                                " can be found in the <a target='_blank' href=\"/docs/agents/" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['payload_type'] + "/commands/" + this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] + "\" style='color:darkblue'> Help Container</a>", 0,
                                 "Command Help", false);
                             return;
                         } else if (params.length === 0) {
                             alertTop("info", "<b>Usage: </b> help {command_name}" +
                                 "<br><b>Note: </b>All commands for " + callbacks[data['cid']]['payload_type'] +
-                                " can be found in the <a target='_blank' href=\"http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/\" style='color:darkblue'> Help Container</a>", 0,
+                                " can be found in the <a target='_blank' href=\"/docs/agents/" + callbacks[data['cid']]['payload_type'] + "\" style='color:darkblue'> Help Container</a>", 0,
                                 "Command Help", false);
                             return;
                         }
@@ -1615,7 +1649,23 @@ var task_data = new Vue({
                         return;
                     }
                     //if we find our command that was typed
-                    else if (this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] === command) {
+                    else if (this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['cmd'] === command){
+                        if(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]["attributes"]["supported_os"].length > 0  &&
+                !this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]["attributes"]["supported_os"].includes(callbacks[data['cid']]["payload_os"])){
+                            alertTop("warning", "That command isn't supported by this OS type");
+                            return;
+                        }
+                        let command_in_callback = false;
+                        for(let j = 0; j < meta[task_data.input_field_placeholder['cid']]["commands"].length; j++){
+                            if(meta[task_data.input_field_placeholder['cid']]["commands"][j]["name"] === command){
+                                command_in_callback = true;
+                            }
+                        }
+                        if(command === "clear") { command_in_callback = true}
+                        if(!command_in_callback){
+                            alertTop("warning", command + " isn't in the current callback");
+                            return;
+                        }
                         // if they didn't type any parameters, but we have some registered for this command, display a GUI for them
                         if (params.length === 0 && this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length !== 0) {
                             //if somebody specified command arguments on the commandline without going through the GUI, by all means, let them
@@ -1640,7 +1690,7 @@ var task_data = new Vue({
                                     }
                                 }
                             }
-                            if (last_vals === undefined) {
+                            if (last_vals === undefined || last_vals.constructor !== Object) {
                                 last_vals = {}
                             }
                             for (let j = 0; j < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'].length; j++) {
@@ -1657,24 +1707,122 @@ var task_data = new Vue({
                                     'agentconnect_c2profile': -1,
                                     'agentconnect_host': "",
                                     "agentconnect_payload": "",
-                                    "payloads": []
+                                    "payloads": [],
+                                    "links": []
                                 };
                                 if (params_table.payloads.length > 0) {
                                     blank_vals['payloadlist_value'] = params_table.payloads[0].uuid
                                 }
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
-                                if (param.choices.length > 0) {
-                                    param.choice_value = param.choices.split("\n")[0];
+                                if(param.type === "Choice" || param.type === "ChoiceMultiple"){
+                                    console.log(param.dynamic_query_function);
+                                    if(param.dynamic_query_function !== undefined){
+                                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
+                                            try {
+                                                param.choices = JSON.parse(response);
+                                                if(param.choices.length > 0){
+                                                    param.choice_value = param.choices[0];
+                                                    param.choicemultiple_value = [param.choices[0]];
+                                                }
+                                                params_table.command_params.push(param);
+                                                params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
+                                            } catch (error) {
+                                                console.log(error.toString());
+                                                alertTop("danger", "Session expired, please refresh");
+                                            }
+                                        }, "POST", {
+                                            "callback": data["cid"],
+                                            "command": command,
+                                            "parameter_name": param.name,
+                                            "payload_type": callbacks[data['cid']]['payload_type']
+                                        });
+                                        continue;
+                                    }
+                                    if(param.choices.length > 0){
+                                        param.choices = param.choices.split("\n");
+                                        param.choice_value = param.choices[0];
+                                        param.choicemultiple_value = [param.choices[0]];
+                                    }
+                                    else{
+                                        let filter = JSON.parse(param.choice_filter_by_command_attributes);
+                                        function intersect(a, b) {
+                                          let setB = new Set(b);
+                                          return [...new Set(a)].filter(x => setB.has(x));
+                                        }
+                                        if(param.choices_are_all_commands){
+                                            let choices = [];
+                                            for(let c = 0; c < this.ptype_cmd_params[callbacks[data['cid']]['payload_type']].length; c++){
+                                                if(!(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["cmd"] === "help" ||
+                                                    this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["cmd"] === "clear")){
+                                                    let match = true;
+                                                    let cmd_attributes = this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["attributes"];
+                                                    for(const [key, value] of Object.entries(filter)){
+                                                        if(key === "spawn_and_injectable"){
+                                                            if(value !== cmd_attributes[key]){
+                                                                match = false;
+                                                            }
+                                                        }else if(key === "supported_os" && value.length >0){
+                                                            if(intersect(value, cmd_attributes[key]).length === 0){
+                                                                match = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    if(match){
+                                                        choices.push(this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][c]["cmd"]);
+                                                    }
+                                                }
+                                            }
+                                            param.choices = choices;
+                                        }
+                                        else if(param.choices_are_loaded_commands){
+                                            let choices = [];
+                                            for(let c = 0; c < meta[data['cid']]['commands'].length; c++){
+                                                if(!(meta[data['cid']]['commands'][c]["name"] === "help" || meta[data['cid']]['commands'][c]["name"] === "clear")){
+                                                    let match = true;
+                                                    let cmd_attributes = meta[data['cid']]['commands'][c]["attributes"];
+                                                    for(const [key, value] of Object.entries(filter)){
+                                                        if(key === "spawn_and_injectable"){
+                                                            if(value !== cmd_attributes[key]){
+                                                                match = false;
+                                                            }
+                                                        }else if(key === "supported_os" && value.length >0){
+                                                            if(intersect(value, cmd_attributes[key]).length === 0){
+                                                                match = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    if(match){
+                                                        choices.push(meta[data['cid']]['commands'][c]["name"]);
+                                                    }
+                                                }
+                                            }
+                                            param.choices = choices;
+                                        }
+                                        if(param.choices.length > 0){
+                                            param.choice_value = param.choices[0];
+                                        }
+                                    }
                                 }
                                 if(param.type === "Array"){
                                     if(param.default_value.length > 0){
                                         param.array_value = JSON.parse(param.default_value);
                                     }
-                                }else if(param.type === "String"){
+                                }
+                                else if(param.type === "String"){
                                     param.string_value = param.default_value;
-                                }else if(param.type === "Number"){
+                                }else if(param.type === "Number") {
                                     param.number_value = param.default_value;
-                                }else if(param.type === "Boolean"){
+                                }
+                                else if(param.type === "File"){
+                                    try {
+                                        //if there is a file param
+                                        $('#fileparam' + param.id).val('');
+                                    } catch (error) {
+                                        console.log(error.toString());
+                                        // if this is the first time the parameter is created, it'll error out which is expected
+                                    }
+                                }
+                                else if(param.type === "Boolean"){
                                     if(typeof param.default_value === "string"){
                                         try{
                                             param.boolean_value = JSON.parse(param.default_value.toLowerCase());
@@ -1684,6 +1832,30 @@ var task_data = new Vue({
                                         }
                                     }
                                 	else{param.boolean_value = param.default_value;}
+                                }
+                                else if(param.type === "LinkInfo"){
+                                    param.links = [];
+                                    param.links_value = undefined;
+                                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + data['cid'] + "/edges", (response) => {
+                                        try {
+                                            let data = JSON.parse(response);
+                                            console.log(data);
+                                            for(let i = 0; i < data.length; i++){
+                                                data[i]['source'] = JSON.parse(data[i]['source']);
+                                                data[i]['destination'] = JSON.parse(data[i]['destination']);
+                                            }
+                                            param.links = data;
+                                            if(data.length > 0){
+                                                param.links_value = param.links[0];
+                                            }
+                                            if (data['status'] === 'error') {
+                                                alertTop("warning", data['error']);
+                                            }
+                                        } catch (error) {
+                                            console.log(error.toString());
+                                            alertTop("danger", "Session expired, please refresh");
+                                        }
+                                    }, "GET", null);
                                 }
                                 //console.log(param);
                                 if (param.name in last_vals) {
@@ -1764,25 +1936,48 @@ var task_data = new Vue({
                                         case "File": {
                                             try {
                                                 //if there is a file param
-                                                $('#fileparam' + param.name)[0].value = '';
+                                                $('#fileparam' + param.id).val('');
                                             } catch (error) {
-                                                // if this is the first time the paramer is created, it'll error out which is expected
+                                                console.log(error.toString());
+                                                // if this is the first time the parameter is created, it'll error out which is expected
                                             }
                                         }
                                     }
                                 }
                                 if (param.type === 'PayloadList') {
                                     // we only want to add to param.payloads things from params_table.payloads that match the supported_agent types listed
-                                    let supported_agents = param.supported_agents.split("\n");
+                                    let supported_agents = param.supported_agents.split(",");
                                     if (supported_agents.indexOf("") !== -1) {
                                         supported_agents.splice(supported_agents.indexOf(""), 1);
                                     }
                                     if (supported_agents.length === 0) {
-                                        param.payloads = params_table.payloads;
+                                        param.payloads = params_table.payloads.reduce( (total, cur) => {
+                                            if(cur["auto_generated"] === false){
+                                                return [...total, cur];
+                                            }
+                                            return [...total];
+                                        }, []);
                                     } else {
                                         for (let m= 0; m < params_table.payloads.length; m++) {
                                             if (supported_agents.includes(params_table.payloads[m]['payload_type'])) {
-                                                param.payloads.push(params_table.payloads[m]);
+                                                // now that we see it as a supported agent, check that it matches the supported build parameters
+                                                let build_reqs = JSON.parse(param.supported_agent_build_parameters);
+                                                let matched = true;
+                                                if(params_table.payloads[m]['payload_type'] in build_reqs){
+                                                    for (const [key, value] of Object.entries(build_reqs[params_table.payloads[m]['payload_type']])) {
+                                                       for(let b = 0; b < params_table.payloads[m]["build_parameters"].length; b++){
+                                                           if(params_table.payloads[m]["build_parameters"][b]["name"] === key){
+                                                               if (params_table.payloads[m]["build_parameters"][b]["value"] !== value){
+                                                                   matched = false;
+                                                               }
+                                                           }
+                                                       }
+                                                    }
+                                                }
+                                                if(matched && !params_table.payloads[m]["auto_generated"]){
+                                                    param.payloads.push(params_table.payloads[m]);
+                                                }
+
                                             }
                                         }
                                     }
@@ -1791,8 +1986,16 @@ var task_data = new Vue({
                                 }
                                 params_table.command_params.push(param);
                             }
-                            params_table.command_params.sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
+                            params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
                             $('#paramsModal').modal('show');
+                            $('#paramsModal').on('shown.bs.modal', function () {
+                                $('#paramindex0').focus();
+                                $("#paramsModal").unbind('keyup').on('keyup', function (e) {
+                                    if (e.keyCode === 13 && e.ctrlKey) {
+                                        $('#paramsSubmit').click();
+                                    }
+                                });
+                            });
                             $('#paramsSubmit').unbind('click').click(function () {
                                 let param_data = {};
                                 let file_data = {};  //mapping of param_name to uploaded file data
@@ -1846,7 +2049,7 @@ var task_data = new Vue({
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['array_value'];
                                     } else if (params_table.command_params[k]['type'] === "File") {
                                         let param_name = params_table.command_params[k]['name'];
-                                        file_data[param_name] = document.getElementById('fileparam' + param_name).files[0];
+                                        file_data[param_name] = document.getElementById('fileparam' + params_table.command_params[k]["id"]).files[0];
                                         param_data[param_name] = "FILEUPLOAD";
                                     } else if (params_table.command_params[k]['type'] === 'PayloadList') {
                                         param_data[params_table.command_params[k]['name']] = params_table.command_params[k]['payloadlist_value'];
@@ -1855,7 +2058,8 @@ var task_data = new Vue({
                                             "host": params_table.command_params[k]['agentconnect_host']
                                         };
                                         //console.log( params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]);
-                                        if (params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['type'] === 'payload') {
+                                        if(params_table.command_params[k]['agentconnect_payload'] === ""){param_data[params_table.command_params[k]['name']] = {}}
+                                        else if (params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['type'] === 'payload') {
                                             //param_data[params_table.command_params[k]['name']]['agent_uuid'] = params_table.payloadonhost[params_table.command_params[k]['agentconnect_host']][params_table.command_params[k]['agentconnect_payload']]['payload']['uuid'];
                                             param_data[params_table.command_params[k]['name']]['agent_uuid'] = params_table.command_params[k]['payloads'][params_table.command_params[k]['agentconnect_payload']]['payload']['uuid'];
                                             param_data[params_table.command_params[k]['name']]['callback_uuid'] = "";
@@ -1866,19 +2070,36 @@ var task_data = new Vue({
                                         }
                                         if (params_table.command_params[k]['agentconnect_c2profile'] === -1) {
                                             // they didn't select a specific c2 profile, so send the list
-                                            param_data[params_table.command_params[k]['name']]['c2_profile'] = params_table.payloadonhost[params_table.command_params[k]['agentconnect_host']][params_table.command_params[k]['agentconnect_payload']]['supported_profiles'];
+                                            param_data[params_table.command_params[k]['name']]['c2_profile'] = {};
                                         } else {
                                             // param_data[params_table.command_params[k]['name']]['c2_profile'] = params_table.payloadonhost[params_table.command_params[k]['agentconnect_host']][params_table.command_params[k]['agentconnect_payload']]['supported_profiles'][params_table.command_params[k]['agentconnect_c2profile']];
                                             //console.log()
                                             param_data[params_table.command_params[k]['name']]['c2_profile'] = params_table.command_params[k]['c2profiles'][params_table.command_params[k]['agentconnect_c2profile']];
 
                                         }
+                                    } else if(params_table.command_params[k]['type'] === 'LinkInfo'){
+                                        //console.log(params_table.command_params[k]["links_value"]);
+                                        if( params_table.command_params[k]["links_value"] !== undefined) {
+                                            param_data[params_table.command_params[k]['name']] = {
+                                                "host": params_table.command_params[k]["links_value"]["destination"]["host"],
+                                                "agent_uuid": params_table.command_params[k]["links_value"]["destination"]["registered_payload"],
+                                                "callback_uuid": params_table.command_params[k]["links_value"]["destination"]["agent_callback_id"],
+                                                "c2_profile": {
+                                                    "name": params_table.command_params[k]["links_value"]["c2_profile"],
+                                                    "parameters": params_table.command_params[k]["links_value"]["c2_parameters"]
+                                                }
+                                            };
+                                        }else{
+                                            param_data[params_table.command_params[k]['name']] = {};
+
+                                        }
                                     }
                                 }
                                 uploadCommandFilesAndJSON("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'], post_task_callback_func, file_data,
-                                    {"command": command, "params": JSON.stringify(param_data)});
+                                    {"command": command, "params": JSON.stringify(param_data), "token": task_data.selected_token});
                                 //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
                                 task_data.input_field = "";
+                                $('#commandline').focus();
                             });
                         } else {
                             //somebody knows what they're doing or a command just doesn't have parameters, send it off
@@ -1894,10 +2115,11 @@ var task_data = new Vue({
                                 }
                             }
                             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'], post_task_callback_func, "POST",
-                                {"command": command, "params": params});
+                                {"command": command, "params": params, "token": task_data.selected_token});
 
                             //httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + data['cid'],post_task_callback_func, "POST", {"command":command,"params": JSON.stringify(param_data)});
                             task_data.input_field = "";
+                            $('#commandline').focus();
                         }
                         return;
                     }
@@ -1917,6 +2139,10 @@ var task_data = new Vue({
         select_tab: function (metadata, selected_option) {
             task_data.input_field_placeholder['data'] = metadata.display;
             task_data.input_field_placeholder['cid'] = metadata.id;
+            task_data.callback_tokens = metadata.tokens;
+            if(task_data.callback_tokens.length > 0){
+                task_data.selected_token = task_data.callback_tokens[0]["token"]["TokenId"];
+            }else{task_data.selected_token = undefined;}
 
             Object.keys(task_data.meta).forEach(function (key) {
                 if (key !== "file_browser") {
@@ -1934,9 +2160,11 @@ var task_data = new Vue({
             Vue.set(metadata, 'badges', 0);
             Vue.set(callback_table.callbacks[metadata['id']], 'selected', true);
             //set the autocomplete for the input field
-            autocomplete(document.getElementById("commandline"), meta[metadata['id']]['commands']);
+            autocomplete(document.getElementById("commandline"), meta[metadata.id]['commands']);
+            //console.log(meta[metadata.id]["commands"]);
             Vue.nextTick().then(function () {
                 $('#bottom-tabs-content').scrollTop($('#bottom-tabs-content')[0].scrollHeight);
+                $('#commandline').focus();
             });
         },
         toggle_image: function (image) {
@@ -2042,8 +2270,7 @@ var task_data = new Vue({
         task_list_processes: function (metadata) {
             let tasked = false;
             this.ptype_cmd_params[callbacks[metadata.id]['payload_type']].forEach(function (x) {
-                if (x['is_process_list'] === true) {
-                    //console.log(x);
+                if (x["supported_ui_features"].includes("process_browser:list") && !tasked) {
                     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + metadata.id, post_task_callback_func,
                         "POST", {"command": x['cmd'], "params": ""});
                     alertTop("info", "Tasked Callback " + metadata.id + " to list processes", 2);
@@ -2072,7 +2299,7 @@ var task_data = new Vue({
                 }
             }, "POST", {
                 "host": metadata['process_list_data']['host'],
-                "pid": metadata['process_list_data']['id'],
+                "timestamp": metadata['process_list_data']['timestamp'],
                 "adjacent": "prev"
             });
         },
@@ -2081,7 +2308,6 @@ var task_data = new Vue({
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] === 'success') {
-
                         data['process_list']['diff'] = false;
                         Vue.set(metadata, 'process_list_data', data['process_list']);
                         Vue.set(metadata, 'process_list_tree', data['tree_list']);
@@ -2094,7 +2320,7 @@ var task_data = new Vue({
                 }
             }, "POST", {
                 "host": metadata['process_list_data']['host'],
-                "pid": metadata['process_list_data']['id'],
+                "timestamp": metadata['process_list_data']['timestamp'],
                 "adjacent": "next"
             });
         },
@@ -2141,7 +2367,7 @@ var task_data = new Vue({
                 }
             }, "POST", {
                 "host": metadata['process_list_data']['host'],
-                "pid": metadata['process_list_data']['id'],
+                "timestamp": metadata['process_list_data']['timestamp'],
                 "adjacent": "prev"
             });
         },
@@ -2239,6 +2465,151 @@ var task_data = new Vue({
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, add_comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});
             });
         },
+        view_stdout_stderr: function(task){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/stdoutstderr/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "stdout:\n" + data["stdout"] + "\n\nstderr:\n" + data["stderr"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("Stdout/Stderr");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    alertTop("error", "Failed to fetch stdout stderr for task");
+                    console.log(error);
+                }
+
+            }, "GET", null);
+        },
+        view_all_parameters: function(task){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/all_params/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "Display Parameters:\n" + data["display_params"] + "\n\nOriginal Parameters:\n" + data["original_params"];
+                        text_msg += "\n\nFinal Params:\n" + data["params"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("All Parameters");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
+        },
+        add_tag: function(){
+            tag_info.current_tags += "\n" + tag_info.selected_tag;
+        },
+        view_all_tags: function(task){
+            tag_info.selected_tag = "Select One...";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/", (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                       tag_info.tags = data["tags"].sort();
+                       tag_info.tags.unshift("Select One...");
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                        tag_info.current_tags = data["tags"].join("\n");
+                        $('#addTagModal').modal('show');
+                        $('#addTagModal').on('shown.bs.modal', function () {
+                            $('#addTagTextArea').focus();
+                            $("#addTagTextArea").unbind('keyup').on('keyup', function (e) {
+                                if (e.keyCode === 13 && !e.shiftKey) {
+                                    $('#addTagSubmit').click();
+                                }
+                            });
+                        });
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            $('#addTagSubmit').unbind('click').click(function () {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                    try{
+                        let data = JSON.parse(response);
+                        if( data["status"] === "success"){
+                            alertTop("success","Successfully updated tags");
+                        }else{
+                            alertTop("warning", data["error"]);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Failed to make web request: " + error.toString());
+                    }
+                }, "PUT", {"tags": tag_info.current_tags.split("\n")});
+            });
+        },
+        view_opsec_block: function(task){
+            let text_msg = "";
+            if (task.opsec_pre_blocked !== null){
+                text_msg += "OPSEC PreCheck Message";
+                if (task.opsec_pre_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_pre_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_pre_message + "\n";
+            }
+            if (task.opsec_post_blocked !== null){
+                text_msg += "OPSEC PostCheck Message";
+                if (task.opsec_post_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_post_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_post_message + "\n";
+            }
+
+            $('#addCommentTextArea').val(text_msg);
+            $('#commentModalTitle').text("OPSEC Messages");
+            $('#addCommentModal').modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+            });
+            $('#addCommentSubmit').unbind('click').click(function () {});
+        },
+        submit_opsec_bypass_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + task.id + "/request_bypass/" , (response) => {
+
+            }, "GET", null);
+        },
+        reissue_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/reissue_task_webhook" , (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "error"){
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                }
+            }, "POST", {"input": {"task_id": task.id}});
+        },
         remove_comment: function (id) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, remove_comment_callback, "DELETE", null);
         },
@@ -2306,7 +2677,7 @@ var task_data = new Vue({
             });
             return count;
         },
-        setBrowserTableData: function (data, children) {
+        setBrowserTableData: function (data, children, parent) {
             task_data.host = data['host'];
             task_data.callback = data['callback'];
             if (data['name'] === "/") {
@@ -2326,21 +2697,32 @@ var task_data = new Vue({
                 }else{
                     task_data.path = data['parent_path'] + "\\" + data['name'];
                 }
-
             }
-            Vue.set(task_data, "folder", {"data": data, "children": children});
+            Vue.set(task_data, "folder", {"data": data, "children": children, "parent": parent});
         },
         update_file_browser_comment_live: function (data) {
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/filebrowserobj/" + data.id, (response) => {
-                try {
-                    let newdata = JSON.parse(response);
-                    if (newdata['status'] === 'error') {
-                        alertTop("danger", data['error']);
+            $('#addCommentTextArea').val(data["comment"]);
+            $('#addCommentModal').modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+                $("#addCommentTextArea").unbind('keyup').on('keyup', function (e) {
+                    if (e.keyCode === 13 && !e.shiftKey) {
+                        $('#addCommentSubmit').click();
                     }
-                } catch (error) {
-                    alertTop("danger", "Session expired, please refresh");
-                }
-            }, "PUT", {"comment": data['comment']});
+                });
+            });
+            $('#addCommentSubmit').unbind('click').click(function () {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/filebrowserobj/" + data.id, (response) => {
+                    try {
+                        let newdata = JSON.parse(response);
+                        if (newdata['status'] === 'error') {
+                            alertTop("danger", data['error']);
+                        }
+                    } catch (error) {
+                        alertTop("danger", "Session expired, please refresh");
+                    }
+                }, "PUT", {"comment": $('#addCommentTextArea').val()});
+            });
         },
         get_latest_download_path: function (files) {
             if (files[files.length - 1]['total_chunks'] === files[files.length - 1]['chunks_received']) {
@@ -2361,46 +2743,64 @@ var task_data = new Vue({
         },
         task_download_file: function (data) {
             let tasked = false;
-            this.ptype_cmd_params[callbacks[task_data.callback]['payload_type']].forEach(function (x) {
-                if (x['is_download_file'] === true) {
-                    //console.log(x);
-                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + task_data.callback, post_task_callback_func, "POST",
-                        {
-                            "command": x['cmd'],
-                            "params": JSON.stringify({
-                                "host": data['host'],
-                                "path": data['parent_path'],
-                                "file": data['name']
-                            })
-                        });
-                    alertTop("info", "Tasked Callback " + task_data.callback + " to download file", 2);
-                    tasked = true;
+            let used_callback_num = task_data.manually_edit_file_browser_callback ? task_data.manual_file_browser_callback_num : task_data.callback;
+            if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
+                alertTop("warning", "No valid or active callback supplied");
+                return;
+            }
+            meta[used_callback_num]['commands'].forEach(function (x) {
+
+                if (x["supported_ui_features"].includes("file_browser:download") && !tasked) {
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else{
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
+                            {
+                                "command": x['name'],
+                                "params": JSON.stringify({
+                                    "host": data['host'],
+                                    "path": data['parent_path'],
+                                    "file": data['name']
+                                })
+                            });
+                        alertTop("info", "Tasked Callback " + used_callback_num + " to download file", 2);
+                        tasked = true;
+                    }
+
                 }
             });
             if (!tasked) {
-                alertTop("warning", "Failed to find associated command for " + callbacks[task_data.callback]['payload_type'] + " to download files", 2);
+                alertTop("warning", "Failed to find associated command for file_browser:download in callback " + used_callback_num, 2);
             }
         },
         task_list_file: function (data) {
             let tasked = false;
-            this.ptype_cmd_params[callbacks[task_data.callback]['payload_type']].forEach(function (x) {
-                if (x['is_file_browse'] === true) {
-                    //console.log(x);
-                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + task_data.callback, post_task_callback_func, "POST",
-                        {
-                            "command": x['cmd'],
-                            "params": JSON.stringify({
-                                "host": data['host'],
-                                "path": data['parent_path'],
-                                "file": data['name']
-                            })
-                        });
-                    alertTop("info", "Tasked Callback " + task_data.callback + " to list file system", 2);
-                    tasked = true;
+            let used_callback_num = task_data.manually_edit_file_browser_callback ? task_data.manual_file_browser_callback_num : task_data.callback;
+            if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
+                alertTop("warning", "No valid or active callback supplied");
+                return;
+            }
+            meta[used_callback_num]['commands'].forEach(function (x) {
+                if (x["supported_ui_features"].includes("file_browser:list") && !tasked) {
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else {
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
+                            {
+                                "command": x['name'],
+                                "params": JSON.stringify({
+                                    "host": data['host'],
+                                    "path": data['parent_path'],
+                                    "file": data['name']
+                                })
+                            });
+                        alertTop("info", "Tasked Callback " + used_callback_num + " to list file system", 2);
+                        tasked = true;
+                    }
                 }
             });
             if (!tasked) {
-                alertTop("warning", "Failed to find associated command for " + callbacks[task_data.callback]['payload_type'] + " to download files", 2);
+                alertTop("warning", "Failed to find associated command for file_browser:list in callback " + used_callback_num, 2);
             }
         },
         task_list_file_refresh: function () {
@@ -2417,6 +2817,42 @@ var task_data = new Vue({
                 "parent_path": this.path,
                 "name": ""
             });
+        },
+        task_remove_file: function(data){
+            let tasked = false;
+            let used_callback_num = task_data.manually_edit_file_browser_callback ? task_data.manual_file_browser_callback_num : task_data.callback;
+            if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
+                alertTop("warning", "No valid or active callback supplied");
+                return;
+            }
+            meta[used_callback_num]['commands'].forEach(function (x) {
+                if (x["supported_ui_features"].includes("file_browser:remove") && !tasked) {
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else {
+                        $('#fileDeleteTextArea').val("HOST:\n" + data["host"] + "\n\nFILE:\n" + data["full_path"]);
+                        $('#fileDeleteModal').modal('show');
+                        $('#fileDeleteSubmit').unbind('click').click(function () {
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
+                                {
+                                    "command": x['name'],
+                                    "params": JSON.stringify({
+                                        "host": data['host'],
+                                        "path": data['parent_path'],
+                                        "file": data['name']
+                                    })
+                                });
+                            alertTop("info", "Tasked Callback " + used_callback_num + " to remove file", 2);
+
+                        });
+                        tasked = true;
+                    }
+                }
+            });
+            if (!tasked) {
+                alertTop("warning", "Failed to find associated command for file_browser:remove in callback " + used_callback_num, 2);
+            }
+
         },
         view_file_data: function (data) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/filebrowserobj/" + data['id'] + "/permissions", (response)=>{
@@ -2463,59 +2899,60 @@ var task_data = new Vue({
             }, "POST", {"comment": data});
 
         },
-        task_remove_file: function (data) {
-            let tasked = false;
-            this.ptype_cmd_params[callbacks[task_data.callback]['payload_type']].forEach(function (x) {
-                if (x['is_remove_file'] === true) {
-                    //console.log(x);
-                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + task_data.callback, post_task_callback_func, "POST",
-                        {
-                            "command": x['cmd'],
-                            "params": JSON.stringify({
-                                "host": data['host'],
-                                "path": data['parent_path'],
-                                "file": data['name']
-                            })
-                        });
-                    alertTop("info", "Tasked Callback " + task_data.callback + " to remove file", 2);
-                    tasked = true;
+        move_up_folder_ui: function(folder){
+            if(folder.parent === undefined || (folder.parent.$parent === undefined && folder.parent.parent === undefined)){
+                alertTop("info", "Can't go higher up the tree");
+            }else{
+                if(folder.parent.$parent !== undefined ) {
+                    task_data.setBrowserTableData(folder.parent.data, folder.parent.children, folder.parent.$parent);
+                }else {
+                    task_data.setBrowserTableData(folder.parent.data, folder.parent.children, folder.parent.parent);
                 }
-            });
-            if (!tasked) {
-                alertTop("warning", "Failed to find associated command for " + callbacks[task_data.callback]['payload_type'] + " to remove files", 2);
             }
         },
         task_file_upload: function () {
             let tasked = false;
+            let used_callback_num = task_data.manually_edit_file_browser_callback ? task_data.manual_file_browser_callback_num : task_data.callback;
             if (this.path === "" || this.path === undefined) {
                 alertTop("warning", "No valid path specified");
                 return;
             }
-            if (!Object.prototype.hasOwnProperty.call(meta, this.callback)) {
+            if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
                 alertTop("warning", "No valid or active callback supplied");
                 return;
             }
-            this.ptype_cmd_params[callbacks[task_data.callback]['payload_type']].forEach(function (x) {
-                if (x['is_upload_file'] === true) {
-                    //console.log(x);
-                    tasked = true;
-                    task_data.input_field = x['cmd'];
-                    task_data.task_button({"data": x['cmd'], "cid": task_data.callback});
+            meta[used_callback_num]['commands'].forEach(function (x) {
+                if (x["supported_ui_features"].includes("file_browser:upload") && !tasked) {
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else {
+                        //console.log(x);
+                        tasked = true;
+                        task_data.input_field = x['name'];
+                        task_data.task_button({"data": x['name'], "cid": used_callback_num});
+                    }
                 }
             });
             if (!tasked) {
-                alertTop("warning", "Failed to find associated command for " + callbacks[task_data.callback]['payload_type'] + " to upload files", 2);
+                alertTop("warning", "Failed to find associated command for " + callbacks[used_callback_num]['payload_type'] + " to upload files", 2);
             }
         },
-        double_click_row: function (data) {
+        double_click_row: function (data, folder) {
             if (data.hasOwnProperty("children") && data.children !== undefined) {
-                task_data.setBrowserTableData(data['data'], data['children']);
+                task_data.setBrowserTableData(data['data'], data['children'], folder);
                 task_data.$forceUpdate();
             } else {
                 if(data.data.is_file){
                     alertTop("info", "Cannot view children of files, only folders.");
                 }
             }
+        },
+        set_manually_change_file_browser_callback_num: function(evt){
+            this.manual_file_browser_callback_num = evt.target.value;
+            this.manually_edit_file_browser_callback = true;
+        },
+        reset_manually_change_file_browser_callback_num: function(){
+            this.manually_edit_file_browser_callback = false;
         }
     },
     computed: {
@@ -2568,7 +3005,7 @@ Vue.component('tree-menu', {
         '      <div :style="indent" :class="labelClasses">\n' +
         '      <template v-for="n in depth" style="color:gray">&nbsp;&nbsp;|&nbsp;</template>' +
         '        <i v-if="children" class="fa" :class="iconClasses"></i>\n' +
-        '        [[process_id]] [[process_name]]\n' +
+        '        [[process_id]] [[name]]\n' +
         '      </div>\n' +
         '    </div>\n' +
         '    <tree-menu \n' +
@@ -2576,13 +3013,13 @@ Vue.component('tree-menu', {
         '      v-for="node in children" \n' +
         '      :children="node.children" \n' +
         '      :process_id="node.process_id"\n' +
-        "      :process_name='node.hasOwnProperty(\"process_name\") ? node.process_name : node.name'\n" +
+        "      :name='node.name'\n" +
         '      :depth="depth + 1"   \n' +
         '      :callback_pid="callback_pid" \n' +
         '    >\n' +
         '    </tree-menu>\n' +
         '  </div>',
-    props: ['children', 'process_id', 'depth', 'process_name', 'callback_pid'],
+    props: ['children', 'process_id', 'depth', 'name', 'callback_pid'],
     data() {
         return {
             showChildren: true
@@ -2683,16 +3120,19 @@ Vue.component('browser-menu', {
     methods: {
         toggleChildren() {
             this.showChildren = !this.showChildren;
+            if(this.showChildren){
+                this.test();
+            }
         },
         test() {
             if(this.data.is_file){
-                task_data.setBrowserTableData(this.$parent.data, this.$parent.children);
+                task_data.setBrowserTableData(this.$parent.data, this.$parent.children, this.$parent);
                 task_data.$forceUpdate();
                 return;
             }
             if(this.depth === 0){
                 this.$forceUpdate();
-                task_data.setBrowserTableData(this.data, this.children);
+                task_data.setBrowserTableData(this.data, this.children, undefined);
                 task_data.$forceUpdate();
                 return;
             }
@@ -2720,7 +3160,7 @@ Vue.component('browser-menu', {
                                             me.children.push(info["files"][i]);
                                         }
                                     }
-                                    task_data.setBrowserTableData(me.data, me.children);
+                                    task_data.setBrowserTableData(me.data, me.children, me.$parent);
                                     setTimeout(() => { // setTimeout to put this into event queue
                                         // executed after render
                                         Vue.nextTick().then(function () {
@@ -2758,18 +3198,17 @@ function startwebsocket_processlist(cid) {
             alertTop("warning", "No operation selected");
         } else if (event.data !== "") {
             let data = JSON.parse(event.data);
-            try {
-                data['process_list']['process_list'] = JSON.parse(data['process_list']['process_list']);
-                //Vue.set(meta[data['callback']], 'process_list_data', data);
-                //alertTop("success", "Updated process list on " + data['host']);
-            } catch (error) {
-                alertTop("warning", "Failed to parse process list: " + error.toString());
-                data['process_list']['process_list'] = [];
-            }
             Object.keys(meta).forEach(function (key) {
                 if (meta[key]['process_list'] && callback_table.callbacks[key]['host'] === data['process_list']['host']) {
-                    //data['process_list']['process_list'] = [];
-                    Vue.set(meta[key], 'process_list_data', data['process_list']);
+                    if(meta[key]['process_list_data']["timestamp"] !== data["process_list"]["timestamp"]){
+                        // we have a new set of stuff coming in, so wipe the current data and start anew
+                        Vue.set(meta[key], "process_list_data", {"host": data["process_list"]["host"],
+                        "task": data["process_list"]["task"], "callback": data["process_list"]["callback"],
+                        "timestamp": data["process_list"]["timestamp"], "process_list": data["process_list"]["process_list"]})
+                    }else{
+
+                    }
+                    //Vue.set(meta[key], 'process_list_data', data['process_list']);
                     Vue.set(meta[key], 'process_list_tree', data['tree_list']);
                     task_data.$forceUpdate();
                     //alertTop("success", "Updated process list on " + data['process_list']['host']);
@@ -2839,7 +3278,7 @@ var params_table = new Vue({
 		                    this.command_params[i].boolean_value = false;
 		                }
 		            }
-	        	    else{this.command_params[i].boolean_value =  this.command_params[i].default_value;}
+	        	else{this.command_params[i].boolean_value =  this.command_params[i].default_value;}
                 }
             }
         },
@@ -2955,11 +3394,12 @@ var params_table = new Vue({
             if (param.agentconnect_host !== "") {
                 let payloads = [];
                 params_table.payloadonhost[param.agentconnect_host].forEach((x) => {
-
-                    for (let i = 0; i < x['supported_profiles'].length; i++) {
-                        if (x['supported_profiles'][i]['is_p2p']) {
-                            payloads.push(x);
-                            break;
+                    if("supported_profiles" in x){
+                        for (let i = 0; i < x['supported_profiles'].length; i++) {
+                            if (x['supported_profiles'][i]['is_p2p']) {
+                                payloads.push(x);
+                                break;
+                            }
                         }
                     }
                 });
@@ -3164,7 +3604,8 @@ function add_callback_to_view(cb) {
         'process_list_filter': "",
         'badges': 0,
         'description': cb['description'],
-        'payload_description': cb['payload_description']
+        'payload_description': cb['payload_description'],
+        'tokens': cb['tokens']
     });
     // check to see if we have this payload type in our list, if not, request the commands for it
     if (!Object.prototype.hasOwnProperty.call(task_data.ptype_cmd_params, cb['payload_type'])) {
@@ -3222,6 +3663,15 @@ function update_callback_in_view(rsp) {
                 task_data.meta[rsp.id]['process_list'] = false;
                 task_data.meta[rsp.id]['file_browser'] = false;
             }
+            Vue.set(meta[rsp.id], 'tokens', rsp['tokens']);
+            if(task_data.input_field_placeholder["cid"] === rsp.id){
+                task_data.callback_tokens = rsp["tokens"];
+                if(task_data.selected_token === undefined){
+                    if(task_data.callback_tokens.length > 0){
+                        task_data.selected_token = task_data.callback_tokens[0]["token"]["TokenId"];
+                    }
+                }
+            }
         }
         Vue.set(callbacks, rsp.id, Object.assign(callbacks[rsp.id], rsp));
         //callbacks[rsp.id]['port'] = rsp['port'];
@@ -3241,30 +3691,26 @@ function register_new_command_info(response) {
         if (data['status'] === "success") {
             delete data['status'];
             if (data['commands'].length > 0) {
+                for(let i = 0; i < data["commands"].length; i++){
+                    data["commands"][i]["attributes"] = JSON.parse(data["commands"][i]["attributes"]);
+                }
                 data['commands'].push({
                     "cmd": "help",
                     "params": [],
                     "help_cmd": "help [command]",
+                    "supported_ui_features": [],
+                    "attributes": {"supported_os": []},
                     "description": "get the description and cmd  usage of a command"
-                });
-                data['commands'].push({
-                    "cmd": "set",
-                    "params": [],
-                    "help_cmd": "set keyword value. Keywords are 'parent' and 'description'",
-                    "description": "set certain properties of a callback like the parent callback or the description"
-                });
-                data['commands'].push({
-                    "cmd": "tasks",
-                    "params": [],
-                    "help_cmd": "tasks",
-                    "description": "query the mythic server for tasks that have been issued but not picked up by the agent in this callback"
                 });
                 data['commands'].push({
                     "cmd": "clear",
                     "params": [],
                     "help_cmd": "clear [all|task_num]",
+                    "supported_ui_features": [],
+                    "attributes": {"supported_os": []},
                     "description": "clear a task from the server before an agent has picked it up"
                 });
+
                 task_data.ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
             }
         } else {
@@ -3370,7 +3816,13 @@ function add_new_response(rsp, from_websocket) {
             all_tasks[rsp['task']['callback']][rsp['task']['id']]['expanded'] = true;
             //now that the new response has been added, potentially update the scripted version
             if (Object.prototype.hasOwnProperty.call(browser_scripts, rsp['task']['command_id']) && all_tasks[rsp['task']['callback']][rsp['task']['id']]['use_scripted']) {
-                Vue.set(all_tasks[rsp['task']['callback']][rsp['task']['id']], 'scripted', browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(all_tasks[rsp['task']['callback']][rsp['task']['id']]['response'])));
+                try {
+                    Vue.set(all_tasks[rsp['task']['callback']][rsp['task']['id']], 'scripted', browser_scripts[rsp['task']['command_id']](rsp['task'], Object.values(all_tasks[rsp['task']['callback']][rsp['task']['id']]['response'])));
+                }catch(error){
+                    Vue.set(all_tasks[rsp['task']['callback']][rsp['task']['id']], "use_scripted", false);
+                    console.log(error.toString());
+                    alertTop("warning", rsp['task']["command"] + " hit a browserscript exception");
+                }
             }
             if (from_websocket) {
                 //we want to make sure we have this expanded by default
@@ -3403,6 +3855,7 @@ function get_all_responses(taskid) {
             for (let resp in data['responses']) {
                 add_new_response(data['responses'][resp], false);
             }
+            task_data.$forceUpdate();
         } catch (error) {
             alertTop("danger", "Session expired, please refresh");
         }
@@ -3418,26 +3871,9 @@ function startwebsocket_updatedcallbacks() {
             let rsp = JSON.parse(event.data);
             if (rsp['channel'] === 'updatedcallback') {
                 update_callback_in_view(rsp);
-            } else {
-                // callback has new c2 profile info
-                //console.log(rsp);
-                rsp['type'] = 'callback';
-                if (rsp['host'] in params_table.payloadonhost) {
-                    for (let i = 0; i < params_table.payloadonhost[rsp['host']].length; i++) {
-                        if (params_table.payloadonhost[rsp['host']][i]['id'] === rsp['id']) {
-                            Vue.set(params_table.payloadonhost[rsp['host']], i, rsp);
-                            //params_table.payloadonhost[rsp['host']][i] = rsp;
-                            params_table.$forceUpdate();
-                            return;
-                        }
-                    }
-                } else {
-                    //something went wrong, but still add it
-                    params_table.payloadonhost[rsp['host']] = [rsp];
-                }
             }
         }
-    };
+    }
     ws.onclose = function (event) {
         wsonclose(event);
     };
@@ -3527,6 +3963,7 @@ function startwebsocket_commands() {
                 // we're dealing with new/update/delete for a command
                 if (data['notify'] === "newcommand") {
                     data['params'] = [];
+                    data["attributes"] = JSON.parse(data["attributes"]);
                     task_data.ptype_cmd_params[data['payload_type']].push(data);
                 } else if (data['notify'] === "deletedcommand") {
                     // we don't get 'payload_type' like normal, instead, we get payload_type_id which doesn't help
@@ -3542,6 +3979,7 @@ function startwebsocket_commands() {
                 } else {
                     for (let i = 0; i < task_data.ptype_cmd_params[data['payload_type']].length; i++) {
                         if (task_data.ptype_cmd_params[data['payload_type']][i]['cmd'] === data['cmd']) {
+                            data["attributes"] = JSON.parse(data["attributes"]);
                             Vue.set(task_data.ptype_cmd_params[data['payload_type']], i, Object.assign({}, task_data.ptype_cmd_params[data['payload_type']][i], data));
                         }
                     }
@@ -3650,12 +4088,17 @@ function update_loaded_commands(data){
         meta[data['callback']]['commands'] = [];
     }
     if(data['channel'].includes("new")){
-        meta[data['callback']]['commands'].push({"name": data['command'], "version": data["version"]});
+        meta[data['callback']]['commands'].push({"name": data['command'],
+            "version": data["version"],
+            "attributes": JSON.parse(data["attributes"]),
+            "supported_ui_features": data["supported_ui_features"]});
         meta[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
     }else if(data['channel'].includes("updated")){
         for(let i = 0; i < meta[data['callback']]['commands'].length; i++){
             if(meta[data['callback']]['commands'][i]["name"] === data["command"]){
                 meta[data['callback']]['commands'][i]["version"] = data["version"];
+                 meta[data['callback']]['commands'][i]["attributes"] = JSON.parse(data["attributes"]);
+                 meta[data['callback']]['commands'][i]["supported_ui_features"] = data["supported_ui_features"];
                 return;
             }
         }
@@ -3698,7 +4141,7 @@ function autocomplete(inp, arr) {
         if (!val) {
             return false;
         }
-        currentFocus = -1;
+        currentFocus = 0;
         /*create a DIV element that will contain the items (values):*/
         a = document.createElement("DIV");
         a.setAttribute("id", this.id + "autocomplete-list");
@@ -3707,14 +4150,23 @@ function autocomplete(inp, arr) {
         /*append the DIV element as a child of the autocomplete container:*/
         this.parentNode.appendChild(a);
         /*for each item in the array...*/
+        let element_count = 0;
         for (i = 0; i < meta[task_data.input_field_placeholder['cid']]["commands"].length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase())) {
+            if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase().includes(val.toUpperCase()) &&
+                (meta[task_data.input_field_placeholder['cid']]["commands"][i]["attributes"]["supported_os"].length === 0  ||
+                meta[task_data.input_field_placeholder['cid']]["commands"][i]["attributes"]["supported_os"].includes(callbacks[task_data.input_field_placeholder['cid']]["payload_os"])
+        )
+            ) {
                 /*create a DIV element for each matching element:*/
                 if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length > longest) {
                     longest = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length;
                 }
                 b = document.createElement("DIV");
+                if(element_count === 0){
+                    //b.style = "background-color:{{ config['highlight'] }};"
+                    b.classList.add("autocomplete-active");
+                }
                 /*make the matching letters bold:*/
                 let start = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase().indexOf(val.toUpperCase());
                 b.innerHTML = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].substr(0, start);
@@ -3731,6 +4183,7 @@ function autocomplete(inp, arr) {
                     closeAllLists();
                 });
                 a.appendChild(b);
+                element_count += 1;
             }
             a.style.width = longest + 2 + "em";
         }
@@ -3999,10 +4452,7 @@ function startwebsocket_parameter_hints() {
                 let data = JSON.parse(event.data);
                 if (data['channel'] === 'newpayload') {
                     let payload_list_selection = "";
-                    if (data['tag'].includes("Autogenerated from task")) {
-                        return;
-                    }
-                    data['location'] = data['file_id']['filename'];
+                    data['location'] = data['file']['filename'];
                     payload_list_selection += data.location + " - ";
                     let profiles = new Set();
                     for (let i = 0; i < data.supported_profiles.length; i++) {
@@ -4026,7 +4476,7 @@ function startwebsocket_parameter_hints() {
                                 return;
                             }
                             let payload_list_selection = "";
-                            data['location'] = data['file_id']['filename'];
+                            data['location'] = data['file']['filename'];
                             payload_list_selection += data.location + " - ";
                             let profiles = new Set();
                             for (let j = 0; j < data.supported_profiles.length; j++) {
@@ -4090,7 +4540,7 @@ function startwebsocket_parameter_hints() {
                 }
                 params_table.$forceUpdate();
             } catch (error) {
-                console.log(error.toString());
+                console.log("websocket for parameter hints error", error.toString());
             }
         }
     };
@@ -4138,6 +4588,10 @@ function startwebsocket_filebrowser() {
 function process_file_browser_data(data){
     // first step is to find the right host
     if (data['host'] === undefined || data['host'].length === 0) {
+        setTimeout(() => { // setTimeout to put this into event queue
+            // executed after render
+            task_data.$forceUpdate();
+        }, 0);
         return
     }
     if (!Object.prototype.hasOwnProperty.call(meta['file_browser'], data['host'])) {
@@ -4149,7 +4603,7 @@ function process_file_browser_data(data){
         });
     }
     // what if we're adding a new top level root
-    if (data['parent'] === null && data["file_browser"] === undefined) {
+    if (data["file_browser"] === undefined && data['parent'] === null) {
         for (let i = 0; i < meta['file_browser'][data['host']]['children'].length; i++) {
             if (data['name'] in meta['file_browser'][data['host']]['children'][i]) {
                 Object.assign(meta['file_browser'][data['host']]['children'][i][data['name']]['data'],
@@ -4181,9 +4635,9 @@ function add_update_file_browser(search, element) {
     if (search["file_browser"] !== undefined){
         //we're looking at a file_meta object that's downloading
         if(search["file_browser"] === element["data"]["id"]) {
+            delete search["id"]
             Object.assign(element['data'],
-                element['data'],
-                search);
+                element['data'], search);
             task_data.$forceUpdate();
             return true;
         }

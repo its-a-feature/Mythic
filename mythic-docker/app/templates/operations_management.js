@@ -8,6 +8,11 @@ var operators_vue = new Vue({
         admin: "",
         name: "",
         webhook: "",
+        channel: "",
+        display_name: "",
+        icon_emoji: "",
+        icon_url: "",
+        webhook_message: "",
         complete: false,
         view_options: ["operator", "developer", "spectator"]
     },
@@ -47,6 +52,11 @@ var operations_table = new Vue({
                 operators_vue.webhook = o.webhook;
                 operators_vue.admin = o.admin;
                 operators_vue.complete = o.complete;
+                operators_vue.channel = o.channel;
+                operators_vue.display_name = o.display_name;
+                operators_vue.icon_emoji = o.icon_emoji;
+                operators_vue.icon_url = o.icon_url;
+                operators_vue.webhook_message = o.webhook_message;
                 operators_vue.operation_members.sort((a, b) => (b.username > a.username) ? -1 : ((a.username > b.username) ? 1 : 0));
                 $('#operationModifyModal').modal('show');
                 $('#operationModifySubmit').unbind('click').click(function () {
@@ -57,10 +67,18 @@ var operations_table = new Vue({
                     data['webhook'] = operators_vue.webhook;
                     data['name'] = operators_vue.name;
                     data['complete'] = operators_vue.complete;
+                    data["channel"] = operators_vue.channel;
+                    data["display_name"] = operators_vue.display_name;
+                    data["icon_emoji"] = operators_vue.icon_emoji;
+                    data["icon_url"] = operators_vue.icon_url;
+                    data["webhook_message"] = operators_vue.webhook_message;
                     let add_members = [];
                     let remove_members = [];
                     for (let i = 0; i < operators_vue.operation_members.length; i++) {
                         let to_remove = false;
+                        //o.members are the current members in the operation
+                        //operators_vue.operation_members are what we see from the dialog popup
+                        let to_add = false;
                         o.members.forEach((x) => {
                             if (x['username'] === operators_vue.operation_members[i]['username']) {
                                 if (!operators_vue.operation_members[i]['selected']) {
@@ -71,7 +89,7 @@ var operations_table = new Vue({
                         });
                         if (to_remove) {
                             remove_members.push(operators_vue.operation_members[i]['username']);
-                        } else {
+                        } else if(operators_vue.operation_members[i]['selected']) {
                             add_members.push({
                                 "username": operators_vue.operation_members[i]['username'],
                                 "view_mode": operators_vue.operation_members[i]['view_mode']

@@ -1,0 +1,148 @@
+actions:
+- name: createAPIToken
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/generate_apitoken'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+- name: createOperator
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_operator'
+    forward_client_headers: true
+  permissions:
+  - role: mythic_admin
+- name: createPayload
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/createpayload_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+- name: createRandom
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/randomize_parameter_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+  - role: spectator
+- name: createTask
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_task_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+- name: downloadContainerFile
+  definition:
+    kind: ""
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_download_file_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+  - role: spectator
+- name: getProfileOutput
+  definition:
+    kind: ""
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_status_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+- name: requestOpsecBypass
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/request_opsec_bypass_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+- name: startStopProfile
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/start_stop_profile_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+- name: updateCallback
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_callback_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+- name: uploadContainerFile
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/c2profile_upload_file_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: developer
+  - role: mythic_admin
+  - role: operation_admin
+  - role: operator
+custom_types:
+  enums: []
+  input_objects:
+  - name: OperatorInput
+  - name: CreatePayloadInput
+  - name: updateCallbackInput
+  objects:
+  - name: createAPITokenResponse
+  - name: OperatorOutput
+  - name: createPayloadOutput
+  - name: randomOutput
+  - name: startStopOutput
+  - name: ProfileOutput
+  - name: ContainerFile
+  - name: uploadContainerOutput
+  - name: SampleOutput
+    relationships:
+    - remote_table:
+        schema: public
+        name: task
+      name: task
+      source: default
+      type: object
+      field_mapping:
+        id: id
+  - name: createTaskOutput
+    relationships:
+    - remote_table:
+        schema: public
+        name: task
+      name: task
+      source: default
+      type: object
+      field_mapping:
+        id: id
+  - name: BypassOutput
+  - name: updateCallbackOutput
+  scalars: []

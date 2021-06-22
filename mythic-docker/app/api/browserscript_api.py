@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic_jwt.decorators import inject_user, scoped
 import app.database_models.model as db_model
 from sanic.response import json
@@ -22,26 +23,22 @@ async def get_browserscripts(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.browserscript_query()
-        operator_scripts = await db_objects.execute(
-            query.where(
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        operator_scripts = await app.db_objects.execute(
+            db_model.browserscript_query.where(
                 (db_model.BrowserScript.operator == operator)
                 & (db_model.BrowserScript.command != None)
             )
         )
-        support_scripts = await db_objects.execute(
-            query.where(
+        support_scripts = await app.db_objects.execute(
+            db_model.browserscript_query.where(
                 (db_model.BrowserScript.operator == operator)
                 & (db_model.BrowserScript.command == None)
             )
         )
-        query = await db_model.browserscriptoperation_query()
-        operation_scripts = await db_objects.execute(
-            query.where(db_model.BrowserScriptOperation.operation == operation)
+        operation_scripts = await app.db_objects.execute(
+            db_model.browserscriptoperation_query.where(db_model.BrowserScriptOperation.operation == operation)
         )
         return json(
             {
@@ -80,8 +77,7 @@ async def create_browserscript(request, user):
         return json({"status": "error", "error": 'must supply "script" '})
     if "command" in data:
         try:
-            query = await db_model.command_query()
-            command = await db_objects.get(query, id=data["command"])
+            command = await app.db_objects.get(db_model.command_query, id=data["command"])
             pieces["command"] = command
             pieces["payload_type"] = command.payload_type
         except Exception as e:
@@ -90,8 +86,7 @@ async def create_browserscript(request, user):
             )
     else:
         try:
-            query = await db_model.payloadtype_query()
-            payload_type = await db_objects.get(query, ptype=data["payload_type"])
+            payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=data["payload_type"])
             pieces["payload_type"] = payload_type
             pieces["command"] = None
             if "name" in data:
@@ -104,15 +99,14 @@ async def create_browserscript(request, user):
             return json(
                 {"status": "error", "error": "failed to find that payload type"}
             )
-    query = await db_model.operator_query()
-    operator = await db_objects.get(query, username=user["username"])
+    operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
     pieces["operator"] = operator
     pieces["author"] = data["author"] if "author" in data else ""
     pieces["script"] = data["script"]
     pieces["container_version"] = ""
     pieces["container_version_author"] = ""
     try:
-        browserscript = await db_objects.get(
+        browserscript = await app.db_objects.get(
             db_model.BrowserScript,
             command=pieces["command"],
             name=pieces["name"],
@@ -127,7 +121,7 @@ async def create_browserscript(request, user):
         )
     except Exception as e:
         # if we get here then the script doesn't exist, so we can create it
-        browserscript = await db_objects.create(db_model.BrowserScript, **pieces)
+        browserscript = await app.db_objects.create(db_model.BrowserScript, **pieces)
         return json({"status": "success", **browserscript.to_json()})
 
 
@@ -151,12 +145,10 @@ async def modify_browserscript(request, user, bid):
     except Exception as e:
         return json({"status": "error", "error": "failed to parse json"})
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.browserscript_query()
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         try:
-            browserscript = await db_objects.get(
-                query, id=bid
+            browserscript = await app.db_objects.get(
+                db_model.browserscript_query, id=bid
             )  # you can only modify your own scripts
         except Exception as e:
             return json({"status": "error", "error": "failed to find script"})
@@ -168,19 +160,17 @@ async def modify_browserscript(request, user, bid):
             browserscript.author = browserscript.container_version_author
             browserscript.script = browserscript.container_version
             browserscript.user_modified = False
-            await db_objects.update(browserscript)
+            await app.db_objects.update(browserscript)
             return json({"status": "success", **browserscript.to_json()})
         if "payload_type" in data:
-            pt_query = await db_model.payloadtype_query()
-            payload_type = await db_objects.get(pt_query, ptype=data["payload_type"])
+            payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=data["payload_type"])
             browserscript.payload_type = payload_type
         if "command" in data:
             if data["command"] == "" and "name" in data and data["name"] != "":
                 browserscript.command = None
                 browserscript.name = data["name"]
             elif data["command"] != "":
-                query = await db_model.command_query()
-                command = await db_objects.get(query, id=data["command"])
+                command = await app.db_objects.get(db_model.command_query, id=data["command"])
                 browserscript.command = command
             else:
                 return json(
@@ -207,13 +197,12 @@ async def modify_browserscript(request, user, bid):
             browserscript.active = True if data["active"] is True else False
             if not browserscript.active:
                 # make sure the script is not part of any operation
-                query = await db_model.browserscriptoperation_query()
-                script = await db_objects.execute(query)
+                script = await app.db_objects.execute(db_model.browserscriptoperation_query)
                 for s in script:
                     if s.browserscript == browserscript:
-                        await db_objects.delete(s)
+                        await app.db_objects.delete(s)
 
-        await db_objects.update(browserscript)
+        await app.db_objects.update(browserscript)
         if "operation" in data:
             if (
                 data["operation"] != user["current_operation"]
@@ -227,9 +216,7 @@ async def modify_browserscript(request, user, bid):
                 )
             if data["operation"] in user["admin_operations"] or user["admin"]:
                 # we are an admin overall or admin of this operation and we're trying to apply to the current operation
-                query = await db_model.operation_query()
-                operation = await db_objects.get(query, name=user["current_operation"])
-                query = await db_model.browserscriptoperation_query()
+                operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
                 if data["operation"] != "":
                     if not browserscript.active:
                         return json(
@@ -240,8 +227,8 @@ async def modify_browserscript(request, user, bid):
                         )
                     # make sure it's ok to apply first
                     can_add = True
-                    script = await db_objects.execute(
-                        query.where(
+                    script = await app.db_objects.execute(
+                        db_model.browserscriptoperation_query.where(
                             db_model.BrowserScriptOperation.operation == operation
                         )
                     )
@@ -262,20 +249,20 @@ async def modify_browserscript(request, user, bid):
                         ):
                             can_add = False  # there's already a script for that command
                     if can_add:
-                        mapping = await db_objects.create(
+                        mapping = await app.db_objects.create(
                             db_model.BrowserScriptOperation,
                             operation=operation,
                             browserscript=browserscript,
                         )
                 else:
-                    script = await db_objects.execute(
-                        query.where(
+                    script = await app.db_objects.execute(
+                        db_model.browserscriptoperation_query.where(
                             db_model.BrowserScriptOperation.operation == operation
                         )
                     )
                     for s in script:
                         if s.browserscript == browserscript:
-                            await db_objects.delete(s)
+                            await app.db_objects.delete(s)
             else:
                 return json(
                     {
@@ -292,15 +279,14 @@ async def modify_browserscript(request, user, bid):
 
 
 async def remove_admin_browserscripts(operator, operation):
-    query = await db_model.browserscriptoperation_query()
-    scripts = await db_objects.execute(
-        query.where(
+    scripts = await app.db_objects.execute(
+        db_model.browserscriptoperation_query.where(
             (db_model.BrowserScriptOperation.operation == operation)
             & (db_model.BrowserScript.operator == operator)
         )
     )
     for s in scripts:
-        await db_objects.delete(s)
+        await app.db_objects.delete(s)
 
 
 @mythic.route(
@@ -321,13 +307,10 @@ async def remove_browserscript(request, user, bid):
             return json(
                 {"status": "error", "error": "Spectators cannot remove browser scripts"}
             )
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.browserscript_query()
-        browserscript = await db_objects.get(query, id=bid, operator=operator)
-        query = await db_model.browserscriptoperation_query()
-        browserscriptoperations = await db_objects.execute(
-            query.where(db_model.BrowserScriptOperation.browserscript == browserscript)
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        browserscript = await app.db_objects.get(db_model.browserscript_query, id=bid, operator=operator)
+        browserscriptoperations = await app.db_objects.execute(
+            db_model.browserscriptoperation_query.where(db_model.BrowserScriptOperation.browserscript == browserscript)
         )
     except Exception as e:
         print(str(e))
@@ -337,8 +320,8 @@ async def remove_browserscript(request, user, bid):
     try:
         browserscript_json = browserscript.to_json()
         for s in browserscriptoperations:
-            await db_objects.delete(s)
-        await db_objects.delete(browserscript)
+            await app.db_objects.delete(s)
+        await app.db_objects.delete(browserscript)
         return json({"status": "success", **browserscript_json})
     except Exception as e:
         print(str(e))
@@ -387,12 +370,11 @@ async def import_browserscript(request, user):
 
 async def set_default_scripts(new_user):
     try:
-        script_query = await db_model.browserscript_query()
-        scripts = await db_objects.execute(
-            script_query.where(db_model.BrowserScript.operator == None)
+        scripts = await app.db_objects.execute(
+            db_model.browserscript_query.where(db_model.BrowserScript.operator == None)
         )
         for script in scripts:
-            await db_objects.create(
+            await app.db_objects.create(
                 db_model.BrowserScript,
                 operator=new_user,
                 payload_type=script.payload_type,
@@ -418,28 +400,24 @@ async def import_browserscript_func(code, user):
             continue
         if "command" in data and "payload_type" in data:
             try:
-                query = await db_model.payloadtype_query()
-                payload_type = await db_objects.get(query, ptype=data["payload_type"])
-                query = await db_model.command_query()
-                command = await db_objects.get(
-                    query, cmd=data["command"], payload_type=payload_type
+                payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=data["payload_type"])
+                command = await app.db_objects.get(
+                    db_model.command_query, cmd=data["command"], payload_type=payload_type
                 )
                 pieces["command"] = command
             except Exception as e:
                 data["error"] = "Command or payload type does not exist"
                 failed_imports.append(data)
                 continue
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         pieces["operator"] = operator
         if "name" in data:
             try:
-                query = await db_model.browserscript_query()
-                script = await db_objects.get(
-                    query, name=data["name"], operator=operator
+                script = await app.db_objects.get(
+                    db_model.browserscript_query, name=data["name"], operator=operator
                 )
                 script.script = data["script"]
-                await db_objects.update(script)
+                await app.db_objects.update(script)
                 continue
             except Exception as e:
                 # we don't have it in the database yet, so we can make it
@@ -448,17 +426,17 @@ async def import_browserscript_func(code, user):
             pieces["name"] = None
         pieces["script"] = data["script"]
         try:
-            browserscript = await db_objects.get(
+            browserscript = await app.db_objects.get(
                 db_model.BrowserScript,
                 command=pieces["command"],
                 name=pieces["name"],
                 operator=operator,
             )
             browserscript.script = data["script"]
-            await db_objects.update(browserscript)
+            await app.db_objects.update(browserscript)
             continue
         except Exception as e:
-            browserscript = await db_objects.create(db_model.BrowserScript, **pieces)
+            browserscript = await app.db_objects.create(db_model.BrowserScript, **pieces)
 
     if len(failed_imports) == 0:
         return {"status": "success"}
@@ -483,17 +461,15 @@ async def export_browserscript(request, user):
         )
     scripts = []
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.browserscript_query()
-        operator_scripts = await db_objects.execute(
-            query.where(
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        operator_scripts = await app.db_objects.execute(
+            db_model.browserscript_query.where(
                 (db_model.BrowserScript.operator == operator)
                 & (db_model.BrowserScript.command != None)
             )
         )
-        support_scripts = await db_objects.execute(
-            query.where(
+        support_scripts = await app.db_objects.execute(
+            db_model.browserscript_query.where(
                 (db_model.BrowserScript.operator == operator)
                 & (db_model.BrowserScript.command == None)
             )
@@ -532,11 +508,9 @@ async def export_operation_browserscript(request, user):
         )
     scripts = []
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.browserscriptoperation_query()
-        operator_scripts = await db_objects.execute(
-            query.where(db_model.BrowserScriptOperation.operation == operation)
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        operator_scripts = await app.db_objects.execute(
+            db_model.browserscriptoperation_query.where(db_model.BrowserScriptOperation.operation == operation)
         )
         for s in operator_scripts:
             if s.browserscript.command is None:

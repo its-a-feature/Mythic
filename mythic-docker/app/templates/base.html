@@ -10,11 +10,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/toastr.css">
     <script src="/static/static_js.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.5/ace.js" integrity="sha256-5Xkhn3k/1rbXB+Q/DX/2RuAtaB4dRRyQvMs83prFjpM=" crossorigin="anonymous"></script>
+    <script src="/static/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="/static/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/bootstrap/4.5.0/css/bootstrap.min.css">
+    <link rel="/static/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.css">
+    <script src="/static/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.js"></script>
+    <link rel="stylesheet" href="/static/fontawesome/v5.6.3/css/all.css">
+    <script src="/static/ajax/libs/ace/1.4.5/ace.js"></script>
+    <script src="/static/ajax/libs/ace/1.4.5/mode-javascript.js"></script>
+    <script src="/static/ajax/libs/ace/1.4.5/worker-javascript.js"></script>
 </head>
 
 <style>
@@ -656,6 +660,7 @@ li span.badge {
                 <a class="dropdown-item" href="{{ links.files }}">Files</a>
                 <a class="dropdown-item" href="{{ links.screenshots}}">Screenshots</a>
                 <a class="dropdown-item" href="{{ links.search }}">Search</a>
+                <a class="dropdown-item" href="{{ links.tasks_by_tag}}">Tasks by Tag</a>
                 <div class="dropdown-divider"></div>
                 <h6 class="dropdown-header">Operational Feeds</h6>
                 <a class="dropdown-item" href="{{ links.live_feed}}">Live Task Feed</a>
@@ -710,9 +715,9 @@ li span.badge {
             <li class="nav-item active dropdown">
               <a href="#" class="nav-link dropdown-toggle" style="display:inline-block" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false"><span class="{{config['text-color']}}"><i class="fa fa-question-circle"></i></span> Docs<span class="caret"></span></a>
               <div class="dropdown-menu border border-dark shadow dropdown-menu-right">
-                   <a class="dropdown-item" target="_blank" href="http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/">Agent Documentation</a>
-                   <a class="dropdown-item" target="_blank" href="http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/wrappers/">Wrapper Documentation</a>
-                   <a class="dropdown-item" target="_blank" href="http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/c2-profiles/">C2 Documentation</a>
+                   <a class="dropdown-item" target="_blank" href="/docs/agents/">Agent Documentation</a>
+                   <a class="dropdown-item" target="_blank" href="/docs/wrappers/">Wrapper Documentation</a>
+                   <a class="dropdown-item" target="_blank" href="/docs/c2-profiles/">C2 Documentation</a>
                    <a class="dropdown-item" target="_blank" href="https://docs.mythic-c2.net">Mythic Documentation</a>
                 </div>
             </li>
@@ -725,7 +730,7 @@ li span.badge {
               </li>
           </ul>
         </span>
-      <font size="4" style="float:right;padding-right:10px">v2.1.18</font>
+      <font size="4" style="float:right;padding-right:10px">v2.2.7</font>
       {% endif %}
   </div>
 </nav>

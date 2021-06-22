@@ -1,65 +1,69 @@
 from sanic import Sanic, log
-import uvloop
-from peewee_async import Manager
 from peewee_asyncext import PooledPostgresqlExtDatabase
 from sanic_jwt import Initialize
 from ipaddress import ip_network
 import ujson as json
-import asyncio
 import logging
-import uuid
-import os
+from config import settings
+import sys
+
 
 # --------------------------------------------
 # --------------------------------------------
-config = json.loads(open("./config.json", "r").read())
-mythic_admin_user = config["mythic_admin_user"] if "mythic_admin_user" in config else "mythic_admin"
-mythic_admin_password = config["mythic_admin_password"] if "mythic_admin_password" in config else "mythic_password"
-default_operation_name = config["default_operation_name"] if "default_operation_name" in config else "Operation Chimera"
-listen_port = str(config["listen_port"]) if "listen_port" in config else "7443"
-ssl_cert_path = config["ssl_cert_path"] if "ssl_cert_path" in config else "./app/ssl/mythic-cert.pem"
-ssl_key_path = config["ssl_key_path"] if "ssl_key_path" in config else "./app/ssl/mythic-ssl.key"
-# only allow connections from these IPs to the /login and /register pages
-allowed_ip_blocks = config["allowed_ip_blocks"] if "allowed_ip_blocks" in config else ["0.0.0.0/0"]
-use_ssl = config["use_ssl"] if "use_ssl" in config else True
-server_header = config["server_header"] if "server_header" in config else "nginx 1.2"
-# grows indefinitely (0), or specify a max size in Bytes (1MB). If 0, will not rotate!
-log_size = config["web_log_size"] if "web_log_size" in config else 1024000
-# set to false for speed improvement, but no logs will be kept
-keep_logs = config["web_keep_logs"] if "web_keep_logs" in config else True
-# don't start the following c2_profile docker containers when starting mythic
-excluded_c2_profiles = config["excluded_c2_profiles"] if "excluded_c2_profiles" in config else []
-# don't start the following payload_type docker containers when starting mythic
-excluded_payload_types = config["excluded_payload_types"] if "excluded_payload_types" in config else []
-documentation_port = config["documentation_container_port"] if "documentation_container_port" in config else "8080"
-siem_log_name = config["siem_log_name"] if "siem_log_name" in config else ""
+mythic_admin_user = str(settings.get("ADMIN_USER", "mythic_admin"))
+mythic_admin_password = str(settings.get("ADMIN_PASSWORD", "mythic_password"))
+default_operation_name = str(settings.get("DEFAULT_OPERATION_NAME", "Operation Chimera"))
+nginx_port = str(settings.get("NGINX_PORT", 7443))
+listen_port = str(settings.get("SERVER_PORT", 17443))
+allowed_ip_blocks = settings.get("ALLOWED_IP_BLOCKS", "0.0.0.0/0").split(",")
+server_header = settings.get("SERVER_HEADER", "nginx 1.2")
+log_size = settings.get("WEB_LOG_SIZE", 1024000)
+keep_logs = bool(settings.get("WEB_KEEP_LOGS", True))
+siem_log_name = settings.get("SIEM_LOG_NAME", "")
+db_host = settings.get('POSTGRES_HOST', "127.0.0.1")
+db_port = settings.get('POSTGRES_PORT', 5432)
+db_name = settings.get('POSTGRES_DB', "mythic_db")
+db_user = settings.get('POSTGRES_USER', "mythic_user")
+db_pass = settings.get('POSTGRES_PASSWORD', None)
+if db_pass is None:
+    logging.exception("No MYTHIC_POSTGRES_PASSWORD in environment variables")
+    sys.exit(1)
+debugging_enabled = bool(settings.get("DEBUG", False))
+rabbitmq_host = settings.get("RABBITMQ_HOST", "127.0.0.1")
+rabbitmq_port = settings.get("RABBITMQ_PORT", 5672)
+rabbitmq_user = settings.get("RABBITMQ_USER", "mythic_user")
+rabbitmq_password = str(settings.get("RABBITMQ_PASSWORD", "mythic_password"))
+rabbitmq_vhost = settings.get("RABBITMQ_VHOST", "mythic_vhost")
+jwt_secret = settings.get("JWT_SECRET", None)
+if jwt_secret is None:
+    logging.exception(
+        "No MYTHIC_JWT_SECRET environment variable found")
+    sys.exit(1)
+redis_port = int(settings.get("REDIS_PORT", 6379))
 # --------------------------------------------
 # --------------------------------------------
-listen_ip = (
-    "0.0.0.0"  # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
-)
-db_name = "mythic_db"
-db_user = "mythic_user"
-db_pass = os.environ['POSTGRES_PASSWORD']
-max_log_count = (
-    1  # if log_size > 0, rotate and make a max of max_log_count files to hold logs
-)
-# custom loop to pass to db manager
-uvloop.install()
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-dbloop = uvloop.new_event_loop()
+# IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
+listen_ip = "0.0.0.0"
+# if log_size > 0, rotate and make a max of max_log_count files to hold logs
+max_log_count = 1
+valid_payload_container_version_bounds = [8, 8]
+valid_c2_container_version_bounds = [3, 3]
+valid_translation_container_version_bounds = [3, 3]
+valid_restful_scripting_bounds = [3, 3]
 mythic_db = PooledPostgresqlExtDatabase(
     db_name,
     user=db_user,
     password=db_pass,
-    host="127.0.0.1",
+    host=db_host,
+    port=db_port,
     max_connections=10000,
     register_hstore=False,
     autorollback=True,
     autocommit=True
 )
-#mythic_db.connect_async(loop=dbloop)
-db_objects = Manager(mythic_db, loop=dbloop)
+db_objects = None
+websocket_pool = None
+redis_pool = None
 
 mythic_logging = log.LOGGING_CONFIG_DEFAULTS
 
@@ -69,13 +73,23 @@ class RootLogFormatter(logging.Formatter):
         logging.Formatter.__init__(self, kwargs)
 
     def format(self, record):
-        # print(record.__dict__)
-        jsondata = {
-            "type": "root_log",
-            "time": record.asctime,
-            "level": record.levelname,
-            "message": record.message,
-        }
+        #print(record.__dict__)
+        if "request" in record.__dict__:
+            jsondata = {
+                "type": "root_log",
+                "time": record.asctime,
+                "level": record.levelname,
+                "request": record.request,
+                "host": record.host,
+                "status": record.status,
+            }
+        else:
+            jsondata = {
+                "type": "root_log",
+                "time": record.asctime,
+                "level": record.levelname,
+                "message": record.message,
+            }
         if record.stack_info:
             jsondata["stack_info"] = record.stack_info
         formattedjson = json.dumps(jsondata)
@@ -87,16 +101,25 @@ class AccessLogFormatter(logging.Formatter):
         logging.Formatter.__init__(self, kwargs)
 
     def format(self, record):
-        # print(record.__dict__)
-        jsondata = {
-            "type": "access_log",
-            "time": record.asctime,
-            "level": record.levelname,
-            "request": record.request,
-            "host": record.host,
-            "status": record.status,
-            "return_size": record.byte,
-        }
+        #print(record.__dict__)
+        if "request" in record.__dict__:
+            jsondata = {
+                "type": "access_log",
+                "time": record.asctime,
+                "level": record.levelname,
+                "request": record.request,
+                "host": record.host,
+                "status": record.status,
+            }
+        else:
+            jsondata = {
+                "type": "access_log",
+                "time": record.asctime,
+                "level": record.levelname,
+                "request": record.msg,
+                "status": 404,
+                "host": "Mythic"
+            }
         if record.stack_info:
             jsondata["stack_info"] = record.stack_info
         formattedjson = json.dumps(jsondata)
@@ -127,68 +150,55 @@ mythic_logging["loggers"]["sanic.error"]["handlers"].append("rotating_log")
 mythic_logging["loggers"]["sanic.root"]["handlers"].append("rotating_root_log")
 
 mythic = Sanic(__name__, strict_slashes=False, log_config=mythic_logging)
-mythic.config[
-    "WTF_CSRF_SECRET_KEY"
-] = str(uuid.uuid4()) + str(uuid.uuid4())
+
 mythic.config["SERVER_IP_ADDRESS"] = "127.0.0.1"
-mythic.config["SERVER_PORT"] = listen_port
+mythic.config["SERVER_PORT"] = nginx_port
+mythic.config["DB_HOST"] = db_host
+mythic.config["DB_PORT"] = db_port
 mythic.config["DB_USER"] = db_user
 mythic.config["DB_PASS"] = db_pass
 mythic.config["DB_NAME"] = db_name
 mythic.config[
     "DB_POOL_CONNECT_STRING"
-] = "dbname='{}' user='{}' password='{}' host='127.0.0.1'".format(
-    mythic.config["DB_NAME"], mythic.config["DB_USER"], mythic.config["DB_PASS"]
+] = "dbname='{}' user='{}' password='{}' host='{}' port='{}'".format(
+    mythic.config["DB_NAME"], mythic.config["DB_USER"], mythic.config["DB_PASS"], mythic.config["DB_HOST"],
+    mythic.config["DB_PORT"]
 )
+# postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+mythic.config["DB_POOL_ASYNCPG_CONNECT_STRING"] = f"postgres://{mythic.config['DB_USER']}:{mythic.config['DB_PASS']}@{mythic.config['DB_HOST']}:{mythic.config['DB_PORT']}/{mythic.config['DB_NAME']}"
+mythic.config["RABBITMQ_HOST"] = rabbitmq_host
+mythic.config["RABBITMQ_PORT"] = rabbitmq_port
+mythic.config["RABBITMQ_USER"] = rabbitmq_user
+mythic.config["RABBITMQ_PASSWORD"] = rabbitmq_password
+mythic.config["RABBITMQ_VHOST"] = rabbitmq_vhost
 mythic.config["API_VERSION"] = "1.4"
 mythic.config["API_BASE"] = "/api/v" + mythic.config["API_VERSION"]
-mythic.config["REQUEST_MAX_SIZE"] = 1000000000
+mythic.config["REQUEST_MAX_SIZE"] = 500000000
 mythic.config["REQUEST_TIMEOUT"] = 60
 mythic.config["RESPONSE_TIMEOUT"] = 60
 mythic.config["ALLOWED_IPS"] = [ip_network(ip) for ip in allowed_ip_blocks]
 
-links = {
-    "server_ip": mythic.config["SERVER_IP_ADDRESS"],
-    "server_port": mythic.config["SERVER_PORT"],
-    "api_base": mythic.config["API_BASE"],
-}
+links = {"server_ip": mythic.config["SERVER_IP_ADDRESS"], "server_port": mythic.config["SERVER_PORT"],
+         "api_base": mythic.config["API_BASE"], "WEB_BASE": (
+            "https://"
+            + str(mythic.config["SERVER_IP_ADDRESS"])
+            + ":"
+            + str(mythic.config["SERVER_PORT"])
+    )}
 
-if use_ssl:
-    links["WEB_BASE"] = (
-        "https://"
-        + mythic.config["SERVER_IP_ADDRESS"]
-        + ":"
-        + mythic.config["SERVER_PORT"]
-    )
-else:
-    links["WEB_BASE"] = (
-        "http://"
-        + mythic.config["SERVER_IP_ADDRESS"]
-        + ":"
-        + mythic.config["SERVER_PORT"]
-    )
-links["DOCUMENTATION_PORT"] = documentation_port
-import app.routes
 import app.api
+import app.routes
 
 my_views = (
-    ("/register", app.routes.routes.Register),
     ("/login", app.routes.routes.Login),
-    ("/uirefresh", app.routes.routes.UIRefresh),
+    ("/uirefresh", app.routes.routes.UIRefresh)
 )
-
-session = {}
-
-
-@mythic.middleware("request")
-async def add_session(request):
-    request.ctx.session = session
-
 
 Initialize(
     mythic,
     authentication_class=app.routes.authentication.MyAuthentication,
     configuration_class=app.routes.authentication.MyConfig,
+    responses_class=app.routes.authentication.MyResponses,
     cookie_set=True,
     cookie_strict=False,
     cookie_access_token_name="access_token",
@@ -197,7 +207,7 @@ Initialize(
     scopes_enabled=True,
     add_scopes_to_payload=app.routes.authentication.add_scopes_to_payload,
     scopes_name="scope",
-    secret=str(uuid.uuid4()) + str(uuid.uuid4()),
+    secret=jwt_secret,
     url_prefix="/",
     class_views=my_views,
     path_to_authenticate="/auth",
@@ -206,7 +216,5 @@ Initialize(
     path_to_refresh="/refresh",
     refresh_token_enabled=True,
     expiration_delta=28800,  # initial token expiration time, 8hrs
-    store_refresh_token=app.routes.authentication.store_refresh_token,
-    retrieve_refresh_token=app.routes.authentication.retrieve_refresh_token,
     login_redirect_url="/login",
 )

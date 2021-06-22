@@ -404,7 +404,9 @@ function startwebsocket_events() {
                 event_notices.messages = data['alerts'];
             } else if (data['channel'].includes("new")) {
                 if (data['operator'] !== "{{name|e}}") {
-                    alertTop(data['level'], data['message'], 4, data['operator']);
+                    if(data["source"] !== "debug") {
+                        alertTop(data['level'], data['message'], 4, data['operator']);
+                    }
                 }
                 if (data['level'] !== 'info') {
                     event_notices.add_message(data);
@@ -470,7 +472,7 @@ function refresh_access_token() {
     }
 }
 
-setInterval(refresh_access_token, 600000); // update every 10min
+setInterval(refresh_access_token, 6000000); // update every 100min
 $(document).keydown(function (e) {
     let code = e.keyCode || e.which;
     if (code === 27) {

@@ -1,11 +1,13 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 import sys
 from sanic.exceptions import abort
-import ujson as js
+import datetime
 import base64
+
 
 # This gets all responses in the database
 @mythic.route(mythic.config["API_BASE"] + "/process_lists/", methods=["GET"])
@@ -20,13 +22,11 @@ async def get_all_process_lists(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
-    query = await db_model.processlist_query()
-    process_lists = await db_objects.execute(
-        query.where(db_model.ProcessList.operation == operation)
+    process_lists = await app.db_objects.execute(
+        db_model.process_query.where(db_model.Process.operation == operation)
     )
     return json(
         {"status": "success", "process_lists": [l.to_json() for l in process_lists]}
@@ -34,64 +34,57 @@ async def get_all_process_lists(request, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/process_list/<pid:int>/<host:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/process_list/", methods=["POST"]
 )
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def get_a_process_list(request, user, pid, host):
+async def get_a_process_list(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
-    host = base64.b64decode(host).decode("utf-8").upper()
-    query = await db_model.processlist_query()
-    if pid > 0:
-        try:
-            process_list = await db_objects.get(
-                query.where(
-                    (db_model.ProcessList.operation == operation)
-                    & (db_model.ProcessList.id == pid)
-                    & (db_model.ProcessList.host == host)
-                )
-            )
-        except Exception as e:
-            return json({"status": "error", "error": "failed to find process list"})
-    else:
-        # get the latest one
-        latest = await db_objects.execute(
-            query.where(
-                (db_model.ProcessList.operation == operation)
-                & (db_model.ProcessList.host == host)
-            )
-            .order_by(-db_model.ProcessList.timestamp)
-            .limit(1)
+    data = request.json
+    if "host" not in data or data["host"] is None:
+        return json({"status": "error", "error": "missing host field"})
+    host = data["host"].upper()
+    # get the latest one
+    latest = await app.db_objects.execute(
+        db_model.process_query.where(
+            (db_model.Process.operation == operation)
+            & (db_model.Process.host == host)
         )
-        process_list = list(latest)
-        if len(process_list) != 0:
-            process_list = process_list[0]
+        .order_by(-db_model.Process.timestamp)
+    )
+    processes = []
+    latest_timestamp = None
+    task = None
+    callback = None
+    for p in latest:
+        if latest_timestamp is None:
+            latest_timestamp = p.timestamp
+            task = p.task.id
+            callback = p.task.callback.id
+        if p.timestamp == latest_timestamp:
+            processes.append(p.to_json())
         else:
-            return json({"status": "success", "process_list": {}, "tree_list": {}})
-    plist = process_list.to_json()
+            break
     try:
-        plist["process_list"] = js.loads(plist["process_list"])
-    except Exception as e:
-        return json(
-            {"status": "error", "error": "failed to parse process list data as JSON"}
-        )
-    try:
-        tree_list = await get_process_tree(plist["process_list"])
+        tree_list = await get_process_tree(processes)
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         tree_list = {}
-    return json({"status": "success", "process_list": plist, "tree_list": tree_list})
+    if task is None:
+        return json({"status": "error", "error": "No process data yet for that host"})
+    return json({"status": "success", "process_list": {"task": task, "callback": callback,"host": host,
+                                                       "timestamp": latest_timestamp.strftime("%m/%d/%Y %H:%M:%S.%f"),
+                                                       "process_list": processes}, "tree_list": tree_list})
 
 
 @mythic.route(mythic.config["API_BASE"] + "/process_list/search", methods=["POST"])
@@ -106,17 +99,19 @@ async def get_adjacent_process_list(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operation"})
     try:
         data = request.json
     except Exception as e:
         return json({"status": "error", "error": "must provide json data"})
-    query = await db_model.processlist_query()
-    if "pid" not in data or data["pid"] <= 0:
-        return json({"status": "error", "error": '"pid" is required'})
+    if "timestamp" not in data or data["timestamp"] == "" or data["timestamp"] is None:
+        return json({"status": "error", "error": '"timestamp" is required'})
+    try:
+        timestamp = datetime.datetime.strptime(data["timestamp"], "%m/%d/%Y %H:%M:%S.%f")
+    except Exception as e:
+        return json({"status": "error", "error": "bad timestamp"})
     if "adjacent" not in data or data["adjacent"] not in ["next", "prev"]:
         return json(
             {
@@ -128,19 +123,26 @@ async def get_adjacent_process_list(request, user):
         return json({"status": "error", "error": '"host" is required'})
     if data["adjacent"] == "prev":
         try:
-            process_list = await db_objects.execute(
-                query.where(
-                    (db_model.ProcessList.operation == operation)
-                    & (db_model.ProcessList.id < data["pid"])
-                    & (db_model.ProcessList.host == data["host"].upper())
+            process_list = await app.db_objects.execute(
+                db_model.process_query.where(
+                    (db_model.Process.operation == operation)
+                    & (db_model.Process.timestamp < timestamp)
+                    & (db_model.Process.host == data["host"].upper())
                 )
-                .order_by(-db_model.ProcessList.id)
-                .limit(1)
+                .order_by(-db_model.Process.timestamp)
             )
-            process_list = list(process_list)
-            if len(process_list) != 0:
-                process_list = process_list[0]
-            else:
+            processes = []
+            latest_timestamp = None
+            task = None
+            callback = None
+            for p in process_list:
+                if latest_timestamp is None:
+                    latest_timestamp = p.timestamp
+                    task = p.task.id
+                    callback = p.task.callback.id
+                if p.timestamp == latest_timestamp:
+                    processes.append(p.to_json())
+            if task is None:
                 return json(
                     {
                         "status": "error",
@@ -149,44 +151,47 @@ async def get_adjacent_process_list(request, user):
                 )
         except Exception as e:
             return json(
-                {"status": "error", "error": "No earlier process lists for this host"}
+                {"status": "error", "error": "Error trying to get process lists for this host"}
             )
     else:
         # get the latest one
         try:
-            process_list = await db_objects.execute(
-                query.where(
-                    (db_model.ProcessList.operation == operation)
-                    & (db_model.ProcessList.id > data["pid"])
-                    & (db_model.ProcessList.host == data["host"].upper())
+            process_list = await app.db_objects.execute(
+                db_model.process_query.where(
+                    (db_model.Process.operation == operation)
+                    & (db_model.Process.timestamp > timestamp)
+                    & (db_model.Process.host == data["host"].upper())
                 )
-                .order_by(db_model.ProcessList.timestamp)
-                .limit(1)
+                .order_by(db_model.Process.timestamp)
             )
-            process_list = list(process_list)
-            if len(process_list) != 0:
-                process_list = process_list[0]
-            else:
+            processes = []
+            latest_timestamp = None
+            task = None
+            callback = None
+            for p in process_list:
+                if latest_timestamp is None:
+                    latest_timestamp = p.timestamp
+                    task = p.task.id
+                    callback = p.task.callback.id
+                if p.timestamp == latest_timestamp:
+                    processes.append(p.to_json())
+            if task is None:
                 return json(
                     {"status": "error", "error": "No later process lists for this host"}
                 )
         except Exception as e:
             return json(
-                {"status": "error", "error": "No later process lists for this host"}
+                {"status": "error", "error": "Error getting process list for this host"}
             )
-    plist = process_list.to_json()
+
     try:
-        plist["process_list"] = js.loads(plist["process_list"])
-    except Exception as e:
-        return json(
-            {"status": "error", "error": "Failed to parse process list as JSON"}
-        )
-    try:
-        tree = await get_process_tree(plist["process_list"])
+        tree = await get_process_tree(processes)
     except Exception as e:
         print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         tree = {}
-    return json({"status": "success", "process_list": plist, "tree_list": tree})
+    return json({"status": "success", "process_list": {"task": task, "callback": callback, "host": data["host"].upper(),
+                                                       "timestamp": latest_timestamp.strftime("%m/%d/%Y %H:%M:%S.%f"),
+                                                       "process_list": processes}, "tree_list": tree})
 
 
 async def get_process_tree(pl):

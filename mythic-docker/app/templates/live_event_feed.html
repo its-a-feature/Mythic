@@ -6,6 +6,8 @@
         <h2 style="display:inline-block"><span class="operator">Live</span> Event Feed</h2>
         <span style="display:inline-block; float:right">
             <span class="input-group" >
+                <div class="input-group-append input-group-btn" ><button type="button" class="btn btn{{config['outline-buttons']}}info" @click="load_more()">Load More</button></div>
+                <div class="input-group-append input-group-btn" ><button type="button" class="btn btn{{config['outline-buttons']}}info" @click="load_next_error()">Load Next Error</button></div>
                 <div class="input-group-append"><input style="color:white" class="form-control" type="text" size="50rem" placeholder="filter with 'column title:value'" id="filter" v-model="filter"></div>
                 <div class="input-group-append input-group-btn" ><button disabled type="button" class="btn btn{{config['outline-buttons']}}secondary"><i class="fa fa-filter"></i></button></div>
                 <div class="input-group-append input-group-btn" v-if="filter !== ''">
@@ -31,6 +33,7 @@
                 <td style="padding-left:10px"><pre>[[toLocalTime(entry.timestamp)]]</pre></td>
                 <td>
                     [[entry.operator]]
+                    <template v-if="entry.count > 1">([[entry.count]])</template>
                     <template v-if="entry.level === 'warning' && entry.resolved">
                         <br><button type="button" class="btn btn-sm btn{{config['outline-buttons']}}secondary" @click="toggle_resolved(entry)">Unresolve</button>
                     </template>

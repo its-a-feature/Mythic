@@ -1,4 +1,5 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import Operator
 from sanic import response
@@ -9,6 +10,7 @@ from sanic_jwt import scoped
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from app.api.browserscript_api import set_default_scripts
+from uuid import uuid4
 
 
 @mythic.route(mythic.config["API_BASE"] + "/operators/", methods=["GET"])
@@ -22,8 +24,7 @@ async def get_all_operators(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    query = await db_model.operator_query()
-    ops = await db_objects.execute(query.where(db_model.Operator.deleted == False))
+    ops = await app.db_objects.execute(db_model.operator_query.where(db_model.Operator.deleted == False))
     return json([p.to_json() for p in ops])
 
 
@@ -39,8 +40,7 @@ async def get_my_operator(request, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         return json({"status": "success", **operator.to_json()})
     except Exception as e:
         return json({"status": "error", "error": "failed to get current operator"})
@@ -71,11 +71,59 @@ async def create_operator(request, user):
                 "error": '"username" must be string with at least one character',
             }
         )
-    password = await crypto.hash_SHA512(data["password"])
+    salt = str(uuid4())
+    if len(data["password"]) < 12:
+        return json({"status": "error", "error": "password must be at least 12 characters long"})
+    password = await crypto.hash_SHA512(salt + data["password"])
     # we need to create a new user
     try:
-        new_operator = await db_objects.create(
-            Operator, username=data["username"], password=password, admin=False
+        new_operator = await app.db_objects.create(
+            Operator, username=data["username"], password=password, admin=False, salt=salt, active=True
+        )
+        success = {"status": "success"}
+        new_user = new_operator.to_json()
+        # try to get the browser script code to auto load for the new operator
+        await set_default_scripts(new_operator)
+        # print(result)
+        return response.json({**success, **new_user})
+    except Exception as e:
+        return json({"status": "error", "error": "failed to add user: " + str(e)})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/create_operator", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def create_operator_graphql(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    data = request.json
+    data = data["input"]["input"]
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot create users"})
+    if not user["admin"]:
+        return json({"status": "error", "error": "Only admins can create new users"})
+    if "username" not in data or data["username"] == "":
+        return json({"status": "error", "error": '"username" field is required'})
+    if not isinstance(data["username"], str) or not len(data["username"]):
+        return json(
+            {
+                "status": "error",
+                "error": '"username" must be string with at least one character',
+            }
+        )
+    salt = str(uuid4())
+    password = await crypto.hash_SHA512(salt + data["password"])
+    if len(data["password"]) < 12:
+        return json({"status": "error", "error": "password must be at least 12 characters long"})
+    # we need to create a new user
+    try:
+        new_operator = await app.db_objects.create(
+            Operator, username=data["username"], password=password, admin=False, salt=salt, active=True
         )
         success = {"status": "success"}
         new_user = new_operator.to_json()
@@ -99,8 +147,7 @@ async def get_one_operator(request, oid, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        op = await db_objects.get(query, id=oid)
+        op = await app.db_objects.get(db_model.operator_query, id=oid)
         if op.username == user["username"] or user["view_mode"] != "spectator":
             return json({"status": "success", **op.to_json()})
         else:
@@ -152,8 +199,7 @@ async def update_operator(request, oid, user):
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
     try:
-        query = await db_model.operator_query()
-        op = await db_objects.get(query, id=oid)
+        op = await app.db_objects.get(db_model.operator_query, id=oid)
         if op.username != user["username"] and not user["admin"]:
             # you can't change the name of somebody else unless you're admin
             return json(
@@ -164,7 +210,9 @@ async def update_operator(request, oid, user):
             )
         data = request.json
         if "password" in data:
-            op.password = await crypto.hash_SHA512(data["password"])
+            if len(data["password"]) < 12:
+                return json({"status": "error", "error": "password must be at least 12 characters long"})
+            op.password = await crypto.hash_SHA512(op.salt + data["password"])
         if (
             "admin" in data and user["admin"]
         ):  # only a current admin can make somebody an admin
@@ -175,8 +223,7 @@ async def update_operator(request, oid, user):
             op.active = data["active"]
         if "current_operation" in data:
             if data["current_operation"] in user["operations"]:
-                query = await db_model.operation_query()
-                current_op = await db_objects.get(query, name=data["current_operation"])
+                current_op = await app.db_objects.get(db_model.operation_query, name=data["current_operation"])
                 op.current_operation = current_op
         if "ui_config" in data:
             if data["ui_config"] == "default":
@@ -190,7 +237,7 @@ async def update_operator(request, oid, user):
         if "view_utc_time" in data:
             op.view_utc_time = data["view_utc_time"]
         try:
-            await db_objects.update(op)
+            await app.db_objects.update(op)
             success = {"status": "success"}
         except Exception as e:
             return json(
@@ -217,8 +264,7 @@ async def remove_operator(request, oid, user):
         )
 
     try:
-        query = await db_model.operator_query()
-        op = await db_objects.get(query, id=oid)
+        op = await app.db_objects.get(db_model.operator_query, id=oid)
         if op.username != user["username"] and not user["admin"]:
             return json(
                 {
@@ -240,7 +286,7 @@ async def remove_operator(request, oid, user):
         op.deleted = True
         op.active = False
         op.admin = False
-        await db_objects.update(op)
+        await app.db_objects.update(op)
         success = {"status": "success"}
         return json({**success, **op.to_json()})
     except Exception as e:

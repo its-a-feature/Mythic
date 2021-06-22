@@ -29,24 +29,24 @@ var payloads_table = new Vue({
                 }
             }, "PUT", {"callback_alert": !p.callback_alert});
         },
-        show_parameters_button: function (p, build_message) {
+        show_parameters_button: function (p, reason) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/" + p.uuid, (response) => {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] === "success") {
-                        if (!build_message) {
-                            console.log(data);
+                        if (reason === "config") {
                             //Vue.set(payload_config_vue.config, "wrapped", false);
                             data["commands"].sort((a, b) => (a.cmd > b.cmd) ? 1 : ((b.cmd > a.cmd) ? -1 : 0));
-                            for(const [k,v] of Object.entries(data["c2_profiles"])){
+                            for (const [k, v] of Object.entries(data["c2_profiles"])) {
                                 data["c2_profiles"][k].sort((a, b) => (a.description > b.description) ? 1 : ((b.description > a.description) ? -1 : 0));
                             }
-                            Vue.set(payload_config_vue.config, "file_id", data['file_id']);
+                            Vue.set(payload_config_vue.config, "file", data['file']);
                             Vue.set(payload_config_vue.config, "commands", data['commands']);
                             Vue.set(payload_config_vue.config, "c2_profiles", data['c2_profiles']);
                             Vue.set(payload_config_vue.config, "build_message", data['build_message']);
                             Vue.set(payload_config_vue.config, "build_parameters", data['build_parameters']);
                             Vue.set(payload_config_vue.config, "uuid", p.uuid);
+                            Vue.set(payload_config_vue.config, "selected_os", data["selected_os"]);
                             Vue.set(payload_config_vue.config, "wrapped", false);
                             if ('wrapped' in data) {
                                 Vue.set(payload_config_vue.config, "wrapped", data['wrapped']);
@@ -54,8 +54,14 @@ var payloads_table = new Vue({
                                 Vue.set(payload_config_vue.config, "c2_profiles", data['wrapped']['c2_profiles']);
                             }
                             $('#payloadConfigModal').modal('show');
-                        } else {
+                        } else if(reason === "message") {
                             $('#buildStatus').text(data['build_message']);
+                            $('#payloadBuildStatusModal').modal('show');
+                        } else if(reason === "stdout"){
+                            $('#buildStatus').text(data['build_stdout']);
+                            $('#payloadBuildStatusModal').modal('show');
+                        } else {
+                            $('#buildStatus').text(data['build_stderr']);
                             $('#payloadBuildStatusModal').modal('show');
                         }
                     } else {
@@ -67,29 +73,9 @@ var payloads_table = new Vue({
             }, "GET", null);
 
         },
-        register_manual_callback: function (p) {
-            register_new_callback_vue.reset();
-            $('#payloadRegisterCallbackModal').modal('show');
-            $('#payloadRegisterCallbackSubmit').unbind('click').click(function () {
-                let data = register_new_callback_vue.get_json();
-                data['uuid'] = p.uuid;
-                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/", function (response) {
-                    try {
-                        data = JSON.parse(response);
-                    } catch (error) {
-                        alertTop("danger", "Session expired, refresh");
-                    }
-                    if (data['status'] !== 'success') {
-                        alertTop("danger", data['error']);
-                    } else {
-                        alertTop("success", "Registered new callback based on that data");
-                    }
-                }, "POST", data);
-            });
-        },
         edit_filename: function (p) {
             edit_payload_vue.header_message = "Edit Filename";
-            edit_payload_vue.edit_value = p['file_id']['filename'];
+            edit_payload_vue.edit_value = p['file']['filename'];
             $('#payloadEditModal').modal('show');
 
             $('#payloadEditSubmit').unbind('click').click(function () {
@@ -100,7 +86,7 @@ var payloads_table = new Vue({
                             alertTop("danger", data['error']);
                         } else {
                             alertTop("success", "Alerting changed");
-                            p['file_id']['filename'] = data['file_id']['filename']
+                            p['file']['filename'] = data['file']['filename']
                             payloads_table.$forceUpdate();
                         }
                     } catch (error) {
@@ -134,6 +120,34 @@ var payloads_table = new Vue({
         },
         toggle_auto_generated: function(){
             this.view_auto_generated = !this.view_auto_generated;
+        },
+        build_again: function(p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/rebuild/", function (response) {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] !== 'success') {
+                        alertTop("danger", data['error']);
+                    } else {
+                        alertTop("success", "Building...");
+                    }
+                } catch (error) {
+                    alertTop("danger", "Session expired, refresh");
+                }
+            }, "POST", {"uuid": p.uuid});
+        },
+        export_config: function(p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/export_config/" + p.uuid, function (response) {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] !== 'success') {
+                        alertTop("danger", data['error']);
+                    } else {
+                        download_from_memory(p.file.filename + ".json", btoa(JSON.stringify(data["config"], null, 4)));
+                    }
+                } catch (error) {
+                    alertTop("danger", "Session expired, refresh");
+                }
+            }, "GET", null);
         }
     },
     delimiters: ['[[', ']]']
@@ -270,7 +284,6 @@ function startwebsocket_payloads() {
         } else if (event.data !== "") {
             let pdata = JSON.parse(event.data);
             if (pdata['deleted'] === false) {
-                console.log(pdata);
                 for (let i = 0; i < payloads_table.payloads.length; i++) {
                     if (pdata['id'] === payloads_table.payloads[i]['id']) {
                         //just update the data

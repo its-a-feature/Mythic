@@ -1,11 +1,12 @@
-from app import mythic, db_objects
+from app import mythic
+import app
 from sanic.response import json
 from app.database_models.model import Credential
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from app.api.siem_logger import log_to_siem
-
+import asyncio
 
 @mythic.route(
     mythic.config["API_BASE"] + "/credentials/current_operation", methods=["GET"]
@@ -22,14 +23,12 @@ async def get_current_operation_credentials(request, user):
         )
     if user["current_operation"] != "":
         try:
-            query = await db_model.operation_query()
-            operation = await db_objects.get(query, name=user["current_operation"])
+            operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         except Exception as e:
             print(e)
             return json({"status": "error", "error": "Failed to get current operation"})
-        query = await db_model.credential_query()
-        creds = await db_objects.execute(
-            query.where(
+        creds = await app.db_objects.execute(
+            db_model.credential_query.where(
                 (Credential.operation == operation) & (Credential.deleted == False)
             )
         )
@@ -53,10 +52,8 @@ async def create_credential(request, user):
         return json({"status": "error", "error": "Spectators cannot add credentials"})
     if user["current_operation"] != "":
         try:
-            query = await db_model.operation_query()
-            operation = await db_objects.get(query, name=user["current_operation"])
-            query = await db_model.operator_query()
-            operator = await db_objects.get(query, username=user["username"])
+            operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+            operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         except Exception as e:
             print(e)
             return json({"status": "error", "error": "failed to get operation"})
@@ -83,23 +80,25 @@ async def create_credential_func(operator, operation, data):
         data["account"] = ""
     if "comment" not in data:
         data["comment"] = ""
+    if "metadata" not in data:
+        data["metadata"] = ""
     if "task" not in data or data["task"] == "":
         try:
             # trying to prevent duplication of data in the database
-            query = await db_model.credential_query()
-            cred = await db_objects.get(
-                query,
+            cred = await app.db_objects.get(
+                db_model.credential_query,
                 type=data["credential_type"],
                 account=data["account"],
                 deleted=False,
                 realm=data["realm"],
                 operation=operation,
                 credential=data["credential"].encode(),
+                metadata=data["metadata"]
             )
             status["new"] = False
         except Exception as e:
             # we got here because the credential doesn't exist, so we need to create it
-            cred = await db_objects.create(
+            cred = await app.db_objects.create(
                 Credential,
                 type=data["credential_type"],
                 account=data["account"],
@@ -108,24 +107,25 @@ async def create_credential_func(operator, operation, data):
                 credential=data["credential"].encode(),
                 operator=operator,
                 comment=data["comment"],
+                metadata=data["metadata"]
             )
-            await log_to_siem(cred.to_json(), mythic_object="credential_new")
+            asyncio.create_task( log_to_siem(mythic_object=cred, mythic_source="credential_new") )
     else:
         try:
-            query = await db_model.credential_query()
-            cred = await db_objects.get(
-                query,
+            cred = await app.db_objects.get(
+                db_model.credential_query,
                 type=data["credential_type"],
                 account=data["account"],
                 deleted=False,
                 realm=data["realm"],
                 operation=operation,
                 credential=data["credential"].encode(),
+                metadata=data["metadata"]
             )
             status["new"] = False
         except Exception as e:
             # we got here because the credential doesn't exist, so we need to create it
-            cred = await db_objects.create(
+            cred = await app.db_objects.create(
                 Credential,
                 type=data["credential_type"],
                 account=data["account"],
@@ -135,17 +135,18 @@ async def create_credential_func(operator, operation, data):
                 credential=data["credential"].encode(),
                 operator=operator,
                 comment=data["comment"],
+                metadata=data["metadata"]
             )
-            await log_to_siem(cred.to_json(), mythic_object="credential_new")
+            asyncio.create_task(log_to_siem(mythic_object=cred, mythic_source="credential_new"))
     return {**status, **cred.to_json()}
 
 
-@mythic.route(mythic.config["API_BASE"] + "/credentials/<id:int>", methods=["DELETE"])
+@mythic.route(mythic.config["API_BASE"] + "/credentials/<cid:int>", methods=["DELETE"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def remove_credential(request, user, id):
+async def remove_credential(request, user, cid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -157,26 +158,24 @@ async def remove_credential(request, user, id):
         )
     if user["current_operation"] != "":
         try:
-            query = await db_model.operation_query()
-            operation = await db_objects.get(query, name=user["current_operation"])
-            query = await db_model.credential_query()
-            credential = await db_objects.get(query, id=id, operation=operation)
+            operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+            credential = await app.db_objects.get(db_model.credential_query, id=cid, operation=operation)
         except Exception as e:
             print(e)
             return json({"status": "error", "error": "failed to find that credential"})
         credential.deleted = True
-        await db_objects.update(credential)
+        await app.db_objects.update(credential)
         return json({"status": "success", **credential.to_json()})
     else:
         return json({"status": "error", "error": "must be part of a current operation"})
 
 
-@mythic.route(mythic.config["API_BASE"] + "/credentials/<id:int>", methods=["PUT"])
+@mythic.route(mythic.config["API_BASE"] + "/credentials/<cid:int>", methods=["PUT"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def modify_credential(request, user, id):
+async def modify_credential(request, user, cid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -188,10 +187,8 @@ async def modify_credential(request, user, id):
         )
     if user["current_operation"] != "":
         try:
-            query = await db_model.operation_query()
-            operation = await db_objects.get(query, name=user["current_operation"])
-            query = await db_model.credential_query()
-            credential = await db_objects.get(query, id=id, operation=operation)
+            operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+            credential = await app.db_objects.get(db_model.credential_query, id=cid, operation=operation)
         except Exception as e:
             print(e)
             return json({"status": "error", "error": "failed to get credential"})
@@ -214,8 +211,8 @@ async def update_credential_func(cred, data):
             cred.account = data["account"]
         if "comment" in data:
             cred.comment = data["comment"]
-        await db_objects.update(cred)
-        await log_to_siem(cred.to_json(), mythic_object="credential_modified")
+        await app.db_objects.update(cred)
+        asyncio.create_task(log_to_siem(mythic_object=cred, mythic_source="credential_modified"))
         return {"status": "success", **cred.to_json()}
     except Exception as e:
         return {"status": "error", "error": str(e)}

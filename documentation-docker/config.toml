@@ -1,4 +1,6 @@
-baseURL = "/"
+baseURL = "localhost/docs"
+RelativeURLs=true
+CanonifyURLs=true
 languageCode = "en-US"
 defaultContentLanguage = "en"
 

@@ -152,8 +152,15 @@ var searches = new Vue({
                          let data = JSON.parse(response);
                          task.response = data['responses'];
                          if(task['command_id'] in browser_scripts){
-                            task['use_scripted'] = true;
-                            task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
+                             try {
+                                 task['use_scripted'] = true;
+                                 task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
+                             }catch(error){
+                                task['use_scripted'] = false;
+                                task['scripted'] = "";
+                                console.log(error.toString());
+                                alertTop("warning", task["command"] + " hit a browserscript exception");
+                            }
                         }
                         searches.$forceUpdate();
                      }catch(error){
@@ -207,6 +214,68 @@ var searches = new Vue({
                     }
                 }, "POST", {"comment": $('#addCommentTextArea').val()});
             });
+        },
+        view_stdout_stderr: function(task){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/stdoutstderr/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "stdout:\n" + data["stdout"] + "\n\nstderr:\n" + data["stderr"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("Stdout/Stderr");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
+        },
+        view_all_parameters: function(task){
+            let text_msg = "Display Parameters:\n" + task["display_params"] + "\n\nOriginal Parameters:\n" + task["original_params"];
+            $('#addCommentTextArea').val(text_msg);
+            $('#commentModalTitle').text("View Parameters");
+            $('#addCommentModal').modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+            });
+            $('#addCommentSubmit').unbind('click').click(function () {});
+        },
+        view_opsec_block: function(task){
+            let text_msg = "";
+            if (task.opsec_pre_blocked !== null){
+                text_msg += "OPSEC PreCheck Message";
+                if (task.opsec_pre_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_pre_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_pre_message + "\n";
+            }
+            if (task.opsec_post_blocked !== null){
+                text_msg += "OPSEC PostCheck Message";
+                if (task.opsec_post_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_post_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_post_message + "\n";
+            }
+
+            $('#addCommentTextArea').val(text_msg);
+            $('#commentModalTitle').text("OPSEC Messages");
+            $('#addCommentModal').modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+            });
+            $('#addCommentSubmit').unbind('click').click(function () {});
+        },
+        submit_opsec_bypass_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + task.id + "/request_bypass/" , (response) => {
+
+            }, "GET", null);
         },
         remove_comment: function(task){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id,(response)=>{

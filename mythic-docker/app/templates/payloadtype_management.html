@@ -10,7 +10,7 @@
                 <tr v-for="(p, i) in payloadtypes" :key="p.id">
                     <td >
                         <template v-if="p.wrapper">
-                            <template v-if="p.wrapped_payload_types.length == 1">
+                            <template v-if="p.wrapped_payload_types.length <= 1">
                                 <i class="fas fa-gift fa-5x" style="padding-left:40px;padding-top:20px"></i>
                             </template>
                             <template v-else-if="p.wrapped_payload_types.length > 1">
@@ -30,8 +30,20 @@
                         </template>
                         <h3 style="display:inline-block;padding-left:10px">[[p.ptype]]</h3><br>
                         <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Supported OS: [[p.supported_os]]</pre><br>
-                        <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Authors: [[p.author]]</pre><br><br>
-                        <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">[[p.note]]</pre><br><br>
+                        <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Authors: [[p.author]]</pre><br>
+                        <template v-if="p.container_count !== 1">
+                            <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Online Container Count: [[p.container_count]]</pre><br>
+                        </template>
+                        <template v-if="p.translation_container !== null">
+                            <template v-if="p.translation_container.container_running">
+                                <div class="led-green" data-toggle="tooltip" title="translation container is checking in" style="display:inline-block"></div>
+                            </template>
+                            <template v-else>
+                                <span class="led-red" style="display:inline-block" data-toggle="tooltip" title="No heartbeat from container in over 30 seconds"></span>
+                            </template>
+                            <pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">Translation Container: [[ p['translation_container']['name'] ]]</pre><br/>
+                        </template>
+                        <br/><pre style="word-wrap:break-word;white-space:pre-wrap;display:inline-block">[[p.note]]</pre><br><br>
                     </td>
                     <td style="width:14rem">
                         <span v-if="p.wrapper == false">
@@ -51,10 +63,10 @@
                             <div v-for="w in p.wrapped_payload_types">[[w.wrapped]]</div>
                         </span>
                         <template v-if="p.wrapper">
-                            <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/wrappers/' + p.ptype.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
+                            <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'/docs/wrappers/' + p.ptype.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
                         </template>
                         <template v-else>
-                            <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'http://{{links.server_ip}}:{{links.DOCUMENTATION_PORT}}/agents/' + p.ptype.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
+                            <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'/docs/agents/' + p.ptype.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
                         </template>
                         {% if view_mode == 'developer' %}
                             <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_payloadtype_button(p)" data-toggle="tooltip" title="Delete the entire payload type"><i class="fas fa-trash-alt"></i></button>
@@ -113,9 +125,6 @@
 </div>
 <!-- END MODAL FOR DISPLAYING PAYLOADTYPE -->
 </div>
-<p class="card-text" style="margin:0;padding-left:5px; display:inline-block"><small class="text-muted">
-    leviathan icon made by Freepik, poseidon icons made by Eucalyp from www.flaticon.com
-</small></p>
     <!-- THIS IS OUR MODAL FOR DELETING PAYLOADTYPE -->
 <div class="modal fade" id="payloadtypeDeleteModal" role="dialog">
     <div class="modal-dialog modal-md" role="document">
@@ -174,46 +183,6 @@
                     <tr>
                         <td> Currently Using Version: </td>
                         <td> [[version]]</td>
-                    </tr>
-                    <tr>
-                        <td> Is Exit Command:</td>
-                        <td><span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsExit" v-model="is_exit">
-                        <label for="commandEditIsExit" class="btn-info"></label></span></td>
-                    </tr>
-                    <tr>
-                        <td> Is Used For File Browsing:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsFileBrowse" v-model="is_file_browse">
-                                <label for="commandEditIsFileBrowse" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Process Listing:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsProcessList" v-model="is_process_list">
-                                <label for="commandEditIsProcessList" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Downloading Files:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input disabled class="form-control" type="checkbox" id="commandEditIsDownloadFile" v-model="is_download_file">
-                                <label for="commandEditIsDownloadFile" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Removing Files:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" id="commandEditIsRemoveFile" v-model="is_remove_file">
-                                <label for="commandEditIsRemoveFile" class="btn-info"></label></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td> Is Used for Uploading Files:</td>
-                        <td>
-                            <span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" id="commandEditIsUploadFile" v-model="is_upload_file">
-                                <label for="commandEditIsUploadFile" class="btn-info"></label></span>
-                        </td>
                     </tr>
                 </table>
                   <h3>Command Parameters:</h3>

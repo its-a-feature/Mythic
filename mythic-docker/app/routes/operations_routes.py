@@ -1,10 +1,11 @@
-from app import mythic, links, use_ssl, db_objects
+from app import mythic, links
+import app
 from app.routes.routes import env
 from sanic import response
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 import base64
-from app.routes.routes import respect_pivot
+from app.routes.routes import respect_pivot, getSchemes
 
 
 async def get_scripts(user):
@@ -13,16 +14,14 @@ async def get_scripts(user):
         browser_scripts = ""
         support_scripts_to_add = {}
         final_support_scripts = ""
-        query = await db_model.operator_query()
-        operator = await db_objects.get(query, username=user["username"])
-        query = await db_model.operation_query()
-        operation = await db_objects.get(query, name=user["current_operation"])
-        query = await db_model.browserscript_query()
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         # get your own scripts
-        operator_scripts = await db_objects.execute(
-            query.where(
+        operator_scripts = await app.db_objects.execute(
+            db_model.browserscript_query.where(
                 (db_model.BrowserScript.operator == operator)
                 & (db_model.BrowserScript.active == True)
+                & (db_model.BrowserScript.for_new_ui == False)
             )
         )
         for s in operator_scripts:
@@ -41,13 +40,14 @@ async def get_scripts(user):
                     )
                     # final_support_scripts += s.name + ":" + base64.b64decode(s.script).decode('utf-8') + ","
         # get scripts assigned to the operation
-        operation_query = await db_model.browserscriptoperation_query()
-        operation_scripts = await db_objects.execute(
-            operation_query.where(
+        operation_scripts = await app.db_objects.execute(
+            db_model.browserscriptoperation_query.where(
                 db_model.BrowserScriptOperation.operation == operation
             )
         )
         for s in operation_scripts:
+            if s.browserscript.for_new_ui:
+                continue
             if s.browserscript.script != "":
                 if s.browserscript.command is not None:
                     scripts_to_add[s.browserscript.command.id] = (
@@ -95,8 +95,7 @@ async def callbacks(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         browser_scripts=browser_scripts,
         support_scripts=final_support_scripts,
@@ -113,8 +112,7 @@ async def payload_management(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -130,8 +128,7 @@ async def payloadtype_management(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -147,8 +144,7 @@ async def analytics(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -164,8 +160,7 @@ async def c2profile_management(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -181,8 +176,7 @@ async def operations_management(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -198,8 +192,7 @@ async def screenshots(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -215,8 +208,7 @@ async def keylogs(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         current_operation=user["current_operation"],
@@ -233,8 +225,7 @@ async def files(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -250,8 +241,7 @@ async def credentials(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -268,8 +258,7 @@ async def view_tasks(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         browser_scripts=browser_scripts,
         support_scripts=final_support_scripts,
@@ -287,12 +276,47 @@ async def view_shared_task(request, user, tid):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         browser_scripts=browser_scripts,
         support_scripts=final_support_scripts,
         tid=tid,
+        view_utc_time=user["view_utc_time"],
+    )
+    return response.html(content)
+
+
+@mythic.route("/tasks/by_range", methods=["GET"])
+@inject_user()
+@scoped("auth:user")
+async def view_shared_task_range(request, user):
+    template = env.get_template("share_task.html")
+    browser_scripts, final_support_scripts = await get_scripts(user)
+    content = template.render(
+        links=await respect_pivot(links, request),
+        name=user["username"],
+        ** await getSchemes(request),
+        config=user["ui_config"],
+        browser_scripts=browser_scripts,
+        support_scripts=final_support_scripts,
+        view_utc_time=user["view_utc_time"],
+    )
+    return response.html(content)
+
+
+@mythic.route("/tasks/by_tag", methods=["GET"])
+@inject_user()
+@scoped("auth:user")
+async def view_tasks_by_tag(request, user):
+    template = env.get_template("task_tags_view.html")
+    browser_scripts, final_support_scripts = await get_scripts(user)
+    content = template.render(
+        links=await respect_pivot(links, request),
+        name=user["username"],
+        ** await getSchemes(request),
+        config=user["ui_config"],
+        browser_scripts=browser_scripts,
+        support_scripts=final_support_scripts,
         view_utc_time=user["view_utc_time"],
     )
     return response.html(content)
@@ -307,8 +331,7 @@ async def view_split_callbacks(request, user, cid):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         cid=cid,
         browser_scripts=browser_scripts,
@@ -327,8 +350,7 @@ async def search(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         browser_scripts=browser_scripts,
         support_scripts=final_support_scripts,
@@ -345,8 +367,7 @@ async def web_log(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -362,8 +383,7 @@ async def artifacts_management(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -379,8 +399,7 @@ async def reporting_artifacts(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -396,8 +415,7 @@ async def manage_browser_scripts(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -414,8 +432,7 @@ async def live_task_feed(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -431,8 +448,7 @@ async def live_event_feed(request, user):
     content = template.render(
         links=await respect_pivot(links, request),
         name=user["username"],
-        http="https" if use_ssl else "http",
-        ws="wss" if use_ssl else "ws",
+        ** await getSchemes(request),
         config=user["ui_config"],
         view_utc_time=user["view_utc_time"],
         view_mode=user["view_mode"],
@@ -459,3 +475,4 @@ links["web_log"] = mythic.url_for("web_log")
 links["live_feed"] = mythic.url_for("live_task_feed")
 links["live_event_feed"] = mythic.url_for("live_event_feed")
 links["search"] = mythic.url_for("search")
+links["tasks_by_tag"] = mythic.url_for("view_tasks_by_tag")

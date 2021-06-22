@@ -35,49 +35,49 @@
                     <input style="padding-right:10px" type="checkbox" v-model="p.checked"> <button type="button" class="btn btn{{config['outline-buttons']}}danger btn-sm" @click="delete_button(p)" ><i class="fas fa-trash-alt"></i></button>
                 </td>
                 <td style="text-align:center">
-                    <template v-if="p.auto_generated">
-                        <button style="float:right" class="btn btn{{config['outline-buttons']}}secondary btn-sm" @click="show_parameters_button(p, false)">View Config</button>
-                    </template>
-                    <template v-else>
                         <div class="dropdown" style="display:inline">
                             <button class="btn btn{{config['outline-buttons']}}secondary dropdown-toggle btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"  :data-target="p.uuid">
                             <i class="fas fa-edit"> Payload Actions</i>
                           </button>
                           <div class="dropdown-menu" :id="p.uuid">
-                              <button type="button" class="dropdown-item" @click="edit_filename(p)">Rename File</button>
-                              <button type="button" class="dropdown-item" @click="edit_description(p)">Edit Description</button>
-                              <button type="button" class="dropdown-item" @click="update_callback_alert(p)">
-                                  <template v-if="p.callback_alert">Stop Alerting to new Callbacks</template>
-                                  <template v-else>Start Alerting to new Callbacks</template>
-                              </button>
-                              <button type="button"  class="dropdown-item" @click="show_parameters_button(p, false)">View Config</button>
-                              <button type="button" class="dropdown-item" @click="show_parameters_button(p, true)">View Build Message</button>
-                              <button type="button" class="dropdown-item" @click="register_manual_callback(p)">Manually Register Callback</button>
+                              <template v-if="!p.auto_generated">
+                                  <button type="button" class="dropdown-item" @click="edit_filename(p)">Rename File</button>
+                                  <button type="button" class="dropdown-item" @click="edit_description(p)">Edit Description</button>
+                                  <button type="button" class="dropdown-item" @click="update_callback_alert(p)">
+                                      <template v-if="p.callback_alert">Stop Alerting to new Callbacks</template>
+                                      <template v-else>Start Alerting to new Callbacks</template>
+                                  </button>
+                              </template>
+                              <button type="button"  class="dropdown-item" @click="show_parameters_button(p, 'config')">View Config</button>
+                              <button type="button" class="dropdown-item" @click="show_parameters_button(p, 'message')">View Build Message</button>
+                              <button type="button" class="dropdown-item" @click="show_parameters_button(p, 'stdout')">View Build Output</button>
+                              <button type="button" class="dropdown-item" @click="show_parameters_button(p, 'stderr')">View Build Errors</button>
+                              <button type="button" class="dropdown-item" @click="build_again(p)">Trigger New Build</button>
+                              <button type="button" class="dropdown-item" @click="export_config(p)">Export Payload Config</button>
                           </div>
                         </div>
-                    </template>
 
 		        </td>
                 <td style="text-align:center">
                     <template v-if="p.deleted || p.build_phase !== 'success' || p.auto_generated">
-                        <button class="btn btn{{config['outline-buttons']}}danger btn-sm" disabled type="button"><i class="fas fa-ban fa-lg"></i></button>
+                        <button data-toggle="tooltip" title="Payload failed to build in" class="btn btn{{config['outline-buttons']}}danger btn-sm" disabled type="button"><i class="fas fa-ban fa-lg"></i></button>
                     </template>
                     <template v-else>
-                        <a class="btn btn{{config['outline-buttons']}}success btn-sm" :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/' + p.uuid"><i class="fas fa-download fa-lg"></i></a>
+                        <a data-toggle="tooltip" title="Payload built successfully" class="btn btn{{config['outline-buttons']}}success btn-sm" :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/' + p.uuid"><i class="fas fa-download fa-lg"></i></a>
                     </template>
                     </td>
                 <td style="text-align:center">
                     <div v-if="p.build_phase == 'success'">
-                        <button disabled type="button" class="btn btn{{config['outline-buttons']}}success btn-sm"><i class="fas fa-check-circle fa-lg"></i></button>
+                        <button disabled data-toggle="tooltip" title="Payload built successfully" type="button" class="btn btn{{config['outline-buttons']}}success btn-sm"><i class="fas fa-check-circle fa-lg"></i></button>
                     </div>
                     <div v-else-if="p.build_phase == 'error'">
-                        <button type="button" disabled class="btn btn{{config['outline-buttons']}}danger btn-sm"><i class="fas fa-exclamation-triangle fa-lg"></i></button>
+                        <button data-toggle="tooltip" title="Payload failed to build, check build_error for more information" type="button" disabled class="btn btn{{config['outline-buttons']}}danger btn-sm"><i class="fas fa-exclamation-triangle fa-lg"></i></button>
                     </div>
                     <div v-else>
-                        <div class="spinner-border text-info" role="status"></div>
+                        <div data-toggle="tooltip" title="Payload is currently building" class="spinner-border text-info" role="status"></div>
                     </div>
                 </td>
-                <td>[[ p['file_id']['filename'] ]]</td>
+                <td>[[ p['file']['filename'] ]]</td>
                 <td>[[ p.tag ]]</td>
                 <td>[[ p.operator ]]</td>
                 <td style="text-align:center">[[ p['payload_type'] ]]</td>
@@ -129,90 +129,6 @@
     </div>
 </div>
 <!-- END MODAL FOR EDITING FILENAME -->
-<!-- THIS IS OUR MODAL FOR REGISTERING CALLBACK -->
-<div class="modal fade" id="payloadRegisterCallbackModal" role="dialog">
-    <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h3>Specify Callback Information</h3>
-                <button type="button" class="close" data-dismiss="modal">×</button>
-            </div>
-              <div class="modal-body" >
-                <table class="table table-condensed table-striped {{config['table-color']}} border border-dark shadow" style="margin-bottom:0">
-                    <tr>
-                        <th>Callback Parameter</th>
-                        <th>Callback Value</th>
-                    </tr>
-                    <tr>
-                        <td>Host</td>
-                        <td>
-                            <input class="form-control" type="text" :value="host" v-model="host">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Internal IP</td>
-                        <td>
-                            <input class="form-control" type="text" :value="ip" v-model="ip">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>External IP</td>
-                        <td>
-                            <input class="form-control" type="text" :value="external_ip" v-model="external_ip">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>User</td>
-                        <td>
-                            <input class="form-control" type="text" :value="user" v-model="user">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Domain</td>
-                        <td>
-                            <input class="form-control" type="text" :value="domain" v-model="domain">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>OS</td>
-                        <td>
-                            <input class="form-control" type="text" :value="os" v-model="os">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Architecture</td>
-                        <td>
-                            <input class="form-control" type="text" :value="architecture" v-model="architecture">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>PID</td>
-                        <td>
-                           <input class="form-control" type="number" :value="pid" v-model="pid">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Integrity Level</td>
-                        <td>
-                            <input class="form-control" type="number" :value="integrity_level" v-model="integrity_level">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Extra Info</td>
-                        <td>
-                            <input class="form-control" type="text" :value="extra_info" v-model="extra_info">
-                        </td>
-                    </tr>
-                </table>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn{{config['outline-buttons']}}warning" data-dismiss="modal" aria-hidden="true">Cancel</button>
-                <button class="btn btn{{config['outline-buttons']}}primary" data-dismiss="modal" id="payloadRegisterCallbackSubmit">Submit</button>
-              </div>
-        </div>
-    </div>
-</div>
-<!-- END MODAL FOR REGISTERING CALLBACK -->
 <!-- THIS IS OUR MODAL FOR GETTING PAYLOAD CONFIG -->
 <div class="modal fade" id="payloadConfigModal" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
@@ -246,7 +162,10 @@
                           </tr>
                           <tr v-for="p in value">
                               <td style="padding-left:10px">[[p.description]]</td>
-                              <td>[[p.value]]</td>
+                              <td>[[p.value]]
+                              <template v-if="p.enc_key"><br>Encryption Key: [[p.enc_key]]</template>
+                              <template v-if="p.dec_key"><br>Decryption Key: [[p.dec_key]]</template>
+                              </td>
                           </tr>
                     </table>
                 </template>
@@ -279,6 +198,10 @@
                       <td style="padding-left:10px">[[p.build_parameter.description]]</td>
                       <td>[[p.parameter]]</td>
                   </tr>
+                <tr>
+                      <td style="padding-left:10px">Selected OS</td>
+                      <td >[[config.selected_os]]</td>
+                  </tr>
                   <tr>
                       <td style="padding-left:10px">UUID</td>
                       <td >[[config.uuid]]</td>
@@ -286,22 +209,22 @@
                   <tr>
                       <td style="padding-left:10px">MD5</td>
                       <td >
-                          <template v-if="config.file_id!==undefined">[[config.file_id.md5]]</template>
+                          <template v-if="config.file!==undefined">[[config.file.md5]]</template>
                       </td>
                   </tr>
                 <tr>
                       <td style="padding-left:10px">SHA1</td>
                       <td >
-                          <template v-if="config.file_id!==undefined">[[config.file_id.sha1]]</template>
+                          <template v-if="config.file!==undefined">[[config.file.sha1]]</template>
                       </td>
                   </tr>
                 <tr>
                     <td style="padding-left:10px">Download File ID</td>
                       <td >
-                          <template v-if="config.file_id!==undefined">
-                              [[config.file_id.agent_file_id]]<br>
-                              <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/' + config.file_id.agent_file_id">
-                                  {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/[[ config.file_id.agent_file_id  ]]
+                          <template v-if="config.file!==undefined">
+                              [[config.file.agent_file_id]]<br>
+                              <a :href="'{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/' + config.file.agent_file_id">
+                                  {{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/[[ config.file.agent_file_id  ]]
                               </a>
                           </template>
                       </td>
@@ -320,7 +243,7 @@
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
-                <h3>Build Message</h3>
+                <h3>Build Information</h3>
                 <button type="button" class="close" data-dismiss="modal">×</button>
             </div>
             <div class="modal-body">

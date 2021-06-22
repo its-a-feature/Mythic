@@ -17,6 +17,15 @@ try {
 //[{callback info, "tasks": [{task info, "responses": [{response info}]}]},
 // {callback2, "tasks": [{task_info, "responses": [{response info}]}]}
 //]
+var tag_info = new Vue({
+    el: '#addTagModalData',
+    data: {
+        tags: [],
+        selected_tag: "Select One...",
+        current_tags: ""
+    },
+    delimiters: ['[[',']]']
+})
 var tasks_div = new Vue({
     el: '#tasks_div',
     data: {
@@ -40,8 +49,15 @@ var tasks_div = new Vue({
                          let data = JSON.parse(response);
                          task.response = data['responses'];
                          if(task['command_id'] in browser_scripts){
-                            task['use_scripted'] = true;
-                            task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
+                             try{
+                                task['use_scripted'] = true;
+                                task['scripted'] = browser_scripts[task['command_id']](task, Object.values(task['response']));
+                            }catch(error){
+                                task["use_scripted"] = false
+                                 task["scripted"] = "";
+                                console.log(error.toString());
+                                alertTop("warning", task["command"] + " hit a browserscript exception");
+                            }
                         }
                         tasks_div.$forceUpdate();
                      }catch(error){
@@ -75,7 +91,7 @@ var tasks_div = new Vue({
             this.$forceUpdate();
         },
         make_active: function(callback){
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],make_active_callback,"PUT", {"active":"true"});
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + callback['id'],make_active_callback,"PUT", {"active":true});
         },
         toggle_show_params: function(id){
             let img = document.getElementById("toggle_task" + id).nextElementSibling;
@@ -99,6 +115,150 @@ var tasks_div = new Vue({
             $( '#addCommentSubmit' ).unbind('click').click(function(){
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + task.id, update_callback_comment_callback, "POST", {"comment": $('#addCommentTextArea').val()});
             });
+        },
+        view_stdout_stderr: function(task){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/stdoutstderr/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "stdout:\n" + data["stdout"] + "\n\nstderr:\n" + data["stderr"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("Stdout/Stderr");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
+        },
+        view_all_parameters: function(task){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/all_params/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "success"){
+                        let text_msg = "Display Parameters:\n" + data["display_params"] + "\n\nOriginal Parameters:\n" + data["original_params"];
+                        text_msg += "\n\nFinal Params:\n" + data["params"];
+                        $('#addCommentTextArea').val(text_msg);
+                        $('#commentModalTitle').text("All Parameters");
+                        $('#addCommentModal').modal('show');
+                        $('#addCommentModal').on('shown.bs.modal', function () {
+                            $('#addCommentTextArea').focus();
+                        });
+                        $('#addCommentSubmit').unbind('click').click(function () {});
+                    }else{
+                        alertTop("error", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                }
+
+            }, "GET", null);
+        },
+        add_tag: function(){
+            tag_info.current_tags += "\n" + tag_info.selected_tag;
+        },
+        view_all_tags: function(task){
+            tag_info.selected_tag = "Select One...";
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/", (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                       tag_info.tags = data["tags"].sort();
+                       tag_info.tags.unshift("Select One...");
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if( data["status"] === "success"){
+                        tag_info.current_tags = data["tags"].join("\n");
+                        $('#addTagModal').modal('show');
+                        $('#addTagModal').on('shown.bs.modal', function () {
+                            $('#addTagTextArea').focus();
+                            $("#addTagTextArea").unbind('keyup').on('keyup', function (e) {
+                                if (e.keyCode === 13 && !e.shiftKey) {
+                                    $('#addTagSubmit').click();
+                                }
+                            });
+                        });
+                    }else{
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error);
+                    alertTop("danger", "Failed to make web request: " + error.toString());
+                }
+            }, "GET",null);
+            $('#addTagSubmit').unbind('click').click(function () {
+                httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/tags/" + task.id, (response) => {
+                    try{
+                        let data = JSON.parse(response);
+                        if( data["status"] === "success"){
+                            alertTop("success","Successfully updated tags");
+                        }else{
+                            alertTop("warning", data["error"]);
+                        }
+                    }catch(error){
+                        console.log(error);
+                        alertTop("danger", "Failed to make web request: " + error.toString());
+                    }
+                }, "PUT", {"tags": tag_info.current_tags.split("\n")});
+            });
+        },
+        view_opsec_block: function(task){
+            let text_msg = "";
+            if (task.opsec_pre_blocked !== null){
+                text_msg += "OPSEC PreCheck Message";
+                if (task.opsec_pre_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_pre_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_pre_message + "\n";
+            }
+            if (task.opsec_post_blocked !== null){
+                text_msg += "OPSEC PostCheck Message";
+                if (task.opsec_post_bypassed){
+                    text_msg += " ( bypassed by " + task.opsec_post_bypass_user + " )";
+                }
+                text_msg += ":\n\n" + task.opsec_post_message + "\n";
+            }
+
+            $('#addCommentTextArea').val(text_msg);
+            $('#commentModalTitle').text("OPSEC Messages");
+            $('#addCommentModal').modal('show');
+            $('#addCommentModal').on('shown.bs.modal', function () {
+                $('#addCommentTextArea').focus();
+            });
+            $('#addCommentSubmit').unbind('click').click(function () {});
+        },
+        submit_opsec_bypass_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + task.id + "/request_bypass/" , (response) => {
+
+            }, "GET", null);
+        },
+        reissue_request: function(task){
+          httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/reissue_task_webhook" , (response) => {
+                try{
+                    let data = JSON.parse(response);
+                    if(data["status"] === "error"){
+                        alertTop("warning", data["error"]);
+                    }
+                }catch(error){
+                    console.log(error.toString());
+                }
+            }, "POST", {"input": {"task_id": task.id}});
         },
         remove_comment: function(id){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/comments/" + id, update_callback_comment_callback, "DELETE", null);

@@ -239,7 +239,7 @@ function container_heartbeat_check() {
     for (let i = 0; i < payloadtypes_table.payloadtypes.length; i++) {
         let heartbeat = new Date(payloadtypes_table.payloadtypes[i].last_heartbeat);
         let difference = (now - heartbeat.getTime()) / 1000;
-        if (difference < 30) {
+        if (difference < 30 && payloadtypes_table.payloadtypes[i]["container_count"] > 0) {
             payloadtypes_table.payloadtypes[i]['container_running'] = true;
         } else {
             if (payloadtypes_table.payloadtypes[i]['container_running'] === true) {
@@ -247,6 +247,19 @@ function container_heartbeat_check() {
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypes_table.payloadtypes[i]['id'], change_heartbeat_callback, "PUT", {"container_running": false});
             }
             payloadtypes_table.payloadtypes[i]['container_running'] = false;
+        }
+        if(payloadtypes_table.payloadtypes[i]["translation_container"] !== null){
+            let heartbeat = new Date(payloadtypes_table.payloadtypes[i]["translation_container"].last_heartbeat);
+            let difference = (now - heartbeat.getTime()) / 1000;
+            if (difference < 30) {
+                payloadtypes_table.payloadtypes[i]["translation_container"]['container_running'] = true;
+            } else {
+                if (payloadtypes_table.payloadtypes[i]["translation_container"]['container_running'] === true) {
+                    // if it's currently set to running, let's change it in the db that it's down
+                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloadtypes/" + payloadtypes_table.payloadtypes[i]['id'], change_heartbeat_callback, "PUT", {"translation_container_running": false});
+                }
+                payloadtypes_table.payloadtypes[i]["translation_container"]['container_running'] = false;
+            }
         }
     }
 }
