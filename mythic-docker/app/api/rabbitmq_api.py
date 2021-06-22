@@ -348,10 +348,12 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 elif not task.completed and not task.command.script_only and not (task.opsec_pre_blocked and not task.opsec_pre_bypassed)\
                                         and not (task.opsec_post_blocked and not task.opsec_post_bypassed):
                                     task.status = "submitted"
-                                elif task.command.script_only and not task.completed:
+                                elif task.command.script_only and not task.completed and not (task.opsec_pre_blocked and not task.opsec_pre_bypassed)\
+                                        and not (task.opsec_post_blocked and not task.opsec_post_bypassed):
                                     task.status = "processed"
                                     task.completed = True
                                     asyncio.create_task(check_and_issue_task_callback_functions(task))
+                                # if it's none of these cases, then it's blocked for some reason, so wait
                             elif pieces[5] == "completed":
                                 task.status = "processed"
                                 task.status_timestamp_processed = task.timestamp
@@ -1777,6 +1779,47 @@ async def create_event_message(task_id: int, message: str, warning: bool = False
         return {"status": "error", "error": str(e)}
 
 
+async def update_task_opsec_status(task_id: int, opsec_pre_blocked: bool = None, opsec_pre_bypassed: bool = None,
+                                   opsec_pre_bypass_role: str = None, opsec_pre_message: str = None,
+                                   opsec_post_blocked: bool = None, opsec_post_bypassed: bool = None,
+                                   opsec_post_bypass_role: str = None, opsec_post_message: str = None):
+    """
+    This function allows you to update the OPSEC status components for the specified task.
+    :param task_id: The task you want to edit (ex: task.id in your calls)
+    :param opsec_pre_blocked: Boolean indicating if this task should be blocked in the pre-phase. This means a user bypass would go to that task's create_tasking next.
+    :param opsec_pre_bypassed: Boolean indicating if this task is bypassed. If this is True, you won't have to issue a bypass request through the UI to continue.
+    :param opsec_pre_bypass_role: String indicating who is required to bypass; this can be "operator" or "lead"
+    :param opsec_pre_message: String message that you want associated with the status. If this wasn't empty initially, your message will be appended to the end.
+    :param opsec_post_blocked: Boolean indicating if this task should be blocked in the post-phase. This means a user bypass would set the task to be picked up by the agent (if not script_only) or marked as completed.
+    :param opsec_post_bypassed: Boolean indicating if this task is bypassed. If this is True, you won't have to issue a bypass request through the UI to continue.
+    :param opsec_post_bypass_role: String indicating who is required to bypass; this can be "operator" or "lead"
+    :param opsec_post_message: String message that you want associated with the status. If this wasn't empty initially, your message will be appended to the end.
+    :return: Status indicating success or error on if the task was updated or not.
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        if opsec_pre_blocked is not None:
+            task.opsec_pre_blocked = opsec_pre_blocked
+        if opsec_pre_bypassed is not None:
+            task.opsec_pre_bypassed = opsec_pre_bypassed
+        if opsec_pre_bypass_role is not None and opsec_pre_bypass_role in ["operator", "lead"]:
+            task.opsec_pre_bypass_role = opsec_pre_bypass_role
+        if opsec_pre_message is not None:
+            task.opsec_pre_message += opsec_pre_message
+        if opsec_post_blocked is not None:
+            task.opsec_post_blocked = opsec_post_blocked
+        if opsec_post_bypassed is not None:
+            task.opsec_post_bypassed = opsec_post_bypassed
+        if opsec_post_message is not None:
+            task.opsec_post_message += opsec_post_message
+        if opsec_post_bypass_role is not None and opsec_post_bypass_role in ["operator", "lead"]:
+            task.opsec_post_bypass_role = opsec_post_bypass_role
+        await app.db_objects.update(task)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 async def add_command_attack_to_task(task, command):
     try:
         attack_mappings = await app.db_objects.execute(
@@ -2268,6 +2311,7 @@ exposed_rpc_endpoints = {
     "delete_logon_session": delete_logon_session,
     "delete_callback_token": delete_callback_token,
     "update_callback": update_callback,
+    "update_task_opsec_status": update_task_opsec_status,
     "search_database": search_database,
     "control_socks": control_socks,
     "create_subtask": create_subtask,

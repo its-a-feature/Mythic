@@ -1142,41 +1142,44 @@ async def process_bypass_request(user, task):
             # we just need an operator to acknowledge the risk, not a lead to approve it necessarily
             task.opsec_post_bypass_user = user
             task.opsec_post_bypassed = True
-            task.status = "bypassing opsec post"
-            await app.db_objects.update(task)
-            status = await submit_task_to_container(task, user.username)
-            if status["status"] == "error":
-                task.opsec_post_bypass_user = None
-                task.opsec_post_bypassed = False
-                task.status = "opsec post blocked (container down)"
-                await app.db_objects.update(task)
-                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
-                                            message=f"OPSEC PostCheck for task {task.id} failed - container down")
+            subtasks = await app.db_objects.count(db_model.task_query.where(
+                (db_model.Task.parent_task == task) &
+                (db_model.Task.completed == False)
+            ))
+            if subtasks > 0:
+                task.status = "delegating"
             else:
-                await app.db_objects.create(db_model.OperationEventLog, level="info", operation=task.callback.operation,
-                                            message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
-            return status
+                if task.command.script_only:
+                    task.status = "processed"
+                    task.status_timestamp_processed = task.timestamp
+                    task.completed = True
+                else:
+                    task.status = "submitted"
+                    task.status_timestamp_submitted = datetime.utcnow()
+            await app.db_objects.update(task)
+            return {"status": "success"}
         elif task.opsec_post_bypass_role == "lead":
             # only the lead of an operation can bypass the check
             if task.callback.operation.admin == user:
                 task.opsec_post_bypass_user = user
                 task.opsec_post_bypassed = True
-                task.status = "bypass opsec post"
-                await app.db_objects.update(task)
-                status = await submit_task_to_container(task, user.username)
-                if status["status"] == "error":
-                    task.opsec_post_bypass_user = None
-                    task.opsec_post_bypassed = False
-                    task.status = "opsec post blocked (container down)"
-                    await app.db_objects.update(task)
-                    await app.db_objects.create(db_model.OperationEventLog, level="info",
-                                                operation=task.callback.operation,
-                                                message=f"OPSEC PostCheck for task {task.id} failed - container down")
+                subtasks = await app.db_objects.count(db_model.task_query.where(
+                    (db_model.Task.parent_task == task) &
+                    (db_model.Task.completed == False)
+                ))
+                if subtasks > 0:
+                    task.status = "delegating"
                 else:
-                    await app.db_objects.create(db_model.OperationEventLog, level="info",
-                                                operation=task.callback.operation,
-                                                message=f"{user.username} bypassed an OPSEC PostCheck for task {task.id}")
-                return status
+                    if task.command.script_only:
+                        task.status = "processed"
+                        task.status_timestamp_processed = task.timestamp
+                        task.completed = True
+                        asyncio.create_task(check_and_issue_task_callback_functions(task))
+                    else:
+                        task.status = "submitted"
+                        task.status_timestamp_submitted = datetime.utcnow()
+                await app.db_objects.update(task)
+                return {"status": "success"}
             else:
                 await app.db_objects.create(db_model.OperationEventLog, level="warning", operation=task.callback.operation,
                                         message=f"{user.username} failed to bypass an OPSEC PostCheck for task {task.id}")
