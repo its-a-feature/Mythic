@@ -106,13 +106,13 @@ func (c *C2Default) CheckIn(ip string, pid int, user string, host string, operat
 	c.QueryPathName = Config.QueryPathName
 
 	// Add proxy info if set
-	if len(Config.ProxyURL) > 0 && !strings.Contains(Config.ProxyURL, "proxy_host:proxy_port/") {
+	if len(Config.ProxyURL) > 0 && !strings.Contains(Config.ProxyURL, "proxy" + "_host:proxy" + "_port/") {
 		c.ProxyURL = Config.ProxyURL
 	} else {
 		c.ProxyURL = ""
 	}
 
-	if !strings.Contains(Config.ProxyUser, "proxy_user") && !strings.Contains(Config.ProxyPass, "proxy_pass") {
+	if !strings.Contains(Config.ProxyUser, "proxy" + "_user") && !strings.Contains(Config.ProxyPass, "proxy" + "_pass") {
 		if len(Config.ProxyUser) > 0 && len(Config.ProxyPass) > 0 {
 			c.ProxyUser = Config.ProxyUser
 			c.ProxyPass = Config.ProxyPass
