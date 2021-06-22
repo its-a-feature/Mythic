@@ -2,14 +2,12 @@ import {MythicTabPanel, MythicTabLabel} from '../../../components/MythicComponen
 import React, {useEffect, useRef} from 'react';
 import {useQuery, gql, useMutation, useLazyQuery } from '@apollo/client';
 import { TaskDisplay } from './TaskDisplay';
-import LinearProgress from '@material-ui/core/LinearProgress';
 import { useSnackbar } from 'notistack';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {TaskParametersDialog} from './TaskParametersDialog';
 import {CallbacksTabsTaskingInput} from './CallbacksTabsTaskingInput';
 import {useReactiveVar} from '@apollo/client';
 import { meState } from '../../../cache';
-import {getBrowserScripts, getSupportScripts, scriptsQuery} from '../../utilities/BrowserScriptHelpers';
 
 
 export function CallbacksTabsTaskingLabel(props){
@@ -18,7 +16,7 @@ export function CallbacksTabsTaskingLabel(props){
     )
 }
 const GetLoadedCommandsQuery = gql`
-query GetLoadedCommandsQuery($callback_id: Int!) {
+query GetLoadedCommandsQuery($callback_id: Int!, $payloadtype: String!) {
   loadedcommands(where: {callback_id: {_eq: $callback_id}}) {
     id
     command {
@@ -34,6 +32,18 @@ query GetLoadedCommandsQuery($callback_id: Int!) {
       }
     }
   }
+  command(where: {payloadtype: {ptype: {_eq: $payloadtype}}, script_only: {_eq: true}, deleted: {_eq: false}}){
+      id
+      cmd
+      help_cmd
+      description
+      needs_admin
+      payload_type_id
+      commandparameters {
+          id
+          type
+      }
+    }
 }
 `;
 export const createTaskingMutation = gql`
@@ -47,7 +57,7 @@ mutation createTasking($callback_id: Int!, $command: String!, $params: String!, 
 `;
 const getTaskingQuery = gql`
 query getTasking($callback_id: Int!){
-    task(where: {callback_id: {_eq: $callback_id}}, order_by: {id: asc}) {
+    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}}, order_by: {id: asc}) {
         comment
         commentOperator{
             username
@@ -72,69 +82,20 @@ query getTasking($callback_id: Int!){
         opsec_pre_bypassed
         opsec_post_blocked
         opsec_post_bypassed
+        tasks {
+            id
+        }
   }
 }
  `;
-const getTaskingSubscription = gql`
-subscription getNewUpdatedTaskingSubscription($callback_id: Int!) {
-  task(where: {callback_id: {_eq: $callback_id}}, limit: 1, order_by: {timestamp: desc}) {
-        comment
-        commentOperator{
-            username
-        }
-        completed
-        id
-        operator{
-            username
-        }
-        original_params
-        display_params
-        status
-        timestamp
-        command {
-          cmd
-          id
-        }
-        responses(order_by: {id: desc}) {
-          id
-        }
-        opsec_pre_blocked
-        opsec_pre_bypassed
-        opsec_post_blocked
-        opsec_post_bypassed
-  }
-}
- `;
-var browserscripts = {};
-var support_scripts = {};
+
 export const CallbacksTabsTaskingPanel = (props) =>{
     const { enqueueSnackbar } = useSnackbar();
     const me = useReactiveVar(meState);
     const [commands, setCommands] = React.useState([]);
-    const [browserScripts, setBrowserScripts] = React.useState({});
-    const [supportScripts, setSupportScripts] = React.useState({});
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
-    const [getScripts] = useLazyQuery(scriptsQuery, {
-        onCompleted: data => {
-            console.log(data);
-            //consolidate the browserscriptoperation and browserscript 
-            // operation scripts get applied instead of operator-specific scripts
-            try{
-                eval(getSupportScripts(data));
-                eval(getBrowserScripts(data));
-            }catch(error){
-                console.error(error);
-            }
-            console.log(browserscripts);
-            setBrowserScripts(browserscripts);
-            console.log(support_scripts);
-            setSupportScripts(supportScripts);
-        },
-        onError: data => {
-            console.error(data)
-        }
-    });
+    const [taskingData, setTaskingData] = React.useState({task: []});
     const [createTask] = useMutation(createTaskingMutation, {
         update: (cache, {data}) => {
             if(data.createTask.status === "error"){
@@ -148,7 +109,7 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         }
     });
     const {loading, error} = useQuery(GetLoadedCommandsQuery, {
-        variables: {callback_id: props.tabInfo.callbackID},
+        variables: {callback_id: props.tabInfo.callbackID, payloadtype: props.tabInfo.payloadtype},
         onCompleted: data => {
             const cmds = data.loadedcommands.map( (cmd) => {
                 return cmd.command;
@@ -160,27 +121,16 @@ export const CallbacksTabsTaskingPanel = (props) =>{
             console.error(data)
         }
         });
-    const [getTasking, { loading: taskingLoading, data: taskingData, subscribeToMore: subscribeToMoreTasks }] = useLazyQuery(getTaskingQuery, {
-        onCompleted: data => {
-            subscribeToMoreTasks({
-            document: getTaskingSubscription,
-            variables: {callback_id: props.tabInfo.callbackID},
-            updateQuery: (prev, {subscriptionData} ) => {
-                //console.log("got subscription data", subscriptionData);
-                if(!subscriptionData.data) return prev;
-                if(subscriptionData.data.task.length === 0) return prev;
-                const exists = prev.task.find(
-                  ({ id }) => id === subscriptionData.data.task[0].id
-                );
-                if (exists) return prev;
-                return Object.assign({}, prev, {
-                    task: [...prev.task, subscriptionData.data.task[0]]
-                });
-            },
-        })
-        },
+    const [getTasking, { loading: taskingLoading }] = useLazyQuery(getTaskingQuery, {
         onError: data => {
             console.error(data)
+        },
+        fetchPolicy: "network-only",
+        nextFetchPolicy: "network-only",
+        notifyOnNetworkStatusChange: true,
+        pollInterval: 1000,
+        onCompleted: (data) => {
+            setTaskingData(data);
         }
     });
     const messagesEndRef = useRef(null);
@@ -193,13 +143,7 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         getTasking({variables: {callback_id: props.tabInfo.callbackID} });
     }, [getTasking, props.tabInfo.callbackID]);
     
-    useEffect(scrollToBottom, [taskingData]);
-    useEffect( () => {
-        getScripts({variables: {operator_id: me.user.id, operation_id: me.user.current_operation_id } }); 
-    }, [getScripts, me.user.current_operation_id, me.user.id]);
-    if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}} />;
-    }
+    //useEffect(scrollToBottom, [taskingData]);
     if (error) {
      console.error(error);
      return <div>Error!</div>;
@@ -212,7 +156,6 @@ export const CallbacksTabsTaskingPanel = (props) =>{
             return;
         }
         const commandParams = commands.find(com => com.cmd === command);
-        console.log(commandParams);
         if(commandParams === undefined){
             enqueueSnackbar("Unknown command", {variant: "warning"});
             return; 
@@ -245,12 +188,10 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         <MythicTabPanel {...props} >
             <div style={{maxHeight: `calc(${props.maxHeight - 6}vh)`, overflow: "auto", height: `calc(${props.maxHeight - 6}vh)`}}>
             {
-             taskingLoading ? (<LinearProgress style={{marginTop: "10px"}}/>) : (taskingData &&
+                
                 taskingData.task.map( (task) => (
-                    <TaskDisplay key={"taskinteractdisplay" + task.id} task={task} command_id={task.command == null ? 0 : task.command.id} browserscripts={browserScripts}  />
+                    <TaskDisplay key={"taskinteractdisplay" + task.id} task={task} command_id={task.command == null ? 0 : task.command.id}  />
                 ))
-             )
-             
             }
             <div ref={messagesEndRef} />
             </div>
@@ -262,4 +203,3 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         </MythicTabPanel>
     )
 }
-CallbacksTabsTaskingPanel.whyDidYouRender = true;

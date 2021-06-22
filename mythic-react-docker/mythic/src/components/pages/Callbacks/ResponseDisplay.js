@@ -1,7 +1,6 @@
 import React, {useEffect} from 'react';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import {useSubscription, gql } from '@apollo/client';
-import {ResponseDisplayBrowserScript} from './ResponseDisplayBrowserScript';
 
 
 const subResponsesQuery = gql`
@@ -14,17 +13,12 @@ subscription subResponsesQuery($task_id: Int!) {
 
 export const ResponseDisplay = (props) =>{
     const [commandID, setCommandID] = React.useState(0);
-    const [browserScripts, setBrowserScripts] = React.useState({});
     const [task, setTask] = React.useState({});
-    const [enableBrowserscripts, setEnableBrowserscripts] = React.useState(true);
     const {loading, error, data} = useSubscription(subResponsesQuery, {variables: {task_id: props.task.id}, fetchPolicy: "cache-and-network"});
     useEffect( () => {
         setCommandID(props.command_id);
-        setBrowserScripts(props.browserscripts);
         setTask(props.task);
-        setEnableBrowserscripts(props.enable_browserscripts);
-        console.log(props.command_id, props.browserscripts);
-    }, [props.command_id, props.task, props.browserscripts, props.enable_browserscripts]);
+    }, [props.command_id, props.task]);
     
     if (loading) {
      return <LinearProgress style={{paddingTop: "10px"}}/>;
@@ -46,17 +40,13 @@ export const ResponseDisplay = (props) =>{
 
   return (
       <div style={{overflow: "auto", width: "100%"}}>
-        {commandID in browserScripts && browserScripts && enableBrowserscripts ? (
-            <ResponseDisplayBrowserScript browserScripts={browserScripts} commandID={commandID} task={task} data={data} />
-        ) : (
-            data.response.map( (response) => (
+        {data.response.map( (response) => (
                 <pre key={"task" + task.id + "resp" + response.id}>{response.response}</pre>
         ) ) 
-        ) }
+        }
         
       </div>
   )
       
 }
-ResponseDisplay.whyDidYouRender = true;
 

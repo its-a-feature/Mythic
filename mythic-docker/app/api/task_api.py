@@ -1648,39 +1648,43 @@ async def get_one_task_and_responses(request, tid, user):
             )
             callback = await app.db_objects.prefetch(db_model.callback_query.where(Callback.id == task.callback), db_model.CallbackToken.select())
             callback = list(callback)[0]
-            # get all artifacts associated with the task
-            artifacts = await app.db_objects.execute(db_model.taskartifact_query.where(
-                db_model.TaskArtifact.task == task
-            ))
-            # get all files associated with the task
-            files = await app.db_objects.execute(db_model.filemeta_query.where(
-                db_model.FileMeta.task == task
-            ))
-            # get all credentials associated with the task
-            credentials = await app.db_objects.execute(db_model.credential_query.where(
-                db_model.Credential.task == task
-            ))
-            attack = await app.db_objects.execute(db_model.attacktask_query.where(
-                db_model.ATTACKTask.task == task
-            ))
+            task_ids = [task.id]
             subtasks = await app.db_objects.execute(db_model.task_query.where(
                 db_model.Task.parent_task == task
             ))
+            subtask_json = []
+            for s in subtasks:
+                task_ids.append(s.id)
+                subtask_json.append({
+                    **s.to_json(), "callback": {"user": s.callback.user,
+                                                "host": s.callback.host,
+                                                "id": s.callback.id,
+                                                "integrity_level": s.callback.integrity_level,
+                                                "domain": s.callback.domain}
+                })
+            # get all artifacts associated with the task
+            artifacts = await app.db_objects.execute(db_model.taskartifact_query.where(
+                (db_model.TaskArtifact.task.in_(task_ids))
+            ).order_by(db_model.TaskArtifact.task.id))
+            # get all files associated with the task
+            files = await app.db_objects.execute(db_model.filemeta_query.where(
+                (db_model.FileMeta.task.in_(task_ids))
+            ))
+            # get all credentials associated with the task
+            credentials = await app.db_objects.execute(db_model.credential_query.where(
+                (db_model.Credential.task.in_(task_ids))
+            ))
+            attack = await app.db_objects.execute(db_model.attacktask_query.where(
+                (db_model.ATTACKTask.task.in_(task_ids))
+            ).distinct(db_model.ATTACK.t_num).order_by(db_model.ATTACK.t_num))
+
             task_json = task.to_json()
             task_json["callback"] = {"user": task.callback.user,
                                      "host": task.callback.host,
                                      "id": task.callback.id,
                                      "integrity_level": task.callback.integrity_level,
                                      "domain": task.callback.domain}
-            subtask_json = []
-            for s in subtasks:
-                subtask_json.append({
-                    **s.to_json(), "callback": {"user": s.callback.user,
-                                     "host": s.callback.host,
-                                     "id": s.callback.id,
-                                     "integrity_level": s.callback.integrity_level,
-                                     "domain": s.callback.domain}
-                })
+
             return json(
                 {
                     "status": "success",

@@ -7,6 +7,8 @@ export const lightTheme = {
     toggleBorder: '#FFF',
     background: '#363537',
     tableHeader: '#F5F5F5',
+    pageHeader: '#424242',
+    pageHeaderColor: 'white',
     listItemBackground: '#F5F5F5',
     menuItemBackground: "#FBFBFB",
     topAppBar: "",
@@ -20,14 +22,16 @@ export const lightTheme = {
     eventMessageBackgroundColor: "",
 }
 export const darkTheme = {
-    body: '#363537',
+    body: '#212121',
     text: 'white',
     textLighter: '#989898',
     textDarker: '#989898',
     toggleBorder: '#6B8096',
     background: '#999',
     tableHeader: '#484848',
-    listItemBackground: '#363537',
+    pageHeader: '#424242',
+    pageHeaderColor: 'white',
+    listItemBackground: '#303030',
     primaryButtonTextOnly: "#7e75ea",
     secondaryButtonTextOnly: "#ea7575",
     menuItemBackground: "#363537",
@@ -39,7 +43,7 @@ export const darkTheme = {
     tabHeaderBackground: "#363537",
     tabHeaderText: "white",
     tableLineColor: "grey",
-    eventMessageBackgroundColor: "#424242",
+    eventMessageBackgroundColor: "#303030",
 }
 export const muiTheme = createMuiTheme({
   palette: {

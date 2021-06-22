@@ -1,4 +1,4 @@
-From itsafeaturemythic/mythic_react:0.0.2
+From itsafeaturemythic/mythic_react:0.0.3
 
 COPY mythic/ /mythic/
 

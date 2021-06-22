@@ -13,13 +13,13 @@ export function MythicConfirmDialog(props) {
   return (
     <MythicDialog fullWidth={false} maxWidth="sm" open={props.open} onClose={()=>{props.onClose()}} innerDialog={
         <React.Fragment>
-            <DialogTitle >Are you sure?</DialogTitle>
+            <DialogTitle >{props.title ? (props.title) : ("Are you sure?")}</DialogTitle>
             <DialogActions>
               <Button onClick={props.onClose} color="primary">
-                Close
+                {props.cancelText ? (props.cancelText) : ("Close")}
               </Button>
               <Button onClick={handleSubmit} style={{color: muiTheme.palette.warning.main}}>
-                Remove
+                {props.acceptText ? (props.acceptText) : ("Remove")}
               </Button>
             </DialogActions>
         </React.Fragment>

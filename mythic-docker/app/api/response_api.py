@@ -22,7 +22,6 @@ import app.database_models.model as db_model
 import sys
 from sanic.exceptions import abort
 from math import ceil
-from sanic.log import logger
 from peewee import fn
 from app.api.siem_logger import log_to_siem
 from app.api.file_browser_api import add_upload_file_to_file_browser, mark_nested_deletes
@@ -33,6 +32,7 @@ from app.api.operation_api import send_all_operations_message
 from app.api.rabbitmq_api import create_processes
 from app.api.task_api import check_and_issue_task_callback_functions
 from sanic.log import logger
+from app.api.file_api import download_agent_file
 
 
 # This gets all responses in the database
@@ -541,6 +541,16 @@ async def post_agent_response(agent_message, callback):
                                                                        callback=task.callback,
                                                                        task=task))
                         parsed_response.pop("commands", None)
+                    if "upload" in parsed_response:
+                        if parsed_response["upload"] != {} and parsed_response["upload"] is not None and parsed_response["upload"] != "":
+                            rsp = await download_agent_file(parsed_response["upload"], in_response=True, task_id=task.agent_task_id)
+                            if rsp["status"] == "error":
+                                json_return_info["status"] = "error"
+                                json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                                    "error"] if "error" in json_return_info else rsp["error"]
+                            else:
+                                json_return_info = {**rsp, **json_return_info}
+                        parsed_response.pop("upload", None)
                     if "process_response" in parsed_response and parsed_response["process_response"] != "" and parsed_response["process_response"] is not None:
                         try:
                             rabbit_message = {"params": task.params, "command": task.command.cmd}
