@@ -1373,9 +1373,6 @@ async def get_rportfwd_data(callback: Callback):
         return default_struct
     dict_conn = jsonlib.dumps(dict_conn)
     default_struct.append(dict_conn)
-    with open("log.txt", "a") as file_object:
-        # Append 'hello' at the end of file
-        file_object.write(dict_conn+"\n")
     return default_struct
 
 def thread_send_rportfwds_data(callback_id: int,port: int):
@@ -1386,25 +1383,14 @@ def thread_send_rportfwds_data(callback_id: int,port: int):
             sub_class.subscribe(f"RPORTFWD:{callback_id}:FromAgent")
             for message in sub_class.listen():
                 if message["type"] == "message":
-                    with open("log.txt", "a") as file_object:
-                        # Append 'hello' at the end of file
-                        file_object.write("Printing JUST RECEIVED MESSAGE: "+str(message["data"])+ "\n")
                     data = js.loads(message["data"])
                     data = data[0]
                     data = data["data"]
-                    with open("log.txt", "a") as file_object:
-                        file_object.write("PHASE 2: "+str(data))
                     id = 0
                     try:
                         for local_port in data:
-                            with open("log.txt", "a") as file_object:
-                                file_object.write("PHASE 3: " + str(data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"])+"\n")
                             for i in data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"]:
-                                with open("log.txt", "a") as file_object:
-                                    file_object.write("PHASE 4: " + str(data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i])+"\n")
                                 for d in data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i]["packetid_value_relation"]:
-                                    with open("log.txt", "a") as file_object:
-                                        file_object.write("PACKET 5: " + str(data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i]["packetid_value_relation"][d])+"\n")
                                     cached_rportfwd[callback_id][int(port)]["connections"][int(i)]["queue_send"][int(d)] = data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i]["packetid_value_relation"][d]
 
                     except:
