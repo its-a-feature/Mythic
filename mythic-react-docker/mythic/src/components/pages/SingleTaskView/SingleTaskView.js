@@ -34,6 +34,9 @@ subscription subTaskQuery($task_id: Int!) {
         opsec_pre_bypassed
         opsec_post_blocked
         opsec_post_bypassed
+        tasks {
+            id
+        }
     }
 }`;
 var browserscripts = {};

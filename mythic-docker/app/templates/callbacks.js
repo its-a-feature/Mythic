@@ -2748,24 +2748,29 @@ var task_data = new Vue({
                 alertTop("warning", "No valid or active callback supplied");
                 return;
             }
-            this.ptype_cmd_params[callbacks[used_callback_num]['payload_type']].forEach(function (x) {
+            meta[used_callback_num]['commands'].forEach(function (x) {
+
                 if (x["supported_ui_features"].includes("file_browser:download") && !tasked) {
-                    //console.log(x);
-                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
-                        {
-                            "command": x['cmd'],
-                            "params": JSON.stringify({
-                                "host": data['host'],
-                                "path": data['parent_path'],
-                                "file": data['name']
-                            })
-                        });
-                    alertTop("info", "Tasked Callback " + used_callback_num + " to download file", 2);
-                    tasked = true;
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else{
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
+                            {
+                                "command": x['name'],
+                                "params": JSON.stringify({
+                                    "host": data['host'],
+                                    "path": data['parent_path'],
+                                    "file": data['name']
+                                })
+                            });
+                        alertTop("info", "Tasked Callback " + used_callback_num + " to download file", 2);
+                        tasked = true;
+                    }
+
                 }
             });
             if (!tasked) {
-                alertTop("warning", "Failed to find associated command for " + callbacks[task_data.callback]['payload_type'] + " to download files", 2);
+                alertTop("warning", "Failed to find associated command for file_browser:download in callback " + used_callback_num, 2);
             }
         },
         task_list_file: function (data) {
@@ -2775,24 +2780,27 @@ var task_data = new Vue({
                 alertTop("warning", "No valid or active callback supplied");
                 return;
             }
-            this.ptype_cmd_params[callbacks[used_callback_num]['payload_type']].forEach(function (x) {
-                if (x['supported_ui_features'].includes("file_browser:list") && !tasked) {
-                    //console.log(x);
-                    httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
-                        {
-                            "command": x['cmd'],
-                            "params": JSON.stringify({
-                                "host": data['host'],
-                                "path": data['parent_path'],
-                                "file": data['name']
-                            })
-                        });
-                    alertTop("info", "Tasked Callback " + used_callback_num + " to list file system", 2);
-                    tasked = true;
+            meta[used_callback_num]['commands'].forEach(function (x) {
+                if (x["supported_ui_features"].includes("file_browser:list") && !tasked) {
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else {
+                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
+                            {
+                                "command": x['name'],
+                                "params": JSON.stringify({
+                                    "host": data['host'],
+                                    "path": data['parent_path'],
+                                    "file": data['name']
+                                })
+                            });
+                        alertTop("info", "Tasked Callback " + used_callback_num + " to list file system", 2);
+                        tasked = true;
+                    }
                 }
             });
             if (!tasked) {
-                alertTop("warning", "Failed to find associated command for " + callbacks[used_callback_num]['payload_type'] + " to download files", 2);
+                alertTop("warning", "Failed to find associated command for file_browser:list in callback " + used_callback_num, 2);
             }
         },
         task_list_file_refresh: function () {
@@ -2809,6 +2817,42 @@ var task_data = new Vue({
                 "parent_path": this.path,
                 "name": ""
             });
+        },
+        task_remove_file: function(data){
+            let tasked = false;
+            let used_callback_num = task_data.manually_edit_file_browser_callback ? task_data.manual_file_browser_callback_num : task_data.callback;
+            if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
+                alertTop("warning", "No valid or active callback supplied");
+                return;
+            }
+            meta[used_callback_num]['commands'].forEach(function (x) {
+                if (x["supported_ui_features"].includes("file_browser:remove") && !tasked) {
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else {
+                        $('#fileDeleteTextArea').val("HOST:\n" + data["host"] + "\n\nFILE:\n" + data["full_path"]);
+                        $('#fileDeleteModal').modal('show');
+                        $('#fileDeleteSubmit').unbind('click').click(function () {
+                            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/callback/" + used_callback_num, post_task_callback_func, "POST",
+                                {
+                                    "command": x['name'],
+                                    "params": JSON.stringify({
+                                        "host": data['host'],
+                                        "path": data['parent_path'],
+                                        "file": data['name']
+                                    })
+                                });
+                            alertTop("info", "Tasked Callback " + used_callback_num + " to remove file", 2);
+
+                        });
+                        tasked = true;
+                    }
+                }
+            });
+            if (!tasked) {
+                alertTop("warning", "Failed to find associated command for file_browser:remove in callback " + used_callback_num, 2);
+            }
+
         },
         view_file_data: function (data) {
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/filebrowserobj/" + data['id'] + "/permissions", (response)=>{
@@ -2877,12 +2921,16 @@ var task_data = new Vue({
                 alertTop("warning", "No valid or active callback supplied");
                 return;
             }
-            this.ptype_cmd_params[callbacks[used_callback_num]['payload_type']].forEach(function (x) {
-                if (x['supported_ui_features'].includes("file_browser:upload") && !tasked) {
-                    //console.log(x);
-                    tasked = true;
-                    task_data.input_field = x['cmd'];
-                    task_data.task_button({"data": x['cmd'], "cid": used_callback_num});
+            meta[used_callback_num]['commands'].forEach(function (x) {
+                if (x["supported_ui_features"].includes("file_browser:upload") && !tasked) {
+                    if(x["attributes"]["supported_os"].length > 0  && !x["attributes"]["supported_os"].includes(callbacks[used_callback_num]["payload_os"])){
+
+                    }else {
+                        //console.log(x);
+                        tasked = true;
+                        task_data.input_field = x['name'];
+                        task_data.task_button({"data": x['name'], "cid": used_callback_num});
+                    }
                 }
             });
             if (!tasked) {
@@ -4040,13 +4088,17 @@ function update_loaded_commands(data){
         meta[data['callback']]['commands'] = [];
     }
     if(data['channel'].includes("new")){
-        meta[data['callback']]['commands'].push({"name": data['command'], "version": data["version"], "attributes": JSON.parse(data["attributes"])});
+        meta[data['callback']]['commands'].push({"name": data['command'],
+            "version": data["version"],
+            "attributes": JSON.parse(data["attributes"]),
+            "supported_ui_features": data["supported_ui_features"]});
         meta[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
     }else if(data['channel'].includes("updated")){
         for(let i = 0; i < meta[data['callback']]['commands'].length; i++){
             if(meta[data['callback']]['commands'][i]["name"] === data["command"]){
                 meta[data['callback']]['commands'][i]["version"] = data["version"];
                  meta[data['callback']]['commands'][i]["attributes"] = JSON.parse(data["attributes"]);
+                 meta[data['callback']]['commands'][i]["supported_ui_features"] = data["supported_ui_features"];
                 return;
             }
         }

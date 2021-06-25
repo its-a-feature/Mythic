@@ -24,6 +24,7 @@ query getOPSECQuery ($task_id: Int!) {
     opsec_pre_bypassed
     opsec_pre_bypass_user{
         username
+        id
     }
     opsec_post_blocked
     opsec_pre_bypass_role
@@ -32,6 +33,7 @@ query getOPSECQuery ($task_id: Int!) {
     opsec_post_bypass_role
     opsec_post_bypass_user{
         username
+        id
     }
     id
   }
@@ -46,16 +48,17 @@ export function TaskOpsecDialog(props) {
         variables: {task_id: props.task_id},
         onCompleted: data => {
             let message = "OPSEC PreCheck Message";
+            console.log(data);
             if(data.task_by_pk.opsec_pre_bypass_user !== null){
                 message += " (bypassed by " + data.task_by_pk.opsec_pre_bypass_user.username + ")";
             }
             message += ":\n\n" + data.task_by_pk.opsec_pre_message + "\n";
             if(data.task_by_pk.opsec_post_blocked){
                 message += "\nOPSEC PostCheck Message";
-                if(data.task_by_pk.opsec_post_bypass_user.username !== null){
+                if(data.task_by_pk.opsec_post_bypass_user !== null){
                     message += " (bypassed by " + data.task_by_pk.opsec_post_bypass_user.username + ")";
                 }
-                message += ":\n\n" + data.task_by_pk.opsec_post_messsage + "\n";
+                message += ":\n\n" + data.task_by_pk.opsec_post_message + "\n";
                 
             }
             setOpsecData(data.task_by_pk);

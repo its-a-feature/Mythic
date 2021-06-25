@@ -149,10 +149,12 @@ export function Callbacks(props){
         });
         console.log(tabID, tabType, callbackID, found);
         if(!found){
-            console.log(openTabs);
-            const tabs = [...openTabs, {tabID, tabType, callbackID}];
-            console.log("setting openTabs: ", tabs);
-            setOpenTabs(tabs);
+            for(let i = 0; i < data.callback.length; i++){
+              if(data.callback[i]["id"] === callbackID){
+                const tabs = [...openTabs, {tabID, tabType, callbackID, payloadtype: data.callback[i]["payload"]["payloadtype"]["ptype"]}];
+                setOpenTabs(tabs);
+              }
+            }
         }
         setClickedTabId(tabID);
     }

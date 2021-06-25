@@ -12,6 +12,8 @@ import clsx from 'clsx';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
 import VisibilityOffOutlinedIcon from '@material-ui/icons/VisibilityOffOutlined';
+import {ThemeContext} from 'styled-components';
+import { useContext} from 'react';
 
 const useToolbarStyles = makeStyles((theme) => ({
   root: {
@@ -35,33 +37,36 @@ const useToolbarStyles = makeStyles((theme) => ({
 
 const EnhancedTableToolbar = (props) => {
   const classes = useToolbarStyles();
+  const theme = useContext(ThemeContext);
   const { numSelected } = props;
 
   return (
-    <Toolbar
-      className={clsx(classes.root, {
-        [classes.highlight]: numSelected > 1,
-      })}
-    >
-      {numSelected > 1 ? (
-      <React.Fragment>
-        <Typography className={classes.title} color="inherit" variant="subtitle1" component="div">
-          {numSelected} selected
-        </Typography>
-        <Tooltip title="Hide Selected">
-          <IconButton aria-label="hide">
-            <VisibilityOffOutlinedIcon />
-          </IconButton>
-        </Tooltip>
-        </React.Fragment>
+    <React.Fragment>
+        {numSelected > 1 ? (
+          <Toolbar className={clsx(classes.root, {[classes.highlight]: numSelected > 1, })} >
+            <React.Fragment>
+              <Typography className={classes.title} color="inherit" variant="subtitle1" component="div">
+                {numSelected} selected
+              </Typography>
+              <Tooltip title="Hide Selected">
+                <IconButton aria-label="hide">
+                  <VisibilityOffOutlinedIcon />
+                </IconButton>
+              </Tooltip>
+            </React.Fragment>
+          </Toolbar>
       ) : (
-        <React.Fragment>
-            <Typography variant="h4" align="left" id="SettingsTable" component="div" style={{"display": "inline-block", "float": "left"}}>
-                  Active Callbacks
-            </Typography>
-        </React.Fragment> 
-      )}
-    </Toolbar>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader, marginBottom: "5px", marginTop: "10px", width: "100%"}} variant={"elevation"}>
+          <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+              Active Callbacks
+          </Typography>
+        </Paper>
+      )
+      }
+    </React.Fragment>
+    
+      
+    
   );
 };
 const useStyles = makeStyles((theme) => ({

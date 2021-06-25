@@ -12,6 +12,7 @@ query getPayloadTypesBuildParametersQuery($os: String!) {
     ptype
     note
     file_extension
+    supports_dynamic_loading
     buildparameters(where: {deleted: {_eq: false} }) {
       id
       name
@@ -61,7 +62,11 @@ export function Step2SelectPayloadType(props){
         const finishedParams = payloadTypeParameters.map( (param) => {
             return {"name": param.name, "value": param.value}
         });
-        props.finished({"payload_type": selectedPayloadType, "parameters": finishedParams, "file_extension": fileExtension, "supports_dynamic_loading": supportsDynamicLoading});
+        props.finished({"payload_type": selectedPayloadType, 
+                        "parameters": finishedParams, 
+                        "file_extension": fileExtension, 
+                        "supports_dynamic_loading": supportsDynamicLoading,
+                        "os": props.buildOptions});
     }
     const canceled = () => {
         props.canceled();
