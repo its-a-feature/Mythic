@@ -1340,47 +1340,42 @@ async def get_rportfwd_data(callback: Callback):
     if (bool(cached_rportfwd) == False):
         return default_struct
     dict_conn = {}
+    dict_conn["data"] ={}
     if callback.id in cached_rportfwd:
         for port in cached_rportfwd[callback.id]:
             id = 0
             rport = cached_rportfwd[callback.id][port]["rport"]
             rip = cached_rportfwd[callback.id][port]["rip"]
-            dict_conn[str(port)] = {}
-            dict_conn[str(port)][str(rport)] = {}
-            dict_conn[str(port)][str(rport)][str(rip)] = {}
+            dict_conn["data"][str(port)] = {}
+            dict_conn["data"][str(port)]["connection_packet_relation_dtg"] = {}
+            dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item1"] = str(rport)
+            dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item2"] = str(rip)
+            dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item3"] = {}
+            dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"] = {}
+
             if len(cached_rportfwd[callback.id][port]["connections"]) > 0:
                 for connection in cached_rportfwd[callback.id][port]["connections"]:
                     deq = 0
-                    dict_conn[str(port)][str(rport)][str(rip)][str(id)] = {}
+                    if (len(cached_rportfwd[callback.id][port]["connections"][id]["queue"]) > 0):
+                        dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][str(id)] = {}
+                        dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][str(id)]["packetid_value_relation"] = {}
                     while (len(cached_rportfwd[callback.id][port]["connections"][id]["queue"]) > 0):
                         try:
-                            dict_conn[str(port)][str(rport)][str(rip)][str(id)][cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"]] = connection["queue"].popleft()
+                            dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][str(id)]["packetid_value_relation"][cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"]] = {}
+                            dict_conn["data"][str(port)]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][str(id)]["packetid_value_relation"][cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"]] = connection["queue"].popleft()
                             cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] = cached_rportfwd[callback.id][port]["connections"][id]["last_msg_send"] + 1
                         except Exception as e:
                             print("Get Forwarded data error: " + str(e))
-                    # deque the rest for the next time, this avoids hanging connections
                     id = id + 1
 
-    # if len(data) > 0:
-    # print("******* SENDING THE FOLLOWING TO THE AGENT ******")
-    # print(data)
-    # json data in format:
-    # {"9090":{"445":{"10.0.0.1":{
-    #           "1":["base64Str","base64Str","base64Str"]
-    #           "2":["base64Str","base64Str","base64Str"]
-    #           "3":["base64Str","base64Str","base64Str"]
-    #         }}}
-    #  "9091":{"3389":{"10.0.0.2":{
-    #           "1":["base64Str","base64Str","base64Str"]
-    #           "2":["base64Str","base64Str","base64Str"]
-    #           "3":["base64Str","base64Str","base64Str"]
-    #         }}}
-    #   }
-    # }
+
     if (bool(dict_conn) == False):
         return default_struct
     dict_conn = jsonlib.dumps(dict_conn)
     default_struct.append(dict_conn)
+    with open("log.txt", "a") as file_object:
+        # Append 'hello' at the end of file
+        file_object.write(dict_conn+"\n")
     return default_struct
 
 def thread_send_rportfwds_data(callback_id: int,port: int):
@@ -1391,21 +1386,27 @@ def thread_send_rportfwds_data(callback_id: int,port: int):
             sub_class.subscribe(f"RPORTFWD:{callback_id}:FromAgent")
             for message in sub_class.listen():
                 if message["type"] == "message":
+                    with open("log.txt", "a") as file_object:
+                        # Append 'hello' at the end of file
+                        file_object.write("Printing JUST RECEIVED MESSAGE: "+str(message["data"])+ "\n")
                     data = js.loads(message["data"])
                     data = data[0]
+                    data = data["data"]
+                    with open("log.txt", "a") as file_object:
+                        file_object.write("PHASE 2: "+str(data))
                     id = 0
                     try:
-                        for data_key in data:
-                            for port in data[data_key]:
-                                for rport in data[data_key][port]:
-                                    for rip in data[data_key][port][rport]:
-                                        id = 0
-                                        for i in data[data_key][port][rport][rip]:
-                                            total_msg = b''
-                                            for d in data[data_key][port][rport][rip][i]:
-                                                cached_rportfwd[callback_id][int(port)]["connections"][int(i)]["queue_send"][int(d)] = data[data_key][port][rport][rip][i][d]
-                                                                                    #else:
-                                                    #print("****** NO CACHED PORTFWD, MUST BE CLOSED *******")
+                        for local_port in data:
+                            with open("log.txt", "a") as file_object:
+                                file_object.write("PHASE 3: " + str(data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"])+"\n")
+                            for i in data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"]:
+                                with open("log.txt", "a") as file_object:
+                                    file_object.write("PHASE 4: " + str(data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i])+"\n")
+                                for d in data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i]["packetid_value_relation"]:
+                                    with open("log.txt", "a") as file_object:
+                                        file_object.write("PACKET 5: " + str(data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i]["packetid_value_relation"][d])+"\n")
+                                    cached_rportfwd[callback_id][int(port)]["connections"][int(i)]["queue_send"][int(d)] = data[local_port]["connection_packet_relation_dtg"]["Item3"]["conn_packets_relation"][i]["packetid_value_relation"][d]
+
                     except:
                         pass
         except Exception as e:
