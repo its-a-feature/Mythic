@@ -106,11 +106,15 @@ async def store_response_into_filebrowserobj(operation, task, response):
                 parent_path=str(parent_path_str).encode("utf-8"),
             )
             filebrowserobj.task = task
-            filebrowserobj.permissions = js.dumps(response["permissions"]).encode("utf-8")
-            filebrowserobj.access_time = response["access_time"].encode("utf-8")
-            filebrowserobj.modify_time = response["modify_time"].encode("utf-8")
+            if "permissions" in response:
+                filebrowserobj.permissions = js.dumps(response["permissions"]).encode("utf-8")
+            if "access_time" in response:
+                filebrowserobj.access_time = str(response["access_time"]).encode("utf-8")
+            if "modify_time" in response:
+                filebrowserobj.modify_time = str(response["modify_time"]).encode("utf-8")
             filebrowserobj.size = str(response["size"]).encode("utf-8")
-            filebrowserobj.success = response["success"]
+            if "success" in response:
+                filebrowserobj.success = response["success"]
             filebrowserobj.deleted = False
             await app.db_objects.update(filebrowserobj)
         except Exception as e:
@@ -120,15 +124,15 @@ async def store_response_into_filebrowserobj(operation, task, response):
                 operation=operation,
                 host=response["host"].upper(),
                 name=response["name"].encode("utf-8"),
-                permissions=js.dumps(response["permissions"]).encode("utf-8"),
+                permissions=js.dumps(response["permissions"]).encode("utf-8") if "permissions" in response else js.dumps({}).encode("utf-8"),
                 parent=parent,
                 parent_path=str(parent_path_str).encode("utf-8"),
                 full_path=str(parent_path / response["name"]).encode("utf-8"),
-                access_time=response["access_time"].encode("utf-8"),
-                modify_time=response["modify_time"].encode("utf-8"),
+                access_time=str(response["access_time"]).encode("utf-8") if "access_time" in response else "".encode("utf-8"),
+                modify_time=str(response["modify_time"]).encode("utf-8") if "modify_time" in response else "".encode("utf-8"),
                 is_file=response["is_file"],
                 size=str(response["size"]).encode("utf-8"),
-                success=response["success"],
+                success=response["success"] if "success" in response else True,
             )
         if (
             not filebrowserobj.is_file
@@ -149,10 +153,16 @@ async def store_response_into_filebrowserobj(operation, task, response):
                         parent=filebrowserobj,
                         parent_path=str(parent_path).encode("utf-8"),
                     )
+                    if "permissions" not in f:
+                        f["permissions"] = {}
+                    if "access_time" not in f:
+                        f["access_time"] = ""
+                    if "modify_time" not in f:
+                        f["modify_time"] = ""
                     newfileobj.task = task
                     newfileobj.permissions = js.dumps(f["permissions"]).encode("utf-8")
-                    newfileobj.access_time = f["access_time"].encode("utf-8")
-                    newfileobj.modify_time = f["modify_time"].encode("utf-8")
+                    newfileobj.access_time = str(f["access_time"]).encode("utf-8")
+                    newfileobj.modify_time = str(f["modify_time"]).encode("utf-8")
                     newfileobj.size = str(f["size"]).encode("utf-8")
                     newfileobj.deleted = False
                     await app.db_objects.update(newfileobj)
@@ -163,11 +173,11 @@ async def store_response_into_filebrowserobj(operation, task, response):
                         operation=operation,
                         host=response["host"].upper(),
                         parent=filebrowserobj,
-                        permissions=js.dumps(f["permissions"]).encode("utf-8"),
+                        permissions=js.dumps(f["permissions"]).encode("utf-8") if "permissions" in f else js.dumps({}).encode("utf-8"),
                         parent_path=str(parent_path).encode("utf-8"),
-                        access_time=f["access_time"].encode("utf-8"),
-                        modify_time=f["modify_time"].encode("utf-8"),
-                        size=str(f["size"]).encode("utf-8"),
+                        access_time=str(f["access_time"]).encode("utf-8") if "access_time" in f else "".encode("utf-8"),
+                        modify_time=str(f["modify_time"]).encode("utf-8") if "modify_time" in f else "".encode("utf-8"),
+                        size=str(f["size"]).encode("utf-8") if "size" in f else "0".encode("utf-8"),
                         is_file=f["is_file"],
                         name=f["name"].encode("utf-8"),
                         full_path=str(parent_path / f["name"]).encode("utf-8"),

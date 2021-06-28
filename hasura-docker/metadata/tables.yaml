@@ -1101,20 +1101,34 @@
   - name: payload
     using:
       foreign_key_constraint_on: payload_id
+  computed_fields:
+  - name: dec_key_base64
+    definition:
+      function:
+        schema: public
+        name: c2profileparametersinstance_deckey
+  - name: enc_key_base64
+    definition:
+      function:
+        schema: public
+        name: c2profileparametersinstance_enckey
   select_permissions:
   - role: developer
     permission:
       columns:
-      - c2_profile_id
-      - c2_profile_parameters_id
-      - callback_id
-      - dec_key
-      - enc_key
       - id
+      - c2_profile_parameters_id
+      - c2_profile_id
+      - value
+      - enc_key
+      - dec_key
+      - payload_id
       - instance_name
       - operation_id
-      - payload_id
-      - value
+      - callback_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         _or:
         - operation_id:
@@ -1125,16 +1139,19 @@
   - role: mythic_admin
     permission:
       columns:
-      - dec_key
-      - enc_key
-      - c2_profile_id
-      - c2_profile_parameters_id
-      - callback_id
       - id
-      - operation_id
+      - c2_profile_parameters_id
+      - c2_profile_id
+      - value
+      - enc_key
+      - dec_key
       - payload_id
       - instance_name
-      - value
+      - operation_id
+      - callback_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         _or:
         - operation_id:
@@ -1145,16 +1162,19 @@
   - role: operation_admin
     permission:
       columns:
-      - dec_key
-      - enc_key
-      - c2_profile_id
-      - c2_profile_parameters_id
-      - callback_id
       - id
-      - operation_id
+      - c2_profile_parameters_id
+      - c2_profile_id
+      - value
+      - enc_key
+      - dec_key
       - payload_id
       - instance_name
-      - value
+      - operation_id
+      - callback_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         _or:
         - operation_id:
@@ -1165,16 +1185,19 @@
   - role: operator
     permission:
       columns:
-      - dec_key
-      - enc_key
-      - c2_profile_id
-      - c2_profile_parameters_id
-      - callback_id
       - id
-      - operation_id
+      - c2_profile_parameters_id
+      - c2_profile_id
+      - value
+      - enc_key
+      - dec_key
       - payload_id
       - instance_name
-      - value
+      - operation_id
+      - callback_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         _or:
         - operation_id:
@@ -1185,16 +1208,19 @@
   - role: spectator
     permission:
       columns:
-      - dec_key
-      - enc_key
-      - c2_profile_id
-      - c2_profile_parameters_id
-      - callback_id
       - id
-      - operation_id
+      - c2_profile_parameters_id
+      - c2_profile_id
+      - value
+      - enc_key
+      - dec_key
       - payload_id
       - instance_name
-      - value
+      - operation_id
+      - callback_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         _or:
         - operation_id:
@@ -2159,6 +2185,10 @@
 - table:
     schema: public
     name: credential
+  configuration:
+    custom_root_fields: {}
+    custom_column_names:
+      credential: credential_raw
   object_relationships:
   - name: operation
     using:
@@ -2169,6 +2199,12 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  computed_fields:
+  - name: credential_text
+    definition:
+      function:
+        schema: public
+        name: credential_credentials
   select_permissions:
   - role: developer
     permission:
@@ -2185,78 +2221,88 @@
       - comment
       - deleted
       - metadata
+      computed_fields:
+      - credential_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
-      - deleted
-      - credential
       - id
-      - operation_id
-      - operator_id
+      - type
       - task_id
       - account
-      - comment
-      - metadata
       - realm
-      - type
+      - operation_id
       - timestamp
+      - credential
+      - operator_id
+      - comment
+      - deleted
+      - metadata
+      computed_fields:
+      - credential_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: operation_admin
     permission:
       columns:
-      - deleted
-      - credential
       - id
-      - operation_id
-      - operator_id
+      - type
       - task_id
       - account
-      - comment
-      - metadata
       - realm
-      - type
+      - operation_id
       - timestamp
+      - credential
+      - operator_id
+      - comment
+      - deleted
+      - metadata
+      computed_fields:
+      - credential_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: operator
     permission:
       columns:
-      - deleted
-      - credential
       - id
-      - operation_id
-      - operator_id
+      - type
       - task_id
       - account
-      - comment
-      - metadata
       - realm
-      - type
+      - operation_id
       - timestamp
+      - credential
+      - operator_id
+      - comment
+      - deleted
+      - metadata
+      computed_fields:
+      - credential_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: spectator
     permission:
       columns:
-      - deleted
-      - credential
       - id
-      - operation_id
-      - operator_id
+      - type
       - task_id
       - account
-      - comment
-      - metadata
       - realm
-      - type
+      - operation_id
       - timestamp
+      - credential
+      - operator_id
+      - comment
+      - deleted
+      - metadata
+      computed_fields:
+      - credential_text
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -2316,6 +2362,22 @@
         table:
           schema: public
           name: filemeta
+  computed_fields:
+  - name: full_path_text
+    definition:
+      function:
+        schema: public
+        name: filebrowserobj_full_path
+  - name: name_text
+    definition:
+      function:
+        schema: public
+        name: filebrowserobj_name
+  - name: parent_path_text
+    definition:
+      function:
+        schema: public
+        name: filebrowserobj_parent_path
   select_permissions:
   - role: developer
     permission:
@@ -2337,98 +2399,118 @@
       - size
       - success
       - deleted
+      computed_fields:
+      - full_path_text
+      - name_text
+      - parent_path_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: mythic_admin
     permission:
       columns:
-      - deleted
-      - is_file
-      - success
-      - full_path
-      - name
-      - parent_path
       - id
-      - operation_id
-      - parent_id
       - task_id
-      - access_time
-      - comment
-      - host
-      - modify_time
-      - permissions
-      - size
       - timestamp
+      - operation_id
+      - host
+      - permissions
+      - name
+      - parent_id
+      - parent_path
+      - full_path
+      - access_time
+      - modify_time
+      - comment
+      - is_file
+      - size
+      - success
+      - deleted
+      computed_fields:
+      - full_path_text
+      - name_text
+      - parent_path_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: operation_admin
     permission:
       columns:
-      - deleted
-      - is_file
-      - success
-      - full_path
-      - name
-      - parent_path
       - id
-      - operation_id
-      - parent_id
       - task_id
-      - access_time
-      - comment
-      - host
-      - modify_time
-      - permissions
-      - size
       - timestamp
+      - operation_id
+      - host
+      - permissions
+      - name
+      - parent_id
+      - parent_path
+      - full_path
+      - access_time
+      - modify_time
+      - comment
+      - is_file
+      - size
+      - success
+      - deleted
+      computed_fields:
+      - full_path_text
+      - name_text
+      - parent_path_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: operator
     permission:
       columns:
-      - deleted
-      - is_file
-      - success
-      - full_path
-      - name
-      - parent_path
       - id
-      - operation_id
-      - parent_id
       - task_id
-      - access_time
-      - comment
-      - host
-      - modify_time
-      - permissions
-      - size
       - timestamp
+      - operation_id
+      - host
+      - permissions
+      - name
+      - parent_id
+      - parent_path
+      - full_path
+      - access_time
+      - modify_time
+      - comment
+      - is_file
+      - size
+      - success
+      - deleted
+      computed_fields:
+      - full_path_text
+      - name_text
+      - parent_path_text
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: spectator
     permission:
       columns:
-      - deleted
-      - is_file
-      - success
-      - full_path
-      - name
-      - parent_path
       - id
-      - operation_id
-      - parent_id
       - task_id
-      - access_time
-      - comment
-      - host
-      - modify_time
-      - permissions
-      - size
       - timestamp
+      - operation_id
+      - host
+      - permissions
+      - name
+      - parent_id
+      - parent_path
+      - full_path
+      - access_time
+      - modify_time
+      - comment
+      - is_file
+      - size
+      - success
+      - deleted
+      computed_fields:
+      - full_path_text
+      - name_text
+      - parent_path_text
       filter:
         operation_id:
           _in: X-Hasura-operations

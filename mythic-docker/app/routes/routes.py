@@ -9,7 +9,6 @@ from app import (
     mythic_db
 )
 import app
-import logging
 import asyncpg
 import redis
 from peewee_async import Manager
@@ -314,7 +313,7 @@ def request_timeout(request, exception):
 
 @mythic.exception(exceptions.AuthenticationFailed)
 async def handler_auth_failed(request, exception):
-    if "/new" in request.path or "webhook" in request.path or "/auth" in request.path:
+    if "/new" in request.path or "webhook" in request.path or "/auth" in request.path or "/refresh" in request.path:
         return json({"status": "error", "error": "Authentication failed", "message": "access-denied", "code": "access-denied"}, status=401)
     else:
         return response.redirect("/login")
@@ -322,7 +321,7 @@ async def handler_auth_failed(request, exception):
 
 @mythic.exception(Unauthorized)
 async def handler_auth_failed(request, exception):
-    if "/new" in request.path or "webhook" in request.path:
+    if "/new" in request.path or "webhook" in request.path or "/auth" in request.path or "/refresh" in request.path:
         return json({"status": "error", "error": "Authentication failed", "message": "Unauthorized", "code": "forbidden"}, status=403)
     else:
         return response.redirect("/login")
@@ -340,7 +339,7 @@ def catch_all(request, exception):
 @mythic.middleware("request")
 async def check_ips(request):
     if (
-        request.path in ["/login", "/register", "/auth", "/"]
+        request.path in ["/login", "/auth", "/"]
         or "/payloads/download/" in request.path
     ):
         ip = ip_address(request.headers["x-real-ip"] if "x-real-ip" in request.headers else request.ip)

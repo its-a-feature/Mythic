@@ -571,11 +571,15 @@ async def delete_c2profile_parameter_value_instance(request, instance_name, user
         return json({"status": "error", "error": "failed to get the c2 profile"})
 
 
-async def import_c2_profile_func(data, operator):
+async def import_c2_profile_func(data, operator, rabbitmqName):
     new_profile = False
     try:
         if "author" not in data:
             data["author"] = operator.username
+        if "name" not in data:
+            return {"status": "error", "error": "Missing name of the c2 profile"}
+        if data["name"] != rabbitmqName:
+            return {"status": "error", "error": f"Container name, {rabbitmqName}, doesn't match profile name, {data['name']}"}
         profile = await app.db_objects.get(db_model.c2profile_query, name=data["name"])
         profile.description = data["description"]
         profile.author = data["author"]

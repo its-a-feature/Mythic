@@ -530,7 +530,7 @@ function set_search_info(response){
 }
 function collapse_range(all_nums){
     // takes in an array of the expanded numbers and collapses it down
-    all_nums.sort();
+    all_nums.sort( (a,b) => a - b);
     // pulled from https://stackoverflow.com/a/2270987
     let ranges = [], rstart, rend;
     for (let i = 0; i < all_nums.length; i++) {

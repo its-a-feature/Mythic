@@ -59,7 +59,7 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
 
             try:
                 status = await import_c2_profile_func(
-                    json.loads(message.body.decode()), operator
+                    json.loads(message.body.decode()), operator, pieces[2]
                 )
             except Exception as e:
                 asyncio.create_task(send_all_operations_message(message="Failed Sync-ed database with {} C2 files: {}".format(
@@ -379,7 +379,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         from app.api.payloadtype_api import import_payload_type_func
                         try:
                             status = await import_payload_type_func(
-                                json.loads(message.body.decode()), operator
+                                json.loads(message.body.decode()), operator, pieces[2]
                             )
                             if status["status"] == "success":
                                 asyncio.create_task(send_all_operations_message(

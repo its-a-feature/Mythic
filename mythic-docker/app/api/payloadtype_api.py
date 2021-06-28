@@ -203,180 +203,218 @@ async def get_commands_for_payloadtype(request, user, ptype):
     return json({**status, "commands": all_commands})
 
 
-async def import_payload_type_func(ptype, operator):
+async def import_payload_type_func(ptype, operator, rabbitmqName):
     new_payload = False
-    try:
-        # print(ptype)
-        if "author" not in ptype:
-            ptype["author"] = operator.username if operator is not None else ""
-        if "note" not in ptype:
-            ptype["note"] = ""
-        if "ptype" not in ptype or ptype["ptype"] == "":
-            return {"status": "error", "error": "payload type must not be empty"}
-        if "mythic_encrypts" not in ptype or ptype["mythic_encrypts"] is None or ptype["mythic_encrypts"] == "":
-            ptype["mythic_encrypts"] = True
-        if "translation_container" in ptype and ptype["translation_container"] is not None:
-            try:
-                translation_container = await app.db_objects.get(db_model.translationcontainer_query,
-                                                                 name=ptype["translation_container"],
-                                                                 deleted=False)
-                ptype["translation_container"] = translation_container
-            except Exception as t:
-                logger.warning("payloadtype_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(t))
-                ptype["translation_container"] = None
-        else:
-            ptype["translation_container"] = None
+    async with app.db_objects.atomic():
         try:
-            payload_type = await app.db_objects.prefetch(
-                db_model.payloadtype_query.where(db_model.PayloadType.ptype == ptype["ptype"]),
-                db_model.buildparameter_query)
-            payload_type = payload_type[0]
-            payload_type.wrapper = ptype["wrapper"]
-            payload_type.supported_os = ptype["supported_os"]
-            payload_type.file_extension = ptype["file_extension"]
-            payload_type.author = ptype["author"]
-            payload_type.note = ptype["note"]
-            payload_type.supports_dynamic_loading = ptype[
-                "supports_dynamic_loading"
-            ]
-            payload_type.mythic_encrypts = ptype["mythic_encrypts"]
-
-            payload_type.translation_container = ptype[
-                "translation_container"] if "translation_container" in ptype else None
-        except Exception as e:
-            new_payload = True
-            payload_type = await app.db_objects.create(
-                PayloadType,
-                ptype=ptype["ptype"],
-                wrapper=ptype["wrapper"],
-                supported_os=ptype["supported_os"],
-                file_extension=ptype["file_extension"],
-                author=ptype["author"],
-                note=ptype["note"],
-                supports_dynamic_loading=ptype["supports_dynamic_loading"],
-                mythic_encrypts=ptype["mythic_encrypts"],
-                translation_container=ptype["translation_container"] if "translation_container" in ptype else None
-            )
-        if not ptype["wrapper"]:
-            # now deal with all of the wrapped payloads mentioned
-            # get the list of wrapper combinations associated with the current payload type
-            current_wrapped = await app.db_objects.execute(
-                db_model.wrappedpayloadtypes_query.where(
-                    db_model.WrappedPayloadTypes.wrapped == payload_type
-                )
-            )
-            # current_wrapped has list of wrapper->this_payload_type that currently exist in Mythic
-            for cw in current_wrapped:
-                found = False
-                # ptype["wrapped"] is a list of wrappers we support
-                for ptw in ptype["wrapped"]:
-                    if ptw == cw.wrapper.ptype:
-                        ptype["wrapped"].remove(ptw)
-                        found = True
-                        break
-                # if we get here, then there was a wrapping that's not supported anymore
-                if not found:
-                    await app.db_objects.delete(cw)
-            # if there's anything left in ptype['wrapped'], then we need to try to add them
-            for ptw in ptype["wrapped"]:
+            # print(ptype)
+            if "author" not in ptype:
+                ptype["author"] = operator.username if operator is not None else ""
+            if "note" not in ptype:
+                ptype["note"] = ""
+            if "ptype" not in ptype or ptype["ptype"] == "":
+                return {"status": "error", "error": "payload type must not be empty"}
+            if ptype["ptype"] != rabbitmqName:
+                return {"status": "error", "error": f"container name, {rabbitmqName}, trying to sync with a different agent name, {ptype['ptype']}"}
+            if "mythic_encrypts" not in ptype or ptype["mythic_encrypts"] is None or ptype["mythic_encrypts"] == "":
+                ptype["mythic_encrypts"] = True
+            if "translation_container" in ptype and ptype["translation_container"] is not None:
                 try:
-                    wrapped = await app.db_objects.get(db_model.payloadtype_query, ptype=ptw)
-                    await app.db_objects.create(
-                        db_model.WrappedPayloadTypes,
-                        wrapper=wrapped,
-                        wrapped=payload_type,
-                    )
-                except Exception as e:
-                    logger.warning("payloadtype_api.py - couldn't find wrapped payload in system, skipping: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                    pass
-        try:
-            payload_type.creation_time = datetime.datetime.utcnow()
-            await app.db_objects.update(payload_type)
-            # create any TransformCode entries as needed,just keep track of them
-            if "build_parameters" in ptype:
-                current_params = await app.db_objects.execute(
-                    db_model.buildparameter_query.where(
-                        (db_model.BuildParameter.payload_type == payload_type)
-                        & (db_model.BuildParameter.deleted == False)
+                    translation_container = await app.db_objects.get(db_model.translationcontainer_query,
+                                                                     name=ptype["translation_container"],
+                                                                     deleted=False)
+                    ptype["translation_container"] = translation_container
+                except Exception as t:
+                    logger.warning("payloadtype_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(t))
+                    ptype["translation_container"] = None
+            else:
+                ptype["translation_container"] = None
+            try:
+                payload_type = await app.db_objects.prefetch(
+                    db_model.payloadtype_query.where(db_model.PayloadType.ptype == ptype["ptype"]),
+                    db_model.buildparameter_query)
+                payload_type = payload_type[0]
+                payload_type.wrapper = ptype["wrapper"]
+                payload_type.supported_os = ptype["supported_os"]
+                payload_type.file_extension = ptype["file_extension"]
+                payload_type.author = ptype["author"]
+                payload_type.note = ptype["note"]
+                payload_type.supports_dynamic_loading = ptype[
+                    "supports_dynamic_loading"
+                ]
+                payload_type.mythic_encrypts = ptype["mythic_encrypts"]
+
+                payload_type.translation_container = ptype[
+                    "translation_container"] if "translation_container" in ptype else None
+            except Exception as e:
+                new_payload = True
+                payload_type = await app.db_objects.create(
+                    PayloadType,
+                    ptype=ptype["ptype"],
+                    wrapper=ptype["wrapper"],
+                    supported_os=ptype["supported_os"],
+                    file_extension=ptype["file_extension"],
+                    author=ptype["author"],
+                    note=ptype["note"],
+                    supports_dynamic_loading=ptype["supports_dynamic_loading"],
+                    mythic_encrypts=ptype["mythic_encrypts"],
+                    translation_container=ptype["translation_container"] if "translation_container" in ptype else None
+                )
+            if not ptype["wrapper"]:
+                # now deal with all of the wrapped payloads mentioned
+                # get the list of wrapper combinations associated with the current payload type
+                current_wrapped = await app.db_objects.execute(
+                    db_model.wrappedpayloadtypes_query.where(
+                        db_model.WrappedPayloadTypes.wrapped == payload_type
                     )
                 )
-                build_param_dict = {b.name: b for b in current_params}
-                for bp in ptype["build_parameters"]:
-                    if bp["name"] == "":
-                        continue
+                # current_wrapped has list of wrapper->this_payload_type that currently exist in Mythic
+                for cw in current_wrapped:
+                    found = False
+                    # ptype["wrapped"] is a list of wrappers we support
+                    for ptw in ptype["wrapped"]:
+                        if ptw == cw.wrapper.ptype:
+                            ptype["wrapped"].remove(ptw)
+                            found = True
+                            break
+                    # if we get here, then there was a wrapping that's not supported anymore
+                    if not found:
+                        await app.db_objects.delete(cw)
+                # if there's anything left in ptype['wrapped'], then we need to try to add them
+                for ptw in ptype["wrapped"]:
                     try:
-                        buildparam = await app.db_objects.get(
-                            db_model.buildparameter_query,
-                            payload_type=payload_type,
-                            name=bp["name"],
-                            deleted=False,
-                        )
-                        buildparam.parameter_type = bp["parameter_type"]
-                        buildparam.description = bp["description"]
-                        buildparam.required = bp["required"]
-                        buildparam.verifier_regex = bp["verifier_regex"]
-                        buildparam.parameter = bp["parameter"]
-                        await app.db_objects.update(buildparam)
-                        build_param_dict.pop(bp["name"], None)
-                    except Exception as e:
+                        wrapped = await app.db_objects.get(db_model.payloadtype_query, ptype=ptw)
                         await app.db_objects.create(
-                            db_model.BuildParameter,
-                            payload_type=payload_type,
-                            name=bp["name"],
-                            parameter_type=bp["parameter_type"],
-                            description=bp["description"],
-                            required=bp["required"],
-                            verifier_regex=bp["verifier_regex"],
-                            parameter=bp["parameter"],
+                            db_model.WrappedPayloadTypes,
+                            wrapper=wrapped,
+                            wrapped=payload_type,
                         )
-                for k, v in build_param_dict.items():
-                    v.deleted = True
-                    await app.db_objects.update(v)
-            # go through support scripts and add as necessary
-            # first find all that currently exist
-            support_scripts_db = await app.db_objects.execute(db_model.browserscript_query.where(
-                (db_model.BrowserScript.payload_type == payload_type) &
-                (db_model.BrowserScript.command == None) &
-                (db_model.BrowserScript.operator == None)
-            ))
-            support_scripts = {}
-            for s in support_scripts_db:
-                name = s.name + str(s.for_new_ui)
-                support_scripts[name] = s
-            if "support_scripts" in ptype:
-                for support_script in ptype["support_scripts"]:
-                    if "for_new_ui" not in support_script:
-                        support_script["for_new_ui"] = False
-                    support_scripts.pop(support_script["name"] + str(support_script["for_new_ui"]), None)
-                    try:
-                        # first update the base case,then loop through operators
-                        script = await app.db_objects.get(
-                            db_model.browserscript_query,
-                            name=support_script["name"],
-                            payload_type=payload_type,
-                            command=None,
-                            operator=None,
-                            for_new_ui=support_script["for_new_ui"]
-                        )
-                        script.container_version = support_script["script"]
-                        script.script = support_script["script"]
-                        script.container_version_author = support_script["author"]
-                        script.author = support_script["author"]
-                        await app.db_objects.update(script)
                     except Exception as e:
-                        await app.db_objects.create(
-                            db_model.BrowserScript,
-                            name=support_script["name"],
-                            script=support_script["script"],
-                            container_version=support_script["script"],
-                            payload_type=payload_type,
-                            author=support_script["author"],
-                            container_version_author=support_script["author"],
-                            command=None,
-                            operator=None,
-                            for_new_ui=support_script["for_new_ui"]
+                        logger.warning("payloadtype_api.py - couldn't find wrapped payload in system, skipping: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                        pass
+            try:
+                payload_type.creation_time = datetime.datetime.utcnow()
+                await app.db_objects.update(payload_type)
+                # create any TransformCode entries as needed,just keep track of them
+                if "build_parameters" in ptype:
+                    current_params = await app.db_objects.execute(
+                        db_model.buildparameter_query.where(
+                            (db_model.BuildParameter.payload_type == payload_type)
+                            & (db_model.BuildParameter.deleted == False)
                         )
-                    # now loop through all users
+                    )
+                    build_param_dict = {b.name: b for b in current_params}
+                    for bp in ptype["build_parameters"]:
+                        if bp["name"] == "":
+                            continue
+                        try:
+                            buildparam = await app.db_objects.get(
+                                db_model.buildparameter_query,
+                                payload_type=payload_type,
+                                name=bp["name"],
+                                deleted=False,
+                            )
+                            buildparam.parameter_type = bp["parameter_type"]
+                            buildparam.description = bp["description"]
+                            buildparam.required = bp["required"]
+                            buildparam.verifier_regex = bp["verifier_regex"]
+                            buildparam.parameter = bp["parameter"]
+                            await app.db_objects.update(buildparam)
+                            build_param_dict.pop(bp["name"], None)
+                        except Exception as e:
+                            await app.db_objects.create(
+                                db_model.BuildParameter,
+                                payload_type=payload_type,
+                                name=bp["name"],
+                                parameter_type=bp["parameter_type"],
+                                description=bp["description"],
+                                required=bp["required"],
+                                verifier_regex=bp["verifier_regex"],
+                                parameter=bp["parameter"],
+                            )
+                    for k, v in build_param_dict.items():
+                        v.deleted = True
+                        await app.db_objects.update(v)
+                # go through support scripts and add as necessary
+                # first find all that currently exist
+                support_scripts_db = await app.db_objects.execute(db_model.browserscript_query.where(
+                    (db_model.BrowserScript.payload_type == payload_type) &
+                    (db_model.BrowserScript.command == None) &
+                    (db_model.BrowserScript.operator == None)
+                ))
+                support_scripts = {}
+                for s in support_scripts_db:
+                    name = s.name + str(s.for_new_ui)
+                    support_scripts[name] = s
+                if "support_scripts" in ptype:
+                    for support_script in ptype["support_scripts"]:
+                        if "for_new_ui" not in support_script:
+                            support_script["for_new_ui"] = False
+                        support_scripts.pop(support_script["name"] + str(support_script["for_new_ui"]), None)
+                        try:
+                            # first update the base case,then loop through operators
+                            script = await app.db_objects.get(
+                                db_model.browserscript_query,
+                                name=support_script["name"],
+                                payload_type=payload_type,
+                                command=None,
+                                operator=None,
+                                for_new_ui=support_script["for_new_ui"]
+                            )
+                            script.container_version = support_script["script"]
+                            script.script = support_script["script"]
+                            script.container_version_author = support_script["author"]
+                            script.author = support_script["author"]
+                            await app.db_objects.update(script)
+                        except Exception as e:
+                            await app.db_objects.create(
+                                db_model.BrowserScript,
+                                name=support_script["name"],
+                                script=support_script["script"],
+                                container_version=support_script["script"],
+                                payload_type=payload_type,
+                                author=support_script["author"],
+                                container_version_author=support_script["author"],
+                                command=None,
+                                operator=None,
+                                for_new_ui=support_script["for_new_ui"]
+                            )
+                        # now loop through all users
+                        operators = await app.db_objects.execute(
+                            db_model.operator_query.where(db_model.Operator.deleted == False)
+                        )
+                        for op in operators:
+                            try:
+                                # first update the base case,then loop through operators
+                                script = await app.db_objects.get(
+                                    db_model.browserscript_query,
+                                    name=support_script["name"],
+                                    payload_type=payload_type,
+                                    operator=op,
+                                    command=None,
+                                    for_new_ui=support_script["for_new_ui"]
+                                )
+                                script.container_version = support_script["script"]
+                                script.container_version_author = support_script["author"]
+                                if not script.user_modified:
+                                    script.script = support_script["script"]
+                                    script.author = support_script["author"]
+                                await app.db_objects.update(script)
+                            except Exception as e:
+                                await app.db_objects.create(
+                                    db_model.BrowserScript,
+                                    name=support_script["name"],
+                                    script=support_script["script"],
+                                    container_version=support_script["script"],
+                                    operator=op,
+                                    payload_type=payload_type,
+                                    author=support_script["author"],
+                                    container_version_author=support_script["author"],
+                                    command=None,
+                                    for_new_ui=support_script["for_new_ui"]
+                                )
+                # if there's anything left in support_scripts, we need to delete them
+                for k, v in support_scripts.items():
                     operators = await app.db_objects.execute(
                         db_model.operator_query.where(db_model.Operator.deleted == False)
                     )
@@ -385,92 +423,57 @@ async def import_payload_type_func(ptype, operator):
                             # first update the base case,then loop through operators
                             script = await app.db_objects.get(
                                 db_model.browserscript_query,
-                                name=support_script["name"],
+                                name=v.name,
                                 payload_type=payload_type,
                                 operator=op,
                                 command=None,
-                                for_new_ui=support_script["for_new_ui"]
+                                for_new_ui=v.for_new_ui
                             )
-                            script.container_version = support_script["script"]
-                            script.container_version_author = support_script["author"]
-                            if not script.user_modified:
-                                script.script = support_script["script"]
-                                script.author = support_script["author"]
-                            await app.db_objects.update(script)
+                            await app.db_objects.delete(script)
                         except Exception as e:
-                            await app.db_objects.create(
-                                db_model.BrowserScript,
-                                name=support_script["name"],
-                                script=support_script["script"],
-                                container_version=support_script["script"],
-                                operator=op,
-                                payload_type=payload_type,
-                                author=support_script["author"],
-                                container_version_author=support_script["author"],
-                                command=None,
-                                for_new_ui=support_script["for_new_ui"]
-                            )
-            # if there's anything left in support_scripts, we need to delete them
-            for k, v in support_scripts.items():
-                operators = await app.db_objects.execute(
-                    db_model.operator_query.where(db_model.Operator.deleted == False)
-                )
-                for op in operators:
-                    try:
-                        # first update the base case,then loop through operators
-                        script = await app.db_objects.get(
-                            db_model.browserscript_query,
-                            name=v.name,
-                            payload_type=payload_type,
-                            operator=op,
-                            command=None,
-                            for_new_ui=v.for_new_ui
-                        )
-                        await app.db_objects.delete(script)
-                    except Exception as e:
-                        pass
-                await app.db_objects.delete(v)
-            # now that we have the payload type, start processing the commands and their parts
-            await import_command_func(payload_type, operator, ptype["commands"])
-            if "c2_profiles" in ptype:
-                current_c2 = await app.db_objects.execute(
-                    db_model.payloadtypec2profile_query.where(
-                        db_model.PayloadTypeC2Profile.payload_type == payload_type
-                    )
-                )
-                current_c2_dict = {c.c2_profile.name: c for c in current_c2}
-                for c2_profile_name in ptype["c2_profiles"]:
-                    try:
-                        c2_profile = await app.db_objects.get(db_model.c2profile_query, name=c2_profile_name)
-                        try:
-                            await app.db_objects.get(
-                                db_model.payloadtypec2profile_query, payload_type=payload_type, c2_profile=c2_profile
-                            )
-                            current_c2_dict.pop(c2_profile.name, None)
-                        except Exception as e:
-                            # it doesn't exist, so we create it
-                            await app.db_objects.create(
-                                PayloadTypeC2Profile,
-                                payload_type=payload_type,
-                                c2_profile=c2_profile,
-                            )
-                    except Exception as e:
-                        # print("Failed to associated c2 profile with payload type")
-                        continue  # just try to get the next c2_profile
-                # delete any mappings that used to exist but are no longer listed by the agent
-                for k, v in current_c2_dict.items():
+                            pass
                     await app.db_objects.delete(v)
-            payload_type = await app.db_objects.prefetch(
-                db_model.payloadtype_query.where(db_model.PayloadType.ptype == ptype["ptype"]),
-                db_model.buildparameter_query)
-            payload_type = payload_type[0]
-            return {"status": "success", "new": new_payload, **payload_type.to_json()}
+                # now that we have the payload type, start processing the commands and their parts
+                await import_command_func(payload_type, operator, ptype["commands"])
+                if "c2_profiles" in ptype:
+                    current_c2 = await app.db_objects.execute(
+                        db_model.payloadtypec2profile_query.where(
+                            db_model.PayloadTypeC2Profile.payload_type == payload_type
+                        )
+                    )
+                    current_c2_dict = {c.c2_profile.name: c for c in current_c2}
+                    for c2_profile_name in ptype["c2_profiles"]:
+                        try:
+                            c2_profile = await app.db_objects.get(db_model.c2profile_query, name=c2_profile_name)
+                            try:
+                                await app.db_objects.get(
+                                    db_model.payloadtypec2profile_query, payload_type=payload_type, c2_profile=c2_profile
+                                )
+                                current_c2_dict.pop(c2_profile.name, None)
+                            except Exception as e:
+                                # it doesn't exist, so we create it
+                                await app.db_objects.create(
+                                    PayloadTypeC2Profile,
+                                    payload_type=payload_type,
+                                    c2_profile=c2_profile,
+                                )
+                        except Exception as e:
+                            # print("Failed to associated c2 profile with payload type")
+                            continue  # just try to get the next c2_profile
+                    # delete any mappings that used to exist but are no longer listed by the agent
+                    for k, v in current_c2_dict.items():
+                        await app.db_objects.delete(v)
+                payload_type = await app.db_objects.prefetch(
+                    db_model.payloadtype_query.where(db_model.PayloadType.ptype == ptype["ptype"]),
+                    db_model.buildparameter_query)
+                payload_type = payload_type[0]
+                return {"status": "success", "new": new_payload, **payload_type.to_json()}
+            except Exception as e:
+                logger.exception("exception on importing payload type {}".format(payload_type.ptype))
+                return {"status": "error", "error": str(e)}
         except Exception as e:
-            logger.exception("exception on importing payload type {}".format(payload_type.ptype))
+            logger.exception("failed to import a payload type: " + str(e))
             return {"status": "error", "error": str(e)}
-    except Exception as e:
-        logger.exception("failed to import a payload type: " + str(e))
-        return {"status": "error", "error": str(e)}
 
 
 async def import_command_func(payload_type, operator, command_list):
