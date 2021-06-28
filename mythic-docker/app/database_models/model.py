@@ -251,7 +251,6 @@ class BuildParameter(p.Model):
     parameter = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
-        indexes = ((("name", "payload_type"), True),)
         database = mythic_db
 
     def to_json(self):
@@ -2907,6 +2906,20 @@ $function$"""
 AS $function$
   SELECT convert_from(credential_row.credential, 'utf8')
 $function$"""
+    func_enc_key = """CREATE OR REPLACE FUNCTION public.c2profileparametersinstance_enckey(c2profileparametersinstance_row c2profileparametersinstance)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT encode(c2profileparametersinstance_row.enc_key, 'base64')
+$function$"""
+    func_dec_key = """CREATE OR REPLACE FUNCTION public.c2profileparametersinstance_deckey(c2profileparametersinstance_row c2profileparametersinstance)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT encode(c2profileparametersinstance_row.dec_key, 'base64')
+$function$"""
     try:
         mythic_db.execute_sql(func_response_response)
         mythic_db.execute_sql(func_filemeta_filename)
@@ -2916,6 +2929,8 @@ $function$"""
         mythic_db.execute_sql(func_fileobj_full_path)
         mythic_db.execute_sql(func_artifact_instance)
         mythic_db.execute_sql(func_credential)
+        mythic_db.execute_sql(func_enc_key)
+        mythic_db.execute_sql(func_dec_key)
     except Exception as e:
         print(e)
 

@@ -736,7 +736,6 @@ async def unified_callback_callback(ws, operation, callback):
 async def ws_unified_single_callback_current_operation(request, ws, user, cid):
     if not await valid_origin_header(request):
         return
-    conn = None
     cb = None
     def callback_func(*args):
         asyncio.create_task(cb(*args))
@@ -754,54 +753,43 @@ async def ws_unified_single_callback_current_operation(request, ws, user, cid):
             while True:
                 await ws.send("")
                 await asyncio.sleep(1)
-        conn = await app.websocket_pool.acquire()
-        cb = await unified_callback_callback(ws, operation, callback)
-        await conn.add_listener("updatedcallback", callback_func)
-        await conn.add_listener("newtask", callback_func)
-        await conn.add_listener("updatedtask", callback_func)
-        await conn.add_listener("newfilemeta", callback_func)
-        await conn.add_listener("updatedfilemeta", callback_func)
-        await conn.add_listener("newloadedcommands", callback_func)
-        await conn.add_listener("updatedloadedcommands", callback_func)
-        await conn.add_listener("deletedloadedcommands", callback_func)
-        await conn.add_listener("newresponse", callback_func)
-        cur_loaded = await app.db_objects.execute(db_model.loadedcommands_query.where(
-            (db_model.LoadedCommands.callback == callback)
-        ))
-        for c in cur_loaded:
-            await ws.send(js.dumps({**c.to_json(), "channel": "newloadedcommand"}))
-        scripts_loaded = await app.db_objects.execute(db_model.command_query.where(
-            (db_model.Command.payload_type == callback.registered_payload.payload_type) &
-            (db_model.Command.script_only == True) &
-            (db_model.Command.deleted == False)
-        ))
-        for c in scripts_loaded:
-            await ws.send(js.dumps({
-                "id": 0,
-                "command": c.cmd,
-                "version": c.version,
-                "callback": cid,
-                "operator": "",
-                "attributes": c.attributes,
-                "supported_ui_features": c.supported_ui_features,
-                "channel": "newloadedcommand"}))
-        await ws.send("")
-        while True:
+        async with app.websocket_pool.acquire() as conn:
+            cb = await unified_callback_callback(ws, operation, callback)
+            await conn.add_listener("updatedcallback", callback_func)
+            await conn.add_listener("newtask", callback_func)
+            await conn.add_listener("updatedtask", callback_func)
+            await conn.add_listener("newfilemeta", callback_func)
+            await conn.add_listener("updatedfilemeta", callback_func)
+            await conn.add_listener("newloadedcommands", callback_func)
+            await conn.add_listener("updatedloadedcommands", callback_func)
+            await conn.add_listener("deletedloadedcommands", callback_func)
+            await conn.add_listener("newresponse", callback_func)
+            cur_loaded = await app.db_objects.execute(db_model.loadedcommands_query.where(
+                (db_model.LoadedCommands.callback == callback)
+            ))
+            for c in cur_loaded:
+                await ws.send(js.dumps({**c.to_json(), "channel": "newloadedcommand"}))
+            scripts_loaded = await app.db_objects.execute(db_model.command_query.where(
+                (db_model.Command.payload_type == callback.registered_payload.payload_type) &
+                (db_model.Command.script_only == True) &
+                (db_model.Command.deleted == False)
+            ))
+            for c in scripts_loaded:
+                await ws.send(js.dumps({
+                    "id": 0,
+                    "command": c.cmd,
+                    "version": c.version,
+                    "callback": cid,
+                    "operator": "",
+                    "attributes": c.attributes,
+                    "supported_ui_features": c.supported_ui_features,
+                    "channel": "newloadedcommand"}))
             await ws.send("")
-            await asyncio.sleep(1)
+            while True:
+                await ws.send("")
+                await asyncio.sleep(1)
     except Exception as e:
         logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(e))
-    finally:
-        if conn is not None:
-            await conn.remove_listener("updatedcallback", callback_func)
-            await conn.remove_listener("newtask", callback_func)
-            await conn.remove_listener("updatedtask", callback_func)
-            await conn.remove_listener("newfilemeta", callback_func)
-            await conn.remove_listener("updatedfilemeta", callback_func)
-            await conn.remove_listener("newloadedcommands", callback_func)
-            await conn.remove_listener("updatedloadedcommands", callback_func)
-            await conn.remove_listener("deletedloadedcommands", callback_func)
-            await conn.remove_listener("newresponse", callback_func)
 
 
 async def updatedcallback_callback(ws, operation):
@@ -824,7 +812,6 @@ async def updatedcallback_callback(ws, operation):
 async def ws_callbacks_updated_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-    conn = None
     cb = None
     def callback_func(*args):
         asyncio.create_task(cb(*args))
@@ -832,17 +819,15 @@ async def ws_callbacks_updated_current_operation(request, ws, user):
         operation = await app.db_objects.get(
             db_model.operation_query, name=user["current_operation"]
         )
-        conn = await app.websocket_pool.acquire()
-        cb = await updatedcallback_callback(ws, operation)
-        await conn.add_listener("updatedcallback", callback_func)
-        while True:
-            await ws.send("")
-            await asyncio.sleep(1)
+        async with app.websocket_pool.acquire() as conn:
+            cb = await updatedcallback_callback(ws, operation)
+            await conn.add_listener("updatedcallback", callback_func)
+            while True:
+                await ws.send("")
+                await asyncio.sleep(1)
     except Exception as t:
         logger.warning("websocket_routes.py error - " + str(sys.exc_info()[-1].tb_lineno) +str(t))
-    finally:
-        if conn is not None:
-            await conn.remove_listener("updatedcallback", callback_func)
+
 
 # --------------- PAYLOADS -----------------------
 # notifications for new payloads
@@ -2048,7 +2033,6 @@ async def parameter_hints_callback(ws, operation):
 async def ws_parameter_hints_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-    conn = None
     cb = None
     def callback_func(*args):
         asyncio.create_task(cb(*args))
@@ -2063,144 +2047,136 @@ async def ws_parameter_hints_current_operation(request, ws, user):
             while True:
                 await ws.send("")
                 await asyncio.sleep(2)
-        conn = await app.websocket_pool.acquire()
-        cb = await parameter_hints_callback(ws, operation)
+        async with app.websocket_pool.acquire() as conn:
+            cb = await parameter_hints_callback(ws, operation)
 
-        await conn.add_listener("newcredential", callback_func)
-        await conn.add_listener("updatedcredential", callback_func)
-        await conn.add_listener("newpayload", callback_func)
-        await conn.add_listener("updatedpayload", callback_func)
-        await conn.add_listener("newpayloadonhost", callback_func)
-        await conn.add_listener("updatedpayloadonhost", callback_func)
-        # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
-        creds = await app.db_objects.execute(
-            db_model.credential_query.where(
-                (Credential.operation == operation)
-                & (Credential.deleted == False)
-            )
-        )
-        for c in creds:
-            await ws.send(
-                js.dumps({**c.to_json(), "channel": "newcredential"})
-            )
-        payloads = await app.db_objects.prefetch(
-            db_model.payload_query.where(
-                (Payload.operation == operation)
-                & (Payload.deleted == False)
-                & (Payload.build_phase == "success")
-            ), db_model.buildparameterinstance_query, db_model.filemeta_query
-        )
-        for p in payloads:
-            if p.wrapped_payload is not None:
-                cur_payload = p.wrapped_payload
-            else:
-                cur_payload = p
-            c2profiles = await app.db_objects.execute(
-                db_model.payloadc2profiles_query.where(
-                    db_model.PayloadC2Profiles.payload == cur_payload
+            await conn.add_listener("newcredential", callback_func)
+            await conn.add_listener("updatedcredential", callback_func)
+            await conn.add_listener("newpayload", callback_func)
+            await conn.add_listener("updatedpayload", callback_func)
+            await conn.add_listener("newpayloadonhost", callback_func)
+            await conn.add_listener("updatedpayloadonhost", callback_func)
+            # BEFORE WE START GETTING NEW THINGS, UPDATE WITH ALL OF THE OLD DATA
+            creds = await app.db_objects.execute(
+                db_model.credential_query.where(
+                    (Credential.operation == operation)
+                    & (Credential.deleted == False)
                 )
             )
-            build_parameters = []
-            if p.build_parameters is not None:
-                for bp in p.build_parameters:
-                    build_parameters.append({"name": bp.build_parameter.name, "value": bp.parameter})
-            supported_profiles = []
-            for c2p in c2profiles:
-                profile_info = {
-                    "name": c2p.c2_profile.name,
-                    "is_p2p": c2p.c2_profile.is_p2p,
-                    "parameters": {},
-                }
-                c2profiledata = await app.db_objects.execute(
-                    db_model.c2profileparametersinstance_query.where(
-                        (
-                            db_model.C2ProfileParametersInstance.payload
-                            == cur_payload
-                        )
-                        & (
-                            db_model.C2ProfileParametersInstance.c2_profile
-                            == c2p.c2_profile
-                        )
+            for c in creds:
+                await ws.send(
+                    js.dumps({**c.to_json(), "channel": "newcredential"})
+                )
+            payloads = await app.db_objects.prefetch(
+                db_model.payload_query.where(
+                    (Payload.operation == operation)
+                    & (Payload.deleted == False)
+                    & (Payload.build_phase == "success")
+                ), db_model.buildparameterinstance_query, db_model.filemeta_query
+            )
+            for p in payloads:
+                if p.wrapped_payload is not None:
+                    cur_payload = p.wrapped_payload
+                else:
+                    cur_payload = p
+                c2profiles = await app.db_objects.execute(
+                    db_model.payloadc2profiles_query.where(
+                        db_model.PayloadC2Profiles.payload == cur_payload
                     )
                 )
-                for c in c2profiledata:
-                    profile_info["parameters"][
-                        c.c2_profile_parameters.name
-                    ] = c.value
-                supported_profiles.append(profile_info)
-            await ws.send(
-                js.dumps(
-                    {
-                        **p.to_json(),
-                        "supported_profiles": supported_profiles,
-                        "channel": "newpayload",
-                        "build_parameters": build_parameters
+                build_parameters = []
+                if p.build_parameters is not None:
+                    for bp in p.build_parameters:
+                        build_parameters.append({"name": bp.build_parameter.name, "value": bp.parameter})
+                supported_profiles = []
+                for c2p in c2profiles:
+                    profile_info = {
+                        "name": c2p.c2_profile.name,
+                        "is_p2p": c2p.c2_profile.is_p2p,
+                        "parameters": {},
                     }
-                )
-            )
-        payloadonhost = await app.db_objects.prefetch(
-            db_model.payloadonhost_query.where(
-                (db_model.PayloadOnHost.operation == operation)
-                & (db_model.PayloadOnHost.deleted == False)
-            ), db_model.payload_query, db_model.filemeta_query
-        )
-        for p in payloadonhost:
-            if p.payload.wrapped_payload is not None:
-                cur_payload = p.payload.wrapped_payload
-            else:
-                cur_payload = p.payload
-            c2profiles = await app.db_objects.execute(
-                db_model.payloadc2profiles_query.where(
-                    db_model.PayloadC2Profiles.payload == cur_payload
-                )
-            )
-            supported_profiles = []
-            for c2p in c2profiles:
-                profile_info = {
-                    "name": c2p.c2_profile.name,
-                    "is_p2p": c2p.c2_profile.is_p2p,
-                    "parameters": {},
-                }
-                c2profiledata = await app.db_objects.execute(
-                    db_model.c2profileparametersinstance_query.where(
-                        (
-                            db_model.C2ProfileParametersInstance.payload
-                            == cur_payload
-                        )
-                        & (
-                            db_model.C2ProfileParametersInstance.c2_profile
-                            == c2p.c2_profile
+                    c2profiledata = await app.db_objects.execute(
+                        db_model.c2profileparametersinstance_query.where(
+                            (
+                                db_model.C2ProfileParametersInstance.payload
+                                == cur_payload
+                            )
+                            & (
+                                db_model.C2ProfileParametersInstance.c2_profile
+                                == c2p.c2_profile
+                            )
                         )
                     )
+                    for c in c2profiledata:
+                        profile_info["parameters"][
+                            c.c2_profile_parameters.name
+                        ] = c.value
+                    supported_profiles.append(profile_info)
+                await ws.send(
+                    js.dumps(
+                        {
+                            **p.to_json(),
+                            "supported_profiles": supported_profiles,
+                            "channel": "newpayload",
+                            "build_parameters": build_parameters
+                        }
+                    )
                 )
-                for c in c2profiledata:
-                    profile_info["parameters"][
-                        c.c2_profile_parameters.name
-                    ] = c.value
-                supported_profiles.append(profile_info)
-            await ws.send(
-                js.dumps(
-                    {
-                        **p.to_json(),
-                        "supported_profiles": supported_profiles,
-                        "channel": "newpayloadonhost",
-                    }
-                )
+            payloadonhost = await app.db_objects.prefetch(
+                db_model.payloadonhost_query.where(
+                    (db_model.PayloadOnHost.operation == operation)
+                    & (db_model.PayloadOnHost.deleted == False)
+                ), db_model.payload_query, db_model.filemeta_query
             )
-        await ws.send("")
-        while True:
+            for p in payloadonhost:
+                if p.payload.wrapped_payload is not None:
+                    cur_payload = p.payload.wrapped_payload
+                else:
+                    cur_payload = p.payload
+                c2profiles = await app.db_objects.execute(
+                    db_model.payloadc2profiles_query.where(
+                        db_model.PayloadC2Profiles.payload == cur_payload
+                    )
+                )
+                supported_profiles = []
+                for c2p in c2profiles:
+                    profile_info = {
+                        "name": c2p.c2_profile.name,
+                        "is_p2p": c2p.c2_profile.is_p2p,
+                        "parameters": {},
+                    }
+                    c2profiledata = await app.db_objects.execute(
+                        db_model.c2profileparametersinstance_query.where(
+                            (
+                                db_model.C2ProfileParametersInstance.payload
+                                == cur_payload
+                            )
+                            & (
+                                db_model.C2ProfileParametersInstance.c2_profile
+                                == c2p.c2_profile
+                            )
+                        )
+                    )
+                    for c in c2profiledata:
+                        profile_info["parameters"][
+                            c.c2_profile_parameters.name
+                        ] = c.value
+                    supported_profiles.append(profile_info)
+                await ws.send(
+                    js.dumps(
+                        {
+                            **p.to_json(),
+                            "supported_profiles": supported_profiles,
+                            "channel": "newpayloadonhost",
+                        }
+                    )
+                )
             await ws.send("")
-            await asyncio.sleep(1)
+            while True:
+                await ws.send("")
+                await asyncio.sleep(1)
     except Exception as t:
         logger.warning("websocket_routes.py " + str(sys.exc_info()[-1].tb_lineno) + " param_hints error: " + str(t))
-    finally:
-        if conn is not None:
-            await conn.remove_listener("newcredential", callback_func)
-            await conn.remove_listener("updatedcredential", callback_func)
-            await conn.remove_listener("newpayload", callback_func)
-            await conn.remove_listener("updatedpayload", callback_func)
-            await conn.remove_listener("newpayloadonhost", callback_func)
-            await conn.remove_listener("updatedpayloadonhost", callback_func)
 
 
 # ============= BROWSER SCRIPTING WEBSOCKETS ===============
@@ -2497,6 +2473,8 @@ async def events_current_operation_callback(ws, operation):
 async def ws_events_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
+    def callback_func(*args):
+        asyncio.create_task(cb(*args))
     try:
         if user["current_operation"] != "":
             operation = await app.db_objects.get(
@@ -2509,9 +2487,8 @@ async def ws_events_current_operation(request, ws, user):
                 await asyncio.sleep(2)
         async with app.websocket_pool.acquire() as conn:
             cb = await events_current_operation_callback(ws, operation)
-            await conn.add_listener("newoperationeventlog", lambda *args: asyncio.get_event_loop().create_task(cb(*args)))
-            await conn.add_listener("updatedoperationeventlog",
-                                    lambda *args: asyncio.get_event_loop().create_task(cb(*args)))
+            await conn.add_listener("newoperationeventlog", callback_func)
+            await conn.add_listener("updatedoperationeventlog", callback_func)
 
             initial_events = await app.db_objects.execute(
                 db_model.operationeventlog_query.where(
@@ -2543,7 +2520,6 @@ async def ws_events_current_operation(request, ws, user):
 async def ws_events_notifier_current_operation(request, ws, user):
     if not await valid_origin_header(request):
         return
-    conn = None
     cb = None
 
     def callback_func(*args):
@@ -2558,35 +2534,29 @@ async def ws_events_notifier_current_operation(request, ws, user):
             while True:
                 await ws.send("")
                 await asyncio.sleep(2)
-        conn = await app.websocket_pool.acquire()
-        cb = await events_current_operation_callback(ws, operation)
-        await conn.add_listener("newoperationeventlog",
-                                callback_func)
-        await conn.add_listener("updatedoperationeventlog",
-                                callback_func)
+        async with app.websocket_pool.acquire() as conn:
+            cb = await events_current_operation_callback(ws, operation)
+            await conn.add_listener("newoperationeventlog",
+                                    callback_func)
+            await conn.add_listener("updatedoperationeventlog",
+                                    callback_func)
 
-        from app.api.event_message_api import get_old_event_alerts
+            from app.api.event_message_api import get_old_event_alerts
 
-        alert_counts = await get_old_event_alerts(user)
-        if alert_counts["status"] == "success":
-            alert_counts.pop("status", None)
-            alert_counts["channel"] = "historic"
-            await ws.send(js.dumps(alert_counts))
-        else:
-            print(alert_counts["error"])
-            return
-        await ws.send("")
-        while True:
+            alert_counts = await get_old_event_alerts(user)
+            if alert_counts["status"] == "success":
+                alert_counts.pop("status", None)
+                alert_counts["channel"] = "historic"
+                await ws.send(js.dumps(alert_counts))
+            else:
+                print(alert_counts["error"])
+                return
             await ws.send("")
-            await asyncio.sleep(1)
+            while True:
+                await ws.send("")
+                await asyncio.sleep(1)
     except Exception as t:
         logger.warning("websocket_routes.py error: " + str(t))
-    finally:
-        if conn is not None:
-            await conn.remove_listener("newoperationeventlog",
-                                    callback_func)
-            await conn.remove_listener("updatedoperationeventlog",
-                                    callback_func)
 
 
 # -------------- CALLBACK GRAPH EDGE CONNECTIONS ----------------------
