@@ -368,8 +368,10 @@ async def setup_initial_info(sanic, loop):
 
 async def initial_setup():
     # create mythic_admin
+    import multiprocessing
+    max_worker_connection = int(400 / (multiprocessing.cpu_count() + 1))
     app.websocket_pool = await asyncpg.create_pool(mythic.config["DB_POOL_ASYNCPG_CONNECT_STRING"],
-                                                   max_size=400)
+                                                   max_size=max_worker_connection)
     # redis automatically creates a pool behind the scenes
     app.redis_pool = redis.Redis(host="127.0.0.1", port=app.redis_port, db=0)
     # clear the database on start
