@@ -59,7 +59,18 @@
                      </div>
                     {% endif %}
                     {% if view_mode == 'operator' %}
-                    <button :disabled="!p.container_running" class="btn btn{{config['outline-buttons']}}warning btn-sm" type="button" @click="configure_server(p)"><i class="fas fa-edit"></i> Configure</button>
+                    <div class="dropdown" style="display:inline">
+                        <button class="btn btn{{config['outline-buttons']}}warning dropdown-toggle btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" :data-target="p.name + 'edit_button'">
+                            <i class="fas fa-edit"></i> Configure
+                          </button>
+                          <div class="dropdown-menu" :id="p.name + 'edit_button'">
+                              <button class="dropdown-item" @click="update_button(p)">View Info</button>
+                              <button class="dropdown-item" @click="parameters_button(p)">View Parameters</button>
+                              <template v-if="p.container_running">
+                                  <button :disabled="!p.container_running" class="dropdown-item" @click="configure_server(p)">Configure Server</button>
+                              </template>
+                          </div>
+                     </div>
                     {% endif %}
                     <a class="btn btn{{config['outline-buttons']}}info btn-sm" :href="'/docs/c2-profiles/' + p.name.toLowerCase()" target="_blank" data-toggle="tooltip" title="View Documentation" style="display:inline-block"><i class="fas fa-file-alt"></i> </a>
                 </td>
@@ -156,10 +167,6 @@
                     <td>Is this Server Routed?</td>
                     <td><span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" v-model="is_server_routed" id="profileUpdateIsServerRouted"><label for="profileUpdateIsServerRouted" class="btn-info"></label></span></td>
                 </tr>
-                <tr >
-                    <td>Does Mythic handle encryption?</td>
-                    <td><span class="material-switch pull-right"><input class="form-control" disabled type="checkbox" v-model="mythic_encrypts" id="profileUpdateMythicEncrypts"><label for="profileUpdateMythicEncrypts" class="btn-info"></label></span></td>
-                </tr>
             </table>
         </div>
 	    <div class="modal-footer">
@@ -215,6 +222,44 @@
                             <template v-if="i.randomize">
                                 Randomization Regex - On each instance, a new value matching the below regex will be generated:
                                  <input class="form-control" disabled type="text" :value="i.format_string" v-model="i.format_string" style="width:100%">
+                            </template>
+
+                            <template v-if="i.crypto_type">
+                                In your build function, for this parameter you will get a dictionary with the following information:
+                                 <textarea disabled class="form-control" type="text" style="width:100%" rows="5">
+{
+  "enc_key": "base64 of encryption key or None",
+  "dec_key": "base64 of decryption key or None",
+  "value": "the choice the user selected from the choices in the default value section above"
+}</textarea>
+                            </template>
+                            <template v-else-if="i.parameter_type === 'Dictionary'">
+                                In your build function, for this parameter you will get an array with the following information. You can either use something like "json.dumps" to dump the entire array as a string into your agent code or you can iterate over it and leverage each key and value as you need throughout your code.
+                                <textarea disabled class="form-control" type="text" style="width:100%" rows="12">
+[
+{
+  "name": "Temporary name that the user sees. This will often match the key unless the user is able to add their own",
+  "key": "The final name for the key to be used",
+  "value": "The final value that the user wrote in or left as default",
+  "custom": true or false
+},
+{
+  "name": "Temporary name that the user sees. This will often match the key unless the user is able to add their own",
+  "key": "The final name for the key to be used",
+  "value": "The final value that the user wrote in or left as default",
+  "custom": true or false
+}
+</textarea>
+                                You will likely only need the "key" and "value" elements from each of these dictionaries, but the other components are provided in case you want to easily check if an entry was one you supplied or one the user added in.
+                            </template>
+                            <template v-else-if="i.parameter_type === 'ChooseOne'">
+                                In your build function, for this parameter you will get whichever option the user chose. The default choice is the first one in the list.
+                            </template>
+                            <template v-else-if="i.parameter_type === 'Date'">
+                                In your build function, for this parameter you will get a string representation of a date in the format YYYY-MM-DD. The default value supplied for this indicates how many days +/- from the current date that should be auto populated. For example, a default value of 365 will provide a default date one year in the future.
+                            </template>
+                            <template v-else>
+                                In your build function, for this parameter you will get a string value with whatever the user supplied (or an empty string if they left it blank)
                             </template>
                         </td>
                     </tr>

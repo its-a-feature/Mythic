@@ -11,7 +11,7 @@ var profile_parameters_table = new Vue({
     el: '#profileEditParametersTable',
     data: {
         parameters,
-        parameter_type_options: ['String', 'ChooseOne']
+        parameter_type_options: ['String', 'ChooseOne', 'Dictionary', "Date"]
     },
     methods: {},
     delimiters: ['[[', ']]']
