@@ -397,7 +397,6 @@ async def register_new_payload_func(data, user):
                                 # default for a dictionary type is to just display all those that have "default_show" to true
                                 default_dict = js.loads(param.default_value)
                                 temp_dict = []
-                                sys.stdout.flush()
                                 for entry in default_dict:
                                     if entry["default_show"]:
                                         temp_dict.append({"name": entry["name"], "value": entry["default_value"]})
