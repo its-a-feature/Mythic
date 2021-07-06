@@ -2189,7 +2189,7 @@ var task_data = new Vue({
             $('#cardbody' + task.id).unbind('hidden.bs.collapse').on('hidden.bs.collapse', function () {
                 all_tasks[task.callback][task.id]['expanded'] = false;
                 Vue.set(all_tasks[task.callback][task.id], "response", {});
-                Vue.set(all_tasks[task.callback][task.id], "scripted", "");
+                Vue.delete(all_tasks[task.callback][task.id], "scripted");
                 $('#color-arrow' + task.id).removeClass('fa-minus').addClass('fa-plus');
             });
         },
@@ -3788,16 +3788,15 @@ function add_new_task(tsk, from_websocket) {
 
 function add_new_response(rsp, from_websocket) {
     try {
-        //console.log(rsp);
+        console.log(rsp);
         //console.log(from_websocket);
         if (rsp['task']['callback'] in all_tasks) {
             //if we have that callback id in our all_tasks list
             if (!all_tasks[rsp['task']['callback']][rsp['task']['id']]) {
-                //console.log("task not in callback");
+                console.log("task not in callback");
                 Vue.set(all_tasks[rsp['task']['callback']], rsp['task']['id'], {"expanded": false});
             }
             //if we get a response for a task that hasn't been expanded yet to see all prior output, do that instead
-            //console.log("in add_new_response, expanded is: ");
             let first_response = false;
             if (!all_tasks[rsp['task']['callback']][rsp['task']['id']]['response']) {
                 //but we haven't received any responses for the specified task_id
@@ -3852,8 +3851,8 @@ function get_all_responses(taskid) {
     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/" + taskid, (response) => {
         try {
             let data = JSON.parse(response);
-            for (let resp in data['responses']) {
-                add_new_response(data['responses'][resp], false);
+            for(let i = 0; i < data["responses"].length; i++){
+                add_new_response(data['responses'][i], false);
             }
             task_data.$forceUpdate();
         } catch (error) {
