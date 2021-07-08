@@ -164,6 +164,7 @@ var payloads_table = new Vue({
                 for (let i = 0; i < instances_table.current_parameters.length; i++) {
                     data[instances_table.current_parameters[i]['name']] = instances_table.current_parameters[i]['parameter'];
                 }
+                console.log(data);
                 httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/c2profiles/" + p.id + "/parameter_instances", create_new_parameter_instance_callback, "POST", data);
             });
         },
@@ -564,7 +565,7 @@ var instances_table = new Vue({
                     element['options'][i]["current"] += 1;
                     element['parameter'].push({
                          "name": element['options'][i]["name"],
-                         "key": "",
+                         "key": element['options'][i]["name"] === "*" ? "" : element['options'][i]["name"],
                          "value": element['options'][i]["default_value"],
                          "custom": element['options'][i]["name"] === "*"
                     });
