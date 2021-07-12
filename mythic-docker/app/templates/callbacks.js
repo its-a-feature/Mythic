@@ -1715,7 +1715,7 @@ var task_data = new Vue({
                                 }
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
                                 if(param.type === "Choice" || param.type === "ChoiceMultiple"){
-                                    console.log(param.dynamic_query_function);
+                                    //console.log(param.dynamic_query_function);
                                     if(param.dynamic_query_function !== undefined){
                                         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
                                             try {

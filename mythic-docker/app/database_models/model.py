@@ -2847,6 +2847,18 @@ def pg_register_updates():
             mythic_db.execute_sql(create_trigger_on_changes)
         except Exception as e:
             print(e)
+    # create updates for filebrowserobj timestamp
+    create_function = (
+        "DROP FUNCTION IF EXISTS update_filebrowserobj_timestamp_on_update() cascade;"
+        + "CREATE FUNCTION update_filebrowserobj_timestamp_on_update() RETURNS TRIGGER LANGUAGE plpgsql AS $$ BEGIN "
+        + "NEW.timestamp := now(); RETURN NEW; END; $$;"
+    )
+    create_trigger = (
+        "CREATE TRIGGER update_filebrowserobj_timestamp_trigger BEFORE UPDATE on filebrowserobj FOR EACH ROW EXECUTE PROCEDURE "
+        + "update_filebrowserobj_timestamp_on_update()"
+    )
+    mythic_db.execute_sql(create_function)
+    mythic_db.execute_sql(create_trigger)
 
 
 def pg_created_response_text_field():
