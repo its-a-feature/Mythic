@@ -1317,6 +1317,7 @@
       - pid
       - ip
       - external_ip
+      - process_name
       - description
       - operator_id
       - active
@@ -1341,132 +1342,136 @@
   - role: mythic_admin
     permission:
       columns:
-      - active
-      - locked
       - id
-      - integrity_level
-      - locked_operator_id
-      - operation_id
-      - operator_id
-      - pid
-      - port
-      - registered_payload_id
-      - socks_task_id
       - agent_callback_id
-      - architecture
-      - dec_key
-      - description
-      - domain
-      - enc_key
-      - external_ip
-      - extra_info
-      - os
-      - sleep_info
       - init_callback
       - last_checkin
-      - crypto_type
-      - host
-      - ip
       - user
+      - host
+      - pid
+      - ip
+      - external_ip
+      - process_name
+      - description
+      - operator_id
+      - active
+      - registered_payload_id
+      - integrity_level
+      - locked
+      - locked_operator_id
+      - operation_id
+      - crypto_type
+      - dec_key
+      - enc_key
+      - os
+      - architecture
+      - domain
+      - port
+      - extra_info
+      - sleep_info
+      - socks_task_id
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: operation_admin
     permission:
       columns:
-      - active
-      - locked
       - id
-      - integrity_level
-      - locked_operator_id
-      - operation_id
-      - operator_id
-      - pid
-      - port
-      - registered_payload_id
-      - socks_task_id
       - agent_callback_id
-      - architecture
-      - dec_key
-      - description
-      - domain
-      - enc_key
-      - external_ip
-      - extra_info
-      - os
-      - sleep_info
       - init_callback
       - last_checkin
-      - crypto_type
-      - host
-      - ip
       - user
+      - host
+      - pid
+      - ip
+      - external_ip
+      - process_name
+      - description
+      - operator_id
+      - active
+      - registered_payload_id
+      - integrity_level
+      - locked
+      - locked_operator_id
+      - operation_id
+      - crypto_type
+      - dec_key
+      - enc_key
+      - os
+      - architecture
+      - domain
+      - port
+      - extra_info
+      - sleep_info
+      - socks_task_id
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: operator
     permission:
       columns:
-      - active
-      - agent_callback_id
-      - architecture
-      - crypto_type
-      - dec_key
-      - description
-      - domain
-      - enc_key
-      - external_ip
-      - extra_info
-      - host
       - id
+      - agent_callback_id
       - init_callback
-      - integrity_level
-      - ip
       - last_checkin
+      - user
+      - host
+      - pid
+      - ip
+      - external_ip
+      - process_name
+      - description
+      - operator_id
+      - active
+      - registered_payload_id
+      - integrity_level
       - locked
       - locked_operator_id
       - operation_id
-      - operator_id
+      - crypto_type
+      - dec_key
+      - enc_key
       - os
-      - pid
+      - architecture
+      - domain
       - port
-      - registered_payload_id
+      - extra_info
       - sleep_info
       - socks_task_id
-      - user
       filter:
         operation_id:
           _in: X-Hasura-operations
   - role: spectator
     permission:
       columns:
-      - active
-      - locked
-      - dec_key
-      - enc_key
       - id
-      - integrity_level
-      - locked_operator_id
-      - operation_id
-      - operator_id
-      - pid
-      - port
-      - registered_payload_id
-      - socks_task_id
       - agent_callback_id
-      - architecture
-      - crypto_type
-      - description
-      - domain
-      - external_ip
-      - extra_info
-      - host
-      - os
-      - sleep_info
       - init_callback
       - last_checkin
-      - ip
       - user
+      - host
+      - pid
+      - ip
+      - external_ip
+      - process_name
+      - description
+      - operator_id
+      - active
+      - registered_payload_id
+      - integrity_level
+      - locked
+      - locked_operator_id
+      - operation_id
+      - crypto_type
+      - dec_key
+      - enc_key
+      - os
+      - architecture
+      - domain
+      - port
+      - extra_info
+      - sleep_info
+      - socks_task_id
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -2406,6 +2411,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
@@ -2433,6 +2439,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
@@ -2514,6 +2521,44 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
+  update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - comment
+      - timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+      - comment
+      - timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+      - comment
+      - timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operator
+    permission:
+      columns:
+      - comment
+      - timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
 - table:
     schema: public
     name: filemeta
