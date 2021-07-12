@@ -12,7 +12,6 @@ import {getTimeDifference, useInterval } from '../../utilities/Time';
 import WifiIcon from '@material-ui/icons/Wifi';
 import InsertLinkTwoToneIcon from '@material-ui/icons/InsertLinkTwoTone';
 import {C2PathDialog} from './C2PathDialog';
-import {muiTheme} from "../../../themes/Themes";
 import {snackActions} from '../../utilities/Snackbar';
 import Paper from '@material-ui/core/Paper';
 import Grow from '@material-ui/core/Grow';
@@ -24,23 +23,32 @@ import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import {hideCallbackMutation} from './CallbackMutations';
 import {useMutation } from '@apollo/client';
 import SnoozeIcon from '@material-ui/icons/Snooze';
-
+import AccountTreeIcon from '@material-ui/icons/AccountTree';
+import {useTheme} from '@material-ui/core/styles';
 
 export function CallbacksTableRow(props){
     const dropdownAnchorRef = React.useRef(null);
+    const theme = useTheme();
     const [displayTime, setDisplayTime] = React.useState("");
-    const [activeEgress, setActiveEgress] = React.useState(muiTheme.palette.success.main);
+    const [activeEgress, setActiveEgress] = React.useState(theme.palette.success.main);
     const [activeEgressBool, setActiveEgressBool] = React.useState(true);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
     const [openC2Dialog, setOpenC2Dialog] = React.useState(false);
     const [openSleepDialog, setOpenSleepDialog] = React.useState(false);
     const [callbackgraphedges, setCallbackgraphedges] = React.useState([]);
     const [callbackgraphedgesAll, setCallbackgraphedgesAll] = React.useState([]);
+    const [shownColumns, setShownColumns] = React.useState([]);
     const handleDropdownToggle = (evt) => {
             evt.stopPropagation();
             setDropdownOpen((prevOpen) => !prevOpen);
       };
-
+      useEffect( () => {
+        if(props.shownColumns === undefined){
+            setShownColumns([]);
+        }else{
+            setShownColumns(props.shownColumns);
+        }
+      }, [props.shownColumns]);
     const updateTime = (curTime) => {
         setDisplayTime(getTimeDifference(curTime));
     };
@@ -121,10 +129,10 @@ export function CallbacksTableRow(props){
             return false
         });
         if(activeRoutes.length === 0){
-            setActiveEgress(muiTheme.palette.error.main);
+            setActiveEgress(theme.palette.error.main);
             setActiveEgressBool(false);
         }else{
-            setActiveEgress(muiTheme.palette.success.main);
+            setActiveEgress(theme.palette.success.main);
             setActiveEgressBool(true);
         }
     }, [callbackgraphedges]);
@@ -156,10 +164,15 @@ export function CallbacksTableRow(props){
                         evt.stopPropagation();
                         hideCallback({variables: {callback_id: props.id}});
                      }},
+                     {name: 'File Browser', icon: <AccountTreeIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
+                        evt.stopPropagation();
+                        onOpenTab("fileBrowser");
+                     }},
                  ];
     return (
     <React.Fragment>
         <EnhancedTableRow id={props.id} handleClick={props.handleClick} isItemSelected={props.isItemSelected(props.id)}> 
+            {shownColumns.includes("id") ? (
             <TableCell>
                 <ButtonGroup variant="contained" color={props.integrity_level > 2 ? "secondary" : "primary"} ref={dropdownAnchorRef} aria-label="split button">
                 <Button size="small" onClick={(evt) => {evt.stopPropagation();onOpenTab("interact")}}>
@@ -202,21 +215,47 @@ export function CallbacksTableRow(props){
                   )}
                 </Popper>
             </TableCell>
-            <TableCell>{props.ip}</TableCell>
-            <TableCell>{props.host}</TableCell>
-            <TableCell>{props.user}</TableCell>
-            <TableCell>{props.domain}</TableCell>
-            <TableCell>{props.os}({props.architecture})</TableCell>
-            <TableCell>{props.pid}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("ip") ? (
+                <TableCell>{props.ip}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("host") ? (
+                <TableCell>{props.host}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("user") ? (
+                <TableCell>{props.user}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("domain") ? (
+                <TableCell>{props.domain}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("os") ? (
+                <TableCell>{props.os}({props.architecture})</TableCell>
+            ) : (null)}
+            {shownColumns.includes("pid") ? (
+                <TableCell>{props.pid}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("last_checkin") ? (
             <TableCell>{displayTime}</TableCell>
+            ) : (null)} 
+            {shownColumns.includes("description") ? (
             <TableCell>{props.description}</TableCell>
-            <TableCell><SnoozeIcon onClick={(evt)=>{evt.stopPropagation();setOpenSleepDialog(true);}} style={{color: props.sleep_info === "" ? muiTheme.palette.warning.main : muiTheme.palette.info.main}}/></TableCell>
+            ) : (null)}
+            {shownColumns.includes("sleep") ? (
+            <TableCell><SnoozeIcon onClick={(evt)=>{evt.stopPropagation();setOpenSleepDialog(true);}} style={{color: props.sleep_info === "" ? theme.palette.warning.main : theme.palette.info.main}}/></TableCell>
+            ) : (null)}
+            {shownColumns.includes("type") ? (
             <TableCell>{props.payload.payloadtype.ptype}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("c2") ? (
             <TableCell>{hasOwnEgressRoute() ? 
                 <WifiIcon onClick={(evt)=>{evt.stopPropagation();setOpenC2Dialog(true);}} style={{color: activeEgress}}/> : 
                 <InsertLinkTwoToneIcon onClick={(evt)=>{evt.stopPropagation();setOpenC2Dialog(true);}} style={{color: activeEgress}} />
                 }
             </TableCell>
+            ) : (null)}
+            {shownColumns.includes("process_name") ? (
+            <TableCell>{props.process_name}</TableCell>
+            ) : (null)}
         </EnhancedTableRow>
         <MythicDialog fullWidth={true} maxWidth="lg" open={openC2Dialog}
                     onClose={()=>{setOpenC2Dialog(false);}} 

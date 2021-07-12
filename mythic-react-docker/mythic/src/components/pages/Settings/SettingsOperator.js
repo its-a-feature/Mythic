@@ -110,7 +110,7 @@ export function SettingsOperator(props){
                     <TableHead>
                       <TableRow>
                         <TableCell style={{width: "7rem"}}>Delete</TableCell>
-                        <TableCell style={{width: "5rem"}}>Active</TableCell>
+                        <TableCell style={{width: "6rem"}}>Active</TableCell>
                         <TableCell style={{width: "5rem"}}>Type</TableCell>
                         <TableCell>Token</TableCell>
                       </TableRow>

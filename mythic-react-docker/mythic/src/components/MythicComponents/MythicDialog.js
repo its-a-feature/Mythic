@@ -1,5 +1,18 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import Dialog from '@material-ui/core/Dialog';
+import Button from '@material-ui/core/Button';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import MythicTextField from './MythicTextField';
+import Table from '@material-ui/core/Table';
+import TableBody from '@material-ui/core/TableBody';
+import TableCell from '@material-ui/core/TableCell';
+import TableContainer from '@material-ui/core/TableContainer';
+import TableHead from '@material-ui/core/TableHead';
+import TableRow from '@material-ui/core/TableRow';
+import Paper from '@material-ui/core/Paper';
+
 
 export function MythicDialog(props) {
   const descriptionElementRef = React.useRef(null);
@@ -24,5 +37,84 @@ export function MythicDialog(props) {
       >
         {props.innerDialog}
       </Dialog>
+  );
+}
+
+export function MythicModifyStringDialog(props) {
+  const [comment, setComment] = React.useState("");
+    const onCommitSubmit = () => {
+        props.onSubmit(comment);
+        props.onClose();
+    }
+    const onChange = (name, value, error) => {
+        setComment(value);
+    }
+    useEffect( () => {
+      setComment(props.value);
+    }, []);
+  return (
+    <React.Fragment>
+        <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
+        <DialogContent dividers={true}>
+          <MythicTextField multiline={true} onChange={onChange} value={comment} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={props.onClose} variant="contained" color="primary">
+            Close
+          </Button>
+          <Button onClick={onCommitSubmit} variant="contained" color="secondary">
+            Submit
+          </Button>
+        </DialogActions>
+    </React.Fragment>
+  );
+}
+
+export function MythicViewJSONAsTableDialog(props) {
+  const [comment, setComment] = React.useState([]);
+    useEffect( () => {
+      let permissions = [];
+      try{
+        const permissionDict = JSON.parse(props.value);
+        
+        for(let key in permissionDict){
+          permissions.push({"name": key, "value": permissionDict[key]});
+        }
+      }catch(error){
+        console.log(error);
+      }
+      setComment(permissions);
+    }, []);
+  return (
+    <React.Fragment>
+        <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
+        <DialogContent dividers={true}>
+        <Paper elevation={5} style={{position: "relative"}} variant={"elevation"}>
+          <TableContainer component={Paper} className="mythicElement">
+            <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+                  <TableHead>
+                      <TableRow>
+                          <TableCell>{props.leftColumn}</TableCell>
+                          <TableCell>{props.rightColumn}</TableCell>
+                      </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {comment.map( (element, index) => (
+                      <TableRow key={'row' + index}>
+                        <TableCell>{element.name}</TableCell>
+                        <TableCell>{element.value === true ? ("True") : (element.value === false ? ("False") : (element.value) ) }</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+              </Table>
+            </TableContainer>
+        </Paper>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={props.onClose} variant="contained" color="primary">
+            Close
+          </Button>
+        </DialogActions>
+    </React.Fragment>
   );
 }

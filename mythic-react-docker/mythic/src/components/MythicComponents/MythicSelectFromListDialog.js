@@ -8,12 +8,13 @@ import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import InputLabel from '@material-ui/core/InputLabel';
 import Input from '@material-ui/core/Input';
-import {muiTheme} from '../../themes/Themes.js';
+import {useTheme} from '@material-ui/core/styles';
 
 export function MythicSelectFromListDialog(props) {
     const [options, setOptions] = React.useState([]);
-    const [selected, setSelected] = React.useState(null);
+    const [selected, setSelected] = React.useState('');
     const inputRef = useRef(null); 
+    const theme = useTheme();
     const handleChange = (event) => {
         setSelected(event.target.value);
       };
@@ -36,30 +37,30 @@ export function MythicSelectFromListDialog(props) {
         <DialogTitle >{props.title}</DialogTitle>
         <DialogContent dividers={true}>
             <React.Fragment>
-                <FormControl>
-                  <InputLabel ref={inputRef}>Edge</InputLabel>
+                <FormControl style={{width: "100%"}}>
+                  <InputLabel ref={inputRef}>Options</InputLabel>
                   <Select
                     labelId="demo-dialog-select-label"
                     id="demo-dialog-select"
                     value={selected}
                     onChange={handleChange}
-                    input={<Input />}
+                    input={<Input style={{width: "100%"}}/>}
                   >
                     <MenuItem value="">
                       <em>None</em>
                     </MenuItem>
                     {options.map( (opt) => (
-                        <MenuItem value={opt} key={opt.display}>{opt.display}</MenuItem>
+                        <MenuItem value={opt} key={opt[props.identifier]}>{opt[props.display]}</MenuItem>
                     ) )}
                   </Select>
                 </FormControl>
             </React.Fragment>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={handleSubmit} style={{color: muiTheme.palette.warning.main}}>
+          <Button onClick={handleSubmit} variant="contained" style={{color: theme.palette.warning.main}}>
             {props.action}
           </Button>
         </DialogActions>

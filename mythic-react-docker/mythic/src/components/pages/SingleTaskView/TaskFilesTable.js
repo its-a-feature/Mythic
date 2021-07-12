@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
-import { useContext} from 'react';
-import {ThemeContext} from 'styled-components';
+import {useTheme} from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -11,21 +10,25 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Link from '@material-ui/core/Link';
 
+
 export function TaskFilesTable(props){
    const [files, setFiles] = React.useState([]);
-   const theme = useContext(ThemeContext);
+   const theme = useTheme();
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
       return [...prev, ...tsk.filemeta];
     }, []);
     setFiles(condensed);
+    condensed.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
    }, [props.tasks]);
-
+   if(files.length === 0){
+     return (null)
+   }
   return (
     <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Files / Screenshots
             </Typography>
         </Paper>
@@ -47,7 +50,7 @@ export function TaskFilesTable(props){
                     <TableRow key={"file" + file.id}>
                       <TableCell>
                         {!file.deleted && file.complete ? (
-                          <Link href={window.origin + "/api/v1.4/files/download/" + file.agent_file_id}>{file.filename_text}</Link>
+                          <Link href={window.origin + "/api/v1.4/files/download/" + file.agent_file_id} style={{textDecoration: "underline", color: "inherit"}}>{file.filename_text}</Link>
                         ) : ( 
                           !file.complete ? (
                             file.filename_text +  " (" + file.chunks_received + "/" + file.total_chunks + ")"

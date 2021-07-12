@@ -15,12 +15,13 @@ import TableHead from '@material-ui/core/TableHead';
 import IconButton from '@material-ui/core/IconButton';
 import AddCircleIcon from '@material-ui/icons/AddCircle';
 import DeleteIcon from '@material-ui/icons/Delete';
-import {muiTheme} from '../../../themes/Themes.js';
+import {useTheme} from '@material-ui/core/styles';
 import CancelIcon from '@material-ui/icons/Cancel';
 import {Typography} from '@material-ui/core';
 
 export function TaskParametersDialogRow(props){
     const [value, setValue] = React.useState('');
+    const theme = useTheme();
     const [boolValue, setBoolValue] = React.useState(false);
     const [choiceMultipleValue, setChoiceMultipleValue] = React.useState([]);
     const [agentConnectNewHost, setAgentConnectNewHost] = React.useState("");
@@ -59,15 +60,17 @@ export function TaskParametersDialogRow(props){
        }else{
             setValue(props.default_value);
        }
-    }, [props.choices, props.default_value, props.type, props.value]);
+    }, [props.choices, props.default_value, props.type]);
     const onChangeAgentConnect = (host_index, payload_index, c2_index) => {
-        const c2profileparameters = props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].parameters.map( (opt) => {
-            return { [opt.name]: opt.value}
-        });
+        const c2profileparameters = props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].parameters.reduce( (prev, opt) => {
+            return {...prev, [opt.name]: opt.value}
+        }, {});
         let agentConnectValue = {host: props.choices[host_index]["host"], agent_uuid: props.choices[host_index]["payloads"][payload_index].uuid,
         c2_profile: {name: props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].name, parameters: c2profileparameters}};
         if(props.choices[host_index]["payloads"][payload_index].type === "callback"){
             agentConnectValue["callback_uuid"] = props.choices[host_index]["payloads"][payload_index]["agent_callback_id"];
+        }else{
+            agentConnectValue["callback_uuid"] = "";
         }
         props.onChange(props.name, agentConnectValue, false);
     }
@@ -80,11 +83,11 @@ export function TaskParametersDialogRow(props){
         }
         const c2profileparameters = choice["c2profileparametersinstances"].reduce( (prev, opt) => {
             if(opt.c2_profile_id === props.choices[index]["c2profile"]["id"]){
-                return [...prev, { [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key, dec_key: opt.dec_key} } ]
+                return {...prev, [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key, dec_key: opt.dec_key} }
             }else{
-                return prev;
+                return {...prev};
             }
-        }, []);
+        }, {});
         let agentConnectValue = {host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: props.choices[index]["c2profile"]["name"], parameters: c2profileparameters} };
         props.onChange(props.name, agentConnectValue, false);
         setValue(index);
@@ -297,10 +300,10 @@ export function TaskParametersDialogRow(props){
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>
-                                            <Button component="span" variant="contained" style={{backgroundColor: muiTheme.palette.success.main, padding: 0, color: "white"}} onClick={onAgentConnectAddNewPayloadOnHost}><AddCircleIcon />Add</Button>
+                                            <Button component="span" variant="contained" style={{backgroundColor: theme.palette.success.main, padding: 0, color: "white"}} onClick={onAgentConnectAddNewPayloadOnHost}><AddCircleIcon />Add</Button>
                                         </TableCell>
                                         <TableCell>
-                                            <Button component="span" style={{color: muiTheme.palette.warning.main, padding: 0}} onClick={() =>{setOpenAdditionalPayloadOnHostmenu(false)}}><CancelIcon />Cancel</Button>
+                                            <Button component="span" style={{color: theme.palette.warning.main, padding: 0}} onClick={() =>{setOpenAdditionalPayloadOnHostmenu(false)}}><CancelIcon />Cancel</Button>
                                         </TableCell>
                                     </TableRow>
                                 </React.Fragment>
@@ -308,8 +311,8 @@ export function TaskParametersDialogRow(props){
                                 <TableRow>
                                     <TableCell style={{width: "6em"}}>
                                         Host 
-                                        <IconButton component="span" variant="contained" style={{color: muiTheme.palette.success.main, padding: 0}} onClick={() =>{setOpenAdditionalPayloadOnHostmenu(true)}}><AddCircleIcon /></IconButton>
-                                        <IconButton component="span" variant="contained" style={{color: muiTheme.palette.error.main, padding: 0}}><DeleteIcon /></IconButton>
+                                        <IconButton component="span" variant="contained" style={{color: theme.palette.success.main, padding: 0}} onClick={() =>{setOpenAdditionalPayloadOnHostmenu(true)}}><AddCircleIcon /></IconButton>
+                                        <IconButton component="span" variant="contained" style={{color: theme.palette.error.main, padding: 0}}><DeleteIcon /></IconButton>
                                     </TableCell>
                                     <TableCell>
                                         <FormControl>
@@ -398,7 +401,7 @@ export function TaskParametersDialogRow(props){
             <TableRow key={"buildparam" + props.id}>
                 <TableCell>{props.description}
                 {props.required ? (
-                    <Typography style={{color: muiTheme.palette.warning.main}}>Required</Typography>
+                    <Typography style={{color: theme.palette.warning.main}}>Required</Typography>
                 ) : (null) }
                  </TableCell>
                 <TableCell>

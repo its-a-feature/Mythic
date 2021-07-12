@@ -35,6 +35,7 @@ subscription CallbacksSubscription ($operation_id: Int!){
     user
     agent_callback_id
     operation_id
+    process_name
     payload {
       os
       payloadtype {
@@ -127,7 +128,7 @@ export function Callbacks(props){
     const [topDisplay, setTopDisplay] = React.useState("table");
     const [openTabs, setOpenTabs] = React.useState([]);
     const [clickedTabId, setClickedTabId] = React.useState("");
-    const [heights, setHeights] = React.useState({top: 30, bottom: 60});
+    const [heights, setHeights] = React.useState({top: 30, bottom: 56});
     const [openHeightsDialog, setOpenHeightsDialog] = React.useState(false);
     const { loading, error, data } = useSubscription(SUB_Callbacks, {
         variables: {operation_id: me.user.current_operation_id}, fetchPolicy: "network-only",
@@ -137,18 +138,12 @@ export function Callbacks(props){
         variables: {operation_id: me.user.current_operation_id}, fetchPolicy: "network-only",
         shouldResubscribe: true
     });
-    if (loading || loadingEdges) {
-     return <LinearProgress style={{marginTop: "20px"}} />;
-    }
-    if (error) {
-     console.error(error);
-     return <div>Error!</div>;
-    }
-    
     const onOpenTab = ({tabID, tabType, callbackID}) => {
         let found = false;
+        console.log(openTabs);
         openTabs.forEach( (tab) => {
             if(tab.tabID === tabID) found = true;
+            if(tab.tabType === "fileBrowser" && tabType === "fileBrowser") found = true;
         });
         console.log(tabID, tabType, callbackID, found);
         if(!found){
@@ -192,10 +187,17 @@ export function Callbacks(props){
         setOpen(false);
     }
     return (
-        <div style={{maxWidth: "100%",height: "calc(95vh)"}}>
+        <div style={{maxWidth: "100%",height: "calc(94vh)", marginRight: "5px"}}>
             
-            {getTopDisplay()}
-            <CallbacksTabs onCloseTab={onCloseTab} clearSelectedTab={clearSelectedTab} tabHeight={heights.bottom} maxHeight={`calc(${heights.bottom}vh)`} key={"callbackstabs"} clickedTabId={clickedTabId} openTabs={openTabs} callbacks={data.callback} />
+            
+            {loading || loadingEdges ? (<LinearProgress style={{marginTop: "20px"}} />) : (
+            error ? (<div>Error!</div>) : (
+              <React.Fragment>
+                {getTopDisplay()}
+                <CallbacksTabs onCloseTab={onCloseTab} clearSelectedTab={clearSelectedTab} tabHeight={heights.bottom} maxHeight={`calc(${heights.bottom}vh)`} key={"callbackstabs"} clickedTabId={clickedTabId} openTabs={openTabs} callbacks={data.callback} />
+              </React.Fragment>
+              )
+            )}
             <SpeedDial
               ariaLabel="SpeedDial example"
               className={classes.speedDial}

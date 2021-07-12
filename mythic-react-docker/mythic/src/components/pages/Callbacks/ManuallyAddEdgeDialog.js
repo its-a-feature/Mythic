@@ -130,10 +130,10 @@ export function ManuallyAddEdgeDialog(props) {
             </React.Fragment>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={handleSubmit} style={{color: muiTheme.palette.success.main}}>
+          <Button onClick={handleSubmit} variant="contained" style={{color: muiTheme.palette.success.main}}>
             Add
           </Button>
         </DialogActions>

@@ -191,7 +191,7 @@ export function C2ProfilesCard(props) {
             </Typography>
         </CardContent>
         <CardActions >
-            <Button size="small" color="primary" href={"/docs/c2-profiles/" + props.name.toLowerCase()} target="_blank">
+            <Button size="small" variant="contained" color="primary" href={"/docs/c2-profiles/" + props.name.toLowerCase()} target="_blank">
               Docs
             </Button>
             <Button size="small" onClick={()=>{setOpenBuildingDialog(true);}} color="primary" variant="contained">Build Info</Button>

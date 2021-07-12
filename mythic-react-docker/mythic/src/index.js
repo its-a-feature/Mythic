@@ -26,6 +26,7 @@ const cache = new InMemoryCache({
     }
 });
 const FailedRefresh = () =>{
+    console.log("failed refresh");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
@@ -36,16 +37,6 @@ const FailedRefresh = () =>{
         user: null
     });
 }
-/*if (localStorage.getItem("user") !== null){
-    meState({
-        loggedIn: true,
-        access_token: localStorage.getItem("access_token"),
-        refresh_token: localStorage.getItem("refresh_token"),
-        user: JSON.parse(localStorage.getItem("user"))
-    });
-}else{
-    FailedRefresh();
-}*/
 const retryLink = new RetryLink({
   delay: {
     initial: 20,
@@ -81,69 +72,70 @@ const authLink = setContext((_, { headers }) => {
 });
 const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
   console.log("errors?");
-  if (graphQLErrors) {
-    console.log("[graphQLError]", graphQLErrors);
-    for (let err of graphQLErrors) {
-      switch (err.extensions.code) {
-        case 'forbidden':
-            snackActions.error(err.message);
-        case 'access-denied':
-        case 'start-failed':
-          // when AuthenticationError thrown in resolver
-            console.log("got start-failed error");
-          // modify the operation context with a new token
-          const oldHeaders = operation.getContext().headers;
-          console.log(oldHeaders);
-          if(GetNewToken()){
-            operation.setContext({
-                headers: {
-                  ...oldHeaders,
-                 Authorization: "Bearer " + localStorage.getItem("access_token"),
-                },
-              });
-              // retry the request, returning the new observable
-              return forward(operation);
-          }else{
-              //window.location.reload();
-          }
-          break;
-        default:
-            console.log(err);
+  try{
+    if (graphQLErrors) {
+      console.log("[graphQLError]", graphQLErrors);
+      for (let err of graphQLErrors) {
+        switch (err.extensions.code) {
+          case 'forbidden':
+              snackActions.error(err.message);
+              break;
+          case 'access-denied':
+          case 'start-failed':
+            // when AuthenticationError thrown in resolver
+              console.log("got start-failed error");
+            // modify the operation context with a new token
+            if(GetNewToken()){
+              operation.setContext({
+                  headers: {
+                   Authorization: "Bearer " + localStorage.getItem("access_token"),
+                  },
+                });
+                // retry the request, returning the new observable
+                return forward(operation);
+            }else{
+                window.location.reload();
+            }
+            break;
+          default:
+              console.log(err);
+              snackActions.error(err.extensions.message);
+        }
       }
     }
+    if (networkError) {
+      console.log("[Network error]", networkError);
+      switch (networkError.extensions.code) {
+          case 'access-denied':
+          case 'start-failed':
+            // when AuthenticationError thrown in resolver
+              console.log("got start-failed error");
+            // modify the operation context with a new token
+            if(GetNewToken()){
+              operation.setContext({
+                  headers: {
+                   Authorization: "Bearer " + localStorage.getItem("access_token"),
+                  },
+                });
+                // retry the request, returning the new observable
+                return forward(operation);
+            }else{
+              window.location.reload();
+            }
+            break;
+          default:
+              console.log(networkError);
+        }
+    }
+  }catch(error){
+    console.log(error);
+    return;
   }
-  if (networkError) {
-    console.log("[Network error]", networkError);
-    switch (networkError.extensions.code) {
-        case 'access-denied':
-        case 'start-failed':
-          // when AuthenticationError thrown in resolver
-            console.log("got start-failed error");
-          // modify the operation context with a new token
-          const oldHeaders = operation.getContext().headers;
-          console.log(oldHeaders);
-          if(GetNewToken()){
-            operation.setContext({
-                headers: {
-                  ...oldHeaders,
-                 Authorization: "Bearer " + localStorage.getItem("access_token"),
-                },
-              });
-              // retry the request, returning the new observable
-              return forward(operation);
-          }else{
-            window.location.reload();
-          }
-          
-        default:
-            console.log(networkError);
-      }
-  }
-  
 });
 
 const GetNewToken = () =>{
-    const response = HTTPPost('/refresh', {"refresh_token": localStorage.getItem("refresh_token")}).then((response) => {
+    HTTPPost('/refresh', {"refresh_token": localStorage.getItem("refresh_token"),
+                                          "access_token": localStorage.getItem("access_Token")}).then((response) => {
             response.json().then(data => {
                 console.log(data)
                 if("access_token" in data){
@@ -156,6 +148,7 @@ const GetNewToken = () =>{
                 }
             }).catch(error => {
                 console.log("Error trying to get json response in GetNewToken", error.toString());
+                console.log(response);
                 FailedRefresh();
                 return false;
             });

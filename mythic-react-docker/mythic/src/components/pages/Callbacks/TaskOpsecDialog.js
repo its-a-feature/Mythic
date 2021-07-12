@@ -95,12 +95,12 @@ export function TaskOpsecDialog(props) {
             <MythicTextField multiline={true} onChange={()=>{}} value={opsecMessage} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
           {(opsecData.opsec_pre_blocked === true && !opsecData.opsec_pre_bypassed) || (opsecData.opsec_post_blocked === true && !opsecData.opsec_post_bypassed) ?
           (
-            <Button onClick={onRequestSubmit} color="secondary">Submit Bypass Request</Button>
+            <Button onClick={onRequestSubmit} variant="contained" color="secondary">Submit Bypass Request</Button>
           ) : (null) }
           
         </DialogActions>

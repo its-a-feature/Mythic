@@ -51,7 +51,7 @@ export function PayloadBuildMessageDialog(props) {
             <MythicTextField multiline={true} onChange={()=>{}} value={viewError ? payloadData["error"] : payloadData["message"]} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button variant="contained" onClick={props.onClose} color="primary">
             Close
           </Button>
         </DialogActions>

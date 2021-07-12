@@ -8,9 +8,7 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListItemAvatar from '@material-ui/core/ListItemAvatar';
 import Avatar from '@material-ui/core/Avatar';
-import {ThemeContext} from 'styled-components';
-import { useContext} from 'react';
-import {muiTheme} from '../../../themes/Themes.js';
+import {useTheme} from '@material-ui/core/styles';
 import {EventFeedTableEventsActions} from './EventFeedTableEventsActions';
 
 const useStyles = makeStyles((theme) => ({
@@ -23,13 +21,13 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-function EventFeedTableEventsFunc(props){
+export function EventFeedTableEvents(props){
     const classes = useStyles();
-    const theme = useContext(ThemeContext);
+    const theme = useTheme();
     const me = useReactiveVar(meState);
 
     return (
-            <ListItem alignItems="flex-start" style={{...props.style, backgroundColor: props.level === "warning" && props.resolved ? muiTheme.palette.success.main : (props.level === "warning" && !props.resolved ? muiTheme.palette.error.main : theme.eventMessageBackgroundColor)}}>
+            <ListItem alignItems="flex-start" style={{...props.style, backgroundColor: props.level === "warning" && props.resolved ? theme.palette.success.main : (props.level === "warning" && !props.resolved ? theme.palette.error.main : theme.body)}}>
                 <ListItemAvatar>
                     <Avatar>
                         {props.operator ? props.operator.username[0] : "M"}
@@ -42,7 +40,7 @@ function EventFeedTableEventsFunc(props){
                             component="span"
                             variant="body1"
                             className={classes.inline}
-                            style={{fontWeight: "bold", color: theme.text, margin: 0, padding: 0}}
+                            style={{fontWeight: "bold", margin: 0, padding: 0}}
                           >
                             {props.operator ? props.operator.username : "Mythic"}
                             {props.count > 1 ? " ( " + props.count + " )" : ""}
@@ -51,7 +49,7 @@ function EventFeedTableEventsFunc(props){
                             component="span"
                             variant="caption"
                             className={classes.inline}
-                            style={{margin: "0 0 0 10px", color: theme.text}}
+                            style={{margin: "0 0 0 10px",}}
                             >
                             {toLocalTime(props.timestamp, me.user.view_utc_time)}
                             </Typography>
@@ -67,16 +65,10 @@ function EventFeedTableEventsFunc(props){
                   onUpdateResolution={props.onUpdateResolution} 
                   onUpdateLevel={props.onUpdateLevel} 
                   getSurroundingEvents={props.getSurroundingEvents} 
-                  resolved={props.resolved} 
-                  theme={theme}/>
+                  resolved={props.resolved}/>
 
             </ListItem>
         )
 }
-export const EventFeedTableEvents = React.memo(EventFeedTableEventsFunc, (prev, next) => {
-    if(prev.count !== next.count || prev.level !== next.level || prev.resolved !== next.resolved){
-        return false;
-    }
-    return true;
-});
+
 

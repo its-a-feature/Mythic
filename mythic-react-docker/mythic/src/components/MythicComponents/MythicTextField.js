@@ -57,6 +57,7 @@ class MythicTextField extends React.Component {
                     InputProps={this.props.InputProps}
                     helperText={this.checkError() ? this.props.errorText : this.props.helperText}
                     style={{
+                        padding:0,
                         marginBottom: this.props.marginBottom ? this.props.marginBottom : "10px"
                     }}/>
             </div>

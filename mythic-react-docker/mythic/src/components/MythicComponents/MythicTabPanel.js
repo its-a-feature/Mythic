@@ -4,7 +4,7 @@ import Tab from '@material-ui/core/Tab';
 import React from 'react';
 
 export function MythicTabPanel(props) {
-  const { children, value, index, maxHeight, tabInfo, ...other } = props;
+  const { children, value, index, maxHeight, tabInfo, getCallbackData, ...other } = props;
 
   return (
     <div
@@ -26,7 +26,7 @@ function a11yProps(index) {
   };
 }
 export function MythicTabLabel(props){
-    const {label, index, fullWidth, maxHeight, onCloseTab, selectionFollowsFocus, textColor, indicator, tabInfo, ...other} = props;
+    const {label, index, fullWidth, maxHeight, onCloseTab, selectionFollowsFocus, textColor, indicator, tabInfo, getCallbackData, ...other} = props;
     return (
         <Tab label={
             <span>

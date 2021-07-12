@@ -3,6 +3,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Tabs from '@material-ui/core/Tabs';
 import {CallbacksTabsTaskingLabel, CallbacksTabsTaskingPanel} from './CallbacksTabsTasking';
+import {CallbacksTabsFileBrowserLabel, CallbacksTabsFileBrowserPanel} from './CallbacksTabsFileBrowser';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -51,7 +52,11 @@ export function CallbacksTabs({callbacks, onCloseTab, openTabs, clickedTabId, ma
             >
             {
                 openTabs.map( (tab, index) => (
-                    <CallbacksTabsTaskingLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index}/>
+                    tab.tabType === "interact" ? (
+                      <CallbacksTabsTaskingLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index}/>
+                    ) : (tab.tabType === "fileBrowser" ? (
+                      <CallbacksTabsFileBrowserLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index}/>
+                    ) : (null))
                 ))
             }
             </Tabs>
@@ -60,8 +65,12 @@ export function CallbacksTabs({callbacks, onCloseTab, openTabs, clickedTabId, ma
       }
       {
        openTabs.map( (tab, index) => (
-            <CallbacksTabsTaskingPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)}/>
-        ))
+          tab.tabType === "interact" ? (
+              <CallbacksTabsTaskingPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)} getCallbackData={getCallbackData}/>
+          ) : (tab.tabType === "fileBrowser" ? (
+            <CallbacksTabsFileBrowserPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)} getCallbackData={getCallbackData}/>
+          ) : (null))
+          ))
       }
     </div>
   )

@@ -3,7 +3,6 @@ import Button from '@material-ui/core/Button';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
-import {muiTheme} from '../../themes/Themes.js';
 import {MythicDialog} from './MythicDialog';
 import MythicTextField from './MythicTextField';
 
@@ -16,7 +15,7 @@ export function MythicDisplayTextDialog(props) {
                 <MythicTextField multiline={true} value={props.value} onChange={()=>{}} />
             </DialogContent>
             <DialogActions>
-              <Button onClick={props.onClose} style={{color: muiTheme.palette.primary.main}}>
+              <Button onClick={props.onClose} variant="contained" color="primary">
                 Close
               </Button>
             </DialogActions>

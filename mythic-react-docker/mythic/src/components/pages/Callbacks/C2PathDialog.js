@@ -6,17 +6,16 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import * as d3 from 'd3';
 import {createContextMenu} from './D3ContextMenu';
 import dagreD3 from 'dagre-d3';
-import {muiTheme} from '../../../themes/Themes.js';
-import { autoType } from 'd3';
+import {useTheme} from '@material-ui/core/styles';
 
 export function C2PathDialog(props) {
     const dagreRef = useRef(null);   
     const [reZoom, setReZoom] = useState(true);
-    
+    const theme = useTheme();
     useEffect( () => {
         const view_config = {
             rankDir: "LR",
-            label_components: ["id"],
+            label_components: ["id", "user", "host", "ip"],
             packet_flow_view: true,
             include_disconnected: true,
             show_all_nodes: true
@@ -27,7 +26,7 @@ export function C2PathDialog(props) {
             "click": (parent, node, d) => {return},
             "contextmenu": []
         }
-        drawC2PathElements(props.callbackgraphedges, dagreRef, reZoom, view_config, node_events);
+        drawC2PathElements(props.callbackgraphedges, dagreRef, reZoom, view_config, node_events, theme);
         setReZoom(false);
     }, [props.callbackgraphedges, reZoom])
   return (
@@ -39,78 +38,81 @@ export function C2PathDialog(props) {
             </React.Fragment>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
         </DialogActions>
   </React.Fragment>
   );
 }
-const disconnected = `stroke: ${muiTheme.palette.warning.main}; stroke-width: 3px; stroke-dasharray: 5, 5; fill:none`;
-const disconnectedArrow = `fill: ${muiTheme.palette.warning.main}`;
-const connected = `stroke: ${muiTheme.palette.info.main}; fill: none; stroke-width: 1.5px;`;
-const connectedArrow = `stroke: ${muiTheme.palette.info.main}; fill: ${muiTheme.palette.info.main}; stroke-width: 1.5px;`
-const nodeColor = `fill: ${muiTheme.palette.success.main}`;
-const nodeLabelStyle = `labelStyle: "font-size: 2em";`;
-const edgeLabelStyle = `labelStyle: "font-size: 2em"`;
-const add_edge_to_mythic = (g, edge, view_config) => {
-    if(!edge.source.active && !view_config["show_all_nodes"]){return}
-    add_node(g, edge.source, view_config);
-    g.setEdge(edge.source.id, "Mythic",  {label: edge.c2profile.name, edge_id: edge.id, end_timestamp: edge.end_timestamp,direction: edge.direction,
-        style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
-        arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
-}
-const add_node = (g, node, view_config) => {
-    g.setNode(node.id, {label: getLabel(node, view_config["label_components"]),  node: node, style: nodeColor, labelStyle: nodeLabelStyle, shape: 'circle'});
-    g.setNode(node.host, {label: node.host, clusterLabelPos: 'top', style: 'fill:#d3d7e8', node: null});
-    g.setParent(node.id, node.host);
-}
-const getLabel = (edge, label_components) => {
-    return label_components.map( (name) => {
-        return edge[name]
-    }).join(", ");
-}
-const add_edge_p2p = (g, edge, view_config) => {
-    if(!edge.source.active && !edge.destination.active && !view_config["show_all_nodes"]){
-        return;
-    }else if(!view_config["show_all_nodes"]){
-        //at least one of the two nodes is active and we don't want to show all the nodes
-        if(edge.source.active){add_node(g, edge.source, view_config)}
-        if(edge.destination.active){add_node(g, edge.destination, view_config)}
-        // not adding an edge because one of the nodes could be non-existent
-        if(!edge.source.active || !edge.destination.active){
-            return;
-        }
-    }else{
+
+
+export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_events, theme) =>{
+    const disconnected = `stroke: ${theme.palette.warning.main}; stroke-width: 3px; stroke-dasharray: 5, 5; fill:none`;
+    const disconnectedArrow = `fill: ${theme.palette.warning.main}`;
+    const connected = `stroke: ${theme.palette.info.main}; fill: none; stroke-width: 1.5px;`;
+    const connectedArrow = `stroke: ${theme.palette.info.main}; fill: ${theme.palette.info.main}; stroke-width: 1.5px;`
+    const nodeColor = `fill: ${theme.palette.success.main},`;
+    const nodeLabelStyle = `labelStyle: "font-size: 2em"; fill: ${theme.palette.text.primary}`;
+    const edgeLabelStyle = `labelStyle: "font-size: 2em"; fill: ${theme.palette.text.primary}`;
+    const add_edge_to_mythic = (g, edge, view_config) => {
+        if(!edge.source.active && !view_config["show_all_nodes"]){return}
         add_node(g, edge.source, view_config);
-        add_node(g, edge.destination, view_config);
+        g.setEdge(edge.source.id, "Mythic",  {label: edge.c2profile.name, edge_id: edge.id, end_timestamp: edge.end_timestamp,direction: edge.direction,
+            style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
+            arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
     }
-    if(edge.direction === 1){
-        if(view_config["packet_flow_view"]){
+    const add_node = (g, node, view_config) => {
+        g.setNode(node.id, {label: getLabel(node, view_config["label_components"]),  node: node, style: nodeColor, labelStyle: nodeLabelStyle, shape: 'circle', isParent:false});
+        g.setNode(node.host, {label:  node.host, clusterLabelPos: 'top', style: `fill:${theme.palette.graphGroup}`, node: null, labelStyle: nodeLabelStyle, isParent: true});
+        g.setParent(node.id, node.host);
+        g.setNode(node.host + "mythic_expander", {label:"", shape: "square", node: node, isParent: false})
+        g.setParent(node.host + "mythic_expander", node.host)
+    }
+    const getLabel = (edge, label_components) => {
+        return label_components.map( (name) => {
+            return edge[name]
+        }).join(", ");
+    }
+    const add_edge_p2p = (g, edge, view_config) => {
+        if(!edge.source.active && !edge.destination.active && !view_config["show_all_nodes"]){
+            return;
+        }else if(!view_config["show_all_nodes"]){
+            //at least one of the two nodes is active and we don't want to show all the nodes
+            if(edge.source.active){add_node(g, edge.source, view_config)}
+            if(edge.destination.active){add_node(g, edge.destination, view_config)}
+            // not adding an edge because one of the nodes could be non-existent
+            if(!edge.source.active || !edge.destination.active){
+                return;
+            }
+        }else{
+            add_node(g, edge.source, view_config);
+            add_node(g, edge.destination, view_config);
+        }
+        if(edge.direction === 1){
+            if(view_config["packet_flow_view"]){
+                createEdge(g, edge, 2);
+            }else{
+                createEdge(g, edge, 1);
+            }
+        }else if(edge.direction === 2){
             createEdge(g, edge, 2);
         }else{
             createEdge(g, edge, 1);
+            createEdge(g, edge, 2);
         }
-    }else if(edge.direction === 2){
-        createEdge(g, edge, 2);
-    }else{
-        createEdge(g, edge, 1);
-        createEdge(g, edge, 2);
     }
-}
-const createEdge = (g, edge, adjusted_direction) =>{
-    if(adjusted_direction === 1){
-        g.setEdge(edge.source.id, edge.destination.id,  {label: edge.c2profile.name, edge_id: edge.id,end_timestamp: edge.end_timestamp, direction: edge.direction,
-                    style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
-                    arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
-    }else if(adjusted_direction === 2){
-        g.setEdge(edge.destination.id, edge.source.id,  {label: edge.c2profile.name, edge_id: edge.id, end_timestamp: edge.end_timestamp, direction: edge.direction,
-                    style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
-                    arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+    const createEdge = (g, edge, adjusted_direction) =>{
+        if(adjusted_direction === 1){
+            g.setEdge(edge.source.id, edge.destination.id,  {label: edge.c2profile.name, edge_id: edge.id,end_timestamp: edge.end_timestamp, direction: edge.direction,
+                        style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
+                        arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+        }else if(adjusted_direction === 2){
+            g.setEdge(edge.destination.id, edge.source.id,  {label: edge.c2profile.name, edge_id: edge.id, end_timestamp: edge.end_timestamp, direction: edge.direction,
+                        style: edge.end_timestamp === null ? connected: disconnected, labelStyle: edgeLabelStyle,
+                        arrowheadStyle: edge.end_timestamp === null ? connectedArrow : disconnectedArrow}, edge.c2profile.name)
+        }
     }
-}
-
-export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_events) =>{
     var g = new dagreD3.graphlib.Graph({ compound: true, multigraph: true, directed: true}).setGraph({rankdir: view_config["rankDir"]}).setDefaultEdgeLabel(function() {return {}; });
     var svg = d3.select(dagreRef.current);
     var svgGroup;
@@ -183,7 +185,7 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
     var render = new dagreD3.render();
     var width = svg.node().getBoundingClientRect().width;
     var height = svg.node().getBoundingClientRect().height;
-         render.shapes().circle = function circle(parent, bbox, node) {
+    render.shapes().circle = function circle(parent, bbox, node) {
          var shapeSvg = parent.insert("image")
              .attr("class", "nodeImage")
              .attr("xlink:href", function(d) {
@@ -205,6 +207,44 @@ export const drawC2PathElements = (edges, dagreRef, reZoom, view_config, node_ev
          };
          return shapeSvg;
      };
+     render.shapes().square = function square(parent, bbox, node){
+         var shapeSvg = parent.insert("rect")
+            .attr("width", function(d) {
+                let candidates = g.children(node.node.host);
+                let longest = node.node.host.length;
+                if(candidates !== undefined){
+                    candidates.forEach( (x) => {
+                        if(g.node(x).label.length > longest){
+                            longest = g.node(x).label.length;
+                        }
+                    });
+                }
+                if(view_config["rankDir"] === "LR"){
+                    // need a box at least as long as the host name or longest label with matching parent
+                    return longest * 9 + "px";
+                }else{
+                    // need a box at least as long as the hostname or longest label with matching parent
+                    //   need to also subtract width of elements for everything with an edge to Mythic
+                    if(candidates !== undefined){
+                        let count = 0;
+                        candidates.forEach( (x) => {
+                            if(g.outEdges(x, "Mythic").length > 0){
+                                count += 1;
+                            }
+                        });
+                        longest = (longest * 9) - (count * 100);
+                        if(longest < 0){ return 0}
+                        return longest + "px";
+                    }else{
+                        console.log("candidates were undefined");
+                    }
+                }
+            })
+            .attr("height", 0);
+        return shapeSvg;
+     }
+     // if a parent has no children then it should be removed
+    
     render(svgGroup, g);
     if(reZoom){
         var graphWidth = g.graph().width + 40;

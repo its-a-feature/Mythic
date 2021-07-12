@@ -21,6 +21,9 @@ export const snackActions = {
   error(msg, options) {
     this.toast(msg, 'error', options)
   },
+  dismiss(){
+    useSnackbarRef.closeSnackbar();
+  },
   toast(msg, variant = 'default', options) {
     useSnackbarRef.enqueueSnackbar(msg, { variant, ...options })
   }

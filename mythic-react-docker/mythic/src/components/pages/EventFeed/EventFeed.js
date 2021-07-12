@@ -1,15 +1,30 @@
-import React, { useEffect }  from 'react';
-import { gql, useQuery, useMutation, useLazyQuery } from '@apollo/client';
+import React  from 'react';
+import { gql, useMutation, useLazyQuery, useSubscription } from '@apollo/client';
 import { useReactiveVar } from '@apollo/client';
 import { meState } from '../../../cache';
 import {EventFeedTable} from './EventFeedTable';
 import {snackActions} from '../../utilities/Snackbar';
 
-const OFFSET_SIZE = 10;
 const SURROUNDING_EVENTS = 5;
 const EVENT_QUERY_SIZE = 100;
 const GET_Event_Feed = gql`
 query GetOperationEventLogs($operation_id: Int!, $offset: Int!, $eventQuerySize: Int!) {
+  operationeventlog(where: {operation_id: {_eq: $operation_id}, deleted: {_eq: false}}, order_by: {id: desc}, limit: $eventQuerySize, offset: $offset) {
+    id
+    level
+    message
+    resolved
+    timestamp
+    count
+    operator {
+      id
+      username
+    }
+  }
+}
+ `;
+ const SUB_Event_Feed = gql`
+subscription GetOperationEventLogs($operation_id: Int!, $offset: Int!, $eventQuerySize: Int!) {
   operationeventlog(where: {operation_id: {_eq: $operation_id}, deleted: {_eq: false}}, order_by: {id: desc}, limit: $eventQuerySize, offset: $offset) {
     id
     level
@@ -89,37 +104,28 @@ mutation UpdateLevelOperationEventLog($id: Int!) {
   }
 }
  `;
-function EventFeedFunc(props){
+export function EventFeed(props){
   const me = useReactiveVar(meState);
   const [operationeventlog, setOperationEventLog] = React.useState([]);
-  const [offset, setOffset] = React.useState(OFFSET_SIZE);
-  const [getInitialEvents, { error }] = useLazyQuery(GET_Event_Feed, { 
-    fetchPolicy: 'network-only',
-    nextFetchPolicy: "cache-and-network",
-    pollInterval: 3000,
-    notifyOnNetworkStatusChange: true,
-    onCompleted: (data) => {
-      if(data.operationeventlog.length === 0){
-        return;
-      }
-      const newEvents = data.operationeventlog.reduce( (prev, cur) => {
+  const [offset, setOffset] = React.useState(0);
+  useSubscription(SUB_Event_Feed, {
+    variables: {operation_id: me.user.current_operation_id, offset: 0, eventQuerySize: EVENT_QUERY_SIZE}, fetchPolicy: "network-only",
+    shouldResubscribe: true,
+    onSubscriptionData: ({subscriptionData}) => {
+      const newEvents = subscriptionData.data.operationeventlog.reduce( (prev, cur) => {
         if(prev.find(({ id }) => id === cur.id)){
-          return [...prev];
+          let indx = prev.findIndex( ({id}) => id === cur.id);
+          let updatingPrev = [...prev];
+          updatingPrev[indx] = cur;
+          return [...updatingPrev];
         }
-        if(operationeventlog.length == 0){
-          return [...prev, cur];
-        }else{
-          return [cur, ...prev];
-        }
+        return [...prev, cur];
       }, [...operationeventlog]);
       newEvents.sort((a,b) => (a.id > b.id) ? -1 : ((b.id > a.id) ? 1 : 0));
       setOperationEventLog(newEvents);
-    },
-  });
-  useEffect( () => {
-      getInitialEvents({variables: {operation_id: me.user.current_operation_id, offset: 0, eventQuerySize: EVENT_QUERY_SIZE}})
-  }, [])
-  const [getMoreTasking, {  }] = useLazyQuery(GET_Event_Feed, {
+    }
+});
+  const [getMoreTasking] = useLazyQuery(GET_Event_Feed, {
       onError: data => {
           console.error(data)
       },
@@ -135,11 +141,11 @@ function EventFeedFunc(props){
             }
             return [...prev, cur];
           }, [...operationeventlog]);
-          setOffset(offset + OFFSET_SIZE);
+          setOffset(offset + EVENT_QUERY_SIZE);
           setOperationEventLog(newEvents);
       }
   });
-  const [getSurroundingEventQuery, {  }] = useLazyQuery(GET_Surrounding_Events, {
+  const [getSurroundingEventQuery] = useLazyQuery(GET_Surrounding_Events, {
     onError: data => {
         console.error(data)
     },
@@ -154,7 +160,7 @@ function EventFeedFunc(props){
         setOperationEventLog(newEvents);
     }
 });
-  const [getNextError, {  }] = useLazyQuery(GET_Event_Feed_Next_Error, {
+  const [getNextError] = useLazyQuery(GET_Event_Feed_Next_Error, {
     onError: data => {
         console.error(data)
     },
@@ -185,7 +191,7 @@ function EventFeedFunc(props){
     update: (cache, {data}) => {
       const updatedMessage = data.update_operationeventlog_by_pk;
       const updatedMessages = operationeventlog.map( (log) => {
-        if(log.id == updatedMessage.id){
+        if(log.id === updatedMessage.id){
           return {...log, resolved: updatedMessage.resolved};
         }
         return log;
@@ -197,7 +203,7 @@ function EventFeedFunc(props){
     update: (cache, {data}) => {
       const updatedMessage = data.update_operationeventlog_by_pk;
       const updatedMessages = operationeventlog.map( (log) => {
-        if(log.id == updatedMessage.id){
+        if(log.id === updatedMessage.id){
           return {...log, level: updatedMessage.level};
         }
         return log;
@@ -218,7 +224,7 @@ function EventFeedFunc(props){
     updateLevel({variables: {id}})
   }
   const loadMore = () => {
-    getMoreTasking({variables: {operation_id: me.user.current_operation_id, offset: offset}})
+    getMoreTasking({variables: {operation_id: me.user.current_operation_id, offset: offset, eventQuerySize: EVENT_QUERY_SIZE}})
   }
   const loadNextError = () => {
     getNextError({variables: {operation_id: me.user.current_operation_id}})
@@ -226,15 +232,9 @@ function EventFeedFunc(props){
   const getSurroundingEvents = ({id}) => {
     getSurroundingEventQuery({variables: {lower_id: id - SURROUNDING_EVENTS, upper_id: id + SURROUNDING_EVENTS, operation_id: me.user.current_operation_id}})
   }
-  if (error) {
-    console.error(error);
-    snackActions.error("Failed to get event feed data");
-    return null;
-  }
   return (
       <EventFeedTable onSubmitMessage={onSubmitMessage} operationeventlog={operationeventlog} loadMore={loadMore} loadNextError={loadNextError}
                       onUpdateDeleted={onUpdateDeleted} onUpdateResolution={onUpdateResolution} onUpdateLevel={onUpdateLevel} getSurroundingEvents={getSurroundingEvents}
       />
   );
 }
-export const EventFeed = React.memo(EventFeedFunc, (prev, next) => {console.log(prev, next);});
