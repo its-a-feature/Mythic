@@ -1,4 +1,4 @@
-From itsafeaturemythic/mythic_react:0.0.3
+From itsafeaturemythic/mythic_react:0.0.4
 
 COPY mythic/ /mythic/
 
@@ -6,5 +6,5 @@ COPY mythic/ /mythic/
 
 #WORKDIR /mythic
 #COPY ["mythic/package.json", "/mythic/package.json"]
-#RUN npm install
+#RUN npm install --legacy-peer-deps
 #CMD ["npm", "start"]
