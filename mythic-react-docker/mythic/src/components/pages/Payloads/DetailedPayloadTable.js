@@ -9,6 +9,8 @@ import {useQuery, gql} from '@apollo/client';
 import { meState } from '../../../cache';
 import {useReactiveVar} from '@apollo/client';
 import LinearProgress from '@material-ui/core/LinearProgress';
+import Paper from '@material-ui/core/Paper';
+import {useTheme} from '@material-ui/core/styles';
 
 const GET_Payload_Details = gql`
 query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
@@ -45,18 +47,20 @@ query GetPayloadDetails($payload_id: Int!, $operation_id: Int!) {
       value
       c2profileparameter {
         description
+        parameter_type
       }
       c2profile {
         name
       }
-      enc_key
-      dec_key
+      enc_key_base64
+      dec_key_base64
     }
   }
 }
 `;
 export function DetailedPayloadTable(props){
     const me = useReactiveVar(meState);
+    const theme = useTheme();
     const [commands, setCommands] = React.useState([]);
     const [buildParameters, setBuildParameters] = React.useState([]);
     const [c2Profiles, setC2Profiles] = React.useState([]);
@@ -75,9 +79,19 @@ export function DetailedPayloadTable(props){
             setBuildParameters(buildParametersState);
             const c2Profiles = data.payload[0].c2profileparametersinstances.reduce( (prev, cur) => {
                 if( !(cur.c2profile.name in prev) ){
-                    return {...prev, [cur.c2profile.name]: [{description: cur.c2profileparameter.description, value: cur.value, enc_key: cur.enc_key, dec_key: cur.dec_key}]}
+                    return {...prev, [cur.c2profile.name]: [{description: cur.c2profileparameter.description, 
+                      value: cur.value, 
+                      enc_key: cur.enc_key_base64, 
+                      dec_key: cur.dec_key_base64,
+                      parameter_type: cur.c2profileparameter.parameter_type,
+                    }]}
                 }
-                return {...prev, [cur.c2profile.name]: [...prev[cur.c2profile.name], {description: cur.c2profileparameter.description, value: cur.value, enc_key: cur.enc_key, dec_key: cur.dec_key}]}
+                return {...prev, [cur.c2profile.name]: [...prev[cur.c2profile.name], {description: cur.c2profileparameter.description, 
+                  value: cur.value, 
+                  enc_key: cur.enc_key_base64, 
+                  dec_key: cur.dec_key_base64,
+                  parameter_type: cur.c2profileparameter.parameter_type,
+                }]}
             }, {});
             const c2ProfilesState = Object.keys(c2Profiles).reduce( (prev, cur) => {
                 return [...prev, {
@@ -97,9 +111,11 @@ export function DetailedPayloadTable(props){
     }
     return (
         <React.Fragment>
-            <Typography variant="h6" gutterBottom component="div" style={{display: "inline-block"}}>
-                Payload Information
-            </Typography>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+              <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+                  Payload Information
+              </Typography>
+            </Paper>
             <Table size="small" aria-label="details" style={{"tableLayout": "fixed", "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -142,9 +158,11 @@ export function DetailedPayloadTable(props){
                     </TableRow>
                 </TableBody>
               </Table>
-            <Typography variant="h6" gutterBottom component="div" style={{display: "inline-block"}}>
-                Build Parameters
-            </Typography>
+              <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+                    Build Parameters
+                </Typography>
+              </Paper>
             <Table size="small" aria-label="details" style={{"tableLayout": "fixed", "overflowWrap": "break-word"}}>
                 <TableHead>
                   <TableRow>
@@ -166,9 +184,11 @@ export function DetailedPayloadTable(props){
               </Table>
                 { c2Profiles.map( (c2) => (
                     <React.Fragment key={"c2frag" + props.payload_id + c2.c2_profile}>
-                        <Typography variant="h6" gutterBottom component="div" style={{display: "inline-block"}}>
-                            {c2.c2_profile}
-                        </Typography>
+                          <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                            <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+                                {c2.c2_profile}
+                            </Typography>
+                          </Paper>
                         <Table size="small" aria-label="details" style={{"tableLayout": "fixed", "overflowWrap": "break-word"}}>
                             <TableHead>
                               <TableRow>
@@ -176,15 +196,18 @@ export function DetailedPayloadTable(props){
                                 <TableCell>Value</TableCell>
                               </TableRow>
                             </TableHead>
-                            <TableBody>
+                            <TableBody style={{whiteSpace: "pre"}}>
                               {
                                 c2.parameters.map( (cmd, j) => (
                                     <TableRow key={"c2frag" + props.payload_id + c2.c2_profile + j}>
                                         <TableCell>{cmd.description}</TableCell>
-                                        <TableCell>{cmd.value}
-                                        {cmd.enc_key === null ? (null) : (<React.Fragment>
+                                        <TableCell>
+                                          {cmd.parameter_type === "Dictionary" ? (
+                                            JSON.stringify(JSON.parse(cmd.value), null, 2)
+                                            ) : (cmd.value)}
+                                          {cmd.enc_key === null ? (null) : (<React.Fragment>
                                             <br/><b>Encryption Key: </b> {cmd.enc_key}
-                                        </React.Fragment>) }
+                                          </React.Fragment>) }
                                         {cmd.dec_key === null ? (null) : (<React.Fragment>
                                             <br/><b>Decryption Key: </b> {cmd.dec_key}
                                         </React.Fragment>) }
@@ -197,9 +220,11 @@ export function DetailedPayloadTable(props){
                           </Table>
                       </React.Fragment>
                 ))}
-        <Typography variant="h6" gutterBottom component="div" style={{display: "inline-block"}}>
-            Loaded Commands
-        </Typography>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+          <Typography variant="h6" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+              Loaded Commands
+          </Typography>
+        </Paper>
         <Table size="small" aria-label="details" style={{"tableLayout": "fixed", "overflowWrap": "break-word"}}>
             <TableHead>
               <TableRow>

@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {Button} from '@material-ui/core';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import logo from '../../../assets/mythic.svg';
 import { Redirect } from 'react-router-dom';
-import { meState, successfulLogin } from '../../../cache';
+import { meState, successfulLogin, FailedRefresh } from '../../../cache';
 import { useReactiveVar } from '@apollo/client';
 import { useSnackbar } from 'notistack';
+import {restartWebsockets} from '../../../index';
 
 export function LoginForm(props){
     const me = useReactiveVar(meState);
     const { enqueueSnackbar } = useSnackbar();
     const [username, setUsername] = React.useState("");
     const [password, setPassword] = React.useState("");
+    useEffect( () => {
+        FailedRefresh();
+    }, [FailedRefresh])
     const submit = e => {
         e.preventDefault();
         if( username === "" || password === ""){
@@ -23,11 +27,12 @@ export function LoginForm(props){
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username, password})
         };
-        const response = fetch('/auth', requestOptions).then((response) => {
+        fetch('/auth', requestOptions).then((response) => {
             response.json().then(data => {
                 //console.log(data)
                 if("access_token" in data){
                     successfulLogin(data);
+                    restartWebsockets();
                 }else{
                     enqueueSnackbar("Invalid Username or Password", {
                             variant: 'warning',

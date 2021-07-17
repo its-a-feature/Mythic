@@ -70,7 +70,6 @@ export function TaskMetadataTable(props){
 
    const [getMetadata] = useLazyQuery(MetadataQuery, {
         onCompleted: data => {
-            console.log(data);
             setTasks(data.task);
         },
         onError: data => {
@@ -79,9 +78,9 @@ export function TaskMetadataTable(props){
     });
     useEffect( () => {
         getMetadata({variables: {task_range: props.taskIDs } });
-    }, [props.taskIDs]);
+    }, [props.taskIDs, getMetadata]);
   return (
-    <div style={{marginTop: "10px", maxHeight: "calc(92vh)"}}>
+    <div style={{marginTop: "10px", marginRight: "5px"}}>
         <TaskArtifactsTable tasks={tasks}/>
         <TaskMITREATTACKTable tasks={tasks}/>
         <TaskFilesTable tasks={tasks}/>

@@ -52,16 +52,19 @@ query getAllEdgesQuery($callback_id: Int!){
             host
             id
             payload {
+              id
               uuid
             }
             c2profileparametersinstances {
-              enc_key
-              dec_key
+              enc_key_base64
+              dec_key_base64
               value
+              id
               c2_profile_id
               c2profileparameter {
                 crypto_type
                 name
+                id
               }
             }
         }
@@ -71,15 +74,18 @@ query getAllEdgesQuery($callback_id: Int!){
             id
             payload {
               uuid
+              id
             }
             c2profileparametersinstances {
-              enc_key
-              dec_key
+              enc_key_base64
+              dec_key_base64
               c2_profile_id
               value
+              id
               c2profileparameter {
                 crypto_type
                 name
+                id
               }
             }
         }
@@ -95,20 +101,26 @@ query getAllPayloadsQuery($operation_id: Int!){
     tag
     uuid
     payloadc2profiles {
+      id
       c2profile {
         name
+        id
       }
     }
     payloadtype{
+        id
         ptype
     }
     filemetum {
+        id
         filename_text
     }
     buildparameterinstances {
       parameter
+      id
       buildparameter {
         name
+        id
       }
     }
   }
@@ -126,27 +138,31 @@ query getAllPayloadsOnHostsQuery($operation_id: Int!){
       tag
       filemetum {
         filename_text
+        id
       }
       uuid
       c2profileparametersinstances(where: {c2profile: {is_p2p: {_eq: true}}}) {
         c2profile {
           name
+          id
         }
         c2profileparameter {
           crypto_type
           name
+          id
         }
         value
-        enc_key
-        dec_key
+        enc_key_base64
+        dec_key_base64
+        id
       }
       callbacks(where: {active: {_eq: true}}) {
         agent_callback_id
         id
         host
         description
-        enc_key
-        dec_key
+        enc_key_base64
+        dec_key_base64
         crypto_type
       }
     }
@@ -258,43 +274,44 @@ export function TaskParametersDialog(props) {
       let setB = new Set(b);
       return [...new Set(a)].filter(x => setB.has(x));
     }
-    const getLinkInfoFromAgentConnect = (choices) => {
-        if(choices.length > 0){
-            const c2profileparameters = choices[0]["payloads"][0]["c2info"][0].parameters.map( (opt) => {
-                return { [opt.name]: opt.value}
-            });
-            let agentConnectValue = {host: choices[0]["host"], agent_uuid: choices[0]["payloads"][0].uuid,
-            c2_profile: {name: choices[0]["payloads"][0]["c2info"][0].name, parameters: c2profileparameters}};
-            if(choices[0]["payloads"][0].type === "callback"){
-                agentConnectValue["callback_uuid"] = props.choices[0]["payloads"][0]["agent_callback_id"];
-            }
-            return agentConnectValue;
-        }else{
-            return {};
-        }
-    }
-    const getLinkInfoValue = (choices) => {
-        let choice;
-        if(choices.length > 0){
-            if(choices[0]["source"]["id"] === props.callback_id){
-                choice = choices[0]["source"];
-            }else{
-                choice = choices[0]["destination"];
-            }
-            const c2profileparameters = choice["c2profileparametersinstances"].reduce( (prev, opt) => {
-                if(opt.c2_profile_id === choices[0]["c2profile"]["id"]){
-                    return [...prev, { [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key, dec_key: opt.dec_key} } ]
-                }else{
-                    return prev;
-                }
-            }, []);
-            let agentConnectValue = {host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: choices[0]["c2profile"]["name"], parameters: c2profileparameters} };
-            return agentConnectValue;
-        }else{
-            return {};
-        }
-    }
+    
     useEffect( () => {
+        const getLinkInfoFromAgentConnect = (choices) => {
+            if(choices.length > 0){
+                const c2profileparameters = choices[0]["payloads"][0]["c2info"][0].parameters.reduce( (prev, opt) => {
+                    return {...prev, [opt.name]: opt.value}
+                }, {});
+                let agentConnectValue = {host: choices[0]["host"], agent_uuid: choices[0]["payloads"][0].uuid,
+                c2_profile: {name: choices[0]["payloads"][0]["c2info"][0].name, parameters: c2profileparameters}};
+                if(choices[0]["payloads"][0].type === "callback"){
+                    agentConnectValue["callback_uuid"] = props.choices[0]["payloads"][0]["agent_callback_id"];
+                }
+                return agentConnectValue;
+            }else{
+                return {};
+            }
+        };
+        const getLinkInfoValue = (choices) => {
+            let choice;
+            if(choices.length > 0){
+                if(choices[0]["source"]["id"] === props.callback_id){
+                    choice = choices[0]["source"];
+                }else{
+                    choice = choices[0]["destination"];
+                }
+                const c2profileparameters = choice["c2profileparametersinstances"].reduce( (prev, opt) => {
+                    if(opt.c2_profile_id === choices[0]["c2profile"]["id"]){
+                        return {...prev, [opt.c2profileparameter.name]: !opt.c2profileparameter.crypto_type ? opt.value : {crypto_type: opt.c2profileparameter.crypto_type, enc_key: opt.enc_key_base64, dec_key: opt.dec_key_base64} }
+                    }else{
+                        return {...prev};
+                    }
+                }, {});
+                let agentConnectValue = {host: choice.host, agent_uuid: choice.payload.uuid, callback_uuid: choice.agent_callback_id, c2_profile: {name: choices[0]["c2profile"]["name"], parameters: c2profileparameters} };
+                return agentConnectValue;
+            }else{
+                return {};
+            }
+        }
         if(rawParameters && (!requiredPieces["loaded"] || loadedCommandsLoading) &&
                        (!requiredPieces["all"] || allCommandsLoading) &&
                        (!requiredPieces["edges"] || loadedAllEdgesLoading) &&
@@ -418,7 +435,7 @@ export function TaskParametersDialog(props) {
                                     });
                                     if(duplicated_payload){return host}
                                     const c2info = entry.payload.c2profileparametersinstances.reduce( (prev, cur) => {
-                                    const val = !cur.c2profileparameter.crypto_type ? cur.value : {crypto_type: cur.c2profileparameter.crypto_type, enc_key: cur.enc_key, dec_key: cur.dec_key};
+                                    const val = !cur.c2profileparameter.crypto_type ? cur.value : {crypto_type: cur.c2profileparameter.crypto_type, enc_key: cur.enc_key_base64, dec_key: cur.dec_key_base64};
                                         if(cur.c2profile.name in prev){
                                             //we just want to add a new entry to the c2profile.name list
                                             
@@ -447,7 +464,7 @@ export function TaskParametersDialog(props) {
                             });
                             if(!found){
                                 const c2info = entry.payload.c2profileparametersinstances.reduce( (prev, cur) => {
-                                    const val = !cur.c2profileparameter.crypto_type ? cur.value : {crypto_type: cur.c2profileparameter.crypto_type, enc_key: cur.enc_key, dec_key: cur.dec_key};
+                                    const val = !cur.c2profileparameter.crypto_type ? cur.value : {crypto_type: cur.c2profileparameter.crypto_type, enc_key: cur.enc_key_base64, dec_key: cur.dec_key_base64};
                                     if(cur.c2profile.name in prev){
                                         //we just want to add a new entry to the c2profile.name list
                                         
@@ -530,7 +547,7 @@ export function TaskParametersDialog(props) {
             const sorted = params.sort((a, b) => (a.name > b.name) ? 1 : -1)
             setParameters(sorted);
         }
-    }, [rawParameters, loadedCommandsLoading, allCommandsLoading, loadedAllEdgesLoading, requiredPieces, loadedAllPayloadsLoading, loadedAllPayloadsOnHostsLoading]);
+    }, [rawParameters, loadedCommandsLoading, allCommandsLoading, loadedAllEdgesLoading, requiredPieces, loadedAllPayloadsLoading, loadedAllPayloadsOnHostsLoading, props.callback_id, props.choices]);
     const onSubmit = () => {
         const collapsedParameters = parameters.reduce( (prev, param) => {
             switch(param.type){
@@ -599,10 +616,10 @@ export function TaskParametersDialog(props) {
             </TableContainer>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={onSubmit} color="secondary">
+          <Button onClick={onSubmit} variant="contained" color="secondary">
             Submit
           </Button>
         </DialogActions>

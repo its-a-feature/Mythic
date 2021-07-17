@@ -16,6 +16,7 @@ export const menuFactory = (g, x, y, menuItems, data, svgId) => {
             .attr('x', x)
             .attr('y', (d, i) => { return y + (i * 30); })
             .attr('rx', 2)
+            .attr('fill', '#ffffff')
             .attr('width', 180)
             .attr('height', 30)
             .on('click', (d) => { d.action(g, data) });

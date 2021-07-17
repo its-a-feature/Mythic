@@ -1,11 +1,12 @@
 import {MythicTabPanel, MythicTabLabel} from '../../../components/MythicComponents/MythicTabPanel';
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useCallback, useLayoutEffect} from 'react';
 import {useQuery, gql, useMutation, useLazyQuery } from '@apollo/client';
 import { TaskDisplay } from './TaskDisplay';
 import {snackActions} from '../../utilities/Snackbar';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {TaskParametersDialog} from './TaskParametersDialog';
 import {CallbacksTabsTaskingInput} from './CallbacksTabsTaskingInput';
+import LinearProgress from '@material-ui/core/LinearProgress';
 
 
 export function CallbacksTabsTaskingLabel(props){
@@ -13,6 +14,37 @@ export function CallbacksTabsTaskingLabel(props){
         <MythicTabLabel label={"Callback: " + props.tabInfo.callbackID} {...props}/>
     )
 }
+const taskingDataFragment = gql`
+    fragment taskData on task {
+        comment
+        commentOperator{
+            username
+        }
+        completed
+        id
+        operator{
+            username
+        }
+        original_params
+        display_params
+        status
+        timestamp
+        command {
+          cmd
+          id
+        }
+        responses(order_by: {id: desc}) {
+          id
+        }
+        opsec_pre_blocked
+        opsec_pre_bypassed
+        opsec_post_blocked
+        opsec_post_bypassed
+        tasks {
+            id
+        }
+    }
+`;
 const GetLoadedCommandsQuery = gql`
 query GetLoadedCommandsQuery($callback_id: Int!, $payloadtype: String!) {
   loadedcommands(where: {callback_id: {_eq: $callback_id}}) {
@@ -55,45 +87,30 @@ mutation createTasking($callback_id: Int!, $command: String!, $params: String!, 
   }
 }
 `;
+// this is to listen for the latest taskings
 const getTaskingQuery = gql`
+${taskingDataFragment}
 query getTasking($callback_id: Int!){
-    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}}, order_by: {id: asc}) {
-        comment
-        commentOperator{
-            username
-        }
-        completed
-        id
-        operator{
-            username
-        }
-        original_params
-        display_params
-        status
-        timestamp
-        command {
-          cmd
-          id
-        }
-        responses(order_by: {id: desc}) {
-          id
-        }
-        opsec_pre_blocked
-        opsec_pre_bypassed
-        opsec_post_blocked
-        opsec_post_bypassed
-        tasks {
-            id
-        }
-  }
+    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}}, order_by: {id: desc}, limit: 10) {
+        ...taskData
+    }
 }
  `;
-
+const getNextBatchTaskingQuery = gql`
+${taskingDataFragment}
+query getBatchTasking($callback_id: Int!, $offset: Int!){
+    task(where: {callback_id: {_eq: $callback_id}, parent_task_id: {_is_null: true}}, order_by: {id: desc}, limit: 10, offset: $offset) {
+        ...taskData
+    }
+}
+`;
 export const CallbacksTabsTaskingPanel = (props) =>{
     const [commands, setCommands] = React.useState([]);
     const [openParametersDialog, setOpenParametersDialog] = React.useState(false);
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
+    const [fetchedAllTasks, setFetchedAllTasks] = React.useState(false);
+    const messagesEndRef = useRef(null);
     const [createTask] = useMutation(createTaskingMutation, {
         update: (cache, {data}) => {
             if(data.createTask.status === "error"){
@@ -106,7 +123,7 @@ export const CallbacksTabsTaskingPanel = (props) =>{
             console.error(data);
         }
     });
-    const {loading, error} = useQuery(GetLoadedCommandsQuery, {
+    const {error} = useQuery(GetLoadedCommandsQuery, {
         variables: {callback_id: props.tabInfo.callbackID, payloadtype: props.tabInfo.payloadtype},
         onCompleted: data => {
             const cmds = data.loadedcommands.reduce( (prev, cur) => {
@@ -134,9 +151,13 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         },
         onError: data => {
             console.error(data)
-        }
-        });
-    const [getTasking, { loading: taskingLoading }] = useLazyQuery(getTaskingQuery, {
+        },
+        fetchPolicy: "network-only"
+    });
+    const loader = useRef(null);
+    const [canLoad, setCanLoad] = React.useState(false);
+    const [canScroll, setCanScroll] = React.useState(true);
+    const [getTasking] = useLazyQuery(getTaskingQuery, {
         onError: data => {
             console.error(data)
         },
@@ -145,20 +166,100 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         notifyOnNetworkStatusChange: true,
         pollInterval: 1000,
         onCompleted: (data) => {
-            setTaskingData(data);
+            const oldLength = taskingData.task.length;
+            const mergedData = data.task.reduce( (prev, cur) => {
+                const index = prev.findIndex(element => element.id === cur.id);
+                if(index > -1){
+                    // need to update an element
+                    const updated = prev.map( (element) => {
+                        if(element.id === cur.id){
+                            return cur;
+                        }else{
+                            return element;
+                        }
+                    });
+                    return updated;
+                }else{
+                    return [...prev, cur];
+                }
+            }, [...taskingData.task]);
+            mergedData.sort( (a,b) => a.id < b.id ? -1 : 1);
+            setTaskingData({task: mergedData});
+            if(mergedData.length > oldLength){
+                setCanScroll(true);
+            }        
         }
     });
-    const messagesEndRef = useRef(null);
-    const scrollToBottom = () => {
+    const scrollToBottom = useCallback( () => {
         if(taskingData && messagesEndRef.current){
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-      }
+      }, [taskingData, messagesEndRef]);
+    useLayoutEffect( () => {
+        if(canScroll){
+            scrollToBottom();
+            setCanScroll(false);
+        }
+    }, [canScroll, scrollToBottom]);
+    const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
+        onError: data => {
+            console.error(data);
+        },
+        onCompleted: (data) => {
+            let foundNew = false;
+            const mergedData = data.task.reduce( (prev, cur) => {
+                const index = prev.findIndex(element => element.id === cur.id);
+                if(index > -1){
+                    // need to update an element
+                    const updated = prev.map( (element) => {
+                        if(element.id === cur.id){
+                            return cur;
+                        }else{
+                            return element;
+                        }
+                    });
+                    return updated;
+                }else{
+                    foundNew = true;
+                    return [...prev, cur];
+                }
+            }, [...taskingData.task]);
+            mergedData.sort( (a,b) => a.id < b.id ? -1 : 1);
+            setTaskingData({task: mergedData});    
+            if(!foundNew){
+                snackActions.info("No older tasks available");
+                setFetchedAllTasks(true);
+            }else{
+                setFetchedAllTasks(false);
+                snackActions.success("Loaded older tasks");
+            }
+            setCanLoad(false);
+        },
+        fetchPolicy: "network-only"
+    });
+    const loadMore = useCallback( (entries) => {
+        if(entries[0].isIntersecting){
+            //need to fetch the next set of tasks
+            if(!fetchedAllTasks && canLoad){
+                getInfiniteScrollTasking({variables: {callback_id: props.tabInfo.callbackID, offset: taskingData.task.length}});
+            }
+        }else{
+            setCanLoad(true);
+        }
+    }, [fetchedAllTasks, canLoad, taskingData.task.length, getInfiniteScrollTasking, props.tabInfo.callbackID]);
+    useEffect( () => {
+        const observer = new IntersectionObserver( loadMore, {rootMargin: "0px", threshold: 1});
+        if(loader && loader.current){
+            observer.observe(loader.current);
+        }
+        return () => observer.disconnect();
+    }, [loader, loadMore, fetchedAllTasks]);
+    
+    
     useEffect( () => {
         getTasking({variables: {callback_id: props.tabInfo.callbackID} });
     }, [getTasking, props.tabInfo.callbackID]);
     
-    //useEffect(scrollToBottom, [taskingData]);
     if (error) {
      console.error(error);
      return <div>Error!</div>;
@@ -197,18 +298,18 @@ export const CallbacksTabsTaskingPanel = (props) =>{
     const onCreateTask = ({callback_id, command, params, files}) => {
         createTask({variables: {callback_id, command, params, files}});
     }
-
-    
     return (
         <MythicTabPanel {...props} >
-            <div style={{maxHeight: `calc(${props.maxHeight - 6}vh)`, overflow: "auto", height: `calc(${props.maxHeight - 6}vh)`}}>
-            {
-                
-                taskingData.task.map( (task) => (
-                    <TaskDisplay key={"taskinteractdisplay" + task.id} task={task} command_id={task.command == null ? 0 : task.command.id}  />
-                ))
-            }
-            <div ref={messagesEndRef} />
+            <div style={{overflow: "auto", height: `calc(${props.maxHeight - 5}vh)`}}>
+                <div ref={loader}>
+                    {loadingMore && <LinearProgress color="primary" thickness={2} style={{paddingTop: "5px"}}/>}
+                </div>
+                {
+                    taskingData.task.map( (task) => (
+                        <TaskDisplay key={"taskinteractdisplay" + task.id} task={task} command_id={task.command == null ? 0 : task.command.id}  />
+                    ))
+                }
+                <div ref={messagesEndRef} />
             </div>
             <MythicDialog fullWidth={true} maxWidth="md" open={openParametersDialog} 
                     onClose={()=>{setOpenParametersDialog(false);}} 

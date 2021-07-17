@@ -3,16 +3,16 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { App } from './components/App';
 import {BrowserRouter as Router} from 'react-router-dom'
-import { ApolloProvider, ApolloClient, InMemoryCache, from, split, HttpLink } from '@apollo/client';
+import { ApolloProvider, ApolloClient, InMemoryCache, from, split, HttpLink, Observable } from '@apollo/client';
 import { WebSocketLink } from "@apollo/client/link/ws";
-import { meState, successfulRefresh } from './cache';
+import { successfulRefresh, FailedRefresh } from './cache';
 import { onError } from "@apollo/client/link/error";
 import { RetryLink } from "@apollo/client/link/retry";
-import HTTPPost from './components/utilities/HTTPPost';
+import { SubscriptionClient } from 'subscriptions-transport-ws'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { setContext } from '@apollo/client/link/context';
-import {SnackbarUtilsConfigurator, snackActions} from './components/utilities/Snackbar';
-import {SnackbarProvider} from 'notistack';
+import {snackActions} from './components/utilities/Snackbar';
+import MessageTypes from 'subscriptions-transport-ws/dist/message-types'
 
 const cache = new InMemoryCache({
     typePolicies: {
@@ -20,32 +20,15 @@ const cache = new InMemoryCache({
             fields: {
                 operationeventlog: {
                     
+                },
+                callback: {
+                  
                 }
             }
         }
     }
 });
-const FailedRefresh = () =>{
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
-    meState({
-        loggedIn: false,
-        access_token: null,
-        refresh_token: null,
-        user: null
-    });
-}
-/*if (localStorage.getItem("user") !== null){
-    meState({
-        loggedIn: true,
-        access_token: localStorage.getItem("access_token"),
-        refresh_token: localStorage.getItem("refresh_token"),
-        user: JSON.parse(localStorage.getItem("user"))
-    });
-}else{
-    FailedRefresh();
-}*/
+
 const retryLink = new RetryLink({
   delay: {
     initial: 20,
@@ -70,80 +53,94 @@ const httpLink = new HttpLink({
 });
 const authLink = setContext((_, { headers }) => {
   // get the authentication token from local storage if it exists
-  const token = localStorage.getItem('access_token');
   // return the headers to the context so httpLink can read them
   return {
     headers: {
       ...headers,
-      Authorization: token ? `Bearer ${token}` : "",
+      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
     }
   }
 });
+const promiseToObservable = (promise) =>
+    new Observable((subscriber) => {
+      promise.then(
+        value => {
+          console.log(subscriber);
+          if (subscriber.closed) return;
+          subscriber.next(value);
+          subscriber.complete();
+        },
+        err => subscriber.error(err)
+      );
+    });
 const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
   console.log("errors?");
-  if (graphQLErrors) {
-    console.log("[graphQLError]", graphQLErrors);
-    for (let err of graphQLErrors) {
-      switch (err.extensions.code) {
-        case 'forbidden':
-            snackActions.error(err.message);
-        case 'access-denied':
-        case 'start-failed':
-          // when AuthenticationError thrown in resolver
-            console.log("got start-failed error");
-          // modify the operation context with a new token
-          const oldHeaders = operation.getContext().headers;
-          console.log(oldHeaders);
-          if(GetNewToken()){
-            operation.setContext({
+  try{
+    if (graphQLErrors) {
+      console.log("[graphQLError]", graphQLErrors);
+      for (let err of graphQLErrors) {
+        switch (err.extensions.code) {
+          case 'forbidden':
+              snackActions.error(err.message);
+              break;
+          case 'access-denied':
+            //fallsthrough
+          case 'start-failed':
+            // when AuthenticationError thrown in resolver
+              console.log("got start-failed error in graphql");
+            // modify the operation context with a new token
+            
+            return promiseToObservable(
+              GetNewToken())
+              .flatMap(() => {
+              // retry the request, returning the new observable
+              operation.setContext({
                 headers: {
-                  ...oldHeaders,
                  Authorization: "Bearer " + localStorage.getItem("access_token"),
                 },
               });
               // retry the request, returning the new observable
+              console.log("forwarding operation in promise thingy", localStorage.getItem("access_token"))
               return forward(operation);
-          }else{
-              //window.location.reload();
-          }
-          break;
-        default:
-            console.log(err);
+              });
+            break;
+          default:
+              console.log(err);
+              snackActions.error(err.message);
+        }
       }
     }
+    if (networkError) {
+      console.log("[Network error]", networkError);
+      switch (networkError.extensions.code) {
+          case 'access-denied':
+            snackActions.warning("Access Denied");
+            break;
+          case 'start-failed':
+            // when AuthenticationError thrown in resolver
+              console.log("got start-failed error in network");
+              restartWebsockets();
+              window.location = "/new/login"
+          default:
+              console.log(networkError);
+        }
+    }
+  }catch(error){
+    console.log(error);
+    return;
   }
-  if (networkError) {
-    console.log("[Network error]", networkError);
-    switch (networkError.extensions.code) {
-        case 'access-denied':
-        case 'start-failed':
-          // when AuthenticationError thrown in resolver
-            console.log("got start-failed error");
-          // modify the operation context with a new token
-          const oldHeaders = operation.getContext().headers;
-          console.log(oldHeaders);
-          if(GetNewToken()){
-            operation.setContext({
-                headers: {
-                  ...oldHeaders,
-                 Authorization: "Bearer " + localStorage.getItem("access_token"),
-                },
-              });
-              // retry the request, returning the new observable
-              return forward(operation);
-          }else{
-            window.location.reload();
-          }
-          
-        default:
-            console.log(networkError);
-      }
-  }
-  
 });
 
-const GetNewToken = () =>{
-    const response = HTTPPost('/refresh', {"refresh_token": localStorage.getItem("refresh_token")}).then((response) => {
+const GetNewToken = async () =>{
+  const requestOptions = {
+            method: "POST",
+            headers: {
+            'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({"refresh_token": localStorage.getItem("refresh_token"),
+            "access_token": localStorage.getItem("access_Token")})
+        };
+        return fetch('/refresh', requestOptions).then((response) => {
             response.json().then(data => {
                 console.log(data)
                 if("access_token" in data){
@@ -156,6 +153,7 @@ const GetNewToken = () =>{
                 }
             }).catch(error => {
                 console.log("Error trying to get json response in GetNewToken", error.toString());
+                console.log(response);
                 FailedRefresh();
                 return false;
             });
@@ -168,18 +166,32 @@ const GetNewToken = () =>{
 const websocketAddress =() =>{
     return window.location.protocol === "https:" ? "wss://" + window.location.host + "/graphql/" : "ws://" + window.location.host + "/graphql/";
 }
-
+const websocketClient = new SubscriptionClient(websocketAddress(), {
+  reconnect: true,
+  connectionParams: () => {
+    return {
+      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }
+  }
+})
+const wsLink = new WebSocketLink(websocketClient);
+/*
 const websocketLink = new WebSocketLink({
      uri: websocketAddress(),
      options: {
        reconnect: true,
-       connectionParams: {
+       lazy: true,
+       connectionParams: async () => ({
           headers: {
             Authorization: `Bearer ${localStorage.getItem('access_token')}`
           }
-       }
+       })
      }
     });
+  */
 const splitLink = split(
   ({ query }) => {
     const definition = getMainDefinition(query)
@@ -188,24 +200,39 @@ const splitLink = split(
       definition.operation === 'subscription'
     )
   },
-  websocketLink,
-  authLink.concat(httpLink)
+  wsLink,
+  httpLink
 )
-const apolloClient = new ApolloClient({
-   link: from([errorLink, retryLink, splitLink]),
+export const apolloClient = new ApolloClient({
+   link: from([authLink, errorLink, retryLink, authLink.concat(splitLink)]),
     cache
   });
-
+export function restartWebsockets () {
+    // Copy current operations
+    const operations = Object.assign({}, websocketClient.operations)
+  
+    // Close connection
+    websocketClient.close(true)
+  
+    // Open a new one
+    websocketClient.connect()
+  
+    // Push all current operations to the new connection
+    Object.keys(operations).forEach(id => {
+      websocketClient.sendMessage(
+        id,
+        MessageTypes.GQL_START,
+        operations[id].options
+      )
+    })
+  }
 ReactDOM.render(
   <React.StrictMode>
-    <SnackbarProvider anchorOrigin={{ horizontal: 'center', vertical: 'top' }}>
-      <SnackbarUtilsConfigurator />
         <ApolloProvider client={apolloClient}>
             <Router>
                 <App key="App"/>
             </Router>
         </ApolloProvider>
-    </SnackbarProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );

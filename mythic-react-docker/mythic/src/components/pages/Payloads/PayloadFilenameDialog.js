@@ -65,10 +65,10 @@ export function PayloadFilenameDialog(props) {
             <MythicTextField multiline={true} onChange={onChange} value={description} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button variant="contained" onClick={props.onClose} color="primary">
             Close
           </Button>
-          <Button onClick={onCommitSubmit} color="secondary">
+          <Button variant="contained" onClick={onCommitSubmit} color="secondary">
             Submit
           </Button>
         </DialogActions>

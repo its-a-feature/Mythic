@@ -143,7 +143,7 @@ export function Settings(props){
      return <div>Error!</div>;
     }
     return (
-    <div style={{height: "calc(94vh)", marginTop: "10px"}}>
+    <div style={{height: "calc(94vh)", marginTop: "10px", marginRight: "5px"}}>
         <SettingsOperatorTable 
             onViewUTCChanged={onViewUTCChanged}
             onAdminChanged={onAdminChanged}

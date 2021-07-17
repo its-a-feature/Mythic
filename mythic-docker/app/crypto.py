@@ -5,6 +5,7 @@ from Crypto.Util.Padding import unpad, pad
 from Crypto.PublicKey import RSA
 import base64
 import ujson as json
+from sanic.log import logger
 
 
 async def encrypt_message(message: bytes, enc_metadata: dict, uuid: str, with_uuid: bool = True) -> str:
@@ -38,34 +39,50 @@ async def encrypt_bytes_normalized(message: bytes, enc_metadata: dict, uuid: str
                 return base64.b64encode(enc_data).decode()
         else:
             # we don't recognize the type specified
-            print("crypto.py encrypt, uh oh")
+            logger.info("crypto.py encrypt, uh oh")
             return ""
 
 
 async def decrypt_message(message: bytes, enc_metadata: dict, with_uuid: bool = True, return_json: bool = True, length: int = 36) -> dict:
-    if with_uuid:
-        message = message[length:]
-    if enc_metadata["dec_key"] is not None:
-        if enc_metadata["type"] == "aes256_hmac":
-            decrypted = await decrypt_AES256(
-                data=message, key=enc_metadata["dec_key"]
-            )
-            # print(decrypted)
-            if return_json:
-                decrypted = json.loads(decrypted)
-        else:
-            print("crypto.py error, mythic decrypts, dec_key is not none, but type is not aes256_hmac")
-            if return_json:
-                decrypted = {}
+    try:
+        if with_uuid:
+            message = message[length:]
+        if enc_metadata["dec_key"] is not None:
+            if enc_metadata["type"] == "aes256_hmac":
+                decrypted = await decrypt_AES256(
+                    data=message, key=enc_metadata["dec_key"]
+                )
+                # print(decrypted)
+                if return_json:
+                    decrypted = json.loads(decrypted)
             else:
-                decrypted = b''
-    else:
-        print("crypto.py, dec_key is none and mythic decrypts")
-        if return_json:
-            decrypted = json.loads(message)
+                logger.info("crypto.py error, mythic decrypts, dec_key is not none, but type is not aes256_hmac")
+                if return_json:
+                    decrypted = {}
+                else:
+                    decrypted = b''
         else:
-            decrypted = message
-    return decrypted
+            logger.info("crypto.py, dec_key is none and mythic decrypts")
+            if return_json:
+                try:
+                    decrypted = json.loads(message)
+                except Exception as d:
+                    from app.api.operation_api import send_all_operations_message
+                    logger.exception("crypto.py: " + str(d))
+                    await send_all_operations_message(
+                        message=f"Error Parsing agent message - step 4 (mythic decrypted a mythic message); Failed to load response as JSON: \n{str(d)}",
+                        level="info", source="debug")
+                    raise d
+            else:
+                decrypted = message
+        return decrypted
+    except Exception as e:
+        from app.api.operation_api import send_all_operations_message
+        logger.exception("crypto.py: " + str(e))
+        await send_all_operations_message(
+            message=f"Error Parsing agent message - step 4 (mythic decrypted a mythic message): \n{str(e)}",
+            level="info", source="debug")
+        raise e
 
 
 async def hash_SHA512(data) -> str:

@@ -13,33 +13,24 @@ subscription subResponsesQuery($task_id: Int!) {
 
 export const ResponseDisplay = (props) =>{
     const [task, setTask] = React.useState({});
-    const {loading, error, data} = useSubscription(subResponsesQuery, {variables: {task_id: props.task.id}, fetchPolicy: "cache-and-network"});
+    const {loading, error, data} = useSubscription(subResponsesQuery, {variables: {task_id: props.task.id}, fetchPolicy: "cache-and-network",
+
+    });
     useEffect( () => {
         setTask(props.task);
     }, [props.command_id, props.task]);
-    
-    if (loading) {
-     return <LinearProgress style={{paddingTop: "10px"}}/>;
-    }
     if (error) {
      console.error(error);
-     return <div>Error!</div>;
+     return <div>Error! {error.ToString()}</div>;
     }
-    
-  if(data.response.length === 0){
-    return (
-        <div style={{overflow: "auto", width: "100%"}}> 
-            <pre>No data for task</pre>
-      </div>
-    )
-  }
 
   return (
       <div style={{overflow: "auto", width: "100%"}}>
-        {data.response.map( (response) => (
-                <pre key={"task" + task.id + "resp" + response.id}>{response.response}</pre>
-        ) ) 
-        }
+        {loading ? (<LinearProgress style={{marginTop: "10px"}}/>): (
+          data.response.map( (response) => (
+            <pre key={"task" + task.id + "resp" + response.id}>{response.response}</pre>
+          ) ) 
+        )}
       </div>
   )
       

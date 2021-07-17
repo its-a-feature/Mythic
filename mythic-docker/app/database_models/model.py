@@ -2932,6 +2932,20 @@ $function$"""
 AS $function$
   SELECT encode(c2profileparametersinstance_row.dec_key, 'base64')
 $function$"""
+    func_enc_key_callback = """CREATE OR REPLACE FUNCTION public.callback_enckey(callback_row callback)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT encode(callback_row.enc_key, 'base64')
+$function$"""
+    func_dec_key_callback = """CREATE OR REPLACE FUNCTION public.callback_deckey(callback_row callback)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT encode(callback_row.dec_key, 'base64')
+$function$"""
     try:
         mythic_db.execute_sql(func_response_response)
         mythic_db.execute_sql(func_filemeta_filename)
@@ -2943,6 +2957,8 @@ $function$"""
         mythic_db.execute_sql(func_credential)
         mythic_db.execute_sql(func_enc_key)
         mythic_db.execute_sql(func_dec_key)
+        mythic_db.execute_sql(func_enc_key_callback)
+        mythic_db.execute_sql(func_dec_key_callback)
     except Exception as e:
         print(e)
 

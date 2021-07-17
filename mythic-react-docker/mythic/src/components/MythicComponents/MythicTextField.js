@@ -49,6 +49,7 @@ class MythicTextField extends React.Component {
                     onChange={this.onChange} 
                     label={this.props.name} 
                     variant="outlined" 
+                    disabled={this.props.disabled === undefined ? false : this.props.disabled}
                     required={this.props.requiredValue ? this.props.requiredValue : false} 
                     InputLabelProps={this.props.inputLabelProps}
                     multiline={this.props.multiline ? this.props.multiline : false}
@@ -57,6 +58,7 @@ class MythicTextField extends React.Component {
                     InputProps={this.props.InputProps}
                     helperText={this.checkError() ? this.props.errorText : this.props.helperText}
                     style={{
+                        padding:0,
                         marginBottom: this.props.marginBottom ? this.props.marginBottom : "10px"
                     }}/>
             </div>

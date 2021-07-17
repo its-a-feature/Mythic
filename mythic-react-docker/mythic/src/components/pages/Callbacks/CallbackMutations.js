@@ -8,6 +8,14 @@ mutation hideCallback ($callback_id: Int!){
   }
 }
 `;
+export const hideCallbackMutations = gql`
+mutation hideCallback ($callback_id: Int!){
+  updateCallback(input: {callback_id: $callback_id, active: false}) {
+    status
+    error
+  }
+}
+`;
 
 export const removeEdgeMutation = gql`
 mutation removeEdgeMutation ($edge_id: Int!, $end_timestamp: timestamp!){

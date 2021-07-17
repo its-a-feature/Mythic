@@ -8,38 +8,42 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
 import { PayloadsTableRow } from './PayloadsTableRow';
+import {useTheme} from '@material-ui/core/styles';
 
 
-export function PayloadsTable(props){
+export function PayloadsTable({subscribeToMoreMessages, payload, onDeletePayload, onUpdateCallbackAlert}){
+    const theme = useTheme();
     useEffect( () => {
-        props.subscribeToMoreMessages();
-    }, []);
+        subscribeToMoreMessages();
+    }, [subscribeToMoreMessages]);
     return (
+        <React.Fragment>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                    Payloads
+                </Typography>
+              </Paper>  
         <TableContainer component={Paper} className="mythicElement">
-            <Typography variant="h3" align="left" id="SettingsTable" component="div" 
-            style={{"display": "inline-block", "float": "left", "marginLeft": "10px"}}>
-              Payloads
-            </Typography>    
             <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "100%", "overflow": "scroll"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "2rem"}}> Delete</TableCell>
-                        <TableCell style={{width: "11rem"}}>Timestamp</TableCell>
-                        <TableCell style={{width: "4rem"}}>Modify</TableCell>
-                        <TableCell style={{width: "6rem"}}>Alert on New</TableCell>
-                        <TableCell style={{width: "3rem"}}>Download</TableCell>
+                        <TableCell style={{width: "3rem"}}> Delete</TableCell>
+                        <TableCell style={{width: "15rem"}}>Timestamp</TableCell>
+                        <TableCell style={{width: "6rem"}}>Modify</TableCell>
+                        <TableCell style={{width: "7rem"}}>Alertable</TableCell>
+                        <TableCell style={{width: "6rem"}}>Download</TableCell>
                         <TableCell>File</TableCell>
                         <TableCell>Description</TableCell>
-                        <TableCell style={{width: "8rem"}}>C2 Status</TableCell>
-                        <TableCell style={{width: "3rem"}}>Details</TableCell>
+                        <TableCell >C2 Status</TableCell>
+                        <TableCell style={{width: "6rem"}}>Details</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                 
-                {props.payload.map( (op) => (
+                {payload.map( (op) => (
                     <PayloadsTableRow
-                        onDeletePayload={props.onDeletePayload}
-                        onAlertChanged={props.onUpdateCallbackAlert}
+                        onDeletePayload={onDeletePayload}
+                        onAlertChanged={onUpdateCallbackAlert}
                         key={"payload" + op.id}
                         {...op}
                     />
@@ -47,6 +51,7 @@ export function PayloadsTable(props){
                 </TableBody>
             </Table>
         </TableContainer>
+        </React.Fragment>
     )
 }
 

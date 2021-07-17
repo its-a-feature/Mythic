@@ -4,7 +4,7 @@ import { meState, menuOpen } from '../../../cache';
 
 export function Logout(props){
     useEffect(() => {
-        meState({loggedIn:false, accessToken: null, refreshToken: null, user: {}});
+        meState({loggedIn:false, accessToken: null, refreshToken: null, user: null});
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("user");

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {useQuery, gql} from '@apollo/client';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Select from '@material-ui/core/Select';
@@ -10,7 +10,6 @@ const GET_Payload_Types = gql`
 query getPayloadTypesBuildParametersQuery($os: String!) {
   payloadtype(where: {supported_os: {_ilike: $os}, deleted: {_eq: false}, wrapper: {_eq: false}}) {
     ptype
-    note
     file_extension
     supports_dynamic_loading
     buildparameters(where: {deleted: {_eq: false} }) {
@@ -42,23 +41,18 @@ export function Step2SelectPayloadType(props){
                         const params = payload.buildparameters.map( (param) => {
                             return {...param, error: param.required}
                         });
-                        return params;
+                        return [...prev, ...params];
                     }
-                    return prev;
+                    return [...prev];
                 }, []);
-                payloadtypedata.sort((a,b) => -b.ptype.localeCompare(a.ptype));
+                payloadtypedata.sort((a,b) => -b.description.localeCompare(a.description));
                 setSelectedPayloadTypeParameters(payloadtypedata);
+                console.log(payloadtypedata);
             }
         }
     });
 
-    if (loading) {
-     return <div><CircularProgress /></div>;
-    }
-    if (error) {
-     console.error(error);
-     return <div>Error!</div>;
-    }
+    
     const finished = () => {
         const finishedParams = payloadTypeParameters.map( (param) => {
             return {"name": param.name, "value": param.value}
@@ -81,10 +75,11 @@ export function Step2SelectPayloadType(props){
                 const params = payload.buildparameters.map( (param) => {
                     return {...param, error: param.required}
                 });
-                return params;
+                return [...prev, ...params];
             }
-            return prev;
+            return [...prev];
         }, []);
+        payloadtypedata.sort((a,b) => -b.description.localeCompare(a.description));
         setSelectedPayloadTypeParameters(payloadtypedata);
     }
     const onChange = (name, value, error) => {
@@ -92,9 +87,16 @@ export function Step2SelectPayloadType(props){
             if(param.name === name){
                 return {...param, value, error}
             }
-            return param;
+            return {...param};
         });
         setSelectedPayloadTypeParameters(newParams);
+    }
+    if (loading) {
+        return <div><CircularProgress /></div>;
+    }
+    if (error) {
+        console.error(error);
+        return <div>Error!</div>;
     }
     return (
         <div >

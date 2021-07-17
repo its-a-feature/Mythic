@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableContainer from '@material-ui/core/TableContainer';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
 import {EnhancedTableHead, stableSort, getComparator} from '../../MythicComponents/MythicTable';
+import {MythicTransferListDialog} from '../../MythicComponents/MythicTransferList';
+import {MythicDialog} from '../../MythicComponents/MythicDialog';
 import { CallbacksTableRow } from './CallbacksTableRow';
 import { lighten, makeStyles } from '@material-ui/core/styles';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -12,16 +14,16 @@ import clsx from 'clsx';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
 import VisibilityOffOutlinedIcon from '@material-ui/icons/VisibilityOffOutlined';
-import {ThemeContext} from 'styled-components';
-import { useContext} from 'react';
+import {useTheme} from '@material-ui/core/styles';
 import {hideCallbackMutation} from './CallbackMutations';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMutation } from '@apollo/client';
+import {Button} from '@material-ui/core';
 
 const useToolbarStyles = makeStyles((theme) => ({
   root: {
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(1),
+    minHeight: "unset",
+    marginTop: "10px"
   },
   highlight:
     theme.palette.type === 'light'
@@ -40,7 +42,7 @@ const useToolbarStyles = makeStyles((theme) => ({
 
 const EnhancedTableToolbar = (props) => {
   const classes = useToolbarStyles();
-  const theme = useContext(ThemeContext);
+  const theme = useTheme();
   const { numSelected } = props;
   return (
     <React.Fragment>
@@ -58,17 +60,16 @@ const EnhancedTableToolbar = (props) => {
             </React.Fragment>
           </Toolbar>
       ) : (
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader, marginBottom: "5px", marginTop: "10px", width: "100%"}} variant={"elevation"}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px", width: "100%"}} variant={"elevation"}>
           <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
               Active Callbacks
           </Typography>
+          <Button variant="contained" color={"primary"} size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"20px"}} 
+                    onClick={(evt) => {evt.stopPropagation(); props.openDialog(); }}>Show/Hide Columns</Button>
         </Paper>
       )
       }
     </React.Fragment>
-    
-      
-    
   );
 };
 const useStyles = makeStyles((theme) => ({
@@ -99,6 +100,9 @@ export function CallbacksTable(props){
       const [order, setOrder] = React.useState('asc');
       const [orderBy, setOrderBy] = React.useState('interact');
       const [selected, setSelected] = React.useState([]);
+      const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
+      const [allColumns, setAllColumns] = React.useState([]);
+      const [shownColumns, setShownColumns] = React.useState(["id", "user", "host", "domain", "description", "last_checkin", "type", "c2", "ip", "os"]);
       const handleSelectAllClick = (event) => {
         if (event.target.checked) {
           const newSelecteds = props.callbacks.map((n) => n.id);
@@ -153,7 +157,12 @@ export function CallbacksTable(props){
       }
       //
     }
-    const tableHeadCells = [
+    const onSubmitAdjustColumns = ({left, right}) => {
+      setShownColumns(right);
+      localStorage.setItem("callbacks_table_columns", JSON.stringify(right));
+    }
+    
+    const tableHeadCells = useMemo( () => [
         {id: "id", numeric: true, disablePadding: false, label: "Interact"},
         {id: "ip", numeric: false, disablePadding: false, label: "IP"},
         {id: "host", numeric: false, disablePadding: false, label: "Host"},
@@ -165,23 +174,42 @@ export function CallbacksTable(props){
         {id: "description", numeric: false, disablePadding: false, label: "Description"},
         {id: "sleep", numeric: false, disablePadding: true, label: "Sleep"},
         {id: "type", numeric: false, disablePadding: false, label: "Type"},
-        {id: "c2", numeric: false, disablePadding: true, label: "C2"}
-    ]
+        {id: "c2", numeric: false, disablePadding: true, label: "C2"},
+        {id: "process_name", numeric: false, disablePadding: true, label: "Process Name"}
+    ], []);
+    useEffect( () => {
+      const ids = tableHeadCells.map( (cell) => cell.id);
+      setAllColumns(ids);
+      let localSettings = localStorage.getItem("callbacks_table_columns");
+      if(localSettings !== null){
+        setShownColumns(JSON.parse(localSettings));
+      }
+    }, [tableHeadCells]);
     return (
         <div>  
-            <TableContainer component={Paper} className="mythicElement" style={{"maxWidth": "100%", "overflow": "auto", height: "calc(" + props.topHeight + "vh)"}}>
-                <EnhancedTableToolbar numSelected={selected.length} onHideSelected={hideSelected}/>
+          <EnhancedTableToolbar numSelected={selected.length} onHideSelected={hideSelected} openDialog={() => setOpenAdjustColumnsDialog(true)}/>
+            <TableContainer component={Paper} className="mythicElement" style={{"maxWidth": "100%", "overflow": "auto", height: "calc(" + props.topHeight + "vh)", marginRight: "5px"}}>
                 <Table size="small" >
-                    <EnhancedTableHead numSelected={selected.length} rowCount={props.callbacks.length} classes={classes} headCells={tableHeadCells} onSelectAllClick={handleSelectAllClick} onRequestSort={handleRequestSort} orderBy={orderBy} order={order}/>
+                    <EnhancedTableHead shownColumns={shownColumns} numSelected={selected.length} 
+                      rowCount={props.callbacks.length} classes={classes} headCells={tableHeadCells} 
+                      onSelectAllClick={handleSelectAllClick} onRequestSort={handleRequestSort} orderBy={orderBy} 
+                      order={order} />
                     <TableBody >
                     {
                         stableSort(props.callbacks, getComparator(order, orderBy)).map( (cal, index) => (
-                            <CallbacksTableRow handleClick={handleClick} isItemSelected={isSelected} onOpenTab={props.onOpenTab} key={"callback" + cal.id} {...cal} callbackgraphedges={props.callbackgraphedges}/>
+                            <CallbacksTableRow shownColumns={shownColumns} handleClick={handleClick} isItemSelected={isSelected} onOpenTab={props.onOpenTab} key={"callback" + cal.id} {...cal} callbackgraphedges={props.callbackgraphedges}/>
                         ))
                     }
                     </TableBody>
                 </Table>
             </TableContainer>
+            <MythicDialog fullWidth={true} maxWidth="lg" open={openAdjustColumnsDialog} 
+                    onClose={()=>{setOpenAdjustColumnsDialog(false);}} 
+                    innerDialog={
+                      <MythicTransferListDialog onClose={()=>{setOpenAdjustColumnsDialog(false);}} 
+                        onSubmit={onSubmitAdjustColumns} right={shownColumns} rightTitle="Show these columns"
+                        leftTitle={"Hidden Columns"} left={allColumns} dialogTitle={"Edit which columns are shown"}/>}
+                />
         </div>
     )
 }

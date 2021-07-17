@@ -57,10 +57,10 @@ export function SettingsOperatorDialog(props) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.handleClose} color="primary">
+          <Button onClick={props.handleClose} variant="contained" color="primary">
             Cancel
           </Button>
-          <Button onClick={onAccept} color="primary">
+          <Button onClick={onAccept} variant="contained" color="primary">
             Update
           </Button>
         </DialogActions>

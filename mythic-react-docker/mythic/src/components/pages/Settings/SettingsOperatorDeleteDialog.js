@@ -23,10 +23,10 @@ export function SettingsOperatorDeleteDialog(props) {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.handleClose} color="primary">
+          <Button onClick={props.handleClose} variant="contained" color="primary">
             Cancel
           </Button>
-          <Button onClick={onAccept} color="secondary">
+          <Button onClick={onAccept} variant="contained" color="secondary">
             Delete
           </Button>
         </DialogActions>

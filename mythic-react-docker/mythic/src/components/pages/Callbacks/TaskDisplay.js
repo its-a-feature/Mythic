@@ -22,7 +22,7 @@ import RateReviewOutlinedIcon from '@material-ui/icons/RateReviewOutlined';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import {TaskCommentDialog} from './TaskCommentDialog';
 import {TaskTagDialog} from './TaskTagDialog';
-import {muiTheme} from '../../../themes/Themes.js';
+import {useTheme} from '@material-ui/core/styles';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
 import {TaskOpsecDialog} from './TaskOpsecDialog';
@@ -85,6 +85,15 @@ const useStyles = makeStyles((theme) => ({
   },
   secondaryHeading: {
     fontSize: theme.typography.pxToRem(15),
+    //color: theme.palette.text.secondary,
+    overflow: "hidden", 
+    display: "block", 
+    textOverflow: "ellipsis", 
+    maxWidth: "calc(90vw)", 
+    whiteSpace: "nowrap"
+  },
+  taskAndTimeDisplay: {
+    fontSize: theme.typography.pxToRem(12),
     color: theme.palette.text.secondary,
     overflow: "hidden", 
     display: "block", 
@@ -94,7 +103,7 @@ const useStyles = makeStyles((theme) => ({
   },
   secondaryHeadingExpanded: {
     fontSize: theme.typography.pxToRem(15),
-    color: theme.palette.text.secondary,
+    //color: theme.palette.text.secondary,
     display: "block", 
     overflow: "auto",
     maxWidth: "calc(90vw)", 
@@ -158,7 +167,7 @@ const StyledTreeItem = withStyles((theme) => ({
     paddingLeft: 18,
     borderLeft: `1px dashed ${fade(theme.palette.text.primary, 0.4)}`,
   },
-}))((props) => <TreeItem {...props}  />); //
+}))((props) => <TreeItem {...props}  />); 
 
 export const TaskDisplay = (props) =>{
     
@@ -199,8 +208,8 @@ export const TaskDisplay = (props) =>{
 }
 
 const TaskRow = (props) => {
-	const me = useReactiveVar(meState);
-    const [enableBrowserscripts, setEnableBrowserscripts] = React.useState(true);
+	  const me = useReactiveVar(meState);
+    const theme = useTheme();
     const [lastSeenResponse, setLastSeenResponse] = React.useState(0);
     const [displayComment, setDisplayComment] = React.useState(false);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -214,7 +223,7 @@ const TaskRow = (props) => {
     const classes = useStyles();
     const [taskingData, setTaskingData] = React.useState({task: []});
     const [isFetchingSubtasks, setIsFetchingSubtasks] = React.useState(false);
-    const [getSubTasking, { loading: taskingLoading, startPolling, stopPolling }] = useLazyQuery(getSubTaskingQuery, {
+    const [getSubTasking, { startPolling, stopPolling }] = useLazyQuery(getSubTaskingQuery, {
         onError: data => {
             console.error(data)
         },
@@ -237,43 +246,42 @@ const TaskRow = (props) => {
         	setIsFetchingSubtasks(true);
     		getSubTasking({variables: {task_id: props.task.id} });
     		return;
-		}
-		//// we're already fetching subtasks, but just clicked the minus sign, so stop
-		props.toggleSelection(props.task.id, false);
+      }
+      //// we're already fetching subtasks, but just clicked the minus sign, so stop
+      props.toggleSelection(props.task.id, false);
 		
     }
     const accordionClasses = accordionUseStyles();
-        const toggleBrowserscripts = () => {
-        setEnableBrowserscripts(!enableBrowserscripts);
-    }
     const getTaskStatus = () => {
         if(props.task.status.includes("error")){
-             return (<Button size="small" style={{padding: "0", color: muiTheme.palette.error.main}}>{props.task.status}</Button>)
+             return (<Button size="small" style={{padding: "0", color: theme.palette.error.main}}>{props.task.status}</Button>)
+        }else if(props.task.status === "cleared"){
+          return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>Cleared</Button>)
         }else if(props.task.completed){
-             return (<Button size="small" style={{padding: "0", color: muiTheme.palette.success.main}}>Completed</Button>)
+             return (<Button size="small" style={{padding: "0", color: theme.palette.success.main}}>Completed</Button>)
         }else if(props.task.status === "submitted" || props.task.status === "processing"){
-             return (<Button size="small" style={{padding: "0", color: muiTheme.palette.info.main}}>{props.task.status}</Button>)
+             return (<Button size="small" style={{padding: "0", color: theme.palette.info.main}}>{props.task.status}</Button>)
         }else if(props.task.opsec_pre_blocked && !props.task.opsec_pre_bypassed){
-            return (<Button size="small" style={{padding: "0", color: muiTheme.palette.warning.main}}>OPSEC Blocked (PRE)</Button>)
+            return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>OPSEC Blocked (PRE)</Button>)
         }else if(props.task.opsec_post_blocked && !props.task.opsec_post_bypassed){
-            return (<Button size="small" style={{padding: "0", color: muiTheme.palette.warning.main}}>OPSEC Blocked (POST)</Button>)
+            return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>OPSEC Blocked (POST)</Button>)
         }else{
-             return (<Button size="small" style={{padding: "0", color: muiTheme.palette.info.main}}>{props.task.status}</Button>)
+             return (<Button size="small" style={{padding: "0", color: theme.palette.info.main}}>{props.task.status}</Button>)
         }
     }
     const getTaskStatusColor = () => {
         if(props.task.status.includes("error")){
-             return muiTheme.palette.error.main;
+             return theme.palette.error.main;
         }else if(props.task.completed){
-             return muiTheme.palette.success.main;
+             return theme.palette.success.main;
         }else if(props.task.status === "submitted" || props.task.status === "processing"){
-             return muiTheme.palette.info.main;
+             return theme.palette.info.main;
         }else if(props.task.opsec_pre_blocked && !props.task.opsec_pre_bypassed){
-            return muiTheme.palette.warning.main;
+            return theme.palette.warning.main;
         }else if(props.task.opsec_post_blocked && !props.task.opsec_post_bypassed){
-            return muiTheme.palette.warning.main;
+            return theme.palette.warning.main;
         }else{
-             return muiTheme.palette.info.main;
+             return theme.palette.info.main;
         }
     }
     const prevResponses = useRef(props.task.responses);
@@ -288,7 +296,6 @@ const TaskRow = (props) => {
             }
         }else{
             setAlertBadges(0);
-            
         }
     }, [props.task.responses, dropdownOpen, lastSeenResponse]);
     const toggleTaskDropdown = (event, newExpanded) => {
@@ -338,7 +345,7 @@ const TaskRow = (props) => {
 				                        <Typography className={classes.heading}>{props.task.comment}</Typography>
 				                    </React.Fragment>
 				                  ) : (null)}
-				                  
+				                   <Typography className={classes.taskAndTimeDisplay}>Task: {props.task.id}, {props.task.operator.username}, {toLocalTime(props.task.timestamp, me.user.view_utc_time)}</Typography>
 				                  <div>
 				                    <div className={classes.column}>
 				                        <Badge badgeContent={alertBadges} color="secondary" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
@@ -347,7 +354,7 @@ const TaskRow = (props) => {
 				                      </div>
 				                      {props.task.comment !== "" ? (
 				                        <div className={classes.column}>
-				                            <IconButton size="small" style={{padding: "0", color: muiTheme.palette.info.main}} onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
+				                            <IconButton size="small" style={{padding: "0", color: theme.palette.info.main}} onClick={toggleDisplayComment}><ChatOutlinedIcon/></IconButton>
 				                          </div>
 				                      ) : (null)}
 				                      <div className={classes.column}>
@@ -368,31 +375,31 @@ const TaskRow = (props) => {
 	            <Typography className={classes.secondaryHeading}>Task: {props.task.id}, {props.task.operator.username}, {toLocalTime(props.task.timestamp, me.user.view_utc_time)}</Typography>
 	          </div>
 	          <div className={classes.column}>
-	              <Tooltip title="Download output"><IconButton size="small" style={{color: muiTheme.palette.info.main}}><GetAppIcon/></IconButton></Tooltip>
-                <Tooltip title="Edit Tags"><IconButton size="small" style={{color: muiTheme.palette.info.main}} onClick={()=>{setOpenTaskTagDialog(true);}}><LocalOfferOutlinedIcon/></IconButton></Tooltip>
-	              <Tooltip title="Link Task"><IconButton size="small" style={{color: muiTheme.palette.info.main}} href={'/new/task/' + props.task.id} target="_blank" onClick={()=> {window.open('/new/task/' + props.task.id, "_blank")}}><LinkIcon /></IconButton></Tooltip>
-	              <Tooltip title="Copy original params to clipboard"><IconButton size="small" style={{color: muiTheme.palette.info.main}} onClick={copyToClipboard}><FileCopyOutlinedIcon/></IconButton></Tooltip>
-	              <Tooltip title="Edit Comment"><IconButton size="small" style={{color: muiTheme.palette.info.main}} onClick={()=>{setOpenCommentDialog(true);}}><RateReviewOutlinedIcon/></IconButton></Tooltip>
+	              <Tooltip title="Download output"><IconButton size="small" style={{color: theme.palette.info.main}}><GetAppIcon/></IconButton></Tooltip>
+                <Tooltip title="Edit Tags"><IconButton size="small" style={{color: theme.palette.info.main}} onClick={()=>{setOpenTaskTagDialog(true);}}><LocalOfferOutlinedIcon/></IconButton></Tooltip>
+	              <Tooltip title="Link Task"><IconButton size="small" style={{color: theme.palette.info.main}} href={'/new/task/' + props.task.id} target="_blank" onClick={()=> {window.open('/new/task/' + props.task.id, "_blank")}}><LinkIcon /></IconButton></Tooltip>
+	              <Tooltip title="Copy original params to clipboard"><IconButton size="small" style={{color: theme.palette.info.main}} onClick={copyToClipboard}><FileCopyOutlinedIcon/></IconButton></Tooltip>
+	              <Tooltip title="Edit Comment"><IconButton size="small" style={{color: theme.palette.info.main}} onClick={()=>{setOpenCommentDialog(true);}}><RateReviewOutlinedIcon/></IconButton></Tooltip>
 	              <MythicDialog fullWidth={true} maxWidth="md" open={openCommentDialog} 
 	                    onClose={()=>{setOpenCommentDialog(false);}} 
 	                    innerDialog={<TaskCommentDialog task_id={props.task.id} onClose={()=>{setOpenCommentDialog(false);}} />}
 	                />
-	              <Tooltip title="View All Parameters"><IconButton size="small" style={{color: muiTheme.palette.info.main}} onClick={()=>{setOpenParametersDialog(true);}}><InputIcon/></IconButton></Tooltip>
+	              <Tooltip title="View All Parameters"><IconButton size="small" style={{color: theme.palette.info.main}} onClick={()=>{setOpenParametersDialog(true);}}><InputIcon/></IconButton></Tooltip>
 	              {props.task.opsec_pre_blocked === null ? (
-	                <Tooltip title="No OPSEC PreCheck data"><IconButton size="small" style={{color: muiTheme.palette.disabled.main}}><LockOpenIcon/></IconButton></Tooltip>
+	                <Tooltip title="No OPSEC PreCheck data"><IconButton size="small" style={{color: theme.palette.disabled.main}}><LockOpenIcon/></IconButton></Tooltip>
 	              ) : (  props.task.opsec_pre_bypassed === false ? (
-	                        <Tooltip title="Submit OPSEC PreCheck Bypass Request"><IconButton size="small" style={{color: muiTheme.palette.error.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockIcon/></IconButton></Tooltip>
+	                        <Tooltip title="Submit OPSEC PreCheck Bypass Request"><IconButton size="small" style={{color: theme.palette.error.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockIcon/></IconButton></Tooltip>
 	                    ) : (
-	                        <Tooltip title="View OPSEC PreCheck Data"><IconButton size="small" style={{color: muiTheme.palette.success.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockOpenIcon/></IconButton></Tooltip>
+	                        <Tooltip title="View OPSEC PreCheck Data"><IconButton size="small" style={{color: theme.palette.success.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockOpenIcon/></IconButton></Tooltip>
 	                    )             
 	                ) 
 	              }
 	              {props.task.opsec_post_blocked === null ? (
-	                <Tooltip title="No OPSEC PostCheck data"><IconButton size="small" style={{color: muiTheme.palette.disabled.main}}><LockOpenIcon/></IconButton></Tooltip>
+	                <Tooltip title="No OPSEC PostCheck data"><IconButton size="small" style={{color: theme.palette.disabled.main}}><LockOpenIcon/></IconButton></Tooltip>
 	              ) : (  props.task.opsec_post_bypassed === false ? (
-	                        <Tooltip title="Submit OPSEC PostCheck Bypass Request"><IconButton size="small" style={{color: muiTheme.palette.error.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockIcon/></IconButton></Tooltip>
+	                        <Tooltip title="Submit OPSEC PostCheck Bypass Request"><IconButton size="small" style={{color: theme.palette.error.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockIcon/></IconButton></Tooltip>
 	                    ) : (
-	                        <Tooltip title="View OPSEC PostCheck Data"><IconButton size="small" style={{color: muiTheme.palette.success.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockOpenIcon/></IconButton></Tooltip>
+	                        <Tooltip title="View OPSEC PostCheck Data"><IconButton size="small" style={{color: theme.palette.success.main}} onClick={()=>{setOpenOpsecDialog(true);}}><LockOpenIcon/></IconButton></Tooltip>
 	                    )             
 	                ) 
 	              }
@@ -411,7 +418,7 @@ const TaskRow = (props) => {
 	          </div>
 				        </AccordionActions>
 				        <AccordionDetails className={classes.details}>
-				          <ResponseDisplay task={task} command_id={commandID} enable_browserscripts={enableBrowserscripts}/>
+				          <ResponseDisplay task={task} command_id={commandID}/>
 				        </AccordionDetails>
 	      			</Accordion>
 	    		</Paper>

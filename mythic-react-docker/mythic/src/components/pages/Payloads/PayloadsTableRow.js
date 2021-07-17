@@ -26,6 +26,7 @@ import {PayloadFilenameDialog} from './PayloadFilenameDialog';
 import {PayloadBuildMessageDialog} from './PayloadBuildMessageDialog';
 import {PayloadsTableRowC2Status} from './PayloadsTableRowC2Status';
 import {PayloadsTableRowBuildStatus} from './PayloadsTableRowBuildStatus';
+import {useTheme} from '@material-ui/core/styles';
 
 export function PayloadsTableRow(props){
     const [open, setOpen] = React.useState(false);
@@ -37,6 +38,7 @@ export function PayloadsTableRow(props){
     const [openBuildMessage, setOpenBuildMessageDialog] = React.useState(false);
     const dropdownAnchorRef = useRef(null);
     const me = useReactiveVar(meState);
+    const theme = useTheme();
     
     const onAlertChanged = (evt) => {
         const {id} = props;
@@ -75,7 +77,7 @@ export function PayloadsTableRow(props){
         <React.Fragment>
             <TableRow key={"payload" + props.uuid}>
                 <TableCell>
-                <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} color="secondary" variant="contained"><DeleteIcon/></IconButton>
+                <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
                 <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
                 </TableCell>
                 <TableCell>{toLocalTime(props.creation_time, me.user.view_utc_time)}</TableCell>

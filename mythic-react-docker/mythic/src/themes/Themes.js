@@ -9,6 +9,8 @@ export const lightTheme = {
     tableHeader: '#F5F5F5',
     pageHeader: '#424242',
     pageHeaderColor: 'white',
+    callbackTitle: '#BEDCFE',
+    callbackTitleColor: '',
     listItemBackground: '#F5F5F5',
     menuItemBackground: "#FBFBFB",
     topAppBar: "",
@@ -31,6 +33,8 @@ export const darkTheme = {
     tableHeader: '#484848',
     pageHeader: '#424242',
     pageHeaderColor: 'white',
+    callbackTitle: '#023064',
+    callbackTitleColor: 'white',
     listItemBackground: '#303030',
     primaryButtonTextOnly: "#7e75ea",
     secondaryButtonTextOnly: "#ea7575",
@@ -66,6 +70,7 @@ export const muiTheme = createMuiTheme({
             main: "rgba(0, 0, 0, 0.38)"
         },
     },
+    
 });
 
 

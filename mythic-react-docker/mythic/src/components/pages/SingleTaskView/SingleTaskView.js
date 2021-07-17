@@ -1,87 +1,305 @@
 import React, {useEffect} from 'react';
 import {TaskDisplay} from '../Callbacks/TaskDisplay';
-import {useSubscription, gql, useLazyQuery } from '@apollo/client';
-import LinearProgress from '@material-ui/core/LinearProgress';
+import {gql, useLazyQuery } from '@apollo/client';
 import  {useParams} from "react-router-dom";
-import {useReactiveVar} from '@apollo/client';
-import { meState } from '../../../cache';
 import {TaskMetadataTable} from './MetadataTable';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
-import { useContext} from 'react';
-import {ThemeContext} from 'styled-components';
-
-const subTaskQuery = gql`
-subscription subTaskQuery($task_id: Int!) {
-  task_by_pk(id: $task_id) {
-        comment
-        commentOperator{
-            username
-        }
-        completed
+import {Button, Grid} from '@material-ui/core';
+import {IncludeMoreTasksDialog} from './IncludeMoreTasksDialog';
+import { MythicDialog } from '../../MythicComponents/MythicDialog';
+import { useReactiveVar } from '@apollo/client';
+import { meState } from '../../../cache';
+import {snackActions} from '../../utilities/Snackbar';
+import {copyStringToClipboard} from '../../utilities/Clipboard';
+import Switch from '@material-ui/core/Switch';
+import {useTheme} from '@material-ui/core/styles';
+const taskInfoFragment = gql`
+fragment TaskData on task {
+    comment
+    commentOperator{
+        username
+    }
+    completed
+    id
+    operator{
+        username
+    }
+    display_params
+    original_params
+    status
+    timestamp
+    command {
+        cmd
         id
-        operator{
-            username
-        }
-        display_params
-        original_params
-        status
-        timestamp
-        command {
-          cmd
-          id
-        }
-        responses{
-            id
-        }
-        opsec_pre_blocked
-        opsec_pre_bypassed
-        opsec_post_blocked
-        opsec_post_bypassed
-        tasks {
-            id
-        }
+    }
+    callback {
+        id
+        host
+        user
+        integrity_level
+        domain
+    }
+    responses{
+        id
+    }
+    parent_task_id
+    opsec_pre_blocked
+    opsec_pre_bypassed
+    opsec_post_blocked
+    opsec_post_bypassed
+    tasks {
+        id
+    }
+}
+`;
+const tasksQuery = gql`
+${taskInfoFragment}
+query tasksQuery($task_range: [Int!]) {
+    task(where: {id: {_in: $task_range}}, order_by: {id: asc}) {
+        ...TaskData
+    }
+}`;
+const getTasksAcrossAllCallbacksQuery = gql`
+${taskInfoFragment}
+query tasksAcrossAllCallbacks($operation_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!){
+    before: task(where: {callback:{operation_id: {_eq: $operation_id}}, id:{_lt: $baseTask}}, order_by: {id: desc}, limit: $beforeCount) {
+        ...TaskData
+    }
+    after: task(where: {callback:{operation_id: {_eq: $operation_id}}, id:{_gt: $baseTask}}, limit: $afterCount, order_by: {id: asc}) {
+        ...TaskData
+    }
+}`;
+const getTasksAcrossACallbackQuery = gql`
+${taskInfoFragment}
+query tasksAcrossACallbacks($callback_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!){
+    before: task(where: {callback:{id: {_eq: $operation_id}}, id:{_lt: $baseTask}}, limit: $beforeCount, order_by: {id: desc}) {
+        ...TaskData
+    }
+    after: task(where: {callback:{id: {_eq: $operation_id}}, id:{_gt: $baseTask}}, limit: $afterCount, order_by: {id: asc}) {
+        ...TaskDAta
+    }
+}`;
+const getTasksAcrossAllCallbacksByOperatorQuery = gql`
+${taskInfoFragment}
+query tasksAcrossAllCallbacksByOperator($operation_id: Int!, $baseTask: Int!, $beforeCount: Int!, $afterCount: Int!, $operator: String!){
+    before: task(where: {callback:{operation_id: {_eq: $operation_id}}, id:{_lt: $baseTask}, operator: {username: {_eq: $operator}}}, limit: $beforeCount, order_by: {id: desc}) {
+        ...TaskData
+    }
+    after: task(where: {callback:{operation_id: {_eq: $operation_id}}, id:{_gt: $baseTask}, operator: {username: {_eq: $operator}}}, limit: $afterCount, order_by: {id: asc}) {
+        ...TaskData
     }
 }`;
 export function SingleTaskView(props){
-   const {taskId} = useParams();
-   const [taskIDs, setTaskIDs] = React.useState([]);
-   const [commandId, setCommandId] = React.useState(0);
-   const theme = useContext(ThemeContext);
-
-   const {loading, error, data} = useSubscription(subTaskQuery, {
-     variables: {task_id: parseInt(taskId)},
-     onSubscriptionData: completedData => {
-        console.log(completedData.subscriptionData.data.task_by_pk.tasks);
-        const tasks = completedData.subscriptionData.data.task_by_pk.tasks.reduce( (prev, cur) => {
-            if(taskIDs.includes(cur.id)){
-                return [...prev];
+    const me = useReactiveVar(meState);
+    const {taskId} = useParams();
+    const [taskIDs, setTaskIDs] = React.useState([]);
+    const [taskOptions, setTaskOptions] = React.useState([]);
+    const [tasks, setTasks] = React.useState([]);
+    const [removing, setRemoving] = React.useState(false);
+    const [openIncludeMoreTasksDialog, setOpenIncludeMoreTasksDialog] = React.useState(false);
+    const theme = useTheme();
+    const mergeData = (taskData) => {
+        const allNewParents = taskData.filter( (task) => task.parent_task_id === null);
+        let allData = [];
+        let recent_callback = -1;
+        const allParents = tasks.reduce( (prev, cur) => {
+            if(cur.type === "task" && cur.parent_task_id === null){
+                if(prev.find( (element) => element.id === cur.id)){
+                    return [...prev];
+                }
+                return [...prev, {...cur, checked: false}];
+            }
+            return [...prev];
+        }, [...allNewParents]);
+        allParents.sort((a,b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0));
+        allParents.forEach( (tsk) => {
+            if(tsk.callback.id !== recent_callback){
+                allData.push({"type": "callback", ...tsk.callback, checked: false});
+            }
+            recent_callback = tsk.callback.id;
+            allData.push({"type": "task", ...tsk, checked: false});
+        });
+        setTasks(allData);
+        const allTaskIds = taskData.reduce( (prev, cur) => {
+            const subIds = cur.tasks.filter( (cur) => !prev.includes(cur.id)).map( (cur) => cur.id);
+            if(prev.includes(cur.id)){
+                return [...prev, ...subIds];
             }else{
-                return [...prev, cur.id];
+                return [...prev, cur.id, ...subIds];
             }
         }, [...taskIDs]);
-        setTaskIDs(tasks);
-        setCommandId(completedData.subscriptionData.data.task_by_pk.command.id);
+        setTaskIDs(allTaskIds);
+    }
+    const [getTasksAcrossAllCallbacks] = useLazyQuery(getTasksAcrossAllCallbacksQuery, {
+        onCompleted: completedData => {
+           snackActions.success("Successfully fetched tasks");
+           mergeData([...completedData.before, ...completedData.after]);
+        }
+    });
+    const [getTasksAcrossACallback,] = useLazyQuery(getTasksAcrossACallbackQuery, {
+        onCompleted: completedData => {
+           snackActions.success("Successfully fetched tasks");
+           mergeData([...completedData.before, ...completedData.after]);
+        }
+    });
+    const [getTasksAcrossAllCallbacksByOperator] = useLazyQuery(getTasksAcrossAllCallbacksByOperatorQuery, {
+        onCompleted: completedData => {
+           snackActions.success("Successfully fetched tasks");
+           mergeData([...completedData.before, ...completedData.after]);
+        }
+    });
+    const [getTasks] = useLazyQuery(tasksQuery, {
+     onCompleted: completedData => {
+        mergeData(completedData.task);
      }
     });
+    const setTaskSearchInfo = (callback_id) => {
+        const opts = tasks.reduce( (prev, cur) => {
+            if(cur.type === 'task' && cur.callback.id === callback_id){
+                return [...prev, cur.id];
+            }else{
+                return [...prev];
+            }
+        }, []);
+        setTaskOptions(opts);
+        
+        setOpenIncludeMoreTasksDialog(true);
+    }
+    const toggleTaskToRemove = (event) => {
+        const updated = tasks.map( (task) => {
+            if(task.type === "task" && ("task" + task.id) === event.target.name){
+                return {...task, checked: event.target.checked};
+            }
+            return {...task};
+        });
+        setTasks(updated);
+    }
+    const removeTasksButton = () => {
+        removing ? setRemoving(false) : setRemoving(true);
+        const remainingTasks = tasks.filter( (task) => !task.checked);
+        setTasks(remainingTasks);
+        const remainingTaskIDs = remainingTasks.reduce( (prev, cur) => {
+            if(cur.type === "task"){
+                return [...prev, cur.id];
+            }else{
+                return [...prev];
+            }
+        }, []);
+        setTaskIDs(remainingTaskIDs);
+    }
+    const collapse_range = (all_nums) =>{
+        // takes in an array of the expanded numbers and collapses it down
+        all_nums.sort( (a,b) => (a-b));
+        // pulled from https://stackoverflow.com/a/2270987
+        let ranges = [], rstart, rend;
+        for (let i = 0; i < all_nums.length; i++) {
+          rstart = all_nums[i];
+          rend = rstart;
+          while (all_nums[i + 1] - all_nums[i] === 1) {
+            rend = all_nums[i + 1]; // increment the index if the numbers sequential
+            i++;
+          }
+          ranges.push(rstart === rend ? rstart+'' : rstart + '-' + rend);
+        }
+        return ranges.join(",");
+    }
+    const expand_range = (range) =>{
+        let numbers = [], ranges = range.split(",");
+        for(let i = 0; i < ranges.length; i++){
+            if(ranges[i].includes("-")){
+                let split = ranges[i].split("-");
+                split = split.map( (r) => parseInt(r) );
+                numbers.push( ...[...Array(split[1]-split[0]+1).keys()].map(x => x+split[0]))
+            }else{
+                numbers.push(parseInt(ranges[i]));
+            }
+        }
+        numbers.sort( (a,b) => a - b);
+        return numbers;
+    }
+    const getShareableLink = () => {
+        let ids = [...taskIDs];
+        const range = collapse_range(ids);
+        copyStringToClipboard(window.origin + "/new/tasks/by_range?tasks=" + range);
+        snackActions.success("Copied link to clipboard!");
+    }
+    const submitIncludeMoreTasks = ({taskSelected, beforeCount, afterCount, search}) => {
+        snackActions.info("Searching for tasks...");
+        switch(search){
+            case "all":
+                getTasksAcrossAllCallbacks({variables: {operation_id: me.user.current_operation_id, baseTask: taskSelected, beforeCount, afterCount}});
+                break;
+            case "callback":
+                getTasksAcrossACallback({variables: {}});
+                break;
+            default:
+                getTasksAcrossAllCallbacksByOperator({variables: {operation_id: me.user.current_operation_id, baseTask: taskSelected, beforeCount, afterCount, operator: search}});
+                break;
+        }
+    }
     useEffect( () => {
-        setTaskIDs([parseInt(taskId)]);
-    }, []);
-    if (loading) {
-     return <LinearProgress style={{marginTop: "10px"}}/>;
-    }
-    if (error) {
-     console.error(error);
-     return <div>Error!</div>;
-    }
+        if(window.location.pathname.includes("/new/tasks/by_range")){
+            let params = new URLSearchParams(window.location.search);
+            if(params.has("tasks")){
+                console.log(params.get("tasks"));
+                let ids = expand_range(params.get("tasks"));
+                getTasks({variables: {task_range: ids}});
+            }else{
+                snackActions.warning("URL Query missing '?tasks=' with a range of tasks")
+            }
+        }else{
+            getTasks({variables: {task_range: [parseInt(taskId)]}});
+        }      
+    }, [getTasks, taskId]);
   return (
-    <div style={{marginTop: "10px", maxHeight: "calc(92vh)"}}>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+    <div style={{marginTop: "10px", maxHeight: "calc(94vh)", width:"100%", marginBottom: "10px" }}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
+            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Task View
             </Typography>
+            <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.success.main}} 
+                onClick={getShareableLink}>Get Shareable link</Button>
+            <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.warning.main}} 
+                onClick={removeTasksButton}>Remove Tasks From View</Button>
+            <Button variant="contained" color={"primary"} size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px"}} 
+                onClick={(evt) => {evt.stopPropagation(); snackActions.warning("Not implemented yet");}}>Add Tags To All</Button>
+            
         </Paper>
-        <TaskDisplay task={data.task_by_pk} command_id={commandId} />
+        {tasks.map( (task) => (
+            task.type === "task" ? (
+                    <Grid container alignItems="stretch" key={"taskdisplay:" + task.id} style={{marginRight: "5px"}}>
+                        <Grid item style={{display: "inline-flex", width: removing ? "96%" : "100%"}}>
+                            <TaskDisplay  task={task} command_id={task.command === null ? 0 : task.command.command_id} />
+                        </Grid>
+                        <Grid item  style={{display: "inline-flex"}}>
+                        {removing ? (
+                            <Switch
+                                checked={task.checked}
+                                onChange={toggleTaskToRemove}
+                                name={"task" + task.id}
+                                inputProps={{ 'aria-label': 'checkbox', 'color': theme.palette.error.main }}
+                        />
+                        ) : (null)}
+                        </Grid>
+                    </Grid>
+                    
+            ) : (
+                <Paper key={"taskdisplayforcallback:" + task.id} elevation={5} style={{ marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+                    <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
+                        {task.domain === "" ? (null) : (task.domain + "\\")}{task.user}{task.integrity_level > 2 ? ("*") : (null)}@{task.host} ({task.id})
+                    </Typography>
+                    <Button variant="contained" size="small" style={{display: "inline-block", float: "right", marginTop:"5px", marginRight:"10px", backgroundColor: theme.palette.info.main}} 
+                        onClick={() => {setTaskSearchInfo(task.id)}}>Include More Tasks</Button>                  
+                </Paper>
+            ))
+            
+            )
+        }
+        <MythicDialog fullWidth={true} maxWidth="md" open={openIncludeMoreTasksDialog} 
+            onClose={()=>{setOpenIncludeMoreTasksDialog(false);}} 
+            innerDialog={<IncludeMoreTasksDialog submitFetchTasks={submitIncludeMoreTasks} taskOptions={taskOptions} onClose={()=>{setOpenIncludeMoreTasksDialog(false);}} />}
+        />
         <TaskMetadataTable taskIDs={taskIDs} />
     </div>
   );

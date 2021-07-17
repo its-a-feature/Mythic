@@ -6,7 +6,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Menu from '@material-ui/core/Menu';
 import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 
-function EventFeedTableEventsActionsFunc(props){
+export function EventFeedTableEventsActions(props){
     const [anchorEl, setAnchorEl] = React.useState(null);
     
     const onUpdateResolution = () => {
@@ -30,10 +30,10 @@ function EventFeedTableEventsActionsFunc(props){
     }
     const handleClick = React.useCallback((e) => {
         setAnchorEl(e.currentTarget)
-    });
+    }, []);
     return (
         <ListItemSecondaryAction>
-            <IconButton aria-controls={"eventmenu" + props.id} aria-haspopup="true" onClick={handleClick} style={{color: props.theme.text}}><MoreVertIcon/></IconButton>
+            <IconButton aria-controls={"eventmenu" + props.id} aria-haspopup="true" onClick={handleClick}><MoreVertIcon/></IconButton>
                 <Menu elevation={5} id={"eventmenu" + props.id} anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose} >
                     {
                         props.level === "warning" && props.resolved ? (
@@ -51,5 +51,4 @@ function EventFeedTableEventsActionsFunc(props){
             </ListItemSecondaryAction>
         )
 }
-export const EventFeedTableEventsActions = React.memo(EventFeedTableEventsActionsFunc);
 

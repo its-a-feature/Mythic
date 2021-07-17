@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import TableCell from '@material-ui/core/TableCell';
 import TableRow from '@material-ui/core/TableRow';
 import FormControl from '@material-ui/core/FormControl';
@@ -15,7 +15,7 @@ import {
 import 'date-fns';
 import DateFnsUtils from '@date-io/date-fns';
 
-export function CreatePayloadParameter(props){
+export function CreatePayloadParameter({onChange, parameter_type, default_value, parameter, name, required, verifier_regex, id, description}){
     const [value, setValue] = React.useState("");
     const [dictValue, setDictValue] = React.useState([]);
     const [dictOptions, setDictOptions] = React.useState([]);
@@ -27,33 +27,29 @@ export function CreatePayloadParameter(props){
         const condensed = list.map( (opt) => {
             return {[opt.key]: opt.value};
         });
-        props.onChange(props.name, condensed, false);
-    }
+        onChange(name, condensed, false);
+    };
     useEffect( () => {
-        console.log("in useEffect");
-        if(props.parameter_type === "ChooseOne"){
-            if(props.default_value){
-                const options = props.default_value.split("\n");
-                if( value === null){
-                    setValue(options[0]);
-                }
+        if(parameter_type === "ChooseOne"){
+            if(default_value){
+                const options = default_value.split("\n");
+                setValue(options[0]);
                 setChooseOptions(options);
             }else{
-                const options = props.parameter.split("\n");
-                if( value === null){
-                    setValue(options[0]);
-                }
+                const options = parameter.split("\n");
+                setValue(options[0]);
                 setChooseOptions(options)
             }
-        }else if(props.parameter_type === "Date"){
-            if(props.devault_value !== ""){
+        }else if(parameter_type === "Date"){
+            if(default_value !== ""){
                 var tmpDate = new Date();
-                tmpDate.setDate(tmpDate.getDate() + parseInt(props.default_value));
+                tmpDate.setDate(tmpDate.getDate() + parseInt(default_value));
                 setDateValue(tmpDate);
-                props.onChange(props.name, tmpDate.toISOString().slice(0,10), "");
+                setValue(-1);
+                onChange(name, tmpDate.toISOString().slice(0,10), "");
             }
-        }else if(props.parameter_type === "Dictionary"){
-            const options = JSON.parse(props.default_value);
+        }else if(parameter_type === "Dictionary" ){
+            const options = JSON.parse(default_value);
             setDictOptions(options);
             let initial = options.reduce( (prev, op) => {
                 // find all the options that have a default_show of true
@@ -84,23 +80,28 @@ export function CreatePayloadParameter(props){
             }
             
         }else{
-            setValue(props.default_value);
+            if(default_value === undefined){
+                setValue(parameter);
+            }else{
+                setValue(default_value);
+            }
+            
         }
-    }, [props.default_value, props.parameter, props.parameter_type]);
+    }, [default_value, parameter, parameter_type, name]);
     
     const onChangeValue = (evt) => {
         setValue(evt.target.value);
-        props.onChange(props.name, evt.target.value, false);
+        onChange(name, evt.target.value, false);
     }
     const onChangeText = (name, value, error) => {
         setValue(value);
-        props.onChange(props.name, value, error);
+        onChange(name, value, error);
     }
     const testParameterValues = (curVal) => {
-        if( props.required && props.verifier_regex !== ""){
-            return !RegExp(props.verifier_regex).test(curVal);
-        }else if(props.verifier_regex !== "" && curVal !== ""){
-            return !RegExp(props.verifier_regex).test(curVal);
+        if( required && verifier_regex !== ""){
+            return !RegExp(verifier_regex).test(curVal);
+        }else if(verifier_regex !== "" && curVal !== ""){
+            return !RegExp(verifier_regex).test(curVal);
         }else{
             return false;
         }
@@ -183,10 +184,10 @@ export function CreatePayloadParameter(props){
     }
     const onChangeDate = (date) => {
         setDateValue(date)
-        props.onChange(props.name, date.toISOString().slice(0,10), "");
+        onChange(name, date.toISOString().slice(0,10), "");
     }
     const getParameterObject = () => {
-        switch(props.parameter_type){
+        switch(parameter_type){
             case "Date":
                 return (
                     <MuiPickersUtilsProvider utils={DateFnsUtils}>
@@ -243,7 +244,7 @@ export function CreatePayloadParameter(props){
                                 <IconButton onClick={addDictValEntry}> <AddCircleIcon style={{color: muiTheme.palette.success.main}}  /> </IconButton>
                                 <Select size="small" value={dictSelectOptionsChoice} onChange={(e) => setDictSelectOptionsChoice(e.target.value)}>
                                     {dictSelectOptions.map( (selectOpt, i) => (
-                                        <MenuItem key={"selectopt" + props.name + "i"} value={selectOpt}>{selectOpt.name === "*" ? "Custom Key": selectOpt.name}</MenuItem>
+                                        <MenuItem key={"selectopt" + name + "i"} value={selectOpt}>{selectOpt.name === "*" ? "Custom Key": selectOpt.name}</MenuItem>
                                     ) )}
                                 </Select>
                                 
@@ -254,9 +255,9 @@ export function CreatePayloadParameter(props){
                 )
             case "String":
                 return (
-                    <MythicTextField required={props.required} placeholder={props.default_value} value={value} multiline={true}
-                        onChange={onChangeText} display="inline-block"
-                        validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
+                    <MythicTextField required={required} value={value} multiline={true}
+                        onChange={onChangeText} display="inline-block" name={name}
+                        validate={testParameterValues} errorText={"Must match: " + verifier_regex}
                     />
                 )
            default:
@@ -265,8 +266,8 @@ export function CreatePayloadParameter(props){
     }
     
     return (
-            <TableRow key={"buildparam" + props.id}>
-                <TableCell>{props.description}
+            <TableRow key={"buildparam" + id}>
+                <TableCell>{description}
                  </TableCell>
                 <TableCell>
                     {getParameterObject()}

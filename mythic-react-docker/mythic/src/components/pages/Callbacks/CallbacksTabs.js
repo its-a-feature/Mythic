@@ -3,6 +3,8 @@ import { makeStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Tabs from '@material-ui/core/Tabs';
 import {CallbacksTabsTaskingLabel, CallbacksTabsTaskingPanel} from './CallbacksTabsTasking';
+import {CallbacksTabsFileBrowserLabel, CallbacksTabsFileBrowserPanel} from './CallbacksTabsFileBrowser';
+import {CallbacksTabsProcessBrowserLabel, CallbacksTabsProcessBrowserPanel} from './CallbacksTabsProcessBrowser';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -50,18 +52,36 @@ export function CallbacksTabs({callbacks, onCloseTab, openTabs, clickedTabId, ma
               aria-label="scrollable auto tabs example"
             >
             {
-                openTabs.map( (tab, index) => (
-                    <CallbacksTabsTaskingLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index}/>
-                ))
+                openTabs.map( (tab, index) => {
+                  switch (tab.tabType){
+                    case "interact":
+                      return <CallbacksTabsTaskingLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index} callback={getCallbackData(tab)}/>;
+                    case "fileBrowser":
+                      return <CallbacksTabsFileBrowserLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index} callback={getCallbackData(tab)}/>;
+                    case "processBrowser":
+                      return <CallbacksTabsProcessBrowserLabel onCloseTab={onCloseTabLocal} key={"tablabel" + tab.tabID + tab.tabType} tabInfo={tab} index={index} callback={getCallbackData(tab)}/>;
+                    default:
+                      return (null);
+                  }
+                })
             }
             </Tabs>
           </AppBar>
       ) : (null)
       }
       {
-       openTabs.map( (tab, index) => (
-            <CallbacksTabsTaskingPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)}/>
-        ))
+       openTabs.map( (tab, index) => {
+         switch(tab.tabType){
+            case "interact":
+             return <CallbacksTabsTaskingPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)} getCallbackData={getCallbackData}/>
+            case "fileBrowser":
+              return <CallbacksTabsFileBrowserPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)} getCallbackData={getCallbackData}/>
+            case "processBrowser":
+              return <CallbacksTabsProcessBrowserPanel maxHeight={tabHeight} style={{height:`calc(${tabHeight}vh)`, maxHeight:`calc(${tabHeight}vh)`, position: "relative", overflow: "auto"}} key={"tabpanel" + tab.tabID + tab.tabType} tabInfo={tab} value={value} index={index} callback={getCallbackData(tab)} getCallbackData={getCallbackData}/>
+            default:
+              return (null);
+         }
+       })
       }
     </div>
   )

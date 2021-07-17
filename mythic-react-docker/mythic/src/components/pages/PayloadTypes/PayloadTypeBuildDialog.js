@@ -79,7 +79,7 @@ export function PayloadTypeBuildDialog(props) {
               </Table>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.handleClose} color="primary">
+          <Button variant="contained" onClick={props.handleClose} color="primary">
             Close
           </Button>
         </DialogActions>

@@ -41,7 +41,7 @@ export function TaskViewParametersDialog(props) {
             <MythicTextField multiline={true} value={comment} onChange={() => {}}/>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
         </DialogActions>

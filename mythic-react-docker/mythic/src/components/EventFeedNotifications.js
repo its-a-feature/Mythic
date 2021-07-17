@@ -30,7 +30,7 @@ export function EventFeedNotifications(props) {
     useEffect( () => {
         //console.log(data, loading, error);
         if(!loading && !error && data && data.operationeventlog.length > 0){
-            if(data.operationeventlog[0].source == "debug"){
+            if(data.operationeventlog[0].source === "debug"){
                 return;
             }
             if(data.operationeventlog[0].operator && me.user.username !== data.operationeventlog[0].operator.username){

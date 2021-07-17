@@ -4,9 +4,8 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
-import {useQuery, gql, useReactiveVar, useMutation} from '@apollo/client';
+import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import { meState } from '../../../cache';
 
 const updateCommentMutation = gql`
 mutation updateComment ($task_id: Int!, $comment: String) {
@@ -33,7 +32,6 @@ query getCommentQuery ($task_id: Int!) {
 
 export function TaskCommentDialog(props) {
     const [comment, setComment] = useState("");
-    const me = useReactiveVar(meState);
     const { loading, error } = useQuery(getCommentQuery, {
         variables: {task_id: props.task_id},
         onCompleted: data => {
@@ -68,10 +66,10 @@ export function TaskCommentDialog(props) {
             <MythicTextField multiline={true} onChange={onChange} value={comment} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose} color="primary">
+          <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={onCommitSubmit} color="secondary">
+          <Button onClick={onCommitSubmit} variant="contained" color="secondary">
             Submit
           </Button>
         </DialogActions>

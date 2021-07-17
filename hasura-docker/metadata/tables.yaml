@@ -1304,6 +1304,19 @@
         table:
           schema: public
           name: task
+  computed_fields:
+  - name: dec_key_base64
+    definition:
+      function:
+        schema: public
+        name: callback_deckey
+    comment: base64 encode decryption key
+  - name: enc_key_base64
+    definition:
+      function:
+        schema: public
+        name: callback_enckey
+    comment: base64 encode the encryption key
   select_permissions:
   - role: developer
     permission:
@@ -1336,6 +1349,9 @@
       - extra_info
       - sleep_info
       - socks_task_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -1370,6 +1386,9 @@
       - extra_info
       - sleep_info
       - socks_task_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -1404,6 +1423,9 @@
       - extra_info
       - sleep_info
       - socks_task_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -1438,6 +1460,9 @@
       - extra_info
       - sleep_info
       - socks_task_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -1472,6 +1497,9 @@
       - extra_info
       - sleep_info
       - socks_task_id
+      computed_fields:
+      - dec_key_base64
+      - enc_key_base64
       filter:
         operation_id:
           _in: X-Hasura-operations
@@ -4439,78 +4467,108 @@
       - bin_path
       - name
       - user
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
       - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
 - table:
     schema: public
     name: response

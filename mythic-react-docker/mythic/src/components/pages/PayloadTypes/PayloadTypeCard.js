@@ -102,10 +102,10 @@ export function PayloadTypeCard(props) {
             ) }
         </CardContent>
         <CardActions >
-            <Button size="small" color="primary" href={"/docs/agents/" + props.ptype} target="_blank">
+            <Button size="small" variant="contained" color="primary" href={"/docs/agents/" + props.ptype} target="_blank">
               Docs
             </Button>
-            <Button onClick={()=>{setOpenBuildingDialog(true);}} color="primary" variant="contained">Building</Button>
+            <Button onClick={()=>{setOpenBuildingDialog(true);}} color="primary" variant="contained">Building Info</Button>
                 <MythicDialog fullWidth={true} maxWidth="lg" open={openBuildingDialog} 
                     onClose={()=>{setOpenBuildingDialog(false);}} 
                     innerDialog={<PayloadTypeBuildDialog {...props} payload_name={props.ptype} />}

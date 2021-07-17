@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
-import { useContext} from 'react';
-import {ThemeContext} from 'styled-components';
+import {useTheme} from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -12,19 +11,22 @@ import TableRow from '@material-ui/core/TableRow';
 
 export function TaskArtifactsTable(props){
    const [artifacts, setArtifacts] = React.useState([]);
-   const theme = useContext(ThemeContext);
+   const theme = useTheme();
 
    useEffect( () => {
     const condensed = props.tasks.reduce( (prev, tsk) => {
       return [...prev, ...tsk.taskartifacts];
     }, []);
+    condensed.sort((a,b) => (a.task_id > b.task_id) ? 1 : ((b.task_id > a.task_id) ? -1 : 0));
     setArtifacts(condensed);
    }, [props.tasks]);
-
+   if(artifacts.length === 0){
+     return (null)
+   }
   return (
     <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
-            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Artifact Tasks
             </Typography>
         </Paper>

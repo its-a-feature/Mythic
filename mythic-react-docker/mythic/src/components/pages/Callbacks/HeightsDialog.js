@@ -30,10 +30,10 @@ export function HeightsDialog(props) {
             </React.Fragment>
         </DialogContent>
         <DialogActions>
-          <Button onClick={props.onClose}>
+          <Button onClick={props.onClose} variant="contained" >
             Close
           </Button>
-          <Button onClick={onSubmit} color="primary">
+          <Button onClick={onSubmit} color="primary" variant="contained" >
             Submit
           </Button>
         </DialogActions>
