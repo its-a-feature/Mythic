@@ -51,7 +51,7 @@ export function MythicModifyStringDialog(props) {
     }
     useEffect( () => {
       setComment(props.value);
-    }, []);
+    }, [props.value]);
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
@@ -72,19 +72,91 @@ export function MythicModifyStringDialog(props) {
 
 export function MythicViewJSONAsTableDialog(props) {
   const [comment, setComment] = React.useState([]);
+  const [tableType, setTableType] = React.useState("dictionary");
+  const [headers, setHeaders] = React.useState([]);
     useEffect( () => {
       let permissions = [];
       try{
         const permissionDict = JSON.parse(props.value);
-        
-        for(let key in permissionDict){
-          permissions.push({"name": key, "value": permissionDict[key]});
+        if(permissionDict.constructor == Object){
+          for(let key in permissionDict){
+            permissions.push({"name": key, "value": permissionDict[key]});
+            setHeaders([props.leftColumn, props.rightColumn]);
+          }
+        }else{
+          setTableType("array");
+          if(permissionDict.length > 0){
+            setHeaders(Object.keys(permissionDict[0]));
+            permissions = permissionDict;
+          }else{
+            setHeaders([]);
+          }
         }
       }catch(error){
         console.log(error);
       }
       setComment(permissions);
-    }, []);
+    }, [props.value]);
+  return (
+    <React.Fragment>
+        <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
+        <DialogContent dividers={true}>
+        <Paper elevation={5} style={{position: "relative"}} variant={"elevation"}>
+          <TableContainer component={Paper} className="mythicElement">
+            <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+                  <TableHead>
+                      <TableRow>
+                          {headers.map( (header, index) => (
+                            <TableCell key={'header' + index}>{header}</TableCell>
+                          ))}
+                      </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {tableType === "dictionary" ? (
+                      comment.map( (element, index) => (
+                        <TableRow key={'row' + index}>
+                          <TableCell>{element.name}</TableCell>
+                          <TableCell>{element.value === true ? ("True") : (element.value === false ? ("False") : (element.value) ) }</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      comment.map( (row, index) => (
+                        <TableRow key={'row' + index}>
+                            {Object.keys(row).map( (key) => (
+                              <TableCell key={"row" + index + "cell" + key}>{row[key]}</TableCell>
+                            ))}
+                        </TableRow>
+                      ))
+                    ) }
+                    
+                  </TableBody>
+              </Table>
+            </TableContainer>
+        </Paper>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={props.onClose} variant="contained" color="primary">
+            Close
+          </Button>
+        </DialogActions>
+    </React.Fragment>
+  );
+}
+
+export function MythicViewObjectPropertiesAsTableDialog(props) {
+  const [comment, setComment] = React.useState([]);
+    useEffect( () => {
+        const permissions = props.keys.reduce( (prev, key) => {
+          if(props.value[key] !== undefined && props.value[key] !== null && props.value[key] !== ""){
+            return [...prev, {"name": key, "value": props.value[key]}]
+          }
+          else{
+            return [...prev];
+          }
+        }, []);
+
+      setComment(permissions);
+    }, [props.value, props.keys]);
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>

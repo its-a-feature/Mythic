@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useRef, useEffect, useState, useMemo} from 'react';
 import {drawC2PathElements, getNodeEdges} from './C2PathDialog';
 import {Button} from '@material-ui/core';
 import ButtonGroup from '@material-ui/core/ButtonGroup';
@@ -35,7 +35,7 @@ query loadedLinkCommandsQuery ($callback_id: Int!){
 }
 `;
 
-export function CallbacksGraph(props){
+export function CallbacksGraph({onOpenTab, callbackgraphedges, topHeight}){
     const theme = useTheme();
     const dagreRef = useRef(null);    
     const dropdownAnchorRef = React.useRef(null);
@@ -117,7 +117,7 @@ export function CallbacksGraph(props){
         manuallyAddEdge({variables: {source_id: source_id, profile_id: profile.id, destination_id: destination.id}});
         //console.log("want to submit: ", source_id, profile, destination);
     }
-    const node_events = {
+    const node_events = useMemo(() => {return {
         "mouseover": (parent, node, d) => {return},
         "mouseout": (parent, node, d) => {return},
         "click": (parent, node, d) => {return},
@@ -131,7 +131,7 @@ export function CallbacksGraph(props){
 	        {
 		        title: 'Interact',
 		        action: function(g, elm){
-		            props.onOpenTab({tabType: "interact", tabID: elm.node.id + "interact", callbackID: elm.node.id});
+		            onOpenTab({tabType: "interact", tabID: elm.node.id + "interact", callbackID: elm.node.id});
 	            }
             },
             {
@@ -178,7 +178,7 @@ export function CallbacksGraph(props){
                 }
             },
         ]       
-    }
+    }}, [getLinkCommands, hideCallback, viewConfig, onOpenTab]);
     const handleDropdownToggle = (evt) => {
         evt.stopPropagation();
         setDropdownOpen((prevOpen) => !prevOpen);
@@ -189,31 +189,31 @@ export function CallbacksGraph(props){
     };
     const options = [{name: viewConfig["include_disconnected"] ? 'Show Only Active Edges' : "Show All Edges", click: () => {
                         const view = {...viewConfig, include_disconnected: !viewConfig["include_disconnected"]};
-                        drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events, theme);
+                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
                         setViewConfig(view);
                      }}, 
                      {name: viewConfig["show_all_nodes"] ? 'Hide inactive callbacks' : 'Show All Callbacks', click: () => {
                         const view = {...viewConfig, show_all_nodes: !viewConfig["show_all_nodes"]};
-                        drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events, theme);
+                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
                         setViewConfig(view);
                      }},
                      {name: 'Autosize', click: () => {
-                        drawC2PathElements([...props.callbackgraphedges], dagreRef, true, viewConfig, node_events, theme);
+                        drawC2PathElements([...callbackgraphedges], dagreRef, true, viewConfig, node_events, theme);
                      }}, 
                      {name: viewConfig["rankDir"] === "LR" ? 'Change Layout to Top-Bottom' : "Change Layout to Left-Right", click: () => {
                         if(viewConfig["rankDir"] === "LR"){
                             const view = {...viewConfig, rankDir: "BT"};
-                            drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events, theme);
+                            drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
                             setViewConfig(view);
                         }else{
                             const view = {...viewConfig, rankDir: "LR"};
-                            drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events, theme);
+                            drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
                             setViewConfig(view);
                         }
                      }},
                      {name: viewConfig["packet_flow_view"] ? "View Connection Directions" : "View Egress Routes" , click: () => {
                         const view = {...viewConfig, packet_flow_view: !viewConfig["packet_flow_view"]};
-                        drawC2PathElements([...props.callbackgraphedges], dagreRef, true, view, node_events, theme);
+                        drawC2PathElements([...callbackgraphedges], dagreRef, true, view, node_events, theme);
                         setViewConfig(view);
                      }},
                      {name: "Download Graph", click: () => {
@@ -234,10 +234,10 @@ export function CallbacksGraph(props){
         setDropdownOpen(false);
       };
     useEffect( () => {
-        const allEdges = [...props.callbackgraphedges];
+        const allEdges = [...callbackgraphedges];
         drawC2PathElements(allEdges, dagreRef, reZoom, viewConfig, node_events, theme);
         setReZoom(false);
-    }, [props.callbackgraphedges, reZoom, viewConfig])
+    }, [callbackgraphedges, reZoom, viewConfig, theme])
     return (
         <React.Fragment>
             <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "10px", backgroundColor: theme.palette.info.main}}>
@@ -299,7 +299,7 @@ export function CallbacksGraph(props){
                                         onSubmit={onSubmitSelectedLinkCommand} options={linkCommands} title={"Select Link Command"} 
                                         action={"select"} display={"display"} identifier={"display"}/>}
                 />
-            <div style={{"maxWidth": "100%", "overflow": "auto", height: "calc(" + props.topHeight + "vh)"}}>
+            <div style={{"maxWidth": "100%", "overflow": "auto", height: "calc(" + topHeight + "vh)"}}>
                 <svg id="callbacksgraph" ref={dagreRef} width="100%" height="98%"></svg> 
             </div>
         </React.Fragment>

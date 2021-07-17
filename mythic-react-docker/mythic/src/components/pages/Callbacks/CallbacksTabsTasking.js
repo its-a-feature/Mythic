@@ -110,6 +110,7 @@ export const CallbacksTabsTaskingPanel = (props) =>{
     const [commandInfo, setCommandInfo] = React.useState({});
     const [taskingData, setTaskingData] = React.useState({task: []});
     const [fetchedAllTasks, setFetchedAllTasks] = React.useState(false);
+    const messagesEndRef = useRef(null);
     const [createTask] = useMutation(createTaskingMutation, {
         update: (cache, {data}) => {
             if(data.createTask.status === "error"){
@@ -156,23 +157,6 @@ export const CallbacksTabsTaskingPanel = (props) =>{
     const loader = useRef(null);
     const [canLoad, setCanLoad] = React.useState(false);
     const [canScroll, setCanScroll] = React.useState(true);
-    const loadMore = useCallback( (entries) => {
-        if(entries[0].isIntersecting){
-            //need to fetch the next set of tasks
-            if(!fetchedAllTasks && canLoad){
-                getInfiniteScrollTasking({variables: {callback_id: props.tabInfo.callbackID, offset: taskingData.task.length}});
-            }
-        }else{
-            setCanLoad(true);
-        }
-    }, [fetchedAllTasks, canLoad, taskingData.task.length]);
-    useEffect( () => {
-        const observer = new IntersectionObserver( loadMore, {rootMargin: "0px", threshold: 1});
-        if(loader && loader.current){
-            observer.observe(loader.current);
-        }
-        return () => observer.disconnect();
-    }, [loader, loadMore, fetchedAllTasks]);
     const [getTasking] = useLazyQuery(getTaskingQuery, {
         onError: data => {
             console.error(data)
@@ -206,12 +190,17 @@ export const CallbacksTabsTaskingPanel = (props) =>{
             }        
         }
     });
+    const scrollToBottom = useCallback( () => {
+        if(taskingData && messagesEndRef.current){
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, [taskingData, messagesEndRef]);
     useLayoutEffect( () => {
         if(canScroll){
             scrollToBottom();
             setCanScroll(false);
         }
-    }, [canScroll]);
+    }, [canScroll, scrollToBottom]);
     const [getInfiniteScrollTasking, {loading: loadingMore}] = useLazyQuery(getNextBatchTaskingQuery, {
         onError: data => {
             console.error(data);
@@ -248,12 +237,25 @@ export const CallbacksTabsTaskingPanel = (props) =>{
         },
         fetchPolicy: "network-only"
     });
-    const messagesEndRef = useRef(null);
-    const scrollToBottom = () => {
-        if(taskingData && messagesEndRef.current){
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    const loadMore = useCallback( (entries) => {
+        if(entries[0].isIntersecting){
+            //need to fetch the next set of tasks
+            if(!fetchedAllTasks && canLoad){
+                getInfiniteScrollTasking({variables: {callback_id: props.tabInfo.callbackID, offset: taskingData.task.length}});
+            }
+        }else{
+            setCanLoad(true);
         }
-      }
+    }, [fetchedAllTasks, canLoad, taskingData.task.length, getInfiniteScrollTasking, props.tabInfo.callbackID]);
+    useEffect( () => {
+        const observer = new IntersectionObserver( loadMore, {rootMargin: "0px", threshold: 1});
+        if(loader && loader.current){
+            observer.observe(loader.current);
+        }
+        return () => observer.disconnect();
+    }, [loader, loadMore, fetchedAllTasks]);
+    
+    
     useEffect( () => {
         getTasking({variables: {callback_id: props.tabInfo.callbackID} });
     }, [getTasking, props.tabInfo.callbackID]);

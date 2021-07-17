@@ -19,7 +19,6 @@ import operator
 from peewee import reduce, TextField, BooleanField, IntegerField, fn
 from app.api.file_browser_api import mark_nested_deletes, add_upload_file_to_file_browser
 # Keep track of sending sync requests to containers so we don't go crazy
-sync_tasks = {}
 
 
 async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
@@ -33,7 +32,7 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                         int(pieces[6]) < valid_c2_container_version_bounds[0]:
                     asyncio.create_task(
                         send_all_operations_message(
-                            message="C2 Profile container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}. Sending a kill message now".format(
+                            message="C2 Profile container, {}, of version {} is not supported by this version of Mythic.\nThe container version must be between {} and {}. \nCheck https://docs.mythic-c2.net/customizing/payload-type-development/container-syncing#current-payloadtype-versions for information about which Docker Images or mythic_payloadtype_contianer PyPi version is needed for the agent to successfully connect. \nSending a kill message now".format(
                                 pieces[2], pieces[6], str(valid_c2_container_version_bounds[0]),
                                 str(valid_c2_container_version_bounds[1])
                             ), level="warning", source="bad_c2_version"))
@@ -43,7 +42,7 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
             else:
                 asyncio.create_task(
                     send_all_operations_message(
-                        message="C2 Profile container, {}, of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}".format(
+                        message="C2 Profile container, {}, of version 1 is not supported by this version of Mythic.\nThe container version must be between {} and {}. \nCheck https://docs.mythic-c2.net/customizing/payload-type-development/container-syncing#current-payloadtype-versions for information about which Docker Images or mythic_payloadtype_contianer PyPi version is needed for the agent to successfully connect.".format(
                             pieces[2],
                             str(valid_c2_container_version_bounds[0]),
                             str(valid_c2_container_version_bounds[1])
@@ -68,7 +67,6 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 return
             profile = status.pop("profile")
             if status["status"] == "success":
-                sync_tasks.pop(pieces[2], None)
                 asyncio.create_task(send_all_operations_message(message="Successfully Sync-ed database with {} C2 files".format(
                     pieces[2]
                 ), level="info", source="sync_c2_success"))
@@ -79,16 +77,14 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     )
                     sync_operator = "" if operator is None else operator.username
                     for pt in pts:
-                        if pt.ptype not in sync_tasks:
-                            sync_tasks[pt.ptype] = True
-                            stats = await send_pt_rabbitmq_message(
-                                pt.ptype, "sync_classes", "", sync_operator, ""
-                            )
-                            if stats["status"] == "error":
-                                asyncio.create_task(send_all_operations_message(
-                                    message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
-                                        pt.ptype, status["error"]
-                                    ), level="warning", source="payload_import_sync_error"))
+                        stats = await send_pt_rabbitmq_message(
+                            pt.ptype, "sync_classes", "", sync_operator, ""
+                        )
+                        if stats["status"] == "error":
+                            asyncio.create_task(send_all_operations_message(
+                                message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                    pt.ptype, status["error"]
+                                ), level="warning", source="payload_import_sync_error"))
                 if not profile.is_p2p:
                     from app.api.c2profiles_api import start_stop_c2_profile
                     run_stat, successfully_started = await start_stop_c2_profile(action="start", profile=profile)
@@ -111,7 +107,6 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     except Exception as c:
                         logger.warning("rabbitmq_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(c))
             else:
-                sync_tasks.pop(pieces[2], None)
                 asyncio.create_task(send_all_operations_message(message="Failed Sync-ed database with {} C2 files: {}".format(
                     pieces[2], status["error"]
                 ), level="warning", source="sync_C2_errored"))
@@ -127,7 +122,7 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     profile.running = False
                     await app.db_objects.update(profile)
                     asyncio.create_task(
-                        send_all_operations_message(message=f"C2 Profile {profile.name} has stopped", level="warning", source="c2_stopped"))
+                        send_all_operations_message(message=f"C2 Profile {profile.name} has stopped. Either Mythic just booted or something happened to this container.", level="warning", source="c2_stopped"))
                 # otherwise we got a status that matches the current status, just move on
             except Exception as e:
                 logger.exception(
@@ -374,7 +369,6 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             db_model.operator_query,
                             username=base64.b64decode(pieces[6]).decode(),
                         )
-                    sync_tasks.pop(pieces[2], None)
                     if pieces[5] == "success":
                         from app.api.payloadtype_api import import_payload_type_func
                         try:
@@ -396,18 +390,16 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                         "" if operator is None else operator.username
                                     )
                                     for pt in pts:
-                                        if pt.ptype not in sync_tasks:
-                                            sync_tasks[pt.ptype] = True
-                                            logger.info(
-                                                "got sync from {}, sending sync to {}".format(pieces[2], pt.ptype))
-                                            stats = await send_pt_rabbitmq_message(
-                                                pt.ptype, "sync_classes", "", sync_operator, ""
-                                            )
-                                            if stats["status"] == "error":
-                                                asyncio.create_task(send_all_operations_message(
-                                                    message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
-                                                        pt.ptype, status["error"]
-                                                    ), level="warning", source="payload_import_sync_error"))
+                                        logger.info(
+                                            "got sync from {}, sending sync to {}".format(pieces[2], pt.ptype))
+                                        stats = await send_pt_rabbitmq_message(
+                                            pt.ptype, "sync_classes", "", sync_operator, ""
+                                        )
+                                        if stats["status"] == "error":
+                                            asyncio.create_task(send_all_operations_message(
+                                                message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                                    pt.ptype, status["error"]
+                                                ), level="warning", source="payload_import_sync_error"))
                             else:
                                 asyncio.create_task(send_all_operations_message(
                                     message="Failed Sync-ed database import with {} payload files: {}".format(
@@ -428,6 +420,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     await app.db_objects.create(db_model.OperationEventLog, operation=task.callback.operation,
                                             message=message.body.decode("utf-8"), level="warning", source=str(uuid.uuid4()))
             except Exception as e:
+                asyncio.create_task(
+                    send_all_operations_message(message=f"Hit Exception in payload type response: {str(e)}",
+                                                level="warning"))
                 logger.exception("Exception in rabbit_pt_callback: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
 
 
@@ -505,6 +500,9 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
                                                                 {"full_path": remote_path}))
         return {"status": "success", "response": new_file_meta.to_json()}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create file from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": str(e)}
 
 
@@ -573,6 +571,9 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
                     f["contents"] = None
         return {"status": "success", "response": output}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to get files from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": str(e), "response": []}
 
 
@@ -628,6 +629,9 @@ async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
         payload_json["build_parameters"] = payload_info["build_parameters"]
         return {"status": "success", "response": payload_json}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to get payload {payload_uuid}: {str(e)}",
+                                        level="warning"))
         logger.warning("rabbitmq_api.py - get_payload - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": "Payload not found:\n" + str(e)}
 
@@ -703,6 +707,9 @@ async def create_payload_from_uuid(task_id: int, payload_uuid: str, generate_new
         await app.db_objects.update(task)
         return await handle_automated_payload_creation_response(task, rsp, data, host)
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create payload from task {task_id}: {str(e)}",
+                                        level="warning"))
         logger.warning("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(traceback.format_exc()))
         return {
             "status": "error",
@@ -831,6 +838,9 @@ async def create_payload_from_parameters(task_id: int, payload_type: str, c2_pro
         await app.db_objects.update(task)
         return await handle_automated_payload_creation_response(task, rsp, request, host)
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create payload from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {
             "status": "error",
             "error": "Failed to build payload: " + str(traceback.format_exc()),
@@ -937,6 +947,9 @@ async def control_socks(task_id: int, port: int, start: bool = False, stop: bool
             return resp
         return {"status": "error", "error": "unknown socks tasking"}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to control socks from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": "Exception trying to handle socks control:\n" + str(e)}
 
 
@@ -963,6 +976,9 @@ async def create_output(task_id: int, output: str) -> dict:
         )
         return {"status": "success"}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create output from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": str(e)}
 
 
@@ -1020,6 +1036,9 @@ async def update_callback(task_id: int, user: str = None, host: str = None, pid:
         )
         return status
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to update callback from task {task_id}: {str(e)}",
+                                        level="warning"))
         logger.warning("rabbitmq_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
 
@@ -1055,6 +1074,9 @@ async def create_artifact(task_id: int, artifact_type: str, artifact: str, host:
         asyncio.create_task(log_to_siem(mythic_object=art, mythic_source="artifact_new"))
         return {"status": "success"}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create artifact from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": "failed to create task artifact: " + str(e)}
 
 
@@ -1073,6 +1095,9 @@ async def create_payload_on_host(task_id: int, payload_uuid: str, host: str) -> 
                                                   host=host.upper(), operation=task.operation, task=task)
         return {"status": "success"}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create payload on host from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": "Failed to register payload on host:\n" + str(e)}
 
 
@@ -1138,6 +1163,9 @@ async def create_token(task_id: int, TokenId: int, host: str = None, **kwargs) -
         await app.db_objects.update(token)
         return {"status": "success", "response": token.to_json()}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create token from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": "Failed to create/update token:\n" + str(e)}
 
 
@@ -1153,6 +1181,9 @@ async def delete_token(TokenId: int, host: str) -> dict:
         token.deleted = True
         await app.db_objects.update(token)
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to delete token {TokenId} on {host}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": "Failed to find/delete token:\n" + str(e)}
     return {"status": "success"}
 
@@ -1180,6 +1211,9 @@ async def create_logon_session(task_id: int, LogonId: int, host: str = None, **k
         await app.db_objects.update(session)
         return {"status": "success"}
     except Exception as d:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create logon session from task {task_id}: {str(d)}",
+                                        level="warning"))
         return {"status": "error", "error": "Failed to create logon session:\n" + str(d)}
 
 
@@ -1196,6 +1230,9 @@ async def delete_logon_session(LogonId: int, host: str) -> dict:
         await app.db_objects.update(session)
         return {"status": "success"}
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to delete logon session {LogonId} on {host}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": "Failed to find/delete that logon session on that host:\n" + str(e)}
 
 
@@ -1223,6 +1260,9 @@ async def create_callback_token(task_id: int, TokenID: int, host: str = None) ->
                                                     task=task, host=token_host)
         return {"status": "success"}
     except Exception as d:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to create callback token from task {task_id}: {str(d)}",
+                                        level="warning"))
         return {"status": "error", "error": "Failed to get token and associate it:\n" + str(d)}
 
 
@@ -1303,6 +1343,9 @@ async def create_process(task_id: int, host: str, process_id: int, parent_proces
         }
         return await create_processes([process_data], task)
     except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to parse 'process' data from task {task_id}: {str(e)}",
+                                        level="warning"))
         return {"status": "error", "error": "Failed to create process:\n" + str(e)}
 
 
@@ -1339,6 +1382,9 @@ async def create_processes(request, task):
         return {"status": "success"}
     except Exception as e:
         logger.warning("rabbitmq_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to parse 'process' data from task {task.id}: {str(e)}",
+                                        level="warning", operation=task.callback.operation))
         return {"status": "error", "error": str(e)}
 
 
@@ -1851,12 +1897,10 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 try:
                     profile = await app.db_objects.get(db_model.c2profile_query, name=pieces[2], deleted=False)
                 except Exception as e:
-                    if pieces[2] not in sync_tasks:
-                        sync_tasks[pieces[2]] = True
-                        asyncio.create_task(
-                            send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
-                                                        level="info", source="sync_c2_send"))
-                        await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
+                    asyncio.create_task(
+                        send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
+                                                    level="info", source="sync_c2_send"))
+                    await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
                     return
                 if (
                         profile.last_heartbeat
@@ -1886,21 +1930,15 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                         payload_type.container_count = 0
                     await app.db_objects.update(payload_type)
                 except Exception as e:
-                    if pieces[2] not in sync_tasks:
-                        # don't know the ptype, but haven't sent a sync request either, wait for an auto sync
-                        sync_tasks[pieces[2]] = True
-                    else:
-                        # don't know the ptype and haven't seen an auto sync, force a sync
-                        sync_tasks.pop(pieces[2], None)
-                        asyncio.create_task(
-                            send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
-                                                        level="info", source="payload_sync_send"))
-                        stats = await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "", "")
-                        if stats["status"] == "error":
-                            asyncio.create_task(send_all_operations_message(
-                                message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
-                                    pieces[2], stats["error"]
-                                ), level="warning", source="payload_import_sync_error"))
+                    asyncio.create_task(
+                        send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
+                                                    level="info", source="payload_sync_send"))
+                    stats = await send_pt_rabbitmq_message(pieces[2], "sync_classes", "", "", "")
+                    if stats["status"] == "error":
+                        asyncio.create_task(send_all_operations_message(
+                            message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                pieces[2], stats["error"]
+                            ), level="warning", source="payload_import_sync_error"))
             elif pieces[0] == "tr":
                 if len(pieces) == 4:
                     if int(pieces[3]) > valid_translation_container_version_bounds[1] or \

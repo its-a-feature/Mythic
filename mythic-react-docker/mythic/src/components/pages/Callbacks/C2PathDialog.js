@@ -28,7 +28,7 @@ export function C2PathDialog(props) {
         }
         drawC2PathElements(props.callbackgraphedges, dagreRef, reZoom, view_config, node_events, theme);
         setReZoom(false);
-    }, [props.callbackgraphedges, reZoom])
+    }, [props.callbackgraphedges, reZoom, theme])
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Callback {props.id}'s Egress Path</DialogTitle>

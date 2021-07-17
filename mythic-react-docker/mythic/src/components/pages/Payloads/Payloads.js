@@ -108,12 +108,10 @@ export function Payloads(props){
             query: GET_Payloads,
             variables: {operation_id: me.user.current_operation_id}
           });
-          console.log(existingPayloads);
           const existingMinusDeleted = existingPayloads.payload.filter( (payload) => payload.id !== data.update_payload_by_pk.id);
-          console.log(existingMinusDeleted);
           cache.writeQuery({
             query: GET_Payloads,
-            data: {payloads: [...existingMinusDeleted]}
+            data: {payload: [...existingMinusDeleted]}
           });
         },
     });

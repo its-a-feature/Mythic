@@ -78,7 +78,7 @@ export function TaskMetadataTable(props){
     });
     useEffect( () => {
         getMetadata({variables: {task_range: props.taskIDs } });
-    }, [props.taskIDs]);
+    }, [props.taskIDs, getMetadata]);
   return (
     <div style={{marginTop: "10px", marginRight: "5px"}}>
         <TaskArtifactsTable tasks={tasks}/>

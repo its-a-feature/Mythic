@@ -23,6 +23,7 @@ const Row = ({data, index, style}) => {
 const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, getSurroundingEvents, operationeventlog}) => {
     const getItemSize = (index) => {
         const op = operationeventlog[operationeventlog.length - index - 1];
+        console.log(op["message"]);
         return 60 + (20 * (op["message"].match(/\n/g) || []).length);
     }
     const eventlogWithFunctions = operationeventlog.map( (oplog) => {
@@ -37,7 +38,6 @@ const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, getSurro
                     itemCount={operationeventlog.length}
                     width={width}
                     itemSize={getItemSize}
-                    estimatedItemSize={80}
                     overscanCount={20}
                     >
                         {Row}

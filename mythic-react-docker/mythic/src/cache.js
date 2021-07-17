@@ -22,4 +22,18 @@ export const successfulLogin = (data) => {
 }
 export const successfulRefresh = (data) => {
     localStorage.setItem("access_token", data.access_token);
+    meState["loggedIn"] = true;
+}
+export const FailedRefresh = () =>{
+    console.log("failed refresh");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    meState({
+        loggedIn: false,
+        access_token: null,
+        refresh_token: null,
+        user: null
+    });
+    
 }

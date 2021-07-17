@@ -36,7 +36,7 @@ export function Step5Build(props){
             setFilename(props.buildOptions[1]["payload_type"] );
         }
         
-    }, []);
+    }, [props.buildOptions]);
     const onChangeFilename = (name, value, error) => {
         setFilename(value);
     }

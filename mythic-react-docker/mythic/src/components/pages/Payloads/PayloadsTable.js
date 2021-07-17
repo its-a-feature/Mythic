@@ -11,11 +11,11 @@ import { PayloadsTableRow } from './PayloadsTableRow';
 import {useTheme} from '@material-ui/core/styles';
 
 
-export function PayloadsTable(props){
+export function PayloadsTable({subscribeToMoreMessages, payload, onDeletePayload, onUpdateCallbackAlert}){
     const theme = useTheme();
     useEffect( () => {
-        props.subscribeToMoreMessages();
-    }, []);
+        subscribeToMoreMessages();
+    }, [subscribeToMoreMessages]);
     return (
         <React.Fragment>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
@@ -40,10 +40,10 @@ export function PayloadsTable(props){
                 </TableHead>
                 <TableBody>
                 
-                {props.payload.map( (op) => (
+                {payload.map( (op) => (
                     <PayloadsTableRow
-                        onDeletePayload={props.onDeletePayload}
-                        onAlertChanged={props.onUpdateCallbackAlert}
+                        onDeletePayload={onDeletePayload}
+                        onAlertChanged={onUpdateCallbackAlert}
                         key={"payload" + op.id}
                         {...op}
                     />

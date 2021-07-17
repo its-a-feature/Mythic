@@ -18,7 +18,7 @@ export function MythicConfirmDialog(props) {
               <Button onClick={props.onClose} variant="contained" color="primary">
                 {props.cancelText ? (props.cancelText) : ("Close")}
               </Button>
-              <Button onClick={handleSubmit} variant="contained" style={{color: muiTheme.palette.warning.main}}>
+              <Button onClick={handleSubmit} variant="contained" style={{backgroundColor: muiTheme.palette.warning.main}}>
                 {props.acceptText ? (props.acceptText) : ("Remove")}
               </Button>
             </DialogActions>

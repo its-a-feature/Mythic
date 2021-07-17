@@ -30,7 +30,7 @@ export function EventFeedTableEventsActions(props){
     }
     const handleClick = React.useCallback((e) => {
         setAnchorEl(e.currentTarget)
-    });
+    }, []);
     return (
         <ListItemSecondaryAction>
             <IconButton aria-controls={"eventmenu" + props.id} aria-haspopup="true" onClick={handleClick}><MoreVertIcon/></IconButton>

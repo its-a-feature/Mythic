@@ -92,7 +92,7 @@ export function MythicTransferListDialog(props) {
       setRight(props.right);
       setLeftTitle(props.leftTitle);
       setRightTitle(props.rightTitle);
-    }, []);
+    }, [props.left, props.right, props.leftTitle, props.rightTitle]);
     const customList = (title, items) => (
       <Paper className={classes.paper} style={{width:"100%", height: "calc(50vh)"}}>
         <Card>

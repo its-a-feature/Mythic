@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useContext} from 'react';
+import React, {useEffect, useState} from 'react';
 import {gql, useSubscription} from '@apollo/client';
 import { useSnackbar, SnackbarContent } from 'notistack';
 import Button from '@material-ui/core/Button';
@@ -13,8 +13,7 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import {ThemeContext} from 'styled-components';
-import {muiTheme} from '../../../themes/Themes';
+import {useTheme} from '@material-ui/core/styles';
 import {snackActions} from '../../utilities/Snackbar';
 
 //fromNow must be in ISO format for hasura/postgres stuff
@@ -49,6 +48,7 @@ const useStyles =  makeStyles(theme => ({
     },
     icons: {
         marginLeft: 'auto',
+        float: "right"
     },
     expand: {
         padding: '8px 8px',
@@ -76,10 +76,11 @@ const useStyles =  makeStyles(theme => ({
 
 const SnackMessage = React.forwardRef((props, ref) => {
     
-    const theme = useContext(ThemeContext);
+    const theme = useTheme();
     const classes = useStyles(theme);
+    
     const { closeSnackbar } = useSnackbar();
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true);
 
     const handleExpandClick = () => {
         setExpanded(!expanded);
@@ -91,7 +92,7 @@ const SnackMessage = React.forwardRef((props, ref) => {
 
     return (
         <SnackbarContent ref={ref} className={classes.root}>
-            <Card style={{backgroundColor: muiTheme.palette.success.main}} >
+            <Card style={{backgroundColor: theme.palette.success.main}} >
                 <CardActions classes={{ root: classes.actionRoot }}>
                     <Typography variant="subtitle2" className={classes.typography}>Payload successfuly built!</Typography>
                     <div className={classes.icons}>
@@ -120,8 +121,49 @@ const SnackMessage = React.forwardRef((props, ref) => {
         </SnackbarContent>
     );
 });
-export function PayloadSubscriptionNotification(props) {
+const SnackMessageError = React.forwardRef((props, ref) => {
+    
+    const theme = useTheme();
+    const classes = useStyles(theme);
     const { closeSnackbar } = useSnackbar();
+    const [expanded, setExpanded] = useState(false);
+
+    const handleExpandClick = () => {
+        setExpanded(!expanded);
+    };
+
+    const handleDismiss = () => {
+        closeSnackbar(props.id);
+    };
+
+    return (
+        <SnackbarContent ref={ref} className={classes.root}>
+            <Card style={{backgroundColor: theme.palette.error.main}} >
+                <CardActions classes={{ root: classes.actionRoot }}>
+                    <Typography variant="subtitle2" className={classes.typography}>Payload Failed to build!</Typography>
+                    <div className={classes.icons}>
+                        <IconButton
+                            aria-label="Show more"
+                            className={clsx(classes.expand, { [classes.expandOpen]: expanded })}
+                            onClick={handleExpandClick}
+                        >
+                            <ExpandMoreIcon />
+                        </IconButton>
+                        <IconButton className={classes.expand} onClick={handleDismiss}>
+                            <CloseIcon />
+                        </IconButton>
+                    </div>
+                </CardActions>
+                <Collapse in={expanded} timeout="auto" unmountOnExit>
+                    <Paper className={classes.collapse}>
+                        {props.display}
+                    </Paper>
+                </Collapse>
+            </Card>
+        </SnackbarContent>
+    );
+});
+export function PayloadSubscriptionNotification(props) {
     const [fromNow, setFromNow] = React.useState(null);
     const { loading, error, data } = useSubscription(subscribe_payloads, {variables: {fromNow}});
     
@@ -130,24 +172,18 @@ export function PayloadSubscriptionNotification(props) {
         setFromNow(new Date().toISOString());
     }, []);
     useEffect( () => {
-        const badActions = key => (
-            <React.Fragment>
-                <Button onClick={() => { closeSnackbar(key) }} variant="outlined">
-                    Dismiss
-                </Button>
-            </React.Fragment>
-        )
-        //console.log(data, loading, error);
         if(!loading && !error && data && data.payload.length > 0){
             if(data.payload[0].build_phase === "success"){
+                snackActions.dismiss();
                 snackActions.success(data.payload[0].build_message, {persist: true, content: key => <SnackMessage id={key} file_id={data.payload[0].filemetum.agent_file_id} />});
             }else if(data.payload[0].build_phase === "building"){
                 snackActions.info(`Building payload ${data.payload[0].uuid}...`, {autoHideDuration: 5000});
             }else{
+                snackActions.dismiss();
                 if(data.payload[0].build_error !== ""){
-                    snackActions.error(data.payload[0].build_error, {persist: true, action: badActions});
+                    snackActions.error(data.payload[0].build_stderr, {persist: true, content: key => <SnackMessageError id={key} display={data.payload[0].build_stderr} />});
                 }else{
-                    snackActions.error(data.payload[0].build_message, {persist: true, action: badActions});
+                    snackActions.error(data.payload[0].build_message, {persist: true, content: key => <SnackMessageError id={key} display={data.payload[0].build_message} />});
                 }
             } 
         }else if(error){

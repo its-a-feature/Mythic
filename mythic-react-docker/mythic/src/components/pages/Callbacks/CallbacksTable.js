@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableContainer from '@material-ui/core/TableContainer';
@@ -22,8 +22,8 @@ import {Button} from '@material-ui/core';
 
 const useToolbarStyles = makeStyles((theme) => ({
   root: {
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(1),
+    minHeight: "unset",
+    marginTop: "10px"
   },
   highlight:
     theme.palette.type === 'light'
@@ -161,15 +161,8 @@ export function CallbacksTable(props){
       setShownColumns(right);
       localStorage.setItem("callbacks_table_columns", JSON.stringify(right));
     }
-    useEffect( () => {
-      const ids = tableHeadCells.map( (cell) => cell.id);
-      setAllColumns(ids);
-      let localSettings = localStorage.getItem("callbacks_table_columns");
-      if(localSettings !== null){
-        setShownColumns(JSON.parse(localSettings));
-      }
-    }, []);
-    const tableHeadCells = [
+    
+    const tableHeadCells = useMemo( () => [
         {id: "id", numeric: true, disablePadding: false, label: "Interact"},
         {id: "ip", numeric: false, disablePadding: false, label: "IP"},
         {id: "host", numeric: false, disablePadding: false, label: "Host"},
@@ -183,7 +176,15 @@ export function CallbacksTable(props){
         {id: "type", numeric: false, disablePadding: false, label: "Type"},
         {id: "c2", numeric: false, disablePadding: true, label: "C2"},
         {id: "process_name", numeric: false, disablePadding: true, label: "Process Name"}
-    ]
+    ], []);
+    useEffect( () => {
+      const ids = tableHeadCells.map( (cell) => cell.id);
+      setAllColumns(ids);
+      let localSettings = localStorage.getItem("callbacks_table_columns");
+      if(localSettings !== null){
+        setShownColumns(JSON.parse(localSettings));
+      }
+    }, [tableHeadCells]);
     return (
         <div>  
           <EnhancedTableToolbar numSelected={selected.length} onHideSelected={hideSelected} openDialog={() => setOpenAdjustColumnsDialog(true)}/>

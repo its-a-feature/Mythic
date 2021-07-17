@@ -31,6 +31,15 @@ body {
     border-top: 0;
     border-bottom: 1px solid ${(props) => props.theme.tableBorder};
 }
+[class^="BaseTable__header"] {
+    border-bottom: 0 !important;
+}
+.BaseTable__sort-indicator {
+    border-bottom: 0 !important;
+}
+.BaseTable__column-resizer {
+    background-color: ${(props) => props.theme.tableHover} !important;
+}
 .BaseTable__row {
     &:hover,
     &--hovered {

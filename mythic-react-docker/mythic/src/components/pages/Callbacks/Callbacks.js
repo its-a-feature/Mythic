@@ -140,12 +140,11 @@ export function Callbacks(props){
     });
     const onOpenTab = ({tabID, tabType, callbackID}) => {
         let found = false;
-        console.log(openTabs);
         openTabs.forEach( (tab) => {
             if(tab.tabID === tabID) found = true;
             if(tab.tabType === "fileBrowser" && tabType === "fileBrowser") found = true;
         });
-        console.log(tabID, tabType, callbackID, found);
+        //console.log(tabID, tabType, callbackID, found);
         if(!found){
             for(let i = 0; i < data.callback.length; i++){
               if(data.callback[i]["id"] === callbackID){
@@ -162,7 +161,7 @@ export function Callbacks(props){
         const tabSet = openTabs.filter( (tab) => {
             return tab.tabID !== tabID;
         });
-        console.log("closing tab and setting to:", tabSet);
+        //console.log("closing tab and setting to:", tabSet);
         setOpenTabs(tabSet);
     }
     const clearSelectedTab = () => {

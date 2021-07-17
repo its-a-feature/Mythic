@@ -17,7 +17,7 @@ export function CreatePayloadC2ProfileParametersTable(props){
     return (
     <TableContainer component={Paper} className="mythicElement">
   
-            <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "scroll"}}>
+            <Table size="small" style={{"tableLayout": "fixed", "maxWidth": "calc(100vw)", "overflow": "auto"}}>
                 <TableHead>
                     <TableRow>
                         <TableCell style={{width: "20%"}}>Parameter</TableCell>

@@ -17,11 +17,11 @@ export function IncludeMoreTasksDialog(props) {
     const [afterCount, setAfterCount] = useState(10);
     const [searchTerm, setSearchTerm] = useState("all");
     const [operator, setOperator] = useState("");
-    const [searchOptions, setSearchOptions] = React.useState([
+    const searchOptions = [
         {"type": "all", "text": "All Callbacks"},
         {"type": "callback", "text": "This Callack"},
         {"type": "operator", "text": "All callbacks but limited by operator"}
-    ]);
+    ];
     const inputRef = useRef(null); 
     const onRequestSubmit = () => {
         props.submitFetchTasks({
@@ -43,7 +43,7 @@ export function IncludeMoreTasksDialog(props) {
         if(props.taskOptions.length > 0){
             setTaskSelected(props.taskOptions[0]);
         }
-    }, [props.tasks])
+    }, [props.tasks, props.taskOptions])
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Add More Tasks to View</DialogTitle>

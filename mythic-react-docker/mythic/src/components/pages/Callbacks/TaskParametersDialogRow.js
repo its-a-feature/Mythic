@@ -35,11 +35,15 @@ export function TaskParametersDialogRow(props){
     const [fileValue, setFileValue] = React.useState({name: ""});
     useEffect( () => {
        if(props.type === "Boolean"){
-            setBoolValue(props.value);
-            setValue(props.value);
+            if(value === ""){
+                setBoolValue(props.value);
+                setValue(props.value);
+            }
        }else if(props.type === "ChoiceMultiple"){
-            setChoiceMultipleValue(props.value);
-            setValue(props.value);
+           if(value === ""){
+                setChoiceMultipleValue(props.value);
+                setValue(props.value);
+           }
        }
        else if(props.type === "AgentConnect"){
             if(props.choices.length > 0){
@@ -58,9 +62,11 @@ export function TaskParametersDialogRow(props){
             
             }
        }else{
+           if(value === ""){
             setValue(props.default_value);
+           }
        }
-    }, [props.choices, props.default_value, props.type]);
+    }, [props.choices, props.default_value, props.type, props.value, setBoolValue, value]);
     const onChangeAgentConnect = (host_index, payload_index, c2_index) => {
         const c2profileparameters = props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].parameters.reduce( (prev, opt) => {
             return {...prev, [opt.name]: opt.value}
@@ -209,7 +215,7 @@ export function TaskParametersDialogRow(props){
                 )
             case "String":
                 return (
-                    <MythicTextField required={props.required} placeholder={props.default_value} value={value} multiline={true}
+                    <MythicTextField required={props.required} placeholder={props.default_value} value={value} multiline={false}
                         onChange={onChangeText} display="inline-block"
                         validate={testParameterValues} errorText={"Must match: " + props.verifier_regex}
                     />

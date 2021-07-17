@@ -135,7 +135,7 @@ export function CallbacksTableRow(props){
             setActiveEgress(theme.palette.success.main);
             setActiveEgressBool(true);
         }
-    }, [callbackgraphedges]);
+    }, [callbackgraphedges, theme.palette.success.main, theme.palette.error.main]);
     const handleMenuItemClick = (event, index) => {
         options[index].click(event);
         setDropdownOpen(false);
@@ -167,6 +167,10 @@ export function CallbacksTableRow(props){
                      {name: 'File Browser', icon: <AccountTreeIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
                         evt.stopPropagation();
                         onOpenTab("fileBrowser");
+                     }},
+                     {name: 'Process Browser', icon: <AccountTreeIcon style={{paddingRight: "5px"}}/>, click: (evt) => {
+                        evt.stopPropagation();
+                        onOpenTab("processBrowser");
                      }},
                  ];
     return (

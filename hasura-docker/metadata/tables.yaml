@@ -4467,78 +4467,108 @@
       - bin_path
       - name
       - user
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
       - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
       - id
-      - operation_id
-      - parent_process_id
-      - process_id
       - task_id
-      - architecture
-      - bin_path
+      - timestamp
       - host
+      - process_id
+      - architecture
+      - parent_process_id
+      - bin_path
       - name
       - user
-      - timestamp
+      - command_line
+      - integrity_level
+      - start_time
+      - description
+      - signer
+      - operation_id
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
 - table:
     schema: public
     name: response

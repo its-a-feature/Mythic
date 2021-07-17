@@ -210,7 +210,6 @@ export const TaskDisplay = (props) =>{
 const TaskRow = (props) => {
 	  const me = useReactiveVar(meState);
     const theme = useTheme();
-    const [enableBrowserscripts, setEnableBrowserscripts] = React.useState(true);
     const [lastSeenResponse, setLastSeenResponse] = React.useState(0);
     const [displayComment, setDisplayComment] = React.useState(false);
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -224,7 +223,7 @@ const TaskRow = (props) => {
     const classes = useStyles();
     const [taskingData, setTaskingData] = React.useState({task: []});
     const [isFetchingSubtasks, setIsFetchingSubtasks] = React.useState(false);
-    const [getSubTasking, { loading: taskingLoading, startPolling, stopPolling }] = useLazyQuery(getSubTaskingQuery, {
+    const [getSubTasking, { startPolling, stopPolling }] = useLazyQuery(getSubTaskingQuery, {
         onError: data => {
             console.error(data)
         },
@@ -253,9 +252,6 @@ const TaskRow = (props) => {
 		
     }
     const accordionClasses = accordionUseStyles();
-        const toggleBrowserscripts = () => {
-        setEnableBrowserscripts(!enableBrowserscripts);
-    }
     const getTaskStatus = () => {
         if(props.task.status.includes("error")){
              return (<Button size="small" style={{padding: "0", color: theme.palette.error.main}}>{props.task.status}</Button>)
@@ -302,11 +298,6 @@ const TaskRow = (props) => {
             setAlertBadges(0);
         }
     }, [props.task.responses, dropdownOpen, lastSeenResponse]);
-    useEffect( () => {
-      if(props.scrollToBottom !== undefined){
-        props.scrollToBottom();
-      }
-    }, [])
     const toggleTaskDropdown = (event, newExpanded) => {
         if(newExpanded){
             setAlertBadges(0);
@@ -427,7 +418,7 @@ const TaskRow = (props) => {
 	          </div>
 				        </AccordionActions>
 				        <AccordionDetails className={classes.details}>
-				          <ResponseDisplay task={task} command_id={commandID} enable_browserscripts={enableBrowserscripts}/>
+				          <ResponseDisplay task={task} command_id={commandID}/>
 				        </AccordionDetails>
 	      			</Accordion>
 	    		</Paper>

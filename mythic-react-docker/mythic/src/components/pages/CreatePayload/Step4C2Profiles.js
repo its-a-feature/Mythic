@@ -44,6 +44,17 @@ export function Step4C2Profiles(props){
                     }else if(param.default_value !== ""){
                         if(param.parameter_type === "ChooseOne"){
                             return {...param, value: param.default_value.split("\n")[0]}
+                        }else if(param.parameter_type === "Dictionary"){
+                            let tmp = JSON.parse(param.default_value);
+                            let initial = tmp.reduce( (prev, op) => {
+                                // find all the options that have a default_show of true
+                                if(op.default_show){
+                                    return [...prev, {value: op.default_value, key: op.name === "*" ? "": op.name} ];
+                                }else{
+                                    return [...prev];
+                                }
+                            }, [] );
+                            return {...param, value: initial}
                         }else{
                             return {...param, value: param.default_value}
                         }
@@ -67,6 +78,7 @@ export function Step4C2Profiles(props){
     }
     const finished = () => {
         let allValid = true;
+        console.log(c2Profiles);
         c2Profiles.forEach( (c2) => {
             if(c2.selected){
                 c2.c2profileparameters.forEach( (param) => {
@@ -94,7 +106,6 @@ export function Step4C2Profiles(props){
         setC2Profiles(updatedc2);
     }
     const updateC2Parameter = (c2Name, parameterName, value, error) => {
-        //console.log(c2Name, parameterName, value, error);
         const updatedc2 = c2Profiles.map( (curC2) => {
             if(curC2.name === c2Name){
                 const c2params = curC2.c2profileparameters.map( (param) => {

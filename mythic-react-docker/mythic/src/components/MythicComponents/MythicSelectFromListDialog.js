@@ -60,7 +60,7 @@ export function MythicSelectFromListDialog(props) {
           <Button onClick={props.onClose} variant="contained" color="primary">
             Close
           </Button>
-          <Button onClick={handleSubmit} variant="contained" style={{color: theme.palette.warning.main}}>
+          <Button onClick={handleSubmit} variant="contained" style={{backgroundColor: theme.palette.success.main}}>
             {props.action}
           </Button>
         </DialogActions>
