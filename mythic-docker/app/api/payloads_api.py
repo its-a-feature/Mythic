@@ -399,7 +399,10 @@ async def register_new_payload_func(data, user):
                                 temp_dict = []
                                 for entry in default_dict:
                                     if entry["default_show"]:
-                                        temp_dict.append({"name": entry["name"], "value": entry["default_value"]})
+                                        temp_dict.append({"name": entry["name"], 
+                                                          "value": entry["default_value"],
+                                                          "key": entry["name"],
+                                                          "custom": True if entry["name"] == "*" else False})
                                 p["c2_profile_parameters"][param.name] = temp_dict
                             else:
                                 p["c2_profile_parameters"][param.name] = param.default_value
