@@ -1745,65 +1745,26 @@ async def get_responses(task_id: int) -> dict:
         return {"status": "error", "error": str(e)}
 
 
-async def rabbit_c2_rpc_callback(
-        exchange: aio_pika.Exchange, message: aio_pika.IncomingMessage
-):
-    with message.process():
-        # print(message)
-        request = json.loads(message.body.decode())
-        if "action" in request:
-            if request["action"] == "add_event_message":
-                response = await add_event_message(request)
-            else:
-                response = {"status": "error", "error": "unknown action"}
-            response = json.dumps(response).encode("utf-8")
-        else:
-            response = json.dumps(
-                {"status": "error", "error": "Missing action"}
-            ).encode("utf-8")
-        try:
-            await exchange.publish(
-                aio_pika.Message(body=response, correlation_id=message.correlation_id),
-                routing_key=message.reply_to,
-            )
-        except Exception as e:
-            error = (
-                    "Exception trying to send message back to container for rpc! " + str(e)
-            )
-            error += "\nResponse: {}\nCorrelation_id: {}\n RoutingKey: {}".format(
-                str(response), message.correlation_id, message.reply_to
-            )
-            operations = await app.db_objects.execute(
-                db_model.operation_query.where(db_model.Operation.complete == False)
-            )
-            for o in operations:
-                await app.db_objects.create(
-                    db_model.OperationEventLog,
-                    level="warning",
-                    operation=o,
-                    message="Failed to process C2 RPC: {}".format(str(e)),
-                )
-
-
-async def add_event_message(request):
+async def encrypt_message(message: dict, target_uuid: str, c2_profile_name: str):
     try:
-        operations = await app.db_objects.execute(
-            db_model.operation_query.where(db_model.Operation.complete == False)
-        )
-        for o in operations:
-            msg = await app.db_objects.create(
-                db_model.OperationEventLog,
-                level=request["level"],
-                operation=o,
-                message=request["message"],
-            )
-            asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_new"))
-        return {"status": "success"}
+        from app.api.callback_api import get_encryption_data
+        enc_key = await get_encryption_data(target_uuid, c2_profile_name)
+        from app.api.callback_api import create_final_message_from_data_and_profile_info
+        final_msg = await create_final_message_from_data_and_profile_info(message, enc_key, target_uuid, None)
+        return {"status": "success", "response": final_msg}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
-async def create_event_message(task_id: int, message: str, warning: bool = False) -> dict:
+async def decrypt_message(message: str, c2_profile_name: str):
+    try:
+        from app.api.callback_api import parse_agent_message
+        return await parse_agent_message(message, None, c2_profile_name, True)
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def create_event_message(message: str, warning: bool = False, task_id: int = None) -> dict:
     """
     Create a message in the Event feed within the UI as an info message or as a warning
     :param task_id: The ID number of the task performing this action (task.id)
@@ -1812,14 +1773,18 @@ async def create_event_message(task_id: int, message: str, warning: bool = False
     :return: success or error (nothing in the `response` attribute)
     """
     try:
-        task = await app.db_objects.get(db_model.task_query, id=task_id)
-        msg = await app.db_objects.create(
-            db_model.OperationEventLog,
-            level="warning" if warning else "info",
-            operation=task.callback.operation,
-            message=message
-        )
-        asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_new"))
+        if task_id is not None:
+            task = await app.db_objects.get(db_model.task_query, id=task_id)
+            msg = await app.db_objects.create(
+                db_model.OperationEventLog,
+                level="warning" if warning else "info",
+                operation=task.callback.operation,
+                message=message
+            )
+            asyncio.create_task(log_to_siem(mythic_object=msg, mythic_source="eventlog_new"))
+        else:
+            from app.api.operation_api import send_all_operations_message
+            await send_all_operations_message(message=message, level="warning" if warning else "info")
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
@@ -2003,8 +1968,7 @@ async def start_listening():
         task2 = asyncio.ensure_future(connect_and_consume_heartbeats())
         task3 = asyncio.ensure_future(connect_and_consume_pt())
         task4 = asyncio.ensure_future(connect_and_consume_rpc())
-        task5 = asyncio.ensure_future(connect_and_consume_c2_rpc())
-        await asyncio.wait_for([task, task2, task3, task4, task5], None)
+        await asyncio.wait_for([task, task2, task3, task4], None)
     except Exception as e:
         for t in tasks:
             if t is not None:
@@ -2124,36 +2088,6 @@ async def connect_and_consume_rpc():
         except Exception as e:
             logger.exception(
                 "Exception in connect_and_consume_rpc connect: {}".format(str(e))
-            )
-        await asyncio.sleep(2)
-
-
-async def connect_and_consume_c2_rpc():
-    connection = None
-    while connection is None:
-        try:
-            connection = await mythic_rabbitmq_connection()
-            channel = await connection.channel()
-            # get a random queue that only the mythic server will use to listen on to catch all heartbeats
-            queue = await channel.declare_queue("c2rpc_queue", auto_delete=True)
-            await channel.set_qos(prefetch_count=50)
-            logger.info("Waiting for messages in connect_and_consume_rpc.")
-            try:
-                task = queue.consume(
-                    partial(rabbit_c2_rpc_callback, channel.default_exchange)
-                )
-                result = await asyncio.wait_for(task, None)
-            except Exception as e:
-                logger.exception(
-                    "Exception in connect_and_consume_c2_rpc .consume: {}".format(
-                        str(e)
-                    )
-                )
-        except (ConnectionError, ConnectionRefusedError) as c:
-            logger.error("Connection to rabbitmq failed, trying again..")
-        except Exception as e:
-            logger.exception(
-                "Exception in connect_and_consume_c2_rpc connect: {}".format(str(e))
             )
         await asyncio.sleep(2)
 
@@ -2353,5 +2287,7 @@ exposed_rpc_endpoints = {
     "search_database": search_database,
     "control_socks": control_socks,
     "create_subtask": create_subtask,
-    "create_subtask_group": create_subtask_group
+    "create_subtask_group": create_subtask_group,
+    "create_encrypted_message": encrypt_message,
+    "create_decrypted_message": decrypt_message
 }

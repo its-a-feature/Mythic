@@ -106,7 +106,8 @@ async def get_agent_message(request):
         error_message = f"Failed to find Mythic header in headers: \n{request.headers}\nConnection to: "
         error_message += f"{request_url} via {request.method}\nFrom: "
         error_message += f"{request_ip}\n"
-        error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}"
+        error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}\n"
+        error_message += f"Did this come from a Mythic C2 Profile? If so, make sure it's adding the `mythic` header with the name of the C2 profile"
         asyncio.create_task(send_all_operations_message(
             message=error_message,
             level="warning", source="get_agent_message_mythic_header:" + request_ip))
@@ -127,7 +128,7 @@ async def get_agent_message(request):
         error_message += f"{request_url} via {request.method}\nFrom: "
         error_message += f"{request_ip}\n"
         error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}\n"
-        error_message += f"With extra headers: {request.headers}"
+        error_message += f"With extra headers: {request.headers}\n"
         asyncio.create_task(send_all_operations_message(
             message=error_message,
             level="warning", source="get_agent_message_body" + request_ip))
@@ -256,11 +257,16 @@ async def get_encryption_data(UUID: str, profile: str):
 
 
 # returns a base64 encoded response message
-async def parse_agent_message(data: str, request, profile: str):
+# return decrypted flag is for C2 Profiles to task message decryption
+async def parse_agent_message(data: str, request, profile: str, return_decrypted: bool = False):
     new_callback = ""
     agent_uuid = ""
-    request_url = request.headers['x-forwarded-url'] if 'x-forwarded-url' in request.headers else request.url
-    request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
+    if return_decrypted:
+        request_url = ""
+        request_ip = ""
+    else:
+        request_url = request.headers['x-forwarded-url'] if 'x-forwarded-url' in request.headers else request.url
+        request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
     try:
         decoded = base64.b64decode(data)
         # print(decoded)
@@ -268,11 +274,17 @@ async def parse_agent_message(data: str, request, profile: str):
             await send_all_operations_message(message=f"Parsing agent message - step 2 (base64 decode): \n {decoded}", level="info", source="debug")
     except Exception as e:
         error_message = f"Failed to base64 decode message\nConnection to: "
-        error_message += f"{request_url} via {request.method}\nFrom: "
-        error_message += f"{request_ip}\n"
-        error_message += f"With extra headers: {request.headers}"
+        if return_decrypted:
+            error_message += f"{profile}'s RPC call"
+        else:
+            error_message += f"{request_url} via {request.method}\nFrom: "
+            error_message += f"{request_ip}\n"
+            error_message += f"With extra headers: {request.headers}\n"
+        error_message += f"Message sent to Mythic wasn't base64 encoded or was improperly encoded. Make sure your overall message is base64 encoded."
         asyncio.create_task(send_all_operations_message(message=error_message,
                                           level="warning", source="get_agent_message" + request_ip))
+        if return_decrypted:
+            return {"status": "error", "error": error_message}
         return "", 404, new_callback, agent_uuid
     try:
         try:
@@ -288,22 +300,45 @@ async def parse_agent_message(data: str, request, profile: str):
             await send_all_operations_message(message=f"Parsing agent message - step 3 (get uuid): \n {UUID} with length {str(UUID_length)}", level="info", source="debug")
     except Exception as e:
         error_message = f"Failed to get UUID in first 36 or 16 bytes for base64 input\nConnection to: "
-        error_message += f"{request_url} via {request.method}\nFrom: "
-        error_message += f"{request_ip}\n"
-        error_message += f"With extra headers: {request.headers}\nData: "
-        error_message += f"{str(decoded)}"
+        if return_decrypted:
+            error_message += f"{profile}'s RPC call"
+        else:
+            error_message += f"{request_url} via {request.method}\nFrom: "
+            error_message += f"{request_ip}\n"
+            error_message += f"With extra headers: {request.headers}\nData: "
+        error_message += f"{str(decoded)}\n"
+        error_message += f"The first bytes of a message to Mythic should be the UUID of the agent, payload, or stage. Failed to find a UUID in {decoded[:36]}"
         asyncio.create_task(send_all_operations_message(message= error_message,
                                           level="warning", source="get_agent_message" + request_ip))
+        if return_decrypted:
+            return {"status": "error", "error": error_message}
         return "", 404, new_callback, agent_uuid
     try:
         enc_key = await get_encryption_data(UUID, profile)
     except Exception as e:
         error_message = f"Failed to correlate UUID, {UUID}, to something mythic knows\nConnection to: "
-        error_message += f"{request_url} via {request.method}\nFrom: "
-        error_message += f"{request_ip}\n"
-        error_message += f"With extra headers: {request.headers}"
+        if return_decrypted:
+            error_message += f"{profile}'s RPC call"
+        else:
+            error_message += f"{request_url} via {request.method}\nFrom: "
+            error_message += f"{request_ip}\n"
+            error_message += f"With extra headers: {request.headers}\n"
+        if UUID_length == 36:
+            try:
+                uuid.UUID(UUID)
+                error_message += f"{UUID} is likely a Callback or Payload UUID from a Mythic instance that has been deleted or had the database reset."
+            except:
+                error_message += f"{UUID} is not a valid UUID4 value. The first part of a Mythic message should be the Callback, Payload, or Staging UUID.\n"
+                error_message += f"This likely happens if some other sort of traffic came through your C2 profile (ports too open) or another C2 Profile's traffic was routed through another C2 Profile"
+        else:
+            error_message += f"{UUID} was a 16 Byte UUID, but Mythic doesn't have it in its database.\n"
+            error_message += f"This is likely a Callback or Payload UUID from a Mythic instance that has been deleted or had the database reset.\n"
+            error_message += f"This could also happen if some other sort of traffic came through your C2 profile (ports too open) or another C2 Profile's traffic was routed through another C2 Profile"
+
         asyncio.create_task(send_all_operations_message(message= error_message, level="warning",
                                                         source="get_agent_message_uuid:" + UUID + request_ip))
+        if return_decrypted:
+            return {"status": "error", "error": error_message}
         return "", 404, new_callback, agent_uuid
     # now we have cached_keys[UUID] is the right AES key to use with this payload, now to decrypt
     if enc_key["stage"] == "callback":
@@ -344,6 +379,8 @@ async def parse_agent_message(data: str, request, profile: str):
                         asyncio.create_task(send_all_operations_message(
                             message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline",
                             level="warning", source="translate_from_c2_format_error", operation=enc_key["payload"].operation))
+                    if return_decrypted:
+                        return {"status": "error", "error": "Failed to have translation service translate decrypted message"}
                     return "", 404, new_callback, agent_uuid
                 else:
                     # we should get back JSON from the translation container
@@ -380,6 +417,8 @@ async def parse_agent_message(data: str, request, profile: str):
                         asyncio.create_task(send_all_operations_message(
                             message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline.",
                             level="warning", source="translate_from_c2_format_error", operation=enc_key["payload"].operation))
+                    if return_decrypted:
+                        return {"status": "error", "error": "Failed to have translation service translate message"}
                     return "", 404, new_callback, agent_uuid
                 else:
                     if app.debugging_enabled:
@@ -395,7 +434,11 @@ async def parse_agent_message(data: str, request, profile: str):
             msg = str(decoded)
         asyncio.create_task(send_all_operations_message(message=f"Failed to decrypt/load message with error: {str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}\n from {request.method} method with URL {request.url} with headers: \n{request.headers}",
                                           level="warning", source="parse_agent_message_decrypt_load", operation=enc_key["payload"].operation))
+        if return_decrypted:
+            return {"status": "error", "error": "Failed to decrypt or load the message as JSON"}
         return "", 404, new_callback, agent_uuid
+    if return_decrypted:
+        return {"status": "success", "response": decrypted}
     """
     JSON({
         "action": "", //staging-rsa, get_tasking ...
