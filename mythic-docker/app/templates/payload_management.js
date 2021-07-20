@@ -148,6 +148,21 @@ var payloads_table = new Vue({
                     alertTop("danger", "Session expired, refresh");
                 }
             }, "GET", null);
+        },
+        redirect_rules: function(p){
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/redirect_rules_webhook/" , function (response) {
+                try {
+                    let data = JSON.parse(response);
+                    if (data['status'] !== 'success') {
+                        alertTop("danger", data['error']);
+                    } else {
+                        $('#buildStatus').text(data['output']);
+                        $('#payloadBuildStatusModal').modal('show');
+                    }
+                } catch (error) {
+                    alertTop("danger", "Session expired, refresh");
+                }
+            }, "POST", {"input": {"uuid": p.uuid}});
         }
     },
     delimiters: ['[[', ']]']

@@ -399,7 +399,7 @@ async def register_new_payload_func(data, user):
                                 temp_dict = []
                                 for entry in default_dict:
                                     if entry["default_show"]:
-                                        temp_dict.append({"name": entry["name"], 
+                                        temp_dict.append({"name": entry["name"],
                                                           "value": entry["default_value"],
                                                           "key": entry["name"],
                                                           "custom": True if entry["name"] == "*" else False})
@@ -693,6 +693,34 @@ async def write_payload(uuid, user, data):
                 status["message"] = "OPSEC Check executed, but provided no output"
             payload.build_message = payload.build_message + f"\nOPSEC message from {pc2p.c2_profile.name}:\n{status['message']}"
             await app.db_objects.update(payload)
+        # perform config_check for c2 profile
+        status, successfully_sent = await c2_rpc.call(message={
+            "action": "config_check",
+            "parameters": param_dict
+        }, receiver="{}_mythic_rpc_queue".format(pc2p.c2_profile.name))
+        if not successfully_sent:
+            pc2p.c2_profile.running = False
+            await app.db_objects.update(pc2p.c2_profile)
+            payload.build_phase = "error"
+            payload.build_stderr = f"C2 Profile {pc2p.c2_profile.name}'s container is not running, so it cannot be tasked with a config check"
+            await app.db_objects.update(payload)
+            return {
+                "status": "error",
+                "error": f"C2 Profile {pc2p.c2_profile.name}'s container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./mythic-cli status`",
+            }
+        status = js.loads(status)
+        if status["status"] == "error":
+            if status["error"] == "'config_check'":
+                # this is fine, just means the profile never implemented a config_check function
+                pass
+            else:
+                payload.build_message = payload.build_message + f"\nFailed to pass a configuration check for {pc2p.c2_profile.name}:\n{status['error']}"
+                await app.db_objects.update(payload)
+        else:
+            if "message" not in status:
+                status["message"] = "Configuration Check executed, but provided no output"
+            payload.build_message = payload.build_message + f"\nConfiguration Check message from {pc2p.c2_profile.name}:\n{status['message']}"
+            await app.db_objects.update(payload)
         c2_profile_parameters.append(
             {"parameters": param_dict, **pc2p.c2_profile.to_json()}
         )
@@ -775,12 +803,38 @@ async def create_payload_again(request, user):
         return json({"status": "error", "error": "Failed to rebuild payload: " + str(e)})
 
 
+@mythic.route(mythic.config["API_BASE"] + "/payloads/rebuild_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def create_payload_again_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot create payloads"})
+    from app.api.rabbitmq_api import get_payload_build_config
+    try:
+        rebuild_info = request.json
+        rebuild_info = rebuild_info["input"]
+        data = await get_payload_build_config(payload_uuid=rebuild_info["uuid"], generate_new_random_values=False)
+        if data["status"] == "success":
+            return json(await create_payload_func(data["data"], user))
+        else:
+            return json(data)
+    except Exception as e:
+        return json({"status": "error", "error": "Failed to rebuild payload: " + str(e)})
+
+
 @mythic.route(mythic.config["API_BASE"] + "/payloads/export_config/<puuid:string>", methods=["GET"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def export_payload_config(request, user, puuid):
+async def export_payload_config_webhook(request, user, puuid):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -843,6 +897,87 @@ async def create_payload_func(data, user):
     except Exception as e:
         logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
+
+
+@mythic.route(mythic.config["API_BASE"] + "/redirect_rules_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def redirect_rules_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot create payloads"})
+    data = request.json
+    output = ""
+    try:
+        payload_uuid = data["input"]["uuid"]
+        payload = await app.db_objects.get(db_model.payload_query, uuid=payload_uuid)
+        payloadc2profiles = await app.db_objects.execute(
+            db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
+        )
+        for pc2p in payloadc2profiles:
+            # for each profile, we need to get all of the parameters and supplied values for just that profile
+            param_dict = {}
+            c2_param_instances = await app.db_objects.execute(
+                db_model.c2profileparametersinstance_query.where(
+                    (C2ProfileParametersInstance.payload == payload)
+                    & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
+                )
+            )
+            # save all the variables off to a dictionary for easy looping
+            for instance in c2_param_instances:
+                param = instance.c2_profile_parameters
+                if param.crypto_type:
+                    param_dict[param.name] = {
+                        "value": instance.value,
+                        "enc_key": base64.b64encode(
+                            instance.enc_key).decode() if instance.enc_key is not None else None,
+                        "dec_key": base64.b64encode(
+                            instance.dec_key).decode() if instance.dec_key is not None else None,
+                    }
+                elif param.parameter_type in ["Array", "Dictionary"]:
+                    try:
+                        param_dict[param.name] = js.loads(instance.value)
+                    except Exception as f:
+                        param_dict[param.name] = instance.value
+                else:
+                    param_dict[param.name] = instance.value
+            status, successfully_sent = await c2_rpc.call(message={
+                "action": "redirect_rules",
+                "parameters": param_dict
+            }, receiver="{}_mythic_rpc_queue".format(pc2p.c2_profile.name))
+            if not successfully_sent:
+                pc2p.c2_profile.running = False
+                await app.db_objects.update(pc2p.c2_profile)
+                output += "Redirect Rules for " + pc2p.c2_profile.name + ":\n"
+                output += f"\tC2 Profile {pc2p.c2_profile.name}'s container not running, no heartbeat in over 30 seconds.\n\tCheck that it's running with `./mythic-cli status`\n"
+                continue
+            status = js.loads(status)
+            if status["status"] == "error":
+                if status["error"] == "'redirect_rules'":
+                    # this is fine, just means the profile never implemented an opsec function
+                    output += "Redirect Rules for " + pc2p.c2_profile.name + ":\n"
+                    output += f"\tNot Implemented\n"
+                    continue
+                else:
+                    output += "Redirect Rules for " + pc2p.c2_profile.name + ":\n"
+                    output += f"\tError: {status['error']}\n"
+                    continue
+            else:
+                output += "Redirect Rules for " + pc2p.c2_profile.name + ":\n"
+                if "message" not in status:
+                    output += f"\tNo output from function"
+                else:
+                    output += f"\t{status['message']}\n"
+            # perform config_check for c2 profile
+    except Exception as e:
+        return json({"status": "error", "error": str(e)})
+    return json({"status": "success", "output": output})
 
 
 # needs to not be protected so the implant can call back and get a copy of an agent to run
