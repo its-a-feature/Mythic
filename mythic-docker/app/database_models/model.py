@@ -363,7 +363,7 @@ class CommandParameters(p.Model):
     description = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if the action is related to payloads or linking agents, you can limit the options to only agents you want
     supported_agents = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
-    # if the action is related to payloads or linking agnets, you can also limit to specific agent build param values
+    # if the action is related to payloads or linking agents, you can also limit to specific agent build param values
     supported_agent_build_parameters = p.TextField(null=False, constraints=[p.SQL("DEFAULT '{}'")])
     choice_filter_by_command_attributes = p.TextField(null=False, constraints=[p.SQL("DEFAULT '{}'")])
     choices_are_all_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
@@ -393,7 +393,8 @@ class CommandParameters(p.Model):
             "choice_filter_by_command_attributes": self.choice_filter_by_command_attributes,
             "choices_are_all_commands": self.choices_are_all_commands,
             "choices_are_loaded_commands": self.choices_are_loaded_commands,
-            "ui_position": self.ui_position
+            "ui_position": self.ui_position,
+            "dynamic_query_function": self.dynamic_query_function
         }
         return r
 
