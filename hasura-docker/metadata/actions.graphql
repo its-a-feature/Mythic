@@ -119,6 +119,8 @@ type OperatorOutput {
   current_operation : String
   current_operation_id : Int
   ui_config : String
+  failed_login_count : Int
+  last_failed_login_timestamp : String
 }
 
 type createPayloadOutput {

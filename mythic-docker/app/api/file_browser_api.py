@@ -182,7 +182,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
                         name=f["name"].encode("utf-8"),
                         full_path=str(parent_path / f["name"]).encode("utf-8"),
                     )
-        if "update_deleted" in response and response["update_deleted"] and response["success"]:
+        if "update_deleted" in response and response["update_deleted"]:
             # go through and mark all files/folders not associated with this task as deleted
             base_files = await app.db_objects.execute(db_model.filebrowserobj_query.where(
                 (db_model.FileBrowserObj.task != task) &
