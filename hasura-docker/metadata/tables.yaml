@@ -3210,6 +3210,69 @@
       filter:
         id:
           _in: X-Hasura-operations
+  update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - admin_id
+      - channel
+      - complete
+      - display_name
+      - icon_emoji
+      - icon_url
+      - name
+      - webhook
+      - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-admin-operations
+      check: {}
+  - role: mythic_admin
+    permission:
+      columns:
+      - admin_id
+      - channel
+      - complete
+      - display_name
+      - icon_emoji
+      - icon_url
+      - name
+      - webhook
+      - webhook_message
+      filter: {}
+      check: {}
+  - role: operation_admin
+    permission:
+      columns:
+      - admin_id
+      - channel
+      - complete
+      - display_name
+      - icon_emoji
+      - icon_url
+      - name
+      - webhook
+      - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-admin-operations
+      check: {}
+  - role: operator
+    permission:
+      columns:
+      - admin_id
+      - channel
+      - complete
+      - display_name
+      - icon_emoji
+      - icon_url
+      - name
+      - webhook
+      - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-admin-operations
+      check: {}
 - table:
     schema: public
     name: operationeventlog

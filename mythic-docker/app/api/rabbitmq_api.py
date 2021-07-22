@@ -1746,6 +1746,13 @@ async def get_responses(task_id: int) -> dict:
 
 
 async def encrypt_message(message: dict, target_uuid: str, c2_profile_name: str):
+    """
+    Given a dictionary agent message, submit it to Mythic to encrypt with a target callback/payload's encryption keys
+    :param message: the dictionary message
+    :param target_uuid: the UUID of the payload/stager/callback that will receive the encrypted message
+    :param c2_profile_name: the name of the c2 profile that this message will be sent over
+    :return: The final base64 and encrypted message
+    """
     try:
         from app.api.callback_api import get_encryption_data
         enc_key = await get_encryption_data(target_uuid, c2_profile_name)
@@ -1757,10 +1764,48 @@ async def encrypt_message(message: dict, target_uuid: str, c2_profile_name: str)
 
 
 async def decrypt_message(message: str, c2_profile_name: str):
+    """
+    Given an encrypted message from an agent, decrypt it based on the C2 profile that received it
+    :param message: The base64 of the message from an agent
+    :param c2_profile_name: the name of the c2 profile where this message came from
+    :return: the dictionary representation of the message for Mythic
+    """
     try:
         from app.api.callback_api import parse_agent_message
         return await parse_agent_message(message, None, c2_profile_name, True)
     except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def get_callback_commands(callback_id: int, loaded_only: bool = False):
+    """
+    Get an array of dictionaries of all the possible commands for the specified callback
+    :param callback_id: the id of the callback in question
+    :param loaded_only: specify this as True to only include commands currently loaded into this callback
+    :return: an array of dictionaries representing all of the possible commands for that payload type.
+    When returning all possible commands for this callback, commands are still filtered by their supported_os attributes
+    """
+    try:
+        callback = await app.db_objects.get(db_model.callback_query, id=callback_id)
+        if loaded_only:
+            commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
+                db_model.LoadedCommands.callback == callback
+            ))
+            commands = [c.command for c in commands]
+        else:
+            commands = await app.db_objects.execute(db_model.command_query.where(
+                (db_model.Command.payload_type == callback.registered_payload.payload_type) &
+                (db_model.Command.script_only == False)
+            ))
+        final_commands = []
+        for c in commands:
+            attributes = json.loads(c.attributes)
+            if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
+                final_commands.append({**c.to_json(), "attributes": attributes})
+        return {"status": "success", "response": final_commands}
+    except Exception as e:
+        from app.api.operation_api import send_all_operations_message
+        await send_all_operations_message(message=f"Failed to get commands in RPC call:\n{str(e)}", level="warning")
         return {"status": "error", "error": str(e)}
 
 
@@ -2264,6 +2309,7 @@ exposed_rpc_endpoints = {
     "get_payload": get_payload,
     "get_tasks": get_tasks,
     "get_responses": get_responses,
+    "get_callback_commands": get_callback_commands,
     "create_payload_from_uuid": create_payload_from_uuid,
     "create_payload_from_parameters": create_payload_from_parameters,
     "create_processes": create_processes_rpc,
