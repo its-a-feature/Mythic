@@ -910,8 +910,6 @@ async def redirect_rules_webhook(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
-        return json({"status": "error", "error": "Spectators cannot create payloads"})
     data = request.json
     output = ""
     try:
@@ -970,6 +968,85 @@ async def redirect_rules_webhook(request, user):
                     continue
             else:
                 output += "Redirect Rules for " + pc2p.c2_profile.name + ":\n"
+                if "message" not in status:
+                    output += f"\tNo output from function"
+                else:
+                    output += f"\t{status['message']}\n"
+            # perform config_check for c2 profile
+    except Exception as e:
+        return json({"status": "error", "error": str(e)})
+    return json({"status": "success", "output": output})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/config_check_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def config_check_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    data = request.json
+    output = ""
+    try:
+        payload_uuid = data["input"]["uuid"]
+        payload = await app.db_objects.get(db_model.payload_query, uuid=payload_uuid)
+        payloadc2profiles = await app.db_objects.execute(
+            db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
+        )
+        for pc2p in payloadc2profiles:
+            # for each profile, we need to get all of the parameters and supplied values for just that profile
+            param_dict = {}
+            c2_param_instances = await app.db_objects.execute(
+                db_model.c2profileparametersinstance_query.where(
+                    (C2ProfileParametersInstance.payload == payload)
+                    & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
+                )
+            )
+            # save all the variables off to a dictionary for easy looping
+            for instance in c2_param_instances:
+                param = instance.c2_profile_parameters
+                if param.crypto_type:
+                    param_dict[param.name] = {
+                        "value": instance.value,
+                        "enc_key": base64.b64encode(
+                            instance.enc_key).decode() if instance.enc_key is not None else None,
+                        "dec_key": base64.b64encode(
+                            instance.dec_key).decode() if instance.dec_key is not None else None,
+                    }
+                elif param.parameter_type in ["Array", "Dictionary"]:
+                    try:
+                        param_dict[param.name] = js.loads(instance.value)
+                    except Exception as f:
+                        param_dict[param.name] = instance.value
+                else:
+                    param_dict[param.name] = instance.value
+            status, successfully_sent = await c2_rpc.call(message={
+                "action": "config_check",
+                "parameters": param_dict
+            }, receiver="{}_mythic_rpc_queue".format(pc2p.c2_profile.name))
+            if not successfully_sent:
+                pc2p.c2_profile.running = False
+                await app.db_objects.update(pc2p.c2_profile)
+                output += "Configuration Check for " + pc2p.c2_profile.name + ":\n"
+                output += f"\tC2 Profile {pc2p.c2_profile.name}'s container not running, no heartbeat in over 30 seconds.\n\tCheck that it's running with `./mythic-cli status`\n"
+                continue
+            status = js.loads(status)
+            if status["status"] == "error":
+                if status["error"] == "'config_check'":
+                    # this is fine, just means the profile never implemented an opsec function
+                    output += "Configuration Check for " + pc2p.c2_profile.name + ":\n"
+                    output += f"\tNot Implemented\n"
+                    continue
+                else:
+                    output += "Configuration Check for " + pc2p.c2_profile.name + ":\n"
+                    output += f"\tError: {status['error']}\n"
+                    continue
+            else:
+                output += "Configuration Check for " + pc2p.c2_profile.name + ":\n"
                 if "message" not in status:
                     output += f"\tNo output from function"
                 else:

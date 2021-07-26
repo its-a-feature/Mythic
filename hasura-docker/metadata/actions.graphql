@@ -4,13 +4,11 @@ type Mutation {
   ): createAPITokenResponse!
 }
 
-
 type Mutation {
   createOperator (
     input: OperatorInput!
   ): OperatorOutput!
 }
-
 
 type Mutation {
   createPayload (
@@ -18,13 +16,11 @@ type Mutation {
   ): createPayloadOutput!
 }
 
-
 type Mutation {
   createRandom (
     format_string: String!
   ): randomOutput
 }
-
 
 type Mutation {
   createTask (
@@ -35,7 +31,6 @@ type Mutation {
   ): createTaskOutput
 }
 
-
 type Query {
   downloadContainerFile (
     id: Int
@@ -43,20 +38,17 @@ type Query {
   ): ContainerFile
 }
 
-
 type Query {
   getProfileOutput (
     id: Int!
   ): ProfileOutput
 }
 
-
 type Mutation {
   requestOpsecBypass (
     task_id: Int!
   ): BypassOutput
 }
-
 
 type Mutation {
   startStopProfile (
@@ -65,13 +57,11 @@ type Mutation {
   ): startStopOutput
 }
 
-
 type Mutation {
   updateCallback (
     input: updateCallbackInput!
   ): updateCallbackOutput
 }
-
 
 type Mutation {
   uploadContainerFile (
@@ -80,9 +70,6 @@ type Mutation {
     data: String!
   ): uploadContainerOutput
 }
-
-
-
 
 input OperatorInput {
   username : String!

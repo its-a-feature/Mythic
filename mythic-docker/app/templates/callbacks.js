@@ -1615,10 +1615,7 @@ var task_data = new Vue({
                                 "Command Help", false);
                             return;
                         } else if (params.length === 0) {
-                            alertTop("info", "<b>Usage: </b> help {command_name}" +
-                                "<br><b>Note: </b>All commands for " + callbacks[data['cid']]['payload_type'] +
-                                " can be found in the <a target='_blank' href=\"/docs/agents/" + callbacks[data['cid']]['payload_type'] + "\" style='color:darkblue'> Help Container</a>", 0,
-                                "Command Help", false);
+                            callback_table.display_callback_info(callbacks[data['cid']]);
                             return;
                         }
                     }
@@ -1716,7 +1713,7 @@ var task_data = new Vue({
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[callbacks[data['cid']]['payload_type']][i]['params'][j]);
                                 if(param.type === "Choice" || param.type === "ChoiceMultiple"){
                                     //console.log(param.dynamic_query_function);
-                                    if(param.dynamic_query_function !== undefined){
+                                    if(param.dynamic_query_function !== undefined && param.dynamic_query_function !== null){
                                         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
                                             try {
                                                 param.choices = JSON.parse(response);

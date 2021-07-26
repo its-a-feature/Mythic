@@ -71,20 +71,19 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     pieces[2]
                 ), level="info", source="sync_c2_success"))
                 # for a successful checkin, we need to find all non-wrapper payload types and get them to re-check in
-                if status["new"]:
-                    pts = await app.db_objects.execute(
-                        db_model.payloadtype_query.where(db_model.PayloadType.wrapper == False)
+                pts = await app.db_objects.execute(
+                    db_model.payloadtype_query.where(db_model.PayloadType.wrapper == False)
+                )
+                sync_operator = "" if operator is None else operator.username
+                for pt in pts:
+                    stats = await send_pt_rabbitmq_message(
+                        pt.ptype, "sync_classes", "", sync_operator, ""
                     )
-                    sync_operator = "" if operator is None else operator.username
-                    for pt in pts:
-                        stats = await send_pt_rabbitmq_message(
-                            pt.ptype, "sync_classes", "", sync_operator, ""
-                        )
-                        if stats["status"] == "error":
-                            asyncio.create_task(send_all_operations_message(
-                                message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
-                                    pt.ptype, status["error"]
-                                ), level="warning", source="payload_import_sync_error"))
+                    if stats["status"] == "error":
+                        asyncio.create_task(send_all_operations_message(
+                            message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                pt.ptype, status["error"]
+                            ), level="warning", source="payload_import_sync_error"))
                 if not profile.is_p2p:
                     from app.api.c2profiles_api import start_stop_c2_profile
                     run_stat, successfully_started = await start_stop_c2_profile(action="start", profile=profile)
