@@ -1235,21 +1235,21 @@ async def delete_logon_session(LogonId: int, host: str) -> dict:
         return {"status": "error", "error": "Failed to find/delete that logon session on that host:\n" + str(e)}
 
 
-async def create_callback_token(task_id: int, TokenID: int, host: str = None) -> dict:
+async def create_callback_token(task_id: int, TokenId: int, host: str = None) -> dict:
     """
     Associate a token with a callback for usage in further tasking.
     :param task_id: The ID number of the task performing this action (task.id)
-    :param TokenID: The token you want to associate with this callback
+    :param TokenId: The token you want to associate with this callback
     :param host: The host where the token exists
     :return: Success or Error (nothing in the `response` attribute)
     """
     try:
-        task = await app.db_objects.get(db_model.token_query, id=task_id)
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
         token_host = host.upper() if host is not None else task.callback.host
         try:
-            token = await app.db_objects.get(db_model.token_query, TokenId=TokenID, host=token_host, deleted=False)
+            token = await app.db_objects.get(db_model.token_query, TokenId=TokenId, host=token_host, deleted=False)
         except Exception as e:
-            token = await app.db_objects.create(db_model.Token, TokenId=TokenID, host=token_host, task=task)
+            token = await app.db_objects.create(db_model.Token, TokenId=TokenId, host=token_host, task=task)
         # then try to associate it with our callback
         try:
             callbacktoken = await app.db_objects.get(db_model.callbacktoken_query, token=token, callback=task.callback,
@@ -1265,19 +1265,19 @@ async def create_callback_token(task_id: int, TokenID: int, host: str = None) ->
         return {"status": "error", "error": "Failed to get token and associate it:\n" + str(d)}
 
 
-async def delete_callback_token(task_id: int, TokenID: int, host: str = None) -> dict:
+async def delete_callback_token(task_id: int, TokenId: int, host: str = None) -> dict:
     """
     Mark a callback token as no longer being associated
     :param task_id: The ID number of the task performing this action (task.id)
-    :param TokenID: The Token you want to disassociate from the task's callback
+    :param TokenId: The Token you want to disassociate from the task's callback
     :param host: The host where the token exists
     :return: Success or Error (nothing in the `response` attribute)
     """
     try:
-        task = await app.db_objects.get(db_model.token_query, id=task_id)
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
         token_host = host.upper() if host is not None else task.callback.host
         try:
-            token = await app.db_objects.get(db_model.token_query, TokenId=TokenID, host=token_host)
+            token = await app.db_objects.get(db_model.token_query, TokenId=TokenId, host=token_host)
             callbacktoken = await app.db_objects.get(db_model.callbacktoken_query, token=token, callback=task.callback,
                                                      deleted=False, host=token_host)
             callbacktoken.deleted = True
