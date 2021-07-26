@@ -150,7 +150,7 @@ var callback_table = new Vue({
                                 }
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]);
                                 if(param.type === "Choice" || param.type === "ChoiceMultiple"){
-                                    if(param.dynamic_query_function !== undefined){
+                                    if(param.dynamic_query_function !== undefined && param.dynamic_query_function !== null){
                                         httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
                                             try {
                                                 param.choices = JSON.parse(response);

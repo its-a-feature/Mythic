@@ -15,6 +15,8 @@ actions:
     handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_operator'
     forward_client_headers: true
   permissions:
+  - role: operator
+  - role: operation_admin
   - role: mythic_admin
 - name: createPayload
   definition:
