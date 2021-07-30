@@ -37,4 +37,12 @@ export function MythicTabLabel(props){
         } {...a11yProps(index)} {...other}/>
     )
 }
-
+export function MythicSearchTabLabel(props){
+  const {label, index, fullWidth, maxHeight, selectionFollowsFocus, textColor, indicator, iconComponent, ...other} = props;
+  return (
+      <Tab label={
+          <span>{label}<br/>{iconComponent}
+          </span>
+      } {...a11yProps(index)} {...other}/>
+  )
+}

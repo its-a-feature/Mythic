@@ -37,3 +37,7 @@ export const FailedRefresh = () =>{
     });
     
 }
+
+export const updateCurrentOperationState = ({operation_name, operation_id}) => {
+    meState({...meState, user: {...meState.user, current_operation: operation_name, current_operation_id: operation_id}})
+}

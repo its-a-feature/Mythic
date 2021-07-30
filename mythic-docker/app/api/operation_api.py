@@ -8,6 +8,7 @@ from sanic.exceptions import abort
 import app.database_models.model as db_model
 from app.api.browserscript_api import remove_admin_browserscripts
 import uuid
+from sanic.log import logger
 
 
 @mythic.route(mythic.config["API_BASE"] + "/operations", methods=["GET"])
@@ -711,6 +712,26 @@ async def send_all_operations_message(message: str, level: str, source: str = ""
                             m.count = m.count + 1
                             await app.db_objects.update(m)
                 except Exception as e:
-                    print(e)
+                    logger.warning("operation_api.py - send all messages: " + str(e))
     except Exception as b:
-        print(b)
+        logger.warning("operation_api.py - send all messages: " + str(b))
+
+
+async def resolve_all_operations_message(message: str, operation=None):
+    try:
+        operations = await app.db_objects.execute(db_model.operation_query.where(db_model.Operation.complete == False))
+        for o in operations:
+            if operation is None or operation == o:
+                try:
+                    events = await app.db_objects.execute(db_model.operationeventlog_query.where(
+                        (db_model.OperationEventLog.message.regexp(message)) &
+                        (db_model.OperationEventLog.resolved == False) &
+                        (db_model.OperationEventLog.level == "warning")
+                    ))
+                    for evt in events:
+                        evt.resolved = True
+                        await app.db_objects.update(evt)
+                except Exception as e:
+                    logger.warning("operation_api.py - send all messages: " + str(e))
+    except Exception as b:
+        logger.warning("operation_api.py - send all messages: " + str(b))

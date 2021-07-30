@@ -20,7 +20,7 @@ export function CallbacksTabs({callbacks, onCloseTab, openTabs, clickedTabId, ma
         setValue(newValue);
     };
     const getCallbackData = (tabID) => {
-        return callbacks.filter( c => c.id === tabID.callbackID );
+        return callbacks.find( c => c.id === tabID.callbackID );
     }
     const onCloseTabLocal = ({tabID, index}) =>{
         if(index > 0){

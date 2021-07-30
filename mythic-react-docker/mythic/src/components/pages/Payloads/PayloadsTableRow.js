@@ -1,13 +1,8 @@
-import React, {useRef} from 'react';
+import React, {useCallback, useRef} from 'react';
 import {Button} from '@material-ui/core';
 import TableCell from '@material-ui/core/TableCell';
 import TableRow from '@material-ui/core/TableRow';
-import Switch from '@material-ui/core/Switch';
-import Box from '@material-ui/core/Box';
-import Collapse from '@material-ui/core/Collapse';
 import IconButton from '@material-ui/core/IconButton';
-import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';
 import { toLocalTime } from '../../utilities/Time';
@@ -26,23 +21,47 @@ import {PayloadFilenameDialog} from './PayloadFilenameDialog';
 import {PayloadBuildMessageDialog} from './PayloadBuildMessageDialog';
 import {PayloadsTableRowC2Status} from './PayloadsTableRowC2Status';
 import {PayloadsTableRowBuildStatus} from './PayloadsTableRowBuildStatus';
+import {PayloadConfigCheckDialog} from './PayloadConfigCheckDialog';
+import {PayloadRedirectRulesDialog} from './PayloadRedirectRulesDialog';
 import {useTheme} from '@material-ui/core/styles';
+import InfoIcon from '@material-ui/icons/Info';
+import {useMutation, gql} from '@apollo/client';
+import { snackActions } from '../../utilities/Snackbar';
+
+const rebuildPayloadMutation = gql`
+mutation triggerRebuildMutation($uuid: String!) {
+  rebuild_payload(uuid: $uuid) {
+      status
+      error
+      uuid
+  }
+}
+`;
 
 export function PayloadsTableRow(props){
-    const [open, setOpen] = React.useState(false);
     const [viewError, setViewError] = React.useState(true);
     const [openUpdate, setOpenUpdateDialog] = React.useState(false);
     const [openDelete, setOpenDeleteDialog] = React.useState(false);
     const [openDescription, setOpenDescriptionDialog] = React.useState(false);
     const [openFilename, setOpenFilenameDialog] = React.useState(false);
     const [openBuildMessage, setOpenBuildMessageDialog] = React.useState(false);
+    const [openDetailedView, setOpenDetailedView] = React.useState(false);
+    const [openConfigCheckDialog, setOpenConfigCheckDialog] = React.useState(false);
+    const [openRedirectRulesDialog, setOpenRedirectRulesDialog] = React.useState(false);
     const dropdownAnchorRef = useRef(null);
     const me = useReactiveVar(meState);
     const theme = useTheme();
-    
-    const onAlertChanged = (evt) => {
-        const {id} = props;
-        props.onAlertChanged(id, !props[evt.target.name]);
+    const [triggerRebuild] = useMutation(rebuildPayloadMutation, {
+      onCompleted: (data) => {
+        console.log(data);
+      },
+      onError: (data) => {
+
+      }
+    })
+    const onAlertChanged = () => {
+        const {id, callback_alert} = props;
+        props.onAlertChanged(id, !callback_alert);
     }
     const onAcceptDelete = () => {
         props.onDeletePayload(props.id);
@@ -58,6 +77,9 @@ export function PayloadsTableRow(props){
                      {name: 'Edit Description', click: () => {
                         setOpenDescriptionDialog(true);
                      }},
+                     {name: props.callback_alert ? 'Stop Alerting to New Callbacks' : "Start Alerting to New Callbacks", click: () => {
+                        onAlertChanged();
+                      }},
                      {name: 'View Build Message/Stdout', click: () => {
                         setViewError(false);
                         setOpenBuildMessageDialog(true);
@@ -65,8 +87,21 @@ export function PayloadsTableRow(props){
                      {name: 'View Build Errors', click: () => {
                         setViewError(true);
                         setOpenBuildMessageDialog(true);
-                     }}
-                     ];
+                     }},
+                     {name: 'Trigger New Build', click: () => {
+                      triggerRebuild({variables: {uuid: props.uuid}});
+                    }},
+                    {name: 'Export Payload Config', click: () => {
+                      snackActions.warning("Not Implemented");
+                    }},
+                    {name: 'Generate Redirect Rules', click: () => {
+                      setOpenRedirectRulesDialog(true);
+                    }},
+                    {name: 'Check Agent C2 Configuration', click: () => {
+                      setOpenConfigCheckDialog(true);
+                    }}
+                     ]
+    ;
     const handleClose = (event) => {
         if (dropdownAnchorRef.current && dropdownAnchorRef.current.contains(event.target)) {
           return;
@@ -75,7 +110,7 @@ export function PayloadsTableRow(props){
       };
     return (
         <React.Fragment>
-            <TableRow key={"payload" + props.uuid}>
+            <TableRow key={"payload" + props.uuid} hover>
                 <TableCell>
                 <IconButton size="small" onClick={()=>{setOpenDeleteDialog(true);}} style={{color: theme.palette.error.main}} variant="contained"><DeleteIcon/></IconButton>
                 <MythicConfirmDialog onClose={() => {setOpenDeleteDialog(false);}} onSubmit={onAcceptDelete} open={openDelete}/>
@@ -125,15 +160,18 @@ export function PayloadsTableRow(props){
                         innerDialog={<PayloadBuildMessageDialog payload_id={props.id} viewError={viewError} onClose={()=>{setOpenBuildMessageDialog(false);}} />}
                     />
                 ): (null) }
-                </TableCell>
-                <TableCell>
-                    <Switch
-                        checked={props.callback_alert}
-                        onChange={onAlertChanged}
-                        color="primary"
-                        inputProps={{ 'aria-label': 'primary checkbox' }}
-                        name="callback_alert"
-                      />
+                {openConfigCheckDialog ? (
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openConfigCheckDialog} 
+                        onClose={()=>{setOpenConfigCheckDialog(false);}} 
+                        innerDialog={<PayloadConfigCheckDialog uuid={props.uuid} onClose={()=>{setOpenConfigCheckDialog(false);}} />}
+                    />
+                ): (null) }
+                {openRedirectRulesDialog ? (
+                    <MythicDialog fullWidth={true} maxWidth="md" open={openRedirectRulesDialog} 
+                        onClose={()=>{setOpenRedirectRulesDialog(false);}} 
+                        innerDialog={<PayloadRedirectRulesDialog uuid={props.uuid} onClose={()=>{setOpenRedirectRulesDialog(false);}} />}
+                    />
+                ): (null) }
                 </TableCell>
                 <TableCell>
                     <PayloadsTableRowBuildStatus {...props} />
@@ -144,20 +182,17 @@ export function PayloadsTableRow(props){
                     <PayloadsTableRowC2Status payloadc2profiles={props.payloadc2profiles} uuid={props.uuid} />
                 </TableCell>
                 <TableCell>
-                    <IconButton size="small" aria-label="expand row" onClick={() => setOpen(!open)}>
-                        {open ? <KeyboardArrowUpIcon className="mythicElement"/> : <KeyboardArrowDownIcon className="mythicElement"/>}
-                      </IconButton>
+                    <IconButton size="small" color="primary" onClick={() => setOpenDetailedView(true)}>
+                        <InfoIcon />
+                    </IconButton>
                 </TableCell>
             </TableRow>
             <TableRow>
-            {open ? (
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
-                  <Collapse in={open}>
-                    <Box margin={1}>
-                      <DetailedPayloadTable {...props} payload_id={props.id} />
-                    </Box>
-                  </Collapse>
-                </TableCell>
+            {openDetailedView ? (
+              <MythicDialog fullWidth={true} maxWidth="md" open={openDetailedView} 
+                  onClose={()=>{setOpenDetailedView(false);}} 
+                  innerDialog={<DetailedPayloadTable {...props} payload_id={props.id} onClose={()=>{setOpenDetailedView(false);}} />}
+              />
             ) : (null) }
           </TableRow>
         </React.Fragment>

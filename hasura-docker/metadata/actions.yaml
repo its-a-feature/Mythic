@@ -1,4 +1,15 @@
 actions:
+- name: config_check
+  definition:
+    kind: ""
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/config_check_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: createAPIToken
   definition:
     kind: synchronous
@@ -60,6 +71,27 @@ actions:
   - role: operation_admin
   - role: operator
   - role: spectator
+- name: download_bulk
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/download_bulk_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: dynamic_query_function
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/dynamic_query_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: getProfileOutput
   definition:
     kind: ""
@@ -70,6 +102,27 @@ actions:
   - role: mythic_admin
   - role: operation_admin
   - role: operator
+- name: rebuild_payload
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/rebuild_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: redirect_rules
+  definition:
+    kind: ""
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/redirect_rules_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: requestOpsecBypass
   definition:
     kind: synchronous
@@ -147,4 +200,9 @@ custom_types:
         id: id
   - name: BypassOutput
   - name: updateCallbackOutput
+  - name: BulkDownloadOutput
+  - name: dynamicQueryOutput
+  - name: rebuildOutput
+  - name: redirectOutput
+  - name: ConfigCheckOutput
   scalars: []

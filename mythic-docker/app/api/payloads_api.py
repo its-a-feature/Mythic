@@ -778,32 +778,7 @@ async def create_payload(request, user):
     return json(await create_payload_func(data, user))
 
 
-@mythic.route(mythic.config["API_BASE"] + "/payloads/rebuild", methods=["POST"])
-@inject_user()
-@scoped(
-    ["auth:user", "auth:apitoken_user"], False
-)  # user or user-level api token are ok
-async def create_payload_again(request, user):
-    if user["auth"] not in ["access_token", "apitoken"]:
-        abort(
-            status_code=403,
-            message="Cannot access via Cookies. Use CLI or access via JS in browser",
-        )
-    if user["view_mode"] == "spectator":
-        return json({"status": "error", "error": "Spectators cannot create payloads"})
-    from app.api.rabbitmq_api import get_payload_build_config
-    try:
-        rebuild_info = request.json
-        data = await get_payload_build_config(payload_uuid=rebuild_info["uuid"], generate_new_random_values=False)
-        if data["status"] == "success":
-            return json(await create_payload_func(data["data"], user))
-        else:
-            return json(data)
-    except Exception as e:
-        return json({"status": "error", "error": "Failed to rebuild payload: " + str(e)})
-
-
-@mythic.route(mythic.config["API_BASE"] + "/payloads/rebuild_webhook", methods=["POST"])
+@mythic.route(mythic.config["API_BASE"] + "/rebuild_webhook", methods=["POST"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
@@ -818,8 +793,7 @@ async def create_payload_again_webhook(request, user):
         return json({"status": "error", "error": "Spectators cannot create payloads"})
     from app.api.rabbitmq_api import get_payload_build_config
     try:
-        rebuild_info = request.json
-        rebuild_info = rebuild_info["input"]
+        rebuild_info = request.json["input"]
         data = await get_payload_build_config(payload_uuid=rebuild_info["uuid"], generate_new_random_values=False)
         if data["status"] == "success":
             return json(await create_payload_func(data["data"], user))
@@ -915,6 +889,8 @@ async def redirect_rules_webhook(request, user):
     try:
         payload_uuid = data["input"]["uuid"]
         payload = await app.db_objects.get(db_model.payload_query, uuid=payload_uuid)
+        if payload.build_phase == "error" or payload.build_phase == "building":
+            return json({"status": "error", "error": "Can't generate redirect rules unless there's a successful build"})
         payloadc2profiles = await app.db_objects.execute(
             db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
         )

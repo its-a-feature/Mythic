@@ -78,7 +78,7 @@ export function MythicViewJSONAsTableDialog(props) {
       let permissions = [];
       try{
         const permissionDict = JSON.parse(props.value);
-        if(permissionDict.constructor == Object){
+        if(permissionDict.constructor === Object){
           for(let key in permissionDict){
             permissions.push({"name": key, "value": permissionDict[key]});
             setHeaders([props.leftColumn, props.rightColumn]);
@@ -96,7 +96,7 @@ export function MythicViewJSONAsTableDialog(props) {
         console.log(error);
       }
       setComment(permissions);
-    }, [props.value]);
+    }, [props.value, props.leftColumn, props.rightColumn]);
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>

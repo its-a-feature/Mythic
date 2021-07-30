@@ -2133,19 +2133,21 @@
   - role: developer
     permission:
       columns:
-      - choice_filter_by_command_attributes
+      - id
+      - command_id
+      - name
+      - type
+      - default_value
       - choices
+      - required
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - command_id
-      - default_value
-      - description
-      - id
-      - name
-      - required
-      - supported_agent_build_parameters
-      - supported_agents
-      - type
+      - ui_position
+      - dynamic_query_function
       filter: {}
   - role: mythic_admin
     permission:
@@ -2153,16 +2155,18 @@
       - choices_are_all_commands
       - choices_are_loaded_commands
       - required
+      - type
       - command_id
       - id
+      - ui_position
       - choice_filter_by_command_attributes
       - choices
       - default_value
       - description
+      - dynamic_query_function
       - name
       - supported_agent_build_parameters
       - supported_agents
-      - type
       filter: {}
   - role: operation_admin
     permission:
@@ -2170,16 +2174,18 @@
       - choices_are_all_commands
       - choices_are_loaded_commands
       - required
+      - type
       - command_id
       - id
+      - ui_position
       - choice_filter_by_command_attributes
       - choices
       - default_value
       - description
+      - dynamic_query_function
       - name
       - supported_agent_build_parameters
       - supported_agents
-      - type
       filter: {}
   - role: operator
     permission:
@@ -2187,16 +2193,18 @@
       - choices_are_all_commands
       - choices_are_loaded_commands
       - required
+      - type
       - command_id
       - id
+      - ui_position
       - choice_filter_by_command_attributes
       - choices
       - default_value
       - description
+      - dynamic_query_function
       - name
       - supported_agent_build_parameters
       - supported_agents
-      - type
       filter: {}
   - role: spectator
     permission:
@@ -2204,16 +2212,18 @@
       - choices_are_all_commands
       - choices_are_loaded_commands
       - required
+      - type
       - command_id
       - id
+      - ui_position
       - choice_filter_by_command_attributes
       - choices
       - default_value
       - description
+      - dynamic_query_function
       - name
       - supported_agent_build_parameters
       - supported_agents
-      - type
       filter: {}
 - table:
     schema: public
@@ -2656,6 +2666,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
@@ -2687,6 +2698,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
@@ -2718,6 +2730,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
@@ -2749,6 +2762,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
@@ -2780,6 +2794,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   update_permissions:
   - role: developer
     permission:

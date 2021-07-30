@@ -16,6 +16,7 @@ from exrex import getone
 import uuid
 from app.api.operation_api import send_all_operations_message
 from app.api.rabbitmq_api import MythicBaseRPC
+from sanic.log import logger
 
 
 c2_rpc = MythicBaseRPC()
@@ -118,7 +119,7 @@ async def start_stop_c2profile_webhook(request, user):
     # print(status)
     if not successfully_sent:
         await send_all_operations_message(message=f"C2 Profile {profile.name} couldn't be contacted. Is it online? Check with ./status_check.sh",
-                                          level="info", source="update_c2_profile")
+                                          level="warning")
         profile.running = False
         await app.db_objects.update(profile)
         return json({"status": "error", "error": "Failed to contact C2 profile"})
@@ -126,11 +127,14 @@ async def start_stop_c2profile_webhook(request, user):
     if "running" in status:
         if status["running"]:
             await send_all_operations_message(message=f"C2 Profile {profile.name} started by {user['username']}",
-                                              level="info", source="update_c2_profile")
+                                              level="info")
+            from app.api.operation_api import resolve_all_operations_message
+            await resolve_all_operations_message(f"{profile.name}'s internal server stopped")
+            await resolve_all_operations_message(f"C2 Profile {profile.name}.*")
         else:
             await send_all_operations_message(
                 message=f"C2 Profile {profile.name} was manually stopped by {user['username']}",
-                level="warning", source="update_c2_profile")
+                level="warning")
         profile.running = status.pop("running")
         await app.db_objects.update(profile)
     return json(status)

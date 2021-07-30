@@ -803,7 +803,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     completed_callback_function=data["completed_callback_function"] if "completed_callback_function" in data else None,
                     subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
                     params="clear " + data["params"],
-                    status="processed",
+                    status="completed",
                     original_params="clear " + data["params"],
                     completed=True,
                     display_params="clear " + data["params"]
@@ -980,7 +980,7 @@ async def check_and_issue_task_callback_functions(taskOriginal: Task):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/tasks/dynamic_query",
+    mythic.config["API_BASE"] + "/dynamic_query_webhook",
     methods=["POST"],
 )
 @inject_user()
@@ -993,7 +993,7 @@ async def get_dynamic_query_params(request, user):
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    return json(await process_dynamic_request(request.json))
+    return json(await process_dynamic_request(request.json["input"]))
 
 
 async def process_dynamic_request(data):
@@ -1030,7 +1030,11 @@ async def issue_dynamic_parameter_call(command: str, parameter_name: str, payloa
     }, receiver="{}_mythic_rpc_queue".format(payload_type))
     if not successfully_sent:
         return {"status": "error", "error": "Failed to connect to rabbitmq, is the container running?"}
-    return js.loads(status)
+    try:
+        options = js.loads(status)
+        return {"status": "success", "choices": options}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 @mythic.route(

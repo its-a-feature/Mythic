@@ -60,7 +60,7 @@ const EnhancedTableToolbar = (props) => {
             </React.Fragment>
           </Toolbar>
       ) : (
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px", width: "100%"}} variant={"elevation"}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px", width: "100%"}} variant={"elevation"}>
           <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px", color: theme.pageHeaderColor}}>
               Active Callbacks
           </Typography>
@@ -175,7 +175,8 @@ export function CallbacksTable(props){
         {id: "sleep", numeric: false, disablePadding: true, label: "Sleep"},
         {id: "type", numeric: false, disablePadding: false, label: "Type"},
         {id: "c2", numeric: false, disablePadding: true, label: "C2"},
-        {id: "process_name", numeric: false, disablePadding: true, label: "Process Name"}
+        {id: "process_name", numeric: false, disablePadding: true, label: "Process Name"},
+        {id: "external_ip", numberic: false, disablePadding: true, label: "External IP"}
     ], []);
     useEffect( () => {
       const ids = tableHeadCells.map( (cell) => cell.id);

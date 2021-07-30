@@ -812,12 +812,12 @@ async def get_screencapture(request, user, id):
         )
 
 
-@mythic.route(mythic.config["API_BASE"] + "/files/download/bulk", methods=["POST"])
+@mythic.route(mythic.config["API_BASE"] + "/download_bulk_webhook", methods=["POST"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def download_zipped_files(request, user):
+async def download_zipped_files_webhook(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
@@ -825,6 +825,7 @@ async def download_zipped_files(request, user):
         )
     try:
         data = request.json
+        data = data["input"]
         if "files" not in data:
             return abort(404, "missing 'files' value")
         # need to make aa temporary directory, copy all the files there, zip it, return that and clean up temp dir
@@ -860,6 +861,11 @@ async def download_zipped_files(request, user):
             delete_after_fetch=False,
             filename="Mythic_Downloads.zip".encode("utf-8"),
         )
+        with open("./app/files/{}.zip".format(temp_id), "rb") as f:
+            ziped_bytes = f.read()
+            file_meta.md5 = await hash_MD5(ziped_bytes)
+            file_meta.sha1 = await hash_SHA1(ziped_bytes)
+            await app.db_objects.update(file_meta)
         return json({"status": "success", "file_id": file_meta.agent_file_id})
     except Exception as e:
         print(str(e))

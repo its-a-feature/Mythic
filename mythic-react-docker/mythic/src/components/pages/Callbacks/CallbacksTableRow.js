@@ -38,6 +38,7 @@ export function CallbacksTableRow(props){
     const [callbackgraphedges, setCallbackgraphedges] = React.useState([]);
     const [callbackgraphedgesAll, setCallbackgraphedgesAll] = React.useState([]);
     const [shownColumns, setShownColumns] = React.useState([]);
+    const [hasEgressRoute, setHasEgressRoute] = React.useState(true);
     const handleDropdownToggle = (evt) => {
             evt.stopPropagation();
             setDropdownOpen((prevOpen) => !prevOpen);
@@ -61,16 +62,19 @@ export function CallbacksTableRow(props){
         }
         props.onOpenTab({tabType, tabID: props.id + tabType, callbackID: props.id});
     }
-    const hasOwnEgressRoute = () =>{
-    // just check if our own callback has an egress connection or only p2p connections
-        return callbackgraphedgesAll.filter( (edge) => {
+    useEffect( () => {
+        const routes = callbackgraphedgesAll.filter( (edge) => {
             if(!edge.c2profile.is_p2p && edge.source.id === props.id && edge.destination.id === props.id){
                 return true;
             }
             return false;
-        }).length > 0;
-    }
-    
+        }).length;
+        if(routes > 0 && !hasEgressRoute){
+            setHasEgressRoute(true);
+        }else if(routes == 0 && hasEgressRoute){
+            setHasEgressRoute(false);
+        }
+    }, [callbackgraphedgesAll])
     useEffect( () => {
         const getEdges = (activeOnly) => {
             //update our aggregate of callbackgraphedges for both src and dst that involve us
@@ -251,7 +255,7 @@ export function CallbacksTableRow(props){
             <TableCell>{props.payload.payloadtype.ptype}</TableCell>
             ) : (null)}
             {shownColumns.includes("c2") ? (
-            <TableCell>{hasOwnEgressRoute() ? 
+            <TableCell>{hasEgressRoute ? 
                 <WifiIcon onClick={(evt)=>{evt.stopPropagation();setOpenC2Dialog(true);}} style={{color: activeEgress}}/> : 
                 <InsertLinkTwoToneIcon onClick={(evt)=>{evt.stopPropagation();setOpenC2Dialog(true);}} style={{color: activeEgress}} />
                 }
@@ -259,6 +263,9 @@ export function CallbacksTableRow(props){
             ) : (null)}
             {shownColumns.includes("process_name") ? (
             <TableCell>{props.process_name}</TableCell>
+            ) : (null)}
+            {shownColumns.includes("external_ip") ? (
+            <TableCell>{props.external_ip}</TableCell>
             ) : (null)}
         </EnhancedTableRow>
         <MythicDialog fullWidth={true} maxWidth="lg" open={openC2Dialog}

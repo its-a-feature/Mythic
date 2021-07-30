@@ -506,7 +506,7 @@ function container_heartbeat_check() {
     }
 }
 
-setInterval(container_heartbeat_check, 500);
+//setInterval(container_heartbeat_check, 500);
 var instances_table = new Vue({
     el: '#instances_table',
     data: {

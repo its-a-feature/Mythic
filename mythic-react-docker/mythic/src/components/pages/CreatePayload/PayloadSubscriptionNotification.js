@@ -140,7 +140,7 @@ const SnackMessageError = React.forwardRef((props, ref) => {
         <SnackbarContent ref={ref} className={classes.root}>
             <Card style={{backgroundColor: theme.palette.error.main}} >
                 <CardActions classes={{ root: classes.actionRoot }}>
-                    <Typography variant="subtitle2" className={classes.typography}>Payload Failed to build!</Typography>
+                    <Typography variant="subtitle2" className={classes.typography} style={{color: "white"}}>Payload Failed to build!</Typography>
                     <div className={classes.icons}>
                         <IconButton
                             aria-label="Show more"

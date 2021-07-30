@@ -24,7 +24,7 @@ export function TaskCredentialsTable(props){
    }
   return (
     <React.Fragment>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
             <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Credentials
             </Typography>

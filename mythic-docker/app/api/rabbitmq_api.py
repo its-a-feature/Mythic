@@ -10,7 +10,7 @@ import sys
 import os
 from sanic.log import logger
 from app.crypto import hash_SHA1, hash_MD5
-from functools import partial
+import random
 import traceback
 import uuid
 from app.api.operation_api import send_all_operations_message
@@ -71,19 +71,20 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     pieces[2]
                 ), level="info", source="sync_c2_success"))
                 # for a successful checkin, we need to find all non-wrapper payload types and get them to re-check in
-                pts = await app.db_objects.execute(
-                    db_model.payloadtype_query.where(db_model.PayloadType.wrapper == False)
-                )
-                sync_operator = "" if operator is None else operator.username
-                for pt in pts:
-                    stats = await send_pt_rabbitmq_message(
-                        pt.ptype, "sync_classes", "", sync_operator, ""
+                if status["new"]:
+                    pts = await app.db_objects.execute(
+                        db_model.payloadtype_query.where(db_model.PayloadType.wrapper == False)
                     )
-                    if stats["status"] == "error":
-                        asyncio.create_task(send_all_operations_message(
-                            message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
-                                pt.ptype, status["error"]
-                            ), level="warning", source="payload_import_sync_error"))
+                    sync_operator = "" if operator is None else operator.username
+                    for pt in pts:
+                        stats = await send_pt_rabbitmq_message(
+                            pt.ptype, "sync_classes", "", sync_operator, ""
+                        )
+                        if stats["status"] == "error":
+                            asyncio.create_task(send_all_operations_message(
+                                message="Failed to contact {} service: {}\nIs the container online and at least version 7?".format(
+                                    pt.ptype, stats["error"]
+                                ), level="warning", source="payload_import_sync_error"))
                 if not profile.is_p2p:
                     from app.api.c2profiles_api import start_stop_c2_profile
                     run_stat, successfully_started = await start_stop_c2_profile(action="start", profile=profile)
@@ -91,6 +92,9 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                     try:
                         if "running" in run_stat:
                             profile.running = run_stat["running"]
+                            if profile.container_running is False:
+                                from app.api.operation_api import resolve_all_operations_message
+                                await resolve_all_operations_message(f"{profile.name}'s container stopped")
                             profile.container_running = True
                             profile.last_heartbeat = datetime.datetime.utcnow()
                             await app.db_objects.update(profile)
@@ -98,6 +102,9 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                                 await send_all_operations_message(
                                     message=f"C2 Profile {profile.name} successfully started",
                                     level="info", source="update_c2_profile")
+                                from app.api.operation_api import resolve_all_operations_message
+                                await resolve_all_operations_message(f"{profile.name}'s internal server stopped")
+                                await resolve_all_operations_message(f"C2 Profile {profile.name}.*")
                             else:
                                 await send_all_operations_message(
                                     message=f"C2 Profile {profile.name} failed to automatically start",
@@ -114,6 +121,10 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 profile = await app.db_objects.get(db_model.c2profile_query, name=pieces[2], deleted=False)
                 if pieces[3] == "running" and not profile.running:
                     profile.running = True
+                    from app.api.operation_api import resolve_all_operations_message
+                    await resolve_all_operations_message(f"{profile.name}'s internal server stopped")
+                    await resolve_all_operations_message(
+                        f"C2 Profile {profile.name}.*")
                     await app.db_objects.update(profile)
                     asyncio.create_task(
                         send_all_operations_message(message=f"C2 Profile {profile.name} has started", level="info", source="c2_started"))
@@ -215,6 +226,11 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     k
                                 )
                     payload.build_phase = agent_message["status"]
+                    if "description" in agent_message:
+                        payload.tag = agent_message["description"]
+                    if "filename" in agent_message:
+                        payload.file.filename = agent_message["filename"].encode("utf-8")
+                        await app.db_objects.update(payload.file)
                     payload.build_message = payload.build_message + "\n" + agent_message["build_message"]
                     payload.build_stderr = agent_message["build_stderr"] if "build_stderr" in agent_message else ""
                     payload.build_stdout = agent_message["build_stdout"] if "build_stdout" in agent_message else ""
@@ -258,12 +274,17 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         elif pieces[5] == "opsec_pre":
                             tmp = json.loads(message.body)
                             task.opsec_pre_blocked = tmp["opsec_pre_blocked"]
+                            if task.opsec_pre_blocked:
+                                task.status = "OPSEC_PRE_BLOCKED"
                             task.opsec_pre_message = tmp["opsec_pre_message"]
                             task.opsec_pre_bypass_role = tmp["opsec_pre_bypass_role"]
                             await app.db_objects.update(task)
                         elif pieces[5] == "opsec_post":
+
                             tmp = json.loads(message.body)
                             task.opsec_post_blocked = tmp["opsec_post_blocked"]
+                            if task.opsec_post_blocked:
+                                task.status = "OPSEC_POST_BLOCKED"
                             task.opsec_post_message = tmp["opsec_post_message"]
                             task.opsec_post_bypass_role = tmp["opsec_post_bypass_role"]
                             await app.db_objects.update(task)
@@ -293,11 +314,11 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                         task.completed = True
                                     elif task.completed:
                                         # this means it was already previously marked as completed
-                                        task.status = "processed"
+                                        task.status = "completed"
                                     else:
                                         task.status = "submitted"
                             elif pieces[5] == "completed":
-                                task.status = "processed"
+                                task.status = "completed"
                                 task.status_timestamp_processed = task.timestamp
                                 task.completed = True
                             else:
@@ -344,7 +365,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     task.status = "submitted"
                                 elif task.command.script_only and not task.completed and not (task.opsec_pre_blocked and not task.opsec_pre_bypassed)\
                                         and not (task.opsec_post_blocked and not task.opsec_post_bypassed):
-                                    task.status = "processed"
+                                    task.status = "completed"
                                     task.completed = True
                                     asyncio.create_task(check_and_issue_task_callback_functions(task))
                                 # if it's none of these cases, then it's blocked for some reason, so wait
@@ -353,6 +374,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 task.status_timestamp_processed = task.timestamp
                                 if not task.completed:
                                     task.completed = True
+                                    task.status = "completed"
                                     await app.db_objects.update(task)
                                     asyncio.create_task(check_and_issue_task_callback_functions(task))
                             else:
@@ -1894,6 +1916,61 @@ async def add_command_attack_to_task(task, command):
         raise e
 
 
+async def update_container_status():
+    while True:
+        try:
+            profiles = await app.db_objects.execute(db_model.c2profile_query.where(
+                db_model.C2Profile.deleted == False
+            ))
+            for profile in profiles:
+                if (
+                    profile.last_heartbeat
+                    < datetime.datetime.utcnow() + datetime.timedelta(seconds=-30)
+                    and profile.container_running
+                ):
+                    if profile.running:
+                        asyncio.create_task(
+                            send_all_operations_message(message=f"{profile.name}'s internal server stopped",
+                                                        level="warning"))
+                        profile.running = False  # container just started, clearly the inner service isn't running
+                    profile.container_running = False
+                    asyncio.create_task(
+                        send_all_operations_message(message=f"{profile.name}'s container stopped",
+                                                    level="warning"))
+                    await app.db_objects.update(profile)
+            payloads = await app.db_objects.execute(db_model.payloadtype_query.where(
+                db_model.PayloadType.deleted == False
+            ))
+            for profile in payloads:
+                if (
+                    profile.last_heartbeat < datetime.datetime.utcnow() + datetime.timedelta(seconds=-30)
+                    and profile.container_running
+                ):
+                    profile.container_running = False
+                    asyncio.create_task(
+                        send_all_operations_message(message=f"{profile.ptype}'s container stopped",
+                                                    level="warning"))
+                    await app.db_objects.update(profile)
+            translators = await app.db_objects.execute(db_model.translationcontainer_query.where(
+                db_model.TranslationContainer.deleted == False
+            ))
+            for profile in translators:
+                if (
+                    profile.last_heartbeat < datetime.datetime.utcnow() + datetime.timedelta(seconds=-30)
+                    and profile.container_running
+                ):
+                    profile.container_running = False
+                    asyncio.create_task(
+                        send_all_operations_message(message=f"{profile.name}'s container stopped",
+                                                    level="warning"))
+                    await app.db_objects.update(profile)
+        except Exception as e:
+            asyncio.create_task(
+                send_all_operations_message(message=f"Mythic Periodic Container Status Check Failed:\n{str(e)}",
+                                            level="warning", source="periodic_container_status_check"))
+        await asyncio.sleep(random.randint(5, 20))
+
+
 async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
     with message.process():
         pieces = message.routing_key.split(".")
@@ -1906,10 +1983,13 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                 try:
                     profile = await app.db_objects.get(db_model.c2profile_query, name=pieces[2], deleted=False)
                 except Exception as e:
+                    #asyncio.create_task(
+                    #    send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
+                    #                                level="info", source="sync_c2_send"))
                     asyncio.create_task(
-                        send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
+                        send_all_operations_message(message=f"Got heartbeat from unknown C2: {pieces[2]}",
                                                     level="info", source="sync_c2_send"))
-                    await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
+                    #await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
                     return
                 if (
                         profile.last_heartbeat
@@ -1921,7 +2001,9 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                             send_all_operations_message(message=f"{profile.name}'s internal server stopped",
                                                         level="warning"))
                         profile.running = False  # container just started, clearly the inner service isn't running
-                profile.container_running = True
+                    profile.container_running = True
+                    from app.api.operation_api import resolve_all_operations_message
+                    await resolve_all_operations_message(f"{profile.name}'s container stopped")
                 profile.last_heartbeat = datetime.datetime.utcnow()
                 await app.db_objects.update(profile)
             elif pieces[0] == "pt":
@@ -1929,6 +2011,9 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                     payload_type = await app.db_objects.get(
                         db_model.payloadtype_query, ptype=pieces[2], deleted=False
                     )
+                    if payload_type.container_running is False:
+                        from app.api.operation_api import resolve_all_operations_message
+                        await resolve_all_operations_message(f"{payload_type.ptype}'s container stopped")
                     payload_type.container_running = True
                     payload_type.last_heartbeat = datetime.datetime.utcnow()
                     if len(pieces) == 5:
@@ -1987,6 +2072,9 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                                         p.ptype, stats["error"]
                                     ), level="warning", source="payload_import_sync_error"))
                 translation_container.last_heartbeat = datetime.datetime.utcnow()
+                if translation_container.container_running is False:
+                    from app.api.operation_api import resolve_all_operations_message
+                    await resolve_all_operations_message(f"{translation_container.name}'s container stopped")
                 translation_container.container_running = True
                 await app.db_objects.update(translation_container)
         except Exception as e:
@@ -2012,7 +2100,8 @@ async def start_listening():
         task2 = asyncio.ensure_future(connect_and_consume_heartbeats())
         task3 = asyncio.ensure_future(connect_and_consume_pt())
         task4 = asyncio.ensure_future(connect_and_consume_rpc())
-        await asyncio.wait_for([task, task2, task3, task4], None)
+        task5 = asyncio.ensure_future(update_container_status())
+        await asyncio.wait_for([task, task2, task3, task4, task5], None)
     except Exception as e:
         for t in tasks:
             if t is not None:

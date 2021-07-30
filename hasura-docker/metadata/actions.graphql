@@ -1,3 +1,9 @@
+type Query {
+  config_check (
+    uuid: String!
+  ): ConfigCheckOutput
+}
+
 type Mutation {
   createAPIToken (
     tokenType: String!
@@ -38,10 +44,37 @@ type Query {
   ): ContainerFile
 }
 
+type Mutation {
+  download_bulk (
+    files: [String!]!
+  ): BulkDownloadOutput
+}
+
+type Mutation {
+  dynamic_query_function (
+    command: String!
+    parameter_name: String!
+    payload_type: String!
+    callback: Int!
+  ): dynamicQueryOutput
+}
+
 type Query {
   getProfileOutput (
     id: Int!
   ): ProfileOutput
+}
+
+type Mutation {
+  rebuild_payload (
+    uuid: String!
+  ): rebuildOutput
+}
+
+type Query {
+  redirect_rules (
+    uuid: String!
+  ): redirectOutput
 }
 
 type Mutation {
@@ -171,5 +204,35 @@ type BypassOutput {
 type updateCallbackOutput {
   status : String!
   error : String
+}
+
+type BulkDownloadOutput {
+  status : String!
+  error : String
+  file_id : String
+}
+
+type dynamicQueryOutput {
+  status : String!
+  error : String
+  choices : [String]
+}
+
+type rebuildOutput {
+  status : String!
+  error : String
+  uuid : String
+}
+
+type redirectOutput {
+  status : String!
+  error : String
+  output : String
+}
+
+type ConfigCheckOutput {
+  status : String!
+  error : String
+  output : String
 }
 

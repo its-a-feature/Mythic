@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { EventFeedTableEvents } from './EventFeedTableEvents';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
@@ -13,7 +13,6 @@ const Row = ({data, index, style}) => {
     return (
         <div style={style}>
             <EventFeedTableEvents
-                key={"event" + op.id}
                 {...op}
             />
         </div> 
@@ -21,18 +20,24 @@ const Row = ({data, index, style}) => {
 };
 
 const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, getSurroundingEvents, operationeventlog}) => {
+    const listRef = React.createRef();
     const getItemSize = (index) => {
         const op = operationeventlog[operationeventlog.length - index - 1];
-        console.log(op["message"]);
         return 60 + (20 * (op["message"].match(/\n/g) || []).length);
     }
     const eventlogWithFunctions = operationeventlog.map( (oplog) => {
         return {onUpdateDeleted, onUpdateLevel, onUpdateResolution, getSurroundingEvents, ...oplog}
     });
+    useEffect( () => {
+        if(listRef.current){
+            listRef.current.resetAfterIndex(0);
+        }
+    }, [operationeventlog])
     return (
         <Autosizer>
             {({height, width}) => (
                 <VariableSizeList
+                    ref={listRef}
                     height={height-50}
                     itemData={eventlogWithFunctions}
                     itemCount={operationeventlog.length}
@@ -50,6 +55,7 @@ const EventList = ({onUpdateDeleted, onUpdateLevel, onUpdateResolution, getSurro
 export function EventFeedTable(props){
     const messagesEndRef = useRef(null);
     const theme = useTheme();
+    
     const onSubmitMessage = (message) => {
         if(message && message.length > 0){
             props.onSubmitMessage({level:"info", message});
@@ -61,7 +67,7 @@ export function EventFeedTable(props){
       }
     return (
         <React.Fragment>
-            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
+            <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main,  color: theme.pageHeaderText.main,marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                     Operational Event Messages
                 </Typography>

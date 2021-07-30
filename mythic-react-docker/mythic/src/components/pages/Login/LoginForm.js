@@ -5,21 +5,20 @@ import logo from '../../../assets/mythic.svg';
 import { Redirect } from 'react-router-dom';
 import { meState, successfulLogin, FailedRefresh } from '../../../cache';
 import { useReactiveVar } from '@apollo/client';
-import { useSnackbar } from 'notistack';
 import {restartWebsockets} from '../../../index';
+import { snackActions } from '../../utilities/Snackbar';
 
 export function LoginForm(props){
     const me = useReactiveVar(meState);
-    const { enqueueSnackbar } = useSnackbar();
     const [username, setUsername] = React.useState("");
     const [password, setPassword] = React.useState("");
     useEffect( () => {
         FailedRefresh();
-    }, [FailedRefresh])
+    }, [])
     const submit = e => {
         e.preventDefault();
         if( username === "" || password === ""){
-            enqueueSnackbar("Username and Password required", {variant: "warning"});
+            snackActions.warning("Username and Password required");
             return;
         }
         const requestOptions = {
@@ -34,24 +33,15 @@ export function LoginForm(props){
                     successfulLogin(data);
                     restartWebsockets();
                 }else{
-                    enqueueSnackbar("Invalid Username or Password", {
-                            variant: 'warning',
-                            autoHideDuration: 2000
-                        });
+                    snackActions.warning("Invalid Username or Password");
                     console.log("Error", data);
                 }
             }).catch(error => {
-                enqueueSnackbar("Error getting JSON from server", {
-                                variant: 'warning',
-                                autoHideDuration: 2000
-                            });
+                snackActions.warning("Error getting JSON from server");
                 console.log("Error trying to get json response", error.toString());
             });
         }).catch(error => {
-            enqueueSnackbar("Error talking to server", {
-                                variant: 'warning',
-                                autoHideDuration: 2000
-                            });
+            snackActions.warning("Error talking to server");
             console.log("There was an error!", error.toString());
         });
     }

@@ -205,6 +205,7 @@ async def get_commands_for_payloadtype(request, user, ptype):
 
 async def import_payload_type_func(ptype, operator, rabbitmqName):
     new_payload = False
+    from app.api.operation_api import send_all_operations_message
     async with app.db_objects.atomic():
         try:
             # print(ptype)
@@ -225,6 +226,9 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                                                                      deleted=False)
                     ptype["translation_container"] = translation_container
                 except Exception as t:
+                    asyncio.create_task(
+                        send_all_operations_message(message=f"{rabbitmqName}'s sync with Mythic failed to find translation container {ptype['translation_container']}",
+                                                    level="warning", source="payload_type_import"))
                     logger.warning("payloadtype_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(t))
                     ptype["translation_container"] = None
             else:
@@ -290,6 +294,10 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                             wrapped=payload_type,
                         )
                     except Exception as e:
+                        asyncio.create_task(
+                            send_all_operations_message(
+                                message=f"{rabbitmqName} supports the wrapper, {ptw}, but it doesn't currently exist within Mythic",
+                                level="warning"))
                         logger.warning("payloadtype_api.py - couldn't find wrapped payload in system, skipping: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                         pass
             try:
@@ -518,6 +526,11 @@ async def import_command_func(payload_type, operator, command_list):
                             cmd_param.default_value = js.dumps(param["default_value"])
                         else:
                             cmd_param.default_value = param["default_value"]
+                    else:
+                        if cmd_param.type == "Array":
+                            cmd_param.default_value = "[]"
+                        else:
+                            cmd_param.default_value = ""
                     if (
                             "supported_agents" in param
                             and param["supported_agents"] is not None

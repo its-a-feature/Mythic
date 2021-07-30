@@ -713,12 +713,12 @@ function startwebsocket_rabbitmq_build_finished() {
             if (global_uuids[data['uuid']] === false) {
                 if (data['build_phase'] === "success") {
                     clearTop();
-                    alertTop("success", "<b>Build Message:</b> " + data['build_message'] + "<br><b>UUID:</b> " + data['uuid']
+                    alertTop("success", "<b>Build Message:</b> " + escapeHTML(data['build_message']) + "<br><b>UUID:</b> " + data['uuid']
                         + "<br><a class='btn btn-info' href='{{links.payload_management}}'>Manage Payload</a><a class='btn btn-info' href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/download/" + data['uuid'] + "'>Download Payload</a>", 0, "Success! Your agent, " + data['file']['filename'] + ", was successfully built.", false);
                     global_uuids[data['uuid']] = true;
                 } else if (data['build_phase'] === "error") {
                     clearTop();
-                    alertTop("danger", data['build_stderr'] === "" ? data["build_message"] : data["build_stderr"], 0, "Uh oh, something went wrong.");
+                    alertTop("danger", data['build_stderr'] === "" ? escapeHTML(data["build_message"]) : escapeHTML(data["build_stderr"]), 0, "Uh oh, something went wrong.");
                     global_uuids[data['uuid']] = true;
                 }
             }
