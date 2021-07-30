@@ -240,17 +240,17 @@ export function CallbacksGraph({onOpenTab, callbackgraphedges, topHeight}){
     }, [callbackgraphedges, reZoom, viewConfig, theme])
     return (
         <React.Fragment>
-            <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "10px", backgroundColor: theme.palette.info.main}}>
-                <Button size="small" onClick={(evt) => {evt.stopPropagation();}} style={{backgroundColor: theme.palette.info.main}}>Actions</Button>
+            <ButtonGroup variant="contained" ref={dropdownAnchorRef} aria-label="split button" style={{marginTop: "10px"}} color="primary">
+                <Button size="small" onClick={(evt) => {evt.stopPropagation();}} color="primary">Actions</Button>
                  <Button
-                    style={{backgroundColor: theme.palette.info.main}} 
+                    color="primary"
                     size="small"
                     aria-controls={dropdownOpen ? 'split-button-menu' : undefined}
                     aria-expanded={dropdownOpen ? 'true' : undefined}
                     aria-haspopup="menu"
                     onClick={handleDropdownToggle}
                   >
-                    <ArrowDropDownIcon style={{backgroundColor: theme.palette.info.main}}/>
+                    <ArrowDropDownIcon />
                   </Button>
             </ButtonGroup>
             {getConfigString()}

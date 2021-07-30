@@ -29,13 +29,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-function not(a, b) {
-  return a.filter((value) => b.indexOf(value) === -1);
-}
 
-function intersection(a, b) {
-  return a.filter((value) => b.indexOf(value) !== -1);
-}
   
 export function MythicTransferListDialog(props) {
     const classes = useStyles();
@@ -46,9 +40,27 @@ export function MythicTransferListDialog(props) {
     const [rightTitle, setRightTitle] = React.useState("");
     const leftChecked = intersection(checked, left);
     const rightChecked = intersection(checked, right);
-
+    function not(a, b) {
+      if(props.itemKey){
+        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) === undefined)
+      }
+      return a.filter((value) => b.indexOf(value) === -1);
+    }
+    
+    function intersection(a, b) {
+      if(props.itemKey){
+        return a.filter( (value) => b.find( (element) => element[props.itemKey] === value[props.itemKey] ) !== undefined)
+      }
+      return a.filter((value) => b.indexOf(value) !== -1);
+    }
     const handleToggle = (value) => () => {
-      const currentIndex = checked.indexOf(value);
+      let currentIndex = -1;
+      if(props.itemKey){
+        currentIndex = checked.findIndex( (element) => element[props.itemKey] === value[props.itemKey]);
+      }else{
+        currentIndex = checked.indexOf(value);
+      }
+      
       const newChecked = [...checked];
 
       if (currentIndex === -1) {
@@ -83,16 +95,24 @@ export function MythicTransferListDialog(props) {
     };
     useEffect( () => {
       const left = props.left.reduce( (prev, cur) => {
-        if(props.right.includes(cur)){
-          return [...prev];
+        if(props.itemKey === undefined){
+          if(props.right.includes(cur)){
+            return [...prev];
+          }
+          return [...prev, cur];
+        }else{
+          if(props.right.find( element => element[props.itemKey] === cur[props.itemKey])){
+            return [...prev]
+          }
+          return [...prev, cur];
         }
-        return [...prev, cur];
+        
       }, [])
       setLeft(left);
       setRight(props.right);
       setLeftTitle(props.leftTitle);
       setRightTitle(props.rightTitle);
-    }, [props.left, props.right, props.leftTitle, props.rightTitle]);
+    }, [props.left, props.right, props.leftTitle, props.rightTitle, props.itemKey]);
     const customList = (title, items) => (
       <Paper className={classes.paper} style={{width:"100%", height: "calc(50vh)"}}>
         <Card>
@@ -102,13 +122,14 @@ export function MythicTransferListDialog(props) {
           />
           <Divider />
           <List dense component="div" role="list" style={{padding:0}}>
-            {items.map((value) => {
+            {items.map((valueObj) => {
+              const value = props.itemKey === undefined ? valueObj : valueObj[props.itemKey];
               const labelId = `transfer-list-item-${value}-label`;
               return (
-                <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(value)}>
+                <ListItem style={{padding:0}} key={value} role="listitem" button onClick={handleToggle(valueObj)}>
                   <ListItemIcon>
                     <Checkbox
-                      checked={checked.indexOf(value) !== -1}
+                      checked={props.itemKey === undefined ? checked.indexOf(value) !== -1 : checked.findIndex( (element) => element[props.itemKey] === value) !== -1}
                       tabIndex={-1}
                       disableRipple
                       inputProps={{ 'aria-labelledby': labelId }}

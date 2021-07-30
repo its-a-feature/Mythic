@@ -18,10 +18,23 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import {useTheme} from '@material-ui/core/styles';
 import CancelIcon from '@material-ui/icons/Cancel';
 import {Typography} from '@material-ui/core';
+import {useMutation, gql } from '@apollo/client';
+import { snackActions } from '../../utilities/Snackbar';
+
+const getDynamicQueryParams = gql`
+mutation getDynamicParamsMutation($callback: Int!, $command: String!, $payload_type: String!, $parameter_name: String!){
+    dynamic_query_function(callback: $callback, command: $command, payload_type: $payload_type, parameter_name: $parameter_name){
+        status
+        error
+        choices
+    }
+}
+`;
 
 export function TaskParametersDialogRow(props){
     const [value, setValue] = React.useState('');
     const theme = useTheme();
+    const [ChoiceOptions, setChoiceOptions] = React.useState([]);
     const [boolValue, setBoolValue] = React.useState(false);
     const [choiceMultipleValue, setChoiceMultipleValue] = React.useState([]);
     const [agentConnectNewHost, setAgentConnectNewHost] = React.useState("");
@@ -33,7 +46,36 @@ export function TaskParametersDialogRow(props){
     const [agentConnectC2Profile, setAgentConnectC2Profile] = React.useState();
     const [openAdditionalPayloadOnHostMenu, setOpenAdditionalPayloadOnHostmenu] = React.useState(false);
     const [fileValue, setFileValue] = React.useState({name: ""});
+    const [getDynamicParams] = useMutation(getDynamicQueryParams, {
+        onCompleted: (data) => {
+            console.log(data);
+            if(data.dynamic_query_function.status === "success"){
+                setChoiceOptions([...data.dynamic_query_function.choices]);
+                if(props.type === "Choice"){
+                    if(data.dynamic_query_function.choices.length > 0){
+                        setValue(data.dynamic_query_function.choices[0]);
+                    }
+                }
+            }else{
+                snackActions.warning("Failed to fetch dynamic parameter query: " + data.dynamic_query_function.error);
+            }
+        },
+        onError: (data) => {
+            snackActions.warning("Failed to perform dynamic parameter query");
+            console.log(data);
+        }
+    })
     useEffect( () => {
+        if(props.dynamic_query_function !== null){
+            if(ChoiceOptions.length === 0){
+                getDynamicParams({variables:{
+                    callback: props.callback_id,
+                    parameter_name: props.name,
+                    command: props.commandInfo.cmd,
+                    payload_type: props.commandInfo.payloadtype.ptype
+                }})
+            }
+        }
        if(props.type === "Boolean"){
             if(value === ""){
                 setBoolValue(props.value);
@@ -64,8 +106,10 @@ export function TaskParametersDialogRow(props){
        }else{
            if(value === ""){
             setValue(props.default_value);
+            setChoiceOptions([...props.choices]);
            }
        }
+       
     }, [props.choices, props.default_value, props.type, props.value, setBoolValue, value]);
     const onChangeAgentConnect = (host_index, payload_index, c2_index) => {
         const c2profileparameters = props.choices[host_index]["payloads"][payload_index]["c2info"][c2_index].parameters.reduce( (prev, opt) => {
@@ -197,7 +241,7 @@ export function TaskParametersDialogRow(props){
             case "Choice":
             case "ChoiceMultiple":
                 return (
-                    <FormControl>
+                    <FormControl style={{width: "100%"}}>
                         <Select
                           native
                           multiple={props.type === "ChoiceMultiple"}
@@ -206,7 +250,7 @@ export function TaskParametersDialogRow(props){
                           input={<Input />}
                         >
                         {
-                            props.choices.map((opt, i) => (
+                            ChoiceOptions.map((opt, i) => (
                                 <option key={props.name + i} value={opt}>{opt}</option>
                             ))
                         }

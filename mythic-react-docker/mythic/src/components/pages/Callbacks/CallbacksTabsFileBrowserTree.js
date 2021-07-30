@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect} from 'react';
+import React, {} from 'react';
 import {snackActions} from '../../utilities/Snackbar';
 import { makeStyles, fade } from '@material-ui/core/styles';
 import FolderIcon from '@material-ui/icons/Folder';

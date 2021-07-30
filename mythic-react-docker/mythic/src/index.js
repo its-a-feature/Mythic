@@ -104,6 +104,9 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
               return forward(operation);
               });
             break;
+          case 'validation-failed':
+            console.log(err);
+            return;
           default:
               console.log(err);
               snackActions.error(err.message);
@@ -112,6 +115,10 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
     }
     if (networkError) {
       console.log("[Network error]", networkError);
+      if(networkError.extensions === undefined){
+        snackActions.error("Failed to connect to Mythic, please refresh");
+        return;
+      }
       switch (networkError.extensions.code) {
           case 'access-denied':
             snackActions.warning("Access Denied");
@@ -126,6 +133,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
         }
     }
   }catch(error){
+    snackActions.error("Failed to connect to Mythic, please refresh");
     console.log(error);
     return;
   }

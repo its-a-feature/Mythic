@@ -197,6 +197,7 @@ export function TaskTagDialog(props) {
       setNewTag("");
     }
     const setFinalTags = () => {
+
       originalTags.forEach( (tag) => {
         // go through the original tags and see if they exist in the right, if so, move on
         // if the tag doesn't exist, we delete it
@@ -205,12 +206,15 @@ export function TaskTagDialog(props) {
         }
       });
       right.forEach( (tag) => {
-        // go through the right tags and see if they exited in the original, if so, move on
+        // go through the right tags and see if they existed in the original, if so, move on
         // if the tag doesn't exist, we add it
         if(!originalTags.find(element => element.id === tag.id)){
           addTaskTag({variables: {task_id: props.task_id, tag: tag.tag}});
         }
       });
+      if(newTag !== ""){
+        addTaskTag({variables: {task_id: props.task_id, tag: newTag}});
+      }
       snackActions.success("Updated tags");
       props.onClose();
     }
@@ -266,7 +270,7 @@ export function TaskTagDialog(props) {
           </Grid>
           <Grid item xs={5}>{customList("Applied Tags To Task", right)}</Grid>
         </Grid>
-        <MythicTextField multiline={false} onChange={onChange} value={newTag} style={{display:"inline-block"}} 
+        <MythicTextField multiline={false} name="Add New Tag..." onChange={onChange} value={newTag} style={{display:"inline-block"}} 
           InputProps={{
                     endAdornment:
                     <React.Fragment>

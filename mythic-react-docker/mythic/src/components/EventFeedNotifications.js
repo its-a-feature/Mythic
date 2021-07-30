@@ -7,8 +7,8 @@ import {snackActions} from './utilities/Snackbar';
 //fromNow must be in ISO format for hasura/postgres stuff
 //new Date().toISOString() will do it
 const subscribe_payloads = gql`
-subscription EventFeedNotificationSubscription($fromNow: timestamp!) {
-  operationeventlog(limit: 1, where: {deleted: {_eq: false}, timestamp: {_gte: $fromNow}}, order_by: {timestamp: desc}) {
+subscription EventFeedNotificationSubscription($fromNow: timestamp!, $operation_id: Int!) {
+  operationeventlog(limit: 1, where: {deleted: {_eq: false}, timestamp: {_gte: $fromNow}, operation_id: {_eq: $operation_id}}, order_by: {id: desc}) {
     operator {
         username
     }
@@ -21,23 +21,28 @@ subscription EventFeedNotificationSubscription($fromNow: timestamp!) {
  `;
 
 export function EventFeedNotifications(props) {
-    const [fromNow, setFromNow] = React.useState(null);
     const me = useReactiveVar(meState);
-    const { loading, error, data } = useSubscription(subscribe_payloads, {variables: {fromNow}});
+    const fromNow = React.useRef( (new Date()).toISOString() );
+
+    const { loading, error, data } = useSubscription(subscribe_payloads, {
+        variables: {fromNow: fromNow.current, operation_id: me.user.current_operation_id}, 
+        fetchPolicy: "no-cache",
+        onError: (errorData) => {
+            snackActions.warning("Failed to get event notifications");
+        }
+    });
+
     useEffect( () => {
-        setFromNow(new Date().toISOString());
-    }, []);
-    useEffect( () => {
-        //console.log(data, loading, error);
+        //console.log(data, loading, error, fromNow.current);
         if(!loading && !error && data && data.operationeventlog.length > 0){
             if(data.operationeventlog[0].source === "debug"){
                 return;
             }
-            if(data.operationeventlog[0].operator && me.user.username !== data.operationeventlog[0].operator.username){
+            if(data.operationeventlog[0].operator ){
                 const message = data.operationeventlog[0].operator.username + ":" + data.operationaleventlog[0].message;
-                snackActions.toast(message, data.operationeventlog[0].level, { autoHideDuration: 4000});
+                snackActions.toast(message, data.operationeventlog[0].level, { autoHideDuration: 3000});
             }else if(!data.operationeventlog[0].operator){
-                snackActions.toast(data.operationeventlog[0].message, data.operationeventlog[0].level, {autoHideDuration: 4000});
+                snackActions.toast(data.operationeventlog[0].message, data.operationeventlog[0].level, {autoHideDuration: 3000});
             }
         }else if(error){
             console.error(error);

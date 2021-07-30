@@ -6,12 +6,14 @@ import { Logout } from './pages/Logout/Logout';
 import { PayloadTypes } from './pages/PayloadTypes/PayloadTypes';
 import { CreatePayload } from './pages/CreatePayload/CreatePayload';
 import { EventFeed } from './pages/EventFeed/EventFeed';
+import {Operations} from './pages/Operations/Operations';
 import { BrowserScripts } from './pages/BrowserScripts/BrowserScripts';
 import { Payloads } from './pages/Payloads/Payloads';
 import { Home } from './pages/Home/Home';
 import { LoggedInRoute } from './utilities/LoggedInRoute';
 import { C2Profiles } from './pages/C2Profiles/C2Profiles';
 import { Callbacks } from './pages/Callbacks/Callbacks';
+import {Search} from './pages/Search/Search';
 import React from 'react';
 import { TopAppBar } from './TopAppBar';
 import { useReactiveVar } from '@apollo/client';
@@ -23,6 +25,7 @@ import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { GlobalStyles } from "../themes/GlobalStyles";
 import CssBaseline from '@material-ui/core/CssBaseline';
 import {SnackbarUtilsConfigurator, } from './utilities/Snackbar';
+import { meState } from '../cache';
 
 //background-color: #282c34;
 import {
@@ -36,20 +39,23 @@ const useStyles = makeStyles((theme) => ({
         maxWidth: "calc(99vw)",
         maxHeight: "calc(98vh)",
         overflow: "auto",
-        padding: "0px 0 0px 16px"
+        padding: "0px 0 0px 16px",
       },
+      /*
       contentShift: {
         maxWidth: `calc(99vw - ${drawerWidth}px)`,
         marginLeft: `${drawerWidth}px`,
         overflow: "auto",
         padding: "0 0 0 16px"
       }
+      */
   }));
   
 const drawerWidth = 240;
 
 export function App(props) {
     const classes = useStyles();
+    const me = useReactiveVar(meState);
     const [themeMode, themeToggler] = useDarkMode();
     const isOpen = useReactiveVar(menuOpen);
     const theme = React.useMemo( () => createMuiTheme({
@@ -58,7 +64,7 @@ export function App(props) {
                   main: "#617AB1"
               },
           secondary: {
-                  main: "#725398"
+                  main: "#a791c3"
               },
           error: {
                   main: "#f44336"
@@ -89,6 +95,9 @@ export function App(props) {
         pageHeader: {
             main: "#6a7da0"
         },
+        pageHeaderText: {
+            main: "white"
+        },
         }
     ), [themeMode]
     );
@@ -102,7 +111,7 @@ export function App(props) {
                 }}>
                 <SnackbarUtilsConfigurator />
                 <div className="App">
-                    <TopAppBar theme={themeMode} toggleTheme={themeToggler} />
+                    {me.loggedIn  && me.user !== undefined && me.user !== null ? (<TopAppBar theme={themeMode} toggleTheme={themeToggler}/>) : (null)}
                     <div className={clsx(classes.content, {[classes.contentShift]: isOpen,})}>
                         <Switch>
                             <LoggedInRoute exact path='/new' component={Home} />
@@ -114,9 +123,11 @@ export function App(props) {
                             <LoggedInRoute exact path='/new/payloads' component={Payloads} />
                             <LoggedInRoute exact path='/new/c2profiles' component={C2Profiles} />
                             <LoggedInRoute exact path='/new/callbacks' component={Callbacks} />
+                            <LoggedInRoute exact path='/new/search' component={Search} />
                             <LoggedInRoute exact path='/new/browserscripts' component={BrowserScripts} />
                             <LoggedInRoute exact path='/new/task/:taskId' component={SingleTaskView} />
                             <LoggedInRoute exact path='/new/tasks/by_range' component={SingleTaskView} />
+                            <LoggedInRoute exact path='/new/operations' component={Operations} />
                             <Route exact path='/new/logout' component={Logout} />
                         </Switch>
                     </div>

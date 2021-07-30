@@ -205,6 +205,7 @@ query getCommandQuery($id: Int!){
       supported_agent_build_parameters
       supported_agents
       type
+      dynamic_query_function
     }
     commandopsec {
       authentication
@@ -216,6 +217,7 @@ query getCommandQuery($id: Int!){
 }
 `;
 export function TaskParametersDialog(props) {
+    const [commandInfo, setCommandInfo] = useState({});
     const [parameters, setParameters] = useState([]);
     const [rawParameters, setRawParameters] = useState(false);
     const [requiredPieces, setRequiredPieces] = useState({all: false, loaded: false, edges: false});
@@ -261,6 +263,7 @@ export function TaskParametersDialog(props) {
                     requiredPiecesInitial["payloads"] = true;
                 }
             });
+            setCommandInfo({...data.command_by_pk});
             if(requiredPiecesInitial["edges"]){getAllEdges({variables: {callback_id: props.callback.id} });}
             if(requiredPiecesInitial["all"]){getAllCommands({variables: {payload_type_id: props.callback.payload.payloadtype.id}});}
             if(requiredPiecesInitial["loaded"]){getLoadedCommands({variables: {callback_id: props.callback.id} });}
@@ -609,7 +612,7 @@ export function TaskParametersDialog(props) {
                     </TableHead>
                     <TableBody>
                         {parameters.map( (op) => (
-                            <TaskParametersDialogRow key={"taskparameterrow" + op.id} onChange={onChange} {...op} callback_id={props.callback.id} onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}/>
+                            <TaskParametersDialogRow key={"taskparameterrow" + op.id} onChange={onChange} commandInfo={commandInfo} {...op} callback_id={props.callback.id} onAgentConnectAddNewPayloadOnHost={onAgentConnectAddNewPayloadOnHost}/>
                         ))}
                     </TableBody>
                 </Table>

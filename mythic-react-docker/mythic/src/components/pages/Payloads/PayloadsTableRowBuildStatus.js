@@ -1,11 +1,11 @@
 import IconButton from '@material-ui/core/IconButton';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import ErrorIcon from '@material-ui/icons/Error';
 import {useTheme} from '@material-ui/core/styles';
 import React from 'react';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import Tooltip from '@material-ui/core/Tooltip';
 import { snackActions } from '../../utilities/Snackbar';
+import ReportProblemIcon from '@material-ui/icons/ReportProblem';
 
 export function PayloadsTableRowBuildStatus(props){
     const theme = useTheme();
@@ -26,7 +26,7 @@ export function PayloadsTableRowBuildStatus(props){
                 </Tooltip>) : 
                 (<Tooltip title="Failed to build payload">
                     <IconButton variant="contained" onClick={() => snackActions.warning("Payload failed to build, cannot download")}>
-                        <ErrorIcon style={{color: theme.palette.error.main}} />
+                        <ReportProblemIcon style={{color: theme.palette.error.main}} />
                     </IconButton>
                 </Tooltip>
                 ) 

@@ -44,6 +44,10 @@ export function SettingsOperator(props){
     }
     const onAccept = (id, username, passwordOld, passwordNew) => {
         console.log("settingsoperator onAccept", id, username, passwordOld, passwordNew);
+        if(username !== props.username){
+          props.onUsernameChanged(id, username);
+        }
+        setOpenUpdateDialog(false);
     }
     const onAcceptDelete = (id) => {
         props.onDeleteOperator(id);

@@ -6,6 +6,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import MythicTextField from '../../MythicComponents/MythicTextField';
 import {useQuery, gql, useMutation} from '@apollo/client';
 import LinearProgress from '@material-ui/core/LinearProgress';
+import { snackActions } from '../../utilities/Snackbar';
 
 const updateDescriptionMutation = gql`
 mutation updateDescription ($payload_id: Int!, $description: String) {
@@ -34,8 +35,8 @@ export function PayloadDescriptionDialog(props) {
         fetchPolicy: "network-only"
     });
     const [updateDescription] = useMutation(updateDescriptionMutation, {
-        update: (cache, {data}) => {
-            //console.log(data);
+        onCompleted: (data) => {
+            snackActions.success("Updated Description")
         }
     });
     if (loading) {
@@ -57,7 +58,7 @@ export function PayloadDescriptionDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Edit Payload Description</DialogTitle>
         <DialogContent dividers={true}>
-            <MythicTextField multiline={true} onChange={onChange} value={description} />
+            <MythicTextField autoFocus onChange={onChange} value={description} onEnter={onCommitSubmit}/>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">

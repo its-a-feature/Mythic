@@ -3,6 +3,9 @@ import SendIcon from '@material-ui/icons/Send';
 import React, {useEffect} from 'react';
 import {TextField} from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
+import TuneIcon from '@material-ui/icons/Tune';
+import { MythicDialog } from '../../MythicComponents/MythicDialog';
+import {CallbacksTabsTaskingFilterDialog} from './CallbacksTabsTaskingFilterDialog';
 
 
 export function CallbacksTabsTaskingInput(props){
@@ -11,7 +14,7 @@ export function CallbacksTabsTaskingInput(props){
     const [autocompleteOptions, setAutocompleteOptions] = React.useState([]);
     const [loadedOptions, setLoadedOptions] = React.useState([]);
     const [taskOptions, setTaskOptions] = React.useState([]);
-
+    const [openFilterOptionsDialog, setOpenFilterOptionsDialog] = React.useState(false);
     useEffect( () => {
         setLoadedOptions( props.loadedOptions.map( (option) => option.cmd) );
         if(props.taskOptions){
@@ -68,6 +71,9 @@ export function CallbacksTabsTaskingInput(props){
         props.onSubmitCommandLine(message);
         setMessage("");
     }
+    const onClickFilter = () => {
+        setOpenFilterOptionsDialog(true);
+    }
     return (
         <div style={{ position: "absolute", width: "100%"}}>
             <form onSubmit={onSubmitCommandLine}>
@@ -97,6 +103,7 @@ export function CallbacksTabsTaskingInput(props){
                                 endAdornment:
                                 <React.Fragment>
                                 <IconButton color="primary" variant="contained" onClick={onSubmitCommandLine}><SendIcon/></IconButton>
+                                <IconButton color="secondary" variant="contained" onClick={onClickFilter}><TuneIcon/></IconButton>
                                 </React.Fragment>
                            
                             }}
@@ -105,6 +112,10 @@ export function CallbacksTabsTaskingInput(props){
                     }}
                   />
               </form>
+              <MythicDialog fullWidth={true} maxWidth="md" open={openFilterOptionsDialog} 
+                    onClose={()=>{setOpenFilterOptionsDialog(false);}} 
+                    innerDialog={<CallbacksTabsTaskingFilterDialog filterCommandOptions={loadedOptions} onSubmit={props.onSubmitFilter} filterOptions={props.filterOptions} onClose={()=>{setOpenFilterOptionsDialog(false);}} />}
+                />
         </div>  
     )
 }

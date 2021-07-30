@@ -260,6 +260,7 @@ async def post_agent_response(agent_message, callback):
                     if "completed" in parsed_response:
                         if parsed_response["completed"]:
                             task.completed = True
+                            task.status = "completed"
                             marked_as_complete = True
                             asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
                         parsed_response.pop("completed", None)
@@ -443,9 +444,12 @@ async def post_agent_response(agent_message, callback):
                             if task.status == "error":
                                 task.completed = True
                                 marked_as_complete = True
+                                asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
                             elif task.status == "completed" or task.status == "complete":
+                                task.status = "completed"
                                 task.completed = True
                                 marked_as_complete = True
+                                asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
                         else:
                             if task.status_timestamp_processed is None:
                                 task.status_timestamp_processed = datetime.datetime.utcnow()

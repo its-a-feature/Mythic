@@ -254,7 +254,7 @@ export function SingleTaskView(props){
     }, [getTasks, taskId]);
   return (
     <div style={{marginTop: "10px", maxHeight: "calc(94vh)", width:"100%", marginBottom: "10px" }}>
-        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
+        <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px", marginRight: "5px"}} variant={"elevation"}>
             <Typography variant="h4" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
                 Task View
             </Typography>

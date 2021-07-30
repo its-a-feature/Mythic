@@ -8,7 +8,7 @@ export function LoggedInRoute({component, ...rest}){
     const me = useReactiveVar(meState);
     return (
         <Route {...rest} render={(props) => (
-            me.loggedIn ? (
+            me.loggedIn && me.user !== null ? (
                 //logged in
                 React.createElement(component, props)
             ) : (

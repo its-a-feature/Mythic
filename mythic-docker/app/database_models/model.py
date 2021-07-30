@@ -2860,6 +2860,17 @@ def pg_register_updates():
     )
     mythic_db.execute_sql(create_function)
     mythic_db.execute_sql(create_trigger)
+    create_function = (
+            "DROP FUNCTION IF EXISTS update_task_timestamp_on_update() cascade;"
+            + "CREATE FUNCTION update_task_timestamp_on_update() RETURNS TRIGGER LANGUAGE plpgsql AS $$ BEGIN "
+            + "NEW.timestamp := now(); RETURN NEW; END; $$;"
+    )
+    create_trigger = (
+            "CREATE TRIGGER update_task_timestamp_trigger BEFORE UPDATE on task FOR EACH ROW EXECUTE PROCEDURE "
+            + "update_task_timestamp_on_update()"
+    )
+    mythic_db.execute_sql(create_function)
+    mythic_db.execute_sql(create_trigger)
 
 
 def pg_created_response_text_field():

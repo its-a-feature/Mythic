@@ -121,6 +121,7 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
     const fileBrowserRoots = React.useRef([]);
     const [fileBrowserRootsState, setFileBrowserRootsState] = React.useState([]);
     const [selectedFolder, setSelectedFolder] = React.useState([]);
+    const selectedFolderDataRef = React.useRef({});
     const [selectedFolderData, setSelectedFolderData] = React.useState({});
     const [fileBrowserCommands, setFileBrowserCommands] = React.useState({});
     const [openSelectCommandDialog, setOpenSelectCommandDialog] = React.useState(false);
@@ -144,6 +145,9 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
     useEffect( () => {
         fileBrowserRoots.current = fileBrowserRootsState;
     }, [fileBrowserRootsState])
+    useEffect( () => {
+        selectedFolderDataRef.current = selectedFolderData;
+    }, [selectedFolderData])
     const [getFolderData] = useLazyQuery(folderQuery, {
         onError: data => {
             console.error(data)
@@ -294,8 +298,7 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
     }, [searchCallback]);
     const onSetTableData = (filebrowserobj) => {
         setSelectedFolder(Object.values(filebrowserobj.filebrowserobjs))
-        //setSelectedFolder([...filebrowserobj.filebrowserobjs]);
-        setSelectedFolderData({...filebrowserobj});
+        setSelectedFolderData(filebrowserobj);
     }
     const fetchFolderData = (filebrowserobj_id) => {
         getFolderData({variables: {filebrowserobj_id}})
@@ -368,6 +371,11 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
             }
         });
         setFileBrowserRootsState(updatingData);
+        if(subscriptionData.data.filebrowserobj.length > 0 && selectedFolderDataRef.current.id !== undefined && subscriptionData.data.filebrowserobj[0].parent_id === selectedFolderDataRef.current.id){
+            // this means we got updated data for something in the folder we're currently looking at in the table, so we need to make sure to update the table
+            console.log("updating table");
+            setSelectedFolder(Object.values(selectedFolderDataRef.current.filebrowserobjs));
+        }
     }, [mergeData])
     return (
         <MythicTabPanel {...props} >

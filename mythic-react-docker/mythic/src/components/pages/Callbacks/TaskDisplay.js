@@ -36,36 +36,42 @@ import {gql, useLazyQuery } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import LocalOfferOutlinedIcon from '@material-ui/icons/LocalOfferOutlined';
 
+export const taskDisplayFragment = gql`
+fragment taskData on task {
+  comment
+  commentOperator{
+      username
+  }
+  completed
+  id
+  operator{
+      username
+  }
+  original_params
+  display_params
+  status
+  timestamp
+  command {
+    cmd
+    id
+  }
+  responses(order_by: {id: desc}) {
+    id
+  }
+  opsec_pre_blocked
+  opsec_pre_bypassed
+  opsec_post_blocked
+  opsec_post_bypassed
+  tasks {
+      id
+  }
+}
+`;
 const getSubTaskingQuery = gql`
+${taskDisplayFragment}
 query getSubTasking($task_id: Int!){
     task(where: {parent_task_id: {_eq: $task_id}}, order_by: {id: asc}) {
-        comment
-        commentOperator{
-            username
-        }
-        completed
-        id
-        operator{
-            username
-        }
-        original_params
-        display_params
-        status
-        timestamp
-        command {
-          cmd
-          id
-        }
-        responses(order_by: {id: desc}) {
-          id
-        }
-        opsec_pre_blocked
-        opsec_pre_bypassed
-        opsec_post_blocked
-        opsec_post_bypassed
-        tasks {
-            id
-        }
+        ...taskData
   }
 }
  `;
@@ -194,7 +200,6 @@ export const TaskDisplay = (props) =>{
     	
     }
     const toggleTaskNodes = (event, value) => {
-    	console.log("onNodeToggle", event, value);
     }
 
   return (
@@ -202,11 +207,50 @@ export const TaskDisplay = (props) =>{
   		onNodeToggle={toggleTaskNodes}
   		expanded={nodesSelected}
 	>
-		<TaskRow {...props} nodesSelected={nodesSelected} toggleSelection={toggleTaskTree} />
+		<TaskRow {...props} filterOptions={props.filterOptions} nodesSelected={nodesSelected} toggleSelection={toggleTaskTree} />
     </TreeView>
   );
 }
-
+const TaskStatusDisplay = ({task, theme}) => {
+  if(task.status.includes("error")){
+    return (<Button size="small" style={{padding: "0", color: theme.palette.error.main}}>{task.status}</Button>)
+  }else if(task.status === "cleared"){
+  return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>Cleared</Button>)
+  }else if(task.completed){
+      return (<Button size="small" style={{padding: "0", color: theme.palette.success.main}}>Completed</Button>)
+  }else if(task.status === "submitted" || task.status === "processing"){
+      return (<Button size="small" style={{padding: "0", color: theme.palette.info.main}}>{task.status}</Button>)
+  }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
+    return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>OPSEC Blocked (PRE)</Button>)
+  }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
+    return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>OPSEC Blocked (POST)</Button>)
+  }else{
+      return (<Button size="small" style={{padding: "0", color: theme.palette.info.main}}>{task.status}</Button>)
+  }
+}
+const ColoredTaskDisplay = ({task, theme, children}) => {
+  const [themeColor, setThemeColor] = React.useState(theme.palette.info.main);
+  useEffect( () => {
+    if(task.status.includes("error")){
+      setThemeColor(theme.palette.error.main);
+    }else if(task.completed){
+      setThemeColor(theme.palette.success.main);
+    }else if(task.status === "submitted"){
+      setThemeColor(theme.palette.info.main);
+    }else if(task.opsec_pre_blocked && !task.opsec_pre_bypassed){
+      setThemeColor(theme.palette.warning.main);
+    }else if(task.opsec_post_blocked && !task.opsec_post_bypassed){
+      setThemeColor(theme.palette.warning.main);
+    }else{
+      setThemeColor(theme.palette.info.main);
+    }
+  }, [task.status, task.completed])
+    return(
+      <span style={{display: "flex", margin: 0, borderWidth: 0, padding: 0, minHeight: "48px", alignItems: "center", height: "100%", borderLeft: "6px solid " + themeColor, paddingLeft: "5px"}}>
+        {children}
+      </span>
+    )
+}
 const TaskRow = (props) => {
 	  const me = useReactiveVar(meState);
     const theme = useTheme();
@@ -223,6 +267,7 @@ const TaskRow = (props) => {
     const classes = useStyles();
     const [taskingData, setTaskingData] = React.useState({task: []});
     const [isFetchingSubtasks, setIsFetchingSubtasks] = React.useState(false);
+    const [shouldDisplay, setShouldDisplay] = React.useState(true);
     const [getSubTasking, { startPolling, stopPolling }] = useLazyQuery(getSubTaskingQuery, {
         onError: data => {
             console.error(data)
@@ -252,38 +297,6 @@ const TaskRow = (props) => {
 		
     }
     const accordionClasses = accordionUseStyles();
-    const getTaskStatus = () => {
-        if(props.task.status.includes("error")){
-             return (<Button size="small" style={{padding: "0", color: theme.palette.error.main}}>{props.task.status}</Button>)
-        }else if(props.task.status === "cleared"){
-          return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>Cleared</Button>)
-        }else if(props.task.completed){
-             return (<Button size="small" style={{padding: "0", color: theme.palette.success.main}}>Completed</Button>)
-        }else if(props.task.status === "submitted" || props.task.status === "processing"){
-             return (<Button size="small" style={{padding: "0", color: theme.palette.info.main}}>{props.task.status}</Button>)
-        }else if(props.task.opsec_pre_blocked && !props.task.opsec_pre_bypassed){
-            return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>OPSEC Blocked (PRE)</Button>)
-        }else if(props.task.opsec_post_blocked && !props.task.opsec_post_bypassed){
-            return (<Button size="small" style={{padding: "0", color: theme.palette.warning.main}}>OPSEC Blocked (POST)</Button>)
-        }else{
-             return (<Button size="small" style={{padding: "0", color: theme.palette.info.main}}>{props.task.status}</Button>)
-        }
-    }
-    const getTaskStatusColor = () => {
-        if(props.task.status.includes("error")){
-             return theme.palette.error.main;
-        }else if(props.task.completed){
-             return theme.palette.success.main;
-        }else if(props.task.status === "submitted" || props.task.status === "processing"){
-             return theme.palette.info.main;
-        }else if(props.task.opsec_pre_blocked && !props.task.opsec_pre_bypassed){
-            return theme.palette.warning.main;
-        }else if(props.task.opsec_post_blocked && !props.task.opsec_post_bypassed){
-            return theme.palette.warning.main;
-        }else{
-             return theme.palette.info.main;
-        }
-    }
     const prevResponses = useRef(props.task.responses);
     useEffect( () => {
         //console.log("in use effect", prevResponses.current, props.task.responses);
@@ -298,6 +311,68 @@ const TaskRow = (props) => {
             setAlertBadges(0);
         }
     }, [props.task.responses, dropdownOpen, lastSeenResponse]);
+    useEffect( () => {
+      /*props.onSubmit({
+      "operatorsList": onlyOperators,
+      "commentsFlag": onlyHasComments,
+      "commandsList": onlyCommands,
+      "everythingButList": everythingBut,
+      "parameterString": onlyParameters
+    }); */
+      if(props.filterOptions === undefined){
+        if(!shouldDisplay){
+          setShouldDisplay(true);
+        }
+        return;
+      }
+      if(props.filterOptions["operatorsList"].length > 0){
+        if(!props.filterOptions["operatorsList"].includes(props.task.operator.username)){
+          if(shouldDisplay){
+            setShouldDisplay(false);
+          }
+          return;
+        }
+      }
+      if(props.filterOptions["commentsFlag"]){
+        if(props.task.comment === ""){
+          if(shouldDisplay){
+            setShouldDisplay(false);
+          }
+          return;
+        }
+      }
+      if(props.filterOptions["commandsList"].length > 0){
+        // only show these commands
+        if(!props.filterOptions["commandsList"].includes(props.task.command.cmd)){
+          if(shouldDisplay){
+            setShouldDisplay(false);
+          }
+          return;
+        }
+      }
+      if(props.filterOptions["everythingButList"].length > 0){
+        if(props.task.command !== null){
+          if(props.filterOptions["everythingButList"].includes(props.task.command.cmd)){
+            if(shouldDisplay){
+              setShouldDisplay(false);
+            }
+            return;
+          }
+        }
+      }
+      if(props.filterOptions["parameterString"] !== ""){
+        let regex = new RegExp(props.filterOptions["parameterString"]);
+        if(!regex.test(props.task.display_params)){
+          if(shouldDisplay){
+            setShouldDisplay(false);
+          }
+          return;
+        }
+      }
+      if(!shouldDisplay){
+        setShouldDisplay(true);
+      }
+    }, [props.filterOptions, props.task.comment, props.task.command, props.task.display_params, props.task.operator.username]);
     const toggleTaskDropdown = (event, newExpanded) => {
         if(newExpanded){
             setAlertBadges(0);
@@ -321,7 +396,8 @@ const TaskRow = (props) => {
         setCommandID(props.command_id);
     }, [props.task, props.command_id]);
     return (
-    	<StyledTreeItem nodeId={"treenode:" + props.task.id} 
+      shouldDisplay ? (
+        <StyledTreeItem nodeId={"treenode:" + props.task.id} 
     		onLabelClick={(evt)=>{evt.preventDefault()}} 
     		onIconClick={getSubTasks}
     		icon={
@@ -337,8 +413,8 @@ const TaskRow = (props) => {
 				          style={{paddingLeft: 0}}
 				          classes={{content: accordionClasses.content, expandIcon: accordionClasses.expandIcon, root: accordionClasses.root}}
 				        >  
-				          <span style={{display: "flex", margin: 0, borderWidth: 0, padding: 0, minHeight: "48px", alignItems: "center", height: "100%", borderLeft: "6px solid " + getTaskStatusColor(), paddingLeft: "5px"}}>
-				              <div>
+				          <ColoredTaskDisplay task={props.task} theme={theme}>
+                      <div>
 				                {displayComment ? (
 				                    <React.Fragment>
 				                        <Typography className={classes.secondaryHeading}>{props.task.commentOperator.username}</Typography>
@@ -349,7 +425,7 @@ const TaskRow = (props) => {
 				                  <div>
 				                    <div className={classes.column}>
 				                        <Badge badgeContent={alertBadges} color="secondary" anchorOrigin={{vertical: 'top', horizontal: 'left'}}>
-				                            {getTaskStatus()}
+				                            <TaskStatusDisplay task={props.task} theme={theme}/>
 				                        </Badge>
 				                      </div>
 				                      {props.task.comment !== "" ? (
@@ -365,8 +441,7 @@ const TaskRow = (props) => {
 				                      </div>
 				                </div>
 				            </div>
-				            
-				          </span>
+				          </ColoredTaskDisplay>
 	         
 	        			</AccordionSummary>
 	        
@@ -425,10 +500,10 @@ const TaskRow = (props) => {
 	    	}>
 	    	{
 	    		taskingData.task.map( (tsk) => (
-    				<TaskRow key={"taskrow: " + tsk.id} task={tsk} nodesSelected={props.nodesSelected} toggleSelection={props.toggleSelection}/>
+    				<TaskRow key={"taskrow: " + tsk.id} task={tsk} nodesSelected={props.nodesSelected} filterOptions={props.filterOptions} toggleSelection={props.toggleSelection}/>
     			))
 	    	}
 		</StyledTreeItem>
-		
+      ) : (null)
     )
 }

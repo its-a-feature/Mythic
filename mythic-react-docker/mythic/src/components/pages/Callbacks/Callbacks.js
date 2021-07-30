@@ -128,15 +128,23 @@ export function Callbacks(props){
     const [topDisplay, setTopDisplay] = React.useState("table");
     const [openTabs, setOpenTabs] = React.useState([]);
     const [clickedTabId, setClickedTabId] = React.useState("");
-    const [heights, setHeights] = React.useState({top: 30, bottom: 56});
+    const [heights, setHeights] = React.useState({top: 28, bottom: 56});
     const [openHeightsDialog, setOpenHeightsDialog] = React.useState(false);
-    const { loading, error, data } = useSubscription(SUB_Callbacks, {
+    const [callbacks, setCallbacks] = React.useState([]);
+    const [callbackEdges, setCallbackEdges] = React.useState([]);
+    useSubscription(SUB_Callbacks, {
         variables: {operation_id: me.user.current_operation_id}, fetchPolicy: "network-only",
-        shouldResubscribe: true
+        shouldResubscribe: true,
+        onSubscriptionData: ({subscriptionData}) => {
+          setCallbacks(subscriptionData.data.callback);
+        }
     });
-    const { loading: loadingEdges , data: dataEdges } = useSubscription(SUB_Edges, {
+    useSubscription(SUB_Edges, {
         variables: {operation_id: me.user.current_operation_id}, fetchPolicy: "network-only",
-        shouldResubscribe: true
+        shouldResubscribe: true,
+        onSubscriptionData: ({subscriptionData}) => {
+          setCallbackEdges(subscriptionData.data.callbackgraphedge)
+        }
     });
     const onOpenTab = ({tabID, tabType, callbackID}) => {
         let found = false;
@@ -146,11 +154,11 @@ export function Callbacks(props){
         });
         //console.log(tabID, tabType, callbackID, found);
         if(!found){
-            for(let i = 0; i < data.callback.length; i++){
-              if(data.callback[i]["id"] === callbackID){
+            for(let i = 0; i < callbacks.length; i++){
+              if(callbacks[i]["id"] === callbackID){
                 const tabs = [...openTabs, {tabID, tabType, callbackID, 
-                    payloadtype: data.callback[i]["payload"]["payloadtype"]["ptype"],
-                    os: data.callback[i]["payload"]["os"]}];
+                    payloadtype: callbacks[i]["payload"]["payloadtype"]["ptype"],
+                    os: callbacks[i]["payload"]["os"]}];
                 setOpenTabs(tabs);
               }
             }
@@ -175,10 +183,10 @@ export function Callbacks(props){
     const getTopDisplay = () => {
         switch(topDisplay){
             case "graph":
-                return (<CallbacksGraph maxHeight={`calc(${heights.top}vh)`} topHeight={heights.top} key={"callbacksgraph"} onOpenTab={onOpenTab} callbacks={data.callback} callbackgraphedges={dataEdges.callbackgraphedge} />)
+                return (<CallbacksGraph maxHeight={`calc(${heights.top}vh)`} topHeight={heights.top} key={"callbacksgraph"} onOpenTab={onOpenTab} callbacks={callbacks} callbackgraphedges={callbackEdges} />)
             case "table":
             default:
-                return (<CallbacksTable maxHeight={`calc(${heights.top}vh)`} topHeight={heights.top} key={"callbackstable"} onOpenTab={onOpenTab} callbacks={data.callback} callbackgraphedges={dataEdges.callbackgraphedge} />)
+                return (<CallbacksTable maxHeight={`calc(${heights.top}vh)`} topHeight={heights.top} key={"callbackstable"} onOpenTab={onOpenTab} callbacks={callbacks} callbackgraphedges={callbackEdges} />)
         }
     }
     const onSubmitHeights = (newHeights) => {
@@ -187,16 +195,10 @@ export function Callbacks(props){
     }
     return (
         <div style={{maxWidth: "100%",height: "calc(94vh)", marginRight: "5px"}}>
-            
-            
-            {loading || loadingEdges ? (<LinearProgress style={{marginTop: "20px"}} />) : (
-            error ? (<div>Error!</div>) : (
               <React.Fragment>
                 {getTopDisplay()}
-                <CallbacksTabs onCloseTab={onCloseTab} clearSelectedTab={clearSelectedTab} tabHeight={heights.bottom} maxHeight={`calc(${heights.bottom}vh)`} key={"callbackstabs"} clickedTabId={clickedTabId} openTabs={openTabs} callbacks={data.callback} />
+                <CallbacksTabs onCloseTab={onCloseTab} clearSelectedTab={clearSelectedTab} tabHeight={heights.bottom} maxHeight={`calc(${heights.bottom}vh)`} key={"callbackstabs"} clickedTabId={clickedTabId} openTabs={openTabs} callbacks={callbacks} />
               </React.Fragment>
-              )
-            )}
             <SpeedDial
               ariaLabel="SpeedDial example"
               className={classes.speedDial}

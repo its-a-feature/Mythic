@@ -122,7 +122,7 @@ var payloads_table = new Vue({
             this.view_auto_generated = !this.view_auto_generated;
         },
         build_again: function(p){
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/rebuild/", function (response) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/rebuild_webhook", function (response) {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] !== 'success') {
@@ -133,7 +133,7 @@ var payloads_table = new Vue({
                 } catch (error) {
                     alertTop("danger", "Session expired, refresh");
                 }
-            }, "POST", {"uuid": p.uuid});
+            }, "POST", {"input":{"uuid": p.uuid}});
         },
         export_config: function(p){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/export_config/" + p.uuid, function (response) {
@@ -150,7 +150,7 @@ var payloads_table = new Vue({
             }, "GET", null);
         },
         redirect_rules: function(p){
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/redirect_rules_webhook/" , function (response) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/redirect_rules_webhook" , function (response) {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] !== 'success') {
@@ -165,7 +165,7 @@ var payloads_table = new Vue({
             }, "POST", {"input": {"uuid": p.uuid}});
         },
         config_check: function(p){
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/config_check_webhook/" , function (response) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/config_check_webhook" , function (response) {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] !== 'success') {

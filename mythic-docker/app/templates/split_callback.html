@@ -38,7 +38,10 @@
                              <template v-else-if="task.opsec_post_blocked === true && task.opsec_post_bypassed === false">
                                  <button class="btn btn{{config['outline-buttons']}}warning btn-sm dropdown-toggle" style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">OPSEC BLOCKED (POST)</span></button>
                              </template>
-                            <template v-else-if="task.completed == true && task.status === 'processed'">
+                            <template v-else-if="task.status.includes('error')">
+                                <button class="btn btn{{config['outline-buttons']}}danger btn-sm dropdown-toggle"  style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">[[task.status]]</span></button>
+                            </template>
+                            <template v-else-if="task.completed == true || task.status === 'completed'">
                                 <button class="btn btn{{config['outline-buttons']}}success btn-sm dropdown-toggle" style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">completed</span></button>
                             </template>
                             <template v-else-if="task.status == 'processed'">
@@ -47,9 +50,7 @@
                             <template v-else-if="task.status == 'processing' || task.status == 'cleared'">
                                 <button class="btn btn{{config['outline-buttons']}}warning btn-sm dropdown-toggle"  style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">[[task.status]]</span></button>
                             </template>
-                            <template v-else-if="task.status.includes('error')">
-                                <button class="btn btn{{config['outline-buttons']}}danger btn-sm dropdown-toggle"  style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">[[task.status]]</span></button>
-                            </template>
+
                             <template v-else>
                                 <button class="btn btn{{config['outline-buttons']}}info btn-sm dropdown-toggle"  style="border:0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="card-text">[[task.status]]</span></button>
                             </template>

@@ -151,12 +151,18 @@ var callback_table = new Vue({
                                 let param = Object.assign({}, blank_vals, this.ptype_cmd_params[this.callbacks[data['id']]['payload_type']][i]['params'][j]);
                                 if(param.type === "Choice" || param.type === "ChoiceMultiple"){
                                     if(param.dynamic_query_function !== undefined && param.dynamic_query_function !== null){
-                                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/tasks/dynamic_query", (response) => {
+                                        httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/dynamic_query_webhook", (response) => {
                                             try {
-                                                param.choices = JSON.parse(response);
-                                                if(param.choices.length > 0){
-                                                    param.choice_value = param.choices[0];
-                                                    param.choicemultiple_value = [param.choices[0]];
+                                                let QueryResp = JSON.parse(response);
+                                                if(QueryResp["status"] === "success"){
+                                                    param.choices = QueryResp["choices"];
+                                                    if(param.choices.length > 0){
+                                                        param.choice_value = param.choices[0];
+                                                        param.choicemultiple_value = [param.choices[0]];
+                                                    }
+                                                }else{
+                                                    alertTop("warning", "Failed to fetch dynamic parameters: " + QueryResp["error"]);
+                                                    param.choices = [];
                                                 }
                                                 params_table.command_params.push(param);
                                                 params_table.command_params.sort((a, b) => (b.ui_position > a.ui_position) ? -1 : ((a.ui_position > b.ui_position) ? 1 : 0));
@@ -164,12 +170,12 @@ var callback_table = new Vue({
                                                 console.log(error.toString());
                                                 alertTop("danger", "Session expired, please refresh");
                                             }
-                                        }, "POST", {
+                                        }, "POST", {"input":{
                                             "callback": data["id"],
                                             "command": command,
                                             "parameter_name": param.name,
                                             "payload_type": callback_table.callbacks[data['id']]['payload_type']
-                                        });
+                                        }});
                                         continue;
                                     }
                                     if(param.choices.length > 0){

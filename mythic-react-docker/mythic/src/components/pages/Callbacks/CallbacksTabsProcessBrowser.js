@@ -1,5 +1,5 @@
 import {MythicTabPanel, MythicTabLabel} from '../../../components/MythicComponents/MythicTabPanel';
-import React, {useEffect, useCallback} from 'react';
+import React, {useEffect} from 'react';
 import {gql, useMutation, useLazyQuery, useQuery } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
 import { MythicDialog } from '../../MythicComponents/MythicDialog';

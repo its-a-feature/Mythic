@@ -36,12 +36,12 @@ var files_div = new Vue({
                     selected_files.push(files_div.hosts['downloads'][i]['agent_file_id']);
                 }
             }
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/bulk", (response) => {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/download_bulk_webhook", (response) => {
                 let data = JSON.parse(response);
                 if (data['status'] === 'success') {
                     alertTop("success", "Download your zip file on the Services page or here:<br><a class='btn btn-info' href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/files/download/" + data['file_id'] + "'>Download Zip</a>", 0, "Success!", false);
                 }
-            }, "POST", {'files': selected_files});
+            }, "POST", {"input": {'files': selected_files}});
         },
         toggle_all: function () {
             for (let i = 0; i < files_div.hosts['downloads'].length; i++) {

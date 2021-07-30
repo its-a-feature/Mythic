@@ -275,4 +275,4 @@ function change_heartbeat_callback(response) {
     }
 }
 
-setInterval(container_heartbeat_check, 500);
+//setInterval(container_heartbeat_check, 500);
