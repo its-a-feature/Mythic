@@ -40,6 +40,7 @@ from app.routes.authentication import invalidate_refresh_token
 import app.database_models.model as db_model
 from sanic.log import logger
 from uuid import uuid4
+import asyncio
 
 
 env = Environment(loader=PackageLoader("app", "templates"), autoescape=True)
@@ -64,8 +65,7 @@ async def respect_pivot(my_links, request):
         server_port = host_field[1]
     updated_links["server_ip"] = server_ip
     updated_links["server_port"] = server_port
-    updated_links["login"] = "{}://{}/login".format(request.scheme, request.host)
-    updated_links["register"] = "{}://{}/register".format(request.scheme, request.host)
+    updated_links["login"] = "/login"
     return updated_links
 
 
@@ -369,59 +369,66 @@ async def setup_initial_info(sanic, loop):
 async def initial_setup():
     # create mythic_admin
     import multiprocessing
-    max_worker_connection = int(400 / (multiprocessing.cpu_count() + 1))
-    app.websocket_pool = await asyncpg.create_pool(mythic.config["DB_POOL_ASYNCPG_CONNECT_STRING"],
-                                                   max_size=max_worker_connection)
-    # redis automatically creates a pool behind the scenes
-    app.redis_pool = redis.Redis(host="127.0.0.1", port=app.redis_port, db=0)
-    # clear the database on start
-    keys = app.redis_pool.keys("*")
-    for k in keys:
-        app.redis_pool.delete(k)
-    operators = await app.db_objects.execute(Operator.select())
-    if len(operators) != 0:
-        logger.info("Users already exist, aborting initial install")
-        return
-    salt = str(uuid4())
-    password = await crypto.hash_SHA512(salt + mythic_admin_password)
     try:
-        admin, created = await app.db_objects.get_or_create(
-            Operator, username=mythic_admin_user, password=password, admin=True, active=True, salt=salt
+        max_worker_connection = int(400 / (multiprocessing.cpu_count() + 1))
+        app.websocket_pool = await asyncpg.create_pool(mythic.config["DB_POOL_ASYNCPG_CONNECT_STRING"],
+                                                       max_size=max_worker_connection)
+        # redis automatically creates a pool behind the scenes
+        app.redis_pool = redis.Redis(host=app.redis_host, port=app.redis_port, db=0)
+        # clear the database on start
+        keys = app.redis_pool.keys("*")
+        for k in keys:
+            app.redis_pool.delete(k)
+        operators = await app.db_objects.execute(Operator.select())
+        if len(operators) != 0:
+            logger.info("Users already exist, aborting initial install")
+            return
+        salt = str(uuid4())
+        password = await crypto.hash_SHA512(salt + mythic_admin_password)
+        try:
+            admin, created = await app.db_objects.get_or_create(
+                Operator, username=mythic_admin_user, password=password, admin=True, active=True, salt=salt
+            )
+        except Exception as e:
+            print(e)
+            return
+        logger.info("Created Admin")
+        # create default operation
+        operation, created = await app.db_objects.get_or_create(
+            Operation,
+            name=default_operation_name,
+            admin=admin,
+            complete=False,
         )
-    except Exception as e:
-        print(e)
-        return
-    logger.info("Created Admin")
-    # create default operation
-    operation, created = await app.db_objects.get_or_create(
-        Operation,
-        name=default_operation_name,
-        admin=admin,
-        complete=False,
-    )
-    logger.info("Created Operation")
-    await app.db_objects.get_or_create(
-        OperatorOperation, operator=admin, operation=operation
-    )
-    admin.current_operation = operation
-    await app.db_objects.update(admin)
-    logger.info("Registered Admin with the default operation")
-    logger.info("Started parsing ATT&CK data...")
-    file = open("./app/default_files/other_info/attack.json", "r")
-    attack = js.load(file)  # this is a lot of data and might take a hot second to load
-    for obj in attack["techniques"]:
-        await app.db_objects.create(ATTACK, **obj)
-    file.close()
-    logger.info("Created all ATT&CK entries")
-    file = open("./app/default_files/other_info/artifacts.json", "r")
-    artifacts_file = js.load(file)
-    for artifact in artifacts_file["artifacts"]:
+        logger.info("Created Operation")
         await app.db_objects.get_or_create(
-            Artifact, name=artifact["name"], description=artifact["description"]
+            OperatorOperation, operator=admin, operation=operation
         )
-    file.close()
-    logger.info("Created all base artifacts")
-    logger.info("Successfully finished initial setup")
+        admin.current_operation = operation
+        await app.db_objects.update(admin)
+        logger.info("Registered Admin with the default operation")
+        logger.info("Started parsing ATT&CK data...")
+        file = open("./app/default_files/other_info/attack.json", "r")
+        attack = js.load(file)  # this is a lot of data and might take a hot second to load
+        for obj in attack["techniques"]:
+            await app.db_objects.create(ATTACK, **obj)
+        file.close()
+        logger.info("Created all ATT&CK entries")
+        file = open("./app/default_files/other_info/artifacts.json", "r")
+        artifacts_file = js.load(file)
+        for artifact in artifacts_file["artifacts"]:
+            await app.db_objects.get_or_create(
+                Artifact, name=artifact["name"], description=artifact["description"]
+            )
+        file.close()
+        logger.info("Created all base artifacts")
+        logger.info("Successfully finished initial setup")
+    except Exception as e:
+        from app.api.operation_api import send_all_operations_message
+        asyncio.create_task(
+            send_all_operations_message(
+                message=f"Worker failed to initialize:\n {str(e)}",
+                level="warning"))
 
 
 # /static serves out static images and files
@@ -440,5 +447,4 @@ mythic.static("/add_comment.png", "./app/static/add_comment.png", name="add_comm
 links["index"] = mythic.url_for("index")
 links["login"] = links["WEB_BASE"] + "/login"
 links["logout"] = mythic.url_for("logout")
-links["register"] = links["WEB_BASE"] + "/register"
 links["settings"] = mythic.url_for("settings")

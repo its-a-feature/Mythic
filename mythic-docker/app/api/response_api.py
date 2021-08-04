@@ -562,33 +562,39 @@ async def post_agent_response(agent_message, callback):
                             rabbit_message["task"]["callback"] = task.callback.to_json()
                             # get the information for the callback's associated payload
                             payload_info = await add_all_payload_info(task.callback.registered_payload)
-                            rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
-                                "build_parameters"
-                            ]
-                            rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
-                            tags = await app.db_objects.execute(
-                                db_model.tasktag_query.where(db_model.TaskTag.task == task))
-                            rabbit_message["task"]["tags"] = [t.tag for t in tags]
-                            rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
-                            rabbit_message["response"] = parsed_response["process_response"]
-                            if app.debugging_enabled:
-                                await send_all_operations_message(
-                                    message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
-                                    level="info", source="debug", operation=task.callback.operation)
-                            status = await send_pt_rabbitmq_message(payload_type=task.callback.registered_payload.payload_type.ptype,
-                                                                    command="process_container",
-                                                                    username="",
-                                                                    reference_id=task.id,
-                                                                    message_body=js.dumps(rabbit_message))
-                            if status["status"] == "error" and "type" in status:
-                                logger.error("response_api.py: sending process_response message: " + status["error"])
-                                await app.db_objects.create(Response, task=task,
-                                                            response="Container not running, failed to process process_response data, saving here")
-                                await app.db_objects.create(Response, task=task, response=parsed_response["process_response"])
-                                task.callback.registered_payload.payload_type.container_count = 0
-                                await app.db_objects.update(task.callback.registered_payload.payload_type)
-                            if status["status"] == "error":
-                                logger.error("response_api.py: sending process_response message: " + status["error"])
+                            if payload_info["status"] == "error":
+                                asyncio.create_task(
+                                    send_all_operations_message(
+                                        message=f"Failed to process post_response message for task {task.id}:\n{payload_info['error']}",
+                                        level="warning", source=f"task_response_{task.id}"))
+                            else:
+                                rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
+                                    "build_parameters"
+                                ]
+                                rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+                                tags = await app.db_objects.execute(
+                                    db_model.tasktag_query.where(db_model.TaskTag.task == task))
+                                rabbit_message["task"]["tags"] = [t.tag for t in tags]
+                                rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
+                                rabbit_message["response"] = parsed_response["process_response"]
+                                if app.debugging_enabled:
+                                    await send_all_operations_message(
+                                        message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
+                                        level="info", source="debug", operation=task.callback.operation)
+                                status = await send_pt_rabbitmq_message(payload_type=task.callback.registered_payload.payload_type.ptype,
+                                                                        command="process_container",
+                                                                        username="",
+                                                                        reference_id=task.id,
+                                                                        message_body=js.dumps(rabbit_message))
+                                if status["status"] == "error" and "type" in status:
+                                    logger.error("response_api.py: sending process_response message: " + status["error"])
+                                    await app.db_objects.create(Response, task=task,
+                                                                response="Container not running, failed to process process_response data, saving here")
+                                    await app.db_objects.create(Response, task=task, response=parsed_response["process_response"])
+                                    task.callback.registered_payload.payload_type.container_count = 0
+                                    await app.db_objects.update(task.callback.registered_payload.payload_type)
+                                elif status["status"] == "error":
+                                    logger.error("response_api.py: sending process_response message: " + status["error"])
                         except Exception as pc:
                             logger.error("response_api.py: " + str(sys.exc_info()[-1].tb_lineno) + str(pc))
                             if app.debugging_enabled:

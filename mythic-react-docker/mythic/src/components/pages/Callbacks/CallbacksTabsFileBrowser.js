@@ -167,6 +167,7 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
                 if(data.filebrowserobj[0]["host"] === root["host"]){
                     // for each element we get back, add to this root
                     let workingSet = {...root};
+                    found = true;
                     mergeData(workingSet, data.filebrowserobj[0].parent_id, data.filebrowserobj);
                     return workingSet;
                 }else{
@@ -175,19 +176,21 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
             });
             if(!found){
                 // we need to add this as a root element
+                newRoots.push(data.filebrowserobj[0]);
+                mergeData(data.filebrowserobj[0], data.filebrowserobj[0].parent_id, data.filebrowserobj);
             }
-            console.log("setting new roots");
+            //console.log("setting new roots");
             setFileBrowserRootsState(newRoots);
         }
     });
     const mergeData = useCallback( (search, parent_id, all_objects) => {
         //merge the obj into fileBrowserRoots
-        console.log('in mergeData');
+        //console.log('in mergeData');
         // might need to do a recursive call
         // if this is a folder with children, check the children
         if(parent_id === search.id){
             // iterate for each child we're trying to update/insert
-            console.log("found parent, setting children");
+            //console.log("found parent, setting children");
             for(let i = 0; i < all_objects.length; i++){
                if(search.filebrowserobjs[all_objects[i].id] === undefined){
                 search.filebrowserobjs[all_objects[i].id] = {...all_objects[i], filebrowserobjs: {}}
@@ -195,7 +198,7 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
                 search.filebrowserobjs[all_objects[i].id] = {...all_objects[i], filebrowserobjs: search.filebrowserobjs[all_objects[i].id].filebrowserobjs}
                }
             }
-            console.log("found parent, set children, returning");
+            //console.log("found parent, set children, returning");
             return true;
         }
         // this current search isn't all_object's parent, so check search's children for our parent
@@ -249,7 +252,7 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
         fetchPolicy: "network-only"
     });
     useEffect( () => {
-        console.log("useEffect for many things");
+        //console.log("useEffect for many things");
         if(selectedCommand["cmd"] !== undefined){
             switch(uiFeature){
                 case "file_browser:list":
@@ -307,10 +310,12 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
         const callbackData = props.getCallbackData({callbackID});
         // clear out commands and re-fetch
         setFileBrowserCommands([]);
-        if(callbackData.length > 0){
-            setSearchCallback({...callbackData[0], "ui_feature": ".*file_browser:list.*", fullPath});
+        if(Object.keys(callbackData).length > 0){
+            setSearchCallback({...callbackData, "ui_feature": ".*file_browser:list.*", fullPath});
             setUIFeature("file_browser:list");
         }else{
+            console.log(callbackID);
+            console.log(callbackData);
             snackActions.warning("Callback doesn't exist or isn't active");
         }
     }
@@ -318,8 +323,8 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
         const callbackData = props.getCallbackData({callbackID});
         // clear out commands and re-fetch
         setFileBrowserCommands([]);
-        if(callbackData.length > 0){
-            setSearchCallback({...callbackData[0], "ui_feature": ".*file_browser:upload.*"});
+        if(Object.keys(callbackData).length > 0){
+            setSearchCallback({...callbackData, "ui_feature": ".*file_browser:upload.*"});
             setUIFeature("file_browser:upload")
         }else{
             snackActions.warning("Callback doesn't exist or isn't active");
@@ -356,7 +361,7 @@ export const CallbacksTabsFileBrowserPanel = (props) =>{
         currentCallbackIDSetInTable.current = callbackID;
     }
     const subscribeToMoreCallback = useCallback( (prev, {subscriptionData}) => {
-        console.log("new data:", subscriptionData);
+        //console.log("new data:", subscriptionData);
         let updatingData = [...fileBrowserRoots.current];
         subscriptionData.data.filebrowserobj.forEach( (obj) => {
             let found = false;
@@ -462,7 +467,7 @@ const FileBrowserTableTop = ({selectedFolderData, onListFilesButton, onUploadFil
         }
     }
     useEffect( () => {
-        console.log("useEffect for onChangeCAllbackID")
+        //console.log("useEffect for onChangeCAllbackID")
         onChangeCallbackID(callbackID);
     }, [callbackID])
     useEffect( () => {

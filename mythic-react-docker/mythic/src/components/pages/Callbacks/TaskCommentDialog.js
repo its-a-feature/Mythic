@@ -63,7 +63,7 @@ export function TaskCommentDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Edit Task Comment</DialogTitle>
         <DialogContent dividers={true}>
-            <MythicTextField multiline={true} onChange={onChange} value={comment} />
+            <MythicTextField autoFocus multiline={true} onChange={onChange} value={comment} />
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">

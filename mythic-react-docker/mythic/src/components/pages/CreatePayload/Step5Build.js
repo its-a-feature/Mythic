@@ -19,7 +19,7 @@ import {snackActions} from '../../utilities/Snackbar';
 
 export function Step5Build(props){
     const [filename, setFilename] = React.useState("");
-    const [description, setDescription] = React.useState();
+    const [description, setDescription] = React.useState("");
     const [createPayloadMutation] = useMutation(create_payload, {
         update: (cache, {data}) => {
             if(data.createPayload.status === "success"){
@@ -82,7 +82,7 @@ export function Step5Build(props){
             <MythicTextField required={false} placeholder={"description"} value={description} multiline={false} onChange={onChangeDescription} display="inline-block"/>
             <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled} finished={finished} />
             <br/><br/>
-            <PayloadSubscriptionNotification fromNow/>
+            <PayloadSubscriptionNotification/>
         </div>
     );
 } 

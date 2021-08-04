@@ -14,6 +14,7 @@ mythic_admin_user = str(settings.get("ADMIN_USER", "mythic_admin"))
 mythic_admin_password = str(settings.get("ADMIN_PASSWORD", "mythic_password"))
 default_operation_name = str(settings.get("DEFAULT_OPERATION_NAME", "Operation Chimera"))
 nginx_port = str(settings.get("NGINX_PORT", 7443))
+nginx_host = str(settings.get("NGINX_HOST", "127.0.0.1"))
 listen_port = str(settings.get("SERVER_PORT", 17443))
 allowed_ip_blocks = settings.get("ALLOWED_IP_BLOCKS", "0.0.0.0/0").split(",")
 server_header = settings.get("SERVER_HEADER", "nginx 1.2")
@@ -40,6 +41,7 @@ if jwt_secret is None:
         "No MYTHIC_JWT_SECRET environment variable found")
     sys.exit(1)
 redis_port = int(settings.get("REDIS_PORT", 6379))
+redis_host = settings.get("REDIS_HOST", "127.0.0.1")
 # --------------------------------------------
 # --------------------------------------------
 # IP to bind to for the server, 0.0.0.0 means all local IPv4 addresses
@@ -151,7 +153,7 @@ mythic_logging["loggers"]["sanic.root"]["handlers"].append("rotating_root_log")
 
 mythic = Sanic(__name__, strict_slashes=False, log_config=mythic_logging)
 
-mythic.config["SERVER_IP_ADDRESS"] = "127.0.0.1"
+mythic.config["SERVER_IP_ADDRESS"] = nginx_host
 mythic.config["SERVER_PORT"] = nginx_port
 mythic.config["DB_HOST"] = db_host
 mythic.config["DB_PORT"] = db_port

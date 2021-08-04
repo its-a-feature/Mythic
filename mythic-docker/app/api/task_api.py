@@ -1017,12 +1017,14 @@ async def issue_dynamic_parameter_call(command: str, parameter_name: str, payloa
         rabbitmq_message = callback.to_json()
         # get the information for the callback's associated payload
         payload_info = await add_all_payload_info(callback.registered_payload)
+        if payload_info["status"] == "error":
+            return {"status": "error", "error": payload_info["error"]}
         rabbitmq_message["build_parameters"] = payload_info[
             "build_parameters"
         ]
         rabbitmq_message["c2info"] = payload_info["c2info"]
     except Exception as e:
-        return {"status": "error", "error": "Failed to get callback and payload information"}, False
+        return {"status": "error", "error": "Failed to get callback and payload information"}
     status, successfully_sent = await payload_rpc.call(message={
         "action": parameter_name,
         "command": command,
@@ -1238,6 +1240,8 @@ async def submit_task_to_container(task, username, params: str = None):
         rabbit_message["task"]["callback"] = task.callback.to_json()
         # get the information for the callback's associated payload
         payload_info = await add_all_payload_info(task.callback.registered_payload)
+        if payload_info["status"] == "error":
+            return payload_info
         rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
             "build_parameters"
         ]
@@ -1280,6 +1284,8 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
         rabbit_message["task"]["callback"] = task.callback.to_json()
         # get the information for the callback's associated payload
         payload_info = await add_all_payload_info(task.callback.registered_payload)
+        if payload_info["status"] == "error":
+            return payload_info
         rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
             "build_parameters"
         ]
@@ -1308,54 +1314,64 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
 
 
 async def add_all_payload_info(payload):
-    rabbit_message = {}
-    if payload.uuid in cached_payload_info:
-        rabbit_message["build_parameters"] = cached_payload_info[payload.uuid][
-            "build_parameters"
-        ]
-        rabbit_message["commands"] = cached_payload_info[payload.uuid]["commands"]
-        rabbit_message["c2info"] = cached_payload_info[payload.uuid]["c2info"]
-    else:
-        cached_payload_info[payload.uuid] = {}
-        build_parameters = {}
-        build_params = await app.db_objects.execute(
-            db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == payload)
-        )
-        for bp in build_params:
-            build_parameters[bp.build_parameter.name] = bp.parameter
-        rabbit_message["build_parameters"] = build_parameters
-        # cache it for later
-        cached_payload_info[payload.uuid]["build_parameters"] = build_parameters
-        c2_profile_parameters = []
-        payloadc2profiles = await app.db_objects.execute(
-            db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
-        )
-        for pc2p in payloadc2profiles:
-            # for each profile, we need to get all of the parameters and supplied values for just that profile
-            param_dict = {}
-            c2_param_instances = await app.db_objects.execute(
-                db_model.c2profileparametersinstance_query.where(
-                    (C2ProfileParametersInstance.payload == payload)
-                    & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
+    rabbit_message = {"status": "success"}
+    try:
+        if payload.uuid in cached_payload_info:
+            rabbit_message["build_parameters"] = cached_payload_info[payload.uuid][
+                "build_parameters"
+            ]
+            rabbit_message["commands"] = cached_payload_info[payload.uuid]["commands"]
+            rabbit_message["c2info"] = cached_payload_info[payload.uuid]["c2info"]
+        else:
+            cached_payload_info[payload.uuid] = {}
+            build_parameters = {}
+            build_params = await app.db_objects.execute(
+                db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == payload)
+            )
+            for bp in build_params:
+                build_parameters[bp.build_parameter.name] = bp.parameter
+            rabbit_message["build_parameters"] = build_parameters
+            # cache it for later
+            cached_payload_info[payload.uuid]["build_parameters"] = build_parameters
+            c2_profile_parameters = []
+            payloadc2profiles = await app.db_objects.execute(
+                db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
+            )
+            for pc2p in payloadc2profiles:
+                # for each profile, we need to get all of the parameters and supplied values for just that profile
+                param_dict = {}
+                c2_param_instances = await app.db_objects.execute(
+                    db_model.c2profileparametersinstance_query.where(
+                        (C2ProfileParametersInstance.payload == payload)
+                        & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
+                    )
                 )
-            )
-            # save all the variables off to a dictionary for easy looping
-            for instance in c2_param_instances:
-                param = instance.c2_profile_parameters
-                param_dict[param.name] = instance.value
+                # save all the variables off to a dictionary for easy looping
+                for instance in c2_param_instances:
+                    param = instance.c2_profile_parameters
+                    param_dict[param.name] = instance.value
 
-            c2_profile_parameters.append(
-                {"parameters": param_dict, **pc2p.c2_profile.to_json()}
-            )
-        rabbit_message["c2info"] = c2_profile_parameters
-        cached_payload_info[payload.uuid]["c2info"] = c2_profile_parameters
-        stamped_commands = await app.db_objects.execute(db_model.payloadcommand_query.where(
-            db_model.PayloadCommand.payload == payload
-        ))
-        commands = [c.command.cmd for c in stamped_commands]
-        rabbit_message["commands"] = commands
-        cached_payload_info[payload.uuid]["commands"] = commands
-    return rabbit_message
+                c2_profile_parameters.append(
+                    {"parameters": param_dict, **pc2p.c2_profile.to_json()}
+                )
+            rabbit_message["c2info"] = c2_profile_parameters
+            cached_payload_info[payload.uuid]["c2info"] = c2_profile_parameters
+            stamped_commands = await app.db_objects.execute(db_model.payloadcommand_query.where(
+                db_model.PayloadCommand.payload == payload
+            ))
+            commands = [c.command.cmd for c in stamped_commands]
+            rabbit_message["commands"] = commands
+            cached_payload_info[payload.uuid]["commands"] = commands
+        return rabbit_message
+    except Exception as e:
+        rabbit_message["status"] = "error"
+        rabbit_message["error"] = str(e)
+        from app.api.operation_api import send_all_operations_message
+        asyncio.create_task(
+            send_all_operations_message(
+                message=f"Failed to fetch Payload info for {payload.uuid}:\n{str(e)}",
+                level="warning"))
+        return rabbit_message
 
 
 async def add_command_attack_to_task(task, command):

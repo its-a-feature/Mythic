@@ -72,7 +72,7 @@ export const CallbacksTabsFileBrowserTable = (props) => {
         {key: "actions", align: "center", numeric: false, dataKey: 'actions', title: "Actions", format: 'actions', width: 100, hidden:false},
     ]
     useEffect( () => {
-        console.log("useEffect for props.selectedFolder in filebrowsertable");
+        //console.log("useEffect for props.selectedFolder in filebrowsertable");
         setAllData(props.selectedFolder);
     }, [props.selectedFolder]);
     const onColumnSort = sortBy => {
