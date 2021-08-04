@@ -131,6 +131,7 @@ export function EventFeed(props){
       },
       fetchPolicy: "network-only",
       onCompleted: (data) => {
+        snackActions.dismiss();
           if(data.operationeventlog.length === 0){
             snackActions.info("No more events");
             return;
@@ -143,6 +144,7 @@ export function EventFeed(props){
           }, [...operationeventlog]);
           setOffset(offset + EVENT_QUERY_SIZE);
           setOperationEventLog(newEvents);
+        snackActions.success("Successfully fetched more events");
       }
   });
   const [getSurroundingEventQuery] = useLazyQuery(GET_Surrounding_Events, {
@@ -151,13 +153,22 @@ export function EventFeed(props){
     },
     fetchPolicy: "network-only",
     onCompleted: (data) => {
+        snackActions.dismiss();
+        let foundNew = false;
         const newEvents = data.operationeventlog.reduce( (prev, cur) => {
           if(prev.find(({ id }) => id === cur.id)){
             return [...prev];
           }
+          foundNew = true;
           return [...prev, cur];
         }, [...operationeventlog]);
         setOperationEventLog(newEvents);
+        if(foundNew){
+          snackActions.success("Successfully fetched surrounding events");
+        }else{
+          snackActions.info("No additional surrounding events");
+        }
+        
     }
 });
   const [getNextError] = useLazyQuery(GET_Event_Feed_Next_Error, {
@@ -166,6 +177,7 @@ export function EventFeed(props){
     },
     fetchPolicy: "network-only",
     onCompleted: (data) => {
+      snackActions.dismiss();
         if(data.operationeventlog.length === 0){
           snackActions.info("No more events");
           return;
@@ -177,6 +189,7 @@ export function EventFeed(props){
           return [...prev, cur];
         }, [...operationeventlog]);
         setOperationEventLog(newEvents);
+        snackActions.success("Successfully fetched more errors");
     }
   });
   const [newOperationEventLog] = useMutation(Create_Operational_Event_Log);
@@ -185,6 +198,7 @@ export function EventFeed(props){
         const removedMessage = data.update_operationeventlog.returning[0];
         const newMessages = operationeventlog.filter(op => (op.id !== removedMessage.id));
         setOperationEventLog(newMessages);
+        snackActions.success("Successfully deleted event log");
     }
   });
   const [updateResolution] = useMutation(Update_Resolution, {
@@ -212,6 +226,7 @@ export function EventFeed(props){
     }
   });
   const onUpdateDeleted = ({id}) => {
+      snackActions.info("Deleting event log...");
       updateDeleted({variables: {id}});
   }
   const onSubmitMessage = ({level, message}) => {
@@ -224,12 +239,15 @@ export function EventFeed(props){
     updateLevel({variables: {id}})
   }
   const loadMore = () => {
+    snackActions.info("Loading more events...");
     getMoreTasking({variables: {operation_id: me.user.current_operation_id, offset: offset, eventQuerySize: EVENT_QUERY_SIZE}})
   }
   const loadNextError = () => {
+    snackActions.info("Loading more errors...");
     getNextError({variables: {operation_id: me.user.current_operation_id}})
   }
   const getSurroundingEvents = ({id}) => {
+    snackActions.info("Loading surrounding events...");
     getSurroundingEventQuery({variables: {lower_id: id - SURROUNDING_EVENTS, upper_id: id + SURROUNDING_EVENTS, operation_id: me.user.current_operation_id}})
   }
   return (

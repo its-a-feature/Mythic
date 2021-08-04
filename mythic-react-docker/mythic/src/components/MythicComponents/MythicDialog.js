@@ -56,7 +56,7 @@ export function MythicModifyStringDialog(props) {
     <React.Fragment>
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
         <DialogContent dividers={true}>
-          <MythicTextField multiline={true} onChange={onChange} value={comment} />
+          <MythicTextField autoFocus onChange={onChange} value={comment} />
         </DialogContent>
         <DialogActions>
           <Button onClick={props.onClose} variant="contained" color="primary">

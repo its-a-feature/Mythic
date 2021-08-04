@@ -270,7 +270,7 @@ export function TaskTagDialog(props) {
           </Grid>
           <Grid item xs={5}>{customList("Applied Tags To Task", right)}</Grid>
         </Grid>
-        <MythicTextField multiline={false} name="Add New Tag..." onChange={onChange} value={newTag} style={{display:"inline-block"}} 
+        <MythicTextField autoFocus multiline={false} name="Add New Tag..." onChange={onChange} value={newTag} style={{display:"inline-block"}} 
           InputProps={{
                     endAdornment:
                     <React.Fragment>

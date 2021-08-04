@@ -478,9 +478,17 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                 return {"status": "success", "new": new_payload, **payload_type.to_json()}
             except Exception as e:
                 logger.exception("exception on importing payload type {}".format(payload_type.ptype))
+                asyncio.create_task(
+                    send_all_operations_message(
+                        message=f"{rabbitmqName}'s sync with Mythic failed:\n" + str(e),
+                        level="warning", source="payload_type_import"))
                 return {"status": "error", "error": str(e)}
         except Exception as e:
             logger.exception("failed to import a payload type: " + str(e))
+            asyncio.create_task(
+                send_all_operations_message(
+                    message=f"{rabbitmqName}'s sync with Mythic failed:\n" + str(e),
+                    level="warning", source="payload_type_import"))
             return {"status": "error", "error": str(e)}
 
 

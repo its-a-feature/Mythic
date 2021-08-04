@@ -645,6 +645,8 @@ async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
         from app.api.task_api import add_all_payload_info
 
         payload_info = await add_all_payload_info(payload)
+        if payload_info["status"] == "error":
+            return payload_info
         payload_json["commands"] = payload_info["commands"]
         payload_json["c2info"] = payload_info["c2info"]
         payload_json["build_parameters"] = payload_info["build_parameters"]
@@ -920,6 +922,8 @@ async def handle_automated_payload_creation_response(task, rsp, data, host):
         from app.api.task_api import add_all_payload_info
 
         payload_info = await add_all_payload_info(payload)
+        if payload_info["status"] == "error":
+            return payload_info
         payload_info = {**payload_info, **payload.to_json()}
         return {"status": "success", "response": payload_info}
     else:

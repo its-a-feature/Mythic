@@ -126,7 +126,7 @@ export const CallbacksTabsFileBrowserTree = ({treeRoot, fetchFolderData, setTabl
         }
     }
     return (
-        treeRoot.length === 0 ? (null) : (
+        treeRoot.length === 0 ? (<div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", left: "50%", top: "50%"}}>No File Browser Data Collected</div>) : (
             <Autosizer>
                 {({height, width}) => (
                     <FixedSizeTree

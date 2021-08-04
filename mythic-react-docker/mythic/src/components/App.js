@@ -61,7 +61,7 @@ export function App(props) {
     const theme = React.useMemo( () => createMuiTheme({
         palette: {
           primary: {
-                  main: "#617AB1"
+                  main: "#7f93c0"
               },
           secondary: {
                   main: "#a791c3"
@@ -86,6 +86,10 @@ export function App(props) {
             primary: themeMode === 'dark' ? '#fff' : '#000',
             secondary: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.7)': 'rgba(0, 0, 0, 0.54)'
           },
+          textBackgroundColor: themeMode === 'dark' ? '#74828b' : '#d9dbdc',
+          textBackgroundColorMythic: themeMode === 'dark' ? '#436b9f': '#aadcf5',
+          textBackgroundColorSuccess: themeMode === 'dark' ? '#09a21a' : '#70e373',
+          textBackgroundColorError: themeMode === 'dark' ? '#9f1616' : '#f19da3',
           graphGroup: themeMode === 'dark' ? '#394c5d' : "#d3d7e8"
         },
         folderColor: '#f1d592',
@@ -111,7 +115,7 @@ export function App(props) {
                 }}>
                 <SnackbarUtilsConfigurator />
                 <div className="App">
-                    {me.loggedIn  && me.user !== undefined && me.user !== null ? (<TopAppBar theme={themeMode} toggleTheme={themeToggler}/>) : (null)}
+                    {me.loggedIn && me.user !== undefined && me.user !== null ? (<TopAppBar theme={themeMode} toggleTheme={themeToggler}/>) : (null)} 
                     <div className={clsx(classes.content, {[classes.contentShift]: isOpen,})}>
                         <Switch>
                             <LoggedInRoute exact path='/new' component={Home} />

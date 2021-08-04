@@ -225,14 +225,14 @@ export const CallbacksTabsProcessBrowserPanel = (props) =>{
         }
     });
     useQuery(getLatestTaskForHost, {
-        variables: {operation_id: me.user.current_operation_id, host: props.callback[0].host},
+        variables: {operation_id: me.user.current_operation_id, host: props.callback.host},
         onCompleted: (data) => {
             if(data.process_aggregate.aggregate.max.task_id === null){
-                snackActions.warning("No Process Data for " + props.callback[0].host)
+                snackActions.warning("No Process Data for " + props.callback.host)
             }else{
-                snackActions.info("Fetching latest process data for " + props.callback[0].host);
+                snackActions.info("Fetching latest process data for " + props.callback.host);
                 getNextProcessDataByHostAndTask({variables: {operation_id: me.user.current_operation_id, 
-                    host: props.callback[0].host,
+                    host: props.callback.host,
                     task_id: data.process_aggregate.aggregate.max.task_id - 1
                 }});
             }
@@ -315,13 +315,13 @@ export const CallbacksTabsProcessBrowserPanel = (props) =>{
     }
     const onNextButton = ({task_id}) => {
         getNextProcessDataByHostAndTask({variables: {operation_id: me.user.current_operation_id, 
-            host: props.callback[0].host,
+            host: props.callback.host,
             task_id: task_id
         }})
     }
     const onPreviousButton = ({task_id}) => {
         getPreviousProcessDataByHostAndTask({variables: {operation_id: me.user.current_operation_id, 
-            host: props.callback[0].host,
+            host: props.callback.host,
             task_id: task_id
         }})
     }

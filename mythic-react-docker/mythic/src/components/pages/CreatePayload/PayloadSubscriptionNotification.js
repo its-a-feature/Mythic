@@ -164,13 +164,9 @@ const SnackMessageError = React.forwardRef((props, ref) => {
     );
 });
 export function PayloadSubscriptionNotification(props) {
-    const [fromNow, setFromNow] = React.useState(null);
+    const [fromNow, setFromNow] = React.useState( (new Date().toISOString()));
     const { loading, error, data } = useSubscription(subscribe_payloads, {variables: {fromNow}});
-    
-    
-    useEffect( () => {
-        setFromNow(new Date().toISOString());
-    }, []);
+
     useEffect( () => {
         if(!loading && !error && data && data.payload.length > 0){
             if(data.payload[0].build_phase === "success"){

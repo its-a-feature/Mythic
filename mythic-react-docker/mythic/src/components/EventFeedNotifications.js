@@ -39,7 +39,7 @@ export function EventFeedNotifications(props) {
                 return;
             }
             if(data.operationeventlog[0].operator ){
-                const message = data.operationeventlog[0].operator.username + ":" + data.operationaleventlog[0].message;
+                const message = data.operationeventlog[0].operator.username + ":" + data.operationeventlog[0].message;
                 snackActions.toast(message, data.operationeventlog[0].level, { autoHideDuration: 3000});
             }else if(!data.operationeventlog[0].operator){
                 snackActions.toast(data.operationeventlog[0].message, data.operationeventlog[0].level, {autoHideDuration: 3000});

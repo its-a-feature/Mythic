@@ -25,7 +25,7 @@ export function HeightsDialog(props) {
         <DialogTitle id="form-dialog-title">Adjust sizes of Top/Bottom sections</DialogTitle>
         <DialogContent dividers={true}>
             <React.Fragment>
-                <MythicTextField value={heights.top} onChange={onChange} name="top" type="number"/>
+                <MythicTextField autoFocus value={heights.top} onChange={onChange} name="top" type="number"/>
                 <MythicTextField value={heights.bottom} onChange={onChange} name="bottom" type="number"/>
             </React.Fragment>
         </DialogContent>
