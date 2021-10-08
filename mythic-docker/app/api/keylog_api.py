@@ -5,6 +5,9 @@ from app.database_models.model import Task, Keylog
 from sanic_jwt.decorators import scoped, inject_user
 import app.database_models.model as db_model
 from sanic.exceptions import abort
+import asyncio
+from app.api.siem_logger import log_to_siem
+from app.api.operation_api import send_all_operations_message
 
 
 # Get all keystrokes for an operation
@@ -113,3 +116,32 @@ async def get_callback_keystrokes(request, user, kid):
                 "error": "failed to select keylog information from database for that callback",
             }
         )
+
+
+async def add_keylogs(parsed_responses: list, task):
+    for parsed_response in parsed_responses:
+        if (
+                "window_title" not in parsed_response
+                or parsed_response["window_title"] is None
+                or parsed_response["window_title"] == ""
+        ):
+            parsed_response["window_title"] = "UNKNOWN"
+        if (
+                "user" not in parsed_response
+                or parsed_response["user"] is None
+                or parsed_response["user"] == ""
+        ):
+            parsed_response["user"] = "UNKNOWN"
+        try:
+            rsp = await app.db_objects.create(
+                Keylog,
+                task=task,
+                window=parsed_response["window_title"],
+                keystrokes=parsed_response["keystrokes"].encode("utf-8"),
+                operation=task.callback.operation,
+                user=parsed_response["user"],
+            )
+            asyncio.create_task(log_to_siem(mythic_object=rsp, mythic_source="keylog_new"))
+        except Exception as e:
+            await send_all_operations_message(message=f"Failed to add the following keystrokes to the operation:\n{parsed_response['keystrokes']}\nError: {str(e)}",
+                                              level="warning", operation=task.callback.operation)

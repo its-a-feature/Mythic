@@ -34,7 +34,16 @@ type Mutation {
     params: String!
     files: String
     callback_id: Int!
+    token: Int
   ): createTaskOutput
+}
+
+type Mutation {
+  create_c2_instance (
+    c2_instance: String!
+    instance_name: String!
+    c2profile_id: Int!
+  ): createc2instanceOutput
 }
 
 type Query {
@@ -60,6 +69,12 @@ type Mutation {
 }
 
 type Query {
+  export_payload_config (
+    uuid: String!
+  ): PayloadConfig
+}
+
+type Query {
   getProfileOutput (
     id: Int!
   ): ProfileOutput
@@ -78,6 +93,18 @@ type Query {
 }
 
 type Mutation {
+  reissue_task (
+    task_id: Int!
+  ): ReissueTaskOutput
+}
+
+type Mutation {
+  reissue_task_handler (
+    task_id: Int!
+  ): ReissueTaskHandlerOutput
+}
+
+type Mutation {
   requestOpsecBypass (
     task_id: Int!
   ): BypassOutput
@@ -88,6 +115,12 @@ type Mutation {
     id: Int!
     action: String
   ): startStopOutput
+}
+
+type Mutation {
+  stop_socks (
+    callback_id: Int!
+  ): StopSocksOutput
 }
 
 type Mutation {
@@ -234,5 +267,31 @@ type ConfigCheckOutput {
   status : String!
   error : String
   output : String
+}
+
+type createc2instanceOutput {
+  status : String!
+  error : String
+}
+
+type PayloadConfig {
+  config : String
+  status : String!
+  error : String
+}
+
+type ReissueTaskOutput {
+  status : String!
+  error : String
+}
+
+type ReissueTaskHandlerOutput {
+  status : String!
+  error : String
+}
+
+type StopSocksOutput {
+  status : String!
+  error : String
 }
 

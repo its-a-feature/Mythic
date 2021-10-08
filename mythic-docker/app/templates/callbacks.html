@@ -403,7 +403,7 @@
                     <div :key="'outputcontent' + task.id" class="collapse" :id="'cardbody' + task.id" style="">
                         <div :key="'outputcontentcardbody' + task.id" class="response-background card-body shadow" style="padding-top:0;padding-bottom: 0;" >
                             <span :key="'usescripted' + task.id" v-if="task.hasOwnProperty('scripted') && task.use_scripted" v-html="task.scripted"></span>
-                            <span v-else :key="'useregular' + task.id" class="card-text" v-for="rsp in task.response" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap"><span class="response"><pre>[[rsp.response]]</pre></span></span>
+                            <span v-else :key="'useregular' + task.id" class="card-text" v-for="rsp in task.response" :key="rsp.id" :id="'response' + rsp.id" style="white-space: pre-wrap;"><span class="response"><pre>[[rsp.response]]</pre></span></span>
                         </div>
                     </div>
                     </transition-group>

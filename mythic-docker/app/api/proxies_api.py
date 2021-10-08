@@ -54,3 +54,27 @@ async def stop_socks_in_callback(request, user, pid):
     except Exception as e:
         print(str(e))
         return json({"status": "error", "error": "failed to find proxy"})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/stop_proxy_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def stop_socks_in_callback_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        if user["view_mode"] == "spectator":
+            return json({"status": "error", "error": "Spectators cannot stop socks"})
+        data = request.json["input"]
+        proxy = await app.db_objects.get(db_model.callback_query, id=data["callback_id"])
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        await stop_socks(proxy, operator)
+        return json({"status": "success"})
+    except Exception as e:
+        print(str(e))
+        return json({"status": "error", "error": "failed to find proxy"})

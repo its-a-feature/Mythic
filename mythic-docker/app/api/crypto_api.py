@@ -94,6 +94,6 @@ async def staging_rsa(decrypted_message_json, UUID):
     }
     # print("created response: " + js.dumps(response))
     for k in decrypted_message_json:
-        if k not in ["session_id", "pub_key", "action", "delegates"]:
+        if k not in ["session_id", "pub_key", "action", "delegates", "uuid", "session_key"]:
             response[k] = decrypted_message_json[k]
     return response, stage_info

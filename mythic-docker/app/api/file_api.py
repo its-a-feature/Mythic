@@ -19,6 +19,7 @@ from app.api.siem_logger import log_to_siem
 from app.api.operation_api import send_all_operations_message
 from app.api.file_browser_api import add_upload_file_to_file_browser
 import asyncio
+import datetime
 
 
 @mythic.route(mythic.config["API_BASE"] + "/files", methods=["GET"])
@@ -136,237 +137,280 @@ async def download_file_direct(request, fid: str):
 
 # this is the function for the 'upload' action of file from Mythic to agent
 async def download_agent_file(data, in_response: bool = False, task_id: str = None):
-    response_data = {}
-    if "task_id" not in data:
-        data["task_id"] = task_id
-    for k in data:
-        if k not in ["action", "total_chunks", "chunk_num", "chunk_data", "file_id", "task_id", "full_path"]:
-            response_data[k] = data[k]
-    if "task_id" not in data and not in_response:
-        return {
-            **response_data,
-            "action": "upload",
-            "total_chunks": 0,
-            "chunk_num": 0,
-            "chunk_data": "",
-            "file_id": data["file_id"],
-            "task_id": "",
-        }
     try:
-        file_meta = await app.db_objects.get(db_model.filemeta_query, agent_file_id=data["file_id"])
-    except Exception as e:
-        logger.warning("file_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-        if app.debugging_enabled:
-            await send_all_operations_message(
-                message=f"action 'Upload', failed to find file_id of {data['file_id']}",
-                level="info", source="debug")
-        if not in_response:
+        response_data = {}
+        if "task_id" not in data or not data["task_id"]:
+            data["task_id"] = task_id
+        for k in data:
+            if k not in ["action", "total_chunks", "chunk_num", "chunk_data", "file_id", "task_id", "full_path"]:
+                response_data[k] = data[k]
+        if "task_id" not in data and not in_response:
             return {
                 **response_data,
                 "action": "upload",
                 "total_chunks": 0,
                 "chunk_num": 0,
                 "chunk_data": "",
-                "file_id": "",
-                "task_id": data["task_id"],
+                "file_id": data["file_id"],
+                "task_id": "",
             }
-        else:
-            return {"status": "error", "error": "Failed to find that FileID"}
-    # now that we have the file metadata, get the file if it's done downloading
-    if (
-        "full_path" in data
-        and data["full_path"] is not None
-        and data["full_path"] != ""
-    ):
-        task = await app.db_objects.get(db_model.task_query, agent_task_id=data["task_id"])
-        if file_meta.task is None or file_meta.task != task:
-            # this means the file was hosted on the mythic server and is being pulled down by an agent
-            # or means that another task is pulling down a file that was generated from a different task
-            fm = await app.db_objects.create(
-                db_model.FileMeta,
-                task=task,
-                total_chunks=file_meta.total_chunks,
-                chunks_received=file_meta.chunks_received,
-                chunk_size=file_meta.chunk_size,
-                complete=file_meta.complete,
-                path=file_meta.path,
-                full_remote_path=data["full_path"].encode("utf-8"),
-                operation=task.callback.operation,
-                md5=file_meta.md5,
-                sha1=file_meta.sha1,
-                delete_after_fetch=False,
-                deleted=False,
-                operator=task.operator,
-                host=file_meta.host.upper(),
-            )
-            asyncio.create_task(add_upload_file_to_file_browser(fm.operation, fm.task, fm,
-                                                  {"host": fm.host,
-                                                   "full_path": bytes(fm.full_remote_path).decode("utf-8")}))
-        else:
-            # this file_meta is already associated with a task, check if it's the same
-            if file_meta.full_remote_path is None or file_meta.full_remote_path == "":
-                file_meta.full_remote_path = data["full_path"].encode("utf-8")
-                try:
-                    fb_object = await app.db_objects.get(
-                        db_model.filebrowserobj_query,
-                        full_path=file_meta.full_remote_path,
-                        host=file_meta.host.upper(),
-                    )
-                    if file_meta.file_browser is None:
-                        file_meta.file_browser = fb_object
-                        await app.db_objects.update(file_meta)
-                except Exception as e:
-                    # no associated file meta object, so create one
-                    asyncio.create_task(add_upload_file_to_file_browser(file_meta.operation, file_meta.task,
-                                                          file_meta, {"host": file_meta.host,
-                                                                      "full_path": bytes(file_meta.full_remote_path).decode("utf-8")}))
-            else:
-                file_meta.full_remote_path = data["full_path"].encode("utf-8")
-                asyncio.create_task(add_upload_file_to_file_browser(file_meta.operation, file_meta.task,
-                                                                    file_meta, {"host": file_meta.host,
-                                                                                "full_path": bytes(
-                                                                                    file_meta.full_remote_path).decode(
-                                                                                    'utf-8')}))
-                await app.db_objects.update(file_meta)
-    if file_meta.complete and not file_meta.deleted:
-        chunk_size = 512000
-        if "chunk_size" in data:
-            chunk_size = data["chunk_size"]
-        total_chunks = ceil(float(os.path.getsize(file_meta.path)) / float(chunk_size))
-        chunk_num = 1
-        if "chunk_num" in data:
-            data["chunk_num"] = abs(data["chunk_num"])
-            if data["chunk_num"] == 0:
-                data["chunk_num"] = 1
-            if data["chunk_num"] > total_chunks:
-                logger.exception(
-                    "Request a chunk that doesn't exist in download_agent_file: "
-                    + data["file_id"]
-                    + "\n total_chunks: "
-                    + str(total_chunks)
-                    + " requested chunk: "
-                    + str(data["chunk_num"])
-                )
-                if not in_response:
-                    return {
-                        **response_data,
-                        "action": "upload",
-                        "total_chunks": total_chunks,
-                        "chunk_num": 0,
-                        "chunk_data": "",
-                        "file_id": data["file_id"],
-                        "task_id": data["task_id"],
-                    }
-                else:
-                    return {"status": "error", "error": "requested chunk_num greater than total chunks"}
-            else:
-                chunk_num = data["chunk_num"]
-        # now to read the actual file and get the right chunk
-        if app.debugging_enabled:
-            if not in_response:
-                await send_all_operations_message(
-                    message=f"action 'Upload' for file_id {file_meta.agent_file_id}, using chunk_size of {str(chunk_size)}, getting chunk {str(chunk_num)}",
-                    level="info", operation=file_meta.operation, source="debug")
-            else:
-                await send_all_operations_message(
-                    message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, using chunk_size of {str(chunk_size)}, getting chunk {str(chunk_num)}",
-                    level="info", operation=file_meta.operation, source="debug")
-        encoded_data = ""
         try:
-            encoded_data = open(file_meta.path, "rb")
-            encoded_data.seek(chunk_size * (chunk_num - 1), 0)
-            encoded_data = encoded_data.read(chunk_size)
-            encoded_data = base64.b64encode(encoded_data).decode()
-            if app.debugging_enabled:
-                if not in_response:
-                    await send_all_operations_message(
-                        message=f"action 'Upload' for file_id {file_meta.agent_file_id}, successfully opened and got chunk data",
-                        level="info", operation=file_meta.operation, source="debug")
-                else:
-                    await send_all_operations_message(
-                        message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, successfully opened and got chunk data",
-                        level="info", operation=file_meta.operation, source="debug")
+            file_meta = await app.db_objects.get(db_model.filemeta_query, agent_file_id=data["file_id"])
         except Exception as e:
             logger.warning("file_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             if app.debugging_enabled:
-                if in_response:
+                await send_all_operations_message(
+                    message=f"action 'Upload', failed to find file_id of {data['file_id']}",
+                    level="info", source="debug")
+            if not in_response:
+                return {
+                    **response_data,
+                    "action": "upload",
+                    "total_chunks": 0,
+                    "chunk_num": 0,
+                    "chunk_data": "",
+                    "file_id": "",
+                    "task_id": data["task_id"],
+                }
+            else:
+                return {"status": "error", "error": "Failed to find that FileID"}
+        # now that we have the file metadata, get the file if it's done downloading
+        if (
+            "full_path" in data
+            and data["full_path"] is not None
+            and data["full_path"] != ""
+        ):
+            task = await app.db_objects.get(db_model.task_query, agent_task_id=data["task_id"])
+            if file_meta.task is None or file_meta.task != task:
+                # this means the file was hosted on the mythic server and is being pulled down by an agent
+                # or means that another task is pulling down a file that was generated from a different task
+                fm = await app.db_objects.create(
+                    db_model.FileMeta,
+                    task=task,
+                    total_chunks=file_meta.total_chunks,
+                    chunks_received=file_meta.chunks_received,
+                    chunk_size=file_meta.chunk_size,
+                    complete=file_meta.complete,
+                    path=file_meta.path,
+                    full_remote_path=data["full_path"].encode("utf-8"),
+                    operation=task.callback.operation,
+                    md5=file_meta.md5,
+                    sha1=file_meta.sha1,
+                    delete_after_fetch=False,
+                    deleted=False,
+                    operator=task.operator,
+                    host=file_meta.host.upper(),
+                )
+                asyncio.create_task(add_upload_file_to_file_browser(fm.operation, fm.task, fm,
+                                                      {"host": fm.host,
+                                                       "full_path": bytes(fm.full_remote_path).decode("utf-8")}))
+            else:
+                # this file_meta is already associated with a task, check if it's the same
+                if file_meta.full_remote_path is None or file_meta.full_remote_path == "":
+                    file_meta.full_remote_path = data["full_path"].encode("utf-8")
+                    try:
+                        fb_object = await app.db_objects.get(
+                            db_model.filebrowserobj_query,
+                            full_path=file_meta.full_remote_path,
+                            host=file_meta.host.upper(),
+                        )
+                        if file_meta.file_browser is None:
+                            file_meta.file_browser = fb_object
+                            await app.db_objects.update(file_meta)
+                    except Exception as e:
+                        # no associated file meta object, so create one
+                        asyncio.create_task(add_upload_file_to_file_browser(file_meta.operation, file_meta.task,
+                                                              file_meta, {"host": file_meta.host,
+                                                                          "full_path": bytes(file_meta.full_remote_path).decode("utf-8")}))
+                else:
+                    file_meta.full_remote_path = data["full_path"].encode("utf-8")
+                    asyncio.create_task(add_upload_file_to_file_browser(file_meta.operation, file_meta.task,
+                                                                        file_meta, {"host": file_meta.host,
+                                                                                    "full_path": bytes(
+                                                                                        file_meta.full_remote_path).decode(
+                                                                                        'utf-8')}))
+                    await app.db_objects.update(file_meta)
+        chunk_size = 512000
+        if "chunk_size" in data:
+            chunk_size = data["chunk_size"]
+        if file_meta.complete and not file_meta.deleted and chunk_size > 0:
+            total_chunks = ceil(float(os.path.getsize(file_meta.path)) / float(chunk_size))
+            chunk_num = 1
+            if "chunk_num" in data:
+                data["chunk_num"] = abs(data["chunk_num"])
+                if data["chunk_num"] == 0:
+                    data["chunk_num"] = 1
+                if data["chunk_num"] > total_chunks:
+                    logger.exception(
+                        "Request a chunk that doesn't exist in download_agent_file: "
+                        + data["file_id"]
+                        + "\n total_chunks: "
+                        + str(total_chunks)
+                        + " requested chunk: "
+                        + str(data["chunk_num"])
+                    )
+                    if not in_response:
+                        return {
+                            **response_data,
+                            "action": "upload",
+                            "total_chunks": total_chunks,
+                            "chunk_num": 0,
+                            "chunk_data": "",
+                            "file_id": data["file_id"],
+                            "task_id": data["task_id"],
+                        }
+                    else:
+                        return {"status": "error", "error": "requested chunk_num greater than total chunks"}
+                else:
+                    chunk_num = data["chunk_num"]
+            # now to read the actual file and get the right chunk
+            if app.debugging_enabled:
+                if not in_response:
                     await send_all_operations_message(
-                        message=f"action 'Upload' for file_id {file_meta.agent_file_id}, failed to open and read file {file_meta.path}: {str(e)}",
-                        level="info", source="debug", operation=file_meta.operation)
+                        message=f"action 'Upload' for file_id {file_meta.agent_file_id}, using chunk_size of {str(chunk_size)}, getting chunk {str(chunk_num)}",
+                        level="info", operation=file_meta.operation, source="debug")
                 else:
                     await send_all_operations_message(
-                        message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, failed to open and read file {file_meta.path}: {str(e)}",
-                        level="info", source="debug", operation=file_meta.operation)
-        # if this is a temp, we should remove the file afterwards
-        if file_meta.delete_after_fetch:
-            # only do this if we actually finished reading it
-            if chunk_num == total_chunks:
+                        message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, using chunk_size of {str(chunk_size)}, getting chunk {str(chunk_num)}",
+                        level="info", operation=file_meta.operation, source="debug")
+            encoded_data = ""
+            try:
+                encoded_data = open(file_meta.path, "rb")
+                encoded_data.seek(chunk_size * (chunk_num - 1), 0)
+                encoded_data = encoded_data.read(chunk_size)
+                encoded_data = base64.b64encode(encoded_data).decode()
                 if app.debugging_enabled:
                     if not in_response:
                         await send_all_operations_message(
-                            message=f"action 'Upload' for file_id {file_meta.agent_file_id}, deleting off disk",
+                            message=f"action 'Upload' for file_id {file_meta.agent_file_id}, successfully opened and got chunk data",
+                            level="info", operation=file_meta.operation, source="debug")
+                    else:
+                        await send_all_operations_message(
+                            message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, successfully opened and got chunk data",
+                            level="info", operation=file_meta.operation, source="debug")
+            except Exception as e:
+                logger.warning("file_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                if app.debugging_enabled:
+                    if in_response:
+                        await send_all_operations_message(
+                            message=f"action 'Upload' for file_id {file_meta.agent_file_id}, failed to open and read file {file_meta.path}: {str(e)}",
                             level="info", source="debug", operation=file_meta.operation)
                     else:
                         await send_all_operations_message(
-                            message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, deleting off disk",
+                            message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, failed to open and read file {file_meta.path}: {str(e)}",
                             level="info", source="debug", operation=file_meta.operation)
-                os.remove(file_meta.path)
-                # if this is a payload based file that was auto-generated, don't mark it as deleted
-                try:
-                    payload = await app.db_objects.get(db_model.payload_query, file=file_meta)
+            # if this is a temp, we should remove the file afterwards
+            if file_meta.delete_after_fetch:
+                # only do this if we actually finished reading it
+                if chunk_num == total_chunks:
                     if app.debugging_enabled:
                         if not in_response:
                             await send_all_operations_message(
-                                message=f"action 'Upload' for file_id {file_meta.agent_file_id}, finished pulling down the payload, not marking as deleted though",
+                                message=f"action 'Upload' for file_id {file_meta.agent_file_id}, deleting off disk",
                                 level="info", source="debug", operation=file_meta.operation)
                         else:
                             await send_all_operations_message(
-                                message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, finished pulling down the payload, not marking as deleted though",
+                                message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, deleting off disk",
                                 level="info", source="debug", operation=file_meta.operation)
-                except Exception as e:
-                    file_meta.deleted = True
-                    if app.debugging_enabled:
-                        if not in_response:
-                            await send_all_operations_message(
-                                message=f"action 'Upload' for file_id {file_meta.agent_file_id}, finished pull down the file, marking as deleted",
-                                level="info", source="debug", operation=file_meta.operation)
-                        else:
-                            await send_all_operations_message(
-                                message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, finished pull down the file, marking as deleted",
-                                level="info", source="debug", operation=file_meta.operation)
-                await app.db_objects.update(file_meta)
-        if not in_response:
-            return {
-                **response_data,
-                "action": "upload",
-                "total_chunks": total_chunks,
-                "chunk_num": chunk_num,
-                "chunk_data": encoded_data,
-                "file_id": data["file_id"],
-                "task_id": data["task_id"],
-            }
-        else:
-            return {
-                "status": "success",
-                "total_chunks": total_chunks,
-                "chunk_num": chunk_num,
-                "chunk_data": encoded_data,
-                "file_id": data["file_id"],
-                "task_id": data["task_id"]}
-    elif file_meta.deleted:
-        logger.exception("File is deleted: " + data["file_id"])
-        if app.debugging_enabled:
+                    os.remove(file_meta.path)
+                    # if this is a payload based file that was auto-generated, don't mark it as deleted
+                    try:
+                        payload = await app.db_objects.get(db_model.payload_query, file=file_meta)
+                        if app.debugging_enabled:
+                            if not in_response:
+                                await send_all_operations_message(
+                                    message=f"action 'Upload' for file_id {file_meta.agent_file_id}, finished pulling down the payload, not marking as deleted though",
+                                    level="info", source="debug", operation=file_meta.operation)
+                            else:
+                                await send_all_operations_message(
+                                    message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, finished pulling down the payload, not marking as deleted though",
+                                    level="info", source="debug", operation=file_meta.operation)
+                    except Exception as e:
+                        file_meta.deleted = True
+                        if app.debugging_enabled:
+                            if not in_response:
+                                await send_all_operations_message(
+                                    message=f"action 'Upload' for file_id {file_meta.agent_file_id}, finished pull down the file, marking as deleted",
+                                    level="info", source="debug", operation=file_meta.operation)
+                            else:
+                                await send_all_operations_message(
+                                    message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, finished pull down the file, marking as deleted",
+                                    level="info", source="debug", operation=file_meta.operation)
+                    await app.db_objects.update(file_meta)
             if not in_response:
-                await send_all_operations_message(
-                    message=f"action 'Upload' for file_id {file_meta.agent_file_id}, but file was deleted, so it cannot be fetched",
-                    level="info", source="debug", operation=file_meta.operation)
+                return {
+                    **response_data,
+                    "action": "upload",
+                    "total_chunks": total_chunks,
+                    "chunk_num": chunk_num,
+                    "chunk_data": encoded_data,
+                    "file_id": data["file_id"],
+                    "task_id": data["task_id"],
+                }
             else:
-                await send_all_operations_message(
-                    message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, but file was deleted, so it cannot be fetched",
-                    level="info", source="debug", operation=file_meta.operation)
+                return {
+                    "status": "success",
+                    "total_chunks": total_chunks,
+                    "chunk_num": chunk_num,
+                    "chunk_data": encoded_data,
+                    "file_id": data["file_id"],
+                    "task_id": data["task_id"]}
+        elif file_meta.deleted:
+            logger.exception("File is deleted: " + data["file_id"])
+            if app.debugging_enabled:
+                if not in_response:
+                    await send_all_operations_message(
+                        message=f"action 'Upload' for file_id {file_meta.agent_file_id}, but file was deleted, so it cannot be fetched",
+                        level="info", source="debug", operation=file_meta.operation)
+                else:
+                    await send_all_operations_message(
+                        message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, but file was deleted, so it cannot be fetched",
+                        level="info", source="debug", operation=file_meta.operation)
+            if not in_response:
+                return {
+                    **response_data,
+                    "action": "upload",
+                    "total_chunks": 0,
+                    "chunk_num": 0,
+                    "chunk_data": "",
+                    "file_id": data["file_id"],
+                    "task_id": data["task_id"],
+                }
+            else:
+                return {"status": "error", "error": "File deleted"}
+        elif chunk_size > 0:
+            logger.exception(
+                "file not done downloading in download_agent_file: " + data["file_id"]
+            )
+            if app.debugging_enabled:
+                if not in_response:
+                    await send_all_operations_message(
+                        message=f"action 'Upload' for file_id {file_meta.agent_file_id}, but file not completely on host yet, so it cannot be fetched",
+                        level="info", source="debug", operation=file_meta.operation)
+                else:
+                    await send_all_operations_message(
+                        message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, but file not completely on host yet, so it cannot be fetched",
+                        level="info", source="debug", operation=file_meta.operation)
+            if not in_response:
+                return {
+                    **response_data,
+                    "action": "upload",
+                    "total_chunks": 0,
+                    "chunk_num": 0,
+                    "chunk_data": "",
+                    "file_id": data["file_id"],
+                    "task_id": data["task_id"],
+                }
+            else:
+                return {"status": "error", "error": "File not fully transferred"}
+        else:
+            return {"status": "success"}
+    except Exception as outerException:
+        logger.warning("file_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(outerException))
         if not in_response:
             return {
-                **response_data,
+                "status": "error",
+                "error": str(outerException),
                 "action": "upload",
                 "total_chunks": 0,
                 "chunk_num": 0,
@@ -375,32 +419,7 @@ async def download_agent_file(data, in_response: bool = False, task_id: str = No
                 "task_id": data["task_id"],
             }
         else:
-            return {"status": "error", "error": "File deleted"}
-    else:
-        logger.exception(
-            "file not done downloading in download_agent_file: " + data["file_id"]
-        )
-        if app.debugging_enabled:
-            if not in_response:
-                await send_all_operations_message(
-                    message=f"action 'Upload' for file_id {file_meta.agent_file_id}, but file not completely on host yet, so it cannot be fetched",
-                    level="info", source="debug", operation=file_meta.operation)
-            else:
-                await send_all_operations_message(
-                    message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, but file not completely on host yet, so it cannot be fetched",
-                    level="info", source="debug", operation=file_meta.operation)
-        if not in_response:
-            return {
-                **response_data,
-                "action": "upload",
-                "total_chunks": 0,
-                "chunk_num": 0,
-                "chunk_data": "",
-                "file_id": data["file_id"],
-                "task_id": data["task_id"],
-            }
-        else:
-            return {"status": "error", "error": "File not fully transfered"}
+            return {"status": "error", "error": str(outerException)}
 
 
 @mythic.route(mythic.config["API_BASE"] + "/files/<fid:int>", methods=["DELETE"])
@@ -472,12 +491,13 @@ async def create_filemeta_in_database_func(data):
                 elif "file" in json_params:
                     filename = json_params["file"]
                 else:
-                    filename = task.params
+                    #filename = task.params
+                    filename = str(datetime.datetime.utcnow())
             except Exception as e:
                 print(e)
                 filename = task.params
         else:
-            filename = task.params
+            filename = str(datetime.datetime.utcnow())
         # now try to parse the path for the actual file name, os path agnostic
         try:
             filename = PureWindowsPath(filename)

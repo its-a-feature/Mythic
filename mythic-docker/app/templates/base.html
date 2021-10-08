@@ -712,7 +712,9 @@ li span.badge {
       <span v-show="messages.length > 0" id="event_notices" data-toggle="tooltip" title="Go to Live Event Feed to address important messages" style="padding:5px 10px 5px 10px;display:inline-block;cursor:pointer" class="badge badge-danger pull-right" onclick="window.location = '{{links.live_event_feed}}' ">[[ messages.length ]]</span>
       <span class="nav-item active dropdown" data-boundary="viewport" >
           <ul class="navbar-nav mr-auto">
-              
+              <li class="nav-item active dropdown">
+                  <a href="/new" target="_blank" class="nav-link" style="display:inline-block"  role="button"><span class="{{config['text-color']}}"><i class="far fa-id-card"></i> New UI</span></a>
+              </li>
             <li class="nav-item active dropdown">
               <a href="#" class="nav-link dropdown-toggle" style="display:inline-block" data-toggle="dropdown" role="button" ariahaspopup="true" aria-expanded="false"><span class="{{config['text-color']}}"><i class="fa fa-question-circle"></i></span> Docs<span class="caret"></span></a>
               <div class="dropdown-menu border border-dark shadow dropdown-menu-right">
@@ -732,7 +734,7 @@ li span.badge {
 
           </ul>
         </span>
-      <font size="4" style="float:right;padding-right:10px">v2.2.14</font>
+      <font size="4" style="float:right;padding-right:10px">v2.3.1</font>
       {% endif %}
   </div>
 </nav>

@@ -93,14 +93,14 @@ async def search_tasks(request, user):
                 count = await app.db_objects.count(
                     db_model.task_query.where(
                         (
-                            (Task.params.regexp(data["search"]))
-                            | (Task.original_params.regexp(data["search"]))
+                                (Task.params.regexp(data["search"]))
+                                | (Task.original_params.regexp(data["search"]))
                         )
                         & (Task.operator == data["operator"])
                     )
-                    .switch(Callback)
-                    .where(Callback.operation == operation)
-                    .distinct()
+                        .switch(Callback)
+                        .where(Callback.operation == operation)
+                        .distinct()
                 )
             else:
                 count = await app.db_objects.count(
@@ -108,25 +108,25 @@ async def search_tasks(request, user):
                         (Task.params.regexp(data["search"]))
                         | (Task.original_params.regexp(data["search"]))
                     )
-                    .switch(Callback)
-                    .where(Callback.operation == operation)
-                    .distinct()
+                        .switch(Callback)
+                        .where(Callback.operation == operation)
+                        .distinct()
                 )
         elif data["type"] == "cmds":
             if "operator" in data:
                 count = await app.db_objects.count(
                     db_model.task_query.where(Command.cmd.regexp(data["search"]))
-                    .switch(Callback)
-                    .where(Callback.operation == operation)
-                    .switch(Task)
-                    .where(Task.operator == data["operator"])
-                    .distinct()
+                        .switch(Callback)
+                        .where(Callback.operation == operation)
+                        .switch(Task)
+                        .where(Task.operator == data["operator"])
+                        .distinct()
                 )
             else:
                 count = await app.db_objects.count(
                     db_model.task_query.where(Command.cmd.regexp(data["search"]))
-                    .switch(Callback)
-                    .where(Callback.operation == operation)
+                        .switch(Callback)
+                        .where(Callback.operation == operation)
                 )
         else:
             if "operator" in data:
@@ -134,20 +134,20 @@ async def search_tasks(request, user):
                     db_model.task_query.where(
                         (Task.comment.regexp(data["search"])) & (Task.comment != "")
                     )
-                    .switch(Callback)
-                    .where(Callback.operation == operation)
-                    .switch(Task)
-                    .where(Task.comment_operator == data["operator"])
-                    .distinct()
+                        .switch(Callback)
+                        .where(Callback.operation == operation)
+                        .switch(Task)
+                        .where(Task.comment_operator == data["operator"])
+                        .distinct()
                 )
             else:
                 count = await app.db_objects.count(
                     db_model.task_query.where(
                         (Task.comment.regexp(data["search"])) & (Task.comment != "")
                     )
-                    .switch(Callback)
-                    .where(Callback.operation == operation)
-                    .distinct()
+                        .switch(Callback)
+                        .where(Callback.operation == operation)
+                        .distinct()
                 )
         if "page" not in data:
             data["page"] = 1
@@ -157,16 +157,16 @@ async def search_tasks(request, user):
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.where(
                             (
-                                (Task.params.regexp(data["search"]))
-                                | (Task.original_params.regexp(data["search"]))
+                                    (Task.params.regexp(data["search"]))
+                                    | (Task.original_params.regexp(data["search"]))
                             )
                             & (Task.operator == data["operator"])
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
                 else:
                     tasks = await app.db_objects.prefetch(
@@ -174,34 +174,34 @@ async def search_tasks(request, user):
                             (Task.params.regexp(data["search"]))
                             | (Task.original_params.regexp(data["search"]))
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
             elif data["type"] == "cmds":
                 if "operator" in data:
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.switch(Command)
-                        .where(Command.cmd.regexp(data["search"]))
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .switch(Task)
-                        .where(Task.operator == data["operator"])
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .where(Command.cmd.regexp(data["search"]))
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .switch(Task)
+                            .where(Task.operator == data["operator"])
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
                 else:
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.switch(Command)
-                        .where(Command.cmd.regexp(data["search"]))
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .where(Command.cmd.regexp(data["search"]))
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
             else:
                 if "operator" in data:
@@ -209,31 +209,31 @@ async def search_tasks(request, user):
                         db_model.task_query.where(
                             (Task.comment.regexp(data["search"])) & (Task.comment != "")
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .switch(Task)
-                        .where(Task.comment_operator == data["operator"])
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .switch(Task)
+                            .where(Task.comment_operator == data["operator"])
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
                 else:
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.where(
                             (Task.comment.regexp(data["search"])) & (Task.comment != "")
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
         else:
             if (
-                "page" not in data
-                or "size" not in data
-                or int(data["size"]) <= 0
-                or int(data["page"]) <= 0
+                    "page" not in data
+                    or "size" not in data
+                    or int(data["size"]) <= 0
+                    or int(data["page"]) <= 0
             ):
                 return json(
                     {
@@ -252,16 +252,16 @@ async def search_tasks(request, user):
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.where(
                             (
-                                (Task.params.regexp(data["search"]))
-                                | (Task.original_params.regexp(data["search"]))
+                                    (Task.params.regexp(data["search"]))
+                                    | (Task.original_params.regexp(data["search"]))
                             )
                             & (Task.operator == data["operator"])
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
                 else:
                     tasks = await app.db_objects.prefetch(
@@ -269,34 +269,34 @@ async def search_tasks(request, user):
                             (Task.params.regexp(data["search"]))
                             | (Task.original_params.regexp(data["search"]))
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
             elif data["type"] == "cmds":
                 if "operator" in data:
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.switch(Command)
-                        .where(Command.cmd.regexp(data["search"]))
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .switch(Task)
-                        .where(Task.operator == data["operator"])
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .where(Command.cmd.regexp(data["search"]))
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .switch(Task)
+                            .where(Task.operator == data["operator"])
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
                 else:
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.switch(Command)
-                        .where(Command.cmd.regexp(data["search"]))
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .where(Command.cmd.regexp(data["search"]))
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
             else:
                 if "operator" in data:
@@ -304,24 +304,24 @@ async def search_tasks(request, user):
                         db_model.task_query.where(
                             (Task.comment.regexp(data["search"])) & (Task.comment != "")
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .switch(Task)
-                        .where(Task.comment_operator == data["operator"])
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .switch(Task)
+                            .where(Task.comment_operator == data["operator"])
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
                 else:
                     tasks = await app.db_objects.prefetch(
                         db_model.task_query.where(
                             (Task.comment.regexp(data["search"])) & (Task.comment != "")
                         )
-                        .switch(Callback)
-                        .where(Callback.operation == operation)
-                        .order_by(Task.id)
-                        .paginate(data["page"], data["size"])
-                        .distinct()
+                            .switch(Callback)
+                            .where(Callback.operation == operation)
+                            .order_by(Task.id)
+                            .paginate(data["page"], data["size"])
+                            .distinct()
                     )
         output = []
         for t in tasks:
@@ -482,7 +482,6 @@ async def update_edges_from_checkin(callback_uuid, profile):
                             operation=callback.operation,
                         )
                     except Exception as d:
-                        print(d)
                         edge = await app.db_objects.create(
                             db_model.CallbackGraphEdge,
                             source=callback,
@@ -493,9 +492,26 @@ async def update_edges_from_checkin(callback_uuid, profile):
                             operation=callback.operation,
                         )
             callback.active = True  # always set this to true regardless of what it was before because it's clearly active
+        else:
+            active_edge = await app.db_objects.count(db_model.callbackgraphedge_query.where(
+                (db_model.CallbackGraphEdge.source == callback) &
+                (db_model.CallbackGraphEdge.destination == callback) &
+                (db_model.CallbackGraphEdge.operation == callback.operation) &
+                (db_model.C2Profile.name == profile) &
+                (db_model.CallbackGraphEdge.end_timestamp.is_null(True))
+            ))
+            if active_edge == 0:
+                c2profile = await app.db_objects.get(db_model.c2profile_query, name=profile)
+                await app.db_objects.create(db_model.CallbackGraphEdge, source=callback, destination=callback,
+                                            c2_profile=c2profile, direction=1, operation=callback.operation,
+                                            end_timestamp=None)
         await app.db_objects.update(callback)  # update the last checkin time
     except Exception as e:
+        from app.api.operation_api import send_all_operations_message
         logger.warning("exception in task_api.py trying to update edges from checkin: " + str(e))
+        asyncio.create_task(send_all_operations_message(
+            message=f"Failed to update callback/edges for callback {callback_uuid} connection:\n{str(e)}",
+            level="warning", source=f"connection_update_for_{callback_uuid}"))
 
 
 async def get_agent_tasks(data, callback):
@@ -517,6 +533,7 @@ async def get_agent_tasks(data, callback):
         data["tasking_size"] = 1
     tasks = []
     socks = []
+    tasks_to_update = []
     try:
         if not callback.operation.complete:
             if data["tasking_size"] > 0:
@@ -524,8 +541,8 @@ async def get_agent_tasks(data, callback):
                     db_model.task_query.where(
                         (Task.callback == callback) & (Task.status == "submitted")
                     )
-                    .order_by(Task.timestamp)
-                    .limit(data["tasking_size"]),
+                        .order_by(Task.timestamp)
+                        .limit(data["tasking_size"]),
                 )
             else:
                 task_list = await app.db_objects.execute(
@@ -534,13 +551,10 @@ async def get_agent_tasks(data, callback):
                     ).order_by(Task.timestamp),
                 )
             for t in task_list:
-                t.status = "processing"
-                t.status_timestamp_processing = datetime.utcnow()
-                t.timestamp = t.status_timestamp_processing
-                await app.db_objects.update(t)
+                tasks_to_update.append(t)
                 tasks.append(
                     {
-                        "command": t.command.cmd,
+                        "command": t.command_name,
                         "parameters": t.params,
                         "id": t.agent_task_id,
                         "timestamp": t.timestamp.timestamp(),
@@ -563,7 +577,7 @@ async def get_agent_tasks(data, callback):
             "Error in getting tasking for : " + str(callback.id) + ", " + str(e)
         )
         tasks = []
-    response_message = {"action": "get_tasking", "tasks": tasks}
+    response_message = {"action": "get_tasking", "tasks": tasks, "tasks_to_update": tasks_to_update}
     if len(socks) > 0:
         response_message["socks"] = socks
     for k in data:
@@ -777,9 +791,6 @@ payload_rpc = MythicBaseRPC()
 async def add_task_to_callback_func(data, cid, op, cb):
     task = None
     try:
-        # first see if the operator and callback exists
-
-
         # now check the task and add it if it's valid and valid for this callback's payload type
         try:
             cmd = await app.db_objects.get(
@@ -795,12 +806,16 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     data["params"] = ""
                 task = await app.db_objects.create(
                     Task,
+                    command_name="",
                     callback=cb,
                     operator=op,
                     parent_task=data["parent_task"] if "parent_task" in data else None,
-                    subtask_callback_function=data["subtask_callback_function"] if "subtask_callback_function" in data else None,
-                    group_callback_function=data["group_callback_function"] if "group_callback_function" in data else None,
-                    completed_callback_function=data["completed_callback_function"] if "completed_callback_function" in data else None,
+                    subtask_callback_function=data[
+                        "subtask_callback_function"] if "subtask_callback_function" in data else None,
+                    group_callback_function=data[
+                        "group_callback_function"] if "group_callback_function" in data else None,
+                    completed_callback_function=data[
+                        "completed_callback_function"] if "completed_callback_function" in data else None,
                     subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
                     params="clear " + data["params"],
                     status="completed",
@@ -817,14 +832,14 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     rsp = "Removed the following:"
                     for t in raw_rsp["tasks_removed"]:
                         rsp += (
-                            "\nOperator: "
-                            + t["operator"]
-                            + "\nTask "
-                            + str(t["id"])
-                            + ": "
-                            + t["command"]
-                            + " "
-                            + t["original_params"]
+                                "\nOperator: "
+                                + t["operator"]
+                                + "\nTask "
+                                + str(t["id"])
+                                + ": "
+                                + t["command"]
+                                + " "
+                                + t["original_params"]
                         )
                     await app.db_objects.create(Response, task=task, response=rsp)
                     return {"status": "success", **task.to_json()}
@@ -864,8 +879,8 @@ async def add_task_to_callback_func(data, cid, op, cb):
             db_model.payloadtype_query, ptype=cb.registered_payload.payload_type.ptype
         )
         if (
-            cb.registered_payload.payload_type.last_heartbeat
-            < datetime.utcnow() + timedelta(seconds=-30)
+                cb.registered_payload.payload_type.last_heartbeat
+                < datetime.utcnow() + timedelta(seconds=-30)
         ):
             payload_type.container_running = False
             await app.db_objects.update(payload_type)
@@ -877,12 +892,13 @@ async def add_task_to_callback_func(data, cid, op, cb):
                 try:
                     token = await app.db_objects.get(db_model.token_query, TokenId=data["token"], deleted=False)
                 except Exception as te:
-                    logger.warning("task_api.py: failed to find token associated with task")
+                    #logger.warning(f"task_api.py: failed to find token, {data['token']} associated with task")
                     token = None
             else:
                 token = None
             task = await app.db_objects.create(
                 Task,
+                command_name=cmd.cmd,
                 callback=cb,
                 operator=op,
                 command=cmd,
@@ -902,7 +918,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
         else:
             return {
                 "status": "error",
-                "error": f"{payload_type.ptype}'s container isn't running - no heartbeat in over 30 seconds, so it cannot process tasking.\nUse ./mythic-cli status to check if the container is still online.\nUse './display_output.sh {payload_type.ptype}' to get any error logs from the container.\nUse './start_payload_types.sh {payload_type.ptype}' to start the container again.",
+                "error": f"{payload_type.ptype}'s container isn't running - no heartbeat in over 30 seconds, so it cannot process tasking.\nUse ./mythic-cli status to check if the container is still online.\nUse './mythic-cli logs {payload_type.ptype}' to get any error logs from the container.\nUse './mythic-cli payload start {payload_type.ptype}' to start the container again.",
                 "cmd": cmd.cmd,
                 "params": data["original_params"],
                 "callback": cid,
@@ -927,56 +943,204 @@ async def add_task_to_callback_func(data, cid, op, cb):
         return {
             "status": "error",
             "error": "Failed to create task: "
-            + str(sys.exc_info()[-1].tb_lineno)
-            + " "
-            + str(e),
+                     + str(sys.exc_info()[-1].tb_lineno)
+                     + " "
+                     + str(e),
             "cmd": data["command"],
             "params": data["params"],
             "callback": cid,
         }
 
 
-async def check_and_issue_task_callback_functions(taskOriginal: Task):
+async def check_and_issue_task_callback_functions(taskOriginal: Task, task_completed: bool = True,
+                                                  resubmit: bool = False, updating_task: int = None,
+                                                  updating_piece: str = None):
     # pull updated information for the task in case it didn't propagate for whatever reason
+    """
+
+    :param taskOriginal: the task that just came back from rabbitmq that we're processing
+    :param task_completed: indicator if we're here because create_tasking just completed
+    :param resubmit: indicator if the user tasked us to retry the last thing that failed
+    :param updating_task: if we're coming back from a handler call, this indicates which task should update
+        for example: if we just finished a subtask completion handler, then the taskOriginal is the parent task
+            but the updating_task would be the subtask so we can mark that the subtask finished its function
+    :param updating_piece: if we're coming back from a handler call, this indicates what we're looking to update
+        on the updating_task - it will be one of the following: subtask_callback_function_completed,
+            group_callback_function_completed, completed_callback_function_completed
+    :return:
+    """
+    from app.api.operation_api import send_all_operations_message
+    subtask_triggered_task_completion = False
     task = await app.db_objects.get(db_model.task_query, id=taskOriginal.id)
-    if task.completed:
-        if task.parent_task is not None:
-            # pass execution to parent_task's functions for subtask_callback_function and group_callback_function
-            if task.subtask_callback_function is not None:
-                status = await submit_task_callback_to_container(task.parent_task, task.subtask_callback_function, task.operator.username,
-                                                        task)
-                if status["status"] == "error":
-                    task.subtask_callback_function_completed = False
-                    logger.warning("error from subtask_callback_function submit_task_callback_to_container: " + status["error"])
-                else:
-                    task.subtask_callback_function_completed = True
+    if updating_task is not None:
+        #logger.info("updating_task is not None, updating piece is: " + updating_piece)
+        updatingTask = await app.db_objects.get(db_model.task_query, id=updating_task)
+        if updating_piece == "subtask_callback_function_completed":
+            updatingTask.subtask_callback_function_completed = True
+            if updatingTask.status.startswith("Error: "):
+                updatingTask.status = "completed"
+            await app.db_objects.update(updatingTask)
+            # task's subtask just completed. check to see if there's anything else that needs to be handled
+            #   i.e. task might now be done and potentially need its completion handler addressed
+            subTasks = await app.db_objects.count(db_model.task_query.where(
+                (db_model.Task.parent_task == updatingTask.parent_task) &
+                (db_model.Task.completed == False)
+            ))
+            if subTasks == 0:
+                task.completed = True
+                subtask_triggered_task_completion = True
                 await app.db_objects.update(task)
-            if task.subtask_group_name != "" and task.group_callback_function is not None:
+            if updatingTask.subtask_group_name != "" and updatingTask.group_callback_function is not None \
+                    and not updatingTask.group_callback_function_completed:
                 # we need to check if all tasks are done that have that same group name
                 group_tasks = await app.db_objects.count(db_model.task_query.where(
-                    (db_model.Task.subtask_group_name == task.subtask_group_name) &
+                    (db_model.Task.subtask_group_name == updatingTask.subtask_group_name) &
                     (db_model.Task.completed == False) &
-                    (db_model.Task.parent_task == task.parent_task)
+                    (db_model.Task.parent_task == updatingTask.parent_task) &
+                    (db_model.Task.id != updatingTask.id)
                 ))
                 if group_tasks == 0:
                     # there are no more tasks with this same group name and same parent task, so call the group_callback_function
-                    status = await submit_task_callback_to_container(task.parent_task, task.group_callback_function, task.operator.username,
-                                                            task, subtask_group_name=task.subtask_group_name)
+                    status = await submit_task_callback_to_container(task=updatingTask.parent_task,
+                                                                     function_name=updatingTask.group_callback_function,
+                                                                     username=updatingTask.operator.username,
+                                                                     subtask=updatingTask,
+                                                                     subtask_group_name=updatingTask.subtask_group_name,
+                                                                     updating_piece="group_callback_function_completed")
                     if status["status"] == "error":
-                        task.group_callback_function_completed = False
-                        logger.warning("error from grouptasks == 0, submit_task_callback_to_container: " + status["error"])
-                    else:
-                        task.group_callback_function_completed = True
-                    await app.db_objects.update(task)
-        if task.completed_callback_function is not None:
+                        updatingTask.group_callback_function_completed = False
+                        updatingTask.status = "Error: task group_callback error"
+                        asyncio.create_task(send_all_operations_message(
+                            message=f"Failed to contact container for task {updatingTask.id}'s subtask_callback_function:\n{status['error']}",
+                            level="warning",
+                            source="submit_task_callback_to_container"))
+                        logger.warning(
+                            "error from grouptasks == 0, submit_task_callback_to_container: " + status["error"])
+                    await app.db_objects.update(updatingTask)
+                #else:
+                    #logger.info(
+                    #    f"Still have {group_tasks} group tasks for group {updatingTask.subtask_group_name} that need to be completed")
+                return
+        elif updating_piece == "group_callback_function_completed":
+            updatingTask.group_callback_function_completed = True
+            if updatingTask.status.startswith("Error: "):
+                updatingTask.status = "completed"
+            await app.db_objects.update(updatingTask)
+            # we need to update all of the other tasks in that group to the same thing
+            groupTasks = await app.db_objects.execute(db_model.task_query.where(
+                (db_model.Task.parent_task == updatingTask.parent_task) &
+                (db_model.Task.subtask_group_name == updatingTask.subtask_group_name)
+            ))
+            for t in groupTasks:
+                t.group_callback_function_completed = True
+                await app.db_objects.update(t)
+            subTasks = await app.db_objects.count(db_model.task_query.where(
+                (db_model.Task.parent_task == updatingTask.parent_task) &
+                (db_model.Task.completed == False)
+            ))
+            if subTasks == 0:
+                task.completed = True
+                subtask_triggered_task_completion = True
+                await app.db_objects.update(task)
+    if task.completed_callback_function is not None and not task.completed_callback_function_completed \
+            and task.completed:
+        # only check this section if the task is completed, the completion handler is defined and not successfully
+        #  executed
+        if task_completed or resubmit or subtask_triggered_task_completion:
+            # this means the task just entered a completed state, so we need to execute this function
+            # resubmit means something happened in the completed_callback_function, so we need to try again
+            logger.info("task_completed or resubmit is True, about to execute completed_callback_function")
             # pass execution back to task's function called completed_callback_function
-            status = await submit_task_callback_to_container(task, task.completed_callback_function, task.operator.username)
+            status = await submit_task_callback_to_container(task=task, function_name=task.completed_callback_function,
+                                                             username=task.operator.username, subtask=None,
+                                                             updating_piece="completed_callback_function_completed")
             if status["status"] == "error":
                 task.completed_callback_function_completed = False
-                logger.warning("error in completed_callback_function not None submit_task_callback_to_container: " + status["error"])
-            else:
-                task.completed_callback_function_completed = True
+                task.status = "Error: task completion callback error"
+                await app.db_objects.update(task)
+                asyncio.create_task(send_all_operations_message(
+                    message=f"Failed to contact container for task {task.id}'s completed_callback_function:\n{status['error']}",
+                    level="warning",
+                    source="submit_task_callback_to_container"))
+                logger.warning(
+                    "error in completed_callback_function not None submit_task_callback_to_container: " + status[
+                        "error"])
+            return
+        if updating_task == task.id and updating_piece == "completed_callback_function_completed":
+            # we just got back from executing this function for this task
+            logger.info("updating_task == task.id and updating_piece == completed_callback_function_completed")
+            task.completed_callback_function_completed = True
             await app.db_objects.update(task)
+            # now continue on so that we can potentially issue the next tasking
+        logger.info("continuing on to check if task.parent_task is not None")
+    if task.parent_task is not None and task.completed:
+        # pass execution to parent_task's functions for subtask_callback_function and group_callback_function
+        if task.subtask_callback_function is not None and not task.subtask_callback_function_completed:
+            # there is a subtask callback function from the parent, and it's not done
+            if task_completed or resubmit:
+                # we threw an error here last time and need to try again, i.e. resubmit
+                # or the task just completed and there was no completed_callback_function
+                # or there was a completed_callback_function, but it's done, so now doing parent's subtask completion
+                #logger.info(f"Resubmitting task {task.id}'s subtask_callback_function to be executed again")
+                status = await submit_task_callback_to_container(task=task.parent_task,
+                                                                 function_name=task.subtask_callback_function,
+                                                                 username=task.operator.username,
+                                                                 subtask=task, subtask_group_name=None,
+                                                                 updating_piece="subtask_callback_function_completed")
+                if status["status"] == "error":
+                    task.subtask_callback_function_completed = False
+                    await app.db_objects.update(task)
+                    task.status = "Error: task subtask completion error"
+                    asyncio.create_task(send_all_operations_message(
+                        message=f"Failed to contact container for task {task.id}'s subtask_callback_function:\n{status['error']}",
+                        level="warning",
+                        source="subtask_callback_function submit_task_callback_to_container"))
+                    logger.warning(
+                        "error from subtask_callback_function submit_task_callback_to_container: " + status["error"])
+            else:
+                logger.info(
+                    "task.subtask_callback_function is not None and not completed, but not task_completed or resubmit")
+            return
+        if task.subtask_group_name != "" and task.group_callback_function is not None \
+                and not task.group_callback_function_completed:
+            # we need to check if all tasks are done that have that same group name
+            group_tasks = await app.db_objects.count(db_model.task_query.where(
+                (db_model.Task.subtask_group_name == task.subtask_group_name) &
+                (db_model.Task.completed == False) &
+                (db_model.Task.parent_task == task.parent_task) &
+                (db_model.Task.id != task.id)
+            ))
+            if group_tasks == 0:
+                # there are no more tasks with this same group name and same parent task, so call the group_callback_function
+                status = await submit_task_callback_to_container(task=task.parent_task,
+                                                                 function_name=task.group_callback_function,
+                                                                 username=task.operator.username,
+                                                                 subtask=task,
+                                                                 subtask_group_name=task.subtask_group_name,
+                                                                 updating_piece="group_callback_function_completed")
+                if status["status"] == "error":
+                    task.group_callback_function_completed = False
+                    task.status = "Error: task group_callback error"
+                    asyncio.create_task(send_all_operations_message(
+                        message=f"Failed to contact container for task {task.id}'s subtask_callback_function:\n{status['error']}",
+                        level="warning",
+                        source="submit_task_callback_to_container"))
+                    #logger.warning("error from grouptasks == 0, submit_task_callback_to_container: " + status["error"])
+                await app.db_objects.update(task)
+            #else:
+            #    logger.info(f"Still have {group_tasks} group tasks for group {task.subtask_group_name} that need to be completed")
+            return
+        else:
+            # this task is done, there's a parent task, and we didn't kick off additional tasks
+            if task.parent_task.command.script_only:
+                task.parent_task.completed = True
+                task.parent_task.status = "completed"
+                await app.db_objects.update(task.parent_task)
+                # parent task is done, now process it for completion handlers and such
+                await check_and_issue_task_callback_functions(task.parent_task)
+            else:
+                task.parent_task.status = "submitted"
+                await app.db_objects.update(task.parent_task)
 
 
 @mythic.route(
@@ -1007,7 +1171,8 @@ async def process_dynamic_request(data):
         return {"status": "error", "error": "callback is a required field"}
     try:
         callback = await app.db_objects.get(db_model.callback_query, id=data["callback"])
-        return await issue_dynamic_parameter_call(data["command"], data["parameter_name"], data["payload_type"], callback)
+        return await issue_dynamic_parameter_call(data["command"], data["parameter_name"], data["payload_type"],
+                                                  callback)
     except Exception as e:
         return {"status": "error", "error": "Failed to get callback data: " + str(e)}
 
@@ -1140,8 +1305,9 @@ async def process_bypass_request(user, task):
                                                 message=f"{user.username} bypassed an OPSEC PreCheck for task {task.id}")
                 return status
             else:
-                await app.db_objects.create(db_model.OperationEventLog, level="warning", operation=task.callback.operation,
-                                        message=f"{user.username} failed to bypass an OPSEC PreCheck for task {task.id}")
+                await app.db_objects.create(db_model.OperationEventLog, level="warning",
+                                            operation=task.callback.operation,
+                                            message=f"{user.username} failed to bypass an OPSEC PreCheck for task {task.id}")
                 return {"status": "error", "error": "Not Authorized"}
     elif task.opsec_post_blocked and not task.opsec_post_bypassed:
         if task.opsec_post_bypass_role == "operator":
@@ -1187,8 +1353,9 @@ async def process_bypass_request(user, task):
                 await app.db_objects.update(task)
                 return {"status": "success"}
             else:
-                await app.db_objects.create(db_model.OperationEventLog, level="warning", operation=task.callback.operation,
-                                        message=f"{user.username} failed to bypass an OPSEC PostCheck for task {task.id}")
+                await app.db_objects.create(db_model.OperationEventLog, level="warning",
+                                            operation=task.callback.operation,
+                                            message=f"{user.username} failed to bypass an OPSEC PostCheck for task {task.id}")
                 return {"status": "error", "error": "Not Authorized"}
     else:
         return {"status": "error", "error": "nothing to bypass"}
@@ -1212,7 +1379,7 @@ async def reissue_task_for_down_container(request, user):
         operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         data = request.json["input"]
         task = await app.db_objects.get(db_model.task_query, id=data["task_id"])
-        if task.status == "error: container down" and task.callback.operation == operation:
+        if not task.completed and task.callback.operation == operation:
             task.status = "preprocessing"
             await app.db_objects.update(task)
             status = await submit_task_to_container(task, user["username"])
@@ -1227,50 +1394,82 @@ async def reissue_task_for_down_container(request, user):
         return json({"status": "error", "error": "Failed to find components"})
 
 
-async def submit_task_to_container(task, username, params: str = None):
-    if (
-            task.callback.registered_payload.payload_type.last_heartbeat
-            < datetime.utcnow() + timedelta(seconds=-30)
-    ):
-        task.callback.registered_payload.payload_type.container_running = False
-        await app.db_objects.update(task.callback.registered_payload.payload_type)
-        return {"status": "error", "error": "Payload Type container not running"}
-    if task.callback.registered_payload.payload_type.container_running:
-        rabbit_message = {"params": task.params, "command": task.command.cmd, "task": task.to_json()}
-        rabbit_message["task"]["callback"] = task.callback.to_json()
-        # get the information for the callback's associated payload
-        payload_info = await add_all_payload_info(task.callback.registered_payload)
-        if payload_info["status"] == "error":
-            return payload_info
-        rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
-            "build_parameters"
-        ]
-        rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
-        tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
-        rabbit_message["task"]["tags"] = [t.tag for t in tags]
-        if params is not None:
-            rabbit_message["params"] = params
-        rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
-        # by default tasks are created in a preprocessing state,
-        result = await send_pt_rabbitmq_message(
-            task.callback.registered_payload.payload_type.ptype,
-            "command_transform",
-            js.dumps(rabbit_message),
-            username,
-            task.id
+@mythic.route(
+    mythic.config["API_BASE"] + "/tasks/reissue_task_handler_webhook",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def reissue_task_for_failed_task_handlers(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-        if result["status"] == "error" and "type" in result:
-            task.status = "error: container down"
+    try:
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        data = request.json["input"]
+        task = await app.db_objects.get(db_model.task_query, id=data["task_id"])
+        if task.callback.operation != operation:
+            return json({"status": "error", "error": "Task unknown or not in your operation"})
+        asyncio.create_task(check_and_issue_task_callback_functions(taskOriginal=task, resubmit=True))
+        return json({"status": "success"})
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json({"status": "error", "error": "Failed to find components"})
+
+
+async def submit_task_to_container(task, username, params: str = None):
+    try:
+        if (
+                task.callback.registered_payload.payload_type.last_heartbeat
+                < datetime.utcnow() + timedelta(seconds=-30)
+        ):
             task.callback.registered_payload.payload_type.container_running = False
-            task.callback.registered_payload.payload_type.container_count = 0
             await app.db_objects.update(task.callback.registered_payload.payload_type)
+            task.status = "Error: Container Down"
             await app.db_objects.update(task)
-        return result
-    else:
-        return {"status": "error", "error": "Container not running"}
+            return {"status": "error", "error": "Payload Type container not running"}
+        if task.callback.registered_payload.payload_type.container_running:
+            rabbit_message = {"params": task.params, "command": task.command.cmd, "task": task.to_json()}
+            rabbit_message["task"]["callback"] = task.callback.to_json()
+            # get the information for the callback's associated payload
+            payload_info = await add_all_payload_info(task.callback.registered_payload)
+            if payload_info["status"] == "error":
+                return payload_info
+            rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
+                "build_parameters"
+            ]
+            rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+            tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
+            rabbit_message["task"]["tags"] = [t.tag for t in tags]
+            if params is not None:
+                rabbit_message["params"] = params
+            rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
+            # by default tasks are created in a preprocessing state,
+            result = await send_pt_rabbitmq_message(
+                task.callback.registered_payload.payload_type.ptype,
+                "command_transform",
+                js.dumps(rabbit_message),
+                username,
+                task.id
+            )
+            if result["status"] == "error" and "type" in result:
+                task.status = "Error: Container Down"
+                task.callback.registered_payload.payload_type.container_running = False
+                task.callback.registered_payload.payload_type.container_count = 0
+                await app.db_objects.update(task.callback.registered_payload.payload_type)
+                await app.db_objects.update(task)
+            return result
+        else:
+            return {"status": "error", "error": "Container not running"}
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return {"status": "error", "error": str(e)}
 
-
-async def submit_task_callback_to_container(task: Task, function_name: str, username: str,
+async def submit_task_callback_to_container(task: Task, function_name: str, username: str, updating_piece: str,
                                             subtask: Task = None, subtask_group_name: str = None):
     if (
             task.callback.registered_payload.payload_type.last_heartbeat
@@ -1278,6 +1477,8 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
     ):
         task.callback.registered_payload.payload_type.container_running = False
         await app.db_objects.update(task.callback.registered_payload.payload_type)
+        task.status = "Error: Task Handler Container Down"
+        await app.db_objects.update(task)
         return {"status": "error", "error": "Payload Type container not running"}
     if task.callback.registered_payload.payload_type.container_running:
         rabbit_message = {"params": task.params, "command": task.command.cmd, "task": task.to_json()}
@@ -1294,6 +1495,8 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
         rabbit_message["subtask_group_name"] = subtask_group_name
         rabbit_message["function_name"] = function_name
         rabbit_message["subtask"] = subtask.to_json() if subtask is not None else None
+        rabbit_message["updating_task"] = task.id if subtask is None else subtask.id
+        rabbit_message["updating_piece"] = updating_piece
         tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
         rabbit_message["task"]["tags"] = [t.tag for t in tags]
         # by default tasks are created in a preprocessing state,
@@ -1307,6 +1510,8 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
         if result["status"] == "error" and "type" in result:
             task.callback.registered_payload.payload_type.container_running = False
             task.callback.registered_payload.payload_type.container_count = 0
+            task.status = "Error: Task Handler Container Down"
+            await app.db_objects.update(task)
             await app.db_objects.update(task.callback.registered_payload.payload_type)
         return result
     else:
@@ -1454,7 +1659,8 @@ async def update_task(request, tid, user):
         if "tags" not in data:
             return json({"status": "error", "error": "tags is a required field"})
         task = await app.db_objects.get(db_model.task_query, id=tid)
-        if task.callback.operation.name in user["operations"] or task.callback.operation.name in user["admin_operations"] or user["admin"]:
+        if task.callback.operation.name in user["operations"] or task.callback.operation.name in user[
+            "admin_operations"] or user["admin"]:
             status = await add_tags_to_task(task, data["tags"])
             return json(status)
         return json({"status": "success"})
@@ -1526,7 +1732,8 @@ async def get_task_tags(request, tid, user):
         )
     try:
         task = await app.db_objects.get(db_model.task_query, id=tid)
-        if task.callback.operation.name in user["operations"] or task.callback.operation.name in user["admin_operations"] or user["admin"]:
+        if task.callback.operation.name in user["operations"] or task.callback.operation.name in user[
+            "admin_operations"] or user["admin"]:
             tags = await app.db_objects.execute(db_model.tasktag_query.where(
                 db_model.TaskTag.task == task
             ))
@@ -1588,8 +1795,8 @@ async def clear_tasks_for_callback_func(data, cid, user):
             # if you don't actually specify a task, remove the the last task that was entered
             tasks = await app.db_objects.prefetch(
                 db_model.task_query.where((Task.completed == False) & (Task.callback == callback))
-                .order_by(-Task.timestamp)
-                .limit(1),
+                    .order_by(-Task.timestamp)
+                    .limit(1),
                 Command.select(),
             )
         for t in list(tasks):
@@ -1664,7 +1871,8 @@ async def get_one_task_and_responses(request, tid, user):
                 db_model.response_query.where(Response.task == task).order_by(Response.id),
                 db_model.task_query
             )
-            callback = await app.db_objects.prefetch(db_model.callback_query.where(Callback.id == task.callback), db_model.CallbackToken.select())
+            callback = await app.db_objects.prefetch(db_model.callback_query.where(Callback.id == task.callback),
+                                                     db_model.CallbackToken.select())
             callback = list(callback)[0]
             task_ids = [task.id]
             subtasks = await app.db_objects.execute(db_model.task_query.where(
@@ -1726,9 +1934,9 @@ async def get_one_task_and_responses(request, tid, user):
             {
                 "status": "error",
                 "error": "Failed to fetch task: "
-                + str(sys.exc_info()[-1].tb_lineno)
-                + " "
-                + str(e),
+                         + str(sys.exc_info()[-1].tb_lineno)
+                         + " "
+                         + str(e),
             }
         )
 
@@ -1796,9 +2004,9 @@ async def get_tasks_by_tag(request, user):
             {
                 "status": "error",
                 "error": "Failed to fetch task: "
-                + str(sys.exc_info()[-1].tb_lineno)
-                + " "
-                + str(e),
+                         + str(sys.exc_info()[-1].tb_lineno)
+                         + " "
+                         + str(e),
             }
         )
 
@@ -1842,9 +2050,9 @@ async def delete_tag_on_tasks(request, user):
             {
                 "status": "error",
                 "error": "Failed to fetch task: "
-                + str(sys.exc_info()[-1].tb_lineno)
-                + " "
-                + str(e),
+                         + str(sys.exc_info()[-1].tb_lineno)
+                         + " "
+                         + str(e),
             }
         )
 
@@ -1880,7 +2088,7 @@ async def get_tasks_by_ranges(request, user):
             for t in data["tasks"]:
                 if "-" in t:
                     low, high = map(int, t.split("-"))
-                    task_ids_to_pull += range(low, high+1)
+                    task_ids_to_pull += range(low, high + 1)
                 else:
                     task_ids_to_pull.append(int(t))
             tasks_before = await app.db_objects.execute(db_model.task_query.where(
@@ -1936,10 +2144,10 @@ async def get_tasks_by_ranges(request, user):
         for t in tasks_before:
             task_ids.append(t.id)
             task_info.insert(0, {**t.to_json(), "callback": {"user": t.callback.user,
-                                                               "host": t.callback.host,
-                                                               "id": t.callback.id,
-                                                               "integrity_level": t.callback.integrity_level,
-                                                               "domain": t.callback.domain}})
+                                                             "host": t.callback.host,
+                                                             "id": t.callback.id,
+                                                             "integrity_level": t.callback.integrity_level,
+                                                             "domain": t.callback.domain}})
         if task is not None:
             task_ids.append(task.id)
             task_info.append({**task.to_json(), "callback": {"user": task.callback.user,
@@ -1950,10 +2158,10 @@ async def get_tasks_by_ranges(request, user):
         for t in tasks_after:
             task_ids.append(t.id)
             task_info.append({**t.to_json(), "callback": {"user": t.callback.user,
-                                                               "host": t.callback.host,
-                                                               "id": t.callback.id,
-                                                               "integrity_level": t.callback.integrity_level,
-                                                               "domain": t.callback.domain}})
+                                                          "host": t.callback.host,
+                                                          "id": t.callback.id,
+                                                          "integrity_level": t.callback.integrity_level,
+                                                          "domain": t.callback.domain}})
         # get all artifacts associated with the task
         artifacts = await app.db_objects.execute(db_model.taskartifact_query.where(
             db_model.TaskArtifact.task.id.in_(task_ids)
@@ -1988,9 +2196,9 @@ async def get_tasks_by_ranges(request, user):
             {
                 "status": "error",
                 "error": "Failed to fetch task: "
-                + str(sys.exc_info()[-1].tb_lineno)
-                + " "
-                + str(e),
+                         + str(sys.exc_info()[-1].tb_lineno)
+                         + " "
+                         + str(e),
             }
         )
 
@@ -2024,9 +2232,9 @@ async def get_tags(request, user):
             {
                 "status": "error",
                 "error": "Failed to fetch tags: "
-                + str(sys.exc_info()[-1].tb_lineno)
-                + " "
-                + str(e),
+                         + str(sys.exc_info()[-1].tb_lineno)
+                         + " "
+                         + str(e),
             }
         )
 

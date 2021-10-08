@@ -5,7 +5,6 @@ from app.database_models.model import (
     Task,
     Response,
     Callback,
-    Keylog,
     TaskArtifact,
     Artifact,
     Command,
@@ -211,6 +210,26 @@ async def search_responses(request, user):
         return json({"status": "error", "error": "bad regex syntax"})
 
 
+async def is_file_transfer(task_response):
+    if "upload" in task_response and task_response["upload"]:
+        if "total_chunks" in task_response["upload"] and task_response["upload"]["total_chunks"] > 0:
+            return True
+        elif "chunk_data" in task_response["upload"] and task_response["upload"]["chunk_data"] and len(task_response["upload"]["chunk_data"]) > 0:
+            return True
+        elif "chunk_num" in task_response["upload"] and task_response["upload"]["chunk_num"] > 0:
+            return True
+        elif "full_path" in task_response["upload"] and task_response["upload"]["full_path"] and len(task_response["upload"]["full_path"]) > 0:
+            return True
+    else:
+        if "total_chunks" in task_response and task_response["total_chunks"] > 0:
+            return True
+        elif "chunk_data" in task_response and task_response["chunk_data"] and len(task_response["chunk_data"]) > 0:
+            return True
+        elif "full_path" in task_response and task_response["full_path"] and len(task_response["full_path"]) > 0:
+            return True
+    return False
+
+
 async def post_agent_response(agent_message, callback):
     # { INPUT
     # "action": "post_response",
@@ -232,13 +251,21 @@ async def post_agent_response(agent_message, callback):
     #   ]
     # }
     response_message = {"action": "post_response", "responses": []}
-
+    background_responses = {}
     for r in agent_message["responses"]:
         #print(r)
         try:
             task_id = r["task_id"]
             del r["task_id"]
             parsed_response = r
+            if not await is_file_transfer(parsed_response):
+                # we're dealing with file transfers, handle the message here
+                response_message["responses"].append({"task_id": task_id, "status": "success"})
+                if task_id in background_responses:
+                    background_responses[task_id].append(r)
+                else:
+                    background_responses[task_id] = [r]
+                continue
             try:
                 task = await app.db_objects.prefetch(db_model.task_query.where(db_model.Task.agent_task_id == task_id),
                                                      db_model.callback_query,
@@ -363,7 +390,7 @@ async def post_agent_response(agent_message, callback):
                         parsed_response.pop("chunk_num", None)
                         parsed_response.pop("chunk_data", None)
                     if "keystrokes" in parsed_response:
-                        if parsed_response["keystrokes"] is not None and parsed_response["keystrokes"] != "":
+                        if isinstance(parsed_response["keystrokes"], dict):
                             if (
                                 "window_title" not in parsed_response
                                 or parsed_response["window_title"] is None
@@ -376,15 +403,12 @@ async def post_agent_response(agent_message, callback):
                                 or parsed_response["user"] == ""
                             ):
                                 parsed_response["user"] = "UNKNOWN"
-                            rsp = await app.db_objects.create(
-                                Keylog,
-                                task=task,
-                                window=parsed_response["window_title"],
-                                keystrokes=parsed_response["keystrokes"].encode("utf-8"),
-                                operation=task.callback.operation,
-                                user=parsed_response["user"],
-                            )
-                            asyncio.create_task(log_to_siem(mythic_object=rsp, mythic_source="keylog_new"))
+                            from app.api.keylog_api import add_keylogs
+                            asyncio.create_task(add_keylogs([{
+                                "window_title": parsed_response["window_title"],
+                                "user": parsed_response["user"],
+                                "keystrokes": parsed_response["keystrokes"]
+                            }], task))
                         parsed_response.pop("window_title", None)
                         parsed_response.pop("user", None)
                         parsed_response.pop("keystrokes", None)
@@ -546,7 +570,7 @@ async def post_agent_response(agent_message, callback):
                                                                        task=task))
                         parsed_response.pop("commands", None)
                     if "upload" in parsed_response:
-                        if parsed_response["upload"] != {} and parsed_response["upload"] is not None and parsed_response["upload"] != "":
+                        if parsed_response["upload"] and parsed_response["upload"] != "":
                             rsp = await download_agent_file(parsed_response["upload"], in_response=True, task_id=task.agent_task_id)
                             if rsp["status"] == "error":
                                 json_return_info["status"] = "error"
@@ -602,6 +626,26 @@ async def post_agent_response(agent_message, callback):
                                     message=f"Failed to send message to payload container:\n{str(pc)}",
                                     level="info", source="debug", operation=task.callback.operation)
                         parsed_response.pop("process_response", None)
+                    if "keylogs" in parsed_response:
+                        if isinstance(parsed_response["keylogs"], list):
+                            from app.api.keylog_api import add_keylogs
+                            asyncio.create_task(add_keylogs(parsed_response["keylogs"], task))
+                        parsed_response.pop("keylogs", None)
+                    if "tokens" in parsed_response:
+                        if isinstance(parsed_response["tokens"], list):
+                            from app.api.rabbitmq_api import response_create_tokens
+                            asyncio.create_task(response_create_tokens(task, parsed_response["tokens"]))
+                        parsed_response.pop("tokens", None)
+                    if "logonsessions" in parsed_response:
+                        if isinstance(parsed_response["logonsessions"], list):
+                            from app.api.rabbitmq_api import response_create_logon_session
+                            asyncio.create_task(response_create_logon_session(task, parsed_response["logonsessions"]))
+                        parsed_response.pop("logonsessions", None)
+                    if "callbacktokens" in parsed_response:
+                        if isinstance(parsed_response["callbacktokens"], list):
+                            from app.api.rabbitmq_api import response_adjust_callback_tokens
+                            asyncio.create_task(response_adjust_callback_tokens(task, parsed_response["callbacktokens"]))
+                        parsed_response.pop("callbacktokens", None)
                     parsed_response.pop("full_path", None)
                     parsed_response.pop("host", None)
                     parsed_response.pop("file_id", None)
@@ -652,11 +696,10 @@ async def post_agent_response(agent_message, callback):
                     "task_id": r["task_id"] if "task_id" in r else "",
                 }
             )
+    asyncio.create_task(background_process_agent_responses(background_responses, callback))
     if (
         "socks" in agent_message
-        and agent_message["socks"] != ""
-        and agent_message["socks"] != []
-        and agent_message["socks"] is not None
+        and isinstance(agent_message["socks"], list)
     ):
         # since this could be in any worker, publish this data to a channel that should be listening
         app.redis_pool.publish(f"SOCKS:{callback.id}:FromAgent", js.dumps(agent_message["socks"]))
@@ -666,3 +709,354 @@ async def post_agent_response(agent_message, callback):
         if k not in ["action", "responses", "delegates", "socks", "edges"]:
             response_message[k] = agent_message[k]
     return response_message
+
+
+async def background_process_agent_responses(agent_responses: dict, callback: db_model.Callback):
+    # all of the agent_responses are for the specified task
+    for task_id, responses in agent_responses.items():
+        try:
+            task = await app.db_objects.prefetch(db_model.task_query.where(db_model.Task.agent_task_id == task_id),
+                                                 db_model.callback_query,
+                                                 db_model.callbacktoken_query)
+            task = list(task)[0]
+        except Exception as e:
+            asyncio.create_task(
+                send_all_operations_message(message=f"Failed to find task: {task_id}",
+                                            level="warning", source="agent_response", operation=callback.operation))
+            continue
+        for r in responses:
+            #print(r)
+            try:
+                parsed_response = r
+                # we're resetting it since we're going to be doing some processing on the response
+                final_output = ""
+                marked_as_complete = False
+                try:
+                    try:
+                        if "completed" in parsed_response:
+                            if parsed_response["completed"]:
+                                task.completed = True
+                                task.status = "completed"
+                                marked_as_complete = True
+                                asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
+                        if "user_output" in parsed_response:
+                            if parsed_response["user_output"] is not None:
+                                if "p2p:job_list" in task.command.supported_ui_features:
+                                    asyncio.create_task(mark_jobs_complete_based_on_job_list(task, parsed_response["user_output"]))
+                                final_output += str(parsed_response["user_output"])
+                        if "file_browser" in parsed_response:
+                            if (
+                                parsed_response["file_browser"] != {}
+                                and isinstance(parsed_response["file_browser"], dict)
+                            ):
+                                # load this information into filebrowserobj entries for later parsing
+                                from app.api.file_browser_api import (
+                                    store_response_into_filebrowserobj,
+                                )
+                                asyncio.create_task(store_response_into_filebrowserobj(
+                                    task.callback.operation, task, parsed_response["file_browser"]
+                                ))
+                        if "removed_files" in parsed_response:
+                            # an agent is reporting back that a file was removed from disk successfully
+                            if isinstance(parsed_response["removed_files"], list):
+                                for f in parsed_response["removed_files"]:
+                                    if "host" not in f or f["host"] == "":
+                                        f["host"] = task.callback.host
+                                    # we want to see if there's a filebrowserobj that matches up with the removed files
+                                    try:
+                                        fobj = await app.db_objects.get(
+                                            db_model.filebrowserobj_query,
+                                            operation=task.callback.operation,
+                                            host=f["host"].upper(),
+                                            full_path=f["path"].encode('utf-8'),
+                                            deleted=False,
+                                        )
+                                        fobj.deleted = True
+                                        if not fobj.is_file:
+                                            asyncio.create_task(mark_nested_deletes(fobj, task.callback.operation))
+                                        await app.db_objects.update(fobj)
+                                    except Exception as e:
+                                        pass
+                        if "keystrokes" in parsed_response:
+                            if isinstance(parsed_response["keystrokes"], dict):
+                                if (
+                                    "window_title" not in parsed_response
+                                    or parsed_response["window_title"] is None
+                                    or parsed_response["window_title"] == ""
+                                ):
+                                    parsed_response["window_title"] = "UNKNOWN"
+                                if (
+                                    "user" not in parsed_response
+                                    or parsed_response["user"] is None
+                                    or parsed_response["user"] == ""
+                                ):
+                                    parsed_response["user"] = "UNKNOWN"
+                                from app.api.keylog_api import add_keylogs
+                                asyncio.create_task(add_keylogs([{
+                                    "window_title": parsed_response["window_title"],
+                                    "user": parsed_response["user"],
+                                    "keystrokes": parsed_response["keystrokes"]
+                                }], task))
+                        if "credentials" in parsed_response:
+                            if isinstance(parsed_response["credentials"], list):
+                                for cred in parsed_response["credentials"]:
+                                    cred["task"] = task
+                                    asyncio.create_task(create_credential_func(
+                                        task.operator, task.callback.operation, cred
+                                    ))
+                        if "artifacts" in parsed_response:
+                            # now handle the case where the agent is reporting back artifact information
+                            if isinstance(parsed_response["artifacts"], list):
+                                for artifact in parsed_response["artifacts"]:
+                                    try:
+                                        try:
+                                            base_artifact = await app.db_objects.get(
+                                                db_model.artifact_query, name=artifact["base_artifact"]
+                                            )
+                                        except Exception as e:
+                                            base_artifact = await app.db_objects.create(
+                                                Artifact,
+                                                name=artifact["base_artifact"],
+                                                description="Auto created from task {}".format(
+                                                    task.id
+                                                ),
+                                            )
+                                        # you can report back multiple artifacts at once, no reason to make separate C2 requests
+                                        art = await app.db_objects.create(
+                                            TaskArtifact,
+                                            task=task,
+                                            artifact_instance=str(artifact["artifact"]).encode("utf-8"),
+                                            artifact=base_artifact,
+                                            host=task.callback.host.upper(),
+                                        )
+                                        asyncio.create_task(log_to_siem(mythic_object=art, mythic_source="artifact_new"))
+                                        # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
+                                    except Exception as e:
+                                        asyncio.create_task(send_all_operations_message(message="\nFailed to work with artifact: "
+                                            + str(artifact)
+                                            + " due to: "
+                                            + str(e), level="warning", operation=callback.operation))
+                        if "processes" in parsed_response:
+                            if isinstance(parsed_response["processes"], list):
+                                asyncio.create_task(create_processes({"processes": parsed_response["processes"]}, task))
+                        if "status" in parsed_response:
+                            if parsed_response["status"] != "" and isinstance(parsed_response["status"], str):
+                                task.status = str(parsed_response["status"]).lower()
+                                if task.status_timestamp_processed is None:
+                                    task.status_timestamp_processed = datetime.datetime.utcnow()
+                                if task.status == "error":
+                                    task.completed = True
+                                    marked_as_complete = True
+                                    asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
+                                elif task.status == "completed" or task.status == "complete":
+                                    task.status = "completed"
+                                    task.completed = True
+                                    marked_as_complete = True
+                                    asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
+                            else:
+                                if task.status_timestamp_processed is None:
+                                    task.status_timestamp_processed = datetime.datetime.utcnow()
+                                if task.status == "processing":
+                                    task.status = "processed"
+                        else:
+                            if task.status_timestamp_processed is None:
+                                task.status_timestamp_processed = datetime.datetime.utcnow()
+                            if task.status == "processing":
+                                task.status = "processed"
+                        if (
+                            "full_path" in parsed_response
+                            and "file_id" in parsed_response
+                            and parsed_response["file_id"] != ""
+                            and parsed_response["full_path"] != ""
+                            and parsed_response["full_path"] is not None
+                            and parsed_response["file_id"] is not None
+                        ):
+                            # updating the full_path field of a file object after the initial checkin for it
+                            if app.debugging_enabled:
+                                await send_all_operations_message(
+                                    message=f"Processing agent response, got file_id, {parsed_response['file_id']}, and a full path, {parsed_response['full_path']}. Going to try to associate them.",
+                                    level="info", source="debug", operation=task.callback.operation)
+                            try:
+                                file_meta = await app.db_objects.get(
+                                    db_model.filemeta_query, agent_file_id=parsed_response["file_id"], operation=task.callback.operation
+                                )
+                                if "host" in parsed_response and parsed_response["host"] is not None and parsed_response["host"] != "":
+                                    host = parsed_response["host"]
+                                else:
+                                    host = task.callback.host
+                                if file_meta.task is None or file_meta.task != task:
+                                    # print("creating new file")
+                                    f = await app.db_objects.create(
+                                        db_model.FileMeta,
+                                        task=task,
+                                        host=host.upper(),
+                                        total_chunks=file_meta.total_chunks,
+                                        chunks_received=file_meta.chunks_received,
+                                        chunk_size=file_meta.chunk_size,
+                                        complete=file_meta.complete,
+                                        path=file_meta.path,
+                                        full_remote_path=parsed_response["full_path"].encode("utf-8"),
+                                        operation=task.callback.operation,
+                                        md5=file_meta.md5,
+                                        sha1=file_meta.sha1,
+                                        temp_file=False,
+                                        deleted=False,
+                                        operator=task.operator,
+                                    )
+                                else:
+                                    file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")
+                                    if host != file_meta.host:
+                                        file_meta.host = host.upper()
+                                    await app.db_objects.update(file_meta)
+                                    if file_meta.full_remote_path != "":
+                                        if app.debugging_enabled:
+                                            await send_all_operations_message(
+                                                message=f"Processing agent response, associated {file_meta.agent_file_id} with {parsed_response['full_path']}, now updating file browser data",
+                                                level="info", source="debug", operation=task.callback.operation)
+                                        asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task,
+                                                                                            file_meta,
+                                                                                            {"host": host.upper(),
+                                                                                            "full_path": parsed_response["full_path"]}))
+                            except Exception as e:
+                                logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                                if app.debugging_enabled:
+                                    await send_all_operations_message(
+                                        message=f"Failed to associate new 'full_path' with file {parsed_response['file_id']} - {str(e)}",
+                                        level="info")
+                            parsed_response.pop("full_path", None)
+                            parsed_response.pop("file_id", None)
+                            parsed_response.pop("host", None)
+                        if "edges" in parsed_response:
+                            if isinstance(parsed_response["edges"], list):
+                                try:
+                                    from app.api.callback_api import add_p2p_route
+                                    asyncio.create_task(add_p2p_route(
+                                        parsed_response["edges"], task.callback, task
+                                    ))
+                                except Exception as e:
+                                    asyncio.create_task(send_all_operations_message(message="Failed to update linked edges between callbacks:\n" + str(e),
+                                                                                    level="warning", operation=callback.operation))
+                        if "commands" in parsed_response:
+                            if isinstance(parsed_response["commands"], list):
+                                # the agent is reporting back that it has commands that are loaded/unloaded
+                                from app.api.callback_api import load_commands_func
+                                for c in parsed_response["commands"]:
+                                    asyncio.create_task(load_commands_func(command_dict=c,
+                                                                           callback=task.callback,
+                                                                           task=task))
+                        if "process_response" in parsed_response and parsed_response["process_response"] != "" and parsed_response["process_response"] is not None:
+                            try:
+                                rabbit_message = {"params": task.params, "command": task.command.cmd}
+                                rabbit_message["task"] = task.to_json()
+                                rabbit_message["task"]["callback"] = task.callback.to_json()
+                                # get the information for the callback's associated payload
+                                payload_info = await add_all_payload_info(task.callback.registered_payload)
+                                if payload_info["status"] == "error":
+                                    asyncio.create_task(
+                                        send_all_operations_message(
+                                            message=f"Failed to process post_response message for task {task.id}:\n{payload_info['error']}",
+                                            level="warning", source=f"task_response_{task.id}"))
+                                else:
+                                    rabbit_message["task"]["callback"]["build_parameters"] = payload_info[
+                                        "build_parameters"
+                                    ]
+                                    rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+                                    tags = await app.db_objects.execute(
+                                        db_model.tasktag_query.where(db_model.TaskTag.task == task))
+                                    rabbit_message["task"]["tags"] = [t.tag for t in tags]
+                                    rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
+                                    rabbit_message["response"] = parsed_response["process_response"]
+                                    if app.debugging_enabled:
+                                        await send_all_operations_message(
+                                            message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
+                                            level="info", source="debug", operation=task.callback.operation)
+                                    status = await send_pt_rabbitmq_message(payload_type=task.callback.registered_payload.payload_type.ptype,
+                                                                            command="process_container",
+                                                                            username="",
+                                                                            reference_id=task.id,
+                                                                            message_body=js.dumps(rabbit_message))
+                                    if status["status"] == "error" and "type" in status:
+                                        logger.error("response_api.py: sending process_response message: " + status["error"])
+                                        await app.db_objects.create(Response, task=task,
+                                                                    response="Container not running, failed to process process_response data, saving here")
+                                        await app.db_objects.create(Response, task=task, response=parsed_response["process_response"])
+                                        task.callback.registered_payload.payload_type.container_count = 0
+                                        await app.db_objects.update(task.callback.registered_payload.payload_type)
+                                    elif status["status"] == "error":
+                                        logger.error("response_api.py: sending process_response message: " + status["error"])
+                            except Exception as pc:
+                                logger.error("response_api.py: " + str(sys.exc_info()[-1].tb_lineno) + str(pc))
+                                if app.debugging_enabled:
+                                    await send_all_operations_message(
+                                        message=f"Failed to send message to payload container:\n{str(pc)}",
+                                        level="info", source="debug", operation=task.callback.operation)
+                            parsed_response.pop("process_response", None)
+                        if "keylogs" in parsed_response:
+                            if isinstance(parsed_response["keylogs"], list):
+                                from app.api.keylog_api import add_keylogs
+                                asyncio.create_task(add_keylogs(parsed_response["keylogs"], task))
+                        if "tokens" in parsed_response:
+                            if isinstance(parsed_response["tokens"], list):
+                                from app.api.rabbitmq_api import response_create_tokens
+                                asyncio.create_task(response_create_tokens(task, parsed_response["tokens"]))
+                        if "logonsessions" in parsed_response:
+                            if isinstance(parsed_response["logonsessions"], list):
+                                from app.api.rabbitmq_api import response_create_logon_session
+                                asyncio.create_task(response_create_logon_session(task, parsed_response["logonsessions"]))
+                        if "callbacktokens" in parsed_response:
+                            if isinstance(parsed_response["callbacktokens"], list):
+                                from app.api.rabbitmq_api import response_adjust_callback_tokens
+                                asyncio.create_task(response_adjust_callback_tokens(task, parsed_response["callbacktokens"]))
+                    except Exception as e:
+                        asyncio.create_task(
+                            send_all_operations_message(message=f"Failed to parse response data:\n{'response_api.py - ' + str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}",
+                                                        level="warning", source="response",
+                                                        operation=task.callback.operation))
+                except Exception as e:
+                    # response is not json, so just process it as normal
+                    asyncio.create_task(
+                        send_all_operations_message(message=f"Failed to parse response data:\n{str(e)}",
+                                                    level="warning", source="response",
+                                                    operation=task.callback.operation))
+                    pass
+                if final_output != "":
+                    # if we got here, then we did some sort of meta processing
+                    resp = await app.db_objects.create(
+                        Response,
+                        task=task,
+                        response=final_output.encode("utf-8")
+                    )
+                    asyncio.create_task(log_to_siem(mythic_object=resp, mythic_source="response_new"))
+                task.timestamp = datetime.datetime.utcnow()
+                await app.db_objects.update(task)
+                if marked_as_complete:
+                    asyncio.create_task(check_and_issue_task_callback_functions(task))
+            except Exception as e:
+                asyncio.create_task(
+                    send_all_operations_message(message=f"Failed to process response:\n{'response_api.py - ' + str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}",
+                                                level="warning",
+                                                source="response_meta",
+                                                operation=callback.operation))
+
+
+async def mark_jobs_complete_based_on_job_list(task, output):
+    try:
+        running_jobs = js.loads(output)
+        if isinstance(running_jobs, list):
+            mythic_running_jobs = app.db_objects.execute(db_model.task_query.where(
+                (db_model.Task.callback == task.callback) &
+                (db_model.Task.completed == False) &
+                (db_model.Task.agent_task_id.not_in_(running_jobs))
+            ))
+            for j in mythic_running_jobs:
+                j.completed = True
+                j.status = "Error - Data Lost And Task Done"
+                await app.db_objects.update(j)
+    except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(
+                message=f"Failed to process completed jobs from task output:\n{'response_api.py - ' + str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}\nOutput:{output}",
+                level="warning",
+                source="response_meta",
+                operation=task.callback.operation))
+

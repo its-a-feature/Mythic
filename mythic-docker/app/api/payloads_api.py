@@ -63,10 +63,23 @@ async def get_all_payloads_current_operation(request, user):
         )
     if user["current_operation"] != "":
         operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
-        payloads = await app.db_objects.execute(
-            db_model.payload_query.where((Payload.operation == operation) & (Payload.deleted == False))
+        c2profile_payloads = await app.db_objects.execute(
+            db_model.c2profileparametersinstance_query.where(
+                (db_model.Payload.operation == operation) &
+                (db_model.C2ProfileParametersInstance.payload != None)
+            )
         )
-        return json([p.to_json() for p in payloads])
+        results = {}
+        for cp in c2profile_payloads:
+            if cp.payload.operation == operation:
+                if cp.payload.id not in results:
+                    results[cp.payload.id] = {'payload': cp.payload, "c2": []}
+                if cp.c2_profile.name not in results[cp.payload.id]["c2"]:
+                    results[cp.payload.id]["c2"].append(cp.c2_profile.name)
+        payloads = []
+        for k, v in results.items():
+            payloads.append({**v["payload"].to_json(), "c2profiles": v["c2"]})
+        return json(payloads)
     else:
         return json({"status": "error", "error": "must be part of a current operation"})
 
@@ -283,6 +296,11 @@ async def register_new_payload_func(data, user):
                         "error": "failed to get command {}".format(cmd),
                     }
         uuid = await generate_uuid()
+        if "uuid" in data:
+            uuid = data["uuid"]
+            await send_all_operations_message(message=f"Creating payload using user supplied payload UUID - {uuid}",
+                                              level="info", source="starting_c2_profile", operation=operation)
+
         filename = data["filename"] if "filename" in data else uuid
         # Register payload
         if "build_container" not in data:
@@ -803,24 +821,23 @@ async def create_payload_again_webhook(request, user):
         return json({"status": "error", "error": "Failed to rebuild payload: " + str(e)})
 
 
-@mythic.route(mythic.config["API_BASE"] + "/payloads/export_config/<puuid:string>", methods=["GET"])
+@mythic.route(mythic.config["API_BASE"] + "/export_payload_config_webhook", methods=["POST"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def export_payload_config_webhook(request, user, puuid):
+async def export_payload_config_webhook(request, user):
     if user["auth"] not in ["access_token", "apitoken"]:
         abort(
             status_code=403,
             message="Cannot access via Cookies. Use CLI or access via JS in browser",
         )
-    if user["view_mode"] == "spectator":
-        return json({"status": "error", "error": "Spectators cannot create payloads"})
     from app.api.rabbitmq_api import get_payload_build_config
     try:
-        data = await get_payload_build_config(payload_uuid=puuid, generate_new_random_values=False)
+        jsondata = request.json["input"]
+        data = await get_payload_build_config(payload_uuid=jsondata["uuid"], generate_new_random_values=False)
         if data["status"] == "success":
-            return json({"status": "success", "config": data["data"]})
+            return json({"status": "success", "config": js.dumps(data["data"], indent=4)})
         else:
             return json(data)
     except Exception as e:
@@ -851,7 +868,7 @@ async def create_payload_webhook(request, user):
 
 async def create_payload_func(data, user):
     try:
-        if "tag" not in data:
+        if "tag" not in data or data["tag"] == "":
             data["tag"] = (
                 "Created by " + user["username"] + " at " + datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S") + " UTC"
             )

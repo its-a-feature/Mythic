@@ -793,9 +793,6 @@ function register_new_command_info(response) {
         let data = JSON.parse(response);
         if (data['status'] === "success") {
             delete data['status'];
-            for(let i = 0; i < data["commands"].length; i++){
-                data["commands"][i]["attributes"] = JSON.parse(data["commands"][i]["attributes"]);
-            }
             data['commands'].push({"cmd": "help", "params": [], "attributes": {"supported_os": []}});
             data['commands'].push({"cmd": "clear", "params": [], "attributes": {"supported_os": []}});
             callback_table.ptype_cmd_params[data['commands'][0]['payload_type']] = data['commands'];
@@ -947,7 +944,6 @@ function update_loaded_commands(data){
         callback_table.callbacks[data['callback']]['commands'] = [];
     }
     if(data['channel'].includes("new")){
-        data["attributes"] = JSON.parse(data['attributes']);
         callback_table.callbacks[data['callback']]['commands'].push({"name": data['command'], "version": data["version"], "attributes": data["attributes"]});
         callback_table.callbacks[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
     }else if(data['channel'].includes("updated")){
@@ -1247,7 +1243,6 @@ function startwebsocket_commands() {
                 // we're dealing with new/update/delete for a command
                 if (data['notify'] === "newcommand") {
                     data['params'] = [];
-                    data["attributes"] = JSON.parse(data["attributes"]);
                     callback_table.ptype_cmd_params[data['payload_type']].push(data);
                 } else if (data['notify'] === "deletedcommand") {
                     // we don't get 'payload_type' like normal, instead, we get payload_type_id which doesn't help
@@ -1263,7 +1258,6 @@ function startwebsocket_commands() {
                 } else {
                     for (let i = 0; i < callback_table.ptype_cmd_params[data['payload_type']].length; i++) {
                         if (callback_table.ptype_cmd_params[data['payload_type']][i]['cmd'] === data['cmd']) {
-                            data["attributes"] = JSON.parse(data["attributes"]);
                             Vue.set(callback_table.ptype_cmd_params[data['payload_type']], i, Object.assign({}, callback_table.ptype_cmd_params[data['payload_type']][i], data));
                         }
                     }

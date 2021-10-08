@@ -73,7 +73,7 @@ async def store_response_into_filebrowserobj(operation, task, response):
     # for the current message, see what the parent_path value is for that host
     # we want to link-up any new/updated objects to their parents
     if response["name"] is None or response["name"] == "":
-        return {"status": "success"}
+        return {"status": "error", "error": "Name must be supplied"}
     parent = await create_and_check_parents(operation, task, response)
     if parent is None and response["parent_path"] != "":
         return {

@@ -60,6 +60,16 @@ actions:
   - role: mythic_admin
   - role: operation_admin
   - role: operator
+- name: create_c2_instance
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_c2parameter_instance_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: downloadContainerFile
   definition:
     kind: ""
@@ -85,6 +95,17 @@ actions:
   definition:
     kind: synchronous
     handler: '{{MYTHIC_ACTIONS_URL_BASE}}/dynamic_query_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: export_payload_config
+  definition:
+    kind: ""
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/export_payload_config_webhook'
     forward_client_headers: true
   permissions:
   - role: spectator
@@ -123,6 +144,26 @@ actions:
   - role: operation_admin
   - role: mythic_admin
   - role: developer
+- name: reissue_task
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/tasks/reissue_task_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: reissue_task_handler
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/tasks/reissue_task_handler_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: requestOpsecBypass
   definition:
     kind: synchronous
@@ -143,6 +184,16 @@ actions:
   - role: mythic_admin
   - role: operation_admin
   - role: operator
+- name: stop_socks
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/stop_proxy_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: updateCallback
   definition:
     kind: synchronous
@@ -205,4 +256,9 @@ custom_types:
   - name: rebuildOutput
   - name: redirectOutput
   - name: ConfigCheckOutput
+  - name: createc2instanceOutput
+  - name: PayloadConfig
+  - name: ReissueTaskOutput
+  - name: ReissueTaskHandlerOutput
+  - name: StopSocksOutput
   scalars: []

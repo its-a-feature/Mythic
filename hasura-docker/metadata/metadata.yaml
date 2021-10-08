@@ -344,13 +344,6 @@ tables:
         table:
           schema: public
           name: commandparameters
-  - name: disabledcommands
-    using:
-      foreign_key_constraint_on:
-        column: command_id
-        table:
-          schema: public
-          name: disabledcommands
   - name: disabledcommandsprofiles
     using:
       foreign_key_constraint_on:
@@ -399,9 +392,6 @@ tables:
   - name: task
     using:
       foreign_key_constraint_on: task_id
-- table:
-    schema: public
-    name: disabledcommands
   object_relationships:
   - name: command
     using:
@@ -545,13 +535,6 @@ tables:
         table:
           schema: public
           name: credential
-  - name: disabledcommands
-    using:
-      foreign_key_constraint_on:
-        column: operation_id
-        table:
-          schema: public
-          name: disabledcommands
   - name: filebrowserobjs
     using:
       foreign_key_constraint_on:
@@ -668,13 +651,6 @@ tables:
         table:
           schema: public
           name: credential
-  - name: disabledcommands
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          schema: public
-          name: disabledcommands
   - name: filemeta
     using:
       foreign_key_constraint_on:

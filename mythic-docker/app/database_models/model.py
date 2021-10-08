@@ -336,12 +336,12 @@ class Command(p.Model):
             "payload_type": self.payload_type.ptype,
             "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
             "version": self.version,
-            "supported_ui_features": self.supported_ui_features,
+            "supported_ui_features": self.supported_ui_features.split("\n"),
             "author": self.author,
             "deleted": self.deleted,
-            "attributes": self.attributes,
+            "attributes": json.loads(getattr(self, "attributes")),
             "opsec": self.opsec.to_json() if self.opsec is not None else None,
-            "script_only": self.script_only
+            "script_only": self.script_only,
         }
         return r
 
@@ -371,6 +371,7 @@ class CommandParameters(p.Model):
     ui_position = p.IntegerField(null=False)
     # indicate the name of the function to call to dynamically populate the parameter values
     dynamic_query_function = p.TextField(null=True)
+    parameter_group_name = p.TextField(null=True)
 
     class Meta:
         indexes = ((("command", "name"), True),)
@@ -512,30 +513,6 @@ class DisabledCommandsProfile(p.Model):
             "command": self.command.cmd,
             "command_id": self.command.id,
             "payload_type": self.command.payload_type.ptype
-        }
-        return r
-
-    def __str__(self):
-        return json.dumps(self.to_json())
-
-
-class DisabledCommands(p.Model):
-    command = p.ForeignKeyField(Command, null=False)
-    operator = p.ForeignKeyField(Operator, null=False)
-    operation = p.ForeignKeyField(Operation, null=False)
-
-    class Meta:
-        indexes = ((("command", "operator", "operation"), True),)
-        database = mythic_db
-
-    def to_json(self):
-        r = {
-            "id": getattr(self, "id"),
-            "command": self.command.cmd,
-            "command_id": self.command.id,
-            "payload_type": self.command.payload_type.ptype,
-            "operator": self.operator.username,
-            "operation": self.operation.name
         }
         return r
 
@@ -1023,8 +1000,8 @@ class LoadedCommands(p.Model):
             "callback": self.callback.id,
             "operator": self.operator.username,
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
-            "attributes": self.command.attributes,
-            "supported_ui_features": self.command.supported_ui_features
+            "attributes": json.loads(self.command.attributes),
+            "supported_ui_features": self.command.supported_ui_features.split("\n")
         }
         return r
 
@@ -1036,12 +1013,13 @@ class Task(p.Model):
     agent_task_id = p.TextField(unique=True, null=False, default=gen_uuid)
     # could be added via task/clear or scripting by bot
     command = p.ForeignKeyField(Command, null=True)
+    command_name = p.TextField(null=False, default="", constraints=[p.SQL("default ''")])
     params = p.TextField(
         null=True
     )  # this will have the instance specific params (ex: id)
     # make room for ATT&CK ID (T#) if one exists or enable setting this later
     status_timestamp_preprocessing = p.DateTimeField(
-        default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False
+        default=datetime.datetime.utcnow, constraints=[p.SQL("DEFAULT NOW()")], null=False
     )
     status_timestamp_submitted = p.DateTimeField(null=True)
     status_timestamp_processing = p.DateTimeField(null=True)
@@ -1051,7 +1029,7 @@ class Task(p.Model):
     # every task is associated with a specific callback that executes the task
     callback = p.ForeignKeyField(Callback, null=False)
     # the operator to issue the command can be different from the one that spawned the callback
-    operator = p.ForeignKeyField(Operator, null=False)
+    operator = p.ForeignKeyField(Operator, null=True)
     # [preprocessing, submitted, processing, processed]
     status = p.CharField(null=False, default="preprocessing")
     # save off the original params in the scenarios where we to transforms on it for logging and tracking purposes
@@ -1098,6 +1076,7 @@ class Task(p.Model):
     completed_callback_function_completed = p.BooleanField(null=True)
     # can logically group a set of subtasks together and execute completion handlers when they're all done
     subtask_group_name = p.TextField(null=True)
+    tasking_location = p.TextField(null=False,  constraints=[p.SQL("DEFAULT 'command_line'")])
 
     class Meta:
         database = mythic_db
@@ -1107,6 +1086,7 @@ class Task(p.Model):
             "id": getattr(self, "id"),
             "agent_task_id": self.agent_task_id,
             "command": self.command.cmd if self.command is not None else None,
+            "command_name": self.command_name,
             "payload_type": self.command.payload_type.ptype if self.command is not None else None,
             "command_id": self.command.id if self.command is not None else None,
             "status_timestamp_preprocessing": self.status_timestamp_preprocessing.strftime("%m/%d/%Y %H:%M:%S"),
@@ -1116,7 +1096,7 @@ class Task(p.Model):
             "timestamp": self.timestamp.strftime("%m/%d/%Y %H:%M:%S"),
             "callback": self.callback.id,
             "operation": self.callback.operation.name,
-            "operator": self.operator.username,
+            "operator": self.operator.username if self.operator is not None else "MythicServer",
             "status": self.status,
             "original_params": self.original_params,
             "comment": self.comment,
@@ -1138,7 +1118,8 @@ class Task(p.Model):
             "subtask_callback_function": self.subtask_callback_function,
             "group_callback_function": self.group_callback_function,
             "completed_callback_function": self.completed_callback_function,
-            "subtask_group_name": self.subtask_group_name
+            "subtask_group_name": self.subtask_group_name,
+            "tasking_location": self.tasking_location
         }
         return r
 
@@ -1274,7 +1255,7 @@ class Token(p.Model):
     AuthenticationId = p.ForeignKeyField(LogonSession, null=True, backref="tokens")
     # enum type, 0 is Primary 1 is Secondary
     TokenType = p.IntegerField(null=True)
-    ExpirationTime = p.TimestampField(null=True)
+    ExpirationTime = p.DateTimeField(null=True)
     ModifiedId = p.IntegerField(null=True)
     Owner = p.TextField(null=True)
     PrimaryGroup = p.TextField(null=True)
@@ -1359,7 +1340,8 @@ class Token(p.Model):
     host = p.TextField(null=False)
     # tokens can be related to processes and specifically a thread in that process
     ThreadID = p.IntegerField(null=True)
-    process = p.ForeignKeyField(Process, null=True)
+    process = p.IntegerField(null=True)
+    description = p.TextField(null=True)
 
     class Meta:
         database = mythic_db
@@ -1367,7 +1349,8 @@ class Token(p.Model):
     def to_json(self):
         r = {
             "id": getattr(self, "id"),
-            "TokenId": self.TokenId
+            "TokenId": self.TokenId,
+            "description": self.description
         }
         return r
 
@@ -1418,7 +1401,8 @@ class AuthenticationPackage(p.Model):
 
     def to_json(self):
         r = {
-            "id": getattr(self, "id")
+            "id": getattr(self, "id"),
+            "Name": self.name
         }
         return r
 
@@ -1430,6 +1414,7 @@ class Response(p.Model):
     response = p.BlobField(null=True)
     timestamp = p.DateTimeField(default=datetime.datetime.utcnow,constraints=[p.SQL("DEFAULT NOW()")], null=False)
     task = p.ForeignKeyField(Task, null=False)
+    sequence_number = p.IntegerField(null=True)
 
     class Meta:
         database = mythic_db
@@ -2287,20 +2272,6 @@ def query_disabledcommandsprofile():
     )
 disabledcommandsprofile_query = query_disabledcommandsprofile()
 
-def query_disabledcommands():
-    return (
-        DisabledCommands.select(
-            DisabledCommands, Command, PayloadType, Operation, Operator
-        )
-        .join(Command)
-        .join(PayloadType)
-        .switch(DisabledCommands)
-        .join(Operation)
-        .switch(DisabledCommands)
-        .join(Operator)
-        .switch(DisabledCommands)
-    )
-disabledcommands_query = query_disabledcommands()
 
 def query_task():
     comment_operator = Operator.alias()
@@ -2733,7 +2704,6 @@ def pg_register_newinserts():
         "apitokens",
         "browserscript",
         "disabledcommandsprofile",
-        "disabledcommands",
         "filebrowserobj",
         "browserscriptoperation",
         "operationeventlog",
@@ -2807,7 +2777,6 @@ def pg_register_updates():
         "apitokens",
         "browserscript",
         "disabledcommandsprofile",
-        "disabledcommands",
         "process",
         "filebrowserobj",
         "browserscriptoperation",
@@ -2930,6 +2899,13 @@ $function$"""
 AS $function$
   SELECT convert_from(credential_row.credential, 'utf8')
 $function$"""
+    func_keylog = """CREATE OR REPLACE FUNCTION public.keylog_keystrokes(keylog_row keylog)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT convert_from(keylog_row.keystrokes, 'utf8')
+$function$"""
     func_enc_key = """CREATE OR REPLACE FUNCTION public.c2profileparametersinstance_enckey(c2profileparametersinstance_row c2profileparametersinstance)
  RETURNS text
  LANGUAGE sql
@@ -2967,6 +2943,7 @@ $function$"""
         mythic_db.execute_sql(func_fileobj_full_path)
         mythic_db.execute_sql(func_artifact_instance)
         mythic_db.execute_sql(func_credential)
+        mythic_db.execute_sql(func_keylog)
         mythic_db.execute_sql(func_enc_key)
         mythic_db.execute_sql(func_dec_key)
         mythic_db.execute_sql(func_enc_key_callback)
@@ -2978,7 +2955,6 @@ $function$"""
 def pg_register_deletes():
     updates = [
         "commandparameters",
-        "disabledcommands",
         "browserscriptoperation",
         "credential",
         "loadedcommands",
@@ -3023,7 +2999,6 @@ Command.create_table(True)
 CommandParameters.create_table(True)
 Operation.create_table(True)
 DisabledCommandsProfile.create_table(True)
-DisabledCommands.create_table(True)
 OperatorOperation.create_table(True)
 C2Profile.create_table(True)
 PayloadTypeC2Profile.create_table(True)

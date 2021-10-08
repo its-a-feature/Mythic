@@ -62,7 +62,7 @@ async def decrypt_message(message: bytes, enc_metadata: dict, with_uuid: bool = 
                 else:
                     decrypted = b''
         else:
-            logger.info("crypto.py, dec_key is none and mythic decrypts")
+            #logger.info("crypto.py, dec_key is none and mythic decrypts")
             if return_json:
                 try:
                     decrypted = json.loads(message)
