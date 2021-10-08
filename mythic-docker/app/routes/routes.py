@@ -183,12 +183,18 @@ class Login(BaseEndpoint):
                     resp.cookies[self.config.cookie_access_token_name()][
                         "httponly"
                     ] = True
+                    resp.cookies[self.config.cookie_access_token_name()][
+                        "samesite"
+                    ] = "strict"
                     resp.cookies[
                         self.config.cookie_refresh_token_name()
                     ] = refresh_token
                     resp.cookies[self.config.cookie_refresh_token_name()][
                         "httponly"
                     ] = True
+                    resp.cookies[self.config.cookie_refresh_token_name()][
+                        "samesite"
+                    ] = "strict"
                     return resp
                 except Exception as e:
                     print(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
@@ -296,6 +302,14 @@ async def logout(request, user):
     return resp
 
 
+@mythic.exception(asyncio.CancelledError)
+async def handle_cancellation(request, exception):
+    logger.info(
+        "Request {} was cancelled".format(str(request))
+    )
+    return json({"status": "error", "error": "Request was cancelled"}, status=500)
+
+
 @mythic.exception(NotFound)
 async def handler_404(request, exception):
     return json({"status": "error", "error": "Not Found"}, status=404)
@@ -329,7 +343,6 @@ async def handler_auth_failed(request, exception):
 
 @mythic.exception(SanicException)
 def catch_all(request, exception):
-
     logger.exception(
         "Caught random exception within Mythic: {}, {}".format(exception, str(request))
     )
@@ -351,36 +364,34 @@ async def check_ips(request):
 
 @mythic.middleware("response")
 async def add_cors(request, response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Headers"] = "authorization,content-type"
 
 
 @mythic.listener("before_server_start")
 async def setup_initial_info(sanic, loop):
+    logger.info("setup_initial_info")
     app.db_objects = Manager(mythic_db, loop=loop)
     await mythic_db.connect_async(loop=loop)
     app.db_objects.database.allow_sync = True  # logging.WARNING
     await initial_setup()
-    await app.api.rabbitmq_api.start_listening()
+    asyncio.create_task(app.api.rabbitmq_api.start_listening())
 
 
 async def initial_setup():
     # create mythic_admin
     import multiprocessing
     try:
-        max_worker_connection = int(400 / (multiprocessing.cpu_count() + 1))
+        max_worker_connection = int(200 / (multiprocessing.cpu_count() + 1))
         app.websocket_pool = await asyncpg.create_pool(mythic.config["DB_POOL_ASYNCPG_CONNECT_STRING"],
                                                        max_size=max_worker_connection)
         # redis automatically creates a pool behind the scenes
-        app.redis_pool = redis.Redis(host=app.redis_host, port=app.redis_port, db=0)
+        app.redis_pool = redis.Redis(host=app.redis_host, port=app.redis_port, db=3)
         # clear the database on start
         keys = app.redis_pool.keys("*")
         for k in keys:
             app.redis_pool.delete(k)
-        operators = await app.db_objects.execute(Operator.select())
-        if len(operators) != 0:
+        operators = await app.db_objects.count(Operator.select())
+        if operators > 0:
             logger.info("Users already exist, aborting initial install")
             return
         salt = str(uuid4())
