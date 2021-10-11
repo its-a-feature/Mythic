@@ -481,31 +481,16 @@ async def create_filemeta_in_database_func(data):
     try:
         if "full_path" in data and data["full_path"] != "":
             filename = data["full_path"]
-        elif "{" in task.params:
-            try:
-                json_params = js.loads(task.params)
-                if "path" in json_params:
-                    filename = json_params["path"]
-                elif "location" in json_params:
-                    filename = json_params["location"]
-                elif "file" in json_params:
-                    filename = json_params["file"]
-                else:
-                    #filename = task.params
-                    filename = str(datetime.datetime.utcnow())
-            except Exception as e:
-                print(e)
-                filename = task.params
         else:
             filename = str(datetime.datetime.utcnow())
         # now try to parse the path for the actual file name, os path agnostic
         try:
             filename = PureWindowsPath(filename)
         except Exception as e:
-            filename = Path(task.params)
+            filename = Path(filename)
         if app.debugging_enabled:
             await send_all_operations_message(
-                message=f"in 'Download', determined filename to be {filename}",
+                message=f"in 'Download', determined initial filename to be {filename}. If 'full_path' is reported later, this can be updated",
                 level="info", source="debug", operation=task.callback.operation)
         is_screenshot = False
         if task.command.cmd == "screencapture" or task.command.cmd == "screenshot":
@@ -702,6 +687,14 @@ async def download_file_to_disk_func(data):
                         message=f"in 'Download' for file {file_meta.agent_file_id}, got full_path data with chunk_data, setting full remote path for the file to be {data['full_path']}",
                         level="info", source="debug", operation=file_meta.operation)
                 file_meta.full_remote_path = data["full_path"].encode("utf-8")
+                # now that we have full_path reported, try to parse out the filename
+                if len(data["full_path"]) > 0 and data["full_path"][0] == "/":
+                    # looking at a linux style path
+                    path_obj = Path(data["full_path"])
+                    file_meta.filename = path_obj.name
+                elif len(data["full_path"]) > 0:
+                    path_obj = PureWindowsPath(data["full_path"])
+                    file_meta.filename = path_obj.name
                 if file_meta.file_browser is None:
                     if app.debugging_enabled:
                         await send_all_operations_message(

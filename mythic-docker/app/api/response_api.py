@@ -212,16 +212,25 @@ async def search_responses(request, user):
 
 async def is_file_transfer(task_response):
     if "upload" in task_response and task_response["upload"]:
-        if "total_chunks" in task_response["upload"] and task_response["upload"]["total_chunks"] > 0:
+        if "total_chunks" in task_response["upload"] and task_response["upload"]["total_chunks"] and task_response["upload"]["total_chunks"] > 0:
             return True
         elif "chunk_data" in task_response["upload"] and task_response["upload"]["chunk_data"] and len(task_response["upload"]["chunk_data"]) > 0:
             return True
-        elif "chunk_num" in task_response["upload"] and task_response["upload"]["chunk_num"] > 0:
+        elif "chunk_num" in task_response["upload"] and task_response["upload"]["chunk_num"] and task_response["upload"]["chunk_num"] > 0:
             return True
         elif "full_path" in task_response["upload"] and task_response["upload"]["full_path"] and len(task_response["upload"]["full_path"]) > 0:
             return True
+    elif "download" in task_response and task_response["download"]:
+        if "total_chunks" in task_response["download"] and task_response["download"]["total_chunks"] and task_response["download"]["total_chunks"] > 0:
+            return True
+        elif "chunk_data" in task_response["download"] and task_response["download"]["chunk_data"] and len(task_response["download"]["chunk_data"]) > 0:
+            return True
+        elif "chunk_num" in task_response["download"] and task_response["download"]["chunk_num"] and task_response["download"]["chunk_num"] > 0:
+            return True
+        elif "full_path" in task_response["download"] and task_response["download"]["full_path"] and len(task_response["download"]["full_path"]) > 0:
+            return True
     else:
-        if "total_chunks" in task_response and task_response["total_chunks"] > 0:
+        if "total_chunks" in task_response and task_response["total_chunks"] and task_response["total_chunks"] > 0:
             return True
         elif "chunk_data" in task_response and task_response["chunk_data"] and len(task_response["chunk_data"]) > 0:
             return True
@@ -349,16 +358,16 @@ async def post_agent_response(agent_message, callback):
                             if rsp["status"] == "success":
                                 # update the response to indicate we've created the file meta data
                                 rsp.pop("status", None)
-                                download_data = (
-                                    js.dumps(
-                                        rsp,
-                                        sort_keys=True,
-                                        indent=2,
-                                    )
-                                )
-                                await app.db_objects.create(
-                                    Response, task=task, response=download_data
-                                )
+                                #download_data = (
+                                #    js.dumps(
+                                #        rsp,
+                                #        sort_keys=True,
+                                #        indent=2,
+                                #    )
+                                #)
+                                #await app.db_objects.create(
+                                #    Response, task=task, response=download_data
+                                #)
                                 json_return_info = {
                                     **json_return_info,
                                     "file_id": rsp["agent_file_id"],
@@ -579,6 +588,16 @@ async def post_agent_response(agent_message, callback):
                             else:
                                 json_return_info = {**rsp, **json_return_info}
                         parsed_response.pop("upload", None)
+                    if "download" in parsed_response:
+                        if parsed_response["download"] and parsed_response["download"] != "":
+                            rsp = await move_file_from_agent_to_mythic(parsed_response["download"], task=task)
+                            if rsp["status"] == "error":
+                                json_return_info["status"] = "error"
+                                json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                                    "error"] if "error" in json_return_info else rsp["error"]
+                            else:
+                                json_return_info = {**rsp, **json_return_info}
+                        parsed_response.pop("download", None)
                     if "process_response" in parsed_response and parsed_response["process_response"] != "" and parsed_response["process_response"] is not None:
                         try:
                             rabbit_message = {"params": task.params, "command": task.command.cmd}
@@ -709,6 +728,132 @@ async def post_agent_response(agent_message, callback):
         if k not in ["action", "responses", "delegates", "socks", "edges"]:
             response_message[k] = agent_message[k]
     return response_message
+
+
+async def move_file_from_agent_to_mythic(parsed_response, task):
+    json_return_info = {"status": "success"}
+    try:
+        if "total_chunks" in parsed_response:
+            # we're about to create a record in the db for a file that's about to be send our way
+            if parsed_response["total_chunks"] is not None and \
+                    str(parsed_response["total_chunks"]) != "" and \
+                    parsed_response["total_chunks"] >= 0:
+                parsed_response["task"] = task.id
+                if app.debugging_enabled:
+                    await send_all_operations_message(
+                        message=f"Agent sent 'total_chunks' in a response, starting a file 'Download' from agent to Mythic",
+                        level="info", source="debug", operation=task.callback.operation)
+                rsp = await create_filemeta_in_database_func(parsed_response)
+                parsed_response.pop("task", None)
+                if rsp["status"] == "success":
+                    # update the response to indicate we've created the file meta data
+                    rsp.pop("status", None)
+                    #download_data = (
+                    #    js.dumps(
+                    #        rsp,
+                    #        sort_keys=True,
+                    #        indent=2,
+                    #    )
+                    #)
+                    #await app.db_objects.create(
+                    #    Response, task=task, response=download_data
+                    #)
+                    json_return_info = {
+                        **json_return_info,
+                        "file_id": rsp["agent_file_id"],
+                    }
+                else:
+                    json_return_info["status"] = "error"
+                    json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                        "error"] if "error" in json_return_info else rsp["error"]
+            parsed_response.pop("total_chunks", None)
+            parsed_response.pop("is_screenshot", None)
+        if "chunk_data" in parsed_response:
+            if parsed_response["chunk_data"] is not None and str(parsed_response["chunk_data"]) != "":
+                if (
+                        "file_id" not in parsed_response
+                        and "file_id" in json_return_info
+                ):
+                    # allow agents to post the initial chunk data with initial metadata
+                    parsed_response["file_id"] = json_return_info["file_id"]
+                if app.debugging_enabled:
+                    await send_all_operations_message(
+                        message=f"in 'Download', agent sent new chunk_data",
+                        level="info", source="debug", operation=task.callback.operation)
+                rsp = await download_file_to_disk_func(parsed_response)
+                if rsp["status"] == "error":
+                    json_return_info["status"] = "error"
+                    json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                        "error"] if "error" in json_return_info else rsp["error"]
+            parsed_response.pop("chunk_num", None)
+            parsed_response.pop("chunk_data", None)
+        if (
+                "full_path" in parsed_response
+                and "file_id" in parsed_response
+                and parsed_response["file_id"] != ""
+                and parsed_response["full_path"] != ""
+                and parsed_response["full_path"] is not None
+                and parsed_response["file_id"] is not None
+        ):
+            # updating the full_path field of a file object after the initial checkin for it
+            if app.debugging_enabled:
+                await send_all_operations_message(
+                    message=f"Processing agent response, got file_id, {parsed_response['file_id']}, and a full path, {parsed_response['full_path']}. Going to try to associate them.",
+                    level="info", source="debug", operation=task.callback.operation)
+            try:
+                file_meta = await app.db_objects.get(
+                    db_model.filemeta_query, agent_file_id=parsed_response["file_id"], operation=task.callback.operation
+                )
+                if "host" in parsed_response and parsed_response["host"] is not None and parsed_response["host"] != "":
+                    host = parsed_response["host"]
+                else:
+                    host = task.callback.host
+                if file_meta.task is None or file_meta.task != task:
+                    # print("creating new file")
+                    f = await app.db_objects.create(
+                        db_model.FileMeta,
+                        task=task,
+                        host=host.upper(),
+                        total_chunks=file_meta.total_chunks,
+                        chunks_received=file_meta.chunks_received,
+                        chunk_size=file_meta.chunk_size,
+                        complete=file_meta.complete,
+                        path=file_meta.path,
+                        full_remote_path=parsed_response["full_path"].encode("utf-8"),
+                        operation=task.callback.operation,
+                        md5=file_meta.md5,
+                        sha1=file_meta.sha1,
+                        temp_file=False,
+                        deleted=False,
+                        operator=task.operator,
+                    )
+                else:
+                    file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")
+                    if host != file_meta.host:
+                        file_meta.host = host.upper()
+                    await app.db_objects.update(file_meta)
+                    if file_meta.full_remote_path != "":
+                        if app.debugging_enabled:
+                            await send_all_operations_message(
+                                message=f"Processing agent response, associated {file_meta.agent_file_id} with {parsed_response['full_path']}, now updating file browser data",
+                                level="info", source="debug", operation=task.callback.operation)
+                        asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task,
+                                                                            file_meta,
+                                                                            {"host": host.upper(),
+                                                                             "full_path": parsed_response["full_path"]}))
+            except Exception as e:
+                logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                if app.debugging_enabled:
+                    await send_all_operations_message(
+                        message=f"Failed to associate new 'full_path' with file {parsed_response['file_id']} - {str(e)}",
+                        level="info")
+            parsed_response.pop("full_path", None)
+            parsed_response.pop("file_id", None)
+            parsed_response.pop("host", None)
+    except Exception as outerException:
+        logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(outerException))
+        return {"status": "error", "error": "Failed to download file from agent: " + logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(outerException))}
+    return json_return_info
 
 
 async def background_process_agent_responses(agent_responses: dict, callback: db_model.Callback):
