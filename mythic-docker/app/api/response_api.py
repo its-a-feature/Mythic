@@ -398,29 +398,6 @@ async def post_agent_response(agent_message, callback):
                                     "error"] if "error" in json_return_info else rsp["error"]
                         parsed_response.pop("chunk_num", None)
                         parsed_response.pop("chunk_data", None)
-                    if "keystrokes" in parsed_response:
-                        if isinstance(parsed_response["keystrokes"], dict):
-                            if (
-                                "window_title" not in parsed_response
-                                or parsed_response["window_title"] is None
-                                or parsed_response["window_title"] == ""
-                            ):
-                                parsed_response["window_title"] = "UNKNOWN"
-                            if (
-                                "user" not in parsed_response
-                                or parsed_response["user"] is None
-                                or parsed_response["user"] == ""
-                            ):
-                                parsed_response["user"] = "UNKNOWN"
-                            from app.api.keylog_api import add_keylogs
-                            asyncio.create_task(add_keylogs([{
-                                "window_title": parsed_response["window_title"],
-                                "user": parsed_response["user"],
-                                "keystrokes": parsed_response["keystrokes"]
-                            }], task))
-                        parsed_response.pop("window_title", None)
-                        parsed_response.pop("user", None)
-                        parsed_response.pop("keystrokes", None)
                     if "credentials" in parsed_response:
                         if parsed_response["credentials"] is not None and str(parsed_response["credentials"]) != "":
                             for cred in parsed_response["credentials"]:
