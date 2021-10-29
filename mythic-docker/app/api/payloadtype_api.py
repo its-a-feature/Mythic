@@ -14,7 +14,7 @@ import datetime
 import app.database_models.model as db_model
 from sanic.exceptions import abort
 from sanic.log import logger
-from peewee import fn
+from peewee import IntegrityError
 import shortuuid
 import ujson as js
 import sys
@@ -265,7 +265,7 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
         except Exception as e:
             new_payload = True
             try:
-                payload_type = await app.db_objects.create(
+                payload_type, created = await app.db_objects.create_or_get(
                     PayloadType,
                     ptype=ptype["ptype"],
                     wrapper=ptype["wrapper"],
@@ -314,7 +314,7 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                     asyncio.create_task(
                         send_all_operations_message(
                             message=f"{rabbitmqName} supports the wrapper, {ptw}, but it doesn't currently exist within Mythic",
-                            level="warning"))
+                            level="info"))
                     logger.warning("payloadtype_api.py - couldn't find wrapped payload in system, skipping: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                     pass
         try:
@@ -348,7 +348,7 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                         await app.db_objects.update(buildparam)
                         build_param_dict.pop(bp["name"], None)
                     except Exception as e:
-                        await app.db_objects.create(
+                        await app.db_objects.create_or_get(
                             db_model.BuildParameter,
                             payload_type=payload_type,
                             name=bp["name"],
@@ -393,7 +393,7 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                         script.author = support_script["author"]
                         await app.db_objects.update(script)
                     except Exception as e:
-                        await app.db_objects.create(
+                        await app.db_objects.create_or_get(
                             db_model.BrowserScript,
                             name=support_script["name"],
                             script=support_script["script"],
@@ -427,7 +427,7 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                                 script.author = support_script["author"]
                             await app.db_objects.update(script)
                         except Exception as e:
-                            await app.db_objects.create(
+                            await app.db_objects.create_or_get(
                                 db_model.BrowserScript,
                                 name=support_script["name"],
                                 script=support_script["script"],
@@ -460,7 +460,11 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                         pass
                 await app.db_objects.delete(v)
             # now that we have the payload type, start processing the commands and their parts
-            await import_command_func(payload_type, operator, ptype["commands"])
+            try:
+                await import_command_func(payload_type, operator, ptype["commands"])
+            except IntegrityError as ie:
+                logger.warning(str(ie))
+                return
             if "c2_profiles" in ptype:
                 current_c2 = await app.db_objects.execute(
                     db_model.payloadtypec2profile_query.where(
@@ -583,7 +587,7 @@ async def import_command_func(payload_type, operator, command_list):
                     if param["ui_position"] is None:
                         param["ui_position"] = 999999
                     param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
-                    await app.db_objects.create(CommandParameters, command=command, **param)
+                    await app.db_objects.create_or_get(CommandParameters, command=command, **param)
             for k, v in current_param_dict.items():
                 await app.db_objects.delete(v)
             # now go back and make sure all of the ui_position values match up and have proper, non -1, values
@@ -700,7 +704,7 @@ async def import_command_func(payload_type, operator, command_list):
                             op_script.author = sync_script["author"]
                         await app.db_objects.update(op_script)
                     except Exception as e:
-                        await app.db_objects.create(
+                        await app.db_objects.create_or_get(
                             db_model.BrowserScript,
                             script=sync_script["script"],
                             container_version=sync_script["script"],
@@ -754,7 +758,7 @@ async def import_command_func(payload_type, operator, command_list):
             await add_update_opsec_for_command(command, cmd)
             await app.db_objects.update(command)
         except Exception as e:  # this means that the command doesn't already exist
-            command = await app.db_objects.create(
+            command, created = await app.db_objects.create_or_get(
                 Command,
                 cmd=cmd["cmd"],
                 payload_type=payload_type,
@@ -810,7 +814,7 @@ async def import_command_func(payload_type, operator, command_list):
                     param["ui_position"] = 999999
                 param["choice_filter_by_command_attributes"] = js.dumps(param["choice_filter_by_command_attributes"])
                 param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
-                await app.db_objects.create(CommandParameters, command=command, **param)
+                await app.db_objects.create_or_get(CommandParameters, command=command, **param)
         for k, v in current_param_dict.items():
             await app.db_objects.delete(v)
         # now go back and make sure all of the ui_position values match up and have proper, non -1, values

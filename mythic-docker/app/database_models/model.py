@@ -1832,6 +1832,7 @@ class FileMeta(p.Model):
     operator = p.ForeignKeyField(Operator, null=True)
     md5 = p.TextField(null=True)
     sha1 = p.TextField(null=True)
+    comment = p.TextField(null=False, default="", constraints=[p.SQL("DEFAULT ''")])
 
     class Meta:
         database = mythic_db
@@ -1861,7 +1862,8 @@ class FileMeta(p.Model):
                 "deleted": self.deleted,
                 "operator": self.operator.username if self.operator is not None else None,
                 "md5": self.md5,
-                "sha1": self.sha1
+                "sha1": self.sha1,
+                "comment": self.comment
             }
             return r
         except Exception as e:

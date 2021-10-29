@@ -239,6 +239,17 @@ async def is_file_transfer(task_response):
     return False
 
 
+async def pop_special_keys(agent_message):
+    keys = ["task_id", "completed", "user_output", "file_browser", "upload", "download", "removed_files",
+            "total_chunks", "chunk_num", "chunk_data", "credentials", "artifacts", "processes", "tokens",
+            "status", "full_path", "file_id", "host", "edges", "commands", "process_response", "keylogs",
+            "logonsessions", "callbacktokens"]
+    agent_copy = agent_message.copy()
+    for k in keys:
+        agent_copy.pop(k, None)
+    return agent_copy
+
+
 async def post_agent_response(agent_message, callback):
     # { INPUT
     # "action": "post_response",
@@ -269,7 +280,8 @@ async def post_agent_response(agent_message, callback):
             parsed_response = r
             if not await is_file_transfer(parsed_response):
                 # we're dealing with file transfers, handle the message here
-                response_message["responses"].append({"task_id": task_id, "status": "success"})
+                background_resp = await pop_special_keys(parsed_response)
+                response_message["responses"].append({"task_id": task_id, "status": "success", **background_resp})
                 if task_id in background_responses:
                     background_responses[task_id].append(r)
                 else:
@@ -692,7 +704,11 @@ async def post_agent_response(agent_message, callback):
                     "task_id": r["task_id"] if "task_id" in r else "",
                 }
             )
-    asyncio.create_task(background_process_agent_responses(background_responses, callback))
+    #asyncio.create_task(background_process_agent_responses(background_responses, callback))
+    if len(background_responses.keys()) > 0:
+        from app.api.rabbitmq_api import send_background_response_rabbitmq_message
+        resp = await send_background_response_rabbitmq_message(js.dumps(background_responses), callback.id)
+        logger.info(resp)
     if (
         "socks" in agent_message
         and isinstance(agent_message["socks"], list)
@@ -702,8 +718,11 @@ async def post_agent_response(agent_message, callback):
         agent_message.pop("socks", None)
     # echo back any additional parameters here as well
     for k in agent_message:
+        #logger.info("agent message key: " + k)
         if k not in ["action", "responses", "delegates", "socks", "edges"]:
             response_message[k] = agent_message[k]
+    #logger.info("final message:")
+    #logger.info(response_message)
     return response_message
 
 
@@ -856,6 +875,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                 try:
                     try:
                         if "completed" in parsed_response:
+                            #logger.info(f"completed in parsed_response: {parsed_response['completed']}")
                             if parsed_response["completed"]:
                                 task.completed = True
                                 task.status = "completed"
@@ -875,9 +895,9 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                 from app.api.file_browser_api import (
                                     store_response_into_filebrowserobj,
                                 )
-                                asyncio.create_task(store_response_into_filebrowserobj(
+                                await store_response_into_filebrowserobj(
                                     task.callback.operation, task, parsed_response["file_browser"]
-                                ))
+                                )
                         if "removed_files" in parsed_response:
                             # an agent is reporting back that a file was removed from disk successfully
                             if isinstance(parsed_response["removed_files"], list):
@@ -895,37 +915,17 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                         )
                                         fobj.deleted = True
                                         if not fobj.is_file:
-                                            asyncio.create_task(mark_nested_deletes(fobj, task.callback.operation))
+                                             await mark_nested_deletes(fobj, task.callback.operation)
                                         await app.db_objects.update(fobj)
                                     except Exception as e:
                                         pass
-                        if "keystrokes" in parsed_response:
-                            if isinstance(parsed_response["keystrokes"], dict):
-                                if (
-                                    "window_title" not in parsed_response
-                                    or parsed_response["window_title"] is None
-                                    or parsed_response["window_title"] == ""
-                                ):
-                                    parsed_response["window_title"] = "UNKNOWN"
-                                if (
-                                    "user" not in parsed_response
-                                    or parsed_response["user"] is None
-                                    or parsed_response["user"] == ""
-                                ):
-                                    parsed_response["user"] = "UNKNOWN"
-                                from app.api.keylog_api import add_keylogs
-                                asyncio.create_task(add_keylogs([{
-                                    "window_title": parsed_response["window_title"],
-                                    "user": parsed_response["user"],
-                                    "keystrokes": parsed_response["keystrokes"]
-                                }], task))
                         if "credentials" in parsed_response:
                             if isinstance(parsed_response["credentials"], list):
                                 for cred in parsed_response["credentials"]:
                                     cred["task"] = task
-                                    asyncio.create_task(create_credential_func(
+                                    await create_credential_func(
                                         task.operator, task.callback.operation, cred
-                                    ))
+                                    )
                         if "artifacts" in parsed_response:
                             # now handle the case where the agent is reporting back artifact information
                             if isinstance(parsed_response["artifacts"], list):
@@ -960,8 +960,9 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                             + str(e), level="warning", operation=callback.operation))
                         if "processes" in parsed_response:
                             if isinstance(parsed_response["processes"], list):
-                                asyncio.create_task(create_processes({"processes": parsed_response["processes"]}, task))
+                                await create_processes({"processes": parsed_response["processes"]}, task)
                         if "status" in parsed_response:
+                            #logger.info(f"status in parsed_response: {parsed_response['status']}, current status: {task.status}")
                             if parsed_response["status"] != "" and isinstance(parsed_response["status"], str):
                                 task.status = str(parsed_response["status"]).lower()
                                 if task.status_timestamp_processed is None:
@@ -1035,10 +1036,10 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                             await send_all_operations_message(
                                                 message=f"Processing agent response, associated {file_meta.agent_file_id} with {parsed_response['full_path']}, now updating file browser data",
                                                 level="info", source="debug", operation=task.callback.operation)
-                                        asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task,
+                                        await add_upload_file_to_file_browser(task.callback.operation, task,
                                                                                             file_meta,
                                                                                             {"host": host.upper(),
-                                                                                            "full_path": parsed_response["full_path"]}))
+                                                                                            "full_path": parsed_response["full_path"]})
                             except Exception as e:
                                 logger.warning("response_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                                 if app.debugging_enabled:
@@ -1052,9 +1053,9 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                             if isinstance(parsed_response["edges"], list):
                                 try:
                                     from app.api.callback_api import add_p2p_route
-                                    asyncio.create_task(add_p2p_route(
+                                    await add_p2p_route(
                                         parsed_response["edges"], task.callback, task
-                                    ))
+                                    )
                                 except Exception as e:
                                     asyncio.create_task(send_all_operations_message(message="Failed to update linked edges between callbacks:\n" + str(e),
                                                                                     level="warning", operation=callback.operation))
@@ -1063,14 +1064,20 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                 # the agent is reporting back that it has commands that are loaded/unloaded
                                 from app.api.callback_api import load_commands_func
                                 for c in parsed_response["commands"]:
-                                    asyncio.create_task(load_commands_func(command_dict=c,
+                                    await load_commands_func(command_dict=c,
                                                                            callback=task.callback,
-                                                                           task=task))
+                                                                           task=task)
                         if "process_response" in parsed_response and parsed_response["process_response"] != "" and parsed_response["process_response"] is not None:
                             try:
+                                logger.info(parsed_response["process_response"])
                                 rabbit_message = {"params": task.params, "command": task.command.cmd}
                                 rabbit_message["task"] = task.to_json()
-                                rabbit_message["task"]["callback"] = task.callback.to_json()
+                                callbacks = await app.db_objects.prefetch(
+                                    db_model.callback_query.where(Callback.id == task.callback.id),
+                                    db_model.callbacktoken_query
+                                )
+                                callback = list(callbacks)[0]
+                                rabbit_message["task"]["callback"] = callback.to_json()
                                 # get the information for the callback's associated payload
                                 payload_info = await add_all_payload_info(task.callback.registered_payload)
                                 if payload_info["status"] == "error":
@@ -1116,19 +1123,19 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                         if "keylogs" in parsed_response:
                             if isinstance(parsed_response["keylogs"], list):
                                 from app.api.keylog_api import add_keylogs
-                                asyncio.create_task(add_keylogs(parsed_response["keylogs"], task))
+                                await add_keylogs(parsed_response["keylogs"], task)
                         if "tokens" in parsed_response:
                             if isinstance(parsed_response["tokens"], list):
                                 from app.api.rabbitmq_api import response_create_tokens
-                                asyncio.create_task(response_create_tokens(task, parsed_response["tokens"]))
+                                await response_create_tokens(task, parsed_response["tokens"])
                         if "logonsessions" in parsed_response:
                             if isinstance(parsed_response["logonsessions"], list):
                                 from app.api.rabbitmq_api import response_create_logon_session
-                                asyncio.create_task(response_create_logon_session(task, parsed_response["logonsessions"]))
+                                await response_create_logon_session(task, parsed_response["logonsessions"])
                         if "callbacktokens" in parsed_response:
                             if isinstance(parsed_response["callbacktokens"], list):
                                 from app.api.rabbitmq_api import response_adjust_callback_tokens
-                                asyncio.create_task(response_adjust_callback_tokens(task, parsed_response["callbacktokens"]))
+                                await response_adjust_callback_tokens(task, parsed_response["callbacktokens"])
                     except Exception as e:
                         asyncio.create_task(
                             send_all_operations_message(message=f"Failed to parse response data:\n{'response_api.py - ' + str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}",
@@ -1150,6 +1157,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                     )
                     asyncio.create_task(log_to_siem(mythic_object=resp, mythic_source="response_new"))
                 task.timestamp = datetime.datetime.utcnow()
+                logger.info(f"Setting task status to: {task.status} with completion status: {task.completed}")
                 await app.db_objects.update(task)
                 if marked_as_complete:
                     asyncio.create_task(check_and_issue_task_callback_functions(task))

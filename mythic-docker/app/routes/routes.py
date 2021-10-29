@@ -381,9 +381,8 @@ async def initial_setup():
     # create mythic_admin
     import multiprocessing
     try:
-        max_worker_connection = int(200 / (multiprocessing.cpu_count() + 1))
         app.websocket_pool = await asyncpg.create_pool(mythic.config["DB_POOL_ASYNCPG_CONNECT_STRING"],
-                                                       max_size=max_worker_connection)
+                                                       max_size=30)
         # redis automatically creates a pool behind the scenes
         app.redis_pool = redis.Redis(host=app.redis_host, port=app.redis_port, db=3)
         # clear the database on start

@@ -403,7 +403,7 @@ async def register_new_payload_func(data, user):
                             elif param.parameter_type == "ChooseOne":
                                 p["c2_profile_parameters"][
                                     param.name
-                                ] = param.default_value.split("\n")[0]
+                                ] = param.default_value.split("\n")[0] if len(param.default_value.split("\n")) > 0 else ""
                             elif param.parameter_type == "Date":
                                 if param.default_value == "":
                                     p["c2_profile_parameters"][param.name] = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -417,9 +417,9 @@ async def register_new_payload_func(data, user):
                                 temp_dict = []
                                 for entry in default_dict:
                                     if entry["default_show"]:
-                                        temp_dict.append({"name": entry["name"],
-                                                          "value": entry["default_value"],
-                                                          "key": entry["name"],
+                                        temp_dict.append({"name": entry["name"].strip(),
+                                                          "value": entry["default_value"].strip(),
+                                                          "key": entry["name"].strip(),
                                                           "custom": True if entry["name"] == "*" else False})
                                 p["c2_profile_parameters"][param.name] = temp_dict
                             else:
@@ -436,7 +436,7 @@ async def register_new_payload_func(data, user):
                         c2p = await app.db_objects.create(
                             C2ProfileParametersInstance,
                             c2_profile_parameters=param,
-                            value=p["c2_profile_parameters"][param.name],
+                            value=p["c2_profile_parameters"][param.name].strip(),
                             payload=payload,
                             c2_profile=c2_profile,
                         )
@@ -588,12 +588,15 @@ async def register_new_payload_func(data, user):
             value = None
             for t in data["build_parameters"]:
                 if build_param.name == t["name"] and 'value' in t:
-                    value = t["value"]
+                    if isinstance(t["value"], str):
+                        value = t["value"].strip()
+                    else:
+                        value = t["value"]
             if value is None:
                 if build_param.parameter_type == "ChooseOne":
                     value = build_param.parameter.split("\n")[0]
                 else:
-                    value = build_param.parameter
+                    value = build_param.parameter.strip()
             await app.db_objects.create(
                 db_model.BuildParameterInstance,
                 build_parameter=build_param,

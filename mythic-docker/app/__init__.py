@@ -74,7 +74,7 @@ valid_payload_container_version_bounds = [10, 10]
 valid_c2_container_version_bounds = [3, 4]
 valid_translation_container_version_bounds = [3, 3]
 valid_restful_scripting_bounds = [3, 3]
-max_worker_connection = int(200 / (multiprocessing.cpu_count() + 1))
+max_worker_connection = 50
 mythic_db = PooledPostgresqlExtDatabase(
     db_name,
     user=db_user,

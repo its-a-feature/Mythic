@@ -806,7 +806,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     data["params"] = ""
                 task = await app.db_objects.create(
                     Task,
-                    command_name="",
+                    command_name="clear",
                     callback=cb,
                     operator=op,
                     parent_task=data["parent_task"] if "parent_task" in data else None,
@@ -854,6 +854,89 @@ async def add_task_to_callback_func(data, cid, op, cb):
                         "params": data["original_params"],
                         "callback": cid,
                     }
+            elif data["command"] == "help":
+                if "params" not in data or data["params"] == "":
+                    commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
+                        db_model.LoadedCommands.callback == cb
+                    ).order_by(db_model.Command.cmd))
+                    output = "Loaded Commands In Agent:\n"
+                    for c in commands:
+                        output += f"{c.command.cmd}\n\tUsage Help: {c.command.help_cmd}\n\tDescription: {c.command.description}\n"
+                    scriptCommands = await app.db_objects.execute(db_model.command_query.where(
+                        (db_model.Command.payload_type == cb.registered_payload.payload_type) &
+                        (db_model.Command.script_only == True)
+                    ))
+                    output += "\nScripted Commands\n"
+                    for c in scriptCommands:
+                        output += f"{c.cmd}\n\tUsage Help: {c.help_cmd}\n\tDescription: {c.description}\n"
+                    task = await app.db_objects.create(
+                        Task,
+                        command_name="help",
+                        callback=cb,
+                        operator=op,
+                        parent_task=data["parent_task"] if "parent_task" in data else None,
+                        subtask_callback_function=data[
+                            "subtask_callback_function"] if "subtask_callback_function" in data else None,
+                        group_callback_function=data[
+                            "group_callback_function"] if "group_callback_function" in data else None,
+                        completed_callback_function=data[
+                            "completed_callback_function"] if "completed_callback_function" in data else None,
+                        subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
+                        params="help " + data["params"],
+                        status="completed",
+                        original_params="help " + data["params"],
+                        completed=True,
+                        display_params="help " + data["params"]
+                    )
+                    await app.db_objects.create(Response, task=task, response=output)
+                    return {"status": "success", **task.to_json()}
+                elif "params" in data and data["params"] != "":
+                    status = "success"
+                    output = ""
+                    commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
+                        (db_model.LoadedCommands.callback == cb) &
+                        (db_model.Command.cmd == data["params"])
+                    ))
+                    scriptCommands = await app.db_objects.execute(db_model.command_query.where(
+                        (db_model.Command.payload_type == cb.registered_payload.payload_type) &
+                        (db_model.Command.script_only == True) &
+                        (db_model.Command.cmd == data["params"])
+                    ))
+                    if len(commands) == 0 and len(scriptCommands) == 0:
+                        status = "error"
+                        output = "Command not found"
+                    elif len(commands) > 0:
+                        command = list(commands)[0].command
+                        parameters = await app.db_objects.execute(db_model.commandparameters_query.where(
+                            (db_model.CommandParameters.command == command)
+                        ).order_by(db_model.CommandParameters.ui_position))
+                        output += f"Usage Help: {command.help_cmd}\n\nDescription: {command.description}\nParameters:\n\n"
+                        for p in parameters:
+                            output += f"Name: {p.name}\n\tDescription: {p.description}\n\tType: {p.type}\n\tDefault Value: {p.default_value}\n"
+                        pass
+                    else:
+                        pass
+                    task = await app.db_objects.create(
+                        Task,
+                        command_name="help",
+                        callback=cb,
+                        operator=op,
+                        parent_task=data["parent_task"] if "parent_task" in data else None,
+                        subtask_callback_function=data[
+                            "subtask_callback_function"] if "subtask_callback_function" in data else None,
+                        group_callback_function=data[
+                            "group_callback_function"] if "group_callback_function" in data else None,
+                        completed_callback_function=data[
+                            "completed_callback_function"] if "completed_callback_function" in data else None,
+                        subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
+                        params="help " + data["params"],
+                        status=status,
+                        original_params="help " + data["params"],
+                        completed=True,
+                        display_params="help " + data["params"]
+                    )
+                    await app.db_objects.create(Response, task=task, response=output)
+                    return {"status": "success", **task.to_json()}
             # it's not tasks/clear, so return an error
             return {
                 "status": "error",
@@ -912,6 +995,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                 group_callback_function=data["group_callback_function"] if "group_callback_function" in data else None,
                 subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
             )
+            logger.info(f"CREATED TASK {task.id}")
             if "tags" in data:
                 await add_tags_to_task(task, data["tags"])
             result = await submit_task_to_container(task, op.username, data["params"])
@@ -1423,6 +1507,7 @@ async def reissue_task_for_failed_task_handlers(request, user):
 
 async def submit_task_to_container(task, username, params: str = None):
     try:
+        logger.info(f"SUBMITTING {task.id} TO CONTAINER")
         if (
                 task.callback.registered_payload.payload_type.last_heartbeat
                 < datetime.utcnow() + timedelta(seconds=-30)
@@ -1468,6 +1553,7 @@ async def submit_task_to_container(task, username, params: str = None):
     except Exception as e:
         logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": str(e)}
+
 
 async def submit_task_callback_to_container(task: Task, function_name: str, username: str, updating_piece: str,
                                             subtask: Task = None, subtask_group_name: str = None):
@@ -1521,57 +1607,60 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
 async def add_all_payload_info(payload):
     rabbit_message = {"status": "success"}
     try:
-        if payload.uuid in cached_payload_info:
-            rabbit_message["build_parameters"] = cached_payload_info[payload.uuid][
-                "build_parameters"
-            ]
-            rabbit_message["commands"] = cached_payload_info[payload.uuid]["commands"]
-            rabbit_message["c2info"] = cached_payload_info[payload.uuid]["c2info"]
-        else:
-            cached_payload_info[payload.uuid] = {}
-            build_parameters = {}
-            build_params = await app.db_objects.execute(
-                db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == payload)
-            )
-            for bp in build_params:
-                build_parameters[bp.build_parameter.name] = bp.parameter
-            rabbit_message["build_parameters"] = build_parameters
-            # cache it for later
-            cached_payload_info[payload.uuid]["build_parameters"] = build_parameters
-            c2_profile_parameters = []
-            payloadc2profiles = await app.db_objects.execute(
-                db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
-            )
-            for pc2p in payloadc2profiles:
-                # for each profile, we need to get all of the parameters and supplied values for just that profile
-                param_dict = {}
-                c2_param_instances = await app.db_objects.execute(
-                    db_model.c2profileparametersinstance_query.where(
-                        (C2ProfileParametersInstance.payload == payload)
-                        & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
-                    )
+        #if payload.uuid in cached_payload_info:
+        #    logger.info(cached_payload_info)
+        #    logger.info(payload.uuid)
+        #    rabbit_message["build_parameters"] = cached_payload_info[payload.uuid][
+        #        "build_parameters"
+        #    ]
+        #    rabbit_message["commands"] = cached_payload_info[payload.uuid]["commands"]
+        #    rabbit_message["c2info"] = cached_payload_info[payload.uuid]["c2info"]
+        #else:
+        #    cached_payload_info[payload.uuid] = {}
+        build_parameters = {}
+        build_params = await app.db_objects.execute(
+            db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == payload)
+        )
+        for bp in build_params:
+            build_parameters[bp.build_parameter.name] = bp.parameter
+        rabbit_message["build_parameters"] = build_parameters
+        # cache it for later
+    #    cached_payload_info[payload.uuid]["build_parameters"] = build_parameters
+        c2_profile_parameters = []
+        payloadc2profiles = await app.db_objects.execute(
+            db_model.payloadc2profiles_query.where(db_model.PayloadC2Profiles.payload == payload)
+        )
+        for pc2p in payloadc2profiles:
+            # for each profile, we need to get all of the parameters and supplied values for just that profile
+            param_dict = {}
+            c2_param_instances = await app.db_objects.execute(
+                db_model.c2profileparametersinstance_query.where(
+                    (C2ProfileParametersInstance.payload == payload)
+                    & (C2ProfileParametersInstance.c2_profile == pc2p.c2_profile)
                 )
-                # save all the variables off to a dictionary for easy looping
-                for instance in c2_param_instances:
-                    param = instance.c2_profile_parameters
-                    param_dict[param.name] = instance.value
+            )
+            # save all the variables off to a dictionary for easy looping
+            for instance in c2_param_instances:
+                param = instance.c2_profile_parameters
+                param_dict[param.name] = instance.value
 
-                c2_profile_parameters.append(
-                    {"parameters": param_dict, **pc2p.c2_profile.to_json()}
-                )
-            rabbit_message["c2info"] = c2_profile_parameters
-            cached_payload_info[payload.uuid]["c2info"] = c2_profile_parameters
-            stamped_commands = await app.db_objects.execute(db_model.payloadcommand_query.where(
-                db_model.PayloadCommand.payload == payload
-            ))
-            commands = [c.command.cmd for c in stamped_commands]
-            rabbit_message["commands"] = commands
-            cached_payload_info[payload.uuid]["commands"] = commands
+            c2_profile_parameters.append(
+                {"parameters": param_dict, **pc2p.c2_profile.to_json()}
+            )
+        rabbit_message["c2info"] = c2_profile_parameters
+    #    cached_payload_info[payload.uuid]["c2info"] = c2_profile_parameters
+        stamped_commands = await app.db_objects.execute(db_model.payloadcommand_query.where(
+            db_model.PayloadCommand.payload == payload
+        ))
+        commands = [c.command.cmd for c in stamped_commands]
+        rabbit_message["commands"] = commands
+        #    cached_payload_info[payload.uuid]["commands"] = commands
         return rabbit_message
     except Exception as e:
         rabbit_message["status"] = "error"
         rabbit_message["error"] = str(e)
         from app.api.operation_api import send_all_operations_message
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         asyncio.create_task(
             send_all_operations_message(
                 message=f"Failed to fetch Payload info for {payload.uuid}:\n{str(e)}",

@@ -3123,28 +3123,29 @@
   - role: developer
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -3155,28 +3156,29 @@
   - role: mythic_admin
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -3187,28 +3189,29 @@
   - role: operation_admin
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -3219,28 +3222,29 @@
   - role: operator
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -3251,28 +3255,29 @@
   - role: spectator
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -3284,6 +3289,7 @@
   - role: developer
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -3295,6 +3301,7 @@
   - role: mythic_admin
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -3306,6 +3313,7 @@
   - role: operation_admin
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -3317,6 +3325,7 @@
   - role: operator
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -5048,6 +5057,27 @@
         operation_id:
           _in: X-Hasura-operations
       check: null
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
 - table:
     schema: public
     name: payloadtype

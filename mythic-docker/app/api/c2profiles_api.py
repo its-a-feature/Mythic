@@ -691,7 +691,7 @@ async def import_c2_profile_func(data, operator, rabbitmqName):
             data["is_p2p"] = False
         if "is_server_routed" not in data:
             data["is_server_routed"] = False
-        profile = await app.db_objects.create(
+        profile, created = await app.db_objects.create_or_get(
             C2Profile,
             name=data["name"],
             description=data["description"],
@@ -724,7 +724,7 @@ async def import_c2_profile_func(data, operator, rabbitmqName):
             await app.db_objects.update(c2_profile_param)
         except Exception as e:
             print(str(e))
-            await app.db_objects.create(
+            await app.db_objects.create_or_get(
                 C2ProfileParameters,
                 c2_profile=profile,
                 name=param["name"],

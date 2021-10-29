@@ -479,7 +479,9 @@ async def create_filemeta_in_database_func(data):
         logger.warning("file_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {"status": "error", "error": "failed to find task"}
     try:
-        if "full_path" in data and data["full_path"] != "":
+        if "full_path" not in data or data["full_path"] is None:
+            data["full_path"] = ""
+        if "full_path" in data and data["full_path"] != "" and data["full_path"] is not None:
             filename = data["full_path"]
         else:
             filename = str(datetime.datetime.utcnow())
@@ -497,8 +499,6 @@ async def create_filemeta_in_database_func(data):
             is_screenshot = True
         if "is_screenshot" in data and data["is_screenshot"] is not None:
             is_screenshot = data["is_screenshot"]
-        if "full_path" not in data or data["full_path"] is None:
-            data["full_path"] = ""
         if "host" not in data or data["host"] is None or data["host"] == "":
             data["host"] = task.callback.host
         else:

@@ -99,12 +99,14 @@ class MyAuthentication(Authentication):
         #logger.debug("called authenticate")
         username = request.json.get("username", None)
         password = request.json.get("password", None)
+        unknown_username = True
         if not username or not password:
             raise exceptions.AuthenticationFailed(
                 "Must supply both username and password"
             )
         try:
             user = await app.db_objects.get(operator_query, username=username)
+            unknown_username = False
             if user.id == 1 and user.failed_login_count > 10 and (user.last_failed_login_timestamp
                                                                   > datetime.datetime.utcnow() + datetime.timedelta(
                         seconds=-60)):
@@ -141,7 +143,7 @@ class MyAuthentication(Authentication):
                 await app.db_objects.update(user)
                 raise exceptions.AuthenticationFailed("Username or password invalid")
         except Exception as e:
-            if username is not None:
+            if unknown_username:
                 await send_all_operations_message(message=f"Attempt to login with unknown user: {username}",
                                                   level="warning", source="unknown_login_" + username)
 

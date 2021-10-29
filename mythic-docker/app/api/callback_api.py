@@ -336,7 +336,7 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
         else:
             error_message += f"{request_url} via {request.method}\nFrom: "
             error_message += f"{request_ip}\n"
-            error_message += f"With extra headers: {request.headers}\n"
+            error_message += f"With extra headers: {request.headers}\n\n"
         if UUID_length == 36:
             try:
                 uuid.UUID(UUID)
@@ -934,6 +934,8 @@ async def create_callback_func(data, request):
                     c2_profile=i.c2_profile,
                     value=i.value,
                     operation=cal.operation,
+                    enc_key=i.enc_key,
+                    dec_key=i.dec_key
                 )
     except Exception as e:
         asyncio.create_task(send_all_operations_message(
@@ -1901,7 +1903,7 @@ async def callbacks_get_all_tasking(request, user, cid):
         operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         callback = await app.db_objects.prefetch(db_model.callback_query.where(
             (db_model.Callback.id == cid) & (db_model.Callback.operation == operation)),
-            db_model.CallbackToken.select()
+            db_model.callbacktoken_query
         )
         callback = list(callback)[0]
         cb_json = callback.to_json()

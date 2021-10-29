@@ -263,8 +263,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             message=error_message, level="warning", source="payload_import_sync_error"))
                         return
                     from app.api.task_api import check_and_issue_task_callback_functions
-
+                    logger.info(f"RABBITMQ GOT TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
                     task = await app.db_objects.get(db_model.task_query, id=pieces[4])
+                    logger.info(f"RABBITMQ FETCHED TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
                     task.display_params = response_message["task"]["display_params"]
                     task.stdout = response_message["task"]["stdout"]
                     task.stderr = response_message["task"]["stderr"]
@@ -404,6 +405,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             task.status = pieces[5].lower()
                         task.status_timestamp_submitted = task.timestamp
                         await app.db_objects.update(task)
+                        logger.info(f"RABBITMQ CALLED UPDATE ON TASK BACK FROM CONTAINER FOR {pieces[4]}")
                         if task.completed:
                             asyncio.create_task(check_and_issue_task_callback_functions(taskOriginal=task,
                                                                                         task_completed=True))
@@ -658,7 +660,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
 
 async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
                       saved_file_name: str = None, is_screenshot: bool = False,
-                      is_download: bool = False, remote_path: str = None,
+                      is_download: bool = False, remote_path: str = None, comment: str = "",
                       host: str = None) -> dict:
     """
     Creates a FileMeta object in Mythic's database and writes contents to disk with a random UUID filename.
@@ -670,6 +672,7 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
     :param is_screenshot: Is this file a screenshot reported by the agent? If so, this will cause it to show up in the screenshots page.
     :param is_download: Is this file the result of downloading something from the agent? If so, this will cause it to show up in the Files page under Downloads
     :param remote_path: Does this file exist on target? If so, provide the full remote path here
+    :param comment: A user supplied comment about the file
     :param host: If this file exists on a target host, indicate it here in conjunction with the remote_path argument
     :return: Dict of a FileMeta object
     Example: this takes two arguments - ParameterType.String for `remote_path` and ParameterType.File for `file`
@@ -722,8 +725,10 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
             filename=filename.encode("utf-8"),
             is_screenshot=is_screenshot,
             is_download_from_agent=is_download,
-            host=host.upper() if host is not None else task.callback.host
+            host=host.upper() if host is not None else task.callback.host,
+            comment=comment
         )
+        logger.info("New file comment: " + comment)
         asyncio.create_task(log_to_siem(mythic_object=new_file_meta, mythic_source="file_upload"))
         if remote_path is not None:
             asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task, new_file_meta,
@@ -2177,35 +2182,96 @@ async def decrypt_message(message: str, c2_profile_name: str):
         return {"status": "error", "error": str(e)}
 
 
-async def get_callback_commands(callback_id: int, loaded_only: bool = False):
+async def get_commands(callback_id: int = None, loaded_only: bool = False,
+                       payload_type_name: str = None, commands: [str] = None, os: str = None):
     """
-    Get an array of dictionaries of all the possible commands for the specified callback
+    Get an array of dictionaries of all the possible commands for the specified callback or payload type
     :param callback_id: the id of the callback in question
     :param loaded_only: specify this as True to only include commands currently loaded into this callback
-    :return: an array of dictionaries representing all of the possible commands for that payload type.
+    :param payload_type_name: specify this to fetch all possible commands for a specific payload type
+    :param commands: specify an array of command names along with the payload_type_name to fetch information
+        about only the listed commands for the specified payload type
+    :param os: Specify the OS that's associated with the payload_type_name so that commands can be filtered
+    :return: an array of dictionaries representing all of the requested commands for that payload type.
     When returning all possible commands for this callback, commands are still filtered by their supported_os attributes
     """
     try:
-        callback = await app.db_objects.get(db_model.callback_query, id=callback_id)
-        if loaded_only:
+        if callback_id is not None:
+            callback = await app.db_objects.get(db_model.callback_query, id=callback_id)
             commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
                 db_model.LoadedCommands.callback == callback
             ))
-            commands = [c.command for c in commands]
-        else:
-            commands = await app.db_objects.execute(db_model.command_query.where(
+            loaded_commands = [c.command for c in commands]
+            all_commands = await app.db_objects.execute(db_model.command_query.where(
                 (db_model.Command.payload_type == callback.registered_payload.payload_type) &
                 (db_model.Command.script_only == False)
             ))
-        final_commands = []
-        for c in commands:
-            attributes = json.loads(c.attributes)
-            if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
-                final_commands.append({**c.to_json(), "attributes": attributes})
-        return {"status": "success", "response": final_commands}
+            final_commands = []
+            if loaded_only:
+                for c in loaded_commands:
+                    attributes = json.loads(c.attributes)
+                    if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
+                        final_commands.append({**c.to_json(), "attributes": attributes})
+                return {"status": "success", "response": final_commands}
+            else:
+                loaded_commands = [c.cmd for c in loaded_commands]
+                for c in all_commands:
+                    attributes = json.loads(c.attributes)
+                    if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
+                        final_commands.append({**c.to_json(), "attributes": attributes, "loaded": c.cmd in loaded_commands})
+                return {"status": "success", "response": final_commands}
+        elif payload_type_name is not None and os is not None:
+            payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=payload_type_name)
+            all_commands = await app.db_objects.execute(db_model.command_query.where(
+                (db_model.Command.payload_type == payload_type) &
+                (db_model.Command.script_only == False)
+            ))
+            final_commands = []
+            for c in all_commands:
+                if commands is None or (commands is not None and c.cmd in commands):
+                    attributes = json.loads(c.attributes)
+                    if len(attributes["supported_os"]) == 0 or os in attributes["supported_os"]:
+                        final_commands.append( {**c.to_json(), "attributes": attributes} )
+            return {"status": "success", "response": final_commands}
+        else:
+            return {"status": "error", "error": "Must supply both payload_type_name and os or callback_id"}
+
     except Exception as e:
         from app.api.operation_api import send_all_operations_message
         await send_all_operations_message(message=f"Failed to get commands in RPC call:\n{str(e)}", level="warning")
+        return {"status": "error", "error": str(e)}
+
+
+async def update_loaded_commands(task_id: int, commands: [str], add: bool = None, remove: bool = None):
+    """
+    Add or Remove loaded commands for the callback associated with task_id
+    :param task_id: The task doing the modifications
+    :param commands: The list of command names to add/remove
+    :param add: Boolean set to True if you want to add the commands to the callback associated with task_id
+    :param remove: Boolean set to True if you want to remove teh commands from the callback assocaited with task_id
+    :return: Status for success or error
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        callback = task.callback
+        payload_type = task.callback.registered_payload.payload_type
+        commands_to_load = await app.db_objects.execute(db_model.command_query.where(
+            (db_model.Command.payload_type == payload_type) &
+            (db_model.Command.cmd.in_(commands))
+        ))
+        if add:
+            for c in commands_to_load:
+                await app.db_objects.create_or_get(db_model.LoadedCommands, command=c, callback=callback,
+                                                   operator=task.operator, version=c.version)
+        if remove:
+            for c in commands_to_load:
+                try:
+                    loaded = await app.db_objects.get(db_model.LoadedCommands, command=c, callback=callback)
+                    await app.db_objects.delete(loaded)
+                except Exception as e:
+                    logger.info(f"{c.cmd} wasn't loaded in callback {callback.id}, so can't remove it via RPC")
+        return {"status": "success"}
+    except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
@@ -2295,6 +2361,25 @@ async def update_task_opsec_status(task_id: int, opsec_pre_blocked: bool = None,
             task.opsec_post_message += opsec_post_message
         if opsec_post_bypass_role is not None and opsec_post_bypass_role in ["operator", "lead"]:
             task.opsec_post_bypass_role = opsec_post_bypass_role
+        await app.db_objects.update(task)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def update_task_status(task_id: int, status: str, completed: bool = None):
+    """
+    Update a task's status to a custom value and optionally mark a task as completed
+    :param task_id: The task you want to update (i.e. task.id in you create_tasking)
+    :param status: The string value of the status you want to set
+    :param completed: Optional boolean value to mark the task as completed
+    :return: Status indicating success or error on if the task was updated or not.
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        task.status = status
+        if completed:
+            task.completed = True
         await app.db_objects.update(task)
         return {"status": "success"}
     except Exception as e:
@@ -2393,9 +2478,9 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                     #    send_all_operations_message(message=f"sending container sync message to {pieces[2]}",
                     #                                level="info", source="sync_c2_send"))
                     asyncio.create_task(
-                        send_all_operations_message(message=f"Got heartbeat from unknown C2: {pieces[2]}",
+                        send_all_operations_message(message=f"Got heartbeat from unknown C2: {pieces[2]}, asking it to sync",
                                                     level="info", source="sync_c2_send"))
-                    # await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
+                    await send_c2_rabbitmq_message(pieces[2], "sync_classes", "", "")
                     return
                 if (
                         profile.last_heartbeat
@@ -2504,6 +2589,24 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
             )
 
 
+async def background_agent_response_callback(message: aio_pika.IncomingMessage):
+    async with message.process():
+        response = json.loads(message.body)
+        pieces = message.routing_key.split(".")
+        # print(" [x] %r:%r" % (
+        #   message.routing_key,
+        #   message.body
+        # ))
+        try:
+            callback = await app.db_objects.get(db_model.callback_query, id=pieces[1])
+            from app.api.response_api import background_process_agent_responses
+            await background_process_agent_responses(response, callback)
+        except Exception as e:
+            logger.exception(
+                "Exception in background_agent_response_callback, {}".format(str(e))
+            )
+
+
 # just listen for c2 heartbeats and update the database as necessary
 async def start_listening():
     logger.debug("Waiting for RabbitMQ to start..")
@@ -2515,6 +2618,7 @@ async def start_listening():
     task3 = None
     task4 = None
     task5 = None
+    #task6 = None
     tasks = [task, task2, task3, task4, task5]
     try:
         task = asyncio.create_task(connect_and_consume_c2())
@@ -2522,6 +2626,7 @@ async def start_listening():
         task3 = asyncio.create_task(connect_and_consume_pt())
         task4 = asyncio.create_task(connect_and_consume_rpc())
         task5 = asyncio.create_task(update_container_status())
+        #task6 = asyncio.create_task(connect_and_consume_background_agent_responses())
         await asyncio.wait([task, task2, task3, task4, task5])
     except Exception as e:
         logger.error("Hit exception in start_listening in rabbit_mq.py: " + str(e))
@@ -2529,6 +2634,32 @@ async def start_listening():
             if t is not None:
                 task.cancel()
         await asyncio.sleep(3)
+
+
+def subprocess_listen_for_background_processing():
+    try:
+        logger.info("starting subprocess")
+        loop = asyncio.get_event_loop()
+        loop.create_task(async_listening_for_background_processing())
+        loop.run_forever()
+    except Exception as e:
+        logger.exception(e)
+
+
+async def async_listening_for_background_processing():
+    try:
+        logger.info("starting async listening for background processing")
+        from peewee_async import Manager
+        from app import mythic_db
+        loop = asyncio.get_event_loop()
+        app.db_objects = Manager(mythic_db, loop=loop)
+        await mythic_db.connect_async(loop=loop)
+        await wait_for_rabbitmq()
+        logger.info("about to create task for connect_and_consume_background_agent_responses")
+        task = asyncio.create_task(connect_and_consume_background_agent_responses())
+        await asyncio.wait([task])
+    except Exception as e:
+        logger.warning("Failed in waiting for background responses: " + str(e))
 
 
 async def mythic_rabbitmq_connection():
@@ -2551,7 +2682,7 @@ def closed_connection_callback(exceptionClass, weak, **kwargs):
     args += f"exception: {exceptionClass}\nweak:{weak}\n"
     for k,v in kwargs.items():
         args += f"{k} = {v}\n"
-    logger.warning("[-] connection closed: " + args)
+    logger.warning("[-] rabbitmq: " + args)
 
 
 async def wait_for_rabbitmq():
@@ -2690,6 +2821,39 @@ async def connect_and_consume_heartbeats():
         await asyncio.sleep(2)
 
 
+async def connect_and_consume_background_agent_responses():
+    connection = None
+    while connection is None:
+        try:
+            connection = await mythic_rabbitmq_connection()
+            connection.add_close_callback(closed_connection_callback)
+            channel = await connection.channel()
+            # declare our exchange
+            await channel.declare_exchange(
+                "mythic_traffic", aio_pika.ExchangeType.TOPIC
+            )
+            # get a random queue that only the mythic server will use to listen on to catch all heartbeats
+            queue = await channel.declare_queue("background_agent_responses", auto_delete=True)
+            # bind the queue to the exchange so we can actually catch messages
+            await queue.bind(exchange="mythic_traffic", routing_key="background_response.#")
+            await channel.set_qos(prefetch_count=1)
+            logger.info("Waiting for messages in connect_and_consume_backgrounded_agent_responses.")
+            try:
+                task = queue.consume(background_agent_response_callback)
+                result = await asyncio.wait_for(task, None)
+            except Exception as e:
+                logger.exception(
+                    "Exception in connect_and_consume .consume: {}".format(str(e))
+                )
+        except (ConnectionError, ConnectionRefusedError) as c:
+            logger.error("Connection to rabbitmq failed, trying again..")
+        except Exception as e:
+            logger.exception(
+                "Exception in connect_and_consume connect: {}".format(str(e))
+            )
+        await asyncio.sleep(2)
+
+
 async def send_c2_rabbitmq_message(name, command, message_body, username):
     try:
         connection = await mythic_rabbitmq_connection()
@@ -2736,6 +2900,37 @@ async def send_pt_rabbitmq_message(payload_type, command, message_body, username
             queue = await channel.get_queue(payload_type + "_tasking")
             if queue.declaration_result.consumer_count == 0:
                 return {"status": "error", "error": "No containers online for {}".format(payload_type),
+                        "type": "no_queue"}
+        except Exception as d:
+            return {"status": "error", "error": "Container not online: " + str(d), "type": "no_queue"}
+        await exchange.publish(
+            message,
+            routing_key=routing_key,
+        )
+        await connection.close()
+        return {"status": "success"}
+    except Exception as e:
+        logger.exception("rabbitmq.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return {"status": "error", "error": "Failed to connect to rabbitmq: " + str(e)}
+
+
+async def send_background_response_rabbitmq_message(message_body, callback_id):
+    try:
+        connection = await mythic_rabbitmq_connection()
+        channel = await connection.channel()
+        # declare our exchange
+        exchange = await channel.declare_exchange(
+            "mythic_traffic", aio_pika.ExchangeType.TOPIC
+        )
+        message = aio_pika.Message(
+            message_body.encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+        )
+        # Sending the message
+        routing_key = "background_response.{}".format(str(callback_id))
+        try:
+            queue = await channel.get_queue("background_agent_responses")
+            if queue.declaration_result.consumer_count == 0:
+                return {"status": "error", "error": "No containers online for background_agent_responses",
                         "type": "no_queue"}
         except Exception as d:
             return {"status": "error", "error": "Container not online: " + str(d), "type": "no_queue"}
@@ -2859,7 +3054,7 @@ exposed_rpc_endpoints = {
     "get_tasks": get_tasks,
     "get_responses": get_responses,
     "get_task_for_id": get_task_for_id,
-    "get_callback_commands": get_callback_commands,
+    "get_commands": get_commands,
     "create_payload_from_uuid": create_payload_from_uuid,
     "create_payload_from_parameters": create_payload_from_parameters,
     "create_processes": create_processes_rpc,
@@ -2880,6 +3075,8 @@ exposed_rpc_endpoints = {
     "delete_callback_token": delete_callback_token,
     "update_callback": update_callback,
     "update_task_opsec_status": update_task_opsec_status,
+    "update_task_status": update_task_status,
+    "update_loaded_commands": update_loaded_commands,
     "search_database": search_database,
     "control_socks": control_socks,
     "create_subtask": create_subtask,
