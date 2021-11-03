@@ -259,7 +259,13 @@ var callback_table = new Vue({
                                         // if this is the first time the parameter is created, it'll error out which is expected
                                     }
                                 }else if(param.type === "Boolean"){
-                                    param.boolean_value = param.default_value;
+                                    if (param.boolean_value === "False") {
+                                        param.boolean_value = false;
+                                    } else if (param.boolean_value === "True") {
+                                        param.boolean_value = true;
+                                    } else {
+                                        param.boolean_value = param.default_value;
+                                    }
                                 }
                                 if (param.type === 'PayloadList') {
                                     // we only want to add to param.payloads things from params_table.payloads that match the supported_agent types listed
