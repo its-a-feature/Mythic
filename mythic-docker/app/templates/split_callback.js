@@ -179,6 +179,7 @@ var callback_table = new Vue({
                                         continue;
                                     }
                                     if(param.choices.length > 0){
+                                        param.choices = param.choices.split("\n");
                                         param.choice_value = param.choices[0];
                                         param.choicemultiple_value = [param.choices[0]];
                                     }
