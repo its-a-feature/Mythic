@@ -738,7 +738,7 @@ async def import_command_func(payload_type, operator, command_list):
             command_list.pop(command.cmd, None)
         else:
             # we need to mark the command as deleted
-            command.cmd = str(shortuuid.uuid()) + "-" + command.cmd
+            command.cmd = command.cmd + "-" + str(shortuuid.uuid())
             command.deleted = True
             await app.db_objects.update(command)
     # everything left in command_list should be new
