@@ -2085,16 +2085,19 @@ async def add_p2p_route(agent_message, callback, task):
                     return
                 # there can only be one source-destination-direction-metadata-c2_profile combination
                 try:
-                    edge = await app.db_objects.get(
-                        db_model.CallbackGraphEdge,
-                        source=source,
-                        destination=destination,
-                        direction=1,
-                        metadata=e["metadata"] if "metadata" in e else "",
-                        operation=callback.operation,
-                        c2_profile=profile,
-                        end_timestamp=None,
-                    )
+                    if source.id == destination.id and profile.is_p2p:
+                        pass
+                    else:
+                        edge = await app.db_objects.get(
+                            db_model.CallbackGraphEdge,
+                            source=source,
+                            destination=destination,
+                            direction=1,
+                            metadata=e["metadata"] if "metadata" in e else "",
+                            operation=callback.operation,
+                            c2_profile=profile,
+                            end_timestamp=None,
+                        )
                     return
                 except Exception as error:
                     edge = await app.db_objects.create(

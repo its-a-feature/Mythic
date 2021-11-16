@@ -267,6 +267,8 @@ async def register_new_payload_func(data, user):
         if "c2_profiles" not in data and not payload_type.wrapper:
             return {"status": "error", "error": '"c2_profiles" field is required'}
         # the other parameters are based on the payload_type, c2_profile, or other payloads
+        if "selected_os" not in data:
+            return {"status": "error", "error": "Must supply a 'selected_os' operating system value"}
         try:
             operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
             operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
@@ -649,7 +651,7 @@ async def write_payload(uuid, user, data):
             "error": "build container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./mythic-cli status`",
         }
     commands = await app.db_objects.execute(db_model.payloadcommand_query.where(PayloadCommand.payload == payload))
-    commands = [c.command.cmd for c in commands]
+    commands = [c.command.cmd for c in commands if not c.command.script_only]
     build_parameters = {}
     build_params = await app.db_objects.execute(
         db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == payload)

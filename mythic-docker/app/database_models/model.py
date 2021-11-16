@@ -354,12 +354,13 @@ class CommandParameters(p.Model):
     command = p.ForeignKeyField(Command, null=False)
     # what is the name of the parameter (what is displayed in the UI and becomes dictionary key)
     name = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    cli_name = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # String, Boolean, Number, Array, Choice, ChoiceMultiple, Credential, File, PayloadList, AgentConnect
     type = p.CharField(null=False, constraints=[p.SQL("DEFAULT 'String'")])
     default_value = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # \n separated list of possible choices
     choices = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
-    required = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
+
     description = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # if the action is related to payloads or linking agents, you can limit the options to only agents you want
     supported_agents = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
@@ -368,13 +369,15 @@ class CommandParameters(p.Model):
     choice_filter_by_command_attributes = p.TextField(null=False, constraints=[p.SQL("DEFAULT '{}'")])
     choices_are_all_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     choices_are_loaded_commands = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
-    ui_position = p.IntegerField(null=False)
     # indicate the name of the function to call to dynamically populate the parameter values
     dynamic_query_function = p.TextField(null=True)
-    parameter_group_name = p.TextField(null=True)
+
+    parameter_group_name = p.TextField(null=False, constraints=[p.SQL("DEFAULT 'default'")])
+    required = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT TRUE")])
+    ui_position = p.IntegerField(null=False)
 
     class Meta:
-        indexes = ((("command", "name"), True),)
+        indexes = ((("command", "name", "parameter_group_name"), True),)
         database = mythic_db
 
     def to_json(self):

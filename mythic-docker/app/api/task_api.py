@@ -498,6 +498,7 @@ async def update_edges_from_checkin(callback_uuid, profile):
                 (db_model.CallbackGraphEdge.destination == callback) &
                 (db_model.CallbackGraphEdge.operation == callback.operation) &
                 (db_model.C2Profile.name == profile) &
+                (db_model.C2Profile.is_p2p == False) &
                 (db_model.CallbackGraphEdge.end_timestamp.is_null(True))
             ))
             if active_edge == 0:
@@ -817,11 +818,11 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     completed_callback_function=data[
                         "completed_callback_function"] if "completed_callback_function" in data else None,
                     subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
-                    params="clear " + data["params"],
+                    params=data["params"],
                     status="completed",
-                    original_params="clear " + data["params"],
+                    original_params=data["params"],
                     completed=True,
-                    display_params="clear " + data["params"]
+                    display_params=data["params"]
                 )
                 if "tags" in data:
                     await add_tags_to_task(task, data["tags"])
@@ -882,40 +883,47 @@ async def add_task_to_callback_func(data, cid, op, cb):
                         completed_callback_function=data[
                             "completed_callback_function"] if "completed_callback_function" in data else None,
                         subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
-                        params="help " + data["params"],
+                        params=data["params"],
                         status="completed",
-                        original_params="help " + data["params"],
+                        original_params=data["params"],
                         completed=True,
-                        display_params="help " + data["params"]
+                        display_params=data["params"]
                     )
                     await app.db_objects.create(Response, task=task, response=output)
                     return {"status": "success", **task.to_json()}
                 elif "params" in data and data["params"] != "":
                     status = "success"
                     output = ""
-                    commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
-                        (db_model.LoadedCommands.callback == cb) &
-                        (db_model.Command.cmd == data["params"])
-                    ))
-                    scriptCommands = await app.db_objects.execute(db_model.command_query.where(
-                        (db_model.Command.payload_type == cb.registered_payload.payload_type) &
-                        (db_model.Command.script_only == True) &
-                        (db_model.Command.cmd == data["params"])
-                    ))
-                    if len(commands) == 0 and len(scriptCommands) == 0:
-                        status = "error"
-                        output = "Command not found"
-                    elif len(commands) > 0:
-                        command = list(commands)[0].command
-                        parameters = await app.db_objects.execute(db_model.commandparameters_query.where(
-                            (db_model.CommandParameters.command == command)
-                        ).order_by(db_model.CommandParameters.ui_position))
-                        output += f"Usage Help: {command.help_cmd}\n\nDescription: {command.description}\nParameters:\n\n"
-                        for p in parameters:
-                            output += f"Name: {p.name}\n\tDescription: {p.description}\n\tType: {p.type}\n\tDefault Value: {p.default_value}\n"
-                        pass
+                    if data["params"] == "help":
+                        output = "Use 'help' to get a list of all loaded commands or 'help [command name]' to get information about one specific command"
+                    elif data["params"] == "clear":
+                        output = "Use 'clear' to change the latest 'submitted' task to 'cleared' so an agent won't pick it up\n"
+                        output += "Use 'clear #' to clear the specified task number\n"
+                        output += "Use 'clear all' to clear all tasks currently in 'submitted' state for the current callback"
                     else:
-                        pass
+                        commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
+                            (db_model.LoadedCommands.callback == cb) &
+                            (db_model.Command.cmd == data["params"])
+                        ))
+                        scriptCommands = await app.db_objects.execute(db_model.command_query.where(
+                            (db_model.Command.payload_type == cb.registered_payload.payload_type) &
+                            (db_model.Command.script_only == True) &
+                            (db_model.Command.cmd == data["params"])
+                        ))
+                        if len(commands) == 0 and len(scriptCommands) == 0:
+                            status = "error"
+                            output = "Command not found"
+                        elif len(commands) > 0:
+                            command = list(commands)[0].command
+                            parameters = await app.db_objects.execute(db_model.commandparameters_query.where(
+                                (db_model.CommandParameters.command == command)
+                            ).order_by(db_model.CommandParameters.ui_position))
+                            output += f"Usage Help: {command.help_cmd}\n\nDescription: {command.description}\nParameters:\n\n"
+                            for p in parameters:
+                                output += f"Name: {p.name}\n\tDescription: {p.description}\n\tType: {p.type}\n\tDefault Value: {p.default_value}\n"
+                            pass
+                        else:
+                            pass
                     task = await app.db_objects.create(
                         Task,
                         command_name="help",
@@ -929,11 +937,11 @@ async def add_task_to_callback_func(data, cid, op, cb):
                         completed_callback_function=data[
                             "completed_callback_function"] if "completed_callback_function" in data else None,
                         subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
-                        params="help " + data["params"],
+                        params=data["params"],
                         status=status,
-                        original_params="help " + data["params"],
+                        original_params=data["params"],
                         completed=True,
-                        display_params="help " + data["params"]
+                        display_params=data["params"]
                     )
                     await app.db_objects.create(Response, task=task, response=output)
                     return {"status": "success", **task.to_json()}
@@ -946,8 +954,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                 "callback": cid,
             }
         try:
-            if not cmd.script_only:
-                loaded_commands = await app.db_objects.get(db_model.loadedcommands_query, callback=cb, command=cmd)
+            loaded_commands = await app.db_objects.get(db_model.loadedcommands_query, callback=cb, command=cmd)
         except Exception as e:
             return {
                 "status": "error",

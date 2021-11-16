@@ -2429,7 +2429,7 @@ async def update_container_status():
                         < datetime.datetime.utcnow() + datetime.timedelta(seconds=-30)
                         and profile.container_running
                 ):
-                    if profile.running:
+                    if profile.running and not profile.is_p2p:
                         asyncio.create_task(
                             send_all_operations_message(message=f"{profile.name}'s internal server stopped",
                                                         level="warning"))
@@ -2499,7 +2499,7 @@ async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
                         < datetime.datetime.utcnow() + datetime.timedelta(seconds=-30)
                         or not profile.container_running
                 ):
-                    if profile.running:
+                    if profile.running and not profile.is_p2p:
                         asyncio.create_task(
                             send_all_operations_message(message=f"{profile.name}'s internal server stopped",
                                                         level="warning"))

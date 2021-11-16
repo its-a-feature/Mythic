@@ -539,61 +539,80 @@ async def import_command_func(payload_type, operator, command_list):
             current_params = await app.db_objects.execute(
                 db_model.commandparameters_query.where((db_model.CommandParameters.command == command))
             )
-            current_param_dict = {c.name: c for c in current_params}
+            current_param_dict = {c.name + c.parameter_group_name: c for c in current_params}
             for param in cmd["parameters"]:
-                try:
-                    cmd_param = await app.db_objects.get(
-                        db_model.commandparameters_query, command=command, name=param["name"]
-                    )
-                    cmd_param.type = param["type"]
-                    if param["ui_position"] is not None:
-                        cmd_param.ui_position = param["ui_position"]
-                    else:
-                        # we will need to assign a number later
-                        cmd_param.ui_position = 999999
-                    if "default_value" in param and param["default_value"] is not None:
-                        if cmd_param.type == "Array":
-                            cmd_param.default_value = js.dumps(param["default_value"])
+                for param_group in param["parameter_group_info"]:
+                    try:
+                        cmd_param = await app.db_objects.get(
+                            db_model.commandparameters_query, command=command, name=param["name"],
+                            parameter_group_name=param_group["group_name"]
+                        )
+                        cmd_param.type = param["type"]
+                        if param_group["ui_position"] is not None:
+                            cmd_param.ui_position = param_group["ui_position"]
                         else:
-                            cmd_param.default_value = param["default_value"]
-                    else:
-                        if cmd_param.type == "Array":
-                            cmd_param.default_value = "[]"
+                            # we will need to assign a number later
+                            cmd_param.ui_position = 999999
+                        if "default_value" in param and param["default_value"] is not None:
+                            if cmd_param.type == "Array":
+                                cmd_param.default_value = js.dumps(param["default_value"])
+                            else:
+                                cmd_param.default_value = param["default_value"]
                         else:
-                            cmd_param.default_value = ""
-                    if (
-                            "supported_agents" in param
-                            and param["supported_agents"] is not None
-                    ):
-                        cmd_param.supported_agents = param["supported_agents"]
-                    cmd_param.supported_agent_build_parameters = js.dumps(param["supported_agent_build_parameters"])
-                    cmd_param.description = param["description"]
-                    cmd_param.choices = param["choices"]
-                    cmd_param.required = param["required"]
-                    cmd_param.parameter_group_name = param["parameter_group_name"] if "parameter_group_name" in param else None
-                    cmd_param.choice_filter_by_command_attributes = js.dumps(
-                        param["choice_filter_by_command_attributes"])
-                    cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
-                    cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
-                    cmd_param.dynamic_query_function = param["dynamic_query_function"] if "dynamic_query_function" in param else None
-                    await app.db_objects.update(cmd_param)
-                    current_param_dict.pop(param["name"], None)
-                except Exception as param_except:  # param doesn't exist yet, so create it
-                    logger.warning("Error trying to import payload type: " + str(param_except))
-                    if "default_value" not in param or param["default_value"] is None:
-                        param["default_value"] = ""
-                    elif param["type"] == "Array":
-                        param["default_value"] = js.dumps(param["default_value"])
-                    if param["ui_position"] is None:
-                        param["ui_position"] = 999999
-                    param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
-                    await app.db_objects.create_or_get(CommandParameters, command=command, **param)
+                            if cmd_param.type == "Array":
+                                cmd_param.default_value = "[]"
+                            else:
+                                cmd_param.default_value = ""
+                        if (
+                                "supported_agents" in param
+                                and param["supported_agents"] is not None
+                        ):
+                            cmd_param.supported_agents = param["supported_agents"]
+                        cmd_param.supported_agent_build_parameters = js.dumps(param["supported_agent_build_parameters"])
+                        cmd_param.description = param["description"]
+                        cmd_param.choices = param["choices"]
+                        cmd_param.required = param_group["required"]
+                        cmd_param.parameter_group_name = param_group["group_name"]
+                        cmd_param.choice_filter_by_command_attributes = js.dumps(
+                            param["choice_filter_by_command_attributes"])
+                        cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
+                        cmd_param.cli_name = param["name"] if " " not in param["name"] else param["name"].replace(" ", "-")
+                        cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
+                        cmd_param.dynamic_query_function = param["dynamic_query_function"] if "dynamic_query_function" in param else None
+                        await app.db_objects.update(cmd_param)
+                        current_param_dict.pop(param["name"] + param_group["group_name"], None)
+                    except Exception as param_except:  # param doesn't exist yet, so create it
+                        if "default_value" not in param or param["default_value"] is None:
+                            if param["type"] == "Array":
+                                param["default_value"] = "[]"
+                            else:
+                                param["default_value"] = ""
+                        elif param["type"] == "Array":
+                            param["default_value"] = js.dumps(param["default_value"])
+                        param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
+                        await app.db_objects.create_or_get(CommandParameters,
+                                                           command=command,
+                                                           description=param["description"],
+                                                           choices=param["choices"],
+                                                           required=param_group["required"],
+                                                           type=param["type"],
+                                                           ui_position=999999 if param_group["ui_position"] is None else param_group["ui_position"],
+                                                           supported_agents=param["supported_agents"],
+                                                           supported_agent_build_parameters=param["supported_agent_build_parameters"],
+                                                           parameter_group_name=param_group["group_name"],
+                                                           name=param["name"],
+                                                           cli_name=param["name"] if " " not in param["name"] else param["name"].replace(" ", "-"),
+                                                           default_value=param["default_value"],
+                                                           choice_filter_by_command_attributes=param["choice_filter_by_command_attributes"],
+                                                           choices_are_all_commands=param["choices_are_all_commands"],
+                                                           choices_are_loaded_commands=param["choices_are_loaded_commands"],
+                                                           dynamic_query_function=param["dynamic_query_function"] if "dynamic_query_function" in param else None)
             for k, v in current_param_dict.items():
                 await app.db_objects.delete(v)
             # now go back and make sure all of the ui_position values match up and have proper, non -1, values
             current_params = await app.db_objects.execute(
                 db_model.commandparameters_query.where((db_model.CommandParameters.command == command)).order_by(
-                    db_model.CommandParameters.ui_position)
+                    db_model.CommandParameters.parameter_group_name, db_model.CommandParameters.ui_position)
             )
             position = 1
             for x in current_params:
@@ -777,50 +796,86 @@ async def import_command_func(payload_type, operator, command_list):
         current_params = await app.db_objects.execute(
             db_model.commandparameters_query.where((db_model.CommandParameters.command == command))
         )
-        current_param_dict = {c.name: c for c in current_params}
+        current_param_dict = {c.name + c.parameter_group_name: c for c in current_params}
         for param in cmd["parameters"]:
-            try:
-                cmd_param = await app.db_objects.get(
-                    db_model.commandparameters_query, command=command, name=param["name"]
-                )
-                cmd_param.type = param["type"]
-                if "default_value" in param and param["default_value"] is not None:
-                    if cmd_param.type == "Array":
-                        cmd_param.default_value = js.dumps(param["default_value"])
+            for param_group in param["parameter_group_info"]:
+                try:
+                    cmd_param = await app.db_objects.get(
+                        db_model.commandparameters_query, command=command, name=param["name"],
+                        parameter_group_name=param_group["group_name"]
+                    )
+                    cmd_param.type = param["type"]
+                    if param_group["ui_position"] is not None:
+                        cmd_param.ui_position = param_group["ui_position"]
                     else:
-                        cmd_param.default_value = param["default_value"]
-                if (
-                        "supported_agents" in param
-                        and param["supported_agents"] is not None
-                ):
-                    cmd_param.supported_agents = param["supported_agents"]
-                cmd_param.description = param["description"]
-                cmd_param.choices = param["choices"]
-                cmd_param.required = param["required"]
-                cmd_param.supported_agent_build_parameters = js.dumps(param["supported_agent_build_parameters"])
-                cmd_param.choice_filter_by_command_attributes = js.dumps(param["choice_filter_by_command_attributes"])
-                cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
-                cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
-                cmd_param.dynamic_query_function = param["dynamic_query_function"] if "dynamic_query_function" in param else None
-                cmd_param.parameter_group_name = param["parameter_group_name"] if "parameter_group_name" in param else None
-                await app.db_objects.update(cmd_param)
-                current_param_dict.pop(param["name"], None)
-            except:  # param doesn't exist yet, so create it
-                if "default_value" not in param or param["default_value"] is None:
-                    param["default_value"] = ""
-                elif param["type"] == "Array":
-                    param["default_value"] = js.dumps(param["default_value"])
-                if param["ui_position"] is None:
-                    param["ui_position"] = 999999
-                param["choice_filter_by_command_attributes"] = js.dumps(param["choice_filter_by_command_attributes"])
-                param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
-                await app.db_objects.create_or_get(CommandParameters, command=command, **param)
+                        # we will need to assign a number later
+                        cmd_param.ui_position = 999999
+                    if "default_value" in param and param["default_value"] is not None:
+                        if cmd_param.type == "Array":
+                            cmd_param.default_value = js.dumps(param["default_value"])
+                        else:
+                            cmd_param.default_value = param["default_value"]
+                    else:
+                        if cmd_param.type == "Array":
+                            cmd_param.default_value = "[]"
+                        else:
+                            cmd_param.default_value = ""
+                    if (
+                            "supported_agents" in param
+                            and param["supported_agents"] is not None
+                    ):
+                        cmd_param.supported_agents = param["supported_agents"]
+                    cmd_param.supported_agent_build_parameters = js.dumps(param["supported_agent_build_parameters"])
+                    cmd_param.description = param["description"]
+                    cmd_param.choices = param["choices"]
+                    cmd_param.cli_name = param["name"] if " " not in param["name"] else param["name"].replace(" ", "-")
+                    cmd_param.required = param_group["required"]
+                    cmd_param.parameter_group_name = param_group["group_name"]
+                    cmd_param.choice_filter_by_command_attributes = js.dumps(
+                        param["choice_filter_by_command_attributes"])
+                    cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
+                    cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
+                    cmd_param.dynamic_query_function = param[
+                        "dynamic_query_function"] if "dynamic_query_function" in param else None
+                    await app.db_objects.update(cmd_param)
+                    current_param_dict.pop(param["name"] + param_group["group_name"], None)
+                except Exception as param_except:  # param doesn't exist yet, so create it
+                    if "default_value" not in param or param["default_value"] is None:
+                        if param["type"] == "Array":
+                            param["default_value"] = "[]"
+                        else:
+                            param["default_value"] = ""
+                    elif param["type"] == "Array":
+                        param["default_value"] = js.dumps(param["default_value"])
+                    param["supported_agent_build_parameters"] = js.dumps(param["supported_agent_build_parameters"])
+                    await app.db_objects.create_or_get(CommandParameters,
+                                                       command=command,
+                                                       description=param["description"],
+                                                       choices=param["choices"],
+                                                       required=param_group["required"],
+                                                       type=param["type"],
+                                                       ui_position=999999 if param_group["ui_position"] is None else
+                                                       param_group["ui_position"],
+                                                       supported_agents=param["supported_agents"],
+                                                       supported_agent_build_parameters=param[
+                                                           "supported_agent_build_parameters"],
+                                                       parameter_group_name=param_group["group_name"],
+                                                       name=param["name"],
+                                                       cli_name=param["name"] if " " not in param["name"] else param[
+                                                           "name"].replace(" ", "-"),
+                                                       default_value=param["default_value"],
+                                                       choice_filter_by_command_attributes=param[
+                                                           "choice_filter_by_command_attributes"],
+                                                       choices_are_all_commands=param["choices_are_all_commands"],
+                                                       choices_are_loaded_commands=param["choices_are_loaded_commands"],
+                                                       dynamic_query_function=param[
+                                                           "dynamic_query_function"] if "dynamic_query_function" in param else None)
         for k, v in current_param_dict.items():
             await app.db_objects.delete(v)
         # now go back and make sure all of the ui_position values match up and have proper, non -1, values
         current_params = await app.db_objects.execute(
             db_model.commandparameters_query.where((db_model.CommandParameters.command == command)).order_by(
-                db_model.CommandParameters.ui_position)
+                db_model.CommandParameters.parameter_group_name, db_model.CommandParameters.ui_position)
         )
         position = 1
         for x in current_params:
