@@ -4161,6 +4161,11 @@ function autocomplete(inp, arr) {
                 meta[task_data.input_field_placeholder['cid']]["commands"][i]["attributes"]["supported_os"].includes(callbacks[task_data.input_field_placeholder['cid']]["payload_os"])
         )
             ) {
+            	/*exit autocomplete if text fully matches command*/
+            	if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].toUpperCase() === val.toUpperCase())
+            	{
+                	closeAllLists();
+            	}
                 /*create a DIV element for each matching element:*/
                 if (meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length > longest) {
                     longest = meta[task_data.input_field_placeholder['cid']]["commands"][i]["name"].length;
