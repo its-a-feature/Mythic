@@ -1,0 +1,66 @@
+table:
+  name: attacktask
+  schema: public
+object_relationships:
+- name: attack
+  using:
+    foreign_key_constraint_on: attack_id
+- name: task
+  using:
+    foreign_key_constraint_on: task_id
+select_permissions:
+- permission:
+    columns:
+    - id
+    - attack_id
+    - task_id
+    filter:
+      task:
+        callback:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+  role: developer
+- permission:
+    columns:
+    - id
+    - attack_id
+    - task_id
+    filter:
+      task:
+        callback:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+  role: mythic_admin
+- permission:
+    columns:
+    - id
+    - attack_id
+    - task_id
+    filter:
+      task:
+        callback:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+  role: operation_admin
+- permission:
+    columns:
+    - id
+    - attack_id
+    - task_id
+    filter:
+      task:
+        callback:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+  role: operator
+- permission:
+    columns:
+    - id
+    - attack_id
+    - task_id
+    filter:
+      task:
+        callback:
+          operation_id:
+            _eq: X-Hasura-current-operation-id
+  role: spectator

@@ -1,0 +1,129 @@
+table:
+  name: taskartifact
+  schema: public
+configuration:
+  custom_column_names:
+    artifact_instance: artifact_instance_raw
+  custom_root_fields: {}
+object_relationships:
+- name: artifact
+  using:
+    foreign_key_constraint_on: artifact_id
+- name: operation
+  using:
+    foreign_key_constraint_on: operation_id
+- name: task
+  using:
+    foreign_key_constraint_on: task_id
+computed_fields:
+- definition:
+    function:
+      name: taskartifact_artifact_instance
+      schema: public
+  name: artifact_instance_text
+select_permissions:
+- permission:
+    allow_aggregations: true
+    columns:
+    - id
+    - task_id
+    - timestamp
+    - artifact_instance
+    - artifact_id
+    - operation_id
+    - host
+    computed_fields:
+    - artifact_instance_text
+    filter:
+      _or:
+      - operation_id:
+          _in: X-Hasura-operations
+      - task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+  role: developer
+- permission:
+    allow_aggregations: true
+    columns:
+    - id
+    - task_id
+    - timestamp
+    - artifact_instance
+    - artifact_id
+    - operation_id
+    - host
+    computed_fields:
+    - artifact_instance_text
+    filter:
+      _or:
+      - operation_id:
+          _in: X-Hasura-operations
+      - task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+  role: mythic_admin
+- permission:
+    allow_aggregations: true
+    columns:
+    - id
+    - task_id
+    - timestamp
+    - artifact_instance
+    - artifact_id
+    - operation_id
+    - host
+    computed_fields:
+    - artifact_instance_text
+    filter:
+      _or:
+      - operation_id:
+          _in: X-Hasura-operations
+      - task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+  role: operation_admin
+- permission:
+    allow_aggregations: true
+    columns:
+    - id
+    - task_id
+    - timestamp
+    - artifact_instance
+    - artifact_id
+    - operation_id
+    - host
+    computed_fields:
+    - artifact_instance_text
+    filter:
+      _or:
+      - operation_id:
+          _in: X-Hasura-operations
+      - task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+  role: operator
+- permission:
+    allow_aggregations: true
+    columns:
+    - id
+    - task_id
+    - timestamp
+    - artifact_instance
+    - artifact_id
+    - operation_id
+    - host
+    computed_fields:
+    - artifact_instance_text
+    filter:
+      _or:
+      - operation_id:
+          _in: X-Hasura-operations
+      - task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+  role: spectator

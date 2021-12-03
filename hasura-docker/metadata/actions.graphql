@@ -6,8 +6,12 @@ type Query {
 
 type Mutation {
   createAPIToken (
-    tokenType: String!
+    token_type: String!
   ): createAPITokenResponse!
+}
+
+type Mutation {
+  createOperation : createOperationOutput
 }
 
 type Mutation {
@@ -35,6 +39,9 @@ type Mutation {
     files: String
     callback_id: Int!
     token: Int
+    tasking_location: String
+    original_params: String
+    parameter_group_name: String
   ): createTaskOutput
 }
 
@@ -44,6 +51,25 @@ type Mutation {
     instance_name: String!
     c2profile_id: Int!
   ): createc2instanceOutput
+}
+
+type Mutation {
+  deleteBlockList (
+    name: String!
+  ): deleteBlockListOutput
+}
+
+type Mutation {
+  deleteBlockListEntry (
+    name: String!
+    entries: [Int!]!
+  ): deleteBlockListEntryOutput
+}
+
+type Mutation {
+  deleteFile (
+    file_id: Int!
+  ): deletionOutput
 }
 
 type Query {
@@ -130,6 +156,21 @@ type Mutation {
 }
 
 type Mutation {
+  updateCurrentOperation (
+    user_id: Int!
+    operation_id: Int!
+  ): updateCurrentOperationOutput
+}
+
+type Mutation {
+  updatePassword (
+    user_id: Int!
+    new_password: String!
+    old_password: String
+  ): passwordUpdateOutput
+}
+
+type Mutation {
   uploadContainerFile (
     id: Int!
     file_path: String!
@@ -154,8 +195,11 @@ input updateCallbackInput {
 }
 
 type createAPITokenResponse {
-  tokenValue : String!
-  id : Int!
+  token_value : String
+  status : String!
+  error : String
+  id : Int
+  operator_id : Int
 }
 
 type OperatorOutput {
@@ -291,6 +335,43 @@ type ReissueTaskHandlerOutput {
 }
 
 type StopSocksOutput {
+  status : String!
+  error : String
+}
+
+type deletionOutput {
+  status : String!
+  error : String
+  file_ids : [Int]
+  payload_ids : [Int]
+}
+
+type passwordUpdateOutput {
+  status : String!
+  error : String
+}
+
+type updateCurrentOperationOutput {
+  status : String!
+  error : String
+  operation_id : Int
+}
+
+type deleteBlockListOutput {
+  status : String!
+  error : String
+  name : String
+}
+
+type deleteBlockListEntryOutput {
+  status : String!
+  error : String
+  name : String
+  deleted_ids : [Int]
+}
+
+type createOperationOutput {
+  operation_id : Int!
   status : String!
   error : String
 }

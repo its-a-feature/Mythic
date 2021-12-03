@@ -354,6 +354,7 @@ class CommandParameters(p.Model):
     command = p.ForeignKeyField(Command, null=False)
     # what is the name of the parameter (what is displayed in the UI and becomes dictionary key)
     name = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
+    display_name = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     cli_name = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # String, Boolean, Number, Array, Choice, ChoiceMultiple, Credential, File, PayloadList, AgentConnect
     type = p.CharField(null=False, constraints=[p.SQL("DEFAULT 'String'")])
@@ -387,6 +388,8 @@ class CommandParameters(p.Model):
             "cmd": self.command.cmd,
             "payload_type": self.command.payload_type.ptype,
             "name": self.name,
+            "display_name": self.display_name,
+            "cli_name": self.cli_name,
             "type": self.type,
             "default_value": self.default_value,
             "choices": self.choices,
@@ -466,7 +469,7 @@ default_webhook_message = json.dumps({
 
 
 class Operation(p.Model):
-    name = p.TextField(null=False, unique=True)
+    name = p.TextField(null=False, unique=True, constraints=[p.SQL("DEFAULT gen_random_uuid()")])
     admin = p.ForeignKeyField(Operator, null=False)  # who is an admin of this operation
     complete = p.BooleanField(null=False, constraints=[p.SQL("DEFAULT FALSE")])
     webhook = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
@@ -504,9 +507,10 @@ class DisabledCommandsProfile(p.Model):
     # name to group a bunch of disabled commands together for an operator
     name = p.TextField(null=False)
     command = p.ForeignKeyField(Command, null=False)
+    operation = p.ForeignKeyField(Operation, null=False)
 
     class Meta:
-        indexes = ((("command", "name"), True),)
+        indexes = ((("command", "name", "operation"), True),)
         database = mythic_db
 
     def to_json(self):
@@ -515,7 +519,9 @@ class DisabledCommandsProfile(p.Model):
             "name": self.name,
             "command": self.command.cmd,
             "command_id": self.command.id,
-            "payload_type": self.command.payload_type.ptype
+            "payload_type": self.command.payload_type.ptype,
+            "operation_name": self.operation.name,
+            "operation_id": self.operation.id
         }
         return r
 
@@ -1080,6 +1086,7 @@ class Task(p.Model):
     # can logically group a set of subtasks together and execute completion handlers when they're all done
     subtask_group_name = p.TextField(null=True)
     tasking_location = p.TextField(null=False,  constraints=[p.SQL("DEFAULT 'command_line'")])
+    parameter_group_name = p.TextField(null=False,  constraints=[p.SQL("DEFAULT 'Default'")])
 
     class Meta:
         database = mythic_db
@@ -1122,7 +1129,9 @@ class Task(p.Model):
             "group_callback_function": self.group_callback_function,
             "completed_callback_function": self.completed_callback_function,
             "subtask_group_name": self.subtask_group_name,
-            "tasking_location": self.tasking_location
+            "tasking_location": self.tasking_location,
+            "stdout": self.stdout,
+            "stderr": self.stderr
         }
         return r
 

@@ -2474,99 +2474,109 @@
       - id
       - command_id
       - name
+      - display_name
+      - cli_name
       - type
       - default_value
       - choices
-      - required
       - description
       - supported_agents
       - supported_agent_build_parameters
       - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - ui_position
       - dynamic_query_function
       - parameter_group_name
+      - required
+      - ui_position
       filter: {}
   - role: mythic_admin
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
       - parameter_group_name
-      - supported_agent_build_parameters
-      - supported_agents
+      - required
+      - ui_position
       filter: {}
   - role: operation_admin
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
       - parameter_group_name
-      - supported_agent_build_parameters
-      - supported_agents
+      - required
+      - ui_position
       filter: {}
   - role: operator
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
       - parameter_group_name
-      - supported_agent_build_parameters
-      - supported_agents
+      - required
+      - ui_position
       filter: {}
   - role: spectator
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
       - parameter_group_name
-      - supported_agent_build_parameters
-      - supported_agents
+      - required
+      - ui_position
       filter: {}
 - table:
     schema: public
@@ -2854,6 +2864,9 @@
   - name: command
     using:
       foreign_key_constraint_on: command_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
   array_relationships:
   - name: operatoroperations
     using:
@@ -2862,6 +2875,177 @@
         table:
           schema: public
           name: operatoroperation
+  insert_permissions:
+  - role: developer
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  - role: operator
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: mythic_admin
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operation_admin
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operator
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: spectator
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operation_admin
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+  - role: operator
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
 - table:
     schema: public
     name: filebrowserobj
@@ -4307,6 +4491,18 @@
           schema: public
           name: task
   select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - active
+      - admin
+      - creation_time
+      - deleted
+      - id
+      - last_login
+      - username
+      - view_utc_time
+      filter: {}
   - role: mythic_admin
     permission:
       columns:
@@ -4357,12 +4553,20 @@
       - view_utc_time
       filter: {}
   update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - username
+      - view_utc_time
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+      check: null
   - role: mythic_admin
     permission:
       columns:
       - active
       - admin
-      - current_operation_id
       - deleted
       - username
       - view_utc_time
@@ -4371,8 +4575,6 @@
   - role: operation_admin
     permission:
       columns:
-      - current_operation_id
-      - ui_config
       - username
       - view_utc_time
       filter:
@@ -4382,7 +4584,6 @@
   - role: operator
     permission:
       columns:
-      - current_operation_id
       - username
       - view_utc_time
       filter:
@@ -4392,7 +4593,6 @@
   - role: spectator
     permission:
       columns:
-      - current_operation_id
       - username
       - view_utc_time
       filter:
@@ -5670,45 +5870,46 @@
   - role: developer
     permission:
       columns:
+      - id
       - agent_task_id
-      - callback_id
       - command_id
       - command_name
+      - params
+      - status_timestamp_preprocessing
+      - status_timestamp_submitted
+      - status_timestamp_processing
+      - status_timestamp_processed
+      - timestamp
+      - callback_id
+      - operator_id
+      - status
+      - original_params
+      - display_params
       - comment
       - comment_operator_id
+      - stdout
+      - stderr
       - completed
-      - completed_callback_function
-      - completed_callback_function_completed
-      - display_params
-      - group_callback_function
-      - group_callback_function_completed
-      - id
-      - operator_id
-      - opsec_post_blocked
-      - opsec_post_bypass_role
-      - opsec_post_bypass_user_id
-      - opsec_post_bypassed
-      - opsec_post_message
       - opsec_pre_blocked
+      - opsec_pre_message
+      - opsec_pre_bypassed
       - opsec_pre_bypass_role
       - opsec_pre_bypass_user_id
-      - opsec_pre_bypassed
-      - opsec_pre_message
-      - original_params
-      - params
+      - opsec_post_blocked
+      - opsec_post_message
+      - opsec_post_bypassed
+      - opsec_post_bypass_role
+      - opsec_post_bypass_user_id
       - parent_task_id
-      - status
-      - status_timestamp_preprocessing
-      - status_timestamp_processed
-      - status_timestamp_processing
-      - status_timestamp_submitted
-      - stderr
-      - stdout
       - subtask_callback_function
       - subtask_callback_function_completed
+      - group_callback_function
+      - group_callback_function_completed
+      - completed_callback_function
+      - completed_callback_function_completed
       - subtask_group_name
       - tasking_location
-      - timestamp
+      - parameter_group_name
       - token_id
       filter:
         callback:
@@ -5747,6 +5948,7 @@
       - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
       - stderr
       - stdout
@@ -5795,6 +5997,7 @@
       - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
       - stderr
       - stdout
@@ -5843,6 +6046,7 @@
       - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
       - stderr
       - stdout
@@ -5891,6 +6095,7 @@
       - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
       - stderr
       - stdout

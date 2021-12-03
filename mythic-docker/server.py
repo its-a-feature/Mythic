@@ -20,7 +20,7 @@ if __name__ == "__main__":
             except Exception as d:
                 print("Exception in trying to start process: " + str(d))
             mythic.run(host=listen_ip, port=int(listen_port),
-                       debug=keep_logs, access_log=False, workers=workers + 1)
+                       debug=keep_logs, access_log=False, workers=1)
 
         except Exception as e:
             print(str(e))

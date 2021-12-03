@@ -266,6 +266,8 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     logger.info(f"RABBITMQ GOT TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
                     task = await app.db_objects.get(db_model.task_query, id=pieces[4])
                     logger.info(f"RABBITMQ FETCHED TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
+                    #logger.info(response_message)
+
                     task.display_params = response_message["task"]["display_params"]
                     task.stdout = response_message["task"]["stdout"]
                     task.stderr = response_message["task"]["stderr"]
@@ -287,6 +289,8 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     task.completed_callback_function = response_message["task"][
                         "completed_callback_function"] if "completed_callback_function" in response_message[
                         "task"] else None
+                    if "parameter_group_name" in response_message["task"] and response_message["task"]["parameter_group_name"] is not None:
+                        task.parameter_group_name = response_message["task"]["parameter_group_name"]
                     task.status_timestamp_submitted = task.timestamp
                     # handle if tags changed
                     if pieces[5] == "parse_arguments_error":
@@ -778,7 +782,7 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
             files = await app.db_objects.execute(
                 db_model.filemeta_query.where(
                     (db_model.FileMeta.deleted == False)
-                    & (fn.encode(db_model.FileMeta.filename, "escape").regexp(filename))
+                    & (fn.encode(db_model.FileMeta.filename, "escape") ** ("%" + filename + "%"))
                     & (db_model.FileMeta.operation == operation)
                 ).order_by(-db_model.FileMeta.id)
             )

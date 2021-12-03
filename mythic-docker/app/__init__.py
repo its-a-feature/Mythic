@@ -240,6 +240,6 @@ Initialize(
     path_to_verify="/verify",
     path_to_refresh="/refresh",
     refresh_token_enabled=True,
-    expiration_delta=28800,  # initial token expiration time, 8hrs
+    expiration_delta=14400,  # initial token expiration time, 8hrs
     login_redirect_url="/login",
 )

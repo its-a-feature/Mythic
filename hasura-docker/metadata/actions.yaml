@@ -13,13 +13,23 @@ actions:
 - name: createAPIToken
   definition:
     kind: synchronous
-    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/generate_apitoken'
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/generate_apitoken_webhook'
     forward_client_headers: true
   permissions:
   - role: developer
   - role: mythic_admin
   - role: operation_admin
   - role: operator
+- name: createOperation
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_operation_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: createOperator
   definition:
     kind: synchronous
@@ -64,6 +74,36 @@ actions:
   definition:
     kind: synchronous
     handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_c2parameter_instance_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: deleteBlockList
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/delete_disabled_command_profile_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: deleteBlockListEntry
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/delete_disabled_command_profile_entry_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: deleteFile
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/delete_file_webhook'
     forward_client_headers: true
   permissions:
   - role: operator
@@ -204,6 +244,28 @@ actions:
   - role: mythic_admin
   - role: operation_admin
   - role: operator
+- name: updateCurrentOperation
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_current_operation_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
+- name: updatePassword
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_operator_password_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: uploadContainerFile
   definition:
     kind: synchronous
@@ -261,4 +323,19 @@ custom_types:
   - name: ReissueTaskOutput
   - name: ReissueTaskHandlerOutput
   - name: StopSocksOutput
+  - name: deletionOutput
+  - name: passwordUpdateOutput
+  - name: updateCurrentOperationOutput
+  - name: deleteBlockListOutput
+  - name: deleteBlockListEntryOutput
+  - name: createOperationOutput
+    relationships:
+    - remote_table:
+        schema: public
+        name: operation
+      name: operation
+      source: default
+      type: object
+      field_mapping:
+        operation_id: id
   scalars: []

@@ -181,7 +181,7 @@ async def download_agent_file(data, in_response: bool = False, task_id: str = No
             and data["full_path"] != ""
         ):
             task = await app.db_objects.get(db_model.task_query, agent_task_id=data["task_id"])
-            if file_meta.task is None or file_meta.task != task:
+            if file_meta.task is None or file_meta.task.id != task.id:
                 # this means the file was hosted on the mythic server and is being pulled down by an agent
                 # or means that another task is pulling down a file that was generated from a different task
                 fm = await app.db_objects.create(
@@ -200,6 +200,7 @@ async def download_agent_file(data, in_response: bool = False, task_id: str = No
                     deleted=False,
                     operator=task.operator,
                     host=file_meta.host.upper(),
+                    filename=file_meta.filename
                 )
                 asyncio.create_task(add_upload_file_to_file_browser(fm.operation, fm.task, fm,
                                                       {"host": fm.host,
@@ -314,8 +315,7 @@ async def download_agent_file(data, in_response: bool = False, task_id: str = No
                                 level="info", source="debug", operation=file_meta.operation)
                     os.remove(file_meta.path)
                     # if this is a payload based file that was auto-generated, don't mark it as deleted
-                    try:
-                        payload = await app.db_objects.get(db_model.payload_query, file=file_meta)
+                    if file_meta.is_payload:
                         if app.debugging_enabled:
                             if not in_response:
                                 await send_all_operations_message(
@@ -325,8 +325,13 @@ async def download_agent_file(data, in_response: bool = False, task_id: str = No
                                 await send_all_operations_message(
                                     message=f"post_response of uploading file for file_id {file_meta.agent_file_id}, finished pulling down the payload, not marking as deleted though",
                                     level="info", source="debug", operation=file_meta.operation)
-                    except Exception as e:
+                    else:
                         file_meta.deleted = True
+                        # we need to mark all other files based on this as deleted too now
+                        linked_files = await app.db_objects.execute(db_model.filemeta_query.where(db_model.FileMeta.path == file_meta.path))
+                        for file in linked_files:
+                            file.deleted = True
+                            await app.db_objects.update(file)
                         if app.debugging_enabled:
                             if not in_response:
                                 await send_all_operations_message(
@@ -449,6 +454,16 @@ async def delete_filemeta_in_database(request, user, fid):
         )
     status = {"status": "success"}
     filemeta.deleted = True
+    linked_files = await app.db_objects.execute(db_model.filemeta_query.where(
+        db_model.FileMeta.path == filemeta.path
+    ))
+    for file in linked_files:
+        file.deleted = True
+        await app.db_objects.update(file)
+        if file.is_payload:
+            payload = await app.db_objects.get(db_model.payload_query, file=file)
+            payload.deleted = True
+            await app.db_objects.update(payload)
     try:
         await app.db_objects.update(filemeta)
     except Exception as e:
@@ -465,6 +480,72 @@ async def delete_filemeta_in_database(request, user, fid):
     except Exception as e:
         pass
     return json({**status, **filemeta.to_json()})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/delete_file_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def delete_filemeta_in_database_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot delete files"})
+    try:
+        data = request.json["input"]
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        filemeta = await app.db_objects.get(db_model.filemeta_query, id=data["file_id"], operation=operation)
+        if filemeta.is_payload:
+            payload = await app.db_objects.get(db_model.payload_query, file=filemeta)
+        else:
+            payload = None
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+    except Exception as e:
+        logger.warning("file_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return json(
+            {
+                "status": "error",
+                "error": "file does not exist or not part of your current operation",
+            }
+        )
+    status = {"status": "success"}
+    filemeta.deleted = True
+    linked_files = await app.db_objects.execute(db_model.filemeta_query.where(
+        db_model.FileMeta.path == filemeta.path
+    ))
+    deleted_file_ids = [filemeta.id]
+    deleted_payload_ids = []
+    if payload is not None:
+        deleted_payload_ids.append(payload.id)
+    for file in linked_files:
+        file.deleted = True
+        deleted_file_ids.append(file.id)
+        await app.db_objects.update(file)
+        if file.is_payload:
+            payload = await app.db_objects.get(db_model.payload_query, file=file)
+            payload.deleted = True
+            deleted_payload_ids.append(payload.id)
+            await app.db_objects.update(payload)
+    try:
+        await app.db_objects.update(filemeta)
+    except Exception as e:
+        status = {"status": "error", "error": str(e)}
+    try:
+        os.remove(filemeta.path)
+        await app.db_objects.create(
+            db_model.OperationEventLog,
+            operator=None,
+            operation=operation,
+            message="{} deleted {}".format(operator.username, bytes(filemeta.filename)
+                        .decode("utf-8")),
+        )
+    except Exception as e:
+        pass
+    return json({**status, "file_ids": deleted_file_ids, "payload_ids": deleted_payload_ids})
 
 
 async def create_filemeta_in_database_func(data):

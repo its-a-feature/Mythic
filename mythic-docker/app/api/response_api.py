@@ -504,7 +504,7 @@ async def post_agent_response(agent_message, callback):
                                 host = parsed_response["host"]
                             else:
                                 host = task.callback.host
-                            if file_meta.task is None or file_meta.task != task:
+                            if file_meta.task is None or file_meta.task.id != task.id:
                                 # print("creating new file")
                                 f = await app.db_objects.create(
                                     db_model.FileMeta,
@@ -522,6 +522,9 @@ async def post_agent_response(agent_message, callback):
                                     temp_file=False,
                                     deleted=False,
                                     operator=task.operator,
+                                    filename=file_meta.filename,
+                                    comment=file_meta.comment,
+                                    delete_after_fetch=False
                                 )
                             else:
                                 file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")
@@ -804,7 +807,7 @@ async def move_file_from_agent_to_mythic(parsed_response, task):
                     host = parsed_response["host"]
                 else:
                     host = task.callback.host
-                if file_meta.task is None or file_meta.task != task:
+                if file_meta.task is None or file_meta.task.id != task.id:
                     # print("creating new file")
                     f = await app.db_objects.create(
                         db_model.FileMeta,
@@ -822,6 +825,9 @@ async def move_file_from_agent_to_mythic(parsed_response, task):
                         temp_file=False,
                         deleted=False,
                         operator=task.operator,
+                        comment=file_meta.comment,
+                        filename=file_meta.filename,
+                        delete_after_fetch=False
                     )
                 else:
                     file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")
@@ -1007,7 +1013,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                     host = parsed_response["host"]
                                 else:
                                     host = task.callback.host
-                                if file_meta.task is None or file_meta.task != task:
+                                if file_meta.task is None or file_meta.task.id != task.id:
                                     # print("creating new file")
                                     f = await app.db_objects.create(
                                         db_model.FileMeta,
@@ -1022,9 +1028,11 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                         operation=task.callback.operation,
                                         md5=file_meta.md5,
                                         sha1=file_meta.sha1,
-                                        temp_file=False,
                                         deleted=False,
                                         operator=task.operator,
+                                        comment=file_meta.comment,
+                                        filename=file_meta.filename,
+                                        delete_after_fetch=False
                                     )
                                 else:
                                     file_meta.full_remote_path = parsed_response["full_path"].encode("utf-8")

@@ -769,7 +769,9 @@ async def add_task_to_callback_webhook(request, user):
                 pass
     # if we create new files throughout this process, be sure to tag them with the right task at the end
     data["params"] = data["params"].strip()
-    data["original_params"] = data["params"]
+    #logger.info(data)
+    if "original_params" not in data or data['original_params'] is None:
+        data["original_params"] = data["params"]
     if "files" in data and data["files"] is not None:
         data["params"] = js.loads(data["params"])
         data["files"] = js.loads(data["files"])
@@ -820,9 +822,10 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
                     params=data["params"],
                     status="completed",
-                    original_params=data["params"],
+                    original_params=data["original_params"] if "original_params" in data and data["original_params"] is not None else data["params"],
                     completed=True,
-                    display_params=data["params"]
+                    display_params=data["params"],
+                    tasking_location=data["tasking_location"] if "tasking_location" in data and data["tasking_location"] is not None else "command_line"
                 )
                 if "tags" in data:
                     await add_tags_to_task(task, data["tags"])
@@ -856,6 +859,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                         "callback": cid,
                     }
             elif data["command"] == "help":
+                error = ""
                 if "params" not in data or data["params"] == "":
                     commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
                         db_model.LoadedCommands.callback == cb
@@ -863,13 +867,6 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     output = "Loaded Commands In Agent:\n"
                     for c in commands:
                         output += f"{c.command.cmd}\n\tUsage Help: {c.command.help_cmd}\n\tDescription: {c.command.description}\n"
-                    scriptCommands = await app.db_objects.execute(db_model.command_query.where(
-                        (db_model.Command.payload_type == cb.registered_payload.payload_type) &
-                        (db_model.Command.script_only == True)
-                    ))
-                    output += "\nScripted Commands\n"
-                    for c in scriptCommands:
-                        output += f"{c.cmd}\n\tUsage Help: {c.help_cmd}\n\tDescription: {c.description}\n"
                     task = await app.db_objects.create(
                         Task,
                         command_name="help",
@@ -885,9 +882,10 @@ async def add_task_to_callback_func(data, cid, op, cb):
                         subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
                         params=data["params"],
                         status="completed",
-                        original_params=data["params"],
+                        original_params=data["original_params"] if "original_params" in data and data["original_params"] is not None else data["params"],
                         completed=True,
-                        display_params=data["params"]
+                        display_params=data["params"],
+                        tasking_location=data["tasking_location"] if "tasking_location" in data and data["tasking_location"] is not None else "command_line"
                     )
                     await app.db_objects.create(Response, task=task, response=output)
                     return {"status": "success", **task.to_json()}
@@ -905,23 +903,28 @@ async def add_task_to_callback_func(data, cid, op, cb):
                             (db_model.LoadedCommands.callback == cb) &
                             (db_model.Command.cmd == data["params"])
                         ))
-                        scriptCommands = await app.db_objects.execute(db_model.command_query.where(
-                            (db_model.Command.payload_type == cb.registered_payload.payload_type) &
-                            (db_model.Command.script_only == True) &
-                            (db_model.Command.cmd == data["params"])
-                        ))
-                        if len(commands) == 0 and len(scriptCommands) == 0:
+                        if len(commands) == 0:
                             status = "error"
                             output = "Command not found"
                         elif len(commands) > 0:
                             command = list(commands)[0].command
                             parameters = await app.db_objects.execute(db_model.commandparameters_query.where(
                                 (db_model.CommandParameters.command == command)
-                            ).order_by(db_model.CommandParameters.ui_position))
-                            output += f"Usage Help: {command.help_cmd}\n\nDescription: {command.description}\nParameters:\n\n"
+                            ).order_by(db_model.CommandParameters.parameter_group_name))
+                            output += f"Usage Help: {command.help_cmd}\n\nDescription: {command.description}\n"
+                            last_group = ""
                             for p in parameters:
-                                output += f"Name: {p.name}\n\tDescription: {p.description}\n\tType: {p.type}\n\tDefault Value: {p.default_value}\n"
-                            pass
+                                if p.parameter_group_name != last_group:
+                                    output += "\nParameter Group: \"" + p.parameter_group_name + "\"\n"
+                                    last_group = p.parameter_group_name
+                                default_value = p.default_value
+                                if p.type == "Choice":
+                                    if default_value == "":
+                                        default_value = p.choices.split("\n")[0]
+                                output += f"  Name: {p.cli_name}\n    Description: {p.description}\n    Type: {p.type}\n    Default Value: {default_value}\n    Required: {'True' if p.required else 'False'}\n"
+                                if p.type in ["Choice", "ChoiceMultiple"]:
+                                    choices = p.choices.split("\n")
+                                    output += f"    Choices: {choices}\n"
                         else:
                             pass
                     task = await app.db_objects.create(
@@ -939,12 +942,13 @@ async def add_task_to_callback_func(data, cid, op, cb):
                         subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
                         params=data["params"],
                         status=status,
-                        original_params=data["params"],
+                        original_params=data["original_params"] if "original_params" in data and data["original_params"] is not None else data["params"],
                         completed=True,
-                        display_params=data["params"]
+                        display_params=data["params"],
+                        tasking_location=data["tasking_location"] if "tasking_location" in data and data["tasking_location"] is not None else "command_line"
                     )
                     await app.db_objects.create(Response, task=task, response=output)
-                    return {"status": "success", **task.to_json()}
+                    return {"status": "success", **task.to_json(), "error": error }
             # it's not tasks/clear, so return an error
             return {
                 "status": "error",
@@ -993,14 +997,16 @@ async def add_task_to_callback_func(data, cid, op, cb):
                 operator=op,
                 command=cmd,
                 token=token,
-                params=data["original_params"],
+                params=data["params"],
                 original_params=data["original_params"],
                 display_params=data["original_params"],
+                tasking_location=data['tasking_location'] if "tasking_location" in data and data["tasking_location"] is not None else "command_line",
                 parent_task=data["parent_task"] if "parent_task" in data else None,
                 subtask_callback_function=data[
                     "subtask_callback_function"] if "subtask_callback_function" in data else None,
                 group_callback_function=data["group_callback_function"] if "group_callback_function" in data else None,
                 subtask_group_name=data["subtask_group_name"] if "subtask_group_name" in data else None,
+                parameter_group_name=data["parameter_group_name"] if "parameter_group_name" in data and data["parameter_group_name"] is not None else "Default"
             )
             logger.info(f"CREATED TASK {task.id}")
             if "tags" in data:
@@ -1540,6 +1546,7 @@ async def submit_task_to_container(task, username, params: str = None):
             if params is not None:
                 rabbit_message["params"] = params
             rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
+            rabbit_message["tasking_location"] = task.tasking_location
             # by default tasks are created in a preprocessing state,
             result = await send_pt_rabbitmq_message(
                 task.callback.registered_payload.payload_type.ptype,
@@ -1590,6 +1597,7 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
         rabbit_message["subtask"] = subtask.to_json() if subtask is not None else None
         rabbit_message["updating_task"] = task.id if subtask is None else subtask.id
         rabbit_message["updating_piece"] = updating_piece
+        rabbit_message["tasking_location"] = task.tasking_location
         tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
         rabbit_message["task"]["tags"] = [t.tag for t in tags]
         # by default tasks are created in a preprocessing state,

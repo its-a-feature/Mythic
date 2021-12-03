@@ -15,7 +15,6 @@ import app.database_models.model as db_model
 from sanic.exceptions import abort
 from sanic.log import logger
 from peewee import IntegrityError
-import shortuuid
 import ujson as js
 import sys
 
@@ -150,7 +149,6 @@ async def delete_one_payloadtype(request, user, ptype):
         try:
             payloadtype_json = payloadtype.to_json()
             payloadtype.deleted = True
-            payloadtype.ptype = str(shortuuid.uuid()) + "-" + payloadtype.ptype
             await app.db_objects.update(payloadtype)
             mapping = await app.db_objects.execute(
                 db_model.payloadtypec2profile_query.where(db_model.PayloadTypeC2Profile.payload_type == payloadtype)
@@ -243,6 +241,7 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                 db_model.payloadtype_query.where(db_model.PayloadType.ptype == ptype["ptype"]),
                 db_model.buildparameter_query)
             payload_type = payload_types[0]
+            payload_type.deleted = False
             payload_type.wrapper = ptype["wrapper"]
             payload_type.supported_os = ptype["supported_os"]
             payload_type.file_extension = ptype["file_extension"]
@@ -256,12 +255,7 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                 payload_type.translation_container = None
             else:
                 payload_type.translation_container = ptype["translation_container"]
-            #print("setting translation container for payload to: " + str(ptype["translation_container"]))
-            #sys.stdout.flush()
             await app.db_objects.update(payload_type)
-            #print("payloadtype is now:")
-            #print(payload_type)
-            #sys.stdout.flush()
         except Exception as e:
             new_payload = True
             try:
@@ -576,7 +570,8 @@ async def import_command_func(payload_type, operator, command_list):
                         cmd_param.choice_filter_by_command_attributes = js.dumps(
                             param["choice_filter_by_command_attributes"])
                         cmd_param.choices_are_all_commands = param["choices_are_all_commands"]
-                        cmd_param.cli_name = param["name"] if " " not in param["name"] else param["name"].replace(" ", "-")
+                        cmd_param.cli_name = param["cli_name"]
+                        cmd_param.display_name = param["display_name"]
                         cmd_param.choices_are_loaded_commands = param["choices_are_loaded_commands"]
                         cmd_param.dynamic_query_function = param["dynamic_query_function"] if "dynamic_query_function" in param else None
                         await app.db_objects.update(cmd_param)
@@ -601,7 +596,8 @@ async def import_command_func(payload_type, operator, command_list):
                                                            supported_agent_build_parameters=param["supported_agent_build_parameters"],
                                                            parameter_group_name=param_group["group_name"],
                                                            name=param["name"],
-                                                           cli_name=param["name"] if " " not in param["name"] else param["name"].replace(" ", "-"),
+                                                           display_name=param["display_name"],
+                                                           cli_name=param["cli_name"],
                                                            default_value=param["default_value"],
                                                            choice_filter_by_command_attributes=param["choice_filter_by_command_attributes"],
                                                            choices_are_all_commands=param["choices_are_all_commands"],
@@ -756,8 +752,6 @@ async def import_command_func(payload_type, operator, command_list):
                         pass
             command_list.pop(command.cmd, None)
         else:
-            # we need to mark the command as deleted
-            command.cmd = command.cmd + "-" + str(shortuuid.uuid())
             command.deleted = True
             await app.db_objects.update(command)
     # everything left in command_list should be new
@@ -766,6 +760,7 @@ async def import_command_func(payload_type, operator, command_list):
             command = await app.db_objects.get(
                 db_model.command_query, cmd=cmd["cmd"], payload_type=payload_type
             )
+            command.deleted = False
             command.description = cmd["description"]
             command.needs_admin = cmd["needs_admin"]
             command.version = cmd["version"]
@@ -828,7 +823,8 @@ async def import_command_func(payload_type, operator, command_list):
                     cmd_param.supported_agent_build_parameters = js.dumps(param["supported_agent_build_parameters"])
                     cmd_param.description = param["description"]
                     cmd_param.choices = param["choices"]
-                    cmd_param.cli_name = param["name"] if " " not in param["name"] else param["name"].replace(" ", "-")
+                    cmd_param.cli_name = param["cli_name"]
+                    cmd_param.display_name = param["display_name"]
                     cmd_param.required = param_group["required"]
                     cmd_param.parameter_group_name = param_group["group_name"]
                     cmd_param.choice_filter_by_command_attributes = js.dumps(
@@ -861,8 +857,8 @@ async def import_command_func(payload_type, operator, command_list):
                                                            "supported_agent_build_parameters"],
                                                        parameter_group_name=param_group["group_name"],
                                                        name=param["name"],
-                                                       cli_name=param["name"] if " " not in param["name"] else param[
-                                                           "name"].replace(" ", "-"),
+                                                       cli_name=param["cli_name"],
+                                                       display_name=param["display_name"],
                                                        default_value=param["default_value"],
                                                        choice_filter_by_command_attributes=param[
                                                            "choice_filter_by_command_attributes"],

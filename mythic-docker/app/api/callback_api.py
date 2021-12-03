@@ -123,7 +123,7 @@ async def get_agent_message(request):
         data = urllib.parse.unquote(request.query_args[0][1])
         # print("Query: " + str(data))
     else:
-        error_message = f"Failed to find message in body, cookies, or query args\nConnection to: "
+        error_message = f"Error! Mythic received an anomalous request. Check the following details for more information about the request:\nConnection to: "
         error_message += f"{request_url} via {request.method} Request\nFrom: "
         error_message += f"{request_ip}\n"
         error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}\n"
@@ -644,8 +644,8 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                         # there's no new callback and the delegate message isn't a full callback yet
                         # so just proxy through the UUID since it's in some form of staging
                         response_data["delegates"].append({"message": del_message, "uuid": d["uuid"]})
-        #print("final message before going to containers:")
-        #print(response_data)
+        #logger.info("final message before going to containers:")
+        #logger.info(response_data)
         final_msg = await create_final_message_from_data_and_profile_info(response_data, enc_key, UUID, request)
         if final_msg is None:
             return "", 404, new_callback, agent_uuid
@@ -707,6 +707,8 @@ async def create_final_message_from_data_and_profile_info(response_data, enc_key
                 message=f"Parsing agent message - step 8 (final mythic response message): \n {js.dumps(response_data)}",
                 level="info", source="debug", operation=enc_key["payload"].operation)
         final_msg = js.dumps(response_data).encode()
+        #logger.info("Final message before encryption")
+        #logger.info(final_msg)
     if enc_key["mythic_encrypts"]:
         # if mythic should encrypt this, encrypt it and do our normal stuff
         # print(final_msg)
