@@ -33,7 +33,7 @@
     </div>
     <div class="card-footer bg-card-footer">
         <div style="display:inline-block">
-            <button type="button" class="btn btn-md btn{{config['outline-buttons']}}info" onclick="location.href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/apfell_logs/download'"><i class="fas fa-download fa-lg"></i> Download logs</button>
+            <button type="button" class="btn btn-md btn{{config['outline-buttons']}}info" onclick="location.href='{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/mythic_logs/download'"><i class="fas fa-download fa-lg"></i> Download logs</button>
             <button type="button" :disabled="current_page <= 1" class="btn btn-light" data-toggle="tooltip" title="Go back one page" @click="get_page(current_page-1)"><i class="fas fa-backward"></i></button>&nbsp;
             <template v-if="current_page > 1">
                 <button type="button" class="btn btn-light" data-toggle="tooltip" title="Go to first page" @click="get_page(1)">1</button>
