@@ -153,6 +153,16 @@ actions:
   - role: operation_admin
   - role: mythic_admin
   - role: developer
+- name: generateReport
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/reporting_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: getProfileOutput
   definition:
     kind: ""
@@ -338,4 +348,5 @@ custom_types:
       type: object
       field_mapping:
         operation_id: id
+  - name: generateReportOutput
   scalars: []

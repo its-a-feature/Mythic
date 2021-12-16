@@ -100,6 +100,18 @@ type Query {
   ): PayloadConfig
 }
 
+type Mutation {
+  generateReport (
+    outputFormat: String!
+    includeMITREPerTask: Boolean!
+    includeMITREOverall: Boolean!
+    excludedUsers: String!
+    excludedHosts: String!
+    excludedIDs: String!
+    includeOutput: Boolean!
+  ): generateReportOutput
+}
+
 type Query {
   getProfileOutput (
     id: Int!
@@ -372,6 +384,11 @@ type deleteBlockListEntryOutput {
 
 type createOperationOutput {
   operation_id : Int!
+  status : String!
+  error : String
+}
+
+type generateReportOutput {
   status : String!
   error : String
 }
