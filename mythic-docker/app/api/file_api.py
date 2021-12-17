@@ -666,10 +666,7 @@ async def create_filemeta_in_database_manual(request, user):
         )
     if user["view_mode"] == "spectator":
         return json({"status": "error", "error": "Spectators cannot upload files"})
-    if request.form:
-        data = js.loads(request.form.get("json"))
-    else:
-        data = request.json
+
     try:
         operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
@@ -680,16 +677,29 @@ async def create_filemeta_in_database_manual(request, user):
     if request.files:
         code = request.files["upload_file"][0].body
         filename = request.files["upload_file"][0].name
-    elif "code" in data and "file_name" in data:
-        code = base64.b64decode(data["code"])
-        filename = data["file_name"]
+    elif request.form:
+        try:
+            data = js.loads(request.form.get("json"))
+            if "code" in data and "file_name" in data:
+                code = base64.b64decode(data["code"])
+                filename = data["file_name"]
+            else:
+                return json({"status": "error",
+                             "error": "If uploading files via a JSON Form, include a 'json' field with a 'code' and 'file_name' attribute"})
+        except Exception as e:
+            return json({"status": "error", "error": "If uploading files via a JSON Form, include a 'json' field with a 'code' and 'file_name' attribute"})
     else:
-        return json(
-            {
-                "status": "error",
-                "error": "specified remote file, but did not upload anything",
-            }
-        )
+        try:
+            data = request.json
+            if "code" in data and "file_name" in data:
+                code = base64.b64decode(data["code"])
+                filename = data["file_name"]
+            else:
+                return json({"status": "error",
+                             "error": "If uploading files via a JSON body, include a 'code' and 'file_name' attribute"})
+        except Exception as e:
+            return json({"status": "error",
+                         "error": "If uploading files via a JSON body, include a 'code' and 'file_name' attribute"})
     file_meta = await app.db_objects.create(
         FileMeta,
         total_chunks=1,
@@ -697,6 +707,7 @@ async def create_filemeta_in_database_manual(request, user):
         path="",
         complete=True,
         chunks_received=1,
+        comment="Manually hosted only on Mythic server",
         operator=operator,
         delete_after_fetch=False,
         filename=filename.encode("utf-8"),
