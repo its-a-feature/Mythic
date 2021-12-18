@@ -138,7 +138,7 @@ var operations_table = new Vue({
                     for (let i = 0; i < operators_vue.operation_members.length; i++) {
                         if (operators_vue.operation_members[i]['selected']) {
                             data['members'].push({
-                                "username": operators_vue.operation_members[i]['name'],
+                                "username": operators_vue.operation_members[i]['username'],
                                 "view_mode": operators_vue.operation_members[i]['view_mode']
                             });
                         }
