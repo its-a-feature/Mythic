@@ -503,9 +503,10 @@ async def update_edges_from_checkin(callback_uuid, profile):
             ))
             if active_edge == 0:
                 c2profile = await app.db_objects.get(db_model.c2profile_query, name=profile)
-                await app.db_objects.create(db_model.CallbackGraphEdge, source=callback, destination=callback,
-                                            c2_profile=c2profile, direction=1, operation=callback.operation,
-                                            end_timestamp=None)
+                if not c2profile.is_p2p:
+                    await app.db_objects.create(db_model.CallbackGraphEdge, source=callback, destination=callback,
+                                                c2_profile=c2profile, direction=1, operation=callback.operation,
+                                                end_timestamp=None)
         await app.db_objects.update(callback)  # update the last checkin time
     except Exception as e:
         from app.api.operation_api import send_all_operations_message

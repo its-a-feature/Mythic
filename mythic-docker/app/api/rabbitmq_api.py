@@ -71,7 +71,13 @@ async def rabbit_c2_callback(message: aio_pika.IncomingMessage):
                 return
 
             if status["status"] == "success":
-                profile = status.pop("profile")
+                profile = status.pop("profile", None)
+                if profile is None:
+                    asyncio.create_task(send_all_operations_message(
+                        message="Failed to sync files for {}\nIs the container online and at least version 7?".format(
+                            pieces[2]
+                        ), level="warning"))
+                    return
                 app.redis_pool.set(f"C2SYNC:{pieces[2]}", "success")
                 asyncio.create_task(
                     send_all_operations_message(message="Successfully Sync-ed database with {} C2 files".format(
@@ -2258,6 +2264,27 @@ async def get_commands(callback_id: int = None, loaded_only: bool = False,
         return {"status": "error", "error": str(e)}
 
 
+async def add_commands_to_payload(payload_uuid: str, commands: [str]):
+    """
+    Register additional commands that are in the payload. This is useful if a user selects command X to include in a payload, but command X needs command Y.
+    A common example would be if command X is a script_only command or will end up delegating additional commands.
+    :param payload_uuid: The UUID of the payload that you're adding commands to.
+    :param commands: An array of command names that should be added to this payload.
+    :return: Success or Error
+    """
+    try:
+        payload = await app.db_objects.get(db_model.payload_query, uuid=payload_uuid)
+    except Exception as e:
+        return {"status": "error", "error": "Payload not found"}
+    try:
+        for cmd in commands:
+            command = await app.db_objects.get(db_model.command_query, cmd=cmd, payload_type=payload.payload_type)
+            await app.db_objects.get_or_create(db_model.PayloadCommand, payload=payload, command=command, version=command.version)
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find command"}
+    return {"status": "success"}
+
+
 async def update_loaded_commands(task_id: int, commands: [str], add: bool = None, remove: bool = None):
     """
     Add or Remove loaded commands for the callback associated with task_id
@@ -3071,6 +3098,7 @@ exposed_rpc_endpoints = {
     "get_responses": get_responses,
     "get_task_for_id": get_task_for_id,
     "get_commands": get_commands,
+    "add_command_to_payload": add_commands_to_payload,
     "create_payload_from_uuid": create_payload_from_uuid,
     "create_payload_from_parameters": create_payload_from_parameters,
     "create_processes": create_processes_rpc,
