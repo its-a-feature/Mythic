@@ -612,6 +612,7 @@ async def post_agent_response(agent_message, callback):
                                 rabbit_message["task"]["tags"] = [t.tag for t in tags]
                                 rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
                                 rabbit_message["response"] = parsed_response["process_response"]
+                                rabbit_message["tasking_location"] = task.tasking_location
                                 if app.debugging_enabled:
                                     await send_all_operations_message(
                                         message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
@@ -1103,6 +1104,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                     rabbit_message["task"]["tags"] = [t.tag for t in tags]
                                     rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
                                     rabbit_message["response"] = parsed_response["process_response"]
+                                    rabbit_message["tasking_location"] = task.tasking_location
                                     if app.debugging_enabled:
                                         await send_all_operations_message(
                                             message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
