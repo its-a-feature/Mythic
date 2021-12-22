@@ -2225,8 +2225,7 @@ async def get_commands(callback_id: int = None, loaded_only: bool = False,
             ))
             loaded_commands = [c.command for c in commands]
             all_commands = await app.db_objects.execute(db_model.command_query.where(
-                (db_model.Command.payload_type == callback.registered_payload.payload_type) &
-                (db_model.Command.script_only == False)
+                (db_model.Command.payload_type == callback.registered_payload.payload_type)
             ))
             final_commands = []
             if loaded_only:
@@ -2245,8 +2244,7 @@ async def get_commands(callback_id: int = None, loaded_only: bool = False,
         elif payload_type_name is not None and os is not None:
             payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=payload_type_name)
             all_commands = await app.db_objects.execute(db_model.command_query.where(
-                (db_model.Command.payload_type == payload_type) &
-                (db_model.Command.script_only == False)
+                (db_model.Command.payload_type == payload_type)
             ))
             final_commands = []
             for c in all_commands:
