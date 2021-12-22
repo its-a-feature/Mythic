@@ -651,7 +651,7 @@ async def write_payload(uuid, user, data):
             "error": "build container not running, no heartbeat in over 30 seconds.\nCheck that it's running with `./mythic-cli status`",
         }
     commands = await app.db_objects.execute(db_model.payloadcommand_query.where(PayloadCommand.payload == payload))
-    commands = [c.command.cmd for c in commands if not c.command.script_only]
+    commands = [c.command.cmd for c in commands]
     build_parameters = {}
     build_params = await app.db_objects.execute(
         db_model.buildparameterinstance_query.where(db_model.BuildParameterInstance.payload == payload)
