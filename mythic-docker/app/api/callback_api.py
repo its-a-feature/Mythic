@@ -557,7 +557,7 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
             if delegates is not None:
                 response_data["delegates"] = delegates
             agent_uuid = UUID
-        elif decrypted["action"] == "translation_staging":
+        elif decrypted["action"] == "staging_translation":
             # this was already processed as part of our contact to the translation container
             # so now we're just saving this data off for the next message
             response_data = await staging_translator(decrypted, enc_key)
@@ -746,7 +746,7 @@ async def staging_translator(final_msg, enc_key):
                                 staging_uuid=final_msg["next_uuid"],
                                 payload=enc_key["payload"]
                                 )
-        return base64.b64decode(final_msg["message"])
+        return final_msg["message"]
 
     except Exception as e:
         asyncio.create_task(send_all_operations_message(
