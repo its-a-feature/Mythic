@@ -1668,7 +1668,7 @@ async def add_all_payload_info(payload):
                     param_dict[param.name] = instance.value
 
             c2_profile_parameters.append(
-                {"parameters": param_dict, "name": pc2p.c2_profile.name}
+                {"parameters": param_dict, "name": pc2p.c2_profile.name, "is_p2p": pc2p.c2_profile.is_p2p}
             )
         rabbit_message["c2info"] = c2_profile_parameters
     #    cached_payload_info[payload.uuid]["c2info"] = c2_profile_parameters
