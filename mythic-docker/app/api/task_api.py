@@ -1658,10 +1658,17 @@ async def add_all_payload_info(payload):
             # save all the variables off to a dictionary for easy looping
             for instance in c2_param_instances:
                 param = instance.c2_profile_parameters
-                param_dict[param.name] = instance.value
+                if param.crypto_type:
+                    param_dict[param.name] = {
+                        "crypto_type": instance.value,
+                        "enc_key": base64.b64encode(instance.enc_key).decode() if instance.enc_key is not None else None,
+                        "dec_key": base64.b64encode(instance.dec_key).decode() if instance.dec_key is not None else None
+                    }
+                else:
+                    param_dict[param.name] = instance.value
 
             c2_profile_parameters.append(
-                {"parameters": param_dict, **pc2p.c2_profile.to_json()}
+                {"parameters": param_dict, "name": pc2p.c2_profile.name}
             )
         rabbit_message["c2info"] = c2_profile_parameters
     #    cached_payload_info[payload.uuid]["c2info"] = c2_profile_parameters
