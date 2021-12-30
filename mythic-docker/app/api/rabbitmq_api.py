@@ -863,6 +863,8 @@ async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
         payload = list(payload)[0]
         payload_json = payload.to_json()
         payload_json["contents"] = ""
+        if payload.file is None:
+            return {"status": "error", "error": "No file associated with payload"}
         if os.path.exists(payload.file.path) and get_contents:
             payload_json["contents"] = base64.b64encode(
                 open(payload.file.path, "rb").read()
