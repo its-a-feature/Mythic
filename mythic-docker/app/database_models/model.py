@@ -2862,7 +2862,7 @@ def pg_created_response_text_field():
  LANGUAGE sql
  STABLE
 AS $function$
-  SELECT convert_from(response_row.response, 'utf8')
+  SELECT encode(response_row.response, 'base64')
 $function$"""
     func_filemeta_filename = """CREATE OR REPLACE FUNCTION public.filemeta_filename(meta_row filemeta)
  RETURNS text

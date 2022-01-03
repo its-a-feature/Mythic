@@ -1,7 +1,0 @@
-table:
-  name: staginginfo
-  schema: public
-object_relationships:
-- name: payload
-  using:
-    foreign_key_constraint_on: payload_id
