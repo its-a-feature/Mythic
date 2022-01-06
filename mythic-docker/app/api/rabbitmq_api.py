@@ -886,11 +886,12 @@ async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
         return {"status": "error", "error": "Payload not found:\n" + str(e)}
 
 
-async def search_payloads(payload_types: [str] = None, include_auto_generated: bool = False, description: str = "",
+async def search_payloads(callback_id: int, payload_types: [str] = None, include_auto_generated: bool = False, description: str = "",
                           filename: str = "", build_parameters: dict = None) -> dict:
     """
     Search payloads based on payload type, if it was auto generated, the description, the filename, or build parameter values.
     Note: This does not search payloads that have been deleted.
+    :param callback_id: The ID of the callback this search is for, this is what's used to limit your search to the right operation.
     :param payload_types: The names of the associated payload type if you want to restrict results
     :param include_auto_generated: Boolean if you want to include payloads that were automatically generated as part of tasking
     :param description: If you want to search for payloads with certain information in their description, this functions like an igrep search
@@ -928,10 +929,13 @@ async def search_payloads(payload_types: [str] = None, include_auto_generated: b
         return True
     try:
         final_payloads = []
+        callback = await app.db_objects.get(db_model.Callback, id=callback_id)
         payloads = await app.db_objects.prefetch(db_model.payload_query.where(
-            (db_model.Payload.tag ** ("%" + description + "%"))
+            (db_model.Payload.tag ** ("%" + description + "%")) &
+            (db_model.Payload.operation == callback.operation)
         ), db_model.filemeta_query.where(
-            (fn.encode(db_model.FileMeta.filename, "escape") ** ("%" + filename + "%"))
+            (fn.encode(db_model.FileMeta.filename, "escape") ** ("%" + filename + "%")) &
+            (db_model.FileMeta.operation == callback.operation)
         ))
         from app.api.task_api import add_all_payload_info
         for p in payloads:
