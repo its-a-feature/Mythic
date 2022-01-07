@@ -665,6 +665,7 @@ class Payload(p.Model):
             "id": getattr(self, "id"),
             "uuid": self.uuid,
             "tag": self.tag,
+            "description": self.tag,
             "operator": self.operator.username,
             "creation_time": self.creation_time.strftime("%m/%d/%Y %H:%M:%S"),
             "payload_type": self.payload_type.ptype,
