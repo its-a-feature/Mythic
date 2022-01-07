@@ -5644,7 +5644,9 @@
       - response
       - timestamp
       - task_id
+      - sequence_number
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
@@ -5655,11 +5657,13 @@
   - role: mythic_admin
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
@@ -5670,11 +5674,13 @@
   - role: operation_admin
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
@@ -5685,11 +5691,13 @@
   - role: operator
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
@@ -5700,11 +5708,13 @@
   - role: spectator
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
