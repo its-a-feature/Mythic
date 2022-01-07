@@ -1,5 +1,8 @@
 - table:
     schema: public
+    name: agentstorage
+- table:
+    schema: public
     name: apitokens
   object_relationships:
   - name: operator
@@ -3956,6 +3959,13 @@
         table:
           schema: public
           name: credential
+  - name: disabledcommandsprofiles
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          schema: public
+          name: disabledcommandsprofile
   - name: filebrowserobjs
     using:
       foreign_key_constraint_on:
@@ -5615,6 +5625,11 @@
     using:
       foreign_key_constraint_on: task_id
   computed_fields:
+  - name: response_escape
+    definition:
+      function:
+        schema: public
+        name: response_escape
   - name: response_text
     definition:
       function:

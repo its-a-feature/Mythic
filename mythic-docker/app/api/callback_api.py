@@ -383,13 +383,15 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                     return "", 404, new_callback, agent_uuid
                 decrypted, successfully_sent = await translator_rpc.call(message={
                     "action": "translate_from_c2_format",
-                    "message": base64.b64encode(decrypted).decode(),
-                    "uuid": UUID,
-                    "profile": profile,
-                    "mythic_encrypts": enc_key["mythic_encrypts"],
-                    "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
-                    "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
-                    "type": enc_key["type"]
+                    "message": {
+                        "message": base64.b64encode(decrypted).decode(),
+                        "uuid": UUID,
+                        "profile": profile,
+                        "mythic_encrypts": enc_key["mythic_encrypts"],
+                        "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                        "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                        "type": enc_key["type"]
+                    }
                 }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
                 if decrypted == b"":
                     if successfully_sent:
@@ -430,13 +432,15 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                     return "", 404, new_callback, agent_uuid
                 decrypted, successfully_sent = await translator_rpc.call(message={
                     "action": "translate_from_c2_format",
-                    "message": base64.b64encode(decoded).decode(),
-                    "uuid": UUID,
-                    "profile": profile,
-                    "mythic_encrypts": enc_key["mythic_encrypts"],
-                    "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
-                    "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
-                    "type": enc_key["type"]
+                    "message": {
+                        "message": base64.b64encode(decoded).decode(),
+                        "uuid": UUID,
+                        "profile": profile,
+                        "mythic_encrypts": enc_key["mythic_encrypts"],
+                        "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                        "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                        "type": enc_key["type"]
+                    }
                 }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
                 if decrypted == b"":
                     if successfully_sent:
@@ -675,13 +679,15 @@ async def create_final_message_from_data_and_profile_info(response_data, enc_key
             return None
         final_msg, successfully_sent = await translator_rpc.call(message={
             "action": "translate_to_c2_format",
-            "message": response_data,
-            "profile": enc_key["profile"],
-            "mythic_encrypts": enc_key["mythic_encrypts"],
-            "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
-            "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
-            "uuid": current_uuid,
-            "type": enc_key["type"]
+            "message": {
+                "message": response_data,
+                "profile": enc_key["profile"],
+                "mythic_encrypts": enc_key["mythic_encrypts"],
+                "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                "uuid": current_uuid,
+                "type": enc_key["type"]
+            }
         }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
         # print("received from translate_to_c2_format: ")
         # print(final_msg)
@@ -738,14 +744,23 @@ async def create_final_message_from_data_and_profile_info(response_data, enc_key
 async def staging_translator(final_msg, enc_key):
     try:
         # we got a message back, process it and store it for staging information in the future
+        # message back should have:
+        # {
+        #   "session_id": "a string way if needed to tell two concurrently staging requests apart"
+        #   "enc_key": raw bytes of the encryption key to use for the next request
+        #   "dec_key": raw bytes of the decryption key to use for the next request
+        #   "type": "string crypto type"
+        #   "next_uuid": "string UUID that will be used for the next message to pull this information back from the database",
+        #   "message": the final message you want to actually go back to the agent
+        # }
         await app.db_objects.create(db_model.StagingInfo,
-                                session_id=final_msg["session_id"],
-                                enc_key=base64.b64decode(final_msg["enc_key"]) if final_msg["enc_key"] is not None else None,
-                                dec_key=base64.b64decode(final_msg["dec_key"]) if final_msg["dec_key"] is not None else None,
-                                crypto_type=final_msg["type"],
-                                staging_uuid=final_msg["next_uuid"],
-                                payload=enc_key["payload"]
-                                )
+                                    session_id=final_msg["session_id"],
+                                    enc_key=base64.b64decode(final_msg["enc_key"]) if final_msg["enc_key"] is not None else None,
+                                    dec_key=base64.b64decode(final_msg["dec_key"]) if final_msg["dec_key"] is not None else None,
+                                    crypto_type=final_msg["type"],
+                                    staging_uuid=final_msg["next_uuid"],
+                                    payload=enc_key["payload"]
+                                    )
         return final_msg["message"]
 
     except Exception as e:

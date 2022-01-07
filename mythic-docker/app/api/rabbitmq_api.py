@@ -966,6 +966,50 @@ async def search_payloads(callback_id: int, payload_types: [str] = None, include
         return {"status": "error", "error": "Payloads not found:\n" + str(e)}
 
 
+async def create_agentstorage(unique_id: str, data: bytes):
+    """
+    Allow Payload Types and Translation containers to store arbitrary data within the database that doesn't fit
+        somewhere else in Mythic's current schema
+    :param unique_id: A unique string identifier
+    :param data:
+    :return: {"unique_id": "unique id here", "data": "base64 of data here"}
+    """
+    try:
+        storage, created = await app.db_objects.get_or_create(db_model.AgentStorage, unique_id=unique_id, data=data)
+        return {"status": "success", "response": str(storage)}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def get_agentstorage(unique_id: str):
+    """
+    Allow Payload Types and Translation containers to fetch arbitrary data within the database that doesn't fit
+        somewhere else in Mythic's current schema
+    :param unique_id: A unique string identifier
+    :return: {"unique_id": "unique id here", "data": "base64 of data here"}
+    """
+    try:
+        storage = await app.db_objects.get(db_model.AgentStorage, unique_id=unique_id)
+        return {"status": "success", "response": str(storage)}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+async def delete_agentstorage(unique_id: str):
+    """
+    Allow Payload Types and Translation containers to delete arbitrary data within the database that doesn't fit
+        somewhere else in Mythic's current schema
+    :param unique_id: A unique string identifier
+    :return: Success or Error
+    """
+    try:
+        storage = await app.db_objects.get(db_model.AgentStorage, unique_id=unique_id)
+        await app.db_objects.delete(storage)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 async def create_payload_from_uuid(task_id: int, payload_uuid: str, generate_new_random_values: bool = True,
                                    new_description: str = None, remote_host: str = None, filename: str = None) -> dict:
     """
@@ -3180,6 +3224,9 @@ exposed_rpc_endpoints = {
     "get_task_for_id": get_task_for_id,
     "get_commands": get_commands,
     "add_command_to_payload": add_commands_to_payload,
+    "create_agentstorage": create_agentstorage,
+    "get_agentstorage": get_agentstorage,
+    "delete_agentstorage": delete_agentstorage,
     "create_payload_from_uuid": create_payload_from_uuid,
     "create_payload_from_parameters": create_payload_from_parameters,
     "create_processes": create_processes_rpc,

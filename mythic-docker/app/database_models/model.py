@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import base64
+
 import peewee as p
 import datetime
 from app import mythic_db
@@ -1639,7 +1641,7 @@ class TaskArtifact(p.Model):
 
 class StagingInfo(p.Model):
     # this is a way to identify the corresponding session key between HTTP messages since it's stateless
-    session_id = p.TextField(null=False, unique=True)
+    session_id = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # this is the creation session key that's base64 encoded
     enc_key = p.BlobField(null=False)
     dec_key = p.BlobField(null=False)
@@ -1659,6 +1661,25 @@ class StagingInfo(p.Model):
             "payload": self.payload.uuid
         }
         return r
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+
+class AgentStorage(p.Model):
+    # this table serves as a way for payload and translation containers to save/fetch necessary information
+    # that doesn't quite fit within Mythic's normal data model
+    data = p.BlobField()
+    unique_id = p.TextField(null=False, unique=True)
+
+    class Meta:
+        database = mythic_db
+
+    def to_json(self):
+        return {
+            "unique_id": self.unique_id,
+            "data": base64.b64encode(bytes(getattr(self, "data"))).decode("utf-8")
+        }
 
     def __str__(self):
         return json.dumps(self.to_json())
@@ -1994,6 +2015,12 @@ def query_operator():
         .switch(Operator)
     )
 operator_query = query_operator()
+
+def query_agentstorage():
+    return (
+        AgentStorage.select()
+    )
+agentstorage_query = query_agentstorage()
 
 def query_translationcontainer():
     return (
@@ -3050,6 +3077,7 @@ LoadedCommands.create_table(True)
 Artifact.create_table(True)
 TaskArtifact.create_table(True)
 StagingInfo.create_table(True)
+AgentStorage.create_table(True)
 APITokens.create_table(True)
 BrowserScript.create_table(True)
 BrowserScriptOperation.create_table(True)
