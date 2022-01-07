@@ -2864,6 +2864,13 @@ def pg_created_response_text_field():
 AS $function$
   SELECT encode(response_row.response, 'base64')
 $function$"""
+    func_response_response_escape = """CREATE OR REPLACE FUNCTION public.response_escape(response_row response)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  SELECT encode(response_row.response, 'escape')
+$function$"""
     func_filemeta_filename = """CREATE OR REPLACE FUNCTION public.filemeta_filename(meta_row filemeta)
  RETURNS text
  LANGUAGE sql
@@ -2950,6 +2957,7 @@ AS $function$
 $function$"""
     try:
         mythic_db.execute_sql(func_response_response)
+        mythic_db.execute_sql(func_response_response_escape)
         mythic_db.execute_sql(func_filemeta_filename)
         mythic_db.execute_sql(func_filemeta_full_remote_path)
         mythic_db.execute_sql(func_fileobj_name)
