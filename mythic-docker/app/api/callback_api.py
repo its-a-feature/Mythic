@@ -757,7 +757,7 @@ async def staging_translator(final_msg, enc_key):
                                     session_id=final_msg["session_id"],
                                     enc_key=base64.b64decode(final_msg["enc_key"]) if final_msg["enc_key"] is not None else None,
                                     dec_key=base64.b64decode(final_msg["dec_key"]) if final_msg["dec_key"] is not None else None,
-                                    crypto_type=final_msg["type"],
+                                    crypto_type=final_msg["crypto_type"],
                                     staging_uuid=final_msg["next_uuid"],
                                     payload=enc_key["payload"]
                                     )
@@ -765,7 +765,7 @@ async def staging_translator(final_msg, enc_key):
 
     except Exception as e:
         asyncio.create_task(send_all_operations_message(
-            message=f"Failed to translator_staging response from {enc_key['translation_container']} container message: {str(final_msg)}",
+            message=f"Failed to process staging_translation response from {enc_key['translation_container']} with response from container message: {str(final_msg)}\nError: {str(e)}",
             level="warning", source="translator_staging_response_error", operation=enc_key["payload"].operation))
         return None
 
