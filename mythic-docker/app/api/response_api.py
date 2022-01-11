@@ -958,6 +958,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                             artifact_instance=str(artifact["artifact"]).encode("utf-8"),
                                             artifact=base_artifact,
                                             host=task.callback.host.upper(),
+                                            operation=task.callback.operation
                                         )
                                         asyncio.create_task(log_to_siem(mythic_object=art, mythic_source="artifact_new"))
                                         # final_output += "\nAdded artifact {}".format(str(artifact['artifact']))
