@@ -1644,9 +1644,9 @@ class StagingInfo(p.Model):
     # this is a way to identify the corresponding session key between HTTP messages since it's stateless
     session_id = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # this is the creation session key that's base64 encoded
-    enc_key = p.BlobField(null=False)
-    dec_key = p.BlobField(null=False)
-    crypto_type = p.TextField(null=False)
+    enc_key = p.BlobField()
+    dec_key = p.BlobField()
+    crypto_type = p.TextField(null=False, constraints=[p.SQL("DEFAULT ''")])
     # staging step uuid
     staging_uuid = p.TextField(null=False, unique=True)
     payload = p.ForeignKeyField(Payload, null=False)
