@@ -22,7 +22,7 @@ To install an agent, simply run the script and provide an argument of the path t
 sudo ./mythic-cli install github https://github.com/MythicAgents/apfell
 ```
 
-The same is true for isntalling C2 Profiles:
+The same is true for installing C2 Profiles:
 ```bash
 sudo ./mythic-cli install github https://github.com/MythicC2Profiles/http
 ```

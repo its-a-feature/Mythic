@@ -225,7 +225,7 @@ class MyAuthentication(Authentication):
             logger.info(msg.format(user_id, str(e)))
             raise e
         except Exception as e:
-            logger.error("Error in retrieve user:" + str(e))
+            logger.error("Error in retrieve user: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
             raise exceptions.AuthenticationFailed("Auth Error")
 
     async def store_refresh_token(self, *args, **kwargs):
@@ -265,7 +265,7 @@ async def add_scopes_to_payload(user, *args, **kwargs):
     try:
         dbuser = await app.db_objects.get(operator_query, id=user["user_id"])
     except Exception as e:
-        logger.error(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.error("Error adding scopes:" + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return []
     try:
         operationsmap = await app.db_objects.execute(
@@ -279,7 +279,7 @@ async def add_scopes_to_payload(user, *args, **kwargs):
             scopes.append(map.operation.name)
         return scopes
     except Exception as e:
-        logger.error(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.error("Error adding scopes: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return []
 
 
@@ -316,7 +316,7 @@ async def get_graphql_claims(user_id):
         user_json["x-hasura-admin-operations"] = "{" + ",".join(admin_ops) + "}"
         return user_json
     except Exception as e:
-        logger.error(str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        logger.error("Error adding graphql scopes: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return {}
 
 
@@ -324,7 +324,7 @@ async def store_refresh_token(user_id, refresh_token, *args, **kwargs):
     try:
         app.redis_pool.set(f"JWT:{user_id}", refresh_token)
     except Exception as e:
-        print("exception in storing refresh tokens: " + str(e))
+        print("exception in storing refresh tokens: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         pass
     return
 

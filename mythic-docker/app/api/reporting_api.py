@@ -792,7 +792,7 @@ async def generate_report(operation: Operation, operator: Operator, parameters: 
         # Add in some generic metadata about the operation
         with doc.create(Section('Assigned Operators')):
             doc.append('The following table lists out all of the operators assigned to the operation and their roles in the assessment.\n')
-            with doc.create(Tabularx("p{4cm} p{15cm}")) as data_table:
+            with doc.create(Tabularx("p{4cm} p{14cm}")) as data_table:
                 data_table.add_row(["Operator",
                                     "Role",],
                                    mapper=bold,
@@ -807,7 +807,7 @@ async def generate_report(operation: Operation, operator: Operator, parameters: 
                         data_table.add_row(row)
         with doc.create(Section('Operation Metrics')):
             doc.append('The following table lists out some metrics for the operation..\n')
-            with doc.create(Tabularx("p{5cm} p{14cm}", width_argument=NoEscape(r"\textwidth"))) as data_table:
+            with doc.create(Tabularx("p{4cm} p{14cm}", width_argument=NoEscape(r"\textwidth"))) as data_table:
                 data_table.add_row(["Metric",
                                     "Value",],
                                    mapper=bold,
@@ -912,7 +912,7 @@ async def generate_report(operation: Operation, operator: Operator, parameters: 
                 linked_callbacks = [x for x in edges]
                 with doc.create(Subsection(f"New Callback {c['callback'].id}")):
                     with doc.create(
-                            LongTabularx("p{5cm} p{14cm}", width_argument=NoEscape(r"\textwidth"))) as data_table:
+                            LongTabularx("p{5cm} p{13cm}", width_argument=NoEscape(r"\textwidth"))) as data_table:
                         data_table.add_row([bold("User: "), escape_latex(f"{c['callback'].user}{'*' if c['callback'].integrity_level > 2 else ''}")])
                         data_table.add_row([bold("Host: "), escape_latex(f"{c['callback'].host}")])
                         data_table.add_row([bold("Domain: "), escape_latex(f"{c['callback'].domain}")])
@@ -939,10 +939,10 @@ async def generate_report(operation: Operation, operator: Operator, parameters: 
                                     )
                             data_table.add_row([bold("Linked Callbacks: "), escape_latex("\n".join(linked_messages))])
                     if parameters["includeMITREPerTask"]:
-                        table_spec = "p{5cm} p{11cm} p{3cm}"
+                        table_spec = "p{5cm} p{11cm} p{2cm}"
                         table_headers = ["Execution Duration", "Task Information", "ATT&CK"]
                     else:
-                        table_spec = "p{5cm} p{15cm}"
+                        table_spec = "p{5cm} p{13cm}"
                         table_headers = ["Execution Duration", "Task Information"]
                     with doc.create(
                             LongTabularx(table_spec, width_argument=NoEscape(r"\textwidth"))) as data_table:
