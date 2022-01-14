@@ -25,6 +25,7 @@ from math import ceil
 from sanic.log import logger
 from app.api.siem_logger import log_to_siem
 import asyncio
+from app.crypto import hash_MD5, hash_SHA1
 
 
 # This gets all tasks in the database
@@ -678,6 +679,7 @@ async def add_task_to_callback(request, cid, user):
                 pass
     # if we create new files throughout this process, be sure to tag them with the right task at the end
     data["params"] = data["params"].strip()
+    data["files"] = []
     data["original_params"] = data["params"]
     if request.files:
         # this means we got files as part of our task, so handle those first
@@ -685,16 +687,111 @@ async def add_task_to_callback(request, cid, user):
         original_params_with_names = js.loads(data["params"])
         for k in params:
             if params[k] == "FILEUPLOAD":
-                original_params_with_names[k] = request.files["file" + k][0].name
                 # this means we need to handle a file upload scenario and replace this value with a file_id
                 code = request.files["file" + k][0].body
-                params[k] = base64.b64encode(code).decode()
+                file_meta = await app.db_objects.create(
+                    db_model.FileMeta,
+                    total_chunks=1,
+                    operation=operation,
+                    path="",
+                    complete=True,
+                    chunks_received=1,
+                    comment="Uploaded as part of Tasking",
+                    operator=operator,
+                    delete_after_fetch=False,
+                    filename=request.files["file" + k][0].name.encode("utf-8"),
+                )
+                data["files"].append(file_meta.agent_file_id)
+                original_params_with_names[k] = file_meta.agent_file_id
+                params[k] = file_meta.agent_file_id
+                os.makedirs("./app/files/", exist_ok=True)
+                path = "./app/files/{}".format(file_meta.agent_file_id)
+                code_file = open(path, "wb")
+                code_file.write(code)
+                code_file.close()
+                file_meta.md5 = await hash_MD5(code)
+                file_meta.sha1 = await hash_SHA1(code)
+                file_meta.path = path
+                await app.db_objects.update(file_meta)
+                await app.db_objects.create(
+                    db_model.OperationEventLog,
+                    operator=operator,
+                    operation=operation,
+                    message="{} hosted {} with UID {} for tasking".format(
+                        operator.username, request.files["file" + k][0].name, file_meta.agent_file_id
+                    ),
+                )
+
         # update data['params'] with new file data or just re-string the old data
         data["params"] = js.dumps(params)
         data["original_params"] = js.dumps(original_params_with_names)
     return json(
         await add_task_to_callback_func(data, cid, operator, cb)
     )
+
+
+@mythic.route(mythic.config["API_BASE"] + "/task_upload_file_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def upload_file_for_task(request, user):
+    try:
+        if user["auth"] not in ["access_token", "apitoken"]:
+            abort(
+                status_code=403,
+                message="Cannot access via Cookies. Use CLI or access via JS in browser",
+            )
+        if user["view_mode"] == "spectator":
+            return json({"status": "error", "error": "Spectators cannot upload files"})
+        try:
+            operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+            operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        except Exception as e:
+            return json(
+                {"status": "error", "error": "not registered in a current operation"}
+            )
+        if request.files:
+            code = request.files["file"][0].body
+            filename = request.files["file"][0].name
+            file_meta = await app.db_objects.create(
+                db_model.FileMeta,
+                total_chunks=1,
+                operation=operation,
+                path="",
+                complete=True,
+                chunks_received=1,
+                comment="Uploaded as part of Tasking",
+                operator=operator,
+                delete_after_fetch=False,
+                filename=filename.encode("utf-8"),
+            )
+            os.makedirs("./app/files/", exist_ok=True)
+            path = "./app/files/{}".format(file_meta.agent_file_id)
+            code_file = open(path, "wb")
+            code_file.write(code)
+            code_file.close()
+            file_meta.md5 = await hash_MD5(code)
+            file_meta.sha1 = await hash_SHA1(code)
+            file_meta.path = path
+            await app.db_objects.update(file_meta)
+            await app.db_objects.create(
+                db_model.OperationEventLog,
+                operator=operator,
+                operation=operation,
+                message="{} hosted {} with UID {} for tasking".format(
+                    operator.username, filename, file_meta.agent_file_id
+                ),
+            )
+            asyncio.create_task(log_to_siem(mythic_object=file_meta, mythic_source="file_tasking_upload"))
+            return json({"status": "success", "agent_file_id": file_meta.agent_file_id})
+        else:
+            logger.exception("Trying to upload file with no request.files")
+            logger.info(request.form)
+            return json({"status": "error", "error": "Trying to upload file with no request.files"})
+    except Exception as e:
+        logger.exception(e)
+        return json({"status": "error", "error": str(e)})
 
 
 @mythic.route(mythic.config["API_BASE"] + "/create_task_webhook", methods=["POST"])
@@ -773,13 +870,6 @@ async def add_task_to_callback_webhook(request, user):
     #logger.info(data)
     if "original_params" not in data or data['original_params'] is None:
         data["original_params"] = data["params"]
-    if "files" in data and data["files"] is not None:
-        data["params"] = js.loads(data["params"])
-        data["files"] = js.loads(data["files"])
-        for f, v in data["files"].items():
-            data["params"][f] = v
-        data["params"] = js.dumps(data["params"])
-        data.pop("files", None)
     output = await add_task_to_callback_func(data, data["callback_id"], operator, cb)
     return json({
         "status": output.pop("status"),
@@ -1010,6 +1100,11 @@ async def add_task_to_callback_func(data, cid, op, cb):
                 parameter_group_name=data["parameter_group_name"] if "parameter_group_name" in data and data["parameter_group_name"] is not None else "Default"
             )
             logger.info(f"CREATED TASK {task.id}")
+            if "files" in data and data["files"] is not None:
+                for file_uuid in data["files"]:
+                    file_meta = await app.db_objects.get(db_model.FileMeta, agent_file_id=file_uuid)
+                    file_meta.task = task
+                    await app.db_objects.update(file_meta)
             if "tags" in data:
                 await add_tags_to_task(task, data["tags"])
             result = await submit_task_to_container(task, op.username, data["params"])

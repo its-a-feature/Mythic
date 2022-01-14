@@ -823,6 +823,38 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
         return {"status": "error", "error": str(e), "response": []}
 
 
+async def update_file(file_id: str, comment: str = None, delete_after_fetch: bool = None,
+                      contents: bytes = None, filename: str = None) -> dict:
+    """
+    Given a file identifier, update certain attributes of the file.
+    :param file_id: This is the string UUID identifier for the file
+    :param comment: If you want to update the comment on the file, supply the text here
+    :param delete_after_fetch: If you want this file to be deleted after an agent fetches it, set this to True. It's false by default.
+    :param contents: Supply the raw bytes of the file if you want to update the contents.
+    :param filename: Supply a new filename for the file
+    :return: Success or error code
+    """
+    try:
+        file = await app.db_objects.get(db_model.FileMeta, agent_file_id=file_id)
+        if comment is not None:
+            file.comment = comment
+        if delete_after_fetch is not None:
+            file.delete_after_fetch = delete_after_fetch
+        if filename is not None:
+            file.filename = filename.encode("utf-8")
+        if contents is not None:
+            path = "./app/files/{}".format(file.agent_file_id)
+            code_file = open(path, "wb")
+            code_file.write(contents)
+            code_file.close()
+            file.md5 = await hash_MD5(contents)
+            file.sha1 = await hash_SHA1(contents)
+        await app.db_objects.update(file)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
     """
     Get information about a payload and its contents
@@ -3217,6 +3249,7 @@ def get_rpc_functions():
 exposed_rpc_endpoints = {
     "create_file": create_file,
     "get_file": get_file,
+    "update_file": update_file,
     "get_payload": get_payload,
     "search_payloads": search_payloads,
     "get_tasks": get_tasks,
