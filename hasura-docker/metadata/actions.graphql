@@ -36,7 +36,7 @@ type Mutation {
   createTask(
     command: String!
     params: String!
-    files: String
+    files: [String]
     callback_id: Int!
     token: Int
     tasking_location: String
