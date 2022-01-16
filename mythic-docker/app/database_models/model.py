@@ -1217,7 +1217,7 @@ class Process(p.Model):
     # requires a specific format:
     #  [ {"pid": pid, "arch": "x64", "name": "lol.exe", "bin_path": "C:\whatever", "ppid": ppid } ]
     process_id = p.IntegerField(null=False)
-    architecture = p.TextField()
+    architecture = p.TextField(null=True)
     parent_process_id = p.IntegerField(null=True)
     bin_path = p.TextField(null=True)
     name = p.TextField(null=True)
