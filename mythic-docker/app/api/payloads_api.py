@@ -755,9 +755,17 @@ async def write_payload(uuid, user, data):
                     open(payload.wrapped_payload.file.path, "rb").read()
                 ).decode()
             else:
+                payload.build_phase = "error"
+                error_message = "\nSelected Wrapped Payload No Longer Exists, It was Deleted"
+                payload.build_stderr = payload.build_stderr + error_message if payload.build_stderr is not None else error_message
+                await app.db_objects.update(payload)
                 return {"status": "error", "error": "Wrapped payload no longer exists"}
     except Exception as e:
         logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        payload.build_phase = "error"
+        error_message = "\nFailed to Find Payload: " + str(e)
+        payload.build_stderr = payload.build_stderr + error_message if payload.build_stderr is not None else error_message
+        await app.db_objects.update(payload)
         return {"status": "error", "error": "Error trying to get wrapped payload"}
     result = await send_pt_rabbitmq_message(
         payload.payload_type.ptype,
