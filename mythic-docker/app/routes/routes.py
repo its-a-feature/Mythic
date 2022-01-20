@@ -418,22 +418,25 @@ async def initial_setup():
         await app.db_objects.update(admin)
         logger.info("Registered Admin with the default operation")
         logger.info("Started parsing ATT&CK data...")
-        file = open("./app/default_files/other_info/attack.json", "r")
-        attack = js.load(file)  # this is a lot of data and might take a hot second to load
-        for obj in attack["techniques"]:
-            await app.db_objects.create(ATTACK, **obj)
-        file.close()
+        with open("./app/default_files/other_info/attack.json", "r") as file:
+            attack = js.load(file)  # this is a lot of data and might take a hot second to load
+            for obj in attack["techniques"]:
+                await app.db_objects.create(ATTACK,
+                                            t_num=obj["t_num"],
+                                            name=obj["name"],
+                                            os=js.dumps(obj["os"]),
+                                            tactic=js.dumps(obj["tactic"]))
         logger.info("Created all ATT&CK entries")
-        file = open("./app/default_files/other_info/artifacts.json", "r")
-        artifacts_file = js.load(file)
-        for artifact in artifacts_file["artifacts"]:
-            await app.db_objects.get_or_create(
-                Artifact, name=artifact["name"], description=artifact["description"]
-            )
-        file.close()
+        with open("./app/default_files/other_info/artifacts.json", "r") as file:
+            artifacts_file = js.load(file)
+            for artifact in artifacts_file["artifacts"]:
+                await app.db_objects.get_or_create(
+                    Artifact, name=artifact["name"], description=artifact["description"]
+                )
         logger.info("Created all base artifacts")
         logger.info("Successfully finished initial setup")
     except Exception as e:
+        logger.exception(f"Failed to do initial setup: {str(e)}")
         from app.api.operation_api import send_all_operations_message
         asyncio.create_task(
             send_all_operations_message(

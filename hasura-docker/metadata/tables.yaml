@@ -357,6 +357,51 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  insert_permissions:
+  - role: developer
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
+  - role: mythic_admin
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
+  - role: operation_admin
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
+  - role: operator
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
   select_permissions:
   - role: developer
     permission:
@@ -408,6 +453,35 @@
       - id
       - attack_id
       - task_id
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: operation_admin
+    permission:
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: operator
+    permission:
       filter:
         task:
           callback:

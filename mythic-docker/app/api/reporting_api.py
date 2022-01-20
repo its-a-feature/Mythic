@@ -964,7 +964,7 @@ async def generate_report(operation: Operation, operator: Operator, parameters: 
                             if parameters["includeMITREPerTask"]:
                                 link_row = []
                                 for a in t["attack"]:
-                                    link_row.append(Hyperlink("https://attack.mitre.org/techniques/" + a['attack'], a["attack"]))
+                                    link_row.append(Hyperlink("https://attack.mitre.org/techniques/" + a['attack'].replace(".", "/"), a["attack"]))
                                 if len(link_row) == 0:
                                     link_row = ""
                                 else:
