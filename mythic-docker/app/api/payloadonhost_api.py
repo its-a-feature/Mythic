@@ -122,7 +122,7 @@ async def delete_payloadonhost(request, user, poh_id):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/payloadonhost/host/<host:string>", methods=["DELETE"]
+    mythic.config["API_BASE"] + "/payloadonhost/host/<host:str>", methods=["DELETE"]
 )
 @inject_user()
 @scoped(

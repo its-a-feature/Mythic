@@ -58,7 +58,7 @@ async def get_all_c2profiles(request, user):
 
 # Get all currently registered profiles that support a given payload type
 @mythic.route(
-    mythic.config["API_BASE"] + "/c2profiles/type/<info:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/c2profiles/type/<info:str>", methods=["GET"]
 )
 @inject_user()
 @scoped(
@@ -623,7 +623,7 @@ async def get_specific_c2profile_parameter_value_instances(request, info, user):
 
 @mythic.route(
     mythic.config["API_BASE"]
-    + "/c2profiles/parameter_instances/<instance_name:string>",
+    + "/c2profiles/parameter_instances/<instance_name:str>",
     methods=["DELETE"],
 )
 @inject_user()

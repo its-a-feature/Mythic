@@ -637,7 +637,7 @@ async def create_disabled_commands_profile(request, user):
 
 @mythic.route(
     mythic.config["API_BASE"]
-    + "/operations/disabled_commands_profiles/<profile:string>",
+    + "/operations/disabled_commands_profiles/<profile:str>",
     methods=["DELETE"],
 )
 @inject_user()

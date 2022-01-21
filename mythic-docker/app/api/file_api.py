@@ -71,7 +71,7 @@ async def get_current_operations_files_meta(request, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/files/download/<fid:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/files/download/<fid:str>", methods=["GET"]
 )
 async def download_file(request, fid):
     try:
@@ -103,7 +103,7 @@ async def download_file(request, fid):
 
 
 @mythic.route(
-    "/direct/download/<fid:string>", methods=["GET"]
+    "/direct/download/<fid:str>", methods=["GET"]
 )
 async def download_file_direct(request, fid: str):
     try:
@@ -891,7 +891,7 @@ async def list_all_screencaptures_per_callback(request, user, fid):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/files/screencaptures/<id:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/files/screencaptures/<id:str>", methods=["GET"]
 )
 @inject_user()
 @scoped(

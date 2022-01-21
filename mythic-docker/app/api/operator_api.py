@@ -241,7 +241,7 @@ async def get_one_operator(request, oid, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/operators/config/<name:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/operators/config/<name:str>", methods=["GET"]
 )
 @inject_user()
 @scoped(

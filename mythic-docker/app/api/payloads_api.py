@@ -126,7 +126,7 @@ async def get_all_payloads_current_operation(request, user):
         return json({"status": "error", "error": "must be part of a current operation"})
 
 
-@mythic.route(mythic.config["API_BASE"] + "/payloads/<puuid:string>", methods=["GET"])
+@mythic.route(mythic.config["API_BASE"] + "/payloads/<puuid:str>", methods=["GET"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
@@ -157,7 +157,7 @@ async def get_one_payload_info(request, puuid, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/payloads/<puuid:string>", methods=["DELETE"]
+    mythic.config["API_BASE"] + "/payloads/<puuid:str>", methods=["DELETE"]
 )
 @inject_user()
 @scoped(
@@ -1065,7 +1065,7 @@ async def config_check_webhook(request, user):
 
 # needs to not be protected so the implant can call back and get a copy of an agent to run
 @mythic.route(
-    mythic.config["API_BASE"] + "/payloads/download/<puuid:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/payloads/download/<puuid:str>", methods=["GET"]
 )
 @inject_user()
 @scoped(
@@ -1093,7 +1093,7 @@ async def get_payload(request, puuid, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/payloads/bytype/<ptype:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/payloads/bytype/<ptype:str>", methods=["GET"]
 )
 @inject_user()
 @scoped(
@@ -1171,7 +1171,7 @@ async def get_payload_config(payload):
     }
 
 
-@mythic.route(mythic.config["API_BASE"] + "/payloads/<puuid:string>", methods=["PUT"])
+@mythic.route(mythic.config["API_BASE"] + "/payloads/<puuid:str>", methods=["PUT"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False

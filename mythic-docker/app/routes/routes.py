@@ -312,6 +312,7 @@ async def handle_cancellation(request, exception):
 
 @mythic.exception(NotFound)
 async def handler_404(request, exception):
+    logger.info(request)
     return json({"status": "error", "error": "Not Found"}, status=404)
 
 

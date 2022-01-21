@@ -892,6 +892,13 @@ async def add_task_to_callback_func(data, cid, op, cb):
                 cmd=data["command"],
                 payload_type=cb.registered_payload.payload_type,
             )
+            json_attributes = js.loads(cmd.attributes)
+            if 'supported_os' in json_attributes and len(json_attributes['supported_os']) > 0:
+                if cb.registered_payload.os not in json_attributes["supported_os"]:
+                    return {
+                        "status": "error",
+                        "error": f"Can't run \"{data['command']}\" on \"{cb.registered_payload.os}\" operating system"
+                    }
         except Exception as e:
             # it's not registered, so check the free clear tasking
             if data["command"] == "clear":
@@ -956,7 +963,15 @@ async def add_task_to_callback_func(data, cid, op, cb):
                         db_model.LoadedCommands.callback == cb
                     ).order_by(db_model.Command.cmd))
                     output = "Loaded Commands In Agent:\n"
+                    filtered_commands = []
                     for c in commands:
+                        cmd_attributes = js.loads(c.command.attributes)
+                        if 'supported_os' in cmd_attributes and len(cmd_attributes["supported_os"]) > 0:
+                            if cb.registered_payload.os in cmd_attributes["supported_os"]:
+                                filtered_commands.append(c)
+                        else:
+                            filtered_commands.append(c)
+                    for c in filtered_commands:
                         output += f"{c.command.cmd}\n\tUsage Help: {c.command.help_cmd}\n\tDescription: {c.command.description}\n"
                     task = await app.db_objects.create(
                         Task,
@@ -1003,6 +1018,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                                 (db_model.CommandParameters.command == command)
                             ).order_by(db_model.CommandParameters.parameter_group_name))
                             output += f"Usage Help: {command.help_cmd}\n\nDescription: {command.description}\n"
+                            output += f"Command Attributes: {js.dumps(js.loads(command.attributes), indent=2)}\n"
                             last_group = ""
                             for p in parameters:
                                 if p.parameter_group_name != last_group:
@@ -1053,7 +1069,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
         except Exception as e:
             return {
                 "status": "error",
-                "error": data["command"] + " is not loaded in this callback and is not a scripted command",
+                "error": data["command"] + " is not loaded in this callback",
                 "cmd": data["command"],
                 "params": data["params"],
                 "callback": cid,
