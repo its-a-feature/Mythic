@@ -770,7 +770,7 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
     resp.response <--- this is an array
     resp.response[0] <--- this is the most recently registered matching file where filename="myAssembly.exe"
     resp.response[0]["filename"] <-- the filename of that first result
-    resp.response[0]["contents"] <--- the base64 representation of that file
+    resp.response[0]["contents"] <--- the base64 contents of that file
     All of the possible dictionary keys are available at https://github.com/its-a-feature/Mythic/blob/master/mythic-docker/app/database_models/model.py for the FileMeta class
     """
     try:
@@ -784,6 +784,7 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
         else:
             return {"status": "error", "error": "task_id or callback_id must be provided", "response": []}
         output = []
+        output_file_length = 0
         if filename is not None:
             files = await app.db_objects.execute(
                 db_model.filemeta_query.where(
@@ -810,11 +811,12 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
         if get_contents:
             for f in output:
                 if os.path.exists(f["path"]):
-                    f["contents"] = base64.b64encode(
-                        open(f["path"], "rb").read()
-                    ).decode()
+                    f["contents"] = base64.b64encode(open(f["path"], "rb").read()).decode()
+                    output_file_length += len(f["contents"])
                 else:
                     f["contents"] = None
+        if output_file_length > 130000000:
+            return {"status": "error", "error": "Total size too big for rabbitmq message, use get_file_contents RPC call or choose to not get contents with the get_file search"}
         return {"status": "success", "response": output}
     except Exception as e:
         asyncio.create_task(
@@ -853,6 +855,29 @@ async def update_file(file_id: str, comment: str = None, delete_after_fetch: boo
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+
+async def get_file_contents(agent_file_id: str) -> dict:
+    """
+    Get file contents for a specific file_id.
+    :param agent_file_id: The UUID of the file you want the contents for
+    :return:
+    The bytes of the file
+    """
+    try:
+        file = await app.db_objects.get(db_model.filemeta_query, agent_file_id=agent_file_id, deleted=False)
+    except Exception as d:
+        return {"status": "error", "error": "File does not exist in this operation", "response": b""}
+    try:
+        if os.path.exists(file.path):
+            contents = open(file.path, "rb").read()
+            if len(contents) > 130000000:
+                return {"status": "error", "error": "Total size too big for rabbitmq message"}
+            return {"status": "success", "response": contents}
+        else:
+            return {"status": "error", "error": "File was deleted from disk"}
+    except Exception as e:
+        return {"status": "error", "error": "Failed to read file"}
 
 
 async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
@@ -901,6 +926,8 @@ async def get_payload(payload_uuid: str, get_contents: bool = True) -> dict:
             payload_json["contents"] = base64.b64encode(
                 open(payload.file.path, "rb").read()
             ).decode()
+            if len(payload_json["contents"]) > 130000000:
+                return {"status": "error", "error": "Payload size too big for rabbitmq"}
         from app.api.task_api import add_all_payload_info
 
         payload_info = await add_all_payload_info(payload)
@@ -2977,7 +3004,7 @@ async def connect_and_consume_rpc():
             # queue = await channel.declare_queue("rpc_queue", auto_delete=True)
             rpc = await aio_pika.patterns.RPC.create(channel)
             await register_rpc_endpoints(rpc)
-            await channel.set_qos(prefetch_count=1)
+            await channel.set_qos(prefetch_count=10)
         except (ConnectionError, ConnectionRefusedError) as c:
             logger.error("Connection to rabbitmq failed, trying again..")
         except Exception as e:
@@ -3166,6 +3193,7 @@ class MythicBaseRPC:
 
     def on_response(self, message: aio_pika.IncomingMessage):
         try:
+            logger.info("on_response")
             future = self.futures.pop(message.correlation_id)
             message.ack()
             future.set_result(message.body)
@@ -3200,6 +3228,8 @@ class MythicBaseRPC:
                 correlation_id = str(uuid.uuid4())
                 future = self.loop.create_future()
                 self.futures[correlation_id] = future
+                msg = json.dumps(message).encode("utf-8")
+                logger.info(f"length of message: {len(msg)}\n{msg}")
                 await self.channel.default_exchange.publish(
                     aio_pika.Message(
                         json.dumps(message).encode("utf-8"),
@@ -3249,6 +3279,7 @@ def get_rpc_functions():
 exposed_rpc_endpoints = {
     "create_file": create_file,
     "get_file": get_file,
+    "get_file_contents": get_file_contents,
     "update_file": update_file,
     "get_payload": get_payload,
     "search_payloads": search_payloads,
