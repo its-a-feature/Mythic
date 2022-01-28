@@ -272,7 +272,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     logger.info(f"RABBITMQ GOT TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
                     task = await app.db_objects.get(db_model.task_query, id=pieces[4])
                     logger.info(f"RABBITMQ FETCHED TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
-                    #logger.info(response_message)
+                    logger.info(response_message)
 
                     task.display_params = response_message["task"]["display_params"]
                     task.stdout = response_message["task"]["stdout"]

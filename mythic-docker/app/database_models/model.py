@@ -1134,7 +1134,8 @@ class Task(p.Model):
             "subtask_group_name": self.subtask_group_name,
             "tasking_location": self.tasking_location,
             "stdout": self.stdout,
-            "stderr": self.stderr
+            "stderr": self.stderr,
+            "parameter_group_name": self.parameter_group_name
         }
         return r
 

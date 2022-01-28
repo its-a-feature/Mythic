@@ -70,7 +70,7 @@ redis_host = settings.get("REDIS_HOST", "127.0.0.1")
 listen_ip = "0.0.0.0"
 # if log_size > 0, rotate and make a max of max_log_count files to hold logs
 max_log_count = 1
-valid_payload_container_version_bounds = [11, 11]
+valid_payload_container_version_bounds = [11, 12]
 valid_c2_container_version_bounds = [3, 4]
 valid_translation_container_version_bounds = [4, 4]
 valid_restful_scripting_bounds = [3, 3]
