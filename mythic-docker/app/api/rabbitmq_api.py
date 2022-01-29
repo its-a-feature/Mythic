@@ -2156,6 +2156,53 @@ async def create_credential(task_id: int, credential_type: str, account: str, re
         return {"status": "error", "error": str(e)}
 
 
+async def get_credential(task_id: int, credential_type: str = None, account: str = None, realm: str = None,
+                         metadata: str = None, comment: str = None, limit_by_callback: bool = False) -> dict:
+    """
+
+    :param task_id:
+    :param credential_type:
+    :param account:
+    :param realm:
+    :param metadata:
+    :param comment:
+    :param limit_by_callback:
+    :return:
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+        if limit_by_callback:
+            credentials = await app.db_objects.execute(db_model.credential_query.where(
+                (db_model.Credential.operation == task.callback.operation) &
+                (db_model.Credential.deleted == False) &
+                (db_model.Callback == task.callback)
+
+            ))
+        else:
+            credentials = await app.db_objects.execute(db_model.credential_query.where(
+                (db_model.Credential.operation == task.callback.operation) &
+                (db_model.Credential.deleted == False)
+
+            ))
+        result = []
+        for c in credentials:
+            if credential_type is not None and c.type != credential_type:
+                continue
+            if realm is not None and realm.lower() not in c.realm.lower():
+                continue
+            if account is not None and account.lower() not in c.account.lower():
+                continue
+            if comment is not None and comment.lower() not in c.comment.lower():
+                continue
+            if metadata is not None and metadata.lower() not in c.metadata.lower():
+                continue
+            result.append(c.to_json())
+        return {"status": "success", "response": result}
+
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 async def create_file_browser(task_id: int, name: str, parent_path: str = "", permissions: dict = None,
                               access_time: str = "", modify_time: str = "", comment: str = "", host: str = None,
                               is_file: bool = True, size: str = "", success: bool = True, files: [dict] = None,
@@ -2405,26 +2452,28 @@ async def get_commands(callback_id: int = None, loaded_only: bool = False,
     try:
         if callback_id is not None:
             callback = await app.db_objects.get(db_model.callback_query, id=callback_id)
-            commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
+            callback_commands = await app.db_objects.execute(db_model.loadedcommands_query.where(
                 db_model.LoadedCommands.callback == callback
             ))
-            loaded_commands = [c.command for c in commands]
+            loaded_commands = [c.command for c in callback_commands]
             all_commands = await app.db_objects.execute(db_model.command_query.where(
                 (db_model.Command.payload_type == callback.registered_payload.payload_type)
             ))
             final_commands = []
             if loaded_only:
                 for c in loaded_commands:
-                    attributes = json.loads(c.attributes)
-                    if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
-                        final_commands.append({**c.to_json(), "attributes": attributes})
+                    if commands is None or (commands is not None and c.cmd in commands):
+                        attributes = json.loads(c.attributes)
+                        if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
+                            final_commands.append({**c.to_json(), "attributes": attributes})
                 return {"status": "success", "response": final_commands}
             else:
                 loaded_commands = [c.cmd for c in loaded_commands]
                 for c in all_commands:
-                    attributes = json.loads(c.attributes)
-                    if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
-                        final_commands.append({**c.to_json(), "attributes": attributes, "loaded": c.cmd in loaded_commands})
+                    if commands is None or (commands is not None and c.cmd in commands):
+                        attributes = json.loads(c.attributes)
+                        if len(attributes["supported_os"]) == 0 or callback.registered_payload.os in attributes["supported_os"]:
+                            final_commands.append({**c.to_json(), "attributes": attributes, "loaded": c.cmd in loaded_commands})
                 return {"status": "success", "response": final_commands}
         elif payload_type_name is not None and os is not None:
             payload_type = await app.db_objects.get(db_model.payloadtype_query, ptype=payload_type_name)
@@ -3300,6 +3349,7 @@ exposed_rpc_endpoints = {
     "create_output": create_output,
     "create_event_message": create_event_message,
     "create_credential": create_credential,
+    "get_credential": get_credential,
     "create_file_browser": create_file_browser,
     "create_payload_on_host": create_payload_on_host,
     "create_logon_session": create_logon_session,
