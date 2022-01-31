@@ -1169,7 +1169,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                     )
                     asyncio.create_task(log_to_siem(mythic_object=resp, mythic_source="response_new"))
                 task.timestamp = datetime.datetime.utcnow()
-                logger.info(f"Setting task status to: {task.status} with completion status: {task.completed}")
+                logger.info(f"Setting task {task.id} status to: {task.status} with completion status: {task.completed}")
                 await app.db_objects.update(task)
                 if marked_as_complete:
                     asyncio.create_task(check_and_issue_task_callback_functions(task))

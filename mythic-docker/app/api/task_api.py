@@ -1181,13 +1181,15 @@ async def check_and_issue_task_callback_functions(taskOriginal: Task, task_compl
     from app.api.operation_api import send_all_operations_message
     subtask_triggered_task_completion = False
     task = await app.db_objects.get(db_model.task_query, id=taskOriginal.id)
+    logger.info(f"issuing task callback functions for task {task.id} with status: {task.status}")
     if updating_task is not None:
         #logger.info("updating_task is not None, updating piece is: " + updating_piece)
         updatingTask = await app.db_objects.get(db_model.task_query, id=updating_task)
-        if updating_piece == "subtask_callback_function_completed":
+        if updating_piece == "subtask_callback_function_completed" and not updatingTask.subtask_callback_function_completed:
             updatingTask.subtask_callback_function_completed = True
-            if updatingTask.status.startswith("Error: "):
-                updatingTask.status = "completed"
+            #if updatingTask.status.startswith("Error: "):
+            #    updatingTask.status = "completed"
+            updatingTask.completed = True
             await app.db_objects.update(updatingTask)
             # task's subtask just completed. check to see if there's anything else that needs to be handled
             #   i.e. task might now be done and potentially need its completion handler addressed
@@ -1230,10 +1232,11 @@ async def check_and_issue_task_callback_functions(taskOriginal: Task, task_compl
                     #logger.info(
                     #    f"Still have {group_tasks} group tasks for group {updatingTask.subtask_group_name} that need to be completed")
                 return
-        elif updating_piece == "group_callback_function_completed":
+        elif updating_piece == "group_callback_function_completed" and not updatingTask.group_callback_function_completed:
             updatingTask.group_callback_function_completed = True
-            if updatingTask.status.startswith("Error: "):
-                updatingTask.status = "completed"
+            updatingTask.completed = True
+            #if updatingTask.status.startswith("Error: "):
+            #    updatingTask.status = "completed"
             await app.db_objects.update(updatingTask)
             # we need to update all of the other tasks in that group to the same thing
             groupTasks = await app.db_objects.execute(db_model.task_query.where(
@@ -1275,7 +1278,7 @@ async def check_and_issue_task_callback_functions(taskOriginal: Task, task_compl
                     "error in completed_callback_function not None submit_task_callback_to_container: " + status[
                         "error"])
             return
-        if updating_task == task.id and updating_piece == "completed_callback_function_completed":
+        if updating_task == task.id and updating_piece == "completed_callback_function_completed" and not task.completed_callback_function_completed:
             # we just got back from executing this function for this task
             logger.info("updating_task == task.id and updating_piece == completed_callback_function_completed")
             task.completed_callback_function_completed = True
@@ -1343,7 +1346,9 @@ async def check_and_issue_task_callback_functions(taskOriginal: Task, task_compl
             # this task is done, there's a parent task, and we didn't kick off additional tasks
             if task.parent_task.command.script_only:
                 task.parent_task.completed = True
-                task.parent_task.status = "completed"
+                if task.parent_task.status == "preprocessing":
+                    logger.info(f"updating parent task, {task.parent_task.id} to completed")
+                    task.parent_task.status = "completed"
                 await app.db_objects.update(task.parent_task)
                 # parent task is done, now process it for completion handlers and such
                 await check_and_issue_task_callback_functions(task.parent_task)
@@ -1694,6 +1699,7 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
         return {"status": "error", "error": "Payload Type container not running"}
     if task.callback.registered_payload.payload_type.container_running:
         rabbit_message = {"params": task.params, "command": task.command.cmd, "task": task.to_json()}
+        #logger.info(f"rabbitmq_message to container with task status: {task.status}, {rabbit_message['task']['status']}")
         rabbit_message["task"]["callback"] = task.callback.to_json()
         # get the information for the callback's associated payload
         payload_info = await add_all_payload_info(task.callback.registered_payload)
@@ -1713,6 +1719,7 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
         tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
         rabbit_message["task"]["tags"] = [t.tag for t in tags]
         # by default tasks are created in a preprocessing state,
+        #logger.info(js.dumps(rabbit_message, indent=4))
         result = await send_pt_rabbitmq_message(
             task.callback.registered_payload.payload_type.ptype,
             "task_callback_function",

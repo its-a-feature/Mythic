@@ -171,7 +171,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
         #    message.routing_key,
         #    message.body.decode('utf-8')
         # ))
-        # logger.info(message.routing_key)
+        logger.info(message.routing_key)
         if pieces[1] == "status":
             if len(pieces) == 8:
                 if int(pieces[7]) > valid_payload_container_version_bounds[1] or \
@@ -269,9 +269,8 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             message=error_message, level="warning", source="payload_import_sync_error"))
                         return
                     from app.api.task_api import check_and_issue_task_callback_functions
-                    logger.info(f"RABBITMQ GOT TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
+                    logger.info(f"RABBITMQ GOT CREATE_TASK INFO BACK FROM CONTAINER FOR {pieces[4]} WITH STATUS CODE {pieces[5]}")
                     task = await app.db_objects.get(db_model.task_query, id=pieces[4])
-                    logger.info(f"RABBITMQ FETCHED TASK INFO BACK FROM CONTAINER FOR {pieces[4]}")
                     logger.info(response_message)
 
                     task.display_params = response_message["task"]["display_params"]
@@ -404,18 +403,22 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     task.completed = True
                                 elif task.completed:
                                     # this means it was already previously marked as completed
+                                    logger.info(f"RABBITMQ CREATE_TASKING status {pieces[5]} updating task {task.id} to 'completed'")
                                     task.status = "completed"
                                 else:
                                     task.status = "submitted"
                         elif pieces[5] == "completed":
+                            logger.info(f"RABBITMQ CREATE_TASKING status {pieces[5]} updating task {task.id} to 'completed'")
                             task.status = "completed"
                             task.status_timestamp_processed = task.timestamp
                             task.completed = True
+                        elif pieces[5] == "preprocessing":
+                            task.status = "submitted"
                         else:
                             task.status = pieces[5].lower()
                         task.status_timestamp_submitted = task.timestamp
                         await app.db_objects.update(task)
-                        logger.info(f"RABBITMQ CALLED UPDATE ON TASK BACK FROM CONTAINER FOR {pieces[4]}")
+                        logger.info(f"RABBITMQ CALLED UPDATE ON TASK BACK FROM CONTAINER FOR {pieces[4]} WITH STATUS {task.status} FROM CREATE_TASKING")
                         if task.completed:
                             asyncio.create_task(check_and_issue_task_callback_functions(taskOriginal=task,
                                                                                         task_completed=True))
@@ -514,7 +517,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                             (db_model.Task.parent_task == task) &
                             (db_model.Task.completed == False)
                         ))
-                        #logger.info(f"task_callback_function with pieces[5] = {pieces[5]}")
+                        logger.info(f"task_callback_function with status {pieces[5]} for task {task.id}")
                         if pieces[5] == "success":
                             # check if there are subtasks created for this task, if so, this should not go to
                             # submitted
@@ -541,6 +544,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                     and not (task.opsec_post_blocked and not task.opsec_post_bypassed):
                                 # this task isn't done, it is a script only, and you're not blocked
                                 #  so instead of going to submitted, it should be marked as done
+                                logger.info(f"Callback_Function marking task {task.id} as 'completed'")
                                 task.status = "completed"
                                 task.completed = True
                                 await app.db_objects.update(task)
@@ -568,10 +572,12 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                 #logger.info(f"callback handler for task {task.id} but not any of the others fired")
                                 #logger.info(f"{task.id} - completed {task.completed}, subtasks {subtasks}")
                         elif pieces[5] == "completed":
-                            task.status = "processed"
-                            task.status_timestamp_processed = task.timestamp
+
                             if not task.completed:
+                                task.status = "processed"
+                                task.status_timestamp_processed = task.timestamp
                                 task.completed = True
+                                logger.info(f"Updating task {task.id} status to completed in task_callback_function rabbitmq")
                                 task.status = "completed"
                                 await app.db_objects.update(task)
                                 asyncio.create_task(check_and_issue_task_callback_functions(taskOriginal=task,
@@ -583,6 +589,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                                                                             response_message[
                                                                                                 "updating_piece"]
                                                                                             ))
+                            else:
+                                task.status = "completed"
+                                await app.db_objects.update(task)
                         elif pieces[5] == "error":
                             task.status = "Task Handler Error"
                             task.completed = True
@@ -596,6 +605,10 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                                                                                         response_message[
                                                                                             "updating_piece"]
                                                                                         ))
+                        else:
+                            task.status = pieces[5]
+                            logger.info(f"called update on task {task.id} with status {task.status}")
+                            await app.db_objects.update(task)
                 elif pieces[3] == "sync_classes":
                     if pieces[6] == "":
                         # this was an auto sync from starting a container
@@ -752,14 +765,14 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
 
 
 async def get_file(task_id: int = None, callback_id: int = None, filename: str = None, limit_by_callback: bool = True,
-                   max_results: int = 1,
-                   file_id: str = None, get_contents: bool = True) -> dict:
+                   max_results: int = 1, comment: str = None, file_id: str = None, get_contents: bool = True) -> dict:
     """
     Get file data and contents by name (ex: from create_file and a specified saved_file_name parameter).
     The search can be limited to just this callback (or the entire operation) and return just the latest or some number of matching results.
     :param task_id: The ID number of the task performing this action (task.id) - if this isn't provided, the callback id must be provided
     :param callback_id: The ID number of the callback for this action - if this isn't provided, the task_id must be provided
     :param filename: The name of the file to search for (Case sensitive)
+    :param comment: The comment of the file to search for (Case insensitive)
     :param file_id: If no filename specified, then can search for a specific file by this UUID
     :param limit_by_callback: Set this to True if you only want to search for files that are tied to this callback. This is useful if you're doing this as part of another command that previously loaded files into this callback's memory.
     :param max_results: The number of results you want back. 1 will be the latest file uploaded with that name, -1 will be all results.
@@ -2517,6 +2530,30 @@ async def add_commands_to_payload(payload_uuid: str, commands: [str]):
     return {"status": "success"}
 
 
+async def add_commands_to_callback(task_id: int, commands: [str]):
+    """
+    Register additional commands that are in the callback. This is useful if a user selects to load script_only commands, so you want to inform mythic that the command is now available, but maybe not actually send anything down to the agent.
+    :param task_id: The ID of the task that's loading commands.
+    :param commands: An array of command names that should be added to this payload.
+    :return: Success or Error
+    """
+    try:
+        task = await app.db_objects.get(db_model.task_query, id=task_id)
+    except Exception as e:
+        return {"status": "error", "error": "Callback not found"}
+    try:
+        for cmd in commands:
+            command = await app.db_objects.get(db_model.command_query, cmd=cmd, payload_type=task.callback.registered_payload.payload_type)
+            await app.db_objects.get_or_create(db_model.LoadedCommands,
+                                               callback=task.callback,
+                                               command=command,
+                                               operator=task.operator,
+                                               version=command.version)
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find command or load it: " + str(e)}
+    return {"status": "success"}
+
+
 async def update_loaded_commands(task_id: int, commands: [str], add: bool = None, remove: bool = None):
     """
     Add or Remove loaded commands for the callback associated with task_id
@@ -3336,7 +3373,8 @@ exposed_rpc_endpoints = {
     "get_responses": get_responses,
     "get_task_for_id": get_task_for_id,
     "get_commands": get_commands,
-    "add_command_to_payload": add_commands_to_payload,
+    "add_commands_to_payload": add_commands_to_payload,
+    "add_commands_to_callback": add_commands_to_callback,
     "create_agentstorage": create_agentstorage,
     "get_agentstorage": get_agentstorage,
     "delete_agentstorage": delete_agentstorage,
