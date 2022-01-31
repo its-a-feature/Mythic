@@ -135,6 +135,84 @@ async def create_operator_graphql(request, user):
         return json({"status": "error", "error": "failed to add user: " + str(e)})
 
 
+@mythic.route(mythic.config["API_BASE"] + "/update_operator_password_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def update_operator_password_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        data = request.json
+        data = data["input"]
+    except Exception as e:
+        return json({"status": "error", "error": "Failed to process submitted data"})
+    if "user_id" not in data:
+        return json({"status": "error", "error": "user_id must be supplied"})
+    operator = await app.db_objects.get(db_model.operator_query, id=data["user_id"])
+    if user["admin"]:
+        password = await crypto.hash_SHA512(operator.salt + data["new_password"])
+    elif operator.id == user["id"]:
+        # check to make sure the user supplied the right old password
+        password_check = await crypto.hash_SHA512(operator.salt + data["old_password"])
+        if password_check != operator.password:
+            return json({"status": "error", "error": "Invalid old password, cannot set new password"})
+        password = await crypto.hash_SHA512(operator.salt + data["new_password"])
+    else:
+        return json({"status": "error", "error": "Can only change your own password unless you're an admin"})
+    if len(data["new_password"]) < 12:
+        return json({"status": "error", "error": "password must be at least 12 characters long"})
+    # we need to create a new user
+    try:
+        operator.password = password
+        await app.db_objects.update(operator)
+        success = {"status": "success"}
+        return response.json({**success})
+    except Exception as e:
+        return json({"status": "error", "error": "failed to update user: " + str(e)})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/update_current_operation_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def update_operator_operation_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        data = request.json
+        data = data["input"]
+    except Exception as e:
+        return json({"status": "error", "error": "Failed to process submitted data"})
+    if "user_id" not in data:
+        return json({"status": "error", "error": "user_id must be supplied"})
+    if "operation_id" not in data:
+        return json({"status": "error", "error": "operation_id must be supplied"})
+    try:
+        operator = await app.db_objects.get(db_model.operator_query, id=data["user_id"])
+        operation = await app.db_objects.get(db_model.operation_query, id=data["operation_id"])
+    except Exception as e:
+        return json({"status": "error", "error": "Failed to find operator or operation"})
+    try:
+        operatorOperation = await app.db_objects.get(db_model.operatoroperation_query,
+                                                     operator=operator,
+                                                     operation=operation)
+        operator.current_operation = operation
+        await app.db_objects.update(operator)
+        success = {"status": "success"}
+        return response.json({**success, "operation_id": operation.id})
+    except Exception as e:
+        return json({"status": "error", "error": "Must be part of an operation to make it your current operation"})
+
+
 @mythic.route(mythic.config["API_BASE"] + "/operators/<oid:int>", methods=["GET"])
 @inject_user()
 @scoped(
@@ -163,7 +241,7 @@ async def get_one_operator(request, oid, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/operators/config/<name:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/operators/config/<name:str>", methods=["GET"]
 )
 @inject_user()
 @scoped(

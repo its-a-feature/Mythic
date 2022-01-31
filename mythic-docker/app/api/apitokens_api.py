@@ -6,16 +6,49 @@ from sanic.response import json
 from sanic.exceptions import abort
 
 
-@mythic.route(mythic.config["API_BASE"] + "/generate_apitoken", methods=["POST"])
+@mythic.route(mythic.config["API_BASE"] + "/generate_apitoken_webhook", methods=["POST"])
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_c2", "auth:apitoken_user"], False
 )  # user or user-level api token are ok
-async def generate_apitoken(request, user):
-    print(user)
-    print(request)
-    print(request.json)
-    return json({"tokenValue": "blah"})
+async def generate_apitoken_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        data = request.json["input"]
+    except Exception as e:
+        return json({"status": "error", "error": "failed to parse json"})
+    if "token_type" not in data or data["token_type"] not in ["C2", "User"]:
+        return json(
+            {
+                "status": "error",
+                "error": 'token_type must be specified and be "C2" or "User"',
+            }
+        )
+    try:
+        operator = await app.db_objects.get(db_model.operator_query, id=user["user_id"])
+        token = await request.app.auth.generate_access_token(
+            {
+                "user_id": user["user_id"],
+                "auth": "apitoken",
+                "token_type": data["token_type"],
+            }
+        )
+        try:
+            apitoken = await app.db_objects.create(
+                db_model.APITokens,
+                token_type=data["token_type"],
+                token_value=token,
+                operator=operator,
+            )
+            return json({"status": "success", "id": apitoken.id, "operator_id": operator.id, "token_value": apitoken.token_value})
+        except Exception as e:
+            return json({"status": "error", "error": "Failed to create token: " + str(e)})
+    except Exception as e:
+        return json({"status": "error", "error": "failed to find user or tokens: " + str(e)})
 
 
 # -------  API Tokens FUNCTION -----------------

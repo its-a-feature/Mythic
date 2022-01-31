@@ -136,18 +136,18 @@ var payloads_table = new Vue({
             }, "POST", {"input":{"uuid": p.uuid}});
         },
         export_config: function(p){
-            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/payloads/export_config/" + p.uuid, function (response) {
+            httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/export_payload_config_webhook", function (response) {
                 try {
                     let data = JSON.parse(response);
                     if (data['status'] !== 'success') {
                         alertTop("danger", data['error']);
                     } else {
-                        download_from_memory(p.file.filename + ".json", btoa(JSON.stringify(data["config"], null, 4)));
+                        download_from_memory(p.file.filename + ".json", btoa(data["config"]));
                     }
                 } catch (error) {
                     alertTop("danger", "Session expired, refresh");
                 }
-            }, "GET", null);
+            }, "POST", {"input": {"uuid": p.uuid}});
         },
         redirect_rules: function(p){
             httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/redirect_rules_webhook" , function (response) {

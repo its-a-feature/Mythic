@@ -58,7 +58,7 @@ async def get_all_c2profiles(request, user):
 
 # Get all currently registered profiles that support a given payload type
 @mythic.route(
-    mythic.config["API_BASE"] + "/c2profiles/type/<info:string>", methods=["GET"]
+    mythic.config["API_BASE"] + "/c2profiles/type/<info:str>", methods=["GET"]
 )
 @inject_user()
 @scoped(
@@ -176,12 +176,19 @@ async def status_c2profile(request, user):
         data = request.json["input"]
         profile = await app.db_objects.get(db_model.c2profile_query, id=data["id"])
     except Exception as e:
-        print(e)
+        logger.exception(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
     # we want to send a rabbitmq message and wait for a response via websocket
+    if not profile.container_running:
+        return json({"status": "error", "error": "Container not running"})
     status, successfully_sent = await c2_rpc.call(message={
         "action": "get_status",
     }, receiver="{}_mythic_rpc_queue".format(profile.name))
+    if not successfully_sent:
+        profile.container_running = False
+        profile.running = False
+        await app.db_objects.update(profile)
+        return json({"status": "error", "error": "Failed to contact container, appears to be offline"})
     status = js.loads(status)
     if "running" in status:
         profile.running = status.pop("running")
@@ -213,10 +220,17 @@ async def download_container_file_for_c2profiles_webhook(request, user):
     if user["current_operation"] == "":
         return json({"status": "error", "error": "Must be part of an operation to see this"})
     try:
+        if not profile.container_running:
+            return json({"status": "error", "error": "Container not running"})
         status, successfully_sent = await c2_rpc.call(message={
             "action": "get_file",
             "filename": data["filename"]
         }, receiver="{}_mythic_rpc_queue".format(profile.name))
+        if not successfully_sent:
+            profile.container_running = False
+            profile.running = False
+            await app.db_objects.update(profile)
+            return json({"status": "error", "error": "Container not running"})
         status = js.loads(status)
         if "running" in status:
             profile.running = status.pop("running")
@@ -254,11 +268,18 @@ async def upload_container_file_for_c2profiles_webhook(request, user):
         print(e)
         return json({"status": "error", "error": "failed to find C2 Profile"})
     try:
+        if not profile.container_running:
+            return json({"status": "error", "error": "Container not online"})
         status, successfully_sent = await c2_rpc.call(message={
             "action": "write_file",
             "file_path": data["file_path"],
             "data": data["data"]
         }, receiver="{}_mythic_rpc_queue".format(profile.name))
+        if not successfully_sent:
+            profile.container_running = False
+            profile.running = False
+            await app.db_objects.update(profile)
+            return json({"status": "error", "error": "Failed to contact container, it appears to be offline"})
         status = js.loads(status)
         if "running" in status:
             profile.running = status.pop("running")
@@ -495,6 +516,77 @@ async def get_all_c2profile_parameter_value_instances(request, user):
 
 
 @mythic.route(
+    mythic.config["API_BASE"] + "/create_c2parameter_instance_webhook",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def save_c2profile_parameter_value_instance_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    data = request.json["input"]  # all of the name,value pairs instances we want to save
+    try:
+        if user["view_mode"] == "spectator" or user["current_operation"] == "":
+            return json(
+                {
+                    "status": "error",
+                    "error": "Spectators cannot save c2 profile instances",
+                }
+            )
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        profile = await app.db_objects.get(db_model.c2profile_query, id=data["c2profile_id"])
+    except Exception as e:
+        logger.exception("c2profiles-api.py - error creating new parameters instance: " + str(e))
+        return json({"status": "error", "error": "failed to get the c2 profile"})
+    try:
+        if "instance_name" not in data or data["instance_name"] == "":
+            return json(
+                {
+                    "status": "error",
+                    "error": "must supply an instance name for these values",
+                }
+            )
+        params = await app.db_objects.execute(
+            db_model.c2profileparameters_query.where(
+                (C2ProfileParameters.c2_profile == profile) &
+                (C2ProfileParameters.deleted == False)
+            )
+        )
+        created_params = []
+        data["c2_instance"] = js.loads(data["c2_instance"])
+        for p in params:
+            try:
+                if p.parameter_type in ['Array', 'Dictionary']:
+                    data["c2_instance"][p.name] = js.dumps(data["c2_instance"][p.name])
+                created = await app.db_objects.create(
+                    C2ProfileParametersInstance,
+                    c2_profile_parameters=p,
+                    instance_name=data["instance_name"],
+                    value=data["c2_instance"][p.name],
+                    operation=operation,
+                    c2_profile=profile,
+                )
+                created_params.append(created)
+            except Exception as e:
+                for c in created_params:
+                    await app.db_objects.delete(c)
+                return json(
+                    {
+                        "status": "error",
+                        "error": "failed to create a parameter value: " + str(e),
+                    }
+                )
+        return json({"status": "success"})
+    except Exception as e:
+        return json({"status": "error", "error": "Error creating a c2 instance: " + str(e)})
+
+
+@mythic.route(
     mythic.config["API_BASE"] + "/c2profiles/<info:int>/parameter_instances/",
     methods=["GET"],
 )
@@ -531,7 +623,7 @@ async def get_specific_c2profile_parameter_value_instances(request, info, user):
 
 @mythic.route(
     mythic.config["API_BASE"]
-    + "/c2profiles/parameter_instances/<instance_name:string>",
+    + "/c2profiles/parameter_instances/<instance_name:str>",
     methods=["DELETE"],
 )
 @inject_user()
@@ -599,7 +691,7 @@ async def import_c2_profile_func(data, operator, rabbitmqName):
             data["is_p2p"] = False
         if "is_server_routed" not in data:
             data["is_server_routed"] = False
-        profile = await app.db_objects.create(
+        profile, created = await app.db_objects.create_or_get(
             C2Profile,
             name=data["name"],
             description=data["description"],
@@ -632,7 +724,7 @@ async def import_c2_profile_func(data, operator, rabbitmqName):
             await app.db_objects.update(c2_profile_param)
         except Exception as e:
             print(str(e))
-            await app.db_objects.create(
+            await app.db_objects.create_or_get(
                 C2ProfileParameters,
                 c2_profile=profile,
                 name=param["name"],

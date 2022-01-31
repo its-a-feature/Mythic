@@ -1,10 +1,5 @@
-From itsafeaturemythic/mythic_react:0.0.4
+FROM nginx:1.21.4-alpine
 
-COPY mythic/ /mythic/
-
-#From node:15.11.0-alpine3.10
-
+#From node:alpine
+#RUN npm install -g serve
 #WORKDIR /mythic
-#COPY ["mythic/package.json", "/mythic/package.json"]
-#RUN npm install --legacy-peer-deps
-#CMD ["npm", "start"]

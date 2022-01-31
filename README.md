@@ -9,7 +9,7 @@ A cross-platform, post-exploit, red teaming framework built with python3, docker
 * Objective By the Sea 2019 talk on JXA: https://objectivebythesea.com/v2/talks/OBTS_v2_Thomas.pdf  
 * Objective By the sea 2019 Video: https://www.youtube.com/watch?v=E-QEsGsq3uI&list=PLliknDIoYszvTDaWyTh6SYiTccmwOsws8&index=17  
 
-* Current Version: 2.2.14
+* Current Version is found in the VERSION file
 
 ## Installing Agents and C2 Profiles
 
@@ -22,7 +22,7 @@ To install an agent, simply run the script and provide an argument of the path t
 sudo ./mythic-cli install github https://github.com/MythicAgents/apfell
 ```
 
-The same is true for isntalling C2 Profiles:
+The same is true for installing C2 Profiles:
 ```bash
 sudo ./mythic-cli install github https://github.com/MythicC2Profiles/http
 ```

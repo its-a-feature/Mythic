@@ -580,7 +580,7 @@ var profile_parameters_table = new Vue({
                             } else {
                                 data["commands"] = data["commands"].reduce((total, cur) => {
                                     try{
-                                        let attributes = JSON.parse(cur["attributes"]);
+                                        let attributes = cur["attributes"];
                                         if(attributes.hasOwnProperty("supported_os")){
                                             if(attributes["supported_os"].includes(profile_parameters_table.selected_os) || attributes["supported_os"].length === 0){
                                                 return [...total, cur];

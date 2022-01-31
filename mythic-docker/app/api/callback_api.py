@@ -96,7 +96,6 @@ translator_rpc = MythicBaseRPC()
 @mythic.route(mythic.config["API_BASE"] + "/agent_message", methods=["GET", "POST"])
 async def get_agent_message(request):
     # get the raw data first
-    profile = None
     data = None
     request_url = request.headers['x-forwarded-url'] if 'x-forwarded-url' in request.headers else request.url
     request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
@@ -124,8 +123,8 @@ async def get_agent_message(request):
         data = urllib.parse.unquote(request.query_args[0][1])
         # print("Query: " + str(data))
     else:
-        error_message = f"Failed to find message in body, cookies, or query args\nConnection to: "
-        error_message += f"{request_url} via {request.method}\nFrom: "
+        error_message = f"Error! Mythic received an anomalous request. Check the following details for more information about the request:\nConnection to: "
+        error_message += f"{request_url} via {request.method} Request\nFrom: "
         error_message += f"{request_ip}\n"
         error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}\n"
         error_message += f"With extra headers: {request.headers}\n"
@@ -268,6 +267,21 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
         request_url = request.headers['x-forwarded-url'] if 'x-forwarded-url' in request.headers else request.url
         request_ip = request.headers['x-forwarded-for'] if 'x-forwarded-for' in request.headers else request.ip
     try:
+        c2 = await app.db_objects.get(db_model.C2Profile, name=profile)
+        if not c2.running:
+            c2.running = True
+            await app.db_objects.update(c2)
+    except Exception as e:
+        error_message = f"Unknown C2 Profile in Message from Agent: \n{profile}\nConnection to: "
+        error_message += f"{request_url} via {request.method} Request\nFrom: "
+        error_message += f"{request_ip}\n"
+        error_message += f"With query string: {request.headers['x-forwarded-query'] if 'x-forwarded-query' in request.headers else request.query_string}\n"
+        error_message += f"This is likely traffic from an old Mythic instance where the c2 isn't installed or the traffic was modified."
+        asyncio.create_task(send_all_operations_message(
+            message=error_message,
+            level="warning", source="get_agent_message_mythic_header:" + request_ip))
+        return "", 404, new_callback, agent_uuid
+    try:
         decoded = base64.b64decode(data)
         # print(decoded)
         if app.debugging_enabled:
@@ -322,7 +336,7 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
         else:
             error_message += f"{request_url} via {request.method}\nFrom: "
             error_message += f"{request_ip}\n"
-            error_message += f"With extra headers: {request.headers}\n"
+            error_message += f"With extra headers: {request.headers}\n\n"
         if UUID_length == 36:
             try:
                 uuid.UUID(UUID)
@@ -360,15 +374,24 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                     await send_all_operations_message(
                         message=f"Parsing agent message - step 4 (mythic decrypted a message that needs translated): \n{str(decrypted)}", level="info", source="debug")
                 # format isn't standard mythic JSON, after decrypting send to container for processing
+                tc = await app.db_objects.get(db_model.TranslationContainer, name=enc_key["translation_container"])
+                if not tc.container_running:
+                    asyncio.create_task(send_all_operations_message(
+                        message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline",
+                        level="warning", source="translate_from_c2_format_error",
+                        operation=enc_key["payload"].operation))
+                    return "", 404, new_callback, agent_uuid
                 decrypted, successfully_sent = await translator_rpc.call(message={
                     "action": "translate_from_c2_format",
-                    "message": base64.b64encode(decrypted).decode(),
-                    "uuid": UUID,
-                    "profile": profile,
-                    "mythic_encrypts": enc_key["mythic_encrypts"],
-                    "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
-                    "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
-                    "type": enc_key["type"]
+                    "message": {
+                        "message": base64.b64encode(decrypted).decode(),
+                        "uuid": UUID,
+                        "profile": profile,
+                        "mythic_encrypts": enc_key["mythic_encrypts"],
+                        "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                        "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                        "type": enc_key["type"]
+                    }
                 }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
                 if decrypted == b"":
                     if successfully_sent:
@@ -379,6 +402,9 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                         asyncio.create_task(send_all_operations_message(
                             message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline",
                             level="warning", source="translate_from_c2_format_error", operation=enc_key["payload"].operation))
+                        tc.container_running = False
+                        await app.db_objects.update(tc)
+
                     if return_decrypted:
                         return {"status": "error", "error": "Failed to have translation service translate decrypted message"}
                     return "", 404, new_callback, agent_uuid
@@ -398,15 +424,23 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                         message=f"Parsing agent message - step 4 (mythic isn't decrypting and no associated translation container): \n {decrypted}", level="info", source="debug")
             else:
                 # mythic doesn't encrypt and a container is specified, ship it off to the container for processing
+                tc = await app.db_objects.get(db_model.TranslationContainer, name=enc_key["translation_container"])
+                if not tc.container_running:
+                    asyncio.create_task(send_all_operations_message(
+                        message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline",
+                        level="warning", source="translate_from_c2_format_error", operation=enc_key["payload"].operation))
+                    return "", 404, new_callback, agent_uuid
                 decrypted, successfully_sent = await translator_rpc.call(message={
                     "action": "translate_from_c2_format",
-                    "message": base64.b64encode(decoded).decode(),
-                    "uuid": UUID,
-                    "profile": profile,
-                    "mythic_encrypts": enc_key["mythic_encrypts"],
-                    "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
-                    "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
-                    "type": enc_key["type"]
+                    "message": {
+                        "message": base64.b64encode(decoded).decode(),
+                        "uuid": UUID,
+                        "profile": profile,
+                        "mythic_encrypts": enc_key["mythic_encrypts"],
+                        "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                        "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                        "type": enc_key["type"]
+                    }
                 }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
                 if decrypted == b"":
                     if successfully_sent:
@@ -417,6 +451,8 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                         asyncio.create_task(send_all_operations_message(
                             message=f"Failed to have {enc_key['translation_container']} container process translate_from_c2_format because it's offline.",
                             level="warning", source="translate_from_c2_format_error", operation=enc_key["payload"].operation))
+                        tc.container_running = False
+                        await app.db_objects.update(tc)
                     if return_decrypted:
                         return {"status": "error", "error": "Failed to have translation service translate message"}
                     return "", 404, new_callback, agent_uuid
@@ -457,7 +493,7 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
             return "", 404, new_callback, agent_uuid
         # now to parse out what we're doing, everything is decrypted at this point
         # shuttle everything out to the appropriate api files for processing
-        # print(decrypted)
+        #logger.info(decrypted)
         response_data = {}
         if app.debugging_enabled:
             await send_all_operations_message(
@@ -469,6 +505,11 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                 delegates = await get_routable_messages(enc_key["callback"], request)
                 if delegates is not None:
                     response_data["delegates"] = delegates
+            if "responses" in decrypted:
+                decrypted.pop("tasking_size", None)
+                decrypted.pop("get_delegate_tasks", None)
+                response_output = await post_agent_response(decrypted, enc_key["callback"])
+                response_data["responses"] = response_output["responses"]
             agent_uuid = UUID
         elif decrypted["action"] == "post_response":
             response_data = await post_agent_response(decrypted, enc_key["callback"])
@@ -501,6 +542,9 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
             if enc_key["stage"] == "callback":
                 # if the UUID is for a callback doing a checkin message, just update the callback instead
                 await update_callback(decrypted, UUID)
+                # if the agent just sent a checkin message again, we probably re-linked to an agent
+                # so send ui_features=["p2p:job_list"] command to this agent and all descendents
+                asyncio.create_task(issue_job_list_to_linked_descendents(UUID))
                 response_data = {"action": "checkin", "status": "success", "id": UUID}
                 agent_uuid = UUID
             else:
@@ -517,7 +561,7 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
             if delegates is not None:
                 response_data["delegates"] = delegates
             agent_uuid = UUID
-        elif decrypted["action"] == "translation_staging":
+        elif decrypted["action"] == "staging_translation":
             # this was already processed as part of our contact to the translation container
             # so now we're just saving this data off for the next message
             response_data = await staging_translator(decrypted, enc_key)
@@ -535,15 +579,13 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                 await send_all_operations_message(
                     message=f"Parsing agent message - step 6 (processing reported p2p edge updates): \n {decrypted['edges']}",
                     level="info", source="debug", operation=enc_key["payload"].operation)
-            if decrypted["edges"] != "" and decrypted["edges"] is not None:
+            if isinstance(decrypted["edges"], list):
                 asyncio.create_task(add_p2p_route(decrypted["edges"], None, None))
             response_data.pop("edges", None)
         # now that we have the right response data, format the response message
         if (
             "delegates" in decrypted
-            and decrypted["delegates"] is not None
-            and decrypted["delegates"] != ""
-            and decrypted["delegates"] != []
+            and isinstance(decrypted["delegates"], list)
         ):
             if app.debugging_enabled:
                 await send_all_operations_message(
@@ -560,8 +602,8 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                                                                                             d["c2_profile"])
                 if status == 200:
                     # store the response to send back
-                    print("got delegate message: ")
-                    print(del_message)
+                    #print("got delegate message: ")
+                    #print(del_message)
                     if not isinstance(del_message, str):
                         del_message = del_message.decode()
                     if del_new_callback != "":
@@ -606,8 +648,8 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                         # there's no new callback and the delegate message isn't a full callback yet
                         # so just proxy through the UUID since it's in some form of staging
                         response_data["delegates"].append({"message": del_message, "uuid": d["uuid"]})
-        #print("final message before going to containers:")
-        #print(response_data)
+        #logger.info("final message before going to containers:")
+        #logger.info(response_data)
         final_msg = await create_final_message_from_data_and_profile_info(response_data, enc_key, UUID, request)
         if final_msg is None:
             return "", 404, new_callback, agent_uuid
@@ -623,20 +665,29 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
 
 
 async def create_final_message_from_data_and_profile_info(response_data, enc_key, current_uuid, request):
+    tasks_to_update = response_data.pop("tasks_to_update", [])
     if enc_key["translation_container"] is not None:
         if app.debugging_enabled:
             await send_all_operations_message(
                 message=f"Parsing agent message - step 8 (final mythic response message going to translation container): \n {js.dumps(response_data)}",
                 level="info", operation=enc_key["payload"].operation, source="debug")
+        tc = await app.db_objects.get(db_model.TranslationContainer, name=enc_key["translation_container"])
+        if not tc.container_running:
+            asyncio.create_task(send_all_operations_message(
+                message=f"Failed to have {enc_key['translation_container']} container process translate_to_c2_format, is it online?",
+                level="warning", source="translate_to_c2_format_error", operation=enc_key["payload"].operation))
+            return None
         final_msg, successfully_sent = await translator_rpc.call(message={
             "action": "translate_to_c2_format",
-            "message": response_data,
-            "profile": enc_key["profile"],
-            "mythic_encrypts": enc_key["mythic_encrypts"],
-            "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
-            "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
-            "uuid": current_uuid,
-            "type": enc_key["type"]
+            "message": {
+                "message": response_data,
+                "profile": enc_key["profile"],
+                "mythic_encrypts": enc_key["mythic_encrypts"],
+                "enc_key": base64.b64encode(enc_key["enc_key"]).decode() if enc_key["enc_key"] is not None else None,
+                "dec_key": base64.b64encode(enc_key["dec_key"]).decode() if enc_key["dec_key"] is not None else None,
+                "uuid": current_uuid,
+                "type": enc_key["type"]
+            }
         }, receiver="{}_rpc_queue".format(enc_key["translation_container"]))
         # print("received from translate_to_c2_format: ")
         # print(final_msg)
@@ -649,6 +700,8 @@ async def create_final_message_from_data_and_profile_info(response_data, enc_key
                 asyncio.create_task(send_all_operations_message(
                     message=f"Failed to have {enc_key['translation_container']} container process translate_to_c2_format, is it online?",
                     level="warning", source="translate_to_c2_format_error", operation=enc_key["payload"].operation))
+                tc.container_running = False
+                await app.db_objects.update(tc)
             return None
         if app.debugging_enabled:
             await send_all_operations_message(
@@ -660,6 +713,8 @@ async def create_final_message_from_data_and_profile_info(response_data, enc_key
                 message=f"Parsing agent message - step 8 (final mythic response message): \n {js.dumps(response_data)}",
                 level="info", source="debug", operation=enc_key["payload"].operation)
         final_msg = js.dumps(response_data).encode()
+        #logger.info("Final message before encryption")
+        #logger.info(final_msg)
     if enc_key["mythic_encrypts"]:
         # if mythic should encrypt this, encrypt it and do our normal stuff
         # print(final_msg)
@@ -678,25 +733,39 @@ async def create_final_message_from_data_and_profile_info(response_data, enc_key
             await send_all_operations_message(
                 message=f"Parsing agent message - step 9 (mythic doesn't encrypt and no translation container, just adding uuid and base64 encoding): \n {final_msg}",
                 level="info", source="debug", operation=enc_key["payload"].operation)
+    for t in tasks_to_update:
+        t.status = "processing"
+        t.status_timestamp_processing = datetime.utcnow()
+        t.timestamp = t.status_timestamp_processing
+        await app.db_objects.update(t)
     return final_msg
 
 
 async def staging_translator(final_msg, enc_key):
     try:
         # we got a message back, process it and store it for staging information in the future
+        # message back should have:
+        # {
+        #   "session_id": "a string way if needed to tell two concurrently staging requests apart"
+        #   "enc_key": raw bytes of the encryption key to use for the next request
+        #   "dec_key": raw bytes of the decryption key to use for the next request
+        #   "type": "string crypto type"
+        #   "next_uuid": "string UUID that will be used for the next message to pull this information back from the database",
+        #   "message": the final message you want to actually go back to the agent
+        # }
         await app.db_objects.create(db_model.StagingInfo,
-                                session_id=final_msg["session_id"],
-                                enc_key=base64.b64decode(final_msg["enc_key"]) if final_msg["enc_key"] is not None else None,
-                                dec_key=base64.b64decode(final_msg["dec_key"]) if final_msg["dec_key"] is not None else None,
-                                crypto_type=final_msg["type"],
-                                staging_uuid=final_msg["next_uuid"],
-                                payload=enc_key["payload"]
-                                )
-        return base64.b64decode(final_msg["message"])
+                                    session_id=final_msg["session_id"],
+                                    enc_key=base64.b64decode(final_msg["enc_key"]) if final_msg["enc_key"] is not None else None,
+                                    dec_key=base64.b64decode(final_msg["dec_key"]) if final_msg["dec_key"] is not None else None,
+                                    crypto_type=final_msg["crypto_type"],
+                                    staging_uuid=final_msg["next_uuid"],
+                                    payload=enc_key["payload"]
+                                    )
+        return final_msg["message"]
 
     except Exception as e:
         asyncio.create_task(send_all_operations_message(
-            message=f"Failed to translator_staging response from {enc_key['translation_container']} container message: {str(final_msg)}",
+            message=f"Failed to process staging_translation response from {enc_key['translation_container']} with response from container message: {str(final_msg)}\nError: {str(e)}",
             level="warning", source="translator_staging_response_error", operation=enc_key["payload"].operation))
         return None
 
@@ -882,6 +951,8 @@ async def create_callback_func(data, request):
                     c2_profile=i.c2_profile,
                     value=i.value,
                     operation=cal.operation,
+                    enc_key=i.enc_key,
+                    dec_key=i.dec_key
                 )
     except Exception as e:
         asyncio.create_task(send_all_operations_message(
@@ -971,7 +1042,6 @@ async def load_commands_func(command_dict, callback, task):
             await app.db_objects.delete(lc)
         return {"status": "success"}
     except Exception as e:
-        print(e)
         asyncio.create_task(send_all_operations_message(
             message=f"Failed to update loaded command: {str(e)}",
             level="warning", source="load_commands", operation=callback.operation))
@@ -1081,6 +1151,12 @@ async def get_routable_messages(requester, request):
                 & (db_model.Callback.operation == operation)
             )
         )
+        socks_callbacks = await app.db_objects.execute(
+            db_model.callback_query.where(
+                (db_model.Callback.operation == operation) &
+                (db_model.Callback.port != None)
+            )
+        )
         temp_callback_tasks = {}
         for t in submitted_tasks:
             # print(t.to_json())
@@ -1098,9 +1174,31 @@ async def get_routable_messages(requester, request):
                 else:
                     temp_callback_tasks[path.nodes[-1].agent_callback_id] = {
                         "tasks": [t],
+                        "socks": None,
                         "path": path.nodes[::-1],
                         "edges": path.edges[::-1]
                     }
+        # get potentially routable socks data
+        for t in socks_callbacks:
+            logger.info(f"len of redis list for SOCKS:{t.id}:ToAgent is {app.redis_pool.llen(f'SOCKS:{t.id}:ToAgent')}")
+            if app.redis_pool.llen(f"SOCKS:{t.id}:ToAgent") > 0:
+                try:
+                    path = find_path(graph, requester, t, cost_func=cost_func)
+                except NoPathError:
+                    logger.info(f"No path for socks data to callback {t.id} from callback {requester.id}")
+                    continue
+                if len(path.nodes) > 1 and path.nodes[-1] != requester:
+                    if path.nodes[-1].agent_callback_id in temp_callback_tasks:
+                        temp_callback_tasks[path.nodes[-1].agent_callback_id]["socks"] = t
+                    else:
+                        temp_callback_tasks[path.nodes[-1].agent_callback_id] = {
+                            "tasks": [],
+                            "socks": t,
+                            "path": path.nodes[::-1],
+                            "edges": path.edges[::-1]
+                        }
+                else:
+                    logger.info(f"path exists, len(path.nodes): {len(path.nodes)}")
         # now actually construct the tasks
         for k, v in temp_callback_tasks.items():
             #print(k)
@@ -1121,8 +1219,16 @@ async def get_routable_messages(requester, request):
                         "timestamp": t.timestamp.timestamp(),
                     }
                 )
+            socks = []
+            if v["socks"] is not None:
+                logger.info(f"v['socks'] is not None, has value: {v['socks'].id}")
+                socks = await get_socks_data(v["socks"])
+                if socks is None:
+                    logger.info("got socks is None back from get_socks_data")
+                    socks = []
+                logger.info("socks is not none from get_socks_data")
             # now that we have all the tasks we're going to send, make the message
-            message = {"action": "get_tasking", "tasks": tasks}
+            message = {"action": "get_tasking", "tasks": tasks, "socks": socks}
             # now wrap this message up like it's going to be sent out, first level is just normal
             #print(v["edges"])
             #print(v["path"])
@@ -1146,12 +1252,18 @@ async def get_routable_messages(requester, request):
             # we don't need to do this wrapping for the last in the list since that's the egress node asking for tasking
             for cal in v["edges"][1:]:
                 message = {"action": "get_tasking", "tasks": [], "delegates": [message]}
-                logger.info("destination agent: " + cal.destination.agent_callback_id)
-                logger.info("source agent: " + cal.source.agent_callback_id)
+                if app.debugging_enabled:
+                    logger.info("destination agent: " + cal.destination.agent_callback_id)
+                    logger.info("source agent: " + cal.source.agent_callback_id)
+                cal.destination.last_checkin = datetime.utcnow()
+                cal.source.last_checkin = datetime.utcnow()
+                await app.db_objects.update(cal.destination)
+                await app.db_objects.update(cal.source)
                 enc_key = await get_encryption_data(cal.destination.agent_callback_id, cal.c2_profile.name)
-                logger.info(
-                    "Got encryption data for linked callback in for loop, about to send off {} to create_final_message".format(
-                        str(message)))
+                if app.debugging_enabled:
+                    logger.info(
+                        "Got encryption data for linked callback in for loop, about to send off {} to create_final_message".format(
+                            str(message)))
                 final_msg = await create_final_message_from_data_and_profile_info(message,
                                                                                   enc_key,
                                                                                   cal.destination.agent_callback_id,
@@ -1161,7 +1273,8 @@ async def get_routable_messages(requester, request):
                 else:
                     if not isinstance(final_msg, str):
                         final_msg = final_msg.decode()
-                    logger.info("setting final target uuid of message: " + cal.destination.agent_callback_id)
+                    if app.debugging_enabled:
+                        logger.info("setting final target uuid of message: " + cal.destination.agent_callback_id)
                     message = {
                         "message": final_msg,
                         "uuid": cal.destination.agent_callback_id
@@ -1211,7 +1324,8 @@ cached_socks = {}
 
 
 async def start_socks(port: int, callback: Callback, task: Task):
-    print("starting socks")
+    if app.debugging_enabled:
+        logger.info("starting socks")
     try:
         socks_instance = await app.db_objects.get(db_model.callback_query, port=port)
         return {"status": "error", "error": "socks already started on that port"}
@@ -1221,6 +1335,15 @@ async def start_socks(port: int, callback: Callback, task: Task):
             app.redis_pool.delete(f"SOCKS_RUNNING:{callback.id}")
             kill_socks_processes(callback.id)
         pass
+    from app import dynamic_ports, dynamic_ports_env
+    valid = False
+    for dp in dynamic_ports:
+        # we need to check if the port we're trying to open is in the range specified to be exposed by this container
+        logger.info("checking: " + str(dp))
+        if dp[1] >= port >= dp[0]:
+            valid = True
+    if not valid:
+        return {"status": "error", "error": f"Specified SOCKS port, {port}, is not in the ranges specified by the MYTHIC_SERVER_DYNAMIC_PORTS environment variable\nPick a port in the range, {dynamic_ports_env}, or update the environment variable and restart Mythic"}
     server_address = ("0.0.0.0", port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1250,8 +1373,8 @@ async def start_socks(port: int, callback: Callback, task: Task):
                 str(port), str(callback.id)
             ),
         )
-
-        print("started socks")
+        if app.debugging_enabled:
+            logger.info("started socks")
     except Exception as e:
         return {"status": "error", "error": str(e)}
     return {"status": "success"}
@@ -1268,7 +1391,8 @@ def kill_socks_processes(callback_id: int):
                 con["connection"].shutdown(socket.SHUT_RDWR)
                 con["connection"].close()
             except Exception:
-                print("failed to close a connection from proxychains")
+                if app.debugging_enabled:
+                    logger.info("failed to close a connection from proxychains")
     except Exception as e:
         logger.warning("exception in looping through connections in kill_socks_processes: " + str(e))
     try:
@@ -1297,20 +1421,21 @@ async def stop_socks(callback: Callback, operator):
         port = callback.port
         callback.port = None
         await app.db_objects.update(callback)
-        await app.db_objects.create(
-            db_model.OperationEventLog,
-            operator=operator,
-            operation=callback.operation,
-            message="Stopped socks proxy on port {} in callback {}".format(
-                str(port), str(callback.id)
-            ),
-        )
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(0)
                 s.connect( ("127.0.0.1", port))
                 s.shutdown(socket.SHUT_RDWR)
                 s.close()
+
+                await app.db_objects.create(
+                    db_model.OperationEventLog,
+                    operator=operator,
+                    operation=callback.operation,
+                    message="Stopped socks proxy on port {} in callback {}".format(
+                        str(port), str(callback.id)
+                    ),
+                )
         except Exception as s:
             logger.warning("Failed to connect to current socket to issue a kill: " + str(s))
 
@@ -1331,32 +1456,36 @@ def thread_send_socks_data(callback_id: int):
                 if not app.redis_pool.exists(f"SOCKS_RUNNING:{callback_id}"):
                     kill_socks_processes(callback_id)
                     return
-                print("******* SENDING THE FOLLOWING TO PROXYCHAINS *******")
-                print(message)
+                if app.debugging_enabled:
+                    logger.info("******* SENDING THE FOLLOWING TO PROXYCHAINS *******")
+                    logger.info(message)
                 if message["type"] == "message":
                     data = js.loads(message["data"])
                     for d in data:
-                        print("processing the following to go to proxychains")
-                        print(d)
+                        if app.debugging_enabled:
+                            logger.info("processing the following to go to proxychains")
+                            logger.info(d)
                         if callback_id in cached_socks:
                             if d["server_id"] in cached_socks[callback_id]["connections"]:
                                 conn = cached_socks[callback_id]["connections"][d["server_id"]]
+                                conn["connection"].sendall(base64.b64decode(d["data"]))
                                 if d["exit"]:
-                                    print("agent tasked mythic to close connection")
+                                    if app.debugging_enabled:
+                                        logger.info("agent tasked mythic to close connection")
                                     cached_socks[callback_id]["connections"].pop(d["server_id"], None)
                                     try:
                                         conn["connection"].shutdown(socket.SHUT_RDWR)
                                         conn["connection"].close()
                                     except Exception as d:
-                                        print("error trying to close connection that agent told me to close: " + str(d))
+                                        if app.debugging_enabled:
+                                            logger.info("error trying to close connection that agent told me to close: " + str(d))
                                         pass
-                                else:
-                                    conn["connection"].sendall(base64.b64decode(d["data"]))
                             else:
                                 # we don't have d["server_id"] tracked as an active connection, so unless they said to kill it, tell them to kill it
                                 #print("got message for something we aren't tracking")
                                 if not d["exit"]:
-                                    print("telling agent to kill connection")
+                                    if app.debugging_enabled:
+                                        logger.info("telling agent to kill connection")
                                     app.redis_pool.rpush(f"SOCKS:{callback_id}:ToAgent", js.dumps({
                                         "exit": True,
                                         "server_id": d["server_id"],
@@ -1366,7 +1495,8 @@ def thread_send_socks_data(callback_id: int):
                             # we no longer have that callback_id in our cache, so we tried to exit, so exit this
                             return
         except Exception as e:
-            print("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
+            if app.debugging_enabled:
+                logger.info("******** EXCEPTION IN SEND SOCKS DATA *****\n{}".format(str(e)))
             #print(cached_socks[callback.id]["connections"])
 
 
@@ -1378,16 +1508,19 @@ async def get_socks_data(callback: Callback):
             d = app.redis_pool.lpop(f"SOCKS:{callback.id}:ToAgent")
             if d is None:
                 break
-            print("agent picking up data from callback queue")
-            print(d)
+            if app.debugging_enabled:
+                logger.info("agent picking up data from callback queue")
+                logger.info(d)
             data.append(js.loads(d))
             #data.append(cached_socks[callback.id]["queue"].popleft())
         except Exception as e:
-            print("exception in get_socks_data for an agent: " + str(e))
+            if app.debugging_enabled:
+                logger.info("exception in get_socks_data for an agent: " + str(e))
             break
     if len(data) > 0:
-        print("******* SENDING THE FOLLOWING TO THE AGENT ******")
-        print(data)
+        if app.debugging_enabled:
+            logger.info("******* SENDING THE FOLLOWING TO THE AGENT ******")
+            logger.info(data)
     return data
 
 
@@ -1398,7 +1531,8 @@ def thread_read_socks(port: int, callback_id: int, sock: socket) -> None:
     sock.listen(1)
     id = 1
     try:
-        #print("waiting to accept connections")
+        if app.debugging_enabled:
+            logger.info("waiting to accept connections")
         # spin off a thread to handle messages from agent to connections
         toAgentThread = threading.Thread(target=thread_send_socks_data, kwargs={"callback_id": callback_id})
         toAgentThread.start()
@@ -1407,7 +1541,8 @@ def thread_read_socks(port: int, callback_id: int, sock: socket) -> None:
             if not app.redis_pool.exists(f"SOCKS_RUNNING:{callback_id}"):
                 kill_socks_processes(callback_id)
                 return
-            #print("got new connection for " + str(id))
+            if app.debugging_enabled:
+                logger.info("got new connection for " + str(id))
             conn_sock = {
                 "connection": connection,
                 "thread_read": threading.Thread(
@@ -1424,7 +1559,8 @@ def thread_read_socks(port: int, callback_id: int, sock: socket) -> None:
             kill_socks_processes(callback_id)
         except Exception as e:
             pass
-        #print("exception in accepting new socket connections!!!!!")
+        if app.debugging_enabled:
+            logger.info("exception in accepting new socket connections!!!!!")
 
 
 def thread_get_socks_data_from_connection(port: int, connection: socket, callback_id: int, connection_id: int):
@@ -1472,6 +1608,7 @@ def thread_get_socks_data_from_connection(port: int, connection: socket, callbac
         #print("no longer in while loop for connection: " + str(connection_id))
         #print(cached_socks[callback_id]["connections"])
     except Exception:
+
         #print("failed to read from proxychains client, sending exit to agent")
         if callback_id in cached_socks and connection_id in cached_socks[callback_id]["connections"]:
             #print("adding exit message to redis")
@@ -1599,7 +1736,6 @@ async def update_callback_webhook(request, user):
         return json({"status": "error", "error": "failed to get the current operation"})
     try:
         data = request.json["input"]["input"]
-        print(data)
         cb = await app.db_objects.get(db_model.callback_query, id=data["callback_id"], operation=operation)
         return json(await update_callback_active_lock(user, request, cb, data))
     except Exception as e:
@@ -1784,7 +1920,7 @@ async def callbacks_get_all_tasking(request, user, cid):
         operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         callback = await app.db_objects.prefetch(db_model.callback_query.where(
             (db_model.Callback.id == cid) & (db_model.Callback.operation == operation)),
-            db_model.CallbackToken.select()
+            db_model.callbacktoken_query
         )
         callback = list(callback)[0]
         cb_json = callback.to_json()
@@ -1925,7 +2061,6 @@ async def add_p2p_route(agent_message, callback, task):
     #    {
     #      "source": "uuid of callback",
     #      "destination": "uuid of adjoining callback",
-    #      "direction": 1 or 2 or 3,
     #      "metadata": "{ optional metadata json string }",
     #      "action": "add" or "remove"
     #      "c2_profile": "name of the c2 profile"
@@ -1967,24 +2102,27 @@ async def add_p2p_route(agent_message, callback, task):
                     return
                 # there can only be one source-destination-direction-metadata-c2_profile combination
                 try:
-                    edge = await app.db_objects.get(
-                        db_model.CallbackGraphEdge,
-                        source=source,
-                        destination=destination,
-                        direction=e["direction"],
-                        metadata=e["metadata"],
-                        operation=callback.operation,
-                        c2_profile=profile,
-                        end_timestamp=None,
-                    )
+                    if source.id == destination.id and profile.is_p2p:
+                        pass
+                    else:
+                        edge = await app.db_objects.get(
+                            db_model.CallbackGraphEdge,
+                            source=source,
+                            destination=destination,
+                            direction=1,
+                            metadata=e["metadata"] if "metadata" in e else "",
+                            operation=callback.operation,
+                            c2_profile=profile,
+                            end_timestamp=None,
+                        )
                     return
                 except Exception as error:
                     edge = await app.db_objects.create(
                         db_model.CallbackGraphEdge,
                         source=source,
                         destination=destination,
-                        direction=e["direction"],
-                        metadata=e["metadata"],
+                        direction=1,
+                        metadata=e["metadata"] if "metadata" in e else "",
                         operation=callback.operation,
                         c2_profile=profile,
                         task_start=this_task,
@@ -2019,8 +2157,8 @@ async def add_p2p_route(agent_message, callback, task):
                     db_model.CallbackGraphEdge,
                     source=source,
                     destination=destination,
-                    direction=e["direction"],
-                    metadata=e["metadata"],
+                    direction=1,
+                    metadata=e["metadata"] if "metadata" in e else "",
                     operation=callback.operation,
                     c2_profile=profile,
                     end_timestamp=None,
@@ -2052,3 +2190,62 @@ async def path_to_callback(callback, destination):
         asyncio.create_task(send_all_operations_message(message=f"Error in getting path to callback:\n{str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}",
                                                         level="warning", operation=callback.operation))
         return []
+
+
+async def issue_job_list_to_linked_descendents(callback_uuid: str):
+    # breadth first search for all descendants of callback_uuid
+    try:
+        logger.info("Checking Linked Descendents")
+        callback = await app.db_objects.get(db_model.Callback, agent_callback_id=callback_uuid)
+        descendants = await app.db_objects.execute(db_model.callbackgraphedge_query.where(
+            (db_model.CallbackGraphEdge.end_timestamp == None) &
+            (db_model.CallbackGraphEdge.destination == callback) &
+            (db_model.CallbackGraphEdge.source != callback)
+        ))
+        left_to_task = [d.source for d in descendants]
+        for descendant in left_to_task:
+            # check to see if this callback has a `ui_feature = ["p2p:job_list"]` loaded command
+            unfinished_tasks = await app.db_objects.count(db_model.task_query.where(
+                (db_model.Task.callback == descendant) &
+                (db_model.Task.completed == False)
+            ))
+            if unfinished_tasks > 0:
+                # this means that callback has unfinished tasks, so we need to check to make sure the messages
+                # didn't get lost
+                status = None
+                try:
+                    job_list_command = await app.db_objects.execute(db_model.loadedcommands_query.where(
+                        (db_model.LoadedCommands.callback == descendant) &
+                        (db_model.Command.supported_ui_features.contains("p2p:job_list"))
+                    ))
+                    if len(job_list_command) > 0:
+                        from app.api.task_api import add_task_to_callback_func
+                        status = await add_task_to_callback_func(data={
+                            "command": job_list_command[0].cmd,
+                            "params": "",
+                        },
+                                                        cid=callback.id,
+                                                        op=None,
+                                                        cb=callback)
+                        if status["status"] == "error":
+                            await send_all_operations_message(
+                                message=f"Failed to issue p2p:job_list command to callback {descendant.id}:\n{status['error']}",
+                                level="warning", operation=callback.operation)
+                except Exception as e:
+                    await send_all_operations_message(message=f"Failed to find p2p:job_list command for callback {descendant.id}:\n{str(e)}",
+                                                      level="warning", operation=callback.operation)
+            # now that we processed one descendent, make sure to get all descendents of that one
+            # and add them to our list of left_to_task
+            next_descendants = await app.db_objects.execute(db_model.callbackgraphedge_query.where(
+                (db_model.CallbackGraphEdge.end_timestamp == None) &
+                (db_model.CallbackGraphEdge.destination == descendant) &
+                (db_model.CallbackGraphEdge.source != descendant)
+            ))
+            for nd in next_descendants:
+                left_to_task.append(nd.source)
+        logger.info("Stopping check for linked descendents")
+    except Exception as d:
+        await send_all_operations_message(
+            message=f"Failed to issue p2p:job_list commands to callbacks due to a re-checkin from {callback_uuid}:\n{str(d)}",
+            level="warning")
+

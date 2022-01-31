@@ -6,6 +6,7 @@ import ujson as json
 import logging
 from config import settings
 import sys
+import multiprocessing
 
 
 # --------------------------------------------
@@ -26,6 +27,27 @@ db_port = settings.get('POSTGRES_PORT', 5432)
 db_name = settings.get('POSTGRES_DB', "mythic_db")
 db_user = settings.get('POSTGRES_USER', "mythic_user")
 db_pass = settings.get('POSTGRES_PASSWORD', None)
+dynamic_ports_env = settings.get("server_dynamic_ports", "7000-7100")
+dynamic_ports_env = dynamic_ports_env.split(",")
+dynamic_ports = []
+for dp in dynamic_ports_env:
+    if "-" in dp:
+        tmp = dp.split("-")
+        try:
+            dynamic_ports.append(
+                (int(tmp[0]), int(tmp[1]))
+            )
+        except Exception as e:
+            logging.error("Failed to parse mythic_server_dynamic_ports: " + str(dynamic_ports_env))
+            sys.exit(1)
+    else:
+        try:
+            dynamic_ports.append(
+                (int(dp), int(dp))
+            )
+        except Exception as e:
+            logging.error("Failed to parse mythic_server_dynamic_ports: " + str(dynamic_ports_env))
+            sys.exit(1)
 if db_pass is None:
     logging.exception("No MYTHIC_POSTGRES_PASSWORD in environment variables")
     sys.exit(1)
@@ -48,20 +70,21 @@ redis_host = settings.get("REDIS_HOST", "127.0.0.1")
 listen_ip = "0.0.0.0"
 # if log_size > 0, rotate and make a max of max_log_count files to hold logs
 max_log_count = 1
-valid_payload_container_version_bounds = [8, 9]
+valid_payload_container_version_bounds = [11, 12]
 valid_c2_container_version_bounds = [3, 4]
-valid_translation_container_version_bounds = [3, 3]
+valid_translation_container_version_bounds = [4, 4]
 valid_restful_scripting_bounds = [3, 3]
+max_worker_connection = 50
 mythic_db = PooledPostgresqlExtDatabase(
     db_name,
     user=db_user,
     password=db_pass,
     host=db_host,
     port=db_port,
-    max_connections=10000,
+    max_connections=max_worker_connection,
     register_hstore=False,
     autorollback=True,
-    autocommit=True
+    autocommit=False
 )
 db_objects = None
 websocket_pool = None
@@ -217,6 +240,6 @@ Initialize(
     path_to_verify="/verify",
     path_to_refresh="/refresh",
     refresh_token_enabled=True,
-    expiration_delta=28800,  # initial token expiration time, 8hrs
+    expiration_delta=14400,  # initial token expiration time, 8hrs
     login_redirect_url="/login",
 )

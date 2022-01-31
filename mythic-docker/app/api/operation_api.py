@@ -466,6 +466,82 @@ async def create_operation(request, user):
         return json({"status": "error", "error": "not authorized to make the change"})
 
 
+@mythic.route(mythic.config["API_BASE"] + "/create_operation_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def create_operation_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    # this can change the name (assuming it's still unique), ['name']
+    # this can change the admin user assuming the person submitting is the current admin or overall admin ['admin']
+    # this can change the users ['add_users'], ['remove_users']
+    if user["admin"]:
+        data = request.json["input"]
+        if "admin" not in data:
+            data["admin"] = user["id"]
+        try:
+            from app.crypto import create_key_AES256
+
+            modifier = await app.db_objects.get(db_model.operator_query, id=user["id"])
+            new_admin = await app.db_objects.get(db_model.operator_query, id=data["admin"])
+            if "name" not in data or data["name"] == "":
+                data["name"] = f"Operation {new_admin.username}"
+            operation = await app.db_objects.create(
+                db_model.Operation,
+                name=data["name"],
+                admin=new_admin,
+            )
+            await app.db_objects.create(
+                db_model.OperationEventLog,
+                operation=operation,
+                message="{} created operation {}".format(
+                    modifier.username, data["name"]
+                ),
+            )
+            await app.db_objects.create(
+                db_model.OperationEventLog,
+                operation=operation,
+                message="{} made {} the operation admin".format(
+                    modifier.username, new_admin.username
+                ),
+            )
+        except Exception as e:
+            print(e)
+            return json(
+                {"status": "error", "error": "Error creating operation: " + str(e)}
+            )
+        try:
+            if new_admin.current_operation is None:
+                new_admin.current_operation = operation
+                await app.db_objects.update(new_admin)
+            map = await app.db_objects.create(
+                OperatorOperation,
+                operator=new_admin,
+                operation=operation,
+                view_mode="lead",
+            )
+        except Exception as e:
+            print(e)
+            return json(
+                {
+                    "status": "error",
+                    "error": "failed to add user {} to the operation".format(
+                        new_admin.username
+                    ),
+                }
+            )
+        await app.db_objects.update(operation)
+        return json(
+            {"status": "success", "operation_id": operation.id}
+        )
+    else:
+        return json({"status": "error", "error": "not authorized to make new operations"})
+
 # ######## deal with operation ACLS for operators and track which commands they can or cannot do #################
 
 
@@ -561,7 +637,7 @@ async def create_disabled_commands_profile(request, user):
 
 @mythic.route(
     mythic.config["API_BASE"]
-    + "/operations/disabled_commands_profiles/<profile:string>",
+    + "/operations/disabled_commands_profiles/<profile:str>",
     methods=["DELETE"],
 )
 @inject_user()
@@ -598,6 +674,116 @@ async def delete_disabled_commands_profile(request, user, profile):
             await app.db_objects.delete(c)
 
         return json({"status": "success", "name": profile})
+    except Exception as e:
+        print(e)
+        return json(
+            {
+                "status": "error",
+                "error": "failed to delete disabled command profile: " + str(e),
+            }
+        )
+
+@mythic.route(
+    mythic.config["API_BASE"]
+    + "/delete_disabled_command_profile_webhook",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def delete_disabled_commands_profile_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    # only the admin of an operation or an overall admin can delete an operation
+    try:
+        profile = request.json["input"]["name"]
+        operator = await app.db_objects.get(db_model.operator_query, id=user["id"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        if operation.admin.id != operator.id:
+            return json({"status": "error", "error": "Only the operational lead can delete block lists"})
+        commands_profile = await app.db_objects.execute(
+            db_model.disabledcommandsprofile_query.where(
+                (DisabledCommandsProfile.name == profile) &
+                (DisabledCommandsProfile.operation == operation)
+            )
+        )
+        # make sure that the mapping is gone from operatoroperation.base_disabled_commands
+        operator_operation_mapping = await app.db_objects.execute(
+            db_model.operatoroperation_query.where(
+                (DisabledCommandsProfile.name == profile) &
+                (DisabledCommandsProfile.operation == operation) &
+                (OperatorOperation.operation == operation)
+            )
+        )
+        for o in operator_operation_mapping:
+            o.base_disabled_commands = None
+            await app.db_objects.update(o)
+        for c in commands_profile:
+            await app.db_objects.delete(c)
+        return json({"status": "success", "name": profile})
+    except Exception as e:
+        print(e)
+        return json(
+            {
+                "status": "error",
+                "error": "failed to delete disabled command profile: " + str(e),
+            }
+        )
+
+
+@mythic.route(
+    mythic.config["API_BASE"]
+    + "/delete_disabled_command_profile_entry_webhook",
+    methods=["POST"],
+)
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def delete_disabled_commands_profile_entry_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    # only the admin of an operation or an overall admin can delete an operation
+    try:
+        data_input = request.json["input"]
+        operator = await app.db_objects.get(db_model.operator_query, id=user["id"])
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        if operation.admin.id != operator.id:
+            return json({"status": "error", "error": "Only the operational lead can delete block lists"})
+        commands_profile = await app.db_objects.execute(
+            db_model.disabledcommandsprofile_query.where(
+                (DisabledCommandsProfile.name == data_input["name"]) &
+                (DisabledCommandsProfile.operation == operation)
+            )
+        )
+        # make sure that the mapping is gone from operatoroperation.base_disabled_commands if there are no more commands
+        operator_operation_mapping = await app.db_objects.execute(
+            db_model.operatoroperation_query.where(
+                (DisabledCommandsProfile.name == data_input["name"]) &
+                (DisabledCommandsProfile.operation == operation)
+            )
+        )
+        remaining = True
+        deleted_ids = []
+        for c in commands_profile:
+            if c.command.id in data_input["entries"]:
+                deleted_ids.append(c.id)
+                await app.db_objects.delete(c)
+            else:
+                remaining = False
+        if not remaining:
+            # this means we ended up deleting all of them, so need to remove the operator mappings
+            for o in operator_operation_mapping:
+                o.base_disabled_commands = None
+                await app.db_objects.update(o)
+        return json({"status": "success", "name": data_input["name"], "deleted_ids": deleted_ids})
     except Exception as e:
         print(e)
         return json(

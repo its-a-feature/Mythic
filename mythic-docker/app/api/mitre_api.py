@@ -207,7 +207,7 @@ async def regex_against_tasks(request, user):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/mitreattack/task/<tid:int>/attack/<tnum:string>",
+    mythic.config["API_BASE"] + "/mitreattack/task/<tid:int>/attack/<tnum:str>",
     methods=["DELETE"],
 )
 @inject_user()

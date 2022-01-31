@@ -38,7 +38,7 @@ async def get_all_commands(request, user):
 
 # Get information about a specific command, including its code, if it exists (used in checking before creating a new command)
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<ptype:int>/check/<cmd:string>",
+    mythic.config["API_BASE"] + "/commands/<ptype:int>/check/<cmd:str>",
     methods=["GET"],
 )
 @inject_user()
@@ -135,7 +135,7 @@ async def get_all_attack_mappings_for_command(request, user, cid):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/<t_num:string>",
+    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/<t_num:str>",
     methods=["DELETE"],
 )
 @inject_user()
@@ -164,7 +164,7 @@ async def remove_attack_mapping_for_command(request, user, cid, t_num):
 
 
 @mythic.route(
-    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/<t_num:string>",
+    mythic.config["API_BASE"] + "/commands/<cid:int>/mitreattack/<t_num:str>",
     methods=["POST"],
 )
 @inject_user()

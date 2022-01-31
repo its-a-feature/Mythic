@@ -17,6 +17,7 @@ ssl/
 # Mythic files
 files/
 mythic_access.*
+mythic_sync/
 postgres-docker/database/
 rabbitmq-docker/storage/
 C2_profiles/

@@ -1,5 +1,8 @@
 - table:
     schema: public
+    name: agentstorage
+- table:
+    schema: public
     name: apitokens
   object_relationships:
   - name: operator
@@ -354,6 +357,51 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  insert_permissions:
+  - role: developer
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
+  - role: mythic_admin
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
+  - role: operation_admin
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
+  - role: operator
+    permission:
+      check:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+      columns:
+      - attack_id
+      - task_id
+      backend_only: false
   select_permissions:
   - role: developer
     permission:
@@ -410,6 +458,35 @@
           callback:
             operation_id:
               _eq: X-Hasura-current-operation-id
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: operation_admin
+    permission:
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
+  - role: operator
+    permission:
+      filter:
+        task:
+          callback:
+            operation_id:
+              _eq: X-Hasura-current-operation-id
 - table:
     schema: public
     name: authenticationpackage
@@ -420,6 +497,92 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - id
+      - LogonSession_id
+      - Name
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+      - id
+      - LogonSession_id
+      - Name
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+      - id
+      - LogonSession_id
+      - Name
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+      - id
+      - LogonSession_id
+      - Name
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+      - id
+      - LogonSession_id
+      - Name
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
 - table:
     schema: public
     name: browserscript
@@ -441,6 +604,67 @@
         table:
           schema: public
           name: browserscriptoperation
+  insert_permissions:
+  - role: developer
+    permission:
+      check: {}
+      set:
+        operator_id: x-hasura-User-Id
+        for_new_ui: "true"
+        creation_time: now()
+      columns:
+      - active
+      - author
+      - command_id
+      - creation_time
+      - payload_type_id
+      - script
+      backend_only: false
+  - role: mythic_admin
+    permission:
+      check: {}
+      set:
+        operator_id: x-hasura-User-Id
+        for_new_ui: "true"
+        creation_time: now()
+      columns:
+      - active
+      - author
+      - command_id
+      - creation_time
+      - payload_type_id
+      - script
+      backend_only: false
+  - role: operation_admin
+    permission:
+      check: {}
+      set:
+        operator_id: x-hasura-User-Id
+        for_new_ui: "true"
+        creation_time: now()
+      columns:
+      - active
+      - author
+      - command_id
+      - creation_time
+      - payload_type_id
+      - script
+      backend_only: false
+  - role: operator
+    permission:
+      check: {}
+      set:
+        operator_id: x-hasura-User-Id
+        for_new_ui: "true"
+        creation_time: now()
+      columns:
+      - active
+      - author
+      - command_id
+      - creation_time
+      - payload_type_id
+      - script
+      backend_only: false
   select_permissions:
   - role: developer
     permission:
@@ -614,6 +838,27 @@
         operator_id:
           _eq: X-Hasura-User-Id
       check: null
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: mythic_admin
+    permission:
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operation_admin
+    permission:
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operator
+    permission:
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
 - table:
     schema: public
     name: browserscriptoperation
@@ -1228,19 +1473,109 @@
         - payload:
             operation_id:
               _in: X-Hasura-operations
+  update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - instance_name
+      - value
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+      - instance_name
+      - value
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+      - instance_name
+      - value
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
+      check: null
+  - role: operator
+    permission:
+      columns:
+      - instance_name
+      - value
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
+      check: null
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
+  - role: operator
+    permission:
+      filter:
+        _or:
+        - operation_id:
+            _in: X-Hasura-operations
+        - payload:
+            operation_id:
+              _in: X-Hasura-operations
 - table:
     schema: public
     name: callback
   object_relationships:
+  - name: locked_operator
+    using:
+      foreign_key_constraint_on: locked_operator_id
   - name: operation
     using:
       foreign_key_constraint_on: operation_id
   - name: operator
     using:
       foreign_key_constraint_on: operator_id
-  - name: operatorByLockedOperatorId
-    using:
-      foreign_key_constraint_on: locked_operator_id
   - name: payload
     using:
       foreign_key_constraint_on: registered_payload_id
@@ -1355,6 +1690,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
@@ -1392,6 +1728,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
@@ -1429,6 +1766,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
@@ -1466,6 +1804,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
@@ -1501,6 +1840,93 @@
       - dec_key_base64
       - enc_key_base64
       filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - architecture
+      - description
+      - domain
+      - external_ip
+      - extra_info
+      - host
+      - integrity_level
+      - ip
+      - os
+      - process_name
+      - sleep_info
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+      - architecture
+      - description
+      - domain
+      - external_ip
+      - extra_info
+      - host
+      - integrity_level
+      - ip
+      - os
+      - process_name
+      - sleep_info
+      - user
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+      - architecture
+      - description
+      - domain
+      - external_ip
+      - extra_info
+      - host
+      - integrity_level
+      - ip
+      - os
+      - pid
+      - process_name
+      - sleep_info
+      - user
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+      - architecture
+      - description
+      - domain
+      - external_ip
+      - extra_info
+      - host
+      - integrity_level
+      - ip
+      - os
+      - pid
+      - process_name
+      - sleep_info
+      - user
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
         operation_id:
           _in: X-Hasura-operations
 - table:
@@ -1939,13 +2365,6 @@
         table:
           schema: public
           name: commandparameters
-  - name: disabledcommands
-    using:
-      foreign_key_constraint_on:
-        column: command_id
-        table:
-          schema: public
-          name: disabledcommands
   - name: disabledcommandsprofiles
     using:
       foreign_key_constraint_on:
@@ -1978,92 +2397,88 @@
   - role: developer
     permission:
       columns:
-      - id
-      - needs_admin
-      - help_cmd
-      - description
-      - cmd
-      - payload_type_id
-      - creation_time
-      - version
-      - supported_ui_features
-      - author
       - deleted
-      - attributes
-      - opsec_id
+      - needs_admin
       - script_only
+      - cmd
+      - id
+      - opsec_id
+      - payload_type_id
+      - version
+      - attributes
+      - author
+      - description
+      - help_cmd
+      - supported_ui_features
+      - creation_time
       filter: {}
   - role: mythic_admin
     permission:
       columns:
-      - id
-      - needs_admin
-      - help_cmd
-      - description
-      - cmd
-      - payload_type_id
-      - creation_time
-      - version
-      - supported_ui_features
-      - author
       - deleted
-      - attributes
-      - opsec_id
+      - needs_admin
       - script_only
+      - cmd
+      - id
+      - opsec_id
+      - payload_type_id
+      - version
+      - attributes
+      - author
+      - description
+      - help_cmd
+      - supported_ui_features
       filter: {}
   - role: operation_admin
     permission:
       columns:
-      - id
-      - needs_admin
-      - help_cmd
-      - description
-      - cmd
-      - payload_type_id
-      - creation_time
-      - version
-      - supported_ui_features
-      - author
       - deleted
-      - attributes
-      - opsec_id
+      - needs_admin
       - script_only
+      - cmd
+      - id
+      - opsec_id
+      - payload_type_id
+      - version
+      - attributes
+      - author
+      - description
+      - help_cmd
+      - supported_ui_features
       filter: {}
   - role: operator
     permission:
       columns:
-      - id
-      - needs_admin
-      - help_cmd
-      - description
-      - cmd
-      - payload_type_id
-      - creation_time
-      - version
-      - supported_ui_features
-      - author
       - deleted
-      - attributes
-      - opsec_id
+      - needs_admin
       - script_only
+      - cmd
+      - id
+      - opsec_id
+      - payload_type_id
+      - version
+      - attributes
+      - author
+      - description
+      - help_cmd
+      - supported_ui_features
       filter: {}
   - role: spectator
     permission:
       columns:
-      - id
-      - needs_admin
-      - help_cmd
-      - description
-      - cmd
-      - payload_type_id
-      - creation_time
-      - version
-      - supported_ui_features
-      - author
       - deleted
-      - attributes
-      - opsec_id
+      - needs_admin
       - script_only
+      - cmd
+      - id
+      - opsec_id
+      - payload_type_id
+      - version
+      - attributes
+      - author
+      - description
+      - help_cmd
+      - supported_ui_features
       filter: {}
 - table:
     schema: public
@@ -2136,94 +2551,109 @@
       - id
       - command_id
       - name
+      - display_name
+      - cli_name
       - type
       - default_value
       - choices
-      - required
       - description
       - supported_agents
       - supported_agent_build_parameters
       - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - ui_position
       - dynamic_query_function
+      - parameter_group_name
+      - required
+      - ui_position
       filter: {}
   - role: mythic_admin
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
-      - supported_agent_build_parameters
-      - supported_agents
+      - parameter_group_name
+      - required
+      - ui_position
       filter: {}
   - role: operation_admin
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
-      - supported_agent_build_parameters
-      - supported_agents
+      - parameter_group_name
+      - required
+      - ui_position
       filter: {}
   - role: operator
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
-      - supported_agent_build_parameters
-      - supported_agents
+      - parameter_group_name
+      - required
+      - ui_position
       filter: {}
   - role: spectator
     permission:
       columns:
+      - id
+      - command_id
+      - name
+      - display_name
+      - cli_name
+      - type
+      - default_value
+      - choices
+      - description
+      - supported_agents
+      - supported_agent_build_parameters
+      - choice_filter_by_command_attributes
       - choices_are_all_commands
       - choices_are_loaded_commands
-      - required
-      - type
-      - command_id
-      - id
-      - ui_position
-      - choice_filter_by_command_attributes
-      - choices
-      - default_value
-      - description
       - dynamic_query_function
-      - name
-      - supported_agent_build_parameters
-      - supported_agents
+      - parameter_group_name
+      - required
+      - ui_position
       filter: {}
 - table:
     schema: public
@@ -2248,6 +2678,79 @@
       function:
         schema: public
         name: credential_credentials
+  insert_permissions:
+  - role: developer
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - account
+      - comment
+      - credential
+      - metadata
+      - operation_id
+      - operator_id
+      - realm
+      - type
+      backend_only: false
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - account
+      - comment
+      - credential
+      - metadata
+      - operation_id
+      - operator_id
+      - realm
+      - type
+      backend_only: false
+  - role: operation_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - account
+      - comment
+      - credential
+      - metadata
+      - operation_id
+      - operator_id
+      - realm
+      - type
+      backend_only: false
+  - role: operator
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - account
+      - comment
+      - credential
+      - metadata
+      - operation_id
+      - operator_id
+      - realm
+      - type
+      backend_only: false
   select_permissions:
   - role: developer
     permission:
@@ -2269,6 +2772,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
@@ -2289,6 +2793,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
@@ -2309,6 +2814,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
@@ -2329,6 +2835,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
@@ -2349,19 +2856,84 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
-- table:
-    schema: public
-    name: disabledcommands
-  object_relationships:
-  - name: command
-    using:
-      foreign_key_constraint_on: command_id
-  - name: operation
-    using:
-      foreign_key_constraint_on: operation_id
-  - name: operator
-    using:
-      foreign_key_constraint_on: operator_id
+      allow_aggregations: true
+  update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - account
+      - comment
+      - credential
+      - deleted
+      - metadata
+      - operator_id
+      - realm
+      - type
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
+  - role: mythic_admin
+    permission:
+      columns:
+      - account
+      - comment
+      - credential
+      - deleted
+      - metadata
+      - operator_id
+      - realm
+      - type
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
+  - role: operation_admin
+    permission:
+      columns:
+      - account
+      - comment
+      - credential
+      - deleted
+      - metadata
+      - operator_id
+      - realm
+      - type
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
+  - role: operator
+    permission:
+      columns:
+      - account
+      - comment
+      - credential
+      - deleted
+      - metadata
+      - operator_id
+      - realm
+      - type
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operator_id: x-hasura-user-id
 - table:
     schema: public
     name: disabledcommandsprofile
@@ -2369,6 +2941,9 @@
   - name: command
     using:
       foreign_key_constraint_on: command_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
   array_relationships:
   - name: operatoroperations
     using:
@@ -2377,6 +2952,177 @@
         table:
           schema: public
           name: operatoroperation
+  insert_permissions:
+  - role: developer
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  - role: operator
+    permission:
+      check:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+      - command_id
+      - name
+      backend_only: false
+  select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: mythic_admin
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operation_admin
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operator
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: spectator
+    permission:
+      columns:
+      - command_id
+      - id
+      - name
+      - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operation_admin
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
+  - role: operator
+    permission:
+      filter:
+        _and:
+        - operation_id:
+            _eq: x-hasura-current-operation-id
+        - operatoroperations:
+            _and:
+            - view_mode:
+                _eq: lead
+            - operator_id:
+                _eq: x-hasura-user-id
+            - operation_id:
+                _eq: x-hasura-current-operation-id
 - table:
     schema: public
     name: filebrowserobj
@@ -2638,28 +3384,29 @@
   - role: developer
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -2670,28 +3417,29 @@
   - role: mythic_admin
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -2702,28 +3450,29 @@
   - role: operation_admin
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -2734,28 +3483,29 @@
   - role: operator
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -2766,28 +3516,29 @@
   - role: spectator
     permission:
       columns:
-      - id
       - agent_file_id
-      - total_chunks
-      - chunks_received
       - chunk_size
-      - task_id
+      - chunks_received
+      - comment
       - complete
-      - path
-      - full_remote_path
-      - host
-      - is_payload
-      - is_screenshot
-      - is_download_from_agent
+      - delete_after_fetch
+      - deleted
       - file_browser_id
       - filename
-      - delete_after_fetch
-      - operation_id
-      - timestamp
-      - deleted
-      - operator_id
+      - full_remote_path
+      - host
+      - id
+      - is_download_from_agent
+      - is_payload
+      - is_screenshot
       - md5
+      - operation_id
+      - operator_id
+      - path
       - sha1
+      - task_id
+      - timestamp
+      - total_chunks
       computed_fields:
       - filename_text
       - full_remote_path_text
@@ -2799,6 +3550,7 @@
   - role: developer
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -2810,6 +3562,7 @@
   - role: mythic_admin
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -2821,6 +3574,7 @@
   - role: operation_admin
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -2832,6 +3586,7 @@
   - role: operator
     permission:
       columns:
+      - comment
       - deleted
       - filename
       filter:
@@ -2850,6 +3605,13 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
+  computed_fields:
+  - name: keystrokes_text
+    definition:
+      function:
+        schema: public
+        name: keylog_keystrokes
+    comment: utf8 version of keylogs
   select_permissions:
   - role: developer
     permission:
@@ -2861,61 +3623,76 @@
       - timestamp
       - operation_id
       - user
+      computed_fields:
+      - keystrokes_text
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
-      - keystrokes
       - id
-      - operation_id
       - task_id
-      - user
+      - keystrokes
       - window
       - timestamp
+      - operation_id
+      - user
+      computed_fields:
+      - keystrokes_text
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
-      - keystrokes
       - id
-      - operation_id
       - task_id
-      - user
+      - keystrokes
       - window
       - timestamp
+      - operation_id
+      - user
+      computed_fields:
+      - keystrokes_text
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
-      - keystrokes
       - id
-      - operation_id
       - task_id
-      - user
+      - keystrokes
       - window
       - timestamp
+      - operation_id
+      - user
+      computed_fields:
+      - keystrokes_text
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
-      - keystrokes
       - id
-      - operation_id
       - task_id
-      - user
+      - keystrokes
       - window
       - timestamp
+      - operation_id
+      - user
+      computed_fields:
+      - keystrokes_text
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
 - table:
     schema: public
     name: loadedcommands
@@ -3017,6 +3794,202 @@
         table:
           schema: public
           name: token
+  select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - id
+      - LogonId
+      - UserName
+      - LogonDomain
+      - FullQualifiedUserName
+      - LogonType
+      - SessionId
+      - Sid
+      - LogonTime
+      - LogonServer
+      - DnsDomainName
+      - Upn
+      - UserFlags
+      - LastSuccessfulLogon
+      - LastFailedLogon
+      - FailedAttemptCountSinceLastSuccessfulLogon
+      - LogonScript
+      - ProfilePath
+      - HomeDirectory
+      - HomeDirectoryDrive
+      - LogoffTime
+      - KickOffTime
+      - PasswordLastSet
+      - PasswordCanChange
+      - PasswordMustChange
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+      - id
+      - LogonId
+      - UserName
+      - LogonDomain
+      - FullQualifiedUserName
+      - LogonType
+      - SessionId
+      - Sid
+      - LogonTime
+      - LogonServer
+      - DnsDomainName
+      - Upn
+      - UserFlags
+      - LastSuccessfulLogon
+      - LastFailedLogon
+      - FailedAttemptCountSinceLastSuccessfulLogon
+      - LogonScript
+      - ProfilePath
+      - HomeDirectory
+      - HomeDirectoryDrive
+      - LogoffTime
+      - KickOffTime
+      - PasswordLastSet
+      - PasswordCanChange
+      - PasswordMustChange
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+      - id
+      - LogonId
+      - UserName
+      - LogonDomain
+      - FullQualifiedUserName
+      - LogonType
+      - SessionId
+      - Sid
+      - LogonTime
+      - LogonServer
+      - DnsDomainName
+      - Upn
+      - UserFlags
+      - LastSuccessfulLogon
+      - LastFailedLogon
+      - FailedAttemptCountSinceLastSuccessfulLogon
+      - LogonScript
+      - ProfilePath
+      - HomeDirectory
+      - HomeDirectoryDrive
+      - LogoffTime
+      - KickOffTime
+      - PasswordLastSet
+      - PasswordCanChange
+      - PasswordMustChange
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+      - id
+      - LogonId
+      - UserName
+      - LogonDomain
+      - FullQualifiedUserName
+      - LogonType
+      - SessionId
+      - Sid
+      - LogonTime
+      - LogonServer
+      - DnsDomainName
+      - Upn
+      - UserFlags
+      - LastSuccessfulLogon
+      - LastFailedLogon
+      - FailedAttemptCountSinceLastSuccessfulLogon
+      - LogonScript
+      - ProfilePath
+      - HomeDirectory
+      - HomeDirectoryDrive
+      - LogoffTime
+      - KickOffTime
+      - PasswordLastSet
+      - PasswordCanChange
+      - PasswordMustChange
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+      - id
+      - LogonId
+      - UserName
+      - LogonDomain
+      - FullQualifiedUserName
+      - LogonType
+      - SessionId
+      - Sid
+      - LogonTime
+      - LogonServer
+      - DnsDomainName
+      - Upn
+      - UserFlags
+      - LastSuccessfulLogon
+      - LastFailedLogon
+      - FailedAttemptCountSinceLastSuccessfulLogon
+      - LogonScript
+      - ProfilePath
+      - HomeDirectory
+      - HomeDirectoryDrive
+      - LogoffTime
+      - KickOffTime
+      - PasswordLastSet
+      - PasswordCanChange
+      - PasswordMustChange
+      - os
+      - task_id
+      - timestamp_created
+      - deleted
+      - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
 - table:
     schema: public
     name: operation
@@ -3060,13 +4033,13 @@
         table:
           schema: public
           name: credential
-  - name: disabledcommands
+  - name: disabledcommandsprofiles
     using:
       foreign_key_constraint_on:
         column: operation_id
         table:
           schema: public
-          name: disabledcommands
+          name: disabledcommandsprofile
   - name: filebrowserobjs
     using:
       foreign_key_constraint_on:
@@ -3531,13 +4504,6 @@
         table:
           schema: public
           name: credential
-  - name: disabledcommands
-    using:
-      foreign_key_constraint_on:
-        column: operator_id
-        table:
-          schema: public
-          name: disabledcommands
   - name: filemeta
     using:
       foreign_key_constraint_on:
@@ -3609,6 +4575,18 @@
           schema: public
           name: task
   select_permissions:
+  - role: developer
+    permission:
+      columns:
+      - active
+      - admin
+      - creation_time
+      - deleted
+      - id
+      - last_login
+      - username
+      - view_utc_time
+      filter: {}
   - role: mythic_admin
     permission:
       columns:
@@ -3659,12 +4637,20 @@
       - view_utc_time
       filter: {}
   update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - username
+      - view_utc_time
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+      check: null
   - role: mythic_admin
     permission:
       columns:
       - active
       - admin
-      - current_operation_id
       - deleted
       - username
       - view_utc_time
@@ -3673,8 +4659,6 @@
   - role: operation_admin
     permission:
       columns:
-      - current_operation_id
-      - ui_config
       - username
       - view_utc_time
       filter:
@@ -3684,7 +4668,6 @@
   - role: operator
     permission:
       columns:
-      - current_operation_id
       - username
       - view_utc_time
       filter:
@@ -3694,7 +4677,6 @@
   - role: spectator
     permission:
       columns:
-      - current_operation_id
       - username
       - view_utc_time
       filter:
@@ -4359,6 +5341,27 @@
         operation_id:
           _in: X-Hasura-operations
       check: null
+  delete_permissions:
+  - role: developer
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
 - table:
     schema: public
     name: payloadtype
@@ -4402,14 +5405,14 @@
         table:
           schema: public
           name: payloadtypec2profile
-  - name: wrappedpayloadtypes
+  - name: wrap_these_payload_types
     using:
       foreign_key_constraint_on:
         column: wrapper_id
         table:
           schema: public
           name: wrappedpayloadtypes
-  - name: wrappedpayloadtypesByWrappedId
+  - name: wrapped_by_these_payload_types
     using:
       foreign_key_constraint_on:
         column: wrapped_id
@@ -4568,14 +5571,6 @@
   - name: task
     using:
       foreign_key_constraint_on: task_id
-  array_relationships:
-  - name: tokens
-    using:
-      foreign_key_constraint_on:
-        column: process_id
-        table:
-          schema: public
-          name: token
   select_permissions:
   - role: developer
     permission:
@@ -4704,6 +5699,11 @@
     using:
       foreign_key_constraint_on: task_id
   computed_fields:
+  - name: response_escape
+    definition:
+      function:
+        schema: public
+        name: response_escape
   - name: response_text
     definition:
       function:
@@ -4718,69 +5718,84 @@
       - response
       - timestamp
       - task_id
+      - sequence_number
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
-      - id
       - response
-      - timestamp
+      - id
+      - sequence_number
       - task_id
+      - timestamp
       computed_fields:
+      - response_escape
       - response_text
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
+      allow_aggregations: true
 - table:
     schema: public
     name: staginginfo
@@ -4954,37 +5969,46 @@
   - role: developer
     permission:
       columns:
+      - id
       - agent_task_id
-      - callback_id
       - command_id
+      - command_name
+      - params
+      - status_timestamp_preprocessing
+      - status_timestamp_submitted
+      - status_timestamp_processing
+      - status_timestamp_processed
+      - timestamp
+      - callback_id
+      - operator_id
+      - status
+      - original_params
+      - display_params
       - comment
       - comment_operator_id
+      - stdout
+      - stderr
       - completed
-      - display_params
-      - id
-      - operator_id
-      - opsec_post_blocked
-      - opsec_post_bypass_role
-      - opsec_post_bypass_user_id
-      - opsec_post_bypassed
-      - opsec_post_message
       - opsec_pre_blocked
+      - opsec_pre_message
+      - opsec_pre_bypassed
       - opsec_pre_bypass_role
       - opsec_pre_bypass_user_id
-      - opsec_pre_bypassed
-      - opsec_pre_message
-      - original_params
-      - params
+      - opsec_post_blocked
+      - opsec_post_message
+      - opsec_post_bypassed
+      - opsec_post_bypass_role
+      - opsec_post_bypass_user_id
       - parent_task_id
-      - status
-      - status_timestamp_preprocessing
-      - status_timestamp_processed
-      - status_timestamp_processing
-      - status_timestamp_submitted
-      - stderr
-      - stdout
+      - subtask_callback_function
+      - subtask_callback_function_completed
+      - group_callback_function
+      - group_callback_function_completed
+      - completed_callback_function
+      - completed_callback_function_completed
       - subtask_group_name
-      - timestamp
+      - tasking_location
+      - parameter_group_name
       - token_id
       filter:
         callback:
@@ -4994,38 +6018,47 @@
   - role: mythic_admin
     permission:
       columns:
-      - agent_task_id
+      - completed
+      - completed_callback_function_completed
+      - group_callback_function_completed
+      - opsec_post_blocked
+      - opsec_post_bypassed
+      - opsec_pre_blocked
+      - opsec_pre_bypassed
+      - subtask_callback_function_completed
+      - status
       - callback_id
       - command_id
-      - comment
       - comment_operator_id
-      - completed
-      - display_params
       - id
       - operator_id
-      - opsec_post_blocked
-      - opsec_post_bypass_role
       - opsec_post_bypass_user_id
-      - opsec_post_bypassed
-      - opsec_post_message
-      - opsec_pre_blocked
-      - opsec_pre_bypass_role
       - opsec_pre_bypass_user_id
-      - opsec_pre_bypassed
+      - parent_task_id
+      - token_id
+      - agent_task_id
+      - command_name
+      - comment
+      - completed_callback_function
+      - display_params
+      - group_callback_function
+      - opsec_post_bypass_role
+      - opsec_post_message
+      - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
-      - parent_task_id
-      - status
+      - stderr
+      - stdout
+      - subtask_callback_function
+      - subtask_group_name
+      - tasking_location
       - status_timestamp_preprocessing
       - status_timestamp_processed
       - status_timestamp_processing
       - status_timestamp_submitted
-      - stderr
-      - stdout
-      - subtask_group_name
       - timestamp
-      - token_id
       filter:
         callback:
           operation_id:
@@ -5034,38 +6067,47 @@
   - role: operation_admin
     permission:
       columns:
-      - agent_task_id
+      - completed
+      - completed_callback_function_completed
+      - group_callback_function_completed
+      - opsec_post_blocked
+      - opsec_post_bypassed
+      - opsec_pre_blocked
+      - opsec_pre_bypassed
+      - subtask_callback_function_completed
+      - status
       - callback_id
       - command_id
-      - comment
       - comment_operator_id
-      - completed
-      - display_params
       - id
       - operator_id
-      - opsec_post_blocked
-      - opsec_post_bypass_role
       - opsec_post_bypass_user_id
-      - opsec_post_bypassed
-      - opsec_post_message
-      - opsec_pre_blocked
-      - opsec_pre_bypass_role
       - opsec_pre_bypass_user_id
-      - opsec_pre_bypassed
+      - parent_task_id
+      - token_id
+      - agent_task_id
+      - command_name
+      - comment
+      - completed_callback_function
+      - display_params
+      - group_callback_function
+      - opsec_post_bypass_role
+      - opsec_post_message
+      - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
-      - parent_task_id
-      - status
+      - stderr
+      - stdout
+      - subtask_callback_function
+      - subtask_group_name
+      - tasking_location
       - status_timestamp_preprocessing
       - status_timestamp_processed
       - status_timestamp_processing
       - status_timestamp_submitted
-      - stderr
-      - stdout
-      - subtask_group_name
       - timestamp
-      - token_id
       filter:
         callback:
           operation_id:
@@ -5074,38 +6116,47 @@
   - role: operator
     permission:
       columns:
-      - agent_task_id
+      - completed
+      - completed_callback_function_completed
+      - group_callback_function_completed
+      - opsec_post_blocked
+      - opsec_post_bypassed
+      - opsec_pre_blocked
+      - opsec_pre_bypassed
+      - subtask_callback_function_completed
+      - status
       - callback_id
       - command_id
-      - comment
       - comment_operator_id
-      - completed
-      - display_params
       - id
       - operator_id
-      - opsec_post_blocked
-      - opsec_post_bypass_role
       - opsec_post_bypass_user_id
-      - opsec_post_bypassed
-      - opsec_post_message
-      - opsec_pre_blocked
-      - opsec_pre_bypass_role
       - opsec_pre_bypass_user_id
-      - opsec_pre_bypassed
+      - parent_task_id
+      - token_id
+      - agent_task_id
+      - command_name
+      - comment
+      - completed_callback_function
+      - display_params
+      - group_callback_function
+      - opsec_post_bypass_role
+      - opsec_post_message
+      - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
-      - parent_task_id
-      - status
+      - stderr
+      - stdout
+      - subtask_callback_function
+      - subtask_group_name
+      - tasking_location
       - status_timestamp_preprocessing
       - status_timestamp_processed
       - status_timestamp_processing
       - status_timestamp_submitted
-      - stderr
-      - stdout
-      - subtask_group_name
       - timestamp
-      - token_id
       filter:
         callback:
           operation_id:
@@ -5114,38 +6165,47 @@
   - role: spectator
     permission:
       columns:
-      - agent_task_id
+      - completed
+      - completed_callback_function_completed
+      - group_callback_function_completed
+      - opsec_post_blocked
+      - opsec_post_bypassed
+      - opsec_pre_blocked
+      - opsec_pre_bypassed
+      - subtask_callback_function_completed
+      - status
       - callback_id
       - command_id
-      - comment
       - comment_operator_id
-      - completed
-      - display_params
       - id
       - operator_id
-      - opsec_post_blocked
-      - opsec_post_bypass_role
       - opsec_post_bypass_user_id
-      - opsec_post_bypassed
-      - opsec_post_message
-      - opsec_pre_blocked
-      - opsec_pre_bypass_role
       - opsec_pre_bypass_user_id
-      - opsec_pre_bypassed
+      - parent_task_id
+      - token_id
+      - agent_task_id
+      - command_name
+      - comment
+      - completed_callback_function
+      - display_params
+      - group_callback_function
+      - opsec_post_bypass_role
+      - opsec_post_message
+      - opsec_pre_bypass_role
       - opsec_pre_message
       - original_params
+      - parameter_group_name
       - params
-      - parent_task_id
-      - status
+      - stderr
+      - stdout
+      - subtask_callback_function
+      - subtask_group_name
+      - tasking_location
       - status_timestamp_preprocessing
       - status_timestamp_processed
       - status_timestamp_processing
       - status_timestamp_submitted
-      - stderr
-      - stdout
-      - subtask_group_name
       - timestamp
-      - token_id
       filter:
         callback:
           operation_id:
@@ -5244,6 +6304,7 @@
             callback:
               operation_id:
                 _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
@@ -5264,6 +6325,7 @@
             callback:
               operation_id:
                 _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operation_admin
     permission:
       columns:
@@ -5284,6 +6346,7 @@
             callback:
               operation_id:
                 _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
@@ -5304,6 +6367,7 @@
             callback:
               operation_id:
                 _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
@@ -5324,6 +6388,7 @@
             callback:
               operation_id:
                 _in: X-Hasura-operations
+      allow_aggregations: true
 - table:
     schema: public
     name: tasktag
@@ -5613,9 +6678,6 @@
   - name: logonsession
     using:
       foreign_key_constraint_on: AuthenticationId_id
-  - name: process
-    using:
-      foreign_key_constraint_on: process_id
   - name: task
     using:
       foreign_key_constraint_on: task_id
@@ -5638,102 +6700,104 @@
   - role: developer
     permission:
       columns:
-      - Address
-      - AppContainer
+      - id
+      - TokenId
+      - User
+      - Groups
+      - EnabledGroups
+      - DenyOnlyGroups
+      - GroupCount
+      - AuthenticationId_id
+      - TokenType
+      - ExpirationTime
+      - ModifiedId
+      - Owner
+      - PrimaryGroup
+      - DefaultDacl
+      - Source
+      - RestrictedSids
+      - RestrictedSidsCount
+      - ImpersonationLevel
+      - SessionId
+      - SandboxInert
+      - Origin
+      - ElevationType
+      - Elevated
+      - HasRestrictions
+      - UIAccess
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - Restricted
+      - WriteRestricted
+      - Filtered
+      - NotLow
+      - Flags
+      - NoChildProcess
+      - Capabilities
+      - MandatoryPolicy
+      - LogonSid
+      - IntegrityLevelSid
       - AppContainerNumber
+      - IntegrityLevel
+      - SecurityAttributes
+      - DeviceClaimAttributes
+      - UserClaimAttributes
+      - RestrictedUserClaimAttributes
+      - RestrictedDeviceClaimAttributes
+      - AppContainer
+      - LowPrivilegeAppContainer
       - AppContainerSid
+      - PackageName
+      - DeviceGroups
+      - RestrictedDeviceGroups
+      - Privileges
+      - FullPath
+      - TrustLevel
+      - IsPseudoToken
+      - IsSandbox
+      - PackageFullName
       - AppId
       - AppModelPolicies
       - AppModelPolicyDictionary
-      - AttributesFlags
-      - AuditPolicy
-      - AuthenticationId_id
       - BnoIsolationPrefix
-      - CanSynchronize
-      - Capabilities
-      - CreationTime
-      - DefaultDacl
-      - DenyOnlyGroups
-      - DeviceClaimAttributes
-      - DeviceGroups
-      - Elevated
-      - ElevationType
-      - EnabledGroups
-      - ExpirationTime
-      - Filtered
-      - Flags
-      - FullPath
+      - PackageIdentity
+      - AuditPolicy
+      - PrivateNamespace
+      - IsRestricted
+      - ProcessUniqueAttribute
       - GrantedAccess
       - GrantedAccessGeneric
       - GrantedAccessMask
-      - GroupCount
-      - Groups
-      - Handle
-      - HandleReferenceCount
-      - HasRestrictions
-      - ImpersonationLevel
-      - Inherit
-      - IntegrityLevel
-      - IntegrityLevelSid
-      - IsClosed
-      - IsContainer
-      - IsPseudoToken
-      - IsRestricted
-      - IsSandbox
-      - LogonSid
-      - LowPrivilegeAppContainer
-      - MandatoryPolicy
-      - ModifiedId
-      - Name
-      - NoChildProcess
-      - NotLow
-      - NtType
-      - NtTypeName
-      - Origin
-      - Owner
-      - PackageFullName
-      - PackageIdentity
-      - PackageName
-      - PointerReferenceCount
-      - PrimaryGroup
-      - PrivateNamespace
-      - Privileges
-      - ProcessUniqueAttribute
-      - ProtectFromClose
-      - Restricted
-      - RestrictedDeviceClaimAttributes
-      - RestrictedDeviceGroups
-      - RestrictedSids
-      - RestrictedSidsCount
-      - RestrictedUserClaimAttributes
-      - SandboxInert
-      - Sddl
-      - SecurityAttributes
       - SecurityDescriptor
-      - SessionId
-      - Source
-      - ThreadID
-      - TokenId
-      - TokenType
-      - TrustLevel
-      - UIAccess
-      - User
-      - UserClaimAttributes
-      - VirtualizationAllowed
-      - VirtualizationEnabled
-      - WriteRestricted
-      - deleted
-      - host
-      - id
+      - Sddl
+      - Handle
+      - NtTypeName
+      - NtType
+      - Name
+      - CanSynchronize
+      - CreationTime
+      - AttributesFlags
+      - HandleReferenceCount
+      - PointerReferenceCount
+      - Inherit
+      - ProtectFromClose
+      - Address
+      - IsContainer
+      - IsClosed
       - os
-      - process_id
       - task_id
       - timestamp_created
+      - deleted
+      - host
+      - ThreadID
+      - process
+      - description
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
+      allow_aggregations: true
   - role: mythic_admin
     permission:
       columns:
@@ -5822,10 +6886,11 @@
       - VirtualizationEnabled
       - WriteRestricted
       - deleted
+      - description
       - host
       - id
       - os
-      - process_id
+      - process
       - task_id
       - timestamp_created
       filter:
@@ -5833,6 +6898,505 @@
           callback:
             operation_id:
               _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+      - CreationTime
+      - AppContainer
+      - CanSynchronize
+      - Elevated
+      - Filtered
+      - HasRestrictions
+      - Inherit
+      - IsClosed
+      - IsContainer
+      - IsPseudoToken
+      - IsRestricted
+      - IsSandbox
+      - LowPrivilegeAppContainer
+      - NoChildProcess
+      - NotLow
+      - PrivateNamespace
+      - ProtectFromClose
+      - Restricted
+      - SandboxInert
+      - UIAccess
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
+      - Address
+      - AppContainerNumber
+      - AttributesFlags
+      - AuthenticationId_id
+      - ElevationType
+      - GrantedAccessMask
+      - GroupCount
+      - Handle
+      - HandleReferenceCount
+      - ImpersonationLevel
+      - IntegrityLevel
+      - IntegrityLevelSid
+      - ModifiedId
+      - NtType
+      - Origin
+      - PointerReferenceCount
+      - SessionId
+      - ThreadID
+      - TokenId
+      - TokenType
+      - id
+      - process
+      - task_id
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AuditPolicy
+      - BnoIsolationPrefix
+      - Capabilities
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
+      - EnabledGroups
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - Groups
+      - LogonSid
+      - MandatoryPolicy
+      - Name
+      - NtTypeName
+      - Owner
+      - PackageFullName
+      - PackageIdentity
+      - PackageName
+      - PrimaryGroup
+      - Privileges
+      - ProcessUniqueAttribute
+      - RestrictedDeviceClaimAttributes
+      - RestrictedDeviceGroups
+      - RestrictedSids
+      - RestrictedSidsCount
+      - RestrictedUserClaimAttributes
+      - Sddl
+      - SecurityAttributes
+      - SecurityDescriptor
+      - Source
+      - TrustLevel
+      - User
+      - UserClaimAttributes
+      - description
+      - host
+      - os
+      - ExpirationTime
+      - timestamp_created
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+      - CreationTime
+      - AppContainer
+      - CanSynchronize
+      - Elevated
+      - Filtered
+      - HasRestrictions
+      - Inherit
+      - IsClosed
+      - IsContainer
+      - IsPseudoToken
+      - IsRestricted
+      - IsSandbox
+      - LowPrivilegeAppContainer
+      - NoChildProcess
+      - NotLow
+      - PrivateNamespace
+      - ProtectFromClose
+      - Restricted
+      - SandboxInert
+      - UIAccess
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
+      - Address
+      - AppContainerNumber
+      - AttributesFlags
+      - AuthenticationId_id
+      - ElevationType
+      - GrantedAccessMask
+      - GroupCount
+      - Handle
+      - HandleReferenceCount
+      - ImpersonationLevel
+      - IntegrityLevel
+      - IntegrityLevelSid
+      - ModifiedId
+      - NtType
+      - Origin
+      - PointerReferenceCount
+      - SessionId
+      - ThreadID
+      - TokenId
+      - TokenType
+      - id
+      - process
+      - task_id
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AuditPolicy
+      - BnoIsolationPrefix
+      - Capabilities
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
+      - EnabledGroups
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - Groups
+      - LogonSid
+      - MandatoryPolicy
+      - Name
+      - NtTypeName
+      - Owner
+      - PackageFullName
+      - PackageIdentity
+      - PackageName
+      - PrimaryGroup
+      - Privileges
+      - ProcessUniqueAttribute
+      - RestrictedDeviceClaimAttributes
+      - RestrictedDeviceGroups
+      - RestrictedSids
+      - RestrictedSidsCount
+      - RestrictedUserClaimAttributes
+      - Sddl
+      - SecurityAttributes
+      - SecurityDescriptor
+      - Source
+      - TrustLevel
+      - User
+      - UserClaimAttributes
+      - description
+      - host
+      - os
+      - ExpirationTime
+      - timestamp_created
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+      - CreationTime
+      - AppContainer
+      - CanSynchronize
+      - Elevated
+      - Filtered
+      - HasRestrictions
+      - Inherit
+      - IsClosed
+      - IsContainer
+      - IsPseudoToken
+      - IsRestricted
+      - IsSandbox
+      - LowPrivilegeAppContainer
+      - NoChildProcess
+      - NotLow
+      - PrivateNamespace
+      - ProtectFromClose
+      - Restricted
+      - SandboxInert
+      - UIAccess
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
+      - Address
+      - AppContainerNumber
+      - AttributesFlags
+      - AuthenticationId_id
+      - ElevationType
+      - GrantedAccessMask
+      - GroupCount
+      - Handle
+      - HandleReferenceCount
+      - ImpersonationLevel
+      - IntegrityLevel
+      - IntegrityLevelSid
+      - ModifiedId
+      - NtType
+      - Origin
+      - PointerReferenceCount
+      - SessionId
+      - ThreadID
+      - TokenId
+      - TokenType
+      - id
+      - process
+      - task_id
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AuditPolicy
+      - BnoIsolationPrefix
+      - Capabilities
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
+      - EnabledGroups
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - Groups
+      - LogonSid
+      - MandatoryPolicy
+      - Name
+      - NtTypeName
+      - Owner
+      - PackageFullName
+      - PackageIdentity
+      - PackageName
+      - PrimaryGroup
+      - Privileges
+      - ProcessUniqueAttribute
+      - RestrictedDeviceClaimAttributes
+      - RestrictedDeviceGroups
+      - RestrictedSids
+      - RestrictedSidsCount
+      - RestrictedUserClaimAttributes
+      - Sddl
+      - SecurityAttributes
+      - SecurityDescriptor
+      - Source
+      - TrustLevel
+      - User
+      - UserClaimAttributes
+      - description
+      - host
+      - os
+      - ExpirationTime
+      - timestamp_created
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  update_permissions:
+  - role: developer
+    permission:
+      columns:
+      - Address
+      - AppContainer
+      - AppContainerNumber
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AttributesFlags
+      - AuditPolicy
+      - AuthenticationId_id
+      - BnoIsolationPrefix
+      - CanSynchronize
+      - Capabilities
+      - CreationTime
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
+      - Elevated
+      - ElevationType
+      - EnabledGroups
+      - ExpirationTime
+      - Filtered
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - GrantedAccessMask
+      - GroupCount
+      - Groups
+      - Handle
+      - HandleReferenceCount
+      - HasRestrictions
+      - ImpersonationLevel
+      - Inherit
+      - IntegrityLevel
+      - IntegrityLevelSid
+      - IsClosed
+      - IsContainer
+      - IsPseudoToken
+      - IsRestricted
+      - IsSandbox
+      - LogonSid
+      - LowPrivilegeAppContainer
+      - MandatoryPolicy
+      - ModifiedId
+      - Name
+      - NoChildProcess
+      - NotLow
+      - NtType
+      - NtTypeName
+      - Origin
+      - Owner
+      - PackageFullName
+      - PackageIdentity
+      - PackageName
+      - PointerReferenceCount
+      - PrimaryGroup
+      - PrivateNamespace
+      - Privileges
+      - ProcessUniqueAttribute
+      - ProtectFromClose
+      - Restricted
+      - RestrictedDeviceClaimAttributes
+      - RestrictedDeviceGroups
+      - RestrictedSids
+      - RestrictedSidsCount
+      - RestrictedUserClaimAttributes
+      - SandboxInert
+      - Sddl
+      - SecurityAttributes
+      - SecurityDescriptor
+      - SessionId
+      - Source
+      - ThreadID
+      - TokenId
+      - TokenType
+      - TrustLevel
+      - UIAccess
+      - User
+      - UserClaimAttributes
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
+      - description
+      - host
+      - process
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+      - Address
+      - AppContainer
+      - AppContainerNumber
+      - AppContainerSid
+      - AppId
+      - AppModelPolicies
+      - AppModelPolicyDictionary
+      - AttributesFlags
+      - AuditPolicy
+      - AuthenticationId_id
+      - BnoIsolationPrefix
+      - CanSynchronize
+      - Capabilities
+      - CreationTime
+      - DefaultDacl
+      - DenyOnlyGroups
+      - DeviceClaimAttributes
+      - DeviceGroups
+      - Elevated
+      - ElevationType
+      - EnabledGroups
+      - ExpirationTime
+      - Filtered
+      - Flags
+      - FullPath
+      - GrantedAccess
+      - GrantedAccessGeneric
+      - GrantedAccessMask
+      - GroupCount
+      - Groups
+      - Handle
+      - HandleReferenceCount
+      - HasRestrictions
+      - ImpersonationLevel
+      - Inherit
+      - IntegrityLevel
+      - IntegrityLevelSid
+      - IsClosed
+      - IsContainer
+      - IsPseudoToken
+      - IsRestricted
+      - IsSandbox
+      - LogonSid
+      - LowPrivilegeAppContainer
+      - MandatoryPolicy
+      - ModifiedId
+      - Name
+      - NoChildProcess
+      - NotLow
+      - NtType
+      - NtTypeName
+      - Origin
+      - Owner
+      - PackageFullName
+      - PackageIdentity
+      - PackageName
+      - PointerReferenceCount
+      - PrimaryGroup
+      - PrivateNamespace
+      - Privileges
+      - ProcessUniqueAttribute
+      - ProtectFromClose
+      - Restricted
+      - RestrictedDeviceClaimAttributes
+      - RestrictedDeviceGroups
+      - RestrictedSids
+      - RestrictedSidsCount
+      - RestrictedUserClaimAttributes
+      - SandboxInert
+      - Sddl
+      - SecurityAttributes
+      - SecurityDescriptor
+      - SessionId
+      - Source
+      - ThreadID
+      - TokenId
+      - TokenType
+      - TrustLevel
+      - UIAccess
+      - User
+      - UserClaimAttributes
+      - VirtualizationAllowed
+      - VirtualizationEnabled
+      - WriteRestricted
+      - deleted
+      - description
+      - host
+      - process
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      check: null
   - role: operation_admin
     permission:
       columns:
@@ -5921,17 +7485,15 @@
       - VirtualizationEnabled
       - WriteRestricted
       - deleted
+      - description
       - host
-      - id
-      - os
-      - process_id
-      - task_id
-      - timestamp_created
+      - process
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
+      check: null
   - role: operator
     permission:
       columns:
@@ -6020,116 +7582,15 @@
       - VirtualizationEnabled
       - WriteRestricted
       - deleted
+      - description
       - host
-      - id
-      - os
-      - process_id
-      - task_id
-      - timestamp_created
+      - process
       filter:
         task:
           callback:
             operation_id:
               _in: X-Hasura-operations
-  - role: spectator
-    permission:
-      columns:
-      - Address
-      - AppContainer
-      - AppContainerNumber
-      - AppContainerSid
-      - AppId
-      - AppModelPolicies
-      - AppModelPolicyDictionary
-      - AttributesFlags
-      - AuditPolicy
-      - AuthenticationId_id
-      - BnoIsolationPrefix
-      - CanSynchronize
-      - Capabilities
-      - CreationTime
-      - DefaultDacl
-      - DenyOnlyGroups
-      - DeviceClaimAttributes
-      - DeviceGroups
-      - Elevated
-      - ElevationType
-      - EnabledGroups
-      - ExpirationTime
-      - Filtered
-      - Flags
-      - FullPath
-      - GrantedAccess
-      - GrantedAccessGeneric
-      - GrantedAccessMask
-      - GroupCount
-      - Groups
-      - Handle
-      - HandleReferenceCount
-      - HasRestrictions
-      - ImpersonationLevel
-      - Inherit
-      - IntegrityLevel
-      - IntegrityLevelSid
-      - IsClosed
-      - IsContainer
-      - IsPseudoToken
-      - IsRestricted
-      - IsSandbox
-      - LogonSid
-      - LowPrivilegeAppContainer
-      - MandatoryPolicy
-      - ModifiedId
-      - Name
-      - NoChildProcess
-      - NotLow
-      - NtType
-      - NtTypeName
-      - Origin
-      - Owner
-      - PackageFullName
-      - PackageIdentity
-      - PackageName
-      - PointerReferenceCount
-      - PrimaryGroup
-      - PrivateNamespace
-      - Privileges
-      - ProcessUniqueAttribute
-      - ProtectFromClose
-      - Restricted
-      - RestrictedDeviceClaimAttributes
-      - RestrictedDeviceGroups
-      - RestrictedSids
-      - RestrictedSidsCount
-      - RestrictedUserClaimAttributes
-      - SandboxInert
-      - Sddl
-      - SecurityAttributes
-      - SecurityDescriptor
-      - SessionId
-      - Source
-      - ThreadID
-      - TokenId
-      - TokenType
-      - TrustLevel
-      - UIAccess
-      - User
-      - UserClaimAttributes
-      - VirtualizationAllowed
-      - VirtualizationEnabled
-      - WriteRestricted
-      - deleted
-      - host
-      - id
-      - os
-      - process_id
-      - task_id
-      - timestamp_created
-      filter:
-        task:
-          callback:
-            operation_id:
-              _in: X-Hasura-operations
+      check: null
 - table:
     schema: public
     name: translationcontainer
@@ -6191,12 +7652,12 @@
     schema: public
     name: wrappedpayloadtypes
   object_relationships:
-  - name: payloadtype
-    using:
-      foreign_key_constraint_on: wrapper_id
-  - name: payloadtypeByWrappedId
+  - name: wrapped
     using:
       foreign_key_constraint_on: wrapped_id
+  - name: wrapped_by
+    using:
+      foreign_key_constraint_on: wrapper_id
   select_permissions:
   - role: developer
     permission:

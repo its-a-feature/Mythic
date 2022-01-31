@@ -1843,7 +1843,7 @@ var task_data = new Vue({
                                     httpGetAsync("{{http}}://{{links.server_ip}}:{{links.server_port}}{{links.api_base}}/callbacks/" + data['cid'] + "/edges", (response) => {
                                         try {
                                             let data = JSON.parse(response);
-                                            console.log(data);
+                                            //console.log(data);
                                             for(let i = 0; i < data.length; i++){
                                                 data[i]['source'] = JSON.parse(data[i]['source']);
                                                 data[i]['destination'] = JSON.parse(data[i]['destination']);
@@ -2752,6 +2752,10 @@ var task_data = new Vue({
                 alertTop("warning", "No valid or active callback supplied");
                 return;
             }
+            if(meta[used_callback_num]["commands"] === undefined){
+                alertTop("warning", "Click interact for callback " + used_callback_num + " first to load up that callback's available commands");
+                return;
+            }
             meta[used_callback_num]['commands'].forEach(function (x) {
 
                 if (x["supported_ui_features"].includes("file_browser:download") && !tasked) {
@@ -2782,6 +2786,10 @@ var task_data = new Vue({
             let used_callback_num = task_data.manually_edit_file_browser_callback ? task_data.manual_file_browser_callback_num : task_data.callback;
             if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
                 alertTop("warning", "No valid or active callback supplied");
+                return;
+            }
+            if(meta[used_callback_num]["commands"] === undefined){
+                alertTop("warning", "Click interact for callback " + used_callback_num + " first to load up that callback's available commands");
                 return;
             }
             meta[used_callback_num]['commands'].forEach(function (x) {
@@ -2827,6 +2835,10 @@ var task_data = new Vue({
             let used_callback_num = task_data.manually_edit_file_browser_callback ? task_data.manual_file_browser_callback_num : task_data.callback;
             if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
                 alertTop("warning", "No valid or active callback supplied");
+                return;
+            }
+            if(meta[used_callback_num]["commands"] === undefined){
+                alertTop("warning", "Click interact for callback " + used_callback_num + " first to load up that callback's available commands");
                 return;
             }
             meta[used_callback_num]['commands'].forEach(function (x) {
@@ -2923,6 +2935,10 @@ var task_data = new Vue({
             }
             if (!Object.prototype.hasOwnProperty.call(meta, used_callback_num)) {
                 alertTop("warning", "No valid or active callback supplied");
+                return;
+            }
+            if(meta[used_callback_num]["commands"] === undefined){
+                alertTop("warning", "Click interact for callback " + used_callback_num + " first to load up that callback's available commands");
                 return;
             }
             meta[used_callback_num]['commands'].forEach(function (x) {
@@ -3695,9 +3711,6 @@ function register_new_command_info(response) {
         if (data['status'] === "success") {
             delete data['status'];
             if (data['commands'].length > 0) {
-                for(let i = 0; i < data["commands"].length; i++){
-                    data["commands"][i]["attributes"] = JSON.parse(data["commands"][i]["attributes"]);
-                }
                 data['commands'].push({
                     "cmd": "help",
                     "params": [],
@@ -3792,7 +3805,7 @@ function add_new_task(tsk, from_websocket) {
 
 function add_new_response(rsp, from_websocket) {
     try {
-        console.log(rsp);
+        //console.log(rsp);
         //console.log(from_websocket);
         if (rsp['task']['callback'] in all_tasks) {
             //if we have that callback id in our all_tasks list
@@ -3966,7 +3979,6 @@ function startwebsocket_commands() {
                 // we're dealing with new/update/delete for a command
                 if (data['notify'] === "newcommand") {
                     data['params'] = [];
-                    data["attributes"] = JSON.parse(data["attributes"]);
                     task_data.ptype_cmd_params[data['payload_type']].push(data);
                 } else if (data['notify'] === "deletedcommand") {
                     // we don't get 'payload_type' like normal, instead, we get payload_type_id which doesn't help
@@ -3982,7 +3994,6 @@ function startwebsocket_commands() {
                 } else {
                     for (let i = 0; i < task_data.ptype_cmd_params[data['payload_type']].length; i++) {
                         if (task_data.ptype_cmd_params[data['payload_type']][i]['cmd'] === data['cmd']) {
-                            data["attributes"] = JSON.parse(data["attributes"]);
                             Vue.set(task_data.ptype_cmd_params[data['payload_type']], i, Object.assign({}, task_data.ptype_cmd_params[data['payload_type']][i], data));
                         }
                     }
@@ -4093,14 +4104,14 @@ function update_loaded_commands(data){
     if(data['channel'].includes("new")){
         meta[data['callback']]['commands'].push({"name": data['command'],
             "version": data["version"],
-            "attributes": JSON.parse(data["attributes"]),
+            "attributes": data["attributes"],
             "supported_ui_features": data["supported_ui_features"]});
         meta[data['callback']]['commands'].sort((a, b) => (b.name > a.name) ? -1 : ((a.name > b.name) ? 1 : 0));
     }else if(data['channel'].includes("updated")){
         for(let i = 0; i < meta[data['callback']]['commands'].length; i++){
             if(meta[data['callback']]['commands'][i]["name"] === data["command"]){
                 meta[data['callback']]['commands'][i]["version"] = data["version"];
-                 meta[data['callback']]['commands'][i]["attributes"] = JSON.parse(data["attributes"]);
+                 meta[data['callback']]['commands'][i]["attributes"] = data["attributes"];
                  meta[data['callback']]['commands'][i]["supported_ui_features"] = data["supported_ui_features"];
                 return;
             }

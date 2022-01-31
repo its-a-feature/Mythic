@@ -1,57 +1,92 @@
 type Query {
-  config_check (
+  config_check(
     uuid: String!
   ): ConfigCheckOutput
 }
 
 type Mutation {
-  createAPIToken (
-    tokenType: String!
+  createAPIToken(
+    token_type: String!
   ): createAPITokenResponse!
 }
 
 type Mutation {
-  createOperator (
+  createOperation: createOperationOutput
+}
+
+type Mutation {
+  createOperator(
     input: OperatorInput!
   ): OperatorOutput!
 }
 
 type Mutation {
-  createPayload (
+  createPayload(
     payloadDefinition: String!
   ): createPayloadOutput!
 }
 
 type Mutation {
-  createRandom (
+  createRandom(
     format_string: String!
   ): randomOutput
 }
 
 type Mutation {
-  createTask (
+  createTask(
     command: String!
     params: String!
-    files: String
+    files: [String]
     callback_id: Int!
+    token: Int
+    tasking_location: String
+    original_params: String
+    parameter_group_name: String
   ): createTaskOutput
 }
 
+type Mutation {
+  create_c2_instance(
+    c2_instance: String!
+    instance_name: String!
+    c2profile_id: Int!
+  ): createc2instanceOutput
+}
+
+type Mutation {
+  deleteBlockList(
+    name: String!
+  ): deleteBlockListOutput
+}
+
+type Mutation {
+  deleteBlockListEntry(
+    name: String!
+    entries: [Int!]!
+  ): deleteBlockListEntryOutput
+}
+
+type Mutation {
+  deleteFile(
+    file_id: Int!
+  ): deletionOutput
+}
+
 type Query {
-  downloadContainerFile (
+  downloadContainerFile(
     id: Int
     filename: String!
   ): ContainerFile
 }
 
 type Mutation {
-  download_bulk (
+  download_bulk(
     files: [String!]!
   ): BulkDownloadOutput
 }
 
 type Mutation {
-  dynamic_query_function (
+  dynamic_query_function(
     command: String!
     parameter_name: String!
     payload_type: String!
@@ -60,44 +95,95 @@ type Mutation {
 }
 
 type Query {
-  getProfileOutput (
+  export_payload_config(
+    uuid: String!
+  ): PayloadConfig
+}
+
+type Mutation {
+  generateReport(
+    outputFormat: String!
+    includeMITREPerTask: Boolean!
+    includeMITREOverall: Boolean!
+    excludedUsers: String!
+    excludedHosts: String!
+    excludedIDs: String!
+    includeOutput: Boolean!
+  ): generateReportOutput
+}
+
+type Query {
+  getProfileOutput(
     id: Int!
   ): ProfileOutput
 }
 
 type Mutation {
-  rebuild_payload (
+  rebuild_payload(
     uuid: String!
   ): rebuildOutput
 }
 
 type Query {
-  redirect_rules (
+  redirect_rules(
     uuid: String!
   ): redirectOutput
 }
 
 type Mutation {
-  requestOpsecBypass (
+  reissue_task(
+    task_id: Int!
+  ): ReissueTaskOutput
+}
+
+type Mutation {
+  reissue_task_handler(
+    task_id: Int!
+  ): ReissueTaskHandlerOutput
+}
+
+type Mutation {
+  requestOpsecBypass(
     task_id: Int!
   ): BypassOutput
 }
 
 type Mutation {
-  startStopProfile (
+  startStopProfile(
     id: Int!
     action: String
   ): startStopOutput
 }
 
 type Mutation {
-  updateCallback (
+  stop_socks(
+    callback_id: Int!
+  ): StopSocksOutput
+}
+
+type Mutation {
+  updateCallback(
     input: updateCallbackInput!
   ): updateCallbackOutput
 }
 
 type Mutation {
-  uploadContainerFile (
+  updateCurrentOperation(
+    user_id: Int!
+    operation_id: Int!
+  ): updateCurrentOperationOutput
+}
+
+type Mutation {
+  updatePassword(
+    user_id: Int!
+    new_password: String!
+    old_password: String
+  ): passwordUpdateOutput
+}
+
+type Mutation {
+  uploadContainerFile(
     id: Int!
     file_path: String!
     data: String!
@@ -105,134 +191,205 @@ type Mutation {
 }
 
 input OperatorInput {
-  username : String!
-  password : String!
+  username: String!
+  password: String!
 }
 
 input CreatePayloadInput {
-  input_string : String!
+  input_string: String!
 }
 
 input updateCallbackInput {
-  callback_id : Int!
-  active : Boolean
-  locked : Boolean
-  description : String
+  callback_id: Int!
+  active: Boolean
+  locked: Boolean
+  description: String
 }
 
 type createAPITokenResponse {
-  tokenValue : String!
-  id : Int!
+  token_value: String
+  status: String!
+  error: String
+  id: Int
+  operator_id: Int
 }
 
 type OperatorOutput {
-  username : String
-  id : Int
-  active : Boolean
-  view_utc_time : Boolean
-  creation_time : String
-  last_login : String
-  deleted : Boolean
-  status : String!
-  error : String
-  admin : Boolean
-  current_operation : String
-  current_operation_id : Int
-  ui_config : String
-  failed_login_count : Int
-  last_failed_login_timestamp : String
+  username: String
+  id: Int
+  active: Boolean
+  view_utc_time: Boolean
+  creation_time: String
+  last_login: String
+  deleted: Boolean
+  status: String!
+  error: String
+  admin: Boolean
+  current_operation: String
+  current_operation_id: Int
+  ui_config: String
+  failed_login_count: Int
+  last_failed_login_timestamp: String
 }
 
 type createPayloadOutput {
-  status : String!
-  error : String
-  uuid : String
+  status: String!
+  error: String
+  uuid: String
 }
 
 type randomOutput {
-  status : String!
-  error : String
-  random : String
+  status: String!
+  error: String
+  random: String
 }
 
 type startStopOutput {
-  status : String!
-  error : String
-  output : String
-  version : String
+  status: String!
+  error: String
+  output: String
+  version: String
 }
 
 type ProfileOutput {
-  status : String!
-  error : String
-  output : String
-  version : String
+  status: String!
+  error: String
+  output: String
+  version: String
 }
 
 type ContainerFile {
-  status : String!
-  filename : String
-  data : String
-  error : String
-  version : String
+  status: String!
+  filename: String
+  data: String
+  error: String
+  version: String
 }
 
 type uploadContainerOutput {
-  status : String!
-  error : String
-  filename : String
-  version : String
+  status: String!
+  error: String
+  filename: String
+  version: String
 }
 
 type SampleOutput {
-  status : String!
-  error : String
-  id : Int
+  status: String!
+  error: String
+  id: Int
 }
 
 type createTaskOutput {
-  status : String!
-  error : String
-  id : Int
+  status: String!
+  error: String
+  id: Int
 }
 
 type BypassOutput {
-  status : String!
-  error : String
+  status: String!
+  error: String
 }
 
 type updateCallbackOutput {
-  status : String!
-  error : String
+  status: String!
+  error: String
 }
 
 type BulkDownloadOutput {
-  status : String!
-  error : String
-  file_id : String
+  status: String!
+  error: String
+  file_id: String
 }
 
 type dynamicQueryOutput {
-  status : String!
-  error : String
-  choices : [String]
+  status: String!
+  error: String
+  choices: [String]
 }
 
 type rebuildOutput {
-  status : String!
-  error : String
-  uuid : String
+  status: String!
+  error: String
+  uuid: String
 }
 
 type redirectOutput {
-  status : String!
-  error : String
-  output : String
+  status: String!
+  error: String
+  output: String
 }
 
 type ConfigCheckOutput {
-  status : String!
-  error : String
-  output : String
+  status: String!
+  error: String
+  output: String
+}
+
+type createc2instanceOutput {
+  status: String!
+  error: String
+}
+
+type PayloadConfig {
+  config: String
+  status: String!
+  error: String
+}
+
+type ReissueTaskOutput {
+  status: String!
+  error: String
+}
+
+type ReissueTaskHandlerOutput {
+  status: String!
+  error: String
+}
+
+type StopSocksOutput {
+  status: String!
+  error: String
+}
+
+type deletionOutput {
+  status: String!
+  error: String
+  file_ids: [Int]
+  payload_ids: [Int]
+}
+
+type passwordUpdateOutput {
+  status: String!
+  error: String
+}
+
+type updateCurrentOperationOutput {
+  status: String!
+  error: String
+  operation_id: Int
+}
+
+type deleteBlockListOutput {
+  status: String!
+  error: String
+  name: String
+}
+
+type deleteBlockListEntryOutput {
+  status: String!
+  error: String
+  name: String
+  deleted_ids: [Int]
+}
+
+type createOperationOutput {
+  operation_id: Int!
+  status: String!
+  error: String
+}
+
+type generateReportOutput {
+  status: String!
+  error: String
 }
 

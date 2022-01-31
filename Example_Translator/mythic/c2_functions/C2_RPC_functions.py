@@ -6,7 +6,7 @@ import sys
 # If the associated C2Profile has `mythic_encrypts` set to False, then this function should also decrypt
 #     the message
 # request will be JSON with the following format:
-# { "action": "translate_from_c2_format",
+# {
 #   "enc_key": None or base64 of key if Mythic knows of one,
 #   "dec_key": None or base64 of key if Mythic knows of one,
 #   "uuid": uuid of the message,
@@ -30,7 +30,7 @@ async def translate_from_c2_format(request) -> dict:
 # If the associated C2Profile has `mythic_encrypts` set to False, then this function should also encrypt
 #     the message
 # request will be JSON with the following format:
-# { "action": "translate_to_c2_format",
+# {
 #   "enc_key": None or base64 of key if Mythic knows of one,
 #   "dec_key": None or base64 of key if Mythic knows of one,
 #   "uuid": uuid of the message,
