@@ -288,11 +288,11 @@ async def ws_responses_new_current_operation(request, ws, user):
        logger.warning("closed /ws/responses/new/current_operation error - " + str(sys.exc_info()[-1].tb_lineno) + ' ' + str(d))
 
 
-async def response_data_by_task_callback(ws, task_id):
+async def response_data_by_task_callback(ws, task):
     async def callback_func(connection, pid, channel, msg_id):
         try:
-            rsp = await app.db_objects.get(db_model.response_query, id=id)
-            if rsp.task.id == task_id:
+            rsp = await app.db_objects.get(db_model.response_query, id=msg_id)
+            if rsp.task.id == task.id:
                 await ws.send(js.dumps(rsp.to_json()))
                 if rsp.task.completed:
                     raise Exception("task is completed, closing websocket")
