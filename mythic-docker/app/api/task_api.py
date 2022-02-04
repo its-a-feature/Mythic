@@ -779,7 +779,7 @@ async def upload_file_for_task(request, user):
                 db_model.OperationEventLog,
                 operator=operator,
                 operation=operation,
-                message="{} hosted {} with UID {} for tasking".format(
+                message="{} hosted {} with UUID {} for tasking".format(
                     operator.username, filename, file_meta.agent_file_id
                 ),
             )
@@ -996,7 +996,7 @@ async def add_task_to_callback_func(data, cid, op, cb):
                     await app.db_objects.create(Response, task=task, response=output)
                     return {"status": "success", **task.to_json()}
                 elif "params" in data and data["params"] != "":
-                    status = "success"
+                    status = "complted"
                     output = ""
                     if data["params"] == "help":
                         output = "Use 'help' to get a list of all loaded commands or 'help [command name]' to get information about one specific command"
