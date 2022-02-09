@@ -1658,6 +1658,7 @@ async def submit_task_to_container(task, username, params: str = None):
                 "build_parameters"
             ]
             rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+            rabbit_message["task"]["callback"]["payload"] = payload_info["payload"]
             tags = await app.db_objects.execute(db_model.tasktag_query.where(db_model.TaskTag.task == task))
             rabbit_message["task"]["tags"] = [t.tag for t in tags]
             if params is not None:
@@ -1794,6 +1795,7 @@ async def add_all_payload_info(payload):
             db_model.PayloadCommand.payload == payload
         ))
         commands = [c.command.cmd for c in stamped_commands]
+        rabbit_message["payload"] = payload.to_json()
         rabbit_message["commands"] = commands
         #    cached_payload_info[payload.uuid]["commands"] = commands
         return rabbit_message
