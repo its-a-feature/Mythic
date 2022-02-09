@@ -1402,6 +1402,7 @@ async def issue_dynamic_parameter_call(command: str, parameter_name: str, payloa
             "build_parameters"
         ]
         rabbitmq_message["c2info"] = payload_info["c2info"]
+        rabbitmq_message["payload"] = payload_info["payload"]
     except Exception as e:
         return {"status": "error", "error": "Failed to get callback and payload information"}
     status, successfully_sent = await payload_rpc.call(message={
@@ -1710,6 +1711,7 @@ async def submit_task_callback_to_container(task: Task, function_name: str, user
             "build_parameters"
         ]
         rabbit_message["task"]["callback"]["c2info"] = payload_info["c2info"]
+        rabbit_message["task"]["callback"]["payload"] = payload_info["payload"]
         rabbit_message["task"]["token"] = task.token.to_json() if task.token is not None else None
         rabbit_message["subtask_group_name"] = subtask_group_name
         rabbit_message["function_name"] = function_name
