@@ -11,7 +11,9 @@ type Mutation {
 }
 
 type Mutation {
-  createOperation: createOperationOutput
+  createOperation(
+    name: String
+  ): createOperationOutput
 }
 
 type Mutation {
@@ -383,7 +385,7 @@ type deleteBlockListEntryOutput {
 }
 
 type createOperationOutput {
-  operation_id: Int!
+  operation_id: Int
   status: String!
   error: String
 }
