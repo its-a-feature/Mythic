@@ -1005,6 +1005,7 @@ async def create_callback_func(data, request):
             "dec_key",
             "delegates",
             "extra_info",
+            "process_name"
         ]:
             status[k] = data[k]
     return {**status, "id": cal.agent_callback_id, "action": "checkin"}
