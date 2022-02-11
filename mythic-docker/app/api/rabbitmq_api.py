@@ -171,7 +171,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
         #    message.routing_key,
         #    message.body.decode('utf-8')
         # ))
-        logger.info(message.routing_key)
+        #logger.info(message.routing_key)
         if pieces[1] == "status":
             if len(pieces) == 8:
                 if int(pieces[7]) > valid_payload_container_version_bounds[1] or \
@@ -271,7 +271,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     from app.api.task_api import check_and_issue_task_callback_functions
                     logger.info(f"RABBITMQ GOT CREATE_TASK INFO BACK FROM CONTAINER FOR {pieces[4]} WITH STATUS CODE {pieces[5]}")
                     task = await app.db_objects.get(db_model.task_query, id=pieces[4])
-                    logger.info(response_message)
+                    #logger.info(response_message)
 
                     task.display_params = response_message["task"]["display_params"]
                     task.stdout = response_message["task"]["stdout"]
@@ -751,7 +751,7 @@ async def create_file(task_id: int, file: str, delete_after_fetch: bool = True,
             host=host.upper() if host is not None else task.callback.host,
             comment=comment
         )
-        logger.info("New file comment: " + comment)
+        #logger.info("New file comment: " + comment)
         asyncio.create_task(log_to_siem(mythic_object=new_file_meta, mythic_source="file_upload"))
         if remote_path is not None:
             asyncio.create_task(add_upload_file_to_file_browser(task.callback.operation, task, new_file_meta,
