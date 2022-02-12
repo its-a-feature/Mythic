@@ -171,7 +171,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
         #    message.routing_key,
         #    message.body.decode('utf-8')
         # ))
-        #logger.info(message.routing_key)
+        logger.debug(message.routing_key)
         if pieces[1] == "status":
             if len(pieces) == 8:
                 if int(pieces[7]) > valid_payload_container_version_bounds[1] or \
@@ -271,7 +271,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     from app.api.task_api import check_and_issue_task_callback_functions
                     logger.info(f"RABBITMQ GOT CREATE_TASK INFO BACK FROM CONTAINER FOR {pieces[4]} WITH STATUS CODE {pieces[5]}")
                     task = await app.db_objects.get(db_model.task_query, id=pieces[4])
-                    #logger.info(response_message)
+                    logger.debug(response_message)
 
                     task.display_params = response_message["task"]["display_params"]
                     task.stdout = response_message["task"]["stdout"]
@@ -3279,7 +3279,6 @@ class MythicBaseRPC:
 
     def on_response(self, message: aio_pika.IncomingMessage):
         try:
-            logger.info("on_response")
             future = self.futures.pop(message.correlation_id)
             message.ack()
             future.set_result(message.body)
@@ -3315,7 +3314,7 @@ class MythicBaseRPC:
                 future = self.loop.create_future()
                 self.futures[correlation_id] = future
                 msg = json.dumps(message).encode("utf-8")
-                logger.info(f"length of message: {len(msg)}\n{msg}")
+                logger.debug(f"length of message: {len(msg)}\n{msg}")
                 await self.channel.default_exchange.publish(
                     aio_pika.Message(
                         json.dumps(message).encode("utf-8"),
