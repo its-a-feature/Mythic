@@ -584,7 +584,7 @@ async def get_agent_tasks(data, callback):
     if len(socks) > 0:
         response_message["socks"] = socks
     for k in data:
-        if k not in ["tasking_size", "action", "delegates", "socks"]:
+        if k not in ["tasking_size", "action", "delegates", "socks", "get_delegate_tasks"]:
             response_message[k] = data[k]
     return response_message
 
