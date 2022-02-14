@@ -1936,7 +1936,8 @@ async def create_processes(request, task):
                     "signer": p["signer"] if "signer" in p else None
                 }
             )
-        await app.db_objects.execute(db_model.Process.insert_many(bulk_insert))
+        if len(bulk_insert) > 0:
+            await app.db_objects.execute(db_model.Process.insert_many(bulk_insert))
         return {"status": "success"}
     except Exception as e:
         logger.warning("rabbitmq_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
