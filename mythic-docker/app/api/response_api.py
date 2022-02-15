@@ -314,7 +314,7 @@ async def post_agent_response(agent_message, callback):
                         parsed_response.pop("completed", None)
                     if "user_output" in parsed_response:
                         if parsed_response["user_output"] is not None:
-                            final_output += str(parsed_response["user_output"])
+                            final_output += parsed_response["user_output"].encode("utf-8")
                         parsed_response.pop("user_output", None)
                     if "file_browser" in parsed_response:
                         if (
@@ -688,7 +688,7 @@ async def post_agent_response(agent_message, callback):
                 resp = await app.db_objects.create(
                     Response,
                     task=task,
-                    response=final_output.encode("utf-8")
+                    response=final_output
                 )
                 asyncio.create_task(log_to_siem(mythic_object=resp, mythic_source="response_new"))
             task.timestamp = datetime.datetime.utcnow()
@@ -893,7 +893,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                             if parsed_response["user_output"] is not None:
                                 if "p2p:job_list" in task.command.supported_ui_features:
                                     asyncio.create_task(mark_jobs_complete_based_on_job_list(task, parsed_response["user_output"]))
-                                final_output += str(parsed_response["user_output"])
+                                final_output += parsed_response["user_output"]
                         if "file_browser" in parsed_response:
                             if (
                                 parsed_response["file_browser"] != {}
@@ -1162,10 +1162,11 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                     pass
                 if final_output != "":
                     # if we got here, then we did some sort of meta processing
+                    logger.info(final_output)
                     resp = await app.db_objects.create(
                         Response,
                         task=task,
-                        response=final_output.encode("utf-8")
+                        response=final_output
                     )
                     asyncio.create_task(log_to_siem(mythic_object=resp, mythic_source="response_new"))
                 task.timestamp = datetime.datetime.utcnow()
