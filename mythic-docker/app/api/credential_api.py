@@ -94,8 +94,8 @@ async def create_credential_func(operator, operation, data):
                 operation=operation,
                 credential=data["credential"].encode(),
             )
-            cred.comment = cred.comment + " " + data["comment"] if cred.comment != data["comment"] else cred.comment
-            cred.metadata = cred.metadata + " " + data["metadata"] if cred.metadata != data["metadata"] else cred.metadata
+            cred.comment = data["comment"] if cred.comment == "" else cred.comment
+            cred.metadata =  data["metadata"] if cred.metadata == "" else cred.metadata
             await app.db_objects.update(cred)
             status["new"] = False
         except Exception as e:
