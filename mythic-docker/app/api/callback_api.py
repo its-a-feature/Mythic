@@ -573,7 +573,13 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
             asyncio.create_task(send_all_operations_message(message="Unknown action:" + str(decrypted["action"]),
                                                             level="warning", source="unknown_action_in_message", operation=enc_key["payload"].operation))
             return "", 404, new_callback, agent_uuid
-
+        if (
+                "socks" in decrypted
+                and isinstance(decrypted["socks"], list)
+        ):
+            # since this could be in any worker, publish this data to a channel that should be listening
+            app.redis_pool.publish(f"SOCKS:{enc_key['callback'].id}:FromAgent", js.dumps(decrypted["socks"]))
+            decrypted.pop("socks", None)
         if "edges" in decrypted:
             if app.debugging_enabled:
                 await send_all_operations_message(

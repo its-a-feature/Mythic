@@ -714,13 +714,7 @@ async def post_agent_response(agent_message, callback):
         from app.api.rabbitmq_api import send_background_response_rabbitmq_message
         resp = await send_background_response_rabbitmq_message(js.dumps(background_responses), callback.id)
         logger.info(resp)
-    if (
-        "socks" in agent_message
-        and isinstance(agent_message["socks"], list)
-    ):
-        # since this could be in any worker, publish this data to a channel that should be listening
-        app.redis_pool.publish(f"SOCKS:{callback.id}:FromAgent", js.dumps(agent_message["socks"]))
-        agent_message.pop("socks", None)
+
     # echo back any additional parameters here as well
     for k in agent_message:
         #logger.info("agent message key: " + k)
