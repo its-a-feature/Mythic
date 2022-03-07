@@ -121,6 +121,12 @@ type Query {
 }
 
 type Mutation {
+  previewFile(
+    file_id: String!
+  ): previewFileOutput
+}
+
+type Mutation {
   rebuild_payload(
     uuid: String!
   ): rebuildOutput
@@ -393,5 +399,11 @@ type createOperationOutput {
 type generateReportOutput {
   status: String!
   error: String
+}
+
+type previewFileOutput {
+  status: String!
+  error: String
+  contents: String
 }
 

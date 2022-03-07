@@ -173,6 +173,17 @@ actions:
   - role: mythic_admin
   - role: operation_admin
   - role: operator
+- name: previewFile
+  definition:
+    kind: synchronous
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/preview_file_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: rebuild_payload
   definition:
     kind: synchronous
@@ -349,4 +360,5 @@ custom_types:
       field_mapping:
         operation_id: id
   - name: generateReportOutput
+  - name: previewFileOutput
   scalars: []

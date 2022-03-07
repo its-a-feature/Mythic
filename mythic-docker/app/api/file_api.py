@@ -975,3 +975,27 @@ async def download_zipped_files_webhook(request, user):
     except Exception as e:
         print(str(e))
         return json({"status": "error", "error": "failed to process request"})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/preview_file_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def preview_file_contents_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        data = request.json
+        data = data["input"]
+        operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
+        file = await app.db_objects.get(db_model.filemeta_query, agent_file_id=data["file_id"], operation=operation)
+        with open(file.path, "rb") as f:
+            file_data = f.read(512000)
+            return json({"status": "success", "contents": base64.b64encode(file_data).decode()})
+    except Exception as e:
+        print(str(e))
+        return json({"status": "error", "error": str(e)})
