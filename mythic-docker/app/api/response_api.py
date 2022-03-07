@@ -733,34 +733,37 @@ async def move_file_from_agent_to_mythic(parsed_response, task):
             if parsed_response["total_chunks"] is not None and \
                     str(parsed_response["total_chunks"]) != "" and \
                     parsed_response["total_chunks"] >= 0:
-                parsed_response["task"] = task.id
-                if app.debugging_enabled:
-                    await send_all_operations_message(
-                        message=f"Agent sent 'total_chunks' in a response, starting a file 'Download' from agent to Mythic",
-                        level="info", source="debug", operation=task.callback.operation)
-                rsp = await create_filemeta_in_database_func(parsed_response)
-                parsed_response.pop("task", None)
-                if rsp["status"] == "success":
-                    # update the response to indicate we've created the file meta data
-                    rsp.pop("status", None)
-                    #download_data = (
-                    #    js.dumps(
-                    #        rsp,
-                    #        sort_keys=True,
-                    #        indent=2,
-                    #    )
-                    #)
-                    #await app.db_objects.create(
-                    #    Response, task=task, response=download_data
-                    #)
-                    json_return_info = {
-                        **json_return_info,
-                        "file_id": rsp["agent_file_id"],
-                    }
+                if "file_id" in parsed_response and parsed_response["file_id"] != "":
+                    pass
                 else:
-                    json_return_info["status"] = "error"
-                    json_return_info["error"] = json_return_info["error"] + " " + rsp[
-                        "error"] if "error" in json_return_info else rsp["error"]
+                    parsed_response["task"] = task.id
+                    if app.debugging_enabled:
+                        await send_all_operations_message(
+                            message=f"Agent sent 'total_chunks' in a response, starting a file 'Download' from agent to Mythic",
+                            level="info", source="debug", operation=task.callback.operation)
+                    rsp = await create_filemeta_in_database_func(parsed_response)
+                    parsed_response.pop("task", None)
+                    if rsp["status"] == "success":
+                        # update the response to indicate we've created the file meta data
+                        rsp.pop("status", None)
+                        #download_data = (
+                        #    js.dumps(
+                        #        rsp,
+                        #        sort_keys=True,
+                        #        indent=2,
+                        #    )
+                        #)
+                        #await app.db_objects.create(
+                        #    Response, task=task, response=download_data
+                        #)
+                        json_return_info = {
+                            **json_return_info,
+                            "file_id": rsp["agent_file_id"],
+                        }
+                    else:
+                        json_return_info["status"] = "error"
+                        json_return_info["error"] = json_return_info["error"] + " " + rsp[
+                            "error"] if "error" in json_return_info else rsp["error"]
             parsed_response.pop("total_chunks", None)
             parsed_response.pop("is_screenshot", None)
         if "chunk_data" in parsed_response:
