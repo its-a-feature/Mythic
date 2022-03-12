@@ -500,6 +500,11 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                 message=f"Parsing agent message - step 5 (processing message action): \n {decrypted['action']}",
                 level="info", source="debug", operation=enc_key["payload"].operation)
         if decrypted["action"] == "get_tasking":
+            if 'callback' not in enc_key:
+                asyncio.create_task(send_all_operations_message(
+                    message="Error in handling a callback message: Got a 'get_tasking' message with a UUID from a payload or staging agent.\nSomething failed to update in the agent",
+                    level="warning", source="wrong_uuid_in_message", operation=enc_key["payload"].operation))
+                return "", 404, new_callback, agent_uuid
             response_data = await get_agent_tasks(decrypted, enc_key["callback"])
             if "get_delegate_tasks" not in decrypted or decrypted["get_delegate_tasks"] is True:
                 delegates = await get_routable_messages(enc_key["callback"], request)
