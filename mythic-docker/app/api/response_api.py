@@ -733,7 +733,7 @@ async def move_file_from_agent_to_mythic(parsed_response, task):
             if parsed_response["total_chunks"] is not None and \
                     str(parsed_response["total_chunks"]) != "" and \
                     parsed_response["total_chunks"] >= 0:
-                if "file_id" in parsed_response and parsed_response["file_id"] != "":
+                if "file_id" in parsed_response and isinstance(parsed_response["file_id"], str) and len(parsed_response["file_id"]) > 0:
                     pass
                 else:
                     parsed_response["task"] = task.id
