@@ -282,21 +282,6 @@ async def register_new_payload_func(data, user):
         tag = data["tag"] if "tag" in data else ""
         # if the type of payload is a wrapper, then it doesn't have any commands associated with it
         # otherwise, get all of the commands and make sure they're valid
-        db_commands = {}
-        if not payload_type.wrapper:
-
-            if "commands" not in data or data["commands"] is None:
-                data["commands"] = []
-            for cmd in data["commands"]:
-                try:
-                    db_commands[cmd] = await app.db_objects.get(
-                        db_model.command_query, cmd=cmd, payload_type=payload_type
-                    )
-                except Exception as e:
-                    return {
-                        "status": "error",
-                        "error": "failed to get command {}".format(cmd),
-                    }
         uuid = await generate_uuid()
         if "uuid" in data:
             uuid = data["uuid"]
@@ -338,22 +323,6 @@ async def register_new_payload_func(data, user):
                     payload_type.ptype, operator.username, payload.uuid, payload.tag
                 ),
             )
-
-            for cmd in db_commands:
-                try:
-                    pc = await app.db_objects.create(
-                        PayloadCommand,
-                        payload=payload,
-                        command=db_commands[cmd],
-                        version=db_commands[cmd].version,
-                    )
-                except Exception as e:
-                    logging.warning("payloads_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                    # this should delete any PayloadCommands that managed to get created before the error
-                    return {
-                        "status": "error",
-                        "error": "Failed to create payloadcommand: " + str(e),
-                    }
             # go through each c2 profile and creating payload/c2 mappings and instantiate their parameters
             # Get all of the c2 profile parameters and create their instantiations
             for p in data["c2_profiles"]:
@@ -438,7 +407,7 @@ async def register_new_payload_func(data, user):
                         c2p = await app.db_objects.create(
                             C2ProfileParametersInstance,
                             c2_profile_parameters=param,
-                            value=p["c2_profile_parameters"][param.name].strip(),
+                            value=str(p["c2_profile_parameters"][param.name]).strip(),
                             payload=payload,
                             c2_profile=c2_profile,
                         )
@@ -586,6 +555,7 @@ async def register_new_payload_func(data, user):
         # set default values for instances if some aren't supplied
         if "build_parameters" not in data:
             data["build_parameters"] = []
+        final_build_parameters = {}
         for build_param in bparameters:
             value = None
             for t in data["build_parameters"]:
@@ -599,12 +569,67 @@ async def register_new_payload_func(data, user):
                     value = build_param.parameter.split("\n")[0]
                 else:
                     value = build_param.parameter.strip()
+            final_build_parameters[build_param.name] = value
             await app.db_objects.create(
                 db_model.BuildParameterInstance,
                 build_parameter=build_param,
                 payload=payload,
                 parameter=value,
             )
+        if not payload_type.wrapper:
+            db_commands = {}
+            if "commands" not in data or data["commands"] is None:
+                data["commands"] = []
+            all_commands = await app.db_objects.execute(db_model.command_query.where(
+                db_model.Command.payload_type == payload_type
+            ))
+            for all_command in all_commands:
+                if payload_type.supports_dynamic_loading:
+                    command_attributes = js.loads(all_command.attributes)
+                    if len(command_attributes["supported_os"]) == 0 or data["selected_os"] in command_attributes["supported_os"]:
+                        # only potentially include the command if it matches the os we're building for
+                        if "builtin" in command_attributes and command_attributes["builtin"] is True:
+                            # if the command is built in, we have to include it
+                            db_commands[all_command.cmd] = all_command
+                            continue
+                        if "load_only" in command_attributes and command_attributes["load_only"] is True:
+                            # this command must be loaded later and cannot be included initially, skip it
+                            continue
+                        if len(data["commands"]) == 0:
+                            if "suggested" in command_attributes and command_attributes["suggested"] == True:
+                                # add in suggested commands if the user didn't actually pick anything
+                                # typically this would be through scripting
+                                db_commands[all_command.cmd] = all_command
+                        if "filter_by_build_parameter" in command_attributes and len(
+                                command_attributes["filter_by_build_parameter"]) > 0:
+                            # there are potentially build parameters that would exclude us from including this command
+                            include_command = True
+                            for key, value in command_attributes["filter_by_build_parameter"]:
+                                if key in final_build_parameters and final_build_parameters[key] != value:
+                                    include_command = False
+                            if include_command and all_command.cmd in data["commands"]:
+                                db_commands[all_command.cmd] = all_command
+                            continue
+                        if all_command.cmd in data["commands"]:
+                            db_commands[all_command.cmd] = all_command
+                else:
+                    # the payload_type doesn't support dynamic loading, so all must be added
+                    # regardless of what the user submitted
+                    if all_command.cmd not in db_commands:
+                        db_commands[all_command.cmd] = all_command
+            for cmd in db_commands:
+                try:
+                    await app.db_objects.create(
+                        PayloadCommand,
+                        payload=payload,
+                        command=db_commands[cmd],
+                        version=db_commands[cmd].version,
+                    )
+                except Exception as e:
+                    payload.build_phase = "error"
+                    payload.build_stderr = "Failed to associate command with payload - " + str(e)
+                    await app.db_objects.update(payload)
+                    return {"status": "error", "error": "failed to add command to payload"}
         try:
             os.makedirs(pathlib.Path(file_meta.path).parent, exist_ok=True)
             pathlib.Path(file_meta.path).touch()
