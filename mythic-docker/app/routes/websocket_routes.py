@@ -791,7 +791,8 @@ async def ws_payloads_current_operation_info(request, ws, user):
 async def payload_one_data_callback(ws, operation, puuid):
     async def callback_func(connection, pid, channel, msg_id):
         try:
-            p = await app.db_objects.get(db_model.payload_query, id=msg_id)
+            p = await app.db_objects.get(db_model.payload_query, uuid=puuid)
+            #logger.warning(f"in callback_func for ws_updates_for_payload with:\n{p}")
             if p.uuid == str(puuid) and p.operation == operation:
                 await ws.send(js.dumps(p.to_json()))
             sys.stdout.flush()
@@ -801,7 +802,7 @@ async def payload_one_data_callback(ws, operation, puuid):
     return callback_func
 
 
-@mythic.websocket("/ws/payloads/<puuid:uuid>")
+@mythic.websocket("/ws/payloads/<puuid:str>")
 @inject_user()
 @scoped(
     ["auth:user", "auth:apitoken_user"], False
@@ -810,6 +811,7 @@ async def ws_updates_for_payload(request, ws, user, puuid):
     if not await valid_origin_header(request):
         return
     try:
+        #logger.warning("in ws starting listening")
         operation = await app.db_objects.get(db_model.operation_query, name=user["current_operation"])
         cb = None
 
@@ -817,15 +819,19 @@ async def ws_updates_for_payload(request, ws, user, puuid):
             asyncio.create_task(cb(*args))
 
         async with app.websocket_pool.acquire() as conn:
+            #logger.warning("in ws, got connection to db")
             cb = await payload_one_data_callback(ws, operation, puuid)
             await conn.add_listener("updatedpayload", callback_func)
             # before we start getting new things, update with all of the old data
             payload = await app.db_objects.get(db_model.payload_query, uuid=puuid)
             if payload.operation == operation:
+                #logger.warning(f"in callback_func for ws_updates_for_payload sending initial info with:\n{payload}")
                 await ws.send(js.dumps(payload.to_json()))
             else:
+                #logger.warning(f"in callback_func for ws_updates_for_payload returning")
                 return
             while True:
+                #logger.warning(f"in callback_func for ws_updates_for_payload loop 1s")
                 await ws.send("")
                 await asyncio.sleep(1)
     except Exception as d:
