@@ -557,7 +557,7 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                 if response_data["status"] == "success":
                     new_callback = response_data["id"]
         elif decrypted["action"] == "staging_rsa":
-            response_data, staging_info = await staging_rsa(decrypted, UUID)
+            response_data, staging_info = await staging_rsa(decrypted, enc_key["payload"])
             if staging_info is None:
                 return "", 404, new_callback, agent_uuid
         elif decrypted["action"] == "update_info":
