@@ -59,7 +59,6 @@ class MyAuthentication(Authentication):
         if "apitoken" in request.headers:
             # Extract the apitoken from the headers
             apitoken = request.headers.get("apitoken")
-
             try:
                 with cache_request(request):
                     payload = await self._decode(apitoken, verify=verify)
@@ -72,8 +71,11 @@ class MyAuthentication(Authentication):
             # So, let's make sure to handle this scenario.
             if return_payload:
                 return payload
-            request_kwargs = request_kwargs or {}
-            user = request_kwargs.get("user")
+            #logger.info(f"request_kwargs: {request_kwargs}")
+            #logger.info(f"payload: {payload}")
+            user = await self.retrieve_user(request=request,
+                                            payload=payload)
+            #logger.info(f"user: {user}")
             if not user:
                 logger.error("retrieve_user lookup failed in request_kwargs")
                 return False, 401, "Auth Error"

@@ -53,7 +53,7 @@ async def generate_enc_dec_keys(crypto_type):
 #     return None
 
 
-async def staging_rsa(decrypted_message_json, UUID):
+async def staging_rsa(decrypted_message_json, payload):
     if (
         "session_id" not in decrypted_message_json
         or "pub_key" not in decrypted_message_json
@@ -68,7 +68,7 @@ async def staging_rsa(decrypted_message_json, UUID):
     # Save session_key and SESSIONID into database
     temp_uuid = str(uuid4())
     try:
-        payload = await app.db_objects.get(payload_query, uuid=UUID)
+        #payload = await app.db_objects.get(payload_query, uuid=UUID)
         stage_info = await app.db_objects.create(
             StagingInfo,
             session_id=decrypted_message_json["session_id"],
