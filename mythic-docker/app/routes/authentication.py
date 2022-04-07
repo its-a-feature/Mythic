@@ -124,6 +124,10 @@ class MyAuthentication(Authentication):
                 await send_all_operations_message(message=f"Deactivated account {user.username} trying to log in",
                                                   level="warning", source="deactivated_login_" + user.username)
                 raise exceptions.AuthenticationFailed("Account is not active, cannot log in")
+            elif user.deleted:
+                await send_all_operations_message(message=f"Deleted account {user.username} trying to log in",
+                                                  level="warning", source="deleted_login_" + user.username)
+                raise exceptions.AuthenticationFailed("Account is deleted, cannot log in")
             elif await user.check_password(password):
                 try:
                     user.last_login = datetime.datetime.now()
@@ -135,7 +139,7 @@ class MyAuthentication(Authentication):
                     raise exceptions.AuthenticationFailed("Failed to authenticate")
             else:
                 user.failed_login_count += 1
-                if user.failed_login_count >= 10 and user.active:
+                if user.failed_login_count >= 10 and user.active and not user.deleted:
                     user.last_failed_login_timestamp = datetime.datetime.utcnow()
                     if user.id != 1:
                         user.active = False
@@ -170,6 +174,10 @@ class MyAuthentication(Authentication):
                     # this allows us to reject apitokens of user that have been deactivated
                     logger.info("User is not active, failing authentication")
                     raise exceptions.AuthenticationFailed("User is not active")
+                elif user.deleted:
+                    await send_all_operations_message(message=f"Deleted account {user.username} trying to log in",
+                                                      level="warning", source="deleted_login_" + user.username)
+                    raise exceptions.AuthenticationFailed("Account is deleted, cannot log in")
             user_json = user.to_json()
             operationmap = await app.db_objects.execute(
                 operatoroperation_query.where(OperatorOperation.operator == user)
