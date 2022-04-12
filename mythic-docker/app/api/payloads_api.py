@@ -604,7 +604,7 @@ async def register_new_payload_func(data, user):
                                 command_attributes["filter_by_build_parameter"]) > 0:
                             # there are potentially build parameters that would exclude us from including this command
                             include_command = True
-                            for key, value in command_attributes["filter_by_build_parameter"]:
+                            for key, value in command_attributes["filter_by_build_parameter"].items():
                                 if key in final_build_parameters and final_build_parameters[key] != value:
                                     include_command = False
                             if include_command and all_command.cmd in data["commands"]:
