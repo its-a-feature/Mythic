@@ -371,21 +371,28 @@ async def import_browserscript(request, user):
 async def set_default_scripts(new_user):
     try:
         scripts = await app.db_objects.execute(
-            db_model.browserscript_query.where(db_model.BrowserScript.operator == None)
+            db_model.browserscript_query.where(db_model.BrowserScript.operator.is_null(True))
         )
+        #logger.info("got script for new user")
         for script in scripts:
-            await app.db_objects.create(
-                db_model.BrowserScript,
-                operator=new_user,
-                payload_type=script.payload_type,
-                name=script.name,
-                script=script.script,
-                container_version=script.container_version,
-                author=script.author,
-                container_version_author=script.container_version_author,
-                command=script.command,
-            )
+            try:
+                #logger.info(f"adding script: {script.payload_type.ptype} / {script.for_new_ui}")
+                await app.db_objects.create(
+                    db_model.BrowserScript,
+                    operator=new_user,
+                    payload_type=script.payload_type,
+                    name=script.name,
+                    script=script.script,
+                    container_version=script.container_version,
+                    author=script.author,
+                    container_version_author=script.container_version_author,
+                    command=script.command,
+                    for_new_ui=script.for_new_ui
+                )
+            except Exception as d:
+                logger.warning(f"failed to add script: {d}")
     except Exception as e:
+        logger.warning(f"failed to add script: {e}")
         return {"status": "error", "error": "failed to create scripts: " + str(e)}
 
 

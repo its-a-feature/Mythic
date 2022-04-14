@@ -656,6 +656,7 @@ async def import_command_func(payload_type, operator, command_list):
                 logger.warning("payloadtype_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
                 current_scripts = {}
             for sync_script in cmd["browser_script"]:
+                #logger.info(f"syncing script: {sync_script['name']} / {payload_type.ptype} / {sync_script['for_new_ui']}")
                 if sync_script["for_new_ui"]:
                     if "new" in current_scripts:
                         # we want to update a current script for the new ui
@@ -664,10 +665,9 @@ async def import_command_func(payload_type, operator, command_list):
                         current_scripts["new"].container_version_author = sync_script["author"]
                         current_scripts["new"].author = sync_script["author"]
                         await app.db_objects.update(current_scripts["new"])
-                        script = current_scripts["new"]
                     else:
                         # we want to create a new script for the new ui
-                        script = await app.db_objects.create(
+                        await app.db_objects.create(
                             db_model.BrowserScript,
                             script=sync_script["script"],
                             container_version=sync_script["script"],
@@ -675,7 +675,8 @@ async def import_command_func(payload_type, operator, command_list):
                             command=command,
                             author=sync_script["author"],
                             container_version_author=sync_script["author"],
-                            for_new_ui=True
+                            for_new_ui=True,
+                            operator=None
                         )
                 else:
                     # this is for the old ui
@@ -685,10 +686,9 @@ async def import_command_func(payload_type, operator, command_list):
                         current_scripts["old"].container_version_author = sync_script["author"]
                         current_scripts["old"].author = sync_script["author"]
                         await app.db_objects.update(current_scripts["old"])
-                        script = current_scripts["old"]
                     else:
                         # we want to create a new script for the new ui
-                        script = await app.db_objects.create(
+                        await app.db_objects.create(
                             db_model.BrowserScript,
                             script=sync_script["script"],
                             container_version=sync_script["script"],
@@ -696,7 +696,8 @@ async def import_command_func(payload_type, operator, command_list):
                             command=command,
                             author=sync_script["author"],
                             container_version_author=sync_script["author"],
-                            for_new_ui=False
+                            for_new_ui=False,
+                            operator=None
                         )
                 # now loop through all users
                 operators = await app.db_objects.execute(
@@ -710,7 +711,7 @@ async def import_command_func(payload_type, operator, command_list):
                             payload_type=payload_type,
                             operator=op,
                             command=command,
-                            for_new_ui=script.for_new_ui
+                            for_new_ui=sync_script["for_new_ui"]
                         )
                         op_script.container_version = sync_script["script"]
                         op_script.container_version_author = sync_script["author"]
@@ -905,7 +906,8 @@ async def import_command_func(payload_type, operator, command_list):
                 command=command,
                 author=sync_script["author"],
                 container_version_author=sync_script["author"],
-                for_new_ui=sync_script["for_new_ui"]
+                for_new_ui=sync_script["for_new_ui"],
+                operator=None
             )
             # now loop through all users
             operators = await app.db_objects.execute(

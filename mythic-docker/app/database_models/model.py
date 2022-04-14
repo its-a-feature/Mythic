@@ -2509,10 +2509,8 @@ apitokens_query = query_apitokens()
 
 def query_browserscript():
     return (
-        BrowserScript.select(BrowserScript, Operator, Command, PayloadType)
+        BrowserScript.select(BrowserScript, Operator, PayloadType)
         .join(Operator, p.JOIN.LEFT_OUTER)
-        .switch(BrowserScript)
-        .join(Command, p.JOIN.LEFT_OUTER)
         .switch(BrowserScript)
         .join(PayloadType)
         .switch(BrowserScript)
