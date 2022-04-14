@@ -309,6 +309,7 @@ async def get_graphql_claims(user_id):
             user_json["x-hasura-current-operation-id"] = str(user.current_operation.id)
         else:
             user_json["x-hasura-current_operation"] = "null"
+            user_json["x-hasura-current-operation-id"] = "0"
         for operation in operationmap:
             op = operation.operation
             if op.name == user_json["x-hasura-current_operation"]:
