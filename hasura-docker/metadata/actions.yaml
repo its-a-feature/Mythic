@@ -173,6 +173,17 @@ actions:
   - role: mythic_admin
   - role: operation_admin
   - role: operator
+- name: meHook
+  definition:
+    kind: ""
+    handler: '{{MYTHIC_ACTIONS_URL_BASE}}/me_webhook'
+    forward_client_headers: true
+  permissions:
+  - role: spectator
+  - role: operator
+  - role: operation_admin
+  - role: mythic_admin
+  - role: developer
 - name: previewFile
   definition:
     kind: synchronous
@@ -361,4 +372,5 @@ custom_types:
         operation_id: id
   - name: generateReportOutput
   - name: previewFileOutput
+  - name: meHookOutput
   scalars: []

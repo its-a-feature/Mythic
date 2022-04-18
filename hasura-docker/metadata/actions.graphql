@@ -120,6 +120,10 @@ type Query {
   ): ProfileOutput
 }
 
+type Query {
+  meHook: meHookOutput
+}
+
 type Mutation {
   previewFile(
     file_id: String!
@@ -405,5 +409,12 @@ type previewFileOutput {
   status: String!
   error: String
   contents: String
+}
+
+type meHookOutput {
+  status: String!
+  error: String
+  current_operation_id: Int
+  current_operation: String
 }
 

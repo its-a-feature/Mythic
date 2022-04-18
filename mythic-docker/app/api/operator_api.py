@@ -11,6 +11,7 @@ import app.database_models.model as db_model
 from sanic.exceptions import abort
 from app.api.browserscript_api import set_default_scripts
 from uuid import uuid4
+from sanic.log import logger
 
 
 @mythic.route(mythic.config["API_BASE"] + "/operators/", methods=["GET"])
@@ -43,6 +44,26 @@ async def get_my_operator(request, user):
         operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
         return json({"status": "success", **operator.to_json()})
     except Exception as e:
+        return json({"status": "error", "error": "failed to get current operator"})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/me_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def get_my_operator_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    try:
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+        return json({"status": "success", "current_operation_id": operator.current_operation.id if operator.current_operation is not None else 0,
+                     "current_operation": operator.current_operation.name if operator.current_operation is not None else None})
+    except Exception as e:
+        logger.exception(f"Failed to get current operation for operator: {e}")
         return json({"status": "error", "error": "failed to get current operator"})
 
 
