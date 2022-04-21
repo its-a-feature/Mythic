@@ -93,11 +93,11 @@ if [[ "$linuxDistro" == *"Ubuntu"* ]]; then
         echo "Detected Distribution: Ubuntu. Installing Docker for Ubuntu."
         install_docker_ubuntu
 elif [[ "$linuxDistro" == *"Debian"* ]]; then
-        echo "Debian!"
-        echo $linuxDistro
+        echo "Detected Distribution: Debian. Installing Docker for Debian."
+        install_docker_debian
 elif [[ "$linuxDistro" == *"Kali"* ]]; then
-        echo "Kali!"
-        echo $linuxDistro
+        echo "Detected Distribution: Kali. Installing Docker for Kali."
+        install_docker_kali
 else
         echo "FATAL ERROR: Not supported distro! We currently only support: Debian, Ubuntu and Kali."
 fi
