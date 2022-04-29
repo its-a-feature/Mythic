@@ -3251,6 +3251,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: operator
     permission:
       columns:
@@ -3278,6 +3279,7 @@
       filter:
         operation_id:
           _in: X-Hasura-operations
+      allow_aggregations: true
   - role: spectator
     permission:
       columns:
