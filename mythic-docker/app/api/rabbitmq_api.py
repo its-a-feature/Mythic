@@ -2721,6 +2721,16 @@ async def add_command_attack_to_task(task, command):
 async def update_container_status():
     while True:
         try:
+            try:
+                if not app.db_objects.is_connected:
+                    logger.info("app.db_objects.is_connected is false in update_container_status")
+                    await app.db_objects.close()
+                    logger.info("reopening connection in update_container_status")
+                    await app.db_objects.connect()
+                    logger.info("connected again in update_container_status")
+            except Exception as e:
+                logger.warning(f"Failed to reconnect to database in update_container_status, {e}")
+                continue
             profiles = await app.db_objects.execute(db_model.c2profile_query.where(
                 db_model.C2Profile.deleted == False
             ))
@@ -2776,7 +2786,18 @@ async def update_container_status():
 
 
 async def rabbit_heartbeat_callback(message: aio_pika.IncomingMessage):
+
     async with message.process():
+        try:
+            if not app.db_objects.is_connected:
+                logger.info("app.db_objects.is_connected is false")
+                await app.db_objects.close()
+                logger.info("reopening connection")
+                await app.db_objects.connect()
+                logger.info("connected again")
+        except Exception as e:
+            logger.warning(f"Failed to reconnect to database, {e}")
+            return
         pieces = message.routing_key.split(".")
         # print(" [x] %r:%r" % (
         #   message.routing_key,
@@ -2921,10 +2942,14 @@ async def background_agent_response_callback(message: aio_pika.IncomingMessage):
 
 
 # just listen for c2 heartbeats and update the database as necessary
+should_reestablish_rabbitmq = False
+
+
 async def start_listening():
+    global should_reestablish_rabbitmq
     logger.debug("Waiting for RabbitMQ to start..")
     await wait_for_rabbitmq()
-
+    should_reestablish_rabbitmq = True
     logger.debug("Starting to consume rabbitmq messages")
     task = None
     task2 = None
@@ -2991,11 +3016,17 @@ async def mythic_rabbitmq_connection():
 
 
 def closed_connection_callback(exceptionClass, weak, **kwargs):
+    global should_reestablish_rabbitmq
+    global should_reestablish_rabbitmq_background
     args = ""
     args += f"exception: {exceptionClass}\nweak:{weak}\n"
     for k,v in kwargs.items():
         args += f"{k} = {v}\n"
     logger.warning("[-] rabbitmq: " + args)
+    if should_reestablish_rabbitmq:
+        asyncio.create_task(start_listening())
+    if should_reestablish_rabbitmq_background:
+        asyncio.create_task(async_listening_for_background_processing())
 
 
 async def wait_for_rabbitmq():
@@ -3133,8 +3164,12 @@ async def connect_and_consume_heartbeats():
             )
         await asyncio.sleep(2)
 
+should_reestablish_rabbitmq_background = False
+
 
 async def connect_and_consume_background_agent_responses():
+    global should_reestablish_rabbitmq_background
+    should_reestablish_rabbitmq_background = True
     connection = None
     while connection is None:
         try:
