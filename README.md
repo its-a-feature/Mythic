@@ -65,6 +65,12 @@ The following people have contributed a lot to the project. As you see their han
 - [@xorrior](https://twitter.com/xorrior)
 - [@Airzero24](https://twitter.com/airzero24)
 
+## Sponsors
+
+Mythic is very fortunate that the following people/corporations have sponsored the continued development efforts of Mythic at the $20+/month rate:
+
+- Matthew Conway (@mattreduce): April 2022 - Present
+
 ## Liability
 
 This is an open source project meant to be used with authorization to assess the security posture and for research purposes.
