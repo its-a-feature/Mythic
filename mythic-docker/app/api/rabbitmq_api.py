@@ -2594,7 +2594,7 @@ async def create_callback(payload_uuid: str, c2_profile: str):
     result = await create_callback_func({"uuid": payload_uuid, "external_ip": ""}, {})
     if result["status"] == "success":
         await update_edges_from_checkin(result["id"], c2_profile)
-        return {"status": "success", "callback_uuid": result["id"]}
+        return {"status": "success", "response": result["id"]}
     else:
         return result
 
