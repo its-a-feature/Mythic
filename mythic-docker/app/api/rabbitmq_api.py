@@ -2588,6 +2588,17 @@ async def update_loaded_commands(task_id: int, commands: [str], add: bool = None
         return {"status": "error", "error": str(e)}
 
 
+async def create_callback(payload_uuid: str, c2_profile: str):
+    from app.api.callback_api import create_callback_func
+    from app.api.task_api import update_edges_from_checkin
+    result = await create_callback_func({"uuid": payload_uuid, "external_ip": ""}, {})
+    if result["status"] == "success":
+        await update_edges_from_checkin(result["id"], c2_profile)
+        return {"status": "success", "callback_uuid": result["id"]}
+    else:
+        return result
+
+
 async def create_event_message(message: str, warning: bool = False, task_id: int = None) -> dict:
     """
     Create a message in the Event feed within the UI as an info message or as a warning
@@ -3441,5 +3452,6 @@ exposed_rpc_endpoints = {
     "create_subtask": create_subtask,
     "create_subtask_group": create_subtask_group,
     "create_encrypted_message": encrypt_message,
-    "create_decrypted_message": decrypt_message
+    "create_decrypted_message": decrypt_message,
+    "create_callback": create_callback
 }
