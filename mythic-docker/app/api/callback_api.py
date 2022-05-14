@@ -821,7 +821,7 @@ async def create_callback_func(data, request):
     if "user" not in data:
         data["user"] = ""
     if "host" not in data:
-        data["host"] = ""
+        data["host"] = "UNKNOWN"
     if "pid" not in data:
         data["pid"] = -1
     if "ip" not in data:
