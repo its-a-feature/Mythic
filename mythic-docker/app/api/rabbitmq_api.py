@@ -2588,10 +2588,14 @@ async def update_loaded_commands(task_id: int, commands: [str], add: bool = None
         return {"status": "error", "error": str(e)}
 
 
-async def create_callback(payload_uuid: str, c2_profile: str):
+async def create_callback(payload_uuid: str, c2_profile: str, encryption_key: bytes = None, decryption_key: bytes = None, crypto_type: str = None):
     from app.api.callback_api import create_callback_func
     from app.api.task_api import update_edges_from_checkin
-    result = await create_callback_func({"uuid": payload_uuid, "external_ip": ""}, {})
+    result = await create_callback_func({"uuid": payload_uuid,
+                                         "external_ip": "",
+                                         "enc_key": encryption_key,
+                                         "dec_key": decryption_key,
+                                         "crypto_type": crypto_type}, {})
     if result["status"] == "success":
         await update_edges_from_checkin(result["id"], c2_profile)
         return {"status": "success", "response": result["id"]}
