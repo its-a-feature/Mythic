@@ -1,2 +1,1 @@
-# pull in the appropriate language's payload container from itsafeaturemythic on dockerhub
-from itsafeaturemythic/csharp_payload:0.0.11
+FROM itsafeaturemythic/python38_payload:0.1.1
