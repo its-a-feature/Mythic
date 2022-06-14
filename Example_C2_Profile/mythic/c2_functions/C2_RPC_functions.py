@@ -1,4 +1,4 @@
-from mythic_c2_container.C2ProfileBase import *
+from mythic_c2_container.MythicRPC import *
 import sys
 
 # request is a dictionary: {"action": func_name, "message": "the input",  "task_id": task id num}
