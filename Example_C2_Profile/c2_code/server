@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""This is an example implementation of a C2 server that processes HTTP
+communications with an Agent, performs routing with the Mythic server,
+and adds the required Mythic header to the HTTP response to identify
+the C2 profile forwarding the request.
+"""
 from sanic import Sanic
 from sanic.response import html, redirect, text, raw
 from sanic.exceptions import NotFound
@@ -14,11 +19,28 @@ import os
 config = {}
 
 async def print_flush(message):
+    """Print message and flush the stdout buffer.
+    
+    Python's stdout is buffered, so it collects data written
+    into a buffer before it is written to the terminal. This
+    forces the buffer to be written to the terminal instead of
+    waiting for output to eventually occur.
+
+    Args:
+        message: self-explanatory
+    """
     print(message)
     sys.stdout.flush()
 
 
 def server_error_handler(request, exception):
+    """Error handler for Sanic app. Formats server error to be presented.
+    
+    Args:
+        request: object containing the HTTP request information
+        exception: object containing exception information
+
+    """
     if request is None:
         print("Invalid HTTP Method - Likely HTTPS trying to talk to HTTP")
         sys.stdout.flush()
@@ -27,6 +49,14 @@ def server_error_handler(request, exception):
 
 
 async def agent_message(request, **kwargs):
+    """This is the route handler that processes a request from the Agent.
+    
+    Args:
+        request: object containing the HTTP request information
+        **kwargs: any additional arguments
+    Returns:
+        HTTP response object
+    """
     global config
     try:
         if config[request.app.name]['debug']:
@@ -35,11 +65,13 @@ async def agent_message(request, **kwargs):
         if config[request.app.name]['debug']:
             await print_flush("Forwarding along to: {}".format(config['mythic_address']))
         if request.method == "POST":
-            # manipulate the request if needed
+            # manipulate the request if needed - change the "Mythic" header to match the name of your C2 profile
+            
             #await MythicCallbackRPC().add_event_message(message="got a POST message")
             response = requests.post(config['mythic_address'], data=request.body, verify=False, cookies=request.cookies, headers={"Mythic": "http", **request.headers})
         else:
-            # manipulate the request if needed
+            # manipulate the request if needed - change the "Mythic" header to match the name of your C2 profile
+            
             #await MythicCallbackRPC().add_event_message(message="got a GET message")
             #msg = await MythicCallbackRPC().encrypt_bytes(with_uuid=True, data="my message".encode(), uuid="eaf10700-cb30-402d-b101-8e35d67cdb41")
             #await MythicCallbackRPC().add_event_message(message=msg.response)
