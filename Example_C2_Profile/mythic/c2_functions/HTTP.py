@@ -1,5 +1,11 @@
-from mythic_c2_container.C2ProfileBase import *
+"""This file configures the C2 parameters to be used by a payload for communications.
 
+Mythic will utilize the defined class inheriting C2Profile to identify the C2 profile
+and parameters that are presented to the operator in the payload creation UI. These
+parameters are added to the payload's PayloadType (builder.py) so they can be used
+during the build process.
+"""
+from mythic_c2_container.C2ProfileBase import *
 
 class HTTP(C2Profile):
     name = "http"
