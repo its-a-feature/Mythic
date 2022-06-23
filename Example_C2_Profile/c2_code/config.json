@@ -11,6 +11,7 @@
     "port": 80,
     "key_path": "",
     "cert_path": "",
+    "use_ssl": false,
     "debug": false
     }
   ]
