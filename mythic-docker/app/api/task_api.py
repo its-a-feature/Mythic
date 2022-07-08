@@ -845,7 +845,7 @@ async def add_task_to_callback_webhook(request, user):
         db_model.operatoroperation_query, operator=operator, operation=operation
     )
     if operatoroperation.base_disabled_commands is not None:
-        if data["command"] not in ["clear"]:
+        if data["command"] not in ["clear", "help"]:
             cmd = await app.db_objects.get(
                 db_model.command_query,
                 cmd=data["command"],
