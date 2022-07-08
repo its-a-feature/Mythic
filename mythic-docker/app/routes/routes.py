@@ -360,6 +360,7 @@ async def check_ips(request):
         for block in mythic.config["ALLOWED_IPS"]:
             if ip in block:
                 return
+        logger.warning(f"Rejecting request to {request.path} from {ip} based on ALLOWED_IPS")
         return json({"error": "Not Found"}, status=404)
 
 """
