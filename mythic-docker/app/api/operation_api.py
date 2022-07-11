@@ -871,34 +871,23 @@ async def send_all_operations_message(message: str, level: str, source: str = ""
         for o in operations:
             if operation is None or operation == o:
                 try:
-                    msg = await app.db_objects.count(db_model.operationeventlog_query.where(
+                    msg = await app.db_objects.get(db_model.operationeventlog_query.where(
                         (db_model.OperationEventLog.level == "warning") &
                         (db_model.OperationEventLog.source == source) &
                         (db_model.OperationEventLog.operation == o) &
                         (db_model.OperationEventLog.resolved == False) &
                         (db_model.OperationEventLog.deleted == False)
                     ).order_by(-db_model.OperationEventLog.id).limit(1))
-                    if msg == 0:
-                        await app.db_objects.create(
-                            db_model.OperationEventLog,
-                            operation=o,
-                            level=level,
-                            message=message,
-                            source=source
-                        )
-                    else:
-                        msg = await app.db_objects.execute(db_model.operationeventlog_query.where(
-                            (db_model.OperationEventLog.level == "warning") &
-                            (db_model.OperationEventLog.source == source) &
-                            (db_model.OperationEventLog.operation == o) &
-                            (db_model.OperationEventLog.resolved == False) &
-                            (db_model.OperationEventLog.deleted == False)
-                        ).order_by(-db_model.OperationEventLog.id).limit(1))
-                        for m in msg:
-                            m.count = m.count + 1
-                            await app.db_objects.update(m)
+                    msg.count = msg.count + 1
+                    await app.db_objects.update(msg)
                 except Exception as e:
-                    logger.warning("operation_api.py - send all messages: " + str(e))
+                    await app.db_objects.create(
+                        db_model.OperationEventLog,
+                        operation=o,
+                        level=level,
+                        message=message,
+                        source=source
+                    )
     except Exception as b:
         logger.warning("operation_api.py - send all messages: " + str(b))
 
