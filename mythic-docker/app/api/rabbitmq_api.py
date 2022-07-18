@@ -838,6 +838,53 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
         return {"status": "error", "error": str(e), "response": []}
 
 
+async def get_file_for_wrapper(filename: str = None, file_id: str = None) -> dict:
+    """
+    Get file data and contents by name (ex: from create_file and a specified saved_file_name parameter).
+    :param filename: The name of the file to search for (Case sensitive)
+    :param file_id: If no filename specified, then can search for a specific file by this UUID
+    :return: A dictionary representing the FileMeta object of the most recent matched file. There is a "contents" key with the base64 representation of the associated file.
+    For an example-
+    resp = await MythicRPC().execute("get_file_for_wrapper", filename="myAssembly.exe")
+    resp.response <--- this is the most recently registered matching file where filename="myAssembly.exe"
+    resp.response["filename"] <-- the filename of that result
+    resp.response["contents"] <--- the base64 contents of that file
+    All of the possible dictionary keys are available at https://github.com/its-a-feature/Mythic/blob/master/mythic-docker/app/database_models/model.py for the FileMeta class
+    """
+    try:
+        finalFile = {}
+        if filename is not None:
+            files = await app.db_objects.execute(
+                db_model.filemeta_query.where(
+                    (db_model.FileMeta.deleted == False)
+                    & (fn.encode(db_model.FileMeta.filename, "escape") ** ("%" + filename + "%"))
+                ).order_by(-db_model.FileMeta.id)
+            )
+            count = 0
+            if len(files) > 0:
+                finalFile = files[0].to_json()
+            else:
+                return {"status": "error", "error": "Failed to match any files by that name"}
+        elif file_id is not None:
+            try:
+                file = await app.db_objects.get(db_model.filemeta_query, agent_file_id=file_id)
+                finalFile = file.to_json()
+            except Exception as d:
+                return {"status": "error", "error": "File does not exist", "response": []}
+        if os.path.exists(finalFile["path"]):
+            finalFile["contents"] = base64.b64encode(open(finalFile["path"], "rb").read()).decode()
+        else:
+            finalFile["contents"] = None
+        if len(finalFile["contents"]) > 130000000:
+            return {"status": "error", "error": "Total size too big for rabbitmq message"}
+        return {"status": "success", "response": finalFile}
+    except Exception as e:
+        asyncio.create_task(
+            send_all_operations_message(message=f"Failed to get file while building: {str(e)}",
+                                        level="warning"))
+        return {"status": "error", "error": str(e), "response": {}}
+
+
 async def update_file(file_id: str, comment: str = None, delete_after_fetch: bool = None,
                       contents: bytes = None, filename: str = None) -> dict:
     """
@@ -3416,6 +3463,7 @@ exposed_rpc_endpoints = {
     "create_file": create_file,
     "get_file": get_file,
     "get_file_contents": get_file_contents,
+    "get_file_for_wrapper": get_file_for_wrapper,
     "update_file": update_file,
     "get_payload": get_payload,
     "search_payloads": search_payloads,
