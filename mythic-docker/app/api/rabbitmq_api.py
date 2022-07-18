@@ -838,7 +838,7 @@ async def get_file(task_id: int = None, callback_id: int = None, filename: str =
         return {"status": "error", "error": str(e), "response": []}
 
 
-async def get_file_for_wrapper(filename: str = None, file_id: str = None) -> dict:
+async def get_file_for_wrapper(filename: str = None, file_id: str = None, get_contents: bool = True) -> dict:
     """
     Get file data and contents by name (ex: from create_file and a specified saved_file_name parameter).
     :param filename: The name of the file to search for (Case sensitive)
@@ -871,8 +871,11 @@ async def get_file_for_wrapper(filename: str = None, file_id: str = None) -> dic
                 finalFile = file.to_json()
             except Exception as d:
                 return {"status": "error", "error": "File does not exist", "response": []}
-        if os.path.exists(finalFile["path"]):
-            finalFile["contents"] = base64.b64encode(open(finalFile["path"], "rb").read()).decode()
+        if get_contents:
+            if os.path.exists(finalFile["path"]):
+                finalFile["contents"] = base64.b64encode(open(finalFile["path"], "rb").read()).decode()
+            else:
+                finalFile["contents"] = None
         else:
             finalFile["contents"] = None
         if len(finalFile["contents"]) > 130000000:
