@@ -874,12 +874,13 @@ async def get_file_for_wrapper(filename: str = None, file_id: str = None, get_co
         if get_contents:
             if os.path.exists(finalFile["path"]):
                 finalFile["contents"] = base64.b64encode(open(finalFile["path"], "rb").read()).decode()
+                if len(finalFile["contents"]) > 130000000:
+                    return {"status": "error", "error": "Total size too big for rabbitmq message"}
             else:
                 finalFile["contents"] = None
         else:
             finalFile["contents"] = None
-        if len(finalFile["contents"]) > 130000000:
-            return {"status": "error", "error": "Total size too big for rabbitmq message"}
+
         return {"status": "success", "response": finalFile}
     except Exception as e:
         asyncio.create_task(
