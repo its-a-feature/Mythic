@@ -2712,7 +2712,7 @@ async def get_callback_info(callback_id: str) -> dict:
     :return: A dictionary representation of that callback
     """
     try:
-        callback = await app.db_objects.get(db_model.task_query, agent_callback_id=callback_id)
+        callback = await app.db_objects.get(db_model.callback_query, agent_callback_id=callback_id)
         return {"status": "success", "response": callback.to_json()}
     except Exception as e:
         return {"status": "error", "error": "Failed to find task: " + str(e)}
