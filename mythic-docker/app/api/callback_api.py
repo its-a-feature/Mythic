@@ -1192,7 +1192,7 @@ async def get_routable_messages(requester, request):
                     }
         # get potentially routable socks data
         for t in socks_callbacks:
-            logger.info(f"len of redis list for SOCKS:{t.id}:ToAgent is {app.redis_pool.llen(f'SOCKS:{t.id}:ToAgent')}")
+            #logger.info(f"len of redis list for SOCKS:{t.id}:ToAgent is {app.redis_pool.llen(f'SOCKS:{t.id}:ToAgent')}")
             if app.redis_pool.llen(f"SOCKS:{t.id}:ToAgent") > 0:
                 try:
                     path = find_path(graph, requester, t, cost_func=cost_func)

@@ -2705,6 +2705,19 @@ async def get_task_for_id(task_id: int, requested_uuid: str = None, requested_id
         return {"status": "error", "error": "Failed to find task: " + str(e)}
 
 
+async def get_callback_info(callback_id: str) -> dict:
+    """
+    Get information about a callback based on the agent_callback_id UUID string.
+    :param callback_id: The Callback UUID you're interested in (i.e. task.callback.id)
+    :return: A dictionary representation of that callback
+    """
+    try:
+        callback = await app.db_objects.get(db_model.task_query, agent_callback_id=callback_id)
+        return {"status": "success", "response": callback.to_json()}
+    except Exception as e:
+        return {"status": "error", "error": "Failed to find task: " + str(e)}
+
+
 async def update_task_opsec_status(task_id: int, opsec_pre_blocked: bool = None, opsec_pre_bypassed: bool = None,
                                    opsec_pre_bypass_role: str = None, opsec_pre_message: str = None,
                                    opsec_post_blocked: bool = None, opsec_post_bypassed: bool = None,
@@ -3477,6 +3490,7 @@ exposed_rpc_endpoints = {
     "get_commands": get_commands,
     "add_commands_to_payload": add_commands_to_payload,
     "add_commands_to_callback": add_commands_to_callback,
+    "get_callback_info": get_callback_info,
     "create_agentstorage": create_agentstorage,
     "get_agentstorage": get_agentstorage,
     "delete_agentstorage": delete_agentstorage,
