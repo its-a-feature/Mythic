@@ -1,0 +1,61 @@
+table:
+  name: payloadc2profiles
+  schema: public
+object_relationships:
+  - name: c2profile
+    using:
+      foreign_key_constraint_on: c2_profile_id
+  - name: payload
+    using:
+      foreign_key_constraint_on: payload_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - payload_id
+        - c2_profile_id
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - c2_profile_id
+        - id
+        - payload_id
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - c2_profile_id
+        - id
+        - payload_id
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - c2_profile_id
+        - id
+        - payload_id
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - c2_profile_id
+        - id
+        - payload_id
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations

@@ -1,0 +1,112 @@
+table:
+  name: response
+  schema: public
+configuration:
+  column_config:
+    response:
+      custom_name: response_raw
+  custom_column_names:
+    response: response_raw
+  custom_root_fields: {}
+object_relationships:
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+computed_fields:
+  - name: response_escape
+    definition:
+      function:
+        name: response_escape
+        schema: public
+  - name: response_text
+    definition:
+      function:
+        name: response
+        schema: public
+    comment: convert bytea to text for responses
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - response
+        - timestamp
+        - task_id
+        - sequence_number
+      computed_fields:
+        - response_escape
+        - response_text
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+        - response
+        - id
+        - sequence_number
+        - task_id
+        - timestamp
+      computed_fields:
+        - response_escape
+        - response_text
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - response
+        - id
+        - sequence_number
+        - task_id
+        - timestamp
+      computed_fields:
+        - response_escape
+        - response_text
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - response
+        - id
+        - sequence_number
+        - task_id
+        - timestamp
+      computed_fields:
+        - response_escape
+        - response_text
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - response
+        - id
+        - sequence_number
+        - task_id
+        - timestamp
+      computed_fields:
+        - response_escape
+        - response_text
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true

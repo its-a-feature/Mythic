@@ -1,0 +1,57 @@
+table:
+  name: commandopsec
+  schema: public
+array_relationships:
+  - name: commands
+    using:
+      foreign_key_constraint_on:
+        column: opsec_id
+        table:
+          name: command
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - deleted
+        - injection_method
+        - process_creation
+        - authentication
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+        - id
+        - authentication
+        - injection_method
+        - process_creation
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - deleted
+        - id
+        - authentication
+        - injection_method
+        - process_creation
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - deleted
+        - id
+        - authentication
+        - injection_method
+        - process_creation
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - deleted
+        - id
+        - authentication
+        - injection_method
+        - process_creation
+      filter: {}

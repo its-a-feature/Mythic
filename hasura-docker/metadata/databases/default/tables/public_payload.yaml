@@ -1,0 +1,246 @@
+table:
+  name: payload
+  schema: public
+object_relationships:
+  - name: filemetum
+    using:
+      foreign_key_constraint_on: file_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+  - name: payload
+    using:
+      foreign_key_constraint_on: wrapped_payload_id
+  - name: payloadtype
+    using:
+      foreign_key_constraint_on: payload_type_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+array_relationships:
+  - name: buildparameterinstances
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: buildparameterinstance
+          schema: public
+  - name: c2profileparametersinstances
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: c2profileparametersinstance
+          schema: public
+  - name: callbacks
+    using:
+      foreign_key_constraint_on:
+        column: registered_payload_id
+        table:
+          name: callback
+          schema: public
+  - name: payloadc2profiles
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: payloadc2profiles
+          schema: public
+  - name: payloadcommands
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: payloadcommand
+          schema: public
+  - name: payloadonhosts
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: payloadonhost
+          schema: public
+  - name: payloads
+    using:
+      foreign_key_constraint_on:
+        column: wrapped_payload_id
+        table:
+          name: payload
+          schema: public
+  - name: staginginfos
+    using:
+      foreign_key_constraint_on:
+        column: payload_id
+        table:
+          name: staginginfo
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - auto_generated
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - callback_alert
+        - creation_time
+        - deleted
+        - file_id
+        - id
+        - operation_id
+        - operator_id
+        - os
+        - payload_type_id
+        - tag
+        - task_id
+        - uuid
+        - wrapped_payload_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - auto_generated
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - callback_alert
+        - creation_time
+        - deleted
+        - file_id
+        - id
+        - operation_id
+        - operator_id
+        - os
+        - payload_type_id
+        - tag
+        - task_id
+        - uuid
+        - wrapped_payload_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - auto_generated
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - callback_alert
+        - creation_time
+        - deleted
+        - file_id
+        - id
+        - operation_id
+        - operator_id
+        - os
+        - payload_type_id
+        - tag
+        - task_id
+        - uuid
+        - wrapped_payload_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - auto_generated
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - callback_alert
+        - creation_time
+        - deleted
+        - file_id
+        - id
+        - operation_id
+        - operator_id
+        - os
+        - payload_type_id
+        - tag
+        - task_id
+        - uuid
+        - wrapped_payload_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - auto_generated
+        - build_container
+        - build_message
+        - build_phase
+        - build_stderr
+        - build_stdout
+        - callback_alert
+        - creation_time
+        - deleted
+        - file_id
+        - id
+        - operation_id
+        - operator_id
+        - os
+        - payload_type_id
+        - tag
+        - task_id
+        - uuid
+        - wrapped_payload_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - callback_alert
+        - deleted
+        - tag
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+        - callback_alert
+        - deleted
+        - tag
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+        - callback_alert
+        - deleted
+        - tag
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operator
+    permission:
+      columns:
+        - callback_alert
+        - deleted
+        - tag
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null

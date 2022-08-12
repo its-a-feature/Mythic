@@ -1,0 +1,366 @@
+table:
+  name: callback
+  schema: public
+object_relationships:
+  - name: locked_operator
+    using:
+      foreign_key_constraint_on: locked_operator_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+  - name: payload
+    using:
+      foreign_key_constraint_on: registered_payload_id
+  - name: task
+    using:
+      foreign_key_constraint_on: socks_task_id
+array_relationships:
+  - name: c2profileparametersinstances
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: c2profileparametersinstance
+          schema: public
+  - name: callbackaccesstimes
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: callbackaccesstime
+          schema: public
+  - name: callbackc2profiles
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: callbackc2profiles
+          schema: public
+  - name: callbackgraphedges
+    using:
+      foreign_key_constraint_on:
+        column: source_id
+        table:
+          name: callbackgraphedge
+          schema: public
+  - name: callbackgraphedgesByDestinationId
+    using:
+      foreign_key_constraint_on:
+        column: destination_id
+        table:
+          name: callbackgraphedge
+          schema: public
+  - name: callbacktokens
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: callbacktoken
+          schema: public
+  - name: loadedcommands
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: loadedcommands
+          schema: public
+  - name: tasks
+    using:
+      foreign_key_constraint_on:
+        column: callback_id
+        table:
+          name: task
+          schema: public
+computed_fields:
+  - name: dec_key_base64
+    definition:
+      function:
+        name: callback_deckey
+        schema: public
+    comment: base64 encode decryption key
+  - name: enc_key_base64
+    definition:
+      function:
+        name: callback_enckey
+        schema: public
+    comment: base64 encode the encryption key
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - agent_callback_id
+        - init_callback
+        - last_checkin
+        - user
+        - host
+        - pid
+        - ip
+        - external_ip
+        - process_name
+        - description
+        - operator_id
+        - active
+        - registered_payload_id
+        - integrity_level
+        - locked
+        - locked_operator_id
+        - operation_id
+        - crypto_type
+        - dec_key
+        - enc_key
+        - os
+        - architecture
+        - domain
+        - port
+        - extra_info
+        - sleep_info
+        - socks_task_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - agent_callback_id
+        - init_callback
+        - last_checkin
+        - user
+        - host
+        - pid
+        - ip
+        - external_ip
+        - process_name
+        - description
+        - operator_id
+        - active
+        - registered_payload_id
+        - integrity_level
+        - locked
+        - locked_operator_id
+        - operation_id
+        - crypto_type
+        - dec_key
+        - enc_key
+        - os
+        - architecture
+        - domain
+        - port
+        - extra_info
+        - sleep_info
+        - socks_task_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - agent_callback_id
+        - init_callback
+        - last_checkin
+        - user
+        - host
+        - pid
+        - ip
+        - external_ip
+        - process_name
+        - description
+        - operator_id
+        - active
+        - registered_payload_id
+        - integrity_level
+        - locked
+        - locked_operator_id
+        - operation_id
+        - crypto_type
+        - dec_key
+        - enc_key
+        - os
+        - architecture
+        - domain
+        - port
+        - extra_info
+        - sleep_info
+        - socks_task_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - id
+        - agent_callback_id
+        - init_callback
+        - last_checkin
+        - user
+        - host
+        - pid
+        - ip
+        - external_ip
+        - process_name
+        - description
+        - operator_id
+        - active
+        - registered_payload_id
+        - integrity_level
+        - locked
+        - locked_operator_id
+        - operation_id
+        - crypto_type
+        - dec_key
+        - enc_key
+        - os
+        - architecture
+        - domain
+        - port
+        - extra_info
+        - sleep_info
+        - socks_task_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - agent_callback_id
+        - init_callback
+        - last_checkin
+        - user
+        - host
+        - pid
+        - ip
+        - external_ip
+        - process_name
+        - description
+        - operator_id
+        - active
+        - registered_payload_id
+        - integrity_level
+        - locked
+        - locked_operator_id
+        - operation_id
+        - crypto_type
+        - dec_key
+        - enc_key
+        - os
+        - architecture
+        - domain
+        - port
+        - extra_info
+        - sleep_info
+        - socks_task_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - architecture
+        - description
+        - domain
+        - external_ip
+        - extra_info
+        - host
+        - integrity_level
+        - ip
+        - os
+        - process_name
+        - sleep_info
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - architecture
+        - description
+        - domain
+        - external_ip
+        - extra_info
+        - host
+        - integrity_level
+        - ip
+        - os
+        - process_name
+        - sleep_info
+        - user
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - architecture
+        - description
+        - domain
+        - external_ip
+        - extra_info
+        - host
+        - integrity_level
+        - ip
+        - os
+        - pid
+        - process_name
+        - sleep_info
+        - user
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - architecture
+        - description
+        - domain
+        - external_ip
+        - extra_info
+        - host
+        - integrity_level
+        - ip
+        - os
+        - pid
+        - process_name
+        - sleep_info
+        - user
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations

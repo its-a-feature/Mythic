@@ -1,0 +1,3 @@
+table:
+  name: agentstorage
+  schema: public

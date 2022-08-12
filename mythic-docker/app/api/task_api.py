@@ -464,7 +464,7 @@ async def update_edges_from_checkin(callback_uuid, profile):
         cur_time = datetime.utcnow()
         callback.last_checkin = cur_time
         # track all of the timestamps for when the callback sends a message
-        await app.db_objects.create(db_model.CallbackAccessTime, callback=callback)
+        #await app.db_objects.create(db_model.CallbackAccessTime, callback=callback)
         if not callback.active:
             # if the callback isn't active and it's checking in, make sure to update edge info
             c2profiles = await app.db_objects.execute(
@@ -1978,7 +1978,7 @@ async def get_task_tags(request, tid, user):
         return json({"status": "error", "error": str(e)})
 
 
-async def add_tags_to_task(task: Task, tags: [str]):
+async def add_tags_to_task(task: Task, tags):
     try:
         # get all of the tags that exist for the task
         original_tags = await app.db_objects.execute(db_model.tasktag_query.where(
@@ -2598,3 +2598,202 @@ async def remove_task_comment(request, tid, user):
     except Exception as e:
         logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
         return json({"status": "error", "error": "failed to find that task"})
+
+
+@mythic.route(mythic.config["API_BASE"] + "/delete_tasks_and_callbacks_webhook", methods=["POST"])
+@inject_user()
+@scoped(
+    ["auth:user", "auth:apitoken_user"], False
+)  # user or user-level api token are ok
+async def delete_tasks_webhook(request, user):
+    if user["auth"] not in ["access_token", "apitoken"]:
+        abort(
+            status_code=403,
+            message="Cannot access via Cookies. Use CLI or access via JS in browser",
+        )
+    if user["view_mode"] == "spectator":
+        return json({"status": "error", "error": "Spectators cannot delete tasking"})
+    try:
+        operator = await app.db_objects.get(db_model.operator_query, username=user["username"])
+    except Exception as e:
+        return json(
+            {
+                "status": "error",
+                "error": "failed to get the current user's info from the database",
+            }
+        )
+    if not operator.admin:
+        return json({"status": "error", "error": "only global admins can delete tasking"})
+    try:
+        data = request.json["input"]
+        logger.info(data)
+    except Exception as e:
+        return json({"status": "error", "error": "failed to input"})
+    return json(await delete_tasks_and_callbacks_func(data))
+
+
+async def delete_tasks_and_callbacks_func(data):
+    """
+    this can cause issues if an agent is still trying to report back responses for tasks that are gone
+
+    data is a dictionary:
+    {
+        "tasks": [array of task IDs],
+        "callbacks": [array of callback IDs]
+    }
+    :return:
+    """
+    failed_to_delete_tasks = []
+    failed_to_delete_callbacks = []
+    if "tasks" in data:
+        for t in data["tasks"]:
+            try:
+                task = await app.db_objects.get(db_model.task_query, id=t)
+            except Exception as e:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                failed_to_delete_tasks.append(t)
+                continue
+            if not await delete_associated_objects_for_task(task):
+                failed_to_delete_tasks.append(task.id)
+    if "callbacks" in data:
+        for c in data["callbacks"]:
+            try:
+                callback = await app.db_objects.get(db_model.callback_query, id=c)
+            except Exception as e:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                failed_to_delete_callbacks.append(c)
+                continue
+            if not await delete_associated_objects_for_callback(callback):
+                failed_to_delete_callbacks.append(c)
+    return {"status": "success", "failed_tasks": failed_to_delete_tasks, "failed_callbacks": failed_to_delete_callbacks}
+
+
+async def delete_associated_objects_for_task(task: db_model.Task) -> bool:
+    """
+    This deletes everything associated with these tasks:
+        responses
+        artifacts
+        files registered
+        credentials registered
+        keylogs registered
+        filebrowser objects registered
+        payloads associated
+        processes created
+        MITRE mappings
+    :param task:
+    :return:
+    """
+    try:
+        responses = await app.db_objects.execute(db_model.response_query.where(db_model.Response.task==task))
+        for r in responses:
+            try:
+                await app.db_objects.delete(r)
+            except Exception as re:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(re))
+        taskartifacts = await app.db_objects.execute(db_model.taskartifact_query.where(db_model.TaskArtifact.task==task))
+        for ta in taskartifacts:
+            try:
+                await app.db_objects.delete(ta)
+            except Exception as tae:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(tae))
+        filemeta = await app.db_objects.execute(db_model.filemeta_query.where(db_model.FileMeta.task==task))
+        for f in filemeta:
+            try:
+                os.remove(f.path)
+            except:
+                pass
+            try:
+                await app.db_objects.delete(f)
+            except Exception as fe:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(fe))
+        credentials = await app.db_objects.execute(db_model.credential_query.where(db_model.Credential.task == task))
+        for c in credentials:
+            try:
+                await app.db_objects.delete(c)
+            except Exception as ce:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(ce))
+        keylogs = await app.db_objects.execute(db_model.keylog_query.where(db_model.Keylog.task == task))
+        for k in keylogs:
+            try:
+                await app.db_objects.delete(k)
+            except Exception as ke:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(ke))
+        filebrowserobjs = await app.db_objects.execute(db_model.filebrowserobj_query.where(db_model.FileBrowserObj.task==task))
+        for fbo in filebrowserobjs:
+            try:
+                await app.db_objects.delete(fbo)
+            except Exception as fboe:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(fboe))
+        processes = await app.db_objects.execute(db_model.process_query.where(db_model.Process.task==task))
+        for p in processes:
+            try:
+                await app.db_objects.delete(p)
+            except Exception as pe:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(pe))
+        taskattacks = await app.db_objects.execute(db_model.attacktask_query.where(db_model.ATTACKTask.task==task))
+        for ta in taskattacks:
+            try:
+                await app.db_objects.delete(ta)
+            except Exception as tae:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(tae))
+        await app.db_objects.delete(task)
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+    return True
+
+
+async def delete_associated_objects_for_callback(callback: db_model.Callback) -> bool:
+    """
+    This deletes everything associated with these callbacks:
+        c2profileinstances
+        loadedcommands
+        callbackgraphedges
+        callbackc2profiles
+        tasks
+    :param callback:
+    :return:
+    """
+    try:
+        c2profileinstances = await app.db_objects.execute(db_model.c2profileparametersinstance_query.where(db_model.C2ProfileParametersInstance.callback==callback))
+        for c2i in c2profileinstances:
+            try:
+                await app.db_objects.delete(c2i)
+            except Exception as c2e:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(c2e))
+        loadedcommands = await app.db_objects.execute(db_model.loadedcommands_query.where(db_model.LoadedCommands.callback==callback))
+        for lc in loadedcommands:
+            try:
+                await app.db_objects.delete(lc)
+            except Exception as lce:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(lce))
+        tasks = await app.db_objects.execute(db_model.task_query.where(db_model.Task.callback==callback))
+        callbackedges = await app.db_objects.execute(db_model.callbackgraphedge_query.where(
+            (db_model.CallbackGraphEdge.source == callback) | (db_model.CallbackGraphEdge.destination == callback)
+        ))
+        for ce in callbackedges:
+            try:
+                await app.db_objects.delete(ce)
+            except Exception as cee:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(cee))
+        callbackc2profiles = await app.db_objects.execute(db_model.callbackc2profiles_query.where(db_model.CallbackC2Profiles.callback==callback))
+        for cc2 in callbackc2profiles:
+            try:
+                await app.db_objects.delete(cc2)
+            except Exception as cc2e:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(cc2e))
+        for t in tasks:
+            try:
+                await delete_associated_objects_for_task(t)
+            except Exception as te:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(te))
+        callbackaccesses = await app.db_objects.execute(db_model.callbackaccesstimes_query.where(db_model.CallbackAccessTime.callback==callback))
+        for cat in callbackaccesses:
+            try:
+                await app.db_objects.delete(cat)
+            except Exception as cate:
+                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(cate))
+        await app.db_objects.delete(callback)
+    except Exception as e:
+        logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+        return False
+    return True

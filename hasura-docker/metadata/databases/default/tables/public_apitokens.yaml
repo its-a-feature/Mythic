@@ -1,0 +1,140 @@
+table:
+  name: apitokens
+  schema: public
+object_relationships:
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - active
+        - id
+        - operator_id
+        - token_type
+        - token_value
+        - creation_time
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: mythic_admin
+    permission:
+      columns:
+        - active
+        - id
+        - operator_id
+        - token_type
+        - token_value
+        - creation_time
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operation_admin
+    permission:
+      columns:
+        - active
+        - id
+        - operator_id
+        - token_type
+        - token_value
+        - creation_time
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operator
+    permission:
+      columns:
+        - active
+        - id
+        - operator_id
+        - token_type
+        - token_value
+        - creation_time
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: spectator
+    permission:
+      columns:
+        - active
+        - creation_time
+        - id
+        - operator_id
+        - token_type
+        - token_value
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - active
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+        - active
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+        - active
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: operator
+    permission:
+      columns:
+        - active
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: spectator
+    permission:
+      columns:
+        - active
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+delete_permissions:
+  - role: developer
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: mythic_admin
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operation_admin
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operator
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: spectator
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id

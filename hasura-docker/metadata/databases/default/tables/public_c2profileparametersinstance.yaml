@@ -1,0 +1,240 @@
+table:
+  name: c2profileparametersinstance
+  schema: public
+object_relationships:
+  - name: c2profile
+    using:
+      foreign_key_constraint_on: c2_profile_id
+  - name: c2profileparameter
+    using:
+      foreign_key_constraint_on: c2_profile_parameters_id
+  - name: callback
+    using:
+      foreign_key_constraint_on: callback_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: payload
+    using:
+      foreign_key_constraint_on: payload_id
+computed_fields:
+  - name: dec_key_base64
+    definition:
+      function:
+        name: c2profileparametersinstance_deckey
+        schema: public
+  - name: enc_key_base64
+    definition:
+      function:
+        name: c2profileparametersinstance_enckey
+        schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - c2_profile_parameters_id
+        - c2_profile_id
+        - value
+        - enc_key
+        - dec_key
+        - payload_id
+        - instance_name
+        - operation_id
+        - callback_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - c2_profile_parameters_id
+        - c2_profile_id
+        - value
+        - enc_key
+        - dec_key
+        - payload_id
+        - instance_name
+        - operation_id
+        - callback_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - c2_profile_parameters_id
+        - c2_profile_id
+        - value
+        - enc_key
+        - dec_key
+        - payload_id
+        - instance_name
+        - operation_id
+        - callback_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - id
+        - c2_profile_parameters_id
+        - c2_profile_id
+        - value
+        - enc_key
+        - dec_key
+        - payload_id
+        - instance_name
+        - operation_id
+        - callback_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - c2_profile_parameters_id
+        - c2_profile_id
+        - value
+        - enc_key
+        - dec_key
+        - payload_id
+        - instance_name
+        - operation_id
+        - callback_id
+      computed_fields:
+        - dec_key_base64
+        - enc_key_base64
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - instance_name
+        - value
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+        - instance_name
+        - value
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+        - instance_name
+        - value
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+      check: null
+  - role: operator
+    permission:
+      columns:
+        - instance_name
+        - value
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+      check: null
+delete_permissions:
+  - role: developer
+    permission:
+      backend_only: false
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      backend_only: false
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      backend_only: false
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: operator
+    permission:
+      backend_only: false
+      filter:
+        _or:
+          - operation_id:
+              _in: X-Hasura-operations
+          - payload:
+              operation_id:
+                _in: X-Hasura-operations

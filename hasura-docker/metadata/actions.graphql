@@ -74,6 +74,13 @@ type Mutation {
   ): deletionOutput
 }
 
+type Mutation {
+  deleteTasksAndCallbacks(
+    tasks: [Int]
+    callbacks: [Int]
+  ): deleteTasksAndCallbacksOutput
+}
+
 type Query {
   downloadContainerFile(
     id: Int
@@ -416,5 +423,12 @@ type meHookOutput {
   error: String
   current_operation_id: Int
   current_operation: String
+}
+
+type deleteTasksAndCallbacksOutput {
+  status: String!
+  error: String
+  failed_tasks: [Int]
+  failed_callbacks: [Int]
 }
 

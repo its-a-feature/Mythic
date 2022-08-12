@@ -1,0 +1,79 @@
+table:
+  name: loadedcommands
+  schema: public
+object_relationships:
+  - name: callback
+    using:
+      foreign_key_constraint_on: callback_id
+  - name: command
+    using:
+      foreign_key_constraint_on: command_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - command_id
+        - callback_id
+        - operator_id
+        - timestamp
+        - version
+      filter:
+        callback:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - callback_id
+        - command_id
+        - id
+        - operator_id
+        - version
+        - timestamp
+      filter:
+        callback:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - callback_id
+        - command_id
+        - id
+        - operator_id
+        - version
+        - timestamp
+      filter:
+        callback:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - callback_id
+        - command_id
+        - id
+        - operator_id
+        - version
+        - timestamp
+      filter:
+        callback:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - callback_id
+        - command_id
+        - id
+        - operator_id
+        - version
+        - timestamp
+      filter:
+        callback:
+          operation_id:
+            _in: X-Hasura-operations

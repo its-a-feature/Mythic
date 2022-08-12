@@ -1,0 +1,194 @@
+table:
+  name: callbackgraphedge
+  schema: public
+object_relationships:
+  - name: c2profile
+    using:
+      foreign_key_constraint_on: c2_profile_id
+  - name: destination
+    using:
+      foreign_key_constraint_on: destination_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: source
+    using:
+      foreign_key_constraint_on: source_id
+  - name: task_end
+    using:
+      foreign_key_constraint_on: task_end_id
+  - name: task_start
+    using:
+      foreign_key_constraint_on: task_start_id
+insert_permissions:
+  - role: developer
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - c2_profile_id
+        - destination_id
+        - direction
+        - metadata
+        - source_id
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - c2_profile_id
+        - destination_id
+        - direction
+        - metadata
+        - source_id
+  - role: operation_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - c2_profile_id
+        - destination_id
+        - direction
+        - metadata
+        - source_id
+  - role: operator
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - c2_profile_id
+        - destination_id
+        - direction
+        - metadata
+        - source_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - start_timestamp
+        - end_timestamp
+        - operation_id
+        - source_id
+        - destination_id
+        - direction
+        - metadata
+        - c2_profile_id
+        - task_start_id
+        - task_end_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - metadata
+        - c2_profile_id
+        - destination_id
+        - direction
+        - id
+        - operation_id
+        - source_id
+        - task_end_id
+        - task_start_id
+        - end_timestamp
+        - start_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - metadata
+        - c2_profile_id
+        - destination_id
+        - direction
+        - id
+        - operation_id
+        - source_id
+        - task_end_id
+        - task_start_id
+        - end_timestamp
+        - start_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - metadata
+        - c2_profile_id
+        - destination_id
+        - direction
+        - id
+        - operation_id
+        - source_id
+        - task_end_id
+        - task_start_id
+        - end_timestamp
+        - start_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - metadata
+        - c2_profile_id
+        - destination_id
+        - direction
+        - id
+        - operation_id
+        - source_id
+        - task_end_id
+        - task_start_id
+        - end_timestamp
+        - start_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - end_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+        - end_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+        - end_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operator
+    permission:
+      columns:
+        - end_timestamp
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null

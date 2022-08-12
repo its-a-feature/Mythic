@@ -1,0 +1,64 @@
+table:
+  name: attack
+  schema: public
+array_relationships:
+  - name: attackcommands
+    using:
+      foreign_key_constraint_on:
+        column: attack_id
+        table:
+          name: attackcommand
+          schema: public
+  - name: attacktasks
+    using:
+      foreign_key_constraint_on:
+        column: attack_id
+        table:
+          name: attacktask
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - t_num
+        - name
+        - os
+        - tactic
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - name
+        - os
+        - t_num
+        - tactic
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - name
+        - os
+        - t_num
+        - tactic
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - id
+        - name
+        - os
+        - t_num
+        - tactic
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - name
+        - os
+        - t_num
+        - tactic
+      filter: {}

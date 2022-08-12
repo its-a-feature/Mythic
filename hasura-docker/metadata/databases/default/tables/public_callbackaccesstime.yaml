@@ -1,0 +1,7 @@
+table:
+  name: callbackaccesstime
+  schema: public
+object_relationships:
+  - name: callback
+    using:
+      foreign_key_constraint_on: callback_id

@@ -1,0 +1,276 @@
+table:
+  name: browserscript
+  schema: public
+object_relationships:
+  - name: command
+    using:
+      foreign_key_constraint_on: command_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+  - name: payloadtype
+    using:
+      foreign_key_constraint_on: payload_type_id
+array_relationships:
+  - name: browserscriptoperations
+    using:
+      foreign_key_constraint_on:
+        column: browserscript_id
+        table:
+          name: browserscriptoperation
+          schema: public
+insert_permissions:
+  - role: developer
+    permission:
+      check: {}
+      set:
+        creation_time: now()
+        for_new_ui: "true"
+        operator_id: x-hasura-User-Id
+      columns:
+        - active
+        - author
+        - command_id
+        - creation_time
+        - payload_type_id
+        - script
+  - role: mythic_admin
+    permission:
+      check: {}
+      set:
+        creation_time: now()
+        for_new_ui: "true"
+        operator_id: x-hasura-User-Id
+      columns:
+        - active
+        - author
+        - command_id
+        - creation_time
+        - payload_type_id
+        - script
+  - role: operation_admin
+    permission:
+      check: {}
+      set:
+        creation_time: now()
+        for_new_ui: "true"
+        operator_id: x-hasura-User-Id
+      columns:
+        - active
+        - author
+        - command_id
+        - creation_time
+        - payload_type_id
+        - script
+  - role: operator
+    permission:
+      check: {}
+      set:
+        creation_time: now()
+        for_new_ui: "true"
+        operator_id: x-hasura-User-Id
+      columns:
+        - active
+        - author
+        - command_id
+        - creation_time
+        - payload_type_id
+        - script
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - container_version
+        - container_version_author
+        - creation_time
+        - for_new_ui
+        - id
+        - name
+        - operator_id
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        _or:
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - browserscriptoperations:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - container_version
+        - container_version_author
+        - creation_time
+        - for_new_ui
+        - id
+        - name
+        - operator_id
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        _or:
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - browserscriptoperations:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - container_version
+        - container_version_author
+        - creation_time
+        - for_new_ui
+        - id
+        - name
+        - operator_id
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        _or:
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - browserscriptoperations:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - container_version
+        - container_version_author
+        - creation_time
+        - for_new_ui
+        - id
+        - name
+        - operator_id
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        _or:
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - browserscriptoperations:
+              operation_id:
+                _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - container_version
+        - container_version_author
+        - creation_time
+        - for_new_ui
+        - id
+        - name
+        - operator_id
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        _or:
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - browserscriptoperations:
+              operation_id:
+                _in: X-Hasura-operations
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - name
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - name
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - name
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: operator
+    permission:
+      columns:
+        - active
+        - author
+        - command_id
+        - name
+        - payload_type_id
+        - script
+        - user_modified
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+      check: null
+delete_permissions:
+  - role: developer
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: mythic_admin
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operation_admin
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id
+  - role: operator
+    permission:
+      backend_only: false
+      filter:
+        operator_id:
+          _eq: X-Hasura-User-Id

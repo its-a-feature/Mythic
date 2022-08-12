@@ -1,0 +1,282 @@
+table:
+  name: tasktag
+  schema: public
+object_relationships:
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+insert_permissions:
+  - role: developer
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - operation_id
+        - tag
+        - task_id
+  - role: mythic_admin
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - operation_id
+        - tag
+        - task_id
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - operation_id
+        - tag
+        - task_id
+  - role: operator
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - operation_id
+        - tag
+        - task_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - operation_id
+        - tag
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - operation_id
+        - tag
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - operation_id
+        - tag
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - id
+        - operation_id
+        - tag
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - operation_id
+        - tag
+        - task_id
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      allow_aggregations: true
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - tag
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      columns:
+        - tag
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+  - role: operation_admin
+    permission:
+      columns:
+        - tag
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+  - role: operator
+    permission:
+      columns:
+        - tag
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+      check:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+delete_permissions:
+  - role: developer
+    permission:
+      backend_only: false
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      backend_only: false
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+  - role: operation_admin
+    permission:
+      backend_only: false
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id
+  - role: operator
+    permission:
+      backend_only: false
+      filter:
+        _and:
+          - operation_id:
+              _eq: X-Hasura-current-operation-id
+          - task:
+              callback:
+                operation_id:
+                  _eq: X-Hasura-current-operation-id

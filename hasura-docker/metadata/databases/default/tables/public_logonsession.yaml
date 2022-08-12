@@ -1,0 +1,218 @@
+table:
+  name: logonsession
+  schema: public
+object_relationships:
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+array_relationships:
+  - name: authenticationpackages
+    using:
+      foreign_key_constraint_on:
+        column: LogonSession_id
+        table:
+          name: authenticationpackage
+          schema: public
+  - name: tokens
+    using:
+      foreign_key_constraint_on:
+        column: AuthenticationId_id
+        table:
+          name: token
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - LogonId
+        - UserName
+        - LogonDomain
+        - FullQualifiedUserName
+        - LogonType
+        - SessionId
+        - Sid
+        - LogonTime
+        - LogonServer
+        - DnsDomainName
+        - Upn
+        - UserFlags
+        - LastSuccessfulLogon
+        - LastFailedLogon
+        - FailedAttemptCountSinceLastSuccessfulLogon
+        - LogonScript
+        - ProfilePath
+        - HomeDirectory
+        - HomeDirectoryDrive
+        - LogoffTime
+        - KickOffTime
+        - PasswordLastSet
+        - PasswordCanChange
+        - PasswordMustChange
+        - os
+        - task_id
+        - timestamp_created
+        - deleted
+        - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - LogonId
+        - UserName
+        - LogonDomain
+        - FullQualifiedUserName
+        - LogonType
+        - SessionId
+        - Sid
+        - LogonTime
+        - LogonServer
+        - DnsDomainName
+        - Upn
+        - UserFlags
+        - LastSuccessfulLogon
+        - LastFailedLogon
+        - FailedAttemptCountSinceLastSuccessfulLogon
+        - LogonScript
+        - ProfilePath
+        - HomeDirectory
+        - HomeDirectoryDrive
+        - LogoffTime
+        - KickOffTime
+        - PasswordLastSet
+        - PasswordCanChange
+        - PasswordMustChange
+        - os
+        - task_id
+        - timestamp_created
+        - deleted
+        - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - LogonId
+        - UserName
+        - LogonDomain
+        - FullQualifiedUserName
+        - LogonType
+        - SessionId
+        - Sid
+        - LogonTime
+        - LogonServer
+        - DnsDomainName
+        - Upn
+        - UserFlags
+        - LastSuccessfulLogon
+        - LastFailedLogon
+        - FailedAttemptCountSinceLastSuccessfulLogon
+        - LogonScript
+        - ProfilePath
+        - HomeDirectory
+        - HomeDirectoryDrive
+        - LogoffTime
+        - KickOffTime
+        - PasswordLastSet
+        - PasswordCanChange
+        - PasswordMustChange
+        - os
+        - task_id
+        - timestamp_created
+        - deleted
+        - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - id
+        - LogonId
+        - UserName
+        - LogonDomain
+        - FullQualifiedUserName
+        - LogonType
+        - SessionId
+        - Sid
+        - LogonTime
+        - LogonServer
+        - DnsDomainName
+        - Upn
+        - UserFlags
+        - LastSuccessfulLogon
+        - LastFailedLogon
+        - FailedAttemptCountSinceLastSuccessfulLogon
+        - LogonScript
+        - ProfilePath
+        - HomeDirectory
+        - HomeDirectoryDrive
+        - LogoffTime
+        - KickOffTime
+        - PasswordLastSet
+        - PasswordCanChange
+        - PasswordMustChange
+        - os
+        - task_id
+        - timestamp_created
+        - deleted
+        - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - LogonId
+        - UserName
+        - LogonDomain
+        - FullQualifiedUserName
+        - LogonType
+        - SessionId
+        - Sid
+        - LogonTime
+        - LogonServer
+        - DnsDomainName
+        - Upn
+        - UserFlags
+        - LastSuccessfulLogon
+        - LastFailedLogon
+        - FailedAttemptCountSinceLastSuccessfulLogon
+        - LogonScript
+        - ProfilePath
+        - HomeDirectory
+        - HomeDirectoryDrive
+        - LogoffTime
+        - KickOffTime
+        - PasswordLastSet
+        - PasswordCanChange
+        - PasswordMustChange
+        - os
+        - task_id
+        - timestamp_created
+        - deleted
+        - host
+      filter:
+        task:
+          callback:
+            operation_id:
+              _in: X-Hasura-operations
+      allow_aggregations: true

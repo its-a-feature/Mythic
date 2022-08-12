@@ -1,0 +1,189 @@
+table:
+  name: disabledcommandsprofile
+  schema: public
+object_relationships:
+  - name: command
+    using:
+      foreign_key_constraint_on: command_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+array_relationships:
+  - name: operatoroperations
+    using:
+      foreign_key_constraint_on:
+        column: base_disabled_commands_id
+        table:
+          name: operatoroperation
+          schema: public
+insert_permissions:
+  - role: developer
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - operatoroperations:
+              _and:
+                - view_mode:
+                    _eq: lead
+                - operator_id:
+                    _eq: x-hasura-user-id
+                - operation_id:
+                    _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - command_id
+        - name
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - command_id
+        - name
+  - role: operation_admin
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - operatoroperations:
+              _and:
+                - view_mode:
+                    _eq: lead
+                - operator_id:
+                    _eq: x-hasura-user-id
+                - operation_id:
+                    _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - command_id
+        - name
+  - role: operator
+    permission:
+      check:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - operatoroperations:
+              _and:
+                - view_mode:
+                    _eq: lead
+                - operator_id:
+                    _eq: x-hasura-user-id
+                - operation_id:
+                    _eq: x-hasura-current-operation-id
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - command_id
+        - name
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - command_id
+        - id
+        - name
+        - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: mythic_admin
+    permission:
+      columns:
+        - command_id
+        - id
+        - name
+        - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operation_admin
+    permission:
+      columns:
+        - command_id
+        - id
+        - name
+        - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operator
+    permission:
+      columns:
+        - command_id
+        - id
+        - name
+        - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: spectator
+    permission:
+      columns:
+        - command_id
+        - id
+        - name
+        - operation_id
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+delete_permissions:
+  - role: developer
+    permission:
+      backend_only: false
+      filter:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - operatoroperations:
+              _and:
+                - view_mode:
+                    _eq: lead
+                - operator_id:
+                    _eq: x-hasura-user-id
+                - operation_id:
+                    _eq: x-hasura-current-operation-id
+  - role: mythic_admin
+    permission:
+      backend_only: false
+      filter:
+        operation_id:
+          _eq: X-Hasura-Current-Operation-Id
+  - role: operation_admin
+    permission:
+      backend_only: false
+      filter:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - operatoroperations:
+              _and:
+                - view_mode:
+                    _eq: lead
+                - operator_id:
+                    _eq: x-hasura-user-id
+                - operation_id:
+                    _eq: x-hasura-current-operation-id
+  - role: operator
+    permission:
+      backend_only: false
+      filter:
+        _and:
+          - operation_id:
+              _eq: x-hasura-current-operation-id
+          - operatoroperations:
+              _and:
+                - view_mode:
+                    _eq: lead
+                - operator_id:
+                    _eq: x-hasura-user-id
+                - operation_id:
+                    _eq: x-hasura-current-operation-id

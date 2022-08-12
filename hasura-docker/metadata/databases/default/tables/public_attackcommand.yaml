@@ -1,0 +1,46 @@
+table:
+  name: attackcommand
+  schema: public
+object_relationships:
+  - name: attack
+    using:
+      foreign_key_constraint_on: attack_id
+  - name: command
+    using:
+      foreign_key_constraint_on: command_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - attack_id
+        - command_id
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - attack_id
+        - command_id
+        - id
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - attack_id
+        - command_id
+        - id
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - attack_id
+        - command_id
+        - id
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - attack_id
+        - command_id
+        - id
+      filter: {}

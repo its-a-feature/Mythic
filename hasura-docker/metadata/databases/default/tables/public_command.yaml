@@ -1,0 +1,147 @@
+table:
+  name: command
+  schema: public
+object_relationships:
+  - name: commandopsec
+    using:
+      foreign_key_constraint_on: opsec_id
+  - name: payloadtype
+    using:
+      foreign_key_constraint_on: payload_type_id
+array_relationships:
+  - name: attackcommands
+    using:
+      foreign_key_constraint_on:
+        column: command_id
+        table:
+          name: attackcommand
+          schema: public
+  - name: browserscripts
+    using:
+      foreign_key_constraint_on:
+        column: command_id
+        table:
+          name: browserscript
+          schema: public
+  - name: commandparameters
+    using:
+      foreign_key_constraint_on:
+        column: command_id
+        table:
+          name: commandparameters
+          schema: public
+  - name: disabledcommandsprofiles
+    using:
+      foreign_key_constraint_on:
+        column: command_id
+        table:
+          name: disabledcommandsprofile
+          schema: public
+  - name: loadedcommands
+    using:
+      foreign_key_constraint_on:
+        column: command_id
+        table:
+          name: loadedcommands
+          schema: public
+  - name: payloadcommands
+    using:
+      foreign_key_constraint_on:
+        column: command_id
+        table:
+          name: payloadcommand
+          schema: public
+  - name: tasks
+    using:
+      foreign_key_constraint_on:
+        column: command_id
+        table:
+          name: task
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - deleted
+        - needs_admin
+        - script_only
+        - cmd
+        - id
+        - opsec_id
+        - payload_type_id
+        - version
+        - attributes
+        - author
+        - description
+        - help_cmd
+        - supported_ui_features
+        - creation_time
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+        - needs_admin
+        - script_only
+        - cmd
+        - id
+        - opsec_id
+        - payload_type_id
+        - version
+        - attributes
+        - author
+        - description
+        - help_cmd
+        - supported_ui_features
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - deleted
+        - needs_admin
+        - script_only
+        - cmd
+        - id
+        - opsec_id
+        - payload_type_id
+        - version
+        - attributes
+        - author
+        - description
+        - help_cmd
+        - supported_ui_features
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - deleted
+        - needs_admin
+        - script_only
+        - cmd
+        - id
+        - opsec_id
+        - payload_type_id
+        - version
+        - attributes
+        - author
+        - description
+        - help_cmd
+        - supported_ui_features
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - deleted
+        - needs_admin
+        - script_only
+        - cmd
+        - id
+        - opsec_id
+        - payload_type_id
+        - version
+        - attributes
+        - author
+        - description
+        - help_cmd
+        - supported_ui_features
+      filter: {}

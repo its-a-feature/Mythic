@@ -1,0 +1,96 @@
+table:
+  name: c2profileparameters
+  schema: public
+object_relationships:
+  - name: c2profile
+    using:
+      foreign_key_constraint_on: c2_profile_id
+array_relationships:
+  - name: c2profileparametersinstances
+    using:
+      foreign_key_constraint_on:
+        column: c2_profile_parameters_id
+        table:
+          name: c2profileparametersinstance
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - c2_profile_id
+        - crypto_type
+        - default_value
+        - deleted
+        - description
+        - format_string
+        - id
+        - name
+        - parameter_type
+        - randomize
+        - required
+        - verifier_regex
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - c2_profile_id
+        - crypto_type
+        - default_value
+        - deleted
+        - description
+        - format_string
+        - id
+        - name
+        - parameter_type
+        - randomize
+        - required
+        - verifier_regex
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - crypto_type
+        - deleted
+        - randomize
+        - required
+        - c2_profile_id
+        - id
+        - default_value
+        - description
+        - format_string
+        - name
+        - parameter_type
+        - verifier_regex
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - crypto_type
+        - deleted
+        - randomize
+        - required
+        - c2_profile_id
+        - id
+        - default_value
+        - description
+        - format_string
+        - name
+        - parameter_type
+        - verifier_regex
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - crypto_type
+        - deleted
+        - randomize
+        - required
+        - c2_profile_id
+        - id
+        - default_value
+        - description
+        - format_string
+        - name
+        - parameter_type
+        - verifier_regex
+      filter: {}

@@ -1,0 +1,46 @@
+table:
+  name: wrappedpayloadtypes
+  schema: public
+object_relationships:
+  - name: wrapped
+    using:
+      foreign_key_constraint_on: wrapped_id
+  - name: wrapped_by
+    using:
+      foreign_key_constraint_on: wrapper_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - wrapper_id
+        - wrapped_id
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - wrapped_id
+        - wrapper_id
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - wrapped_id
+        - wrapper_id
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - id
+        - wrapped_id
+        - wrapper_id
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - wrapped_id
+        - wrapper_id
+      filter: {}

@@ -1,0 +1,81 @@
+table:
+  name: buildparameter
+  schema: public
+object_relationships:
+  - name: payloadtype
+    using:
+      foreign_key_constraint_on: payload_type_id
+array_relationships:
+  - name: buildparameterinstances
+    using:
+      foreign_key_constraint_on:
+        column: build_parameter_id
+        table:
+          name: buildparameterinstance
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - name
+        - parameter_type
+        - description
+        - payload_type_id
+        - required
+        - verifier_regex
+        - deleted
+        - parameter
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+        - required
+        - id
+        - payload_type_id
+        - description
+        - name
+        - parameter
+        - parameter_type
+        - verifier_regex
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - deleted
+        - required
+        - id
+        - payload_type_id
+        - description
+        - name
+        - parameter
+        - parameter_type
+        - verifier_regex
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - deleted
+        - required
+        - id
+        - payload_type_id
+        - description
+        - name
+        - parameter
+        - parameter_type
+        - verifier_regex
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - deleted
+        - required
+        - id
+        - payload_type_id
+        - description
+        - name
+        - parameter
+        - parameter_type
+        - verifier_regex
+      filter: {}

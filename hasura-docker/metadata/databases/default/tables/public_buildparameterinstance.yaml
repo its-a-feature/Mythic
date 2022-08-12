@@ -1,0 +1,66 @@
+table:
+  name: buildparameterinstance
+  schema: public
+object_relationships:
+  - name: buildparameter
+    using:
+      foreign_key_constraint_on: build_parameter_id
+  - name: payload
+    using:
+      foreign_key_constraint_on: payload_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - build_parameter_id
+        - payload_id
+        - parameter
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operions
+  - role: mythic_admin
+    permission:
+      columns:
+        - build_parameter_id
+        - id
+        - payload_id
+        - parameter
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - build_parameter_id
+        - id
+        - payload_id
+        - parameter
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - build_parameter_id
+        - id
+        - payload_id
+        - parameter
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - build_parameter_id
+        - id
+        - payload_id
+        - parameter
+      filter:
+        payload:
+          operation_id:
+            _in: X-Hasura-operations

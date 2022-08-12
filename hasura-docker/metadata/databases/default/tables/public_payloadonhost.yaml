@@ -1,0 +1,178 @@
+table:
+  name: payloadonhost
+  schema: public
+object_relationships:
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: payload
+    using:
+      foreign_key_constraint_on: payload_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+insert_permissions:
+  - role: developer
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - host
+        - payload_id
+  - role: mythic_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - host
+        - payload_id
+  - role: operation_admin
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - host
+        - payload_id
+  - role: operator
+    permission:
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+      set:
+        operation_id: x-hasura-current-operation-id
+      columns:
+        - host
+        - payload_id
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - host
+        - payload_id
+        - deleted
+        - operation_id
+        - timestamp
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - host
+        - payload_id
+        - deleted
+        - operation_id
+        - timestamp
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - host
+        - payload_id
+        - deleted
+        - operation_id
+        - timestamp
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - id
+        - host
+        - payload_id
+        - deleted
+        - operation_id
+        - timestamp
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - host
+        - payload_id
+        - deleted
+        - operation_id
+        - timestamp
+        - task_id
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - deleted
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+        - deleted
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+        - deleted
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+  - role: operator
+    permission:
+      columns:
+        - deleted
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check: null
+delete_permissions:
+  - role: developer
+    permission:
+      backend_only: false
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      backend_only: false
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      backend_only: false
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      backend_only: false
+      filter:
+        operation_id:
+          _in: X-Hasura-operations

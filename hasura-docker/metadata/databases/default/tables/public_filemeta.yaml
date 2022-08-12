@@ -1,0 +1,252 @@
+table:
+  name: filemeta
+  schema: public
+object_relationships:
+  - name: filebrowserobj
+    using:
+      foreign_key_constraint_on: file_browser_id
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: operator
+    using:
+      foreign_key_constraint_on: operator_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+array_relationships:
+  - name: payloads
+    using:
+      foreign_key_constraint_on:
+        column: file_id
+        table:
+          name: payload
+          schema: public
+computed_fields:
+  - name: filename_text
+    definition:
+      function:
+        name: filemeta_filename
+        schema: public
+    comment: convert bytea filename to text
+  - name: full_remote_path_text
+    definition:
+      function:
+        name: filemeta_full_remote_path
+        schema: public
+    comment: convert bytea full_remote_path to text
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - agent_file_id
+        - chunk_size
+        - chunks_received
+        - comment
+        - complete
+        - delete_after_fetch
+        - deleted
+        - file_browser_id
+        - filename
+        - full_remote_path
+        - host
+        - id
+        - is_download_from_agent
+        - is_payload
+        - is_screenshot
+        - md5
+        - operation_id
+        - operator_id
+        - path
+        - sha1
+        - task_id
+        - timestamp
+        - total_chunks
+      computed_fields:
+        - filename_text
+        - full_remote_path_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+        - agent_file_id
+        - chunk_size
+        - chunks_received
+        - comment
+        - complete
+        - delete_after_fetch
+        - deleted
+        - file_browser_id
+        - filename
+        - full_remote_path
+        - host
+        - id
+        - is_download_from_agent
+        - is_payload
+        - is_screenshot
+        - md5
+        - operation_id
+        - operator_id
+        - path
+        - sha1
+        - task_id
+        - timestamp
+        - total_chunks
+      computed_fields:
+        - filename_text
+        - full_remote_path_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - agent_file_id
+        - chunk_size
+        - chunks_received
+        - comment
+        - complete
+        - delete_after_fetch
+        - deleted
+        - file_browser_id
+        - filename
+        - full_remote_path
+        - host
+        - id
+        - is_download_from_agent
+        - is_payload
+        - is_screenshot
+        - md5
+        - operation_id
+        - operator_id
+        - path
+        - sha1
+        - task_id
+        - timestamp
+        - total_chunks
+      computed_fields:
+        - filename_text
+        - full_remote_path_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - agent_file_id
+        - chunk_size
+        - chunks_received
+        - comment
+        - complete
+        - delete_after_fetch
+        - deleted
+        - file_browser_id
+        - filename
+        - full_remote_path
+        - host
+        - id
+        - is_download_from_agent
+        - is_payload
+        - is_screenshot
+        - md5
+        - operation_id
+        - operator_id
+        - path
+        - sha1
+        - task_id
+        - timestamp
+        - total_chunks
+      computed_fields:
+        - filename_text
+        - full_remote_path_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - agent_file_id
+        - chunk_size
+        - chunks_received
+        - comment
+        - complete
+        - delete_after_fetch
+        - deleted
+        - file_browser_id
+        - filename
+        - full_remote_path
+        - host
+        - id
+        - is_download_from_agent
+        - is_payload
+        - is_screenshot
+        - md5
+        - operation_id
+        - operator_id
+        - path
+        - sha1
+        - task_id
+        - timestamp
+        - total_chunks
+      computed_fields:
+        - filename_text
+        - full_remote_path_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - comment
+        - deleted
+        - filename
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - comment
+        - deleted
+        - filename
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operation_admin
+    permission:
+      columns:
+        - comment
+        - deleted
+        - filename
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - comment
+        - deleted
+        - filename
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      check:
+        operation_id:
+          _in: X-Hasura-operations

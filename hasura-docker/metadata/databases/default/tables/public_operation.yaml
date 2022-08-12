@@ -1,0 +1,268 @@
+table:
+  name: operation
+  schema: public
+object_relationships:
+  - name: admin
+    using:
+      foreign_key_constraint_on: admin_id
+array_relationships:
+  - name: browserscriptoperations
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: browserscriptoperation
+          schema: public
+  - name: c2profileparametersinstances
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: c2profileparametersinstance
+          schema: public
+  - name: callbackgraphedges
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: callbackgraphedge
+          schema: public
+  - name: callbacks
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: callback
+          schema: public
+  - name: credentials
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: credential
+          schema: public
+  - name: disabledcommandsprofiles
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: disabledcommandsprofile
+          schema: public
+  - name: filebrowserobjs
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: filebrowserobj
+          schema: public
+  - name: filemeta
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: filemeta
+          schema: public
+  - name: keylogs
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: keylog
+          schema: public
+  - name: operationeventlogs
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: operationeventlog
+          schema: public
+  - name: operatoroperations
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: operatoroperation
+          schema: public
+  - name: operators
+    using:
+      foreign_key_constraint_on:
+        column: current_operation_id
+        table:
+          name: operator
+          schema: public
+  - name: payloadonhosts
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: payloadonhost
+          schema: public
+  - name: payloads
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: payload
+          schema: public
+  - name: processes
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: process
+          schema: public
+  - name: taskartifacts
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: taskartifact
+          schema: public
+  - name: tasktags
+    using:
+      foreign_key_constraint_on:
+        column: operation_id
+        table:
+          name: tasktag
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - name
+        - admin_id
+        - complete
+        - webhook
+        - channel
+        - display_name
+        - icon_emoji
+        - icon_url
+        - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-operations
+  - role: mythic_admin
+    permission:
+      columns:
+        - complete
+        - admin_id
+        - id
+        - channel
+        - display_name
+        - icon_emoji
+        - icon_url
+        - name
+        - webhook
+        - webhook_message
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - complete
+        - admin_id
+        - id
+        - channel
+        - display_name
+        - icon_emoji
+        - icon_url
+        - name
+        - webhook
+        - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-operations
+  - role: operator
+    permission:
+      columns:
+        - complete
+        - admin_id
+        - id
+        - channel
+        - display_name
+        - icon_emoji
+        - icon_url
+        - name
+        - webhook
+        - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-operations
+  - role: spectator
+    permission:
+      columns:
+        - complete
+        - admin_id
+        - id
+        - channel
+        - display_name
+        - icon_emoji
+        - icon_url
+        - name
+        - webhook
+        - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-operations
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - admin_id
+        - channel
+        - complete
+        - display_name
+        - icon_emoji
+        - icon_url
+        - name
+        - webhook
+        - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-admin-operations
+      check: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - admin_id
+        - channel
+        - complete
+        - display_name
+        - icon_emoji
+        - icon_url
+        - name
+        - webhook
+        - webhook_message
+      filter: {}
+      check: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - admin_id
+        - channel
+        - complete
+        - display_name
+        - icon_emoji
+        - icon_url
+        - name
+        - webhook
+        - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-admin-operations
+      check: {}
+  - role: operator
+    permission:
+      columns:
+        - channel
+        - display_name
+        - icon_emoji
+        - icon_url
+        - webhook
+        - webhook_message
+      filter:
+        id:
+          _in: X-Hasura-operations
+      check:
+        id:
+          _in: X-Hasura-operations

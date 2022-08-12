@@ -1,0 +1,153 @@
+table:
+  name: payloadtype
+  schema: public
+object_relationships:
+  - name: translationcontainer
+    using:
+      foreign_key_constraint_on: translation_container_id
+array_relationships:
+  - name: browserscripts
+    using:
+      foreign_key_constraint_on:
+        column: payload_type_id
+        table:
+          name: browserscript
+          schema: public
+  - name: buildparameters
+    using:
+      foreign_key_constraint_on:
+        column: payload_type_id
+        table:
+          name: buildparameter
+          schema: public
+  - name: commands
+    using:
+      foreign_key_constraint_on:
+        column: payload_type_id
+        table:
+          name: command
+          schema: public
+  - name: payloads
+    using:
+      foreign_key_constraint_on:
+        column: payload_type_id
+        table:
+          name: payload
+          schema: public
+  - name: payloadtypec2profiles
+    using:
+      foreign_key_constraint_on:
+        column: payload_type_id
+        table:
+          name: payloadtypec2profile
+          schema: public
+  - name: wrap_these_payload_types
+    using:
+      foreign_key_constraint_on:
+        column: wrapper_id
+        table:
+          name: wrappedpayloadtypes
+          schema: public
+  - name: wrapped_by_these_payload_types
+    using:
+      foreign_key_constraint_on:
+        column: wrapped_id
+        table:
+          name: wrappedpayloadtypes
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - author
+        - container_running
+        - creation_time
+        - deleted
+        - file_extension
+        - id
+        - last_heartbeat
+        - mythic_encrypts
+        - note
+        - ptype
+        - service
+        - supported_os
+        - supports_dynamic_loading
+        - translation_container_id
+        - wrapper
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - author
+        - container_running
+        - creation_time
+        - deleted
+        - file_extension
+        - id
+        - last_heartbeat
+        - mythic_encrypts
+        - note
+        - ptype
+        - service
+        - supported_os
+        - supports_dynamic_loading
+        - translation_container_id
+        - wrapper
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - author
+        - container_running
+        - creation_time
+        - deleted
+        - file_extension
+        - id
+        - last_heartbeat
+        - mythic_encrypts
+        - note
+        - ptype
+        - service
+        - supported_os
+        - supports_dynamic_loading
+        - translation_container_id
+        - wrapper
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - author
+        - container_running
+        - creation_time
+        - deleted
+        - file_extension
+        - id
+        - last_heartbeat
+        - mythic_encrypts
+        - note
+        - ptype
+        - service
+        - supported_os
+        - supports_dynamic_loading
+        - translation_container_id
+        - wrapper
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - author
+        - container_running
+        - creation_time
+        - deleted
+        - file_extension
+        - id
+        - last_heartbeat
+        - mythic_encrypts
+        - note
+        - ptype
+        - service
+        - supported_os
+        - supports_dynamic_loading
+        - translation_container_id
+        - wrapper
+      filter: {}

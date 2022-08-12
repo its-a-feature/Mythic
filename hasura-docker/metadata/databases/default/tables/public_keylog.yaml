@@ -1,0 +1,98 @@
+table:
+  name: keylog
+  schema: public
+object_relationships:
+  - name: operation
+    using:
+      foreign_key_constraint_on: operation_id
+  - name: task
+    using:
+      foreign_key_constraint_on: task_id
+computed_fields:
+  - name: keystrokes_text
+    definition:
+      function:
+        name: keylog_keystrokes
+        schema: public
+    comment: utf8 version of keylogs
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - task_id
+        - keystrokes
+        - window
+        - timestamp
+        - operation_id
+        - user
+      computed_fields:
+        - keystrokes_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - task_id
+        - keystrokes
+        - window
+        - timestamp
+        - operation_id
+        - user
+      computed_fields:
+        - keystrokes_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - task_id
+        - keystrokes
+        - window
+        - timestamp
+        - operation_id
+        - user
+      computed_fields:
+        - keystrokes_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: operator
+    permission:
+      columns:
+        - id
+        - task_id
+        - keystrokes
+        - window
+        - timestamp
+        - operation_id
+        - user
+      computed_fields:
+        - keystrokes_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - task_id
+        - keystrokes
+        - window
+        - timestamp
+        - operation_id
+        - user
+      computed_fields:
+        - keystrokes_text
+      filter:
+        operation_id:
+          _in: X-Hasura-operations
+      allow_aggregations: true

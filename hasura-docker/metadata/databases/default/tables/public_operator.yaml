@@ -1,0 +1,222 @@
+table:
+  name: operator
+  schema: public
+object_relationships:
+  - name: operation
+    using:
+      foreign_key_constraint_on: current_operation_id
+array_relationships:
+  - name: apitokens
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: apitokens
+          schema: public
+  - name: browserscripts
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: browserscript
+          schema: public
+  - name: callbacks
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: callback
+          schema: public
+  - name: callbacksByLockedOperatorId
+    using:
+      foreign_key_constraint_on:
+        column: locked_operator_id
+        table:
+          name: callback
+          schema: public
+  - name: credentials
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: credential
+          schema: public
+  - name: filemeta
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: filemeta
+          schema: public
+  - name: loadedcommands
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: loadedcommands
+          schema: public
+  - name: operationeventlogs
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: operationeventlog
+          schema: public
+  - name: operations
+    using:
+      foreign_key_constraint_on:
+        column: admin_id
+        table:
+          name: operation
+          schema: public
+  - name: operatoroperations
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: operatoroperation
+          schema: public
+  - name: payloads
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: payload
+          schema: public
+  - name: tasks
+    using:
+      foreign_key_constraint_on:
+        column: operator_id
+        table:
+          name: task
+          schema: public
+  - name: tasksByCommentOperatorId
+    using:
+      foreign_key_constraint_on:
+        column: comment_operator_id
+        table:
+          name: task
+          schema: public
+  - name: tasksByOpsecPostBypassUserId
+    using:
+      foreign_key_constraint_on:
+        column: opsec_post_bypass_user_id
+        table:
+          name: task
+          schema: public
+  - name: tasksByOpsecPreBypassUserId
+    using:
+      foreign_key_constraint_on:
+        column: opsec_pre_bypass_user_id
+        table:
+          name: task
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - active
+        - admin
+        - creation_time
+        - deleted
+        - id
+        - last_login
+        - username
+        - view_utc_time
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - active
+        - admin
+        - creation_time
+        - current_operation_id
+        - deleted
+        - id
+        - last_login
+        - username
+        - view_utc_time
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - active
+        - admin
+        - creation_time
+        - deleted
+        - id
+        - last_login
+        - username
+        - view_utc_time
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - active
+        - admin
+        - creation_time
+        - deleted
+        - id
+        - last_login
+        - username
+        - view_utc_time
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - active
+        - admin
+        - creation_time
+        - deleted
+        - id
+        - last_login
+        - username
+        - view_utc_time
+      filter: {}
+update_permissions:
+  - role: developer
+    permission:
+      columns:
+        - username
+        - view_utc_time
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: mythic_admin
+    permission:
+      columns:
+        - active
+        - admin
+        - deleted
+        - username
+        - view_utc_time
+      filter: {}
+      check: null
+  - role: operation_admin
+    permission:
+      columns:
+        - username
+        - view_utc_time
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: operator
+    permission:
+      columns:
+        - username
+        - view_utc_time
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+      check: null
+  - role: spectator
+    permission:
+      columns:
+        - username
+        - view_utc_time
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
+      check: null

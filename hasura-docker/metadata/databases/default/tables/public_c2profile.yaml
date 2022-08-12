@@ -1,0 +1,122 @@
+table:
+  name: c2profile
+  schema: public
+array_relationships:
+  - name: c2profileparameters
+    using:
+      foreign_key_constraint_on:
+        column: c2_profile_id
+        table:
+          name: c2profileparameters
+          schema: public
+  - name: c2profileparametersinstances
+    using:
+      foreign_key_constraint_on:
+        column: c2_profile_id
+        table:
+          name: c2profileparametersinstance
+          schema: public
+  - name: callbackc2profiles
+    using:
+      foreign_key_constraint_on:
+        column: c2_profile_id
+        table:
+          name: callbackc2profiles
+          schema: public
+  - name: callbackgraphedges
+    using:
+      foreign_key_constraint_on:
+        column: c2_profile_id
+        table:
+          name: callbackgraphedge
+          schema: public
+  - name: payloadc2profiles
+    using:
+      foreign_key_constraint_on:
+        column: c2_profile_id
+        table:
+          name: payloadc2profiles
+          schema: public
+  - name: payloadtypec2profiles
+    using:
+      foreign_key_constraint_on:
+        column: c2_profile_id
+        table:
+          name: payloadtypec2profile
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - is_p2p
+        - is_server_routed
+        - running
+        - id
+        - author
+        - description
+        - name
+        - creation_time
+        - last_heartbeat
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - name
+        - description
+        - creation_time
+        - running
+        - last_heartbeat
+        - container_running
+        - author
+        - is_p2p
+        - is_server_routed
+        - deleted
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - is_p2p
+        - is_server_routed
+        - running
+        - id
+        - author
+        - description
+        - name
+        - creation_time
+        - last_heartbeat
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - is_p2p
+        - is_server_routed
+        - running
+        - id
+        - author
+        - description
+        - name
+        - creation_time
+        - last_heartbeat
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - container_running
+        - deleted
+        - is_p2p
+        - is_server_routed
+        - running
+        - id
+        - author
+        - description
+        - name
+        - creation_time
+        - last_heartbeat
+      filter: {}

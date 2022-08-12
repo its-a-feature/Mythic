@@ -1,0 +1,57 @@
+table:
+  name: translationcontainer
+  schema: public
+array_relationships:
+  - name: payloadtypes
+    using:
+      foreign_key_constraint_on:
+        column: translation_container_id
+        table:
+          name: payloadtype
+          schema: public
+select_permissions:
+  - role: developer
+    permission:
+      columns:
+        - id
+        - name
+        - last_heartbeat
+        - deleted
+        - container_running
+      filter: {}
+  - role: mythic_admin
+    permission:
+      columns:
+        - id
+        - name
+        - last_heartbeat
+        - deleted
+        - container_running
+      filter: {}
+  - role: operation_admin
+    permission:
+      columns:
+        - id
+        - name
+        - last_heartbeat
+        - deleted
+        - container_running
+      filter: {}
+  - role: operator
+    permission:
+      columns:
+        - id
+        - name
+        - last_heartbeat
+        - deleted
+        - container_running
+      filter: {}
+  - role: spectator
+    permission:
+      columns:
+        - id
+        - name
+        - last_heartbeat
+        - deleted
+        - container_running
+      filter: {}
