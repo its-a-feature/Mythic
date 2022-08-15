@@ -1971,7 +1971,7 @@ async def create_processes(request, task):
             bulk_insert.append(
                 {
                     "task": task,
-                    "host": host,
+                    "host": host if "host" not in p else p["host"].upper(),
                     "timestamp": timestamp,
                     "operation": task.callback.operation,
                     "process_id": p["process_id"],
