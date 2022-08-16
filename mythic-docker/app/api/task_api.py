@@ -2786,12 +2786,10 @@ async def delete_associated_objects_for_callback(callback: db_model.Callback) ->
                 await delete_associated_objects_for_task(t)
             except Exception as te:
                 logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(te))
-        callbackaccesses = await app.db_objects.execute(db_model.callbackaccesstimes_query.where(db_model.CallbackAccessTime.callback==callback))
-        for cat in callbackaccesses:
-            try:
-                await app.db_objects.delete(cat)
-            except Exception as cate:
-                logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(cate))
+        try:
+            await app.db_objects.execute(db_model.CallbackAccessTime.delete().where(db_model.CallbackAccessTime.callback==callback))
+        except Exception as access_deletes:
+            logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(access_deletes))
         await app.db_objects.delete(callback)
     except Exception as e:
         logger.warning("task_api.py - " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
