@@ -243,7 +243,7 @@ async def pop_special_keys(agent_message):
     keys = ["task_id", "completed", "user_output", "file_browser", "upload", "download", "removed_files",
             "total_chunks", "chunk_num", "chunk_data", "credentials", "artifacts", "processes", "tokens",
             "status", "full_path", "file_id", "host", "edges", "commands", "process_response", "keylogs",
-            "logonsessions", "callbacktokens"]
+            "logonsessions", "callback_tokens"]
     agent_copy = agent_message.copy()
     for k in keys:
         agent_copy.pop(k, None)
@@ -654,11 +654,11 @@ async def post_agent_response(agent_message, callback):
                             from app.api.rabbitmq_api import response_create_logon_session
                             asyncio.create_task(response_create_logon_session(task, parsed_response["logonsessions"]))
                         parsed_response.pop("logonsessions", None)
-                    if "callbacktokens" in parsed_response:
-                        if isinstance(parsed_response["callbacktokens"], list):
+                    if "callback_tokens" in parsed_response:
+                        if isinstance(parsed_response["callback_tokens"], list):
                             from app.api.rabbitmq_api import response_adjust_callback_tokens
-                            asyncio.create_task(response_adjust_callback_tokens(task, parsed_response["callbacktokens"]))
-                        parsed_response.pop("callbacktokens", None)
+                            asyncio.create_task(response_adjust_callback_tokens(task, parsed_response["callback_tokens"]))
+                        parsed_response.pop("callback_tokens", None)
                     parsed_response.pop("full_path", None)
                     parsed_response.pop("host", None)
                     parsed_response.pop("file_id", None)
@@ -1141,10 +1141,10 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                             if isinstance(parsed_response["logonsessions"], list):
                                 from app.api.rabbitmq_api import response_create_logon_session
                                 await response_create_logon_session(task, parsed_response["logonsessions"])
-                        if "callbacktokens" in parsed_response:
-                            if isinstance(parsed_response["callbacktokens"], list):
+                        if "callback_tokens" in parsed_response:
+                            if isinstance(parsed_response["callback_tokens"], list):
                                 from app.api.rabbitmq_api import response_adjust_callback_tokens
-                                await response_adjust_callback_tokens(task, parsed_response["callbacktokens"])
+                                await response_adjust_callback_tokens(task, parsed_response["callback_tokens"])
                     except Exception as e:
                         asyncio.create_task(
                             send_all_operations_message(message=f"Failed to parse response data:\n{'response_api.py - ' + str(sys.exc_info()[-1].tb_lineno) + ' ' + str(e)}",

@@ -555,14 +555,15 @@ async def get_agent_tasks(data, callback):
                 )
             for t in task_list:
                 tasks_to_update.append(t)
-                tasks.append(
-                    {
+                new_task = {
                         "command": t.command_name,
                         "parameters": t.params,
                         "id": t.agent_task_id,
                         "timestamp": t.timestamp.timestamp(),
                     }
-                )
+                if t.token is not None:
+                    new_task["token"] = t.token.TokenId
+                tasks.append(new_task)
             from app.api.callback_api import get_socks_data
 
             socks = await get_socks_data(callback)
