@@ -634,6 +634,7 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                         )
                         response_data["delegates"].append({"message": del_message,
                                                            "mythic_uuid": del_new_callback,
+                                                           "new_uuid": del_new_callback,
                                                            "uuid": d["uuid"]})
                     elif del_uuid != "" and del_uuid != d["uuid"]:
                         # there is no new callback
@@ -654,7 +655,8 @@ async def parse_agent_message(data: str, request, profile: str, return_decrypted
                         )
                         response_data["delegates"].append({"message": del_message,
                                                            "uuid": d["uuid"],
-                                                           "mythic_uuid": del_uuid})
+                                                           "mythic_uuid": del_uuid,
+                                                           "new_uuid": del_uuid})
                     else:
                         # there's no new callback and the delegate message isn't a full callback yet
                         # so just proxy through the UUID since it's in some form of staging
