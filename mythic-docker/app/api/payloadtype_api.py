@@ -274,43 +274,43 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
             except Exception as dup:
                 logger.info("[*] Failed to create new payload due to duplicated name, if this is the first time the agent container is started, this can be ignored")
                 return {"status": "error", "error": "duplicate"}
-        if not ptype["wrapper"]:
-            # now deal with all of the wrapped payloads mentioned
-            # get the list of wrapper combinations associated with the current payload type
-            current_wrapped = await app.db_objects.execute(
-                db_model.wrappedpayloadtypes_query.where(
-                    (db_model.WrappedPayloadTypes.wrapped == payload_type)
-                )
+        #if not ptype["wrapper"]:
+        # now deal with all of the wrapped payloads mentioned
+        # get the list of wrapper combinations associated with the current payload type
+        current_wrapped = await app.db_objects.execute(
+            db_model.wrappedpayloadtypes_query.where(
+                (db_model.WrappedPayloadTypes.wrapped == payload_type)
             )
-            # current_wrapped has list of wrapper->this_payload_type that currently exist in Mythic
-            wrapped_to_add = [p for p in ptype["wrapped"]]
-            for cw in current_wrapped:
-                found = False
-                # ptype["wrapped"] is a list of wrappers we support
-                for ptw in ptype["wrapped"]:
-                    if ptw == cw.wrapper.ptype:
-                        wrapped_to_add.remove(ptw)
-                        found = True
-                        break
-                # if we get here, then there was a wrapping that's not supported anymore
-                if not found:
-                    await app.db_objects.delete(cw)
-            # if there's anything left in wrapped_to_add, then we need to try to add them
-            for ptw in wrapped_to_add:
-                try:
-                    wrapped = await app.db_objects.get(db_model.payloadtype_query, ptype=ptw)
-                    await app.db_objects.create(
-                        db_model.WrappedPayloadTypes,
-                        wrapper=wrapped,
-                        wrapped=payload_type,
-                    )
-                except Exception as e:
-                    asyncio.create_task(
-                        send_all_operations_message(
-                            message=f"{rabbitmqName} supports the wrapper, {ptw}, but it doesn't currently exist within Mythic",
-                            level="info"))
-                    logger.warning("payloadtype_api.py - couldn't find wrapped payload in system, skipping: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
-                    pass
+        )
+        # current_wrapped has list of wrapper->this_payload_type that currently exist in Mythic
+        wrapped_to_add = [p for p in ptype["wrapped"]]
+        for cw in current_wrapped:
+            found = False
+            # ptype["wrapped"] is a list of wrappers we support
+            for ptw in ptype["wrapped"]:
+                if ptw == cw.wrapper.ptype:
+                    wrapped_to_add.remove(ptw)
+                    found = True
+                    break
+            # if we get here, then there was a wrapping that's not supported anymore
+            if not found:
+                await app.db_objects.delete(cw)
+        # if there's anything left in wrapped_to_add, then we need to try to add them
+        for ptw in wrapped_to_add:
+            try:
+                wrapped = await app.db_objects.get(db_model.payloadtype_query, ptype=ptw)
+                await app.db_objects.create(
+                    db_model.WrappedPayloadTypes,
+                    wrapper=wrapped,
+                    wrapped=payload_type,
+                )
+            except Exception as e:
+                asyncio.create_task(
+                    send_all_operations_message(
+                        message=f"{rabbitmqName} supports the wrapper, {ptw}, but it doesn't currently exist within Mythic",
+                        level="info"))
+                logger.warning("payloadtype_api.py - couldn't find wrapped payload in system, skipping: " + str(sys.exc_info()[-1].tb_lineno) + " " + str(e))
+                pass
         try:
             if new_payload:
                 payload_type.creation_time = datetime.datetime.utcnow()

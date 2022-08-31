@@ -388,7 +388,7 @@ async def setup_initial_info(sanic, loop):
     logger.info("setup_initial_info")
     app.db_objects = Manager(mythic_db, loop=loop)
     await mythic_db.connect_async(loop=loop)
-    app.db_objects.database.allow_sync = True  # logging.WARNING
+    app.db_objects.database.set_allow_sync(True) # = False  # logging.WARNING
     await initial_setup()
     asyncio.create_task(app.api.rabbitmq_api.start_listening())
 
