@@ -473,6 +473,10 @@ async def post_agent_response(agent_message, callback):
                                 task.completed = True
                                 marked_as_complete = True
                                 asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_completed"))
+                            elif task.status == "success":
+                                task.status = "completed"
+                                task.completed = True
+                                marked_as_complete = True
                         else:
                             if task.status_timestamp_processed is None:
                                 task.status_timestamp_processed = datetime.datetime.utcnow()
