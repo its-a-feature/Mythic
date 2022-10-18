@@ -272,7 +272,18 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     logger.info(f"RABBITMQ GOT CREATE_TASK INFO BACK FROM CONTAINER FOR {pieces[4]} WITH STATUS CODE {pieces[5]}")
                     task = await app.db_objects.get(db_model.task_query, id=pieces[4])
                     logger.debug(response_message)
-
+                    if pieces[5] == "general_error":
+                        task.status = "Error: PreProcessing"
+                        task.completed = True 
+                        await app.db_objects.create(
+                            db_model.Response,
+                            task=task,
+                            response=response_message["message"],
+                        )
+                        await app.db_objects.update(task)
+                        asyncio.create_task(check_and_issue_task_callback_functions(task))
+                        asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_new"))
+                        return
                     task.display_params = response_message["task"]["display_params"]
                     task.stdout = response_message["task"]["stdout"]
                     task.stderr = response_message["task"]["stderr"]
