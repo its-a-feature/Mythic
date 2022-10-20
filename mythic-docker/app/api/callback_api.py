@@ -994,6 +994,16 @@ async def create_callback_func(data, request):
             message = message.replace("{description}", cal.description)
             message = message.replace("{operator}", cal.operator.username)
             message = message.replace("{integrity}", int_level)
+            message = message.replace("{host}", cal.host)
+            message = message.replace("{user}", cal.user)
+            message = message.replace("{domain}", cal.domain)
+            message = message.replace("{os}", cal.os)
+            message = message.replace("{arch}", cal.architecture)
+            message = message.replace("{external_ip}", cal.external_ip)
+            message = message.replace("{sleep_info}", cal.sleep_info)
+            message = message.replace("{process_name}", cal.process_name)
+            message = message.replace("{pid}", str(cal.pid))
+            message = message.replace("{extra_info}", cal.extra_info)
             asyncio.create_task(send_webhook_message(cal.operation.webhook, message, cal.operation))
         except Exception as e:
             asyncio.create_task(send_all_operations_message(
