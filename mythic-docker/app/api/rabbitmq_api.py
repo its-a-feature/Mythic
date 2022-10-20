@@ -393,7 +393,7 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                         asyncio.create_task(check_and_issue_task_callback_functions(task))
                         asyncio.create_task(log_to_siem(mythic_object=task, mythic_source="task_new"))
                     else:
-                        if pieces[5] == "success":
+                        if pieces[5] == "success" or pieces[5] == "bypassing opsec_pre":
                             # check if there are subtasks created for this task, if so, this should not go to submitted
                             subtasks = await app.db_objects.count(db_model.task_query.where(
                                 (db_model.Task.parent_task == task) &
