@@ -293,15 +293,9 @@ async def rabbit_pt_callback(message: aio_pika.IncomingMessage):
                     task.opsec_pre_blocked = response_message["task"]["opsec_pre_blocked"]
                     task.opsec_pre_message = response_message["task"]["opsec_pre_message"]
                     task.opsec_pre_bypass_role = response_message["task"]["opsec_pre_bypass_role"]
-                    if response_message["task"]["opsec_pre_bypassed"] and response_message["task"][
-                        "opsec_pre_bypass_user"] is None:
-                        task.opsec_pre_bypassed_user = task.operator
                     task.opsec_post_blocked = response_message["task"]["opsec_post_blocked"]
                     task.opsec_post_message = response_message["task"]["opsec_post_message"]
                     task.opsec_post_bypass_role = response_message["task"]["opsec_post_bypass_role"]
-                    if response_message["task"]["opsec_post_bypassed"] and response_message["task"][
-                        "opsec_post_bypass_user"] is None:
-                        task.opsec_post_bypassed_user = task.operator
                     task.completed_callback_function = response_message["task"][
                         "completed_callback_function"] if "completed_callback_function" in response_message[
                         "task"] else None
