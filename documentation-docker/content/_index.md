@@ -1,6 +1,7 @@
 +++
 chapter = false
 title = "Mythic"
+alwaysopen = true
 +++
 
 # Mythic
