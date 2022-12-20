@@ -320,7 +320,6 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                 current_params = await app.db_objects.execute(
                     db_model.buildparameter_query.where(
                         (db_model.BuildParameter.payload_type == payload_type)
-                        & (db_model.BuildParameter.deleted == False)
                     )
                 )
                 build_param_dict = {b.name: b for b in current_params}
@@ -331,14 +330,14 @@ async def import_payload_type_func(ptype, operator, rabbitmqName):
                         buildparam = await app.db_objects.get(
                             db_model.buildparameter_query,
                             payload_type=payload_type,
-                            name=bp["name"],
-                            deleted=False,
+                            name=bp["name"]
                         )
                         buildparam.parameter_type = bp["parameter_type"]
                         buildparam.description = bp["description"]
                         buildparam.required = bp["required"]
                         buildparam.verifier_regex = bp["verifier_regex"]
                         buildparam.parameter = bp["parameter"]
+                        buildparam.deleted = False
                         await app.db_objects.update(buildparam)
                         build_param_dict.pop(bp["name"], None)
                     except Exception as e:
@@ -512,7 +511,6 @@ async def import_command_func(payload_type, operator, command_list):
     current_commands = await app.db_objects.execute(
         db_model.command_query.where(
             (db_model.Command.payload_type == payload_type)
-            & (db_model.Command.deleted == False)
         )
     )
     for command in current_commands:
@@ -527,6 +525,7 @@ async def import_command_func(payload_type, operator, command_list):
             command.author = cmd["author"]
             command.attributes = js.dumps(cmd["attributes"])
             command.script_only = cmd["script_only"]
+            command.deleted = False
             await add_update_opsec_for_command(command, cmd)
             await app.db_objects.update(command)
 

@@ -702,8 +702,7 @@ async def import_c2_profile_func(data, operator, rabbitmqName):
         # print("Created new c2 profile: {}".format(data['name']))
     curr_parameters = await app.db_objects.execute(
         db_model.c2profileparameters_query.where(
-            (db_model.C2ProfileParameters.c2_profile == profile) &
-            (db_model.C2ProfileParameters.deleted == False)
+            (db_model.C2ProfileParameters.c2_profile == profile)
         )
     )
     curr_parameters_dict = {c.name: c for c in curr_parameters}
@@ -721,6 +720,7 @@ async def import_c2_profile_func(data, operator, rabbitmqName):
             c2_profile_param.parameter_type = param["parameter_type"]
             c2_profile_param.verifier_regex = param["verifier_regex"]
             c2_profile_param.crypto_type = param["crypto_type"]
+            c2_profile_param.deleted = False
             await app.db_objects.update(c2_profile_param)
         except Exception as e:
             print(str(e))
