@@ -620,7 +620,7 @@ async def post_agent_response(agent_message, callback):
                                 rabbit_message["tasking_location"] = task.tasking_location
                                 if app.debugging_enabled:
                                     await send_all_operations_message(
-                                        message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
+                                        message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_response'])}",
                                         level="info", source="debug", operation=task.callback.operation)
                                 status = await send_pt_rabbitmq_message(payload_type=task.callback.registered_payload.payload_type.ptype,
                                                                         command="process_container",
@@ -1110,7 +1110,7 @@ async def background_process_agent_responses(agent_responses: dict, callback: db
                                     rabbit_message["tasking_location"] = task.tasking_location
                                     if app.debugging_enabled:
                                         await send_all_operations_message(
-                                            message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_container'])}",
+                                            message=f"Sending message to {task.callback.registered_payload.payload_type.ptype}'s container for processing of a 'process_response' message:\n{str(parsed_response['process_response'])}",
                                             level="info", source="debug", operation=task.callback.operation)
                                     status = await send_pt_rabbitmq_message(payload_type=task.callback.registered_payload.payload_type.ptype,
                                                                             command="process_container",
