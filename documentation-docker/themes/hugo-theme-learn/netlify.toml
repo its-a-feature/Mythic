@@ -8,7 +8,7 @@
   HUGO_VERSION = "0.72.0"
 
 [context.production.environment]
-  HUGO_BASEURL = "https://learn.netlify.com/"
+  HUGO_BASEURL = "https://learn.netlify.app/"
 
 [context.deploy-preview]
   command = "hugo -s exampleSite -b $DEPLOY_PRIME_URL"

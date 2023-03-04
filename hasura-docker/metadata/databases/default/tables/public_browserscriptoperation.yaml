@@ -85,19 +85,16 @@ select_permissions:
 delete_permissions:
   - role: developer
     permission:
-      backend_only: false
       filter:
         operation_id:
           _in: X-Hasura-admin-operations
   - role: mythic_admin
     permission:
-      backend_only: false
       filter:
         operation_id:
           _in: X-Hasura-admin-operations
   - role: operation_admin
     permission:
-      backend_only: false
       filter:
         operation_id:
           _in: X-Hasura-admin-operations

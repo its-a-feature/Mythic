@@ -55,12 +55,12 @@ array_relationships:
         table:
           name: callbackgraphedge
           schema: public
-  - name: callbacks
+  - name: callbackports
     using:
       foreign_key_constraint_on:
-        column: socks_task_id
+        column: task_id
         table:
-          name: callback
+          name: callbackport
           schema: public
   - name: callbacktokens
     using:
@@ -132,6 +132,13 @@ array_relationships:
         table:
           name: response
           schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: task_id
+        table:
+          name: tag
+          schema: public
   - name: taskartifacts
     using:
       foreign_key_constraint_on:
@@ -146,13 +153,6 @@ array_relationships:
         table:
           name: task
           schema: public
-  - name: tasktags
-    using:
-      foreign_key_constraint_on:
-        column: task_id
-        table:
-          name: tasktag
-          schema: public
   - name: tokens
     using:
       foreign_key_constraint_on:
@@ -164,51 +164,52 @@ select_permissions:
   - role: developer
     permission:
       columns:
-        - id
-        - agent_task_id
-        - command_id
-        - command_name
-        - params
-        - status_timestamp_preprocessing
-        - status_timestamp_submitted
-        - status_timestamp_processing
-        - status_timestamp_processed
-        - timestamp
-        - callback_id
-        - operator_id
-        - status
-        - original_params
-        - display_params
-        - comment
-        - comment_operator_id
-        - stdout
-        - stderr
         - completed
-        - opsec_pre_blocked
-        - opsec_pre_message
-        - opsec_pre_bypassed
-        - opsec_pre_bypass_role
-        - opsec_pre_bypass_user_id
-        - opsec_post_blocked
-        - opsec_post_message
-        - opsec_post_bypassed
-        - opsec_post_bypass_role
-        - opsec_post_bypass_user_id
-        - parent_task_id
-        - subtask_callback_function
-        - subtask_callback_function_completed
-        - group_callback_function
-        - group_callback_function_completed
-        - completed_callback_function
         - completed_callback_function_completed
+        - group_callback_function_completed
+        - opsec_post_blocked
+        - opsec_post_bypassed
+        - opsec_pre_blocked
+        - opsec_pre_bypassed
+        - subtask_callback_function_completed
+        - callback_id
+        - command_id
+        - comment_operator_id
+        - display_id
+        - id
+        - operation_id
+        - operator_id
+        - opsec_post_bypass_user_id
+        - opsec_pre_bypass_user_id
+        - parent_task_id
+        - token_id
+        - agent_task_id
+        - command_name
+        - comment
+        - completed_callback_function
+        - display_params
+        - group_callback_function
+        - opsec_post_bypass_role
+        - opsec_post_message
+        - opsec_pre_bypass_role
+        - opsec_pre_message
+        - original_params
+        - parameter_group_name
+        - params
+        - status
+        - stderr
+        - stdout
+        - subtask_callback_function
         - subtask_group_name
         - tasking_location
-        - parameter_group_name
-        - token_id
+        - status_timestamp_preprocessing
+        - status_timestamp_processed
+        - status_timestamp_processing
+        - status_timestamp_submitted
+        - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       allow_aggregations: true
   - role: mythic_admin
     permission:
@@ -221,11 +222,12 @@ select_permissions:
         - opsec_pre_blocked
         - opsec_pre_bypassed
         - subtask_callback_function_completed
-        - status
         - callback_id
         - command_id
         - comment_operator_id
+        - display_id
         - id
+        - operation_id
         - operator_id
         - opsec_post_bypass_user_id
         - opsec_pre_bypass_user_id
@@ -244,6 +246,7 @@ select_permissions:
         - original_params
         - parameter_group_name
         - params
+        - status
         - stderr
         - stdout
         - subtask_callback_function
@@ -255,9 +258,8 @@ select_permissions:
         - status_timestamp_submitted
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       allow_aggregations: true
   - role: operation_admin
     permission:
@@ -270,11 +272,12 @@ select_permissions:
         - opsec_pre_blocked
         - opsec_pre_bypassed
         - subtask_callback_function_completed
-        - status
         - callback_id
         - command_id
         - comment_operator_id
+        - display_id
         - id
+        - operation_id
         - operator_id
         - opsec_post_bypass_user_id
         - opsec_pre_bypass_user_id
@@ -293,6 +296,7 @@ select_permissions:
         - original_params
         - parameter_group_name
         - params
+        - status
         - stderr
         - stdout
         - subtask_callback_function
@@ -304,9 +308,8 @@ select_permissions:
         - status_timestamp_submitted
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       allow_aggregations: true
   - role: operator
     permission:
@@ -319,11 +322,12 @@ select_permissions:
         - opsec_pre_blocked
         - opsec_pre_bypassed
         - subtask_callback_function_completed
-        - status
         - callback_id
         - command_id
         - comment_operator_id
+        - display_id
         - id
+        - operation_id
         - operator_id
         - opsec_post_bypass_user_id
         - opsec_pre_bypass_user_id
@@ -342,6 +346,7 @@ select_permissions:
         - original_params
         - parameter_group_name
         - params
+        - status
         - stderr
         - stdout
         - subtask_callback_function
@@ -353,9 +358,8 @@ select_permissions:
         - status_timestamp_submitted
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       allow_aggregations: true
   - role: spectator
     permission:
@@ -368,11 +372,12 @@ select_permissions:
         - opsec_pre_blocked
         - opsec_pre_bypassed
         - subtask_callback_function_completed
-        - status
         - callback_id
         - command_id
         - comment_operator_id
+        - display_id
         - id
+        - operation_id
         - operator_id
         - opsec_post_bypass_user_id
         - opsec_pre_bypass_user_id
@@ -391,6 +396,7 @@ select_permissions:
         - original_params
         - parameter_group_name
         - params
+        - status
         - stderr
         - stdout
         - subtask_callback_function
@@ -402,9 +408,8 @@ select_permissions:
         - status_timestamp_submitted
         - timestamp
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       allow_aggregations: true
 update_permissions:
   - role: developer
@@ -412,10 +417,10 @@ update_permissions:
       columns:
         - comment
         - comment_operator_id
+        - completed
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       check: null
       set:
         comment_operator_id: x-hasura-User-Id
@@ -424,10 +429,10 @@ update_permissions:
       columns:
         - comment
         - comment_operator_id
+        - completed
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       check: null
       set:
         comment_operator_id: x-hasura-User-Id
@@ -436,10 +441,10 @@ update_permissions:
       columns:
         - comment
         - comment_operator_id
+        - completed
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       check: null
       set:
         comment_operator_id: x-hasura-User-Id
@@ -448,10 +453,10 @@ update_permissions:
       columns:
         - comment
         - comment_operator_id
+        - completed
       filter:
-        callback:
-          operation_id:
-            _in: X-Hasura-operations
+        operation_id:
+          _in: X-Hasura-operations
       check: null
       set:
         comment_operator_id: x-hasura-User-Id

@@ -2,7 +2,6 @@
 title = "Wrappers"
 chapter = false
 weight = 5
-alwaysopen = true
 +++
 
 ## Wrapper Documentation

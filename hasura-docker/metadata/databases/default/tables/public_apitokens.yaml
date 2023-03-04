@@ -110,31 +110,26 @@ update_permissions:
 delete_permissions:
   - role: developer
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: mythic_admin
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: operation_admin
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: operator
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: spectator
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id

@@ -58,7 +58,6 @@ select_permissions:
         - description
         - name
         - creation_time
-        - last_heartbeat
       filter: {}
   - role: mythic_admin
     permission:
@@ -68,7 +67,6 @@ select_permissions:
         - description
         - creation_time
         - running
-        - last_heartbeat
         - container_running
         - author
         - is_p2p
@@ -88,7 +86,6 @@ select_permissions:
         - description
         - name
         - creation_time
-        - last_heartbeat
       filter: {}
   - role: operator
     permission:
@@ -103,7 +100,6 @@ select_permissions:
         - description
         - name
         - creation_time
-        - last_heartbeat
       filter: {}
   - role: spectator
     permission:
@@ -118,5 +114,4 @@ select_permissions:
         - description
         - name
         - creation_time
-        - last_heartbeat
       filter: {}

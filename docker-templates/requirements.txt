@@ -1,0 +1,8 @@
+aio-pika==9.0.4
+dynaconf==3.1.11
+ujson==5.7.0
+aiohttp==3.8.3
+psutil==5.9.4
+grpcio
+grpcio-tools
+pycryptodome

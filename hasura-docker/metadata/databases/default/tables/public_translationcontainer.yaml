@@ -15,7 +15,6 @@ select_permissions:
       columns:
         - id
         - name
-        - last_heartbeat
         - deleted
         - container_running
       filter: {}
@@ -24,7 +23,6 @@ select_permissions:
       columns:
         - id
         - name
-        - last_heartbeat
         - deleted
         - container_running
       filter: {}
@@ -33,7 +31,6 @@ select_permissions:
       columns:
         - id
         - name
-        - last_heartbeat
         - deleted
         - container_running
       filter: {}
@@ -42,7 +39,6 @@ select_permissions:
       columns:
         - id
         - name
-        - last_heartbeat
         - deleted
         - container_running
       filter: {}
@@ -51,7 +47,6 @@ select_permissions:
       columns:
         - id
         - name
-        - last_heartbeat
         - deleted
         - container_running
       filter: {}

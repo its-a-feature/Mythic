@@ -1,4 +1,5 @@
-From itsafeaturemythic/mythic_postgres:0.0.2
+#From itsafeaturemythic/mythic_postgres:0.0.2
+FROM postgres:15-alpine
 COPY ["pg_hba.conf", "/var/lib/postgresql/pg_hba.conf"]
 COPY ["postgres.conf", "/var/lib/postgresql/postgresql.conf"]
 COPY ["configuration.sh", "/docker-entrypoint-initdb.d/configuration.sh"]

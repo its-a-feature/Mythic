@@ -1,13 +1,52 @@
 type Query {
+  c2profileListFiles(
+    id: Int!
+  ): c2ProfileListFilesOutput
+}
+
+type Mutation {
+  callbackgraphedge_add(
+    source_id: Int!
+    destination_id: Int!
+    c2profile: String!
+  ): CallbackgraphedgeAddOutput
+}
+
+type Mutation {
+  callbackgraphedge_remove(
+    edge_id: Int!
+  ): CallbackgraphedgeRemoveOutput
+}
+
+type Query {
   config_check(
     uuid: String!
   ): ConfigCheckOutput
 }
 
 type Mutation {
+  consumingServicesTestLog(
+    service_type: String!
+  ): consumingServicesTestLogOutput
+}
+
+type Mutation {
+  consumingServicesTestWebhook(
+    service_type: String!
+  ): consumingServicesTestOutput
+}
+
+type Mutation {
   createAPIToken(
     token_type: String!
   ): createAPITokenResponse!
+}
+
+type Mutation {
+  createCallback(
+    newCallback: newCallbackConfig
+    payloadUuid: String!
+  ): createCallbackOutput
 }
 
 type Mutation {
@@ -75,6 +114,12 @@ type Mutation {
 }
 
 type Mutation {
+  deleteTagtype(
+    id: Int!
+  ): deleteTagtypeOutput
+}
+
+type Mutation {
   deleteTasksAndCallbacks(
     tasks: [Int]
     callbacks: [Int]
@@ -127,6 +172,12 @@ type Query {
   ): ProfileOutput
 }
 
+type Mutation {
+  importTagtypes(
+    tagtypes: String!
+  ): importTagtypesOutput
+}
+
 type Query {
   meHook: meHookOutput
 }
@@ -162,9 +213,23 @@ type Mutation {
 }
 
 type Mutation {
+  removeContainerFile(
+    id: Int!
+    filename: String!
+  ): removeContainerFileOutput
+}
+
+type Mutation {
   requestOpsecBypass(
     task_id: Int!
   ): BypassOutput
+}
+
+type Mutation {
+  sendExternalWebhook(
+    webhook_type: String!
+    webhook_data: [DictionaryEntry!]!
+  ): sendExternalWebhookOutput
 }
 
 type Mutation {
@@ -177,6 +242,8 @@ type Mutation {
 type Mutation {
   stop_socks(
     callback_id: Int!
+    port: Int!
+    port_type: String!
   ): StopSocksOutput
 }
 
@@ -223,6 +290,42 @@ input updateCallbackInput {
   active: Boolean
   locked: Boolean
   description: String
+  ips: [String]
+}
+
+input DictionaryEntry {
+  key: String!
+  value: String!
+}
+
+input tagtypeInput {
+  name: String!
+  color: String!
+  description: String!
+}
+
+input NewCallbackConfig {
+  ip: String
+  externalIp: String
+  user: String
+  host: String
+  domain: String
+  description: String
+  processName: String
+  sleepInfo: String
+  extraInfo: String
+}
+
+input newCallbackConfig {
+  ip: String
+  externalIp: String
+  user: String
+  host: String
+  domain: String
+  description: String
+  processName: String
+  sleepInfo: String
+  extraInfo: String
 }
 
 type createAPITokenResponse {
@@ -403,6 +506,7 @@ type deleteBlockListEntryOutput {
 
 type createOperationOutput {
   operation_id: Int
+  operation_name: String
   status: String!
   error: String
 }
@@ -430,5 +534,74 @@ type deleteTasksAndCallbacksOutput {
   error: String
   failed_tasks: [Int]
   failed_callbacks: [Int]
+}
+
+type sendExternalWebhookOutput {
+  status: String!
+  error: String
+}
+
+type deleteTagtypeOutput {
+  status: String!
+  error: String
+  tagtype_id: Int!
+}
+
+type importTagtypesOutput {
+  status: String!
+  error: String
+}
+
+type CallbackgraphedgeAddOutput {
+  status: String!
+  error: String
+}
+
+type CallbackgraphedgeRemoveOutput {
+  status: String!
+  error: String
+}
+
+type createCallbackOutput {
+  status: String!
+  error: String
+}
+
+type consumingServicesOutput {
+  status: String!
+  error: String
+  newcallback_logging_services_count: Int
+  newcredential_logging_services_count: Int
+  newfileupload_logging_services_count: Int
+  newfiledownload_logging_services_count: Int
+  newartifact_logging_services_count: Int
+  newtask_logging_services_count: Int
+  newscreenshot_logging_services_count: Int
+  newpayload_logging_services_count: Int
+  newkeylog_logging_services_count: Int
+  newcallback_webhook_services_count: Int
+  newfeedback_webhook_services_count: Int
+  newstartup_webhook_services_count: Int
+}
+
+type consumingServicesTestOutput {
+  status: String!
+  error: String
+}
+
+type consumingServicesTestLogOutput {
+  status: String!
+  error: String
+}
+
+type c2ProfileListFilesOutput {
+  status: String!
+  error: String
+  files: [String]
+}
+
+type removeContainerFileOutput {
+  status: String!
+  error: String
 }
 

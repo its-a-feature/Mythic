@@ -17,33 +17,35 @@ select_permissions:
   - role: developer
     permission:
       columns:
-        - c2_profile_id
         - crypto_type
-        - default_value
         - deleted
-        - description
-        - format_string
-        - id
-        - name
-        - parameter_type
         - randomize
         - required
+        - c2_profile_id
+        - id
+        - choices
+        - default_value
+        - description
+        - format_string
+        - name
+        - parameter_type
         - verifier_regex
       filter: {}
   - role: mythic_admin
     permission:
       columns:
-        - c2_profile_id
         - crypto_type
-        - default_value
         - deleted
-        - description
-        - format_string
-        - id
-        - name
-        - parameter_type
         - randomize
         - required
+        - c2_profile_id
+        - id
+        - choices
+        - default_value
+        - description
+        - format_string
+        - name
+        - parameter_type
         - verifier_regex
       filter: {}
   - role: operation_admin
@@ -55,6 +57,7 @@ select_permissions:
         - required
         - c2_profile_id
         - id
+        - choices
         - default_value
         - description
         - format_string
@@ -71,6 +74,7 @@ select_permissions:
         - required
         - c2_profile_id
         - id
+        - choices
         - default_value
         - description
         - format_string
@@ -87,6 +91,7 @@ select_permissions:
         - required
         - c2_profile_id
         - id
+        - choices
         - default_value
         - description
         - format_string

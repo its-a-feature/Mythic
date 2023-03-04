@@ -8,6 +8,8 @@ docs/_build/
 env/
 venv/
 ENV/
+mythic-cli
+.DS_Store
 env.bak/
 venv.bak/
 # pycharm
@@ -22,8 +24,10 @@ postgres-docker/database/
 rabbitmq-docker/storage/
 C2_profiles/
 Payload_Types/
+InstalledServices/
 Docker_Templates/
 documentation-docker/content/
+documentation-docker/public/
 display_output.txt
 nginx-docker/config/conf.d/services.conf
 ## Ignore Visual Studio temporary files, build results, and

@@ -108,7 +108,6 @@ select_permissions:
 delete_permissions:
   - role: developer
     permission:
-      backend_only: false
       filter:
         task:
           callback:
@@ -116,7 +115,6 @@ delete_permissions:
               _eq: X-Hasura-current-operation-id
   - role: mythic_admin
     permission:
-      backend_only: false
       filter:
         task:
           callback:
@@ -124,7 +122,6 @@ delete_permissions:
               _eq: X-Hasura-current-operation-id
   - role: operation_admin
     permission:
-      backend_only: false
       filter:
         task:
           callback:
@@ -132,7 +129,6 @@ delete_permissions:
               _eq: X-Hasura-current-operation-id
   - role: operator
     permission:
-      backend_only: false
       filter:
         task:
           callback:

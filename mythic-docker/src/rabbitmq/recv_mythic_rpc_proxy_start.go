@@ -1,0 +1,67 @@
+package rabbitmq
+
+import (
+	"encoding/json"
+
+	"github.com/its-a-feature/Mythic/database"
+	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
+	"github.com/its-a-feature/Mythic/logging"
+	amqp "github.com/rabbitmq/amqp091-go"
+)
+
+type MythicRPCProxyStartMessage struct {
+	TaskID   int    `json:"task_id"`
+	Port     int    `json:"port"`
+	PortType string `json:"port_type"`
+}
+type MythicRPCProxyStartMessageResponse struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error"`
+}
+
+func init() {
+	RabbitMQConnection.AddRPCQueue(RPCQueueStruct{
+		Exchange:   MYTHIC_EXCHANGE,
+		Queue:      MYTHIC_RPC_PROXY_START,
+		RoutingKey: MYTHIC_RPC_PROXY_START,
+		Handler:    processMythicRPCProxyStart,
+	})
+}
+
+// Endpoint: MYTHIC_RPC_PROXY
+//
+// Creates a FileMeta object for a specific task in Mythic's database and writes contents to disk with a random UUID filename.
+func MythicRPCProxyStart(input MythicRPCProxyStartMessage) MythicRPCProxyStartMessageResponse {
+	response := MythicRPCProxyStartMessageResponse{
+		Success: false,
+	}
+	task := databaseStructs.Task{ID: input.TaskID}
+	if err := database.DB.Get(&task, `SELECT id, operation_id, callback_id FROM task WHERE id=$1`, task.ID); err != nil {
+		logging.LogError(err, "Failed to get task from database to start socks")
+		response.Error = err.Error()
+		return response
+	} else {
+		if err := proxyPorts.Add(task.CallbackID, input.PortType, input.Port, task.ID, task.OperationID); err != nil {
+			logging.LogError(err, "Failed to add new callback port")
+			response.Error = err.Error()
+			return response
+		} else {
+			response.Success = true
+			return response
+		}
+	}
+
+}
+func processMythicRPCProxyStart(msg amqp.Delivery) interface{} {
+	incomingMessage := MythicRPCProxyStartMessage{}
+	responseMsg := MythicRPCProxyStartMessageResponse{
+		Success: false,
+	}
+	if err := json.Unmarshal(msg.Body, &incomingMessage); err != nil {
+		logging.LogError(err, "Failed to unmarshal JSON into struct")
+		responseMsg.Error = err.Error()
+	} else {
+		return MythicRPCProxyStart(incomingMessage)
+	}
+	return responseMsg
+}

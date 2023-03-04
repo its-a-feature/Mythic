@@ -27,6 +27,13 @@ array_relationships:
         table:
           name: command
           schema: public
+  - name: payload_build_steps
+    using:
+      foreign_key_constraint_on:
+        column: payloadtype_id
+        table:
+          name: payload_build_step
+          schema: public
   - name: payloads
     using:
       foreign_key_constraint_on:
@@ -65,11 +72,9 @@ select_permissions:
         - deleted
         - file_extension
         - id
-        - last_heartbeat
         - mythic_encrypts
         - note
-        - ptype
-        - service
+        - name
         - supported_os
         - supports_dynamic_loading
         - translation_container_id
@@ -84,11 +89,9 @@ select_permissions:
         - deleted
         - file_extension
         - id
-        - last_heartbeat
         - mythic_encrypts
         - note
-        - ptype
-        - service
+        - name
         - supported_os
         - supports_dynamic_loading
         - translation_container_id
@@ -103,11 +106,9 @@ select_permissions:
         - deleted
         - file_extension
         - id
-        - last_heartbeat
         - mythic_encrypts
         - note
-        - ptype
-        - service
+        - name
         - supported_os
         - supports_dynamic_loading
         - translation_container_id
@@ -122,11 +123,9 @@ select_permissions:
         - deleted
         - file_extension
         - id
-        - last_heartbeat
         - mythic_encrypts
         - note
-        - ptype
-        - service
+        - name
         - supported_os
         - supports_dynamic_loading
         - translation_container_id
@@ -141,11 +140,9 @@ select_permissions:
         - deleted
         - file_extension
         - id
-        - last_heartbeat
         - mythic_encrypts
         - note
-        - ptype
-        - service
+        - name
         - supported_os
         - supports_dynamic_loading
         - translation_container_id

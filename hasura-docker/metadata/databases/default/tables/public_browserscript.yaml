@@ -88,7 +88,6 @@ select_permissions:
         - creation_time
         - for_new_ui
         - id
-        - name
         - operator_id
         - payload_type_id
         - script
@@ -111,7 +110,6 @@ select_permissions:
         - creation_time
         - for_new_ui
         - id
-        - name
         - operator_id
         - payload_type_id
         - script
@@ -134,7 +132,6 @@ select_permissions:
         - creation_time
         - for_new_ui
         - id
-        - name
         - operator_id
         - payload_type_id
         - script
@@ -157,7 +154,6 @@ select_permissions:
         - creation_time
         - for_new_ui
         - id
-        - name
         - operator_id
         - payload_type_id
         - script
@@ -180,7 +176,6 @@ select_permissions:
         - creation_time
         - for_new_ui
         - id
-        - name
         - operator_id
         - payload_type_id
         - script
@@ -199,7 +194,6 @@ update_permissions:
         - active
         - author
         - command_id
-        - name
         - payload_type_id
         - script
         - user_modified
@@ -213,7 +207,6 @@ update_permissions:
         - active
         - author
         - command_id
-        - name
         - payload_type_id
         - script
         - user_modified
@@ -227,7 +220,6 @@ update_permissions:
         - active
         - author
         - command_id
-        - name
         - payload_type_id
         - script
         - user_modified
@@ -241,7 +233,6 @@ update_permissions:
         - active
         - author
         - command_id
-        - name
         - payload_type_id
         - script
         - user_modified
@@ -252,25 +243,21 @@ update_permissions:
 delete_permissions:
   - role: developer
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: mythic_admin
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: operation_admin
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: operator
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id

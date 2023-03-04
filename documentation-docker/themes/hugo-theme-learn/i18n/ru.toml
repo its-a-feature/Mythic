@@ -24,3 +24,12 @@ other = "Еще"
 
 [Expand-title]
 other = "Развернуть..."
+
+[Byte-symbol]
+other = "Б"
+
+[Kilobyte-symbol]
+other = "КБ"
+
+[Megabyte-symbol]
+other = "МБ"

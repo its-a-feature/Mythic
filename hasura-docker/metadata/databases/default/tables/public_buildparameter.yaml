@@ -17,65 +17,85 @@ select_permissions:
   - role: developer
     permission:
       columns:
+        - choices
+        - crypto_type
+        - default_value
+        - deleted
+        - description
+        - format_string
         - id
         - name
         - parameter_type
-        - description
         - payload_type_id
+        - randomize
         - required
         - verifier_regex
-        - deleted
-        - parameter
       filter: {}
   - role: mythic_admin
     permission:
       columns:
+        - choices
+        - crypto_type
+        - default_value
         - deleted
-        - required
-        - id
-        - payload_type_id
         - description
+        - format_string
+        - id
         - name
-        - parameter
         - parameter_type
+        - payload_type_id
+        - randomize
+        - required
         - verifier_regex
       filter: {}
   - role: operation_admin
     permission:
       columns:
+        - choices
+        - crypto_type
+        - default_value
         - deleted
-        - required
-        - id
-        - payload_type_id
         - description
+        - format_string
+        - id
         - name
-        - parameter
         - parameter_type
+        - payload_type_id
+        - randomize
+        - required
         - verifier_regex
       filter: {}
   - role: operator
     permission:
       columns:
+        - choices
+        - crypto_type
+        - default_value
         - deleted
-        - required
-        - id
-        - payload_type_id
         - description
+        - format_string
+        - id
         - name
-        - parameter
         - parameter_type
+        - payload_type_id
+        - randomize
+        - required
         - verifier_regex
       filter: {}
   - role: spectator
     permission:
       columns:
+        - choices
+        - crypto_type
+        - default_value
         - deleted
-        - required
-        - id
-        - payload_type_id
         - description
+        - format_string
+        - id
         - name
-        - parameter
         - parameter_type
+        - payload_type_id
+        - randomize
+        - required
         - verifier_regex
       filter: {}

@@ -1,16 +1,16 @@
         {{ if .Params.chapter }}
             </div> <!-- end chapter-->
         {{ end }}
-        </div> 
+        </div>
         {{ partial "custom-comments.html" . }}
       </div>
 
     <div id="navigation">
         <!-- Next prev page -->
         {{ $currentNode := . }}
-        
+
         {{ template "menu-nextprev" dict "menu" .Site.Home "currentnode" $currentNode }}
-        
+
         {{ define "menu-nextprev" }}
             {{$currentNode := .currentnode }}
             {{ if ne .menu.Params.hidden true}}
@@ -52,7 +52,7 @@
     </div>
 
     </section>
-    
+
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
@@ -66,12 +66,18 @@
     <script src="{{"js/modernizr.custom-3.6.0.js" | relURL}}{{ if not .Site.Params.disableAssetsBusting }}?{{ now.Unix }}{{ end }}"></script>
     <script src="{{"js/learn.js" | relURL}}{{ if not .Site.Params.disableAssetsBusting }}?{{ now.Unix }}{{ end }}"></script>
     <script src="{{"js/hugo-learn.js" | relURL}}{{ if not .Site.Params.disableAssetsBusting }}?{{ now.Unix }}{{ end }}"></script>
-
-    <link href="{{"mermaid/mermaid.css" | relURL}}{{ if not .Site.Params.disableAssetsBusting }}?{{ now.Unix }}{{ end }}" rel="stylesheet" />
-    <script src="{{"mermaid/mermaid.js" | relURL}}{{ if not .Site.Params.disableAssetsBusting }}?{{ now.Unix }}{{ end }}"></script>
-    <script>
-        mermaid.initialize({ startOnLoad: true });
-    </script>
+    {{ if (or (and (ne .Params.disableMermaid nil) (not .Params.disableMermaid)) (not .Site.Params.disableMermaid)) }}
+        {{ if isset .Params "custommermaidurl" }}
+            <script src="{{ .Params.customMermaidURL }}"></script>
+        {{ else if isset .Site.Params "custommermaidurl" }}
+            <script src="{{ .Site.Params.customMermaidURL }}"></script>
+        {{ else }}
+            <script src="{{"mermaid/mermaid.js" | relURL}}{{ if not .Site.Params.disableAssetsBusting }}?{{ now.Unix }}{{ end }}"></script>
+        {{ end }}
+        <script>
+            mermaid.initialize({ startOnLoad: true });
+        </script>
+    {{ end }}
     {{ partial "custom-footer.html" . }}
   </body>
 </html>
