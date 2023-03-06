@@ -231,7 +231,8 @@ func associateBuildParametersWithPayload(databasePayload databaseStructs.Payload
 					databaseBuildParameter.ParameterType,
 					finalBuildParameters[databaseBuildParameter.Name],
 					databaseBuildParameterInstance.EncKey,
-					databaseBuildParameterInstance.DecKey); err != nil {
+					databaseBuildParameterInstance.DecKey,
+					databaseBuildParameter.IsCryptoType); err != nil {
 					logging.LogError(err, "Failed to convert build parameter into interface")
 					return nil, err
 				} else {
@@ -373,6 +374,7 @@ func associateC2ProfilesWithPayload(databasePayload databaseStructs.Payload, c2P
 						paramStringVal,
 						c2ParameterInstance.EncKey,
 						c2ParameterInstance.DecKey,
+						databaseC2ProfileParameter.IsCryptoType,
 					); err != nil {
 						logging.LogError(err, "Failed to convert c2 parameter to interface")
 						return nil, err

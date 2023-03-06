@@ -403,10 +403,10 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 		return "", errors.New("Unknown parameter type")
 	}
 }
-func GetInterfaceValueForContainer(parameterType string, finalString string, encKey *[]byte, decKey *[]byte) (interface{}, error) {
+func GetInterfaceValueForContainer(parameterType string, finalString string, encKey *[]byte, decKey *[]byte, cryptoType bool) (interface{}, error) {
 	switch parameterType {
 	case BUILD_PARAMETER_TYPE_CHOOSE_ONE:
-		if encKey != nil || decKey != nil {
+		if cryptoType {
 			return map[string]interface{}{
 				"value":   strings.TrimSpace(finalString),
 				"enc_key": encKey,
@@ -496,7 +496,8 @@ func GetC2ProfileInformation(payload databaseStructs.Payload) *[]PayloadConfigur
 				parameter.C2ProfileParameter.ParameterType,
 				parameter.Value,
 				parameter.EncKey,
-				parameter.DecKey); err != nil {
+				parameter.DecKey,
+				parameter.C2ProfileParameter.IsCryptoType); err != nil {
 				logging.LogError(err, "Failed to get c2 profile parameter instance interface")
 				parametersValueDictionary[parameter.C2ProfileParameter.Name] = parameter.Value
 			} else {
@@ -693,7 +694,7 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 						logging.LogError(err, "Failed to update parent task information to submitted")
 					}
 				}
-				
+
 			}
 		}
 	}
@@ -752,7 +753,8 @@ func GetTaskMessageCallbackC2ProfileInformation(callbackID int) []PayloadConfigu
 				parameter.C2ProfileParameter.ParameterType,
 				parameter.Value,
 				parameter.EncKey,
-				parameter.DecKey); err != nil {
+				parameter.DecKey,
+				parameter.C2ProfileParameter.IsCryptoType); err != nil {
 				logging.LogError(err, "Failed to get c2 profile parameter instance interface")
 				parametersValueDictionary[parameter.C2ProfileParameter.Name] = parameter.Value
 			} else {

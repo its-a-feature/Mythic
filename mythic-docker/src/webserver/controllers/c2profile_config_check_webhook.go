@@ -75,7 +75,7 @@ func C2ProfileConfigCheckWebhook(c *gin.Context) {
 	for c2ProfileName, c2ProfileGroup := range parametersMap {
 		parametersValueDictionary := make(map[string]interface{})
 		for _, parameter := range c2ProfileGroup {
-			if val, err := rabbitmq.GetInterfaceValueForContainer(parameter.C2ProfileParameter.ParameterType, parameter.Value, parameter.EncKey, parameter.DecKey); err != nil {
+			if val, err := rabbitmq.GetInterfaceValueForContainer(parameter.C2ProfileParameter.ParameterType, parameter.Value, parameter.EncKey, parameter.DecKey, parameter.C2ProfileParameter.IsCryptoType); err != nil {
 				logging.LogError(err, "Failed to get interface value for container from c2 profile instance parameter")
 			} else {
 				parametersValueDictionary[parameter.C2ProfileParameter.Name] = val
