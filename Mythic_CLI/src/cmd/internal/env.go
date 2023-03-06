@@ -2,12 +2,13 @@ package internal
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 var mythicEnv = viper.New()
@@ -33,7 +34,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_server_host", "mythic_server")
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
-	mythicEnv.SetDefault("mythic_server_command", "/mythic_server.bin")
+	mythicEnv.SetDefault("mythic_server_command", "")
 	// postgres configuration
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
 	mythicEnv.SetDefault("postgres_port", 5432)
