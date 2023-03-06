@@ -42,17 +42,12 @@ func Initialize() *gin.Engine {
 }
 
 func StartServer(r *gin.Engine) {
-	if utils.MythicConfig.ServerBindLocalhostOnly {
-		logging.LogInfo("Starting webserver", "host", "127.0.0.1", "port", utils.MythicConfig.ServerPort)
-		if err := r.Run(fmt.Sprintf("%s:%d", "127.0.0.1", utils.MythicConfig.ServerPort)); err != nil {
-			logging.LogError(err, "Failed to start webserver")
-		}
-	} else {
-		logging.LogInfo("Starting webserver", "host", "0.0.0.0", "port", utils.MythicConfig.ServerPort)
-		if err := r.Run(fmt.Sprintf("%s:%d", "0.0.0.0", utils.MythicConfig.ServerPort)); err != nil {
-			logging.LogError(err, "Failed to start webserver")
-		}
+
+	logging.LogInfo("Starting webserver", "host", "0.0.0.0", "port", utils.MythicConfig.ServerPort)
+	if err := r.Run(fmt.Sprintf("%s:%d", "0.0.0.0", utils.MythicConfig.ServerPort)); err != nil {
+		logging.LogError(err, "Failed to start webserver")
 	}
+
 	logging.LogFatalError(nil, "Webserver stopped")
 }
 
@@ -76,7 +71,7 @@ func InitializeGinLogger() gin.HandlerFunc {
 
 		param.Path = path
 		if !utils.SliceContains(ignorePaths, param.Path) {
-		//if param.Path != "/graphql/webhook" && !strings.Contains(param.Path, "/agent_message") {
+			//if param.Path != "/graphql/webhook" && !strings.Contains(param.Path, "/agent_message") {
 			param.Latency = param.TimeStamp.Sub(start)
 			param.ClientIP = c.ClientIP()
 			param.Method = c.Request.Method
