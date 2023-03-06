@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
+	"github.com/spf13/viper"
 )
 
 func isServiceRunning(service string) bool {
@@ -97,7 +98,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 					"max-size": "10m",
 				},
 			},
-			"restart": "never",
+			"restart": "always",
 			"labels": map[string]string{
 				"name": service,
 			},
