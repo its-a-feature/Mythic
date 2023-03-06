@@ -83,6 +83,7 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 					logging.LogError(err, "Failed to update task status to processing")
 				} else {
 					submittedTasksAwaitingFetching.removeTask(task.ID)
+					go addMitreAttackTaskMapping(task.ID)
 				}
 				currentTaskCount += 1
 			}
@@ -151,6 +152,7 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo) []delegateMessageResponse
 							logging.LogError(err, "Failed to recursively encrypt message")
 						} else {
 							submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
+							go addMitreAttackTaskMapping(currentTasks[i].ID)
 							delegateMessages = append(delegateMessages, delegateMessageResponse{
 								Message:       string(wrappedMessage),
 								SuppliedUuid:  routablePath[len(routablePath)-1].DestinationAgentId,
