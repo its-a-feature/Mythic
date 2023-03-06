@@ -128,11 +128,18 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"./postgres-docker/database:/var/lib/postgresql/data",
 		}
 		if imageExists("mythic_postgres") {
-			pStruct["volumes"] = []string{
-				"./postgres-docker/database:/var/lib/postgresql/data",
-				"./postgres-docker/postgres.conf:/var/lib/postgresql/postgresql.conf",
-				"./postgres-docker/postgres.conf:/var/lib/postgresql/data/postgresql.conf",
+			if mythicEnv.GetBool("postgres_debug") {
+				pStruct["volumes"] = []string{
+					"./postgres-docker/database:/var/lib/postgresql/data",
+					"./postgres-docker/postgres.conf:/var/lib/postgresql/postgresql.conf",
+					"./postgres-docker/postgres.conf:/var/lib/postgresql/data/postgresql.conf",
+				}
+			} else {
+				pStruct["volumes"] = []string{
+					"./postgres-docker/database:/var/lib/postgresql/data",
+				}
 			}
+
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("POSTGRES_CPUS")
 		if mythicEnv.GetBool("postgres_bind_localhost_only") {
