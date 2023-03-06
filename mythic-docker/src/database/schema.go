@@ -447,7 +447,8 @@ CREATE TABLE public.response (
     response bytea DEFAULT '\x'::bytea NOT NULL,
     "timestamp" timestamp without time zone DEFAULT now() NOT NULL,
     task_id integer NOT NULL,
-    sequence_number integer
+    sequence_number integer,
+    operation_id integer NOT NULL
 );
 
 
@@ -584,7 +585,7 @@ $$;
 
 CREATE TABLE public.taskartifact (
     id integer NOT NULL,
-    task_id integer,
+    task_id integer NOT NULL,
     "timestamp" timestamp without time zone DEFAULT now() NOT NULL,
     artifact bytea DEFAULT '\x'::bytea NOT NULL,
     operation_id integer NOT NULL,
@@ -4674,6 +4675,14 @@ ALTER TABLE ONLY public.payloadtypec2profile
 
 
 --
+-- Name: response response_operation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.response
+    ADD CONSTRAINT response_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: response response_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4864,10 +4873,11 @@ ALTER TABLE ONLY public.wrappedpayloadtypes
 ALTER TABLE ONLY public.wrappedpayloadtypes
     ADD CONSTRAINT wrappedpayloadtypes_wrapper_id_fkey FOREIGN KEY (wrapper_id) REFERENCES public.payloadtype(id);
 
-CREATE EXTENSION pg_stat_statements SCHEMA public;
+
 --
 -- PostgreSQL database dump complete
 --
+
 -- 
 -- bash-5.0# pg_dump -U mythic_user --schema-only -n public --no-owner --no-security-labels --create --no-comments --no-publications  mythic_db
 -- CREATE EXTENSION pg_stat_statements SCHEMA public;
