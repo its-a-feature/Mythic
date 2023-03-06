@@ -61,7 +61,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("hasura_cpus", "2")
 	// docker-compose configuration
 	mythicEnv.SetDefault("COMPOSE_PROJECT_NAME", "mythic")
-	mythicEnv.SetDefault("REBUILD_ON_START", false)
+	mythicEnv.SetDefault("REBUILD_ON_START", true)
 	// Mythic instance configuration
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")
 	mythicEnv.SetDefault("mythic_admin_password", generateRandomPassword(30))
