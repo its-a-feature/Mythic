@@ -17,7 +17,6 @@ venv.bak/
 # ssl certs
 ssl/
 # Mythic files
-mythic-docker/src/files/
 mythic_access.*
 mythic_sync/
 postgres-docker/database/
