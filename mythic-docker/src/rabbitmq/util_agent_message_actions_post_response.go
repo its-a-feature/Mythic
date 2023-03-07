@@ -57,7 +57,7 @@ var validCredentialTypesList = []string{"plaintext", "certificate", "hash", "key
 type agentMessagePostResponseFileBrowser struct {
 	Host          string                                         `json:"host" mapstructure:"host"`
 	IsFile        bool                                           `json:"is_file" mapstructure:"is_file"`
-	Permissions  interface{}                         `json:"permissions" mapstructure:"permissions"`
+	Permissions   interface{}                                    `json:"permissions" mapstructure:"permissions"`
 	Name          string                                         `json:"name" mapstructure:"name"`
 	ParentPath    string                                         `json:"parent_path" mapstructure:"parent_path"`
 	Success       bool                                           `json:"success" mapstructure:"success"`
@@ -68,12 +68,12 @@ type agentMessagePostResponseFileBrowser struct {
 	Files         *[]agentMessagePostResponseFileBrowserChildren `json:"files" mapstructure:"files"`
 }
 type agentMessagePostResponseFileBrowserChildren struct {
-	IsFile      bool                   `json:"is_file" mapstructure:"is_file"`
+	IsFile      bool        `json:"is_file" mapstructure:"is_file"`
 	Permissions interface{} `json:"permissions" mapstructure:"permissions"`
-	Name        string                 `json:"name" mapstructure:"name"`
-	AccessTime  int64                  `json:"access_time" mapstructure:"access_time"`
-	ModifyTime  int64                  `json:"modify_time" mapstructure:"modify_time"`
-	Size        int64                  `json:"size" mapstructure:"size"`
+	Name        string      `json:"name" mapstructure:"name"`
+	AccessTime  int64       `json:"access_time" mapstructure:"access_time"`
+	ModifyTime  int64       `json:"modify_time" mapstructure:"modify_time"`
+	Size        int64       `json:"size" mapstructure:"size"`
 }
 type agentMessagePostResponseRemovedFiles struct {
 	Host *string `json:"host,omitempty" mapstructure:"host,omitempty"`
@@ -102,7 +102,7 @@ type agentMessagePostResponseProcesses struct {
 	User                   string                 `mapstructure:"user" json:"user"`
 	CommandLine            string                 `mapstructure:"command_line" json:"command_line"`
 	IntegrityLevel         int                    `mapstructure:"integrity_level" json:"integrity_level"`
-	StartTime              int                    `mapstructure:"start_time" json:"start_time"`
+	StartTime              int64                  `mapstructure:"start_time" json:"start_time"`
 	Description            string                 `mapstructure:"description" json:"description"`
 	Signer                 string                 `mapstructure:"signer" json:"signer"`
 	ProtectionProcessLevel int                    `mapstructure:"protected_process_level" json:"protected_process_level"`
@@ -696,7 +696,7 @@ func handleAgentMessagePostResponseDownload(task databaseStructs.Task, agentResp
 					} else {
 						f.Close()
 					}
-					
+
 				}
 			}
 			// check about updating total chunk count in case the agent didn't know it ahead of time
@@ -864,7 +864,7 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 					uploadResponse.TotalChunks = totalChunks
 					uploadResponse.ChunkNum = agentResponse.Upload.ChunkNum
 					uploadResponse.FileID = *agentResponse.Upload.FileID
-					
+
 					return uploadResponse, nil
 				}
 			}
@@ -1044,7 +1044,7 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 			TreeType:        databaseStructs.TREE_TYPE_FILE,
 			CanHaveChildren: !fileBrowser.IsFile,
 			Deleted:         false,
-			Os: getOSTypeBasedOnPathSeparator(pathData.PathSeparator, databaseStructs.TREE_TYPE_FILE),
+			Os:              getOSTypeBasedOnPathSeparator(pathData.PathSeparator, databaseStructs.TREE_TYPE_FILE),
 		}
 		newTree.Success.Valid = true
 		newTree.Success.Bool = fileBrowser.Success
@@ -1080,7 +1080,7 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 								Deleted:         false,
 								Success:         existingEntry.Success,
 								ID:              existingEntry.ID,
-								Os: newTree.Os,
+								Os:              newTree.Os,
 							}
 							fileMetaData = addChildFilePermissions(&newEntry)
 							newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
@@ -1106,7 +1106,7 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 							TreeType:        databaseStructs.TREE_TYPE_FILE,
 							CanHaveChildren: !newEntry.IsFile,
 							Deleted:         false,
-							Os: newTree.Os,
+							Os:              newTree.Os,
 						}
 						newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 						fileMetaData = addChildFilePermissions(&newEntry)
@@ -1127,7 +1127,7 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 					TreeType:        databaseStructs.TREE_TYPE_FILE,
 					CanHaveChildren: !newEntry.IsFile,
 					Deleted:         false,
-					Os: newTree.Os,
+					Os:              newTree.Os,
 				}
 				newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 				fileMetaData := addChildFilePermissions(&newEntry)
@@ -1189,7 +1189,7 @@ func handleAgentMessagePostResponseProcesses(task databaseStructs.Task, processe
 func resolveAndCreateParentPathsForTreeNode(pathData utils.AnalyzedPath, task databaseStructs.Task, treeType string) {
 	for i, _ := range pathData.PathPieces {
 		parentPath, fullPath, name := getParentPathFullPathName(pathData, i, databaseStructs.TREE_TYPE_FILE)
-		
+
 		newTree := databaseStructs.MythicTree{
 			Host:            pathData.Host,
 			TaskID:          task.ID,
