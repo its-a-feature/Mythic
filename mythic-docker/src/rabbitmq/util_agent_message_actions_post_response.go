@@ -140,7 +140,7 @@ type agentMessagePostResponseToken struct {
 type agentMessagePostResponseCallbackTokens struct {
 	Action  string  `mapstructure:"action"`
 	Host    *string `mapstructure:"host,omitempty"`
-	TokenId int     `mapstructure:"TokenId"`
+	TokenId int     `mapstructure:"token_id"`
 	// optionally also provide all the token information
 	TokenInfo *agentMessagePostResponseToken `mapstructure:"token"`
 }
@@ -258,11 +258,16 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				if agentResponse.Keylogs != nil {
 					go handleAgentMessagePostResponseKeylogs(currentTask, agentResponse.Keylogs)
 				}
-				if agentResponse.Tokens != nil {
-					go handleAgentMessagePostResponseTokens(currentTask, agentResponse.Tokens)
-				}
-				if agentResponse.CallbackTokens != nil {
-					go handleAgentMessagePostResponseCallbackTokens(currentTask, agentResponse.CallbackTokens)
+				if agentResponse.Tokens != nil && agentResponse.CallbackTokens != nil {
+					// need to make sure we process tokens _then_ process callback tokens
+					go handleAgentMessagePostResponseCallbackTokensAndTokens(currentTask, agentResponse.Tokens, agentResponse.CallbackTokens)
+				} else {
+					if agentResponse.Tokens != nil {
+						go handleAgentMessagePostResponseTokens(currentTask, agentResponse.Tokens)
+					}
+					if agentResponse.CallbackTokens != nil {
+						go handleAgentMessagePostResponseCallbackTokens(currentTask, agentResponse.CallbackTokens)
+					}
 				}
 				if agentResponse.ProcessResponse != nil {
 					go handleAgentMessagePostResponseProcessResponse(currentTask, agentResponse.ProcessResponse)
@@ -596,11 +601,15 @@ func handleAgentMessagePostResponseCallbackTokens(task databaseStructs.Task, cal
 				logging.LogError(err, "Failed to associate token with callback")
 				return err
 			} else {
-				logging.LogDebug("Successfully associated token with callback", "tokenid", databaseToken.TokenID, "callback", task.Callback.DisplayID)
+				logging.LogDebug("Successfully associated token with callback", "token_id", databaseToken.TokenID, "callback", task.Callback.DisplayID)
 			}
 		}
 	}
 	return nil
+}
+func handleAgentMessagePostResponseCallbackTokensAndTokens(task databaseStructs.Task, tokens *[]agentMessagePostResponseToken, callbackTokens *[]agentMessagePostResponseCallbackTokens) {
+	handleAgentMessagePostResponseTokens(task, tokens)
+	handleAgentMessagePostResponseCallbackTokens(task, callbackTokens)
 }
 func handleAgentMessagePostResponseProcessResponse(task databaseStructs.Task, response *interface{}) {
 	allTaskData := GetTaskConfigurationForContainer(task.ID)
