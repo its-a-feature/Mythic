@@ -761,6 +761,7 @@ func RemoveDockerComposeEntry(service string) error {
 			"com.docker.network.bridge.name": "mythic_if",
 		})
 	}
+	curConfig.Set("version","2.4")
 	curConfig.WriteConfig()
 	return nil
 }
