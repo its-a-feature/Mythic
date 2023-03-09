@@ -28,13 +28,13 @@ func init() {
 
 func installGitHub(cmd *cobra.Command, args []string) {
 	var branch = ""
-	
+
 	if len(args) == 2 {
 		branch = args[1]
 	}
 	if err := internal.InstallService(args[0], branch, force); err != nil {
 		fmt.Printf("[-] Failed to install service: %v\n", err)
 	} else {
-		fmt.Printf("[+] Successfully installed service!")
+		fmt.Printf("[+] Successfully installed service!\n")
 	}
 }

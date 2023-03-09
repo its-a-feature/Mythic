@@ -29,6 +29,6 @@ func installFolder(cmd *cobra.Command, args []string) {
 	if err := internal.InstallFolder(args[0], force); err != nil {
 		fmt.Printf("[-] Failed to install service: %v\n", err)
 	} else {
-		fmt.Printf("[+] Successfully installed service!")
+		fmt.Printf("[+] Successfully installed service!\n")
 	}
 }

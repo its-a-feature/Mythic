@@ -28,13 +28,18 @@ func init() {
 func installMythicSyncGitHub(cmd *cobra.Command, args []string) {
 	if args[0] == "" {
 		if err := internal.InstallMythicSync("https://github.com/GhostManager/mythic_sync", ""); err != nil {
-
+			fmt.Printf("[-] Failed to install service: %v\n", err)
 		}
 	} else {
-		if err := internal.InstallService(args[0], args[1], force); err != nil {
+		var branch = ""
+
+		if len(args) == 2 {
+			branch = args[1]
+		}
+		if err := internal.InstallService(args[0], branch, force); err != nil {
 			fmt.Printf("[-] Failed to install service: %v\n", err)
 		} else {
-			fmt.Printf("[+] Successfully installed service!")
+			fmt.Printf("[+] Successfully installed service!\n")
 		}
 	}
 

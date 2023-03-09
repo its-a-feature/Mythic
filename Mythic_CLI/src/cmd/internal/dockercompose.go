@@ -528,7 +528,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"com.docker.network.bridge.name": "mythic_if",
 		})
 	}
-
+	curConfig.Set("version", "2.4")
 	curConfig.WriteConfig()
 }
 func removeMythicServiceDockerComposeEntry(service string) {
@@ -586,6 +586,7 @@ func removeMythicServiceDockerComposeEntry(service string) {
 			"com.docker.network.bridge.name": "mythic_if",
 		})
 	}
+	curConfig.Set("version", "2.4")
 	curConfig.WriteConfig()
 }
 
@@ -697,6 +698,7 @@ func AddDockerComposeEntry(service string, additionalConfigs map[string]interfac
 				"com.docker.network.bridge.name": "mythic_if",
 			})
 		}
+		curConfig.Set("version", "2.4")
 		curConfig.WriteConfig()
 		fmt.Println("[+] Successfully updated docker-compose.yml")
 	}
@@ -735,13 +737,6 @@ func RemoveDockerComposeEntry(service string) error {
 			},
 		},
 	}
-	if !curConfig.IsSet("networks") {
-		curConfig.Set("networks", networkInfo)
-	} else {
-		curConfig.Set("networks.default_network.driver_opts", map[string]string{
-			"com.docker.network.bridge.name": "mythic_if",
-		})
-	}
 
 	if !stringInSlice(service, MythicPossibleServices) {
 		if isServiceRunning(service) {
@@ -751,9 +746,6 @@ func RemoveDockerComposeEntry(service string) error {
 		fmt.Printf("[+] Removed %s from docker-compose\n", strings.ToLower(service))
 
 	}
-	curConfig.WriteConfig()
-	fmt.Println("[+] Successfully updated docker-compose.yml")
-
 	if !curConfig.IsSet("networks") {
 		curConfig.Set("networks", networkInfo)
 	} else {
@@ -761,7 +753,9 @@ func RemoveDockerComposeEntry(service string) error {
 			"com.docker.network.bridge.name": "mythic_if",
 		})
 	}
+	curConfig.Set("version", "2.4")
 	curConfig.WriteConfig()
+	fmt.Println("[+] Successfully updated docker-compose.yml")
 	return nil
 }
 
