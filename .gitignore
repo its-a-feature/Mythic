@@ -5,6 +5,7 @@ docs/_build/
 # Environments
 .env
 .venv
+mythic_server
 env/
 venv/
 ENV/

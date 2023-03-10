@@ -20,7 +20,7 @@ apt-get clean && \
 apt install --no-install-recommends -y apt-transport-https dirmngr gnupg ca-certificates && \
 apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
 echo "deb https://download.mono-project.com/repo/debian stable-buster main" | tee /etc/apt/sources.list.d/mono-official-stable.list && \
-apt update && apt-get install --no-install-recommends software-properties-common apt-utils make build-essential libssl-dev zlib1g-dev libbz2-dev \
+apt update && apt-get install --no-install-recommends software-properties-common apt-utils make build-essential libssl-dev zlib1g-dev libbz2-dev nuget \
 libreadline-dev libsqlite3-dev llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev mono-complete protobuf-compiler dotnet-sdk-7.0 gcc-mingw-w64  -y
 
 # install python 3.11

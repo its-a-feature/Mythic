@@ -111,8 +111,8 @@ type agentMessagePostResponseProcesses struct {
 type agentMessagePostResponseEdges struct {
 }
 type agentMessagePostResponseCommands struct {
-	Action  string `json:"action"`
-	Command string `json:"cmd"`
+	Action  string `json:"action" mapstructure:"action"`
+	Command string `json:"cmd" mapstructure:"cmd"`
 }
 type agentMessagePostResponseKeylogs struct {
 	WindowTitle string `json:"window_title" mapstructure:"window_title"`
@@ -120,27 +120,27 @@ type agentMessagePostResponseKeylogs struct {
 	Keystrokes  string `json:"keystrokes" mapstructure:"keystrokes"`
 }
 type agentMessagePostResponseToken struct {
-	Action             string `mapstructure:"action"`
-	TokenID            int    `mapstructure:"token_id"`
-	User               string `mapstructure:"user"`
-	Groups             string `mapstructure:"groups"`
-	Privileges         string `mapstructure:"privileges"`
-	ThreadID           int    `mapstructure:"thread_id"`
-	ProcessID          int    `mapstructure:"process_id"`
-	SessionID          int    `mapstructure:"session_id"`
-	LogonSID           string `mapstructure:"logon_sid"`
-	IntegrityLevelSID  string `mapstructure:"integrity_level_sid"`
-	Restricted         bool   `mapstructure:"restricted"`
-	DefaultDacl        string `mapstructure:"default_dacl"`
-	Handle             int    `mapstructure:"handle"`
-	Capabilities       string `mapstructure:"capabilities"`
-	AppContainerSID    string `mapstructure:"app_container_sid"`
-	AppContainerNumber int    `mapstructure:"app_container_number"`
+	Action             string `json:"action" mapstructure:"action"`
+	TokenID            int    `json:"token_id" mapstructure:"token_id"`
+	User               string `json:"user" mapstructure:"user"`
+	Groups             string `json:"groups" mapstructure:"groups"`
+	Privileges         string `json:"privileges" mapstructure:"privileges"`
+	ThreadID           int    `json:"thread_id" mapstructure:"thread_id"`
+	ProcessID          int    `json:"process_id" mapstructure:"process_id"`
+	SessionID          int    `json:"session_id" mapstructure:"session_id"`
+	LogonSID           string `json:"logon_sid" mapstructure:"logon_sid"`
+	IntegrityLevelSID  string `json:"integrity_level_sid" mapstructure:"integrity_level_sid"`
+	Restricted         bool   `json:"restricted" mapstructure:"restricted"`
+	DefaultDacl        string `json:"default_dacl" mapstructure:"default_dacl"`
+	Handle             int    `json:"handle" mapstructure:"handle"`
+	Capabilities       string `json:"capabilities" mapstructure:"capabilities"`
+	AppContainerSID    string `json:"app_container_sid" mapstructure:"app_container_sid"`
+	AppContainerNumber int    `json:"app_container_number" mapstructure:"app_container_number"`
 }
 type agentMessagePostResponseCallbackTokens struct {
-	Action  string  `mapstructure:"action"`
-	Host    *string `mapstructure:"host,omitempty"`
-	TokenId int     `mapstructure:"token_id"`
+	Action  string  `json:"action" mapstructure:"action"`
+	Host    *string `json:"host,omitempty" mapstructure:"host,omitempty"`
+	TokenId int     `json:"token_id" mapstructure:"token_id"`
 	// optionally also provide all the token information
 	TokenInfo *agentMessagePostResponseToken `mapstructure:"token"`
 }
@@ -631,8 +631,9 @@ func handleAgentMessagePostResponseCommands(task databaseStructs.Task, commands 
 		if err := database.DB.Get(&databaseCommand, `SELECT 
     		id, version
 			FROM command
-			WHERE cmd=:cmd AND payload_type_id=:payload_type_id`, databaseCommand); err != nil {
+			WHERE cmd=$1 AND payload_type_id=$2`, databaseCommand.Cmd, databaseCommand.PayloadTypeID); err != nil {
 			logging.LogError(err, "Failed to find specified command for loading")
+			continue
 		}
 		if command.Action == "add" {
 			// need to register this databaseCommand.ID with the callback
