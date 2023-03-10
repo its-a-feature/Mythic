@@ -18,8 +18,9 @@ var force bool
 
 func init() {
 	installCmd.AddCommand(installGitHubCmd)
-	installGitHubCmd.Flags().BoolVar(
+	installGitHubCmd.Flags().BoolVarP(
 		&force,
+		"force",
 		"f",
 		false,
 		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed'`,
