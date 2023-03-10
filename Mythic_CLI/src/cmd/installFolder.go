@@ -17,8 +17,9 @@ var installFolderCmd = &cobra.Command{
 
 func init() {
 	installCmd.AddCommand(installFolderCmd)
-	installFolderCmd.Flags().BoolVar(
+	installFolderCmd.Flags().BoolVarP(
 		&force,
+		"force",
 		"f",
 		false,
 		`Force installing from local folder and don't prompt to overwrite files if an older version is already installed'`,
