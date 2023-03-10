@@ -25,5 +25,4 @@ func installMythicSyncFolder(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("[+] Successfully installed service!\n")
 	}
-
 }

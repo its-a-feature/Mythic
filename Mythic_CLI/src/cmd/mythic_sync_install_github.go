@@ -17,8 +17,9 @@ var installMythicSyncGitHubCmd = &cobra.Command{
 
 func init() {
 	installMythicSyncCmd.AddCommand(installMythicSyncGitHubCmd)
-	installMythicSyncGitHubCmd.Flags().BoolVar(
+	installMythicSyncGitHubCmd.Flags().BoolVarP(
 		&force,
+		"force",
 		"f",
 		false,
 		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed'`,
