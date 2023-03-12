@@ -152,6 +152,7 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage []byte, action string) (
 			return modified, nil
 		default:
 			err = errors.New(fmt.Sprintf("Unknown action for IterateAndAct: %s", action))
+			logging.LogError(err, "Failed to determine type of crypto")
 			return nil, err
 		}
 	}
@@ -539,10 +540,15 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 		// we also need to get the crypto keys from the c2 profile for this payload
 		cryptoParam := databaseStructs.C2profileparametersinstance{}
 		if err := database.DB.Get(&cryptoParam, `SELECT
-		enc_key, dec_key, "value"
+		c2profileparametersinstance.enc_key, 
+		c2profileparametersinstance.dec_key, 
+		c2profileparametersinstance.value,
+		c2profileparameters.crypto_type "c2profileparameters.crypto_type"
 		FROM c2profileparametersinstance
-		WHERE dec_key IS NOT NULL AND payload_id=$1`, payload.ID); err == sql.ErrNoRows {
+		JOIN c2profileparameters ON c2profileparametersinstance.c2_profile_parameters_id = c2profileparameters.id
+		WHERE c2profileparameters.crypto_type=true AND c2profileparametersinstance.payload_id=$1`, payload.ID); err == sql.ErrNoRows {
 			logging.LogDebug("payload has no assocaited c2 profile parameter instance with a crypto type")
+			newCache.CryptoType = "none"
 		} else if err != nil {
 			logging.LogError(err, "Failed to fetch c2profileparametersinstance crypto values for payload")
 			return &newCache, err
@@ -557,6 +563,7 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 			FROM buildparameterinstance
 			WHERE dec_key IS NOT NULL AND payload_id=$1`, payload.ID); err == sql.ErrNoRows {
 			logging.LogDebug("payload has no associated build parameter instance with a crypto type")
+			newCache.CryptoType = "none"
 		} else if err != nil {
 			logging.LogError(err, "Failed to fetch buildparameterinstance crypto values for payload")
 			return &newCache, err
