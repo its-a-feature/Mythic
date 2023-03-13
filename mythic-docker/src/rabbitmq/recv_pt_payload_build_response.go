@@ -3,17 +3,14 @@ package rabbitmq
 import (
 	"crypto/md5"
 	"crypto/sha1"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"os"
 )
 
 // PAYLOAD_BUILD STRUCTS
@@ -114,7 +111,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 				logging.LogError(updateError, "Failed to update payload's build status")
 				return
 			}
-			updateRemainingBuildSteps(databasePayload)
+			database.UpdateRemainingBuildSteps(databasePayload)
 			if databasePayload.BuildPhase == PAYLOAD_BUILD_STATUS_SUCCESS {
 				if _, updateError := database.DB.NamedExec(`UPDATE filemeta SET 
 					sha1=:sha1, md5=:md5 
@@ -128,6 +125,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 				// process the additional UpdatedCommands
 				if err := updateLoadedCommandsFromPayloadBuild(databasePayload, payloadBuildResponse.UpdatedCommandList); err != nil {
 					database.UpdatePayloadWithError(databasePayload, err)
+					database.UpdateRemainingBuildSteps(databasePayload)
 					return
 				}
 			}
@@ -212,39 +210,4 @@ func updateLoadedCommandsFromPayloadBuild(databasePayload databaseStructs.Payloa
 		}
 	}
 	return nil
-}
-
-func updateRemainingBuildSteps(databasePayload databaseStructs.Payload) {
-	buildSteps := []databaseStructs.PayloadBuildStep{}
-	if err := database.DB.Select(&buildSteps, `SELECT
-	id, start_time, end_time, step_success, step_stdout
-	FROM payload_build_step
-	WHERE payload_id=$1`, databasePayload.ID); err == nil {
-		stepNow := time.Now().UTC()
-		for _, step := range buildSteps {
-			if !step.StartTime.Valid {
-				step.StartTime.Valid = true
-				step.StartTime.Time = stepNow
-			}
-			if !step.EndTime.Valid {
-				step.EndTime.Valid = true
-				step.EndTime.Time = stepNow
-				if databasePayload.BuildPhase == "success" {
-					step.Success = true
-				}
-			}
-			if step.StepStdout == "" {
-				step.StepStdout = "Automatically updated when payload finished building"
-			}
-			if _, err := database.DB.NamedExec(`UPDATE payload_build_step SET
-			end_time=:end_time, step_success=:step_success, step_stdout=:step_stdout, start_time=:start_time 
-			WHERE id=:id`, step); err != nil {
-				logging.LogError(err, "Failed to automatically update step when payload finished building")
-			}
-		}
-	} else if err == sql.ErrNoRows {
-
-	} else {
-		logging.LogError(err, "Failed to get payload build steps when payload finished building")
-	}
 }

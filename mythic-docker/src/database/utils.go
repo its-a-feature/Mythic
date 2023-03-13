@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	mythicCrypto "github.com/its-a-feature/Mythic/crypto"
@@ -101,11 +102,47 @@ func GetOperationsForUser(userID int) (*[]databaseStructs.Operatoroperation, err
 func UpdatePayloadWithError(databasePayload databaseStructs.Payload, err error) {
 	databasePayload.BuildStderr += err.Error()
 	databasePayload.BuildPhase = "error"
-	if _, updateError := DB.NamedExec("UPDATE payload SET "+
-		"build_phase=:build_phase, build_stderr=:build_stderr "+
-		"WHERE id=:id", databasePayload,
+	if _, updateError := DB.NamedExec(`UPDATE payload SET 
+		build_phase=:build_phase, build_stderr=:build_stderr 
+		WHERE id=:id`, databasePayload,
 	); updateError != nil {
 		logging.LogError(updateError, "Failed to update payload's build status to error")
+	} else {
+		UpdateRemainingBuildSteps(databasePayload)
+	}
+}
+func UpdateRemainingBuildSteps(databasePayload databaseStructs.Payload) {
+	buildSteps := []databaseStructs.PayloadBuildStep{}
+	if err := DB.Select(&buildSteps, `SELECT
+	id, start_time, end_time, step_success, step_stdout
+	FROM payload_build_step
+	WHERE payload_id=$1`, databasePayload.ID); err == nil {
+		stepNow := time.Now().UTC()
+		for _, step := range buildSteps {
+			if !step.StartTime.Valid {
+				step.StartTime.Valid = true
+				step.StartTime.Time = stepNow
+			}
+			if !step.EndTime.Valid {
+				step.EndTime.Valid = true
+				step.EndTime.Time = stepNow
+				if databasePayload.BuildPhase == "success" {
+					step.Success = true
+				}
+			}
+			if step.StepStdout == "" {
+				step.StepStdout = "Automatically updated when payload finished building"
+			}
+			if _, err := DB.NamedExec(`UPDATE payload_build_step SET
+			end_time=:end_time, step_success=:step_success, step_stdout=:step_stdout, start_time=:start_time 
+			WHERE id=:id`, step); err != nil {
+				logging.LogError(err, "Failed to automatically update step when payload finished building")
+			}
+		}
+	} else if err == sql.ErrNoRows {
+
+	} else {
+		logging.LogError(err, "Failed to get payload build steps when payload finished building")
 	}
 }
 

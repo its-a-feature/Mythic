@@ -12,8 +12,8 @@ import (
 func init() {
 	RabbitMQConnection.AddDirectQueue(DirectQueueStruct{
 		Exchange:   MYTHIC_EXCHANGE,
-		Queue:      PT_TASK_PROCESS_RESPONSE,
-		RoutingKey: PT_TASK_PROCESS_RESPONSE,
+		Queue:      PT_TASK_PROCESS_RESPONSE_RESPONSE,
+		RoutingKey: PT_TASK_PROCESS_RESPONSE_RESPONSE,
 		Handler:    processPtTaskProcessResponseMessages,
 	})
 }

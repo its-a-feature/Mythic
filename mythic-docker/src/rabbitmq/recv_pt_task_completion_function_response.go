@@ -52,8 +52,8 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		// ex in create_tasking: completionFunctionName := "shellCompleted"
 		//	response.CompletionFunctionName = &completionFunctionName
 		// this function is executed for the TASK
-		task.CompletedCallbackFunctionCompleted = payloadMsg.Success
-		if task.CompletedCallbackFunctionCompleted {
+		task.CompletedCallbackFunctionCompleted = true
+		if payloadMsg.Success {
 			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 		} else {
 			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETION_FUNCTION_ERROR
@@ -68,8 +68,8 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		//		SubtaskCallbackFunction: &completionFunctionName,
 		//	});
 		// this function is executed for the PARENT_TASK
-		task.SubtaskCallbackFunctionCompleted = payloadMsg.Success
-		if task.SubtaskCallbackFunctionCompleted {
+		task.SubtaskCallbackFunctionCompleted = true
+		if payloadMsg.Success {
 			task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 		} else {
 			task.Status = PT_TASK_FUNCTION_STATUS_SUBTASK_COMPLETED_FUNCTION_ERROR
@@ -78,8 +78,8 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		// we have a subtask group name, we have a group callback function defined, and that group callback function is done
 		// need to check if we're the last one in the group to finish - if so, we need to call the function, if not do nothing
 		// this function is executed for the PARENT_TASK
-		task.GroupCallbackFunctionCompleted = payloadMsg.Success
-		if task.GroupCallbackFunctionCompleted {
+		task.GroupCallbackFunctionCompleted = true
+		if payloadMsg.Success {
 			// need to make sure _all_ group tasks are updated to mark as completed as well
 			if _, err := database.DB.NamedExec(`UPDATE task SET
                 group_callback_function_completed=true WHERE
@@ -177,7 +177,7 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		completed_callback_function_completed=:completed_callback_function_completed
 		WHERE id=:id`, task); err != nil {
 		logging.LogError(err, "Failed to update task status from completion function response")
-	} else if task.Completed {
+	} else if task.Completed && payloadMsg.Success {
 		go CheckAndProcessTaskCompletionHandlers(task.ID)
 	}
 	if payloadMsg.ParentTaskId != 0 {
@@ -189,7 +189,7 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		completed_callback_function_completed=:completed_callback_function_completed
 		WHERE id=:id`, parentTask); err != nil {
 			logging.LogError(err, "Failed to update task status from completion function response")
-		} else if parentTask.Completed {
+		} else if parentTask.Completed && payloadMsg.Success {
 			go CheckAndProcessTaskCompletionHandlers(parentTask.ID)
 		}
 	}

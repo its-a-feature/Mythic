@@ -37,6 +37,7 @@ const (
 	//	Result of handling a task's completion function
 	//		send PTTaskCompletionHandlerMessageResponse to this route
 	PT_TASK_COMPLETION_FUNCTION_RESPONSE = "pt_task_completion_function_response"
+	PT_TASK_PROCESS_RESPONSE_RESPONSE    = "pt_task_process_response_response"
 
 	// C2_SYNC_ROUTING_KEY c2 routes
 	//		send C2SyncMessages to this route

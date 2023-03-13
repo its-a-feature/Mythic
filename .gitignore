@@ -6,6 +6,7 @@ docs/_build/
 .env
 .venv
 mythic_server
+docker-compose.yml
 env/
 venv/
 ENV/

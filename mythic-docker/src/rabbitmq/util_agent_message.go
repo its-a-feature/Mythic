@@ -288,8 +288,8 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			{
 				response, err = handleAgentMessageCheckin(&decryptedMessage, uuidInfo)
 				if err == nil {
-					outerUUID = response["id"].(string)
-					instanceResponse.NewCallbackUUID = outerUUID
+					instanceResponse.NewCallbackUUID = response["id"].(string)
+					instanceResponse.OuterUuid = outerUUID
 				}
 			}
 		case "get_tasking":
