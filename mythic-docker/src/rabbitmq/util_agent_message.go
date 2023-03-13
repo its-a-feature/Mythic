@@ -538,6 +538,7 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 		newCache.LastCheckinTime = time.Now().UTC()
 		newCache.OperationID = payload.OperationID
 		// we also need to get the crypto keys from the c2 profile for this payload
+		foundCryptoParam := false
 		cryptoParam := databaseStructs.C2profileparametersinstance{}
 		if err := database.DB.Get(&cryptoParam, `SELECT
 		c2profileparametersinstance.enc_key, 
@@ -547,12 +548,13 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 		FROM c2profileparametersinstance
 		JOIN c2profileparameters ON c2profileparametersinstance.c2_profile_parameters_id = c2profileparameters.id
 		WHERE c2profileparameters.crypto_type=true AND c2profileparametersinstance.payload_id=$1`, payload.ID); err == sql.ErrNoRows {
-			logging.LogDebug("payload has no assocaited c2 profile parameter instance with a crypto type")
+			logging.LogDebug("payload has no associated c2 profile parameter instance with a crypto type")
 			newCache.CryptoType = "none"
 		} else if err != nil {
 			logging.LogError(err, "Failed to fetch c2profileparametersinstance crypto values for payload")
 			return &newCache, err
 		} else {
+			foundCryptoParam = true
 			newCache.C2EncKey = cryptoParam.EncKey
 			newCache.C2DecKey = cryptoParam.DecKey
 			newCache.CryptoType = cryptoParam.Value
@@ -563,7 +565,11 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 			FROM buildparameterinstance
 			WHERE dec_key IS NOT NULL AND payload_id=$1`, payload.ID); err == sql.ErrNoRows {
 			logging.LogDebug("payload has no associated build parameter instance with a crypto type")
-			newCache.CryptoType = "none"
+			if !foundCryptoParam {
+				// only set this to "none" if we didn't find a c2 profile with a crypto param
+				newCache.CryptoType = "none"
+			}
+
 		} else if err != nil {
 			logging.LogError(err, "Failed to fetch buildparameterinstance crypto values for payload")
 			return &newCache, err
