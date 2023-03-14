@@ -73,8 +73,13 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				task.CompletedCallbackFunction = *payloadMsg.CompletionFunctionName
 				updateColumns = append(updateColumns, "completed_callback_function=:completed_callback_function")
 			}
+			if payloadMsg.TaskStatus != nil {
+				task.Status = *payloadMsg.TaskStatus
+			}
 			if task.Completed {
-				task.Status = "completed"
+				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
+					task.Status = "completed"
+				}
 				task.Timestamp = time.Now().UTC()
 				updateColumns = append(updateColumns, "timestamp=:timestamp")
 				task.StatusTimestampSubmitted.Valid = true
@@ -84,7 +89,9 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				task.StatusTimestampProcessed.Time = task.Timestamp
 				updateColumns = append(updateColumns, "status_timestamp_processed=:status_timestamp_processed")
 			} else {
-				task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
+				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
+					task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
+				}
 			}
 			updateColumns = append(updateColumns, "status=:status")
 			updateString := fmt.Sprintf(`UPDATE task SET %s WHERE id=:id`, strings.Join(updateColumns, ","))
@@ -93,9 +100,11 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 				logging.LogError(err, "Failed to update task status")
 				return
 			} else {
-				allTaskData := GetTaskConfigurationForContainer(task.ID)
-				if err := RabbitMQConnection.SendPtTaskOPSECPost(allTaskData); err != nil {
-					logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskOPSECPost ")
+				if task.Status == PT_TASK_FUNCTION_STATUS_OPSEC_POST {
+					allTaskData := GetTaskConfigurationForContainer(task.ID)
+					if err := RabbitMQConnection.SendPtTaskOPSECPost(allTaskData); err != nil {
+						logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskOPSECPost ")
+					}
 				}
 			}
 		} else {

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -60,8 +61,24 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 					WHERE task.id=$1`, task.ID); err != nil {
 					logging.LogError(err, "Failed to get command information for task finishing")
 				} else if task.Command.ScriptOnly {
-					task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
 					task.Completed = true
+					if task.Status == PT_TASK_FUNCTION_STATUS_SUBMITTED {
+						// if we're script only and are about to move to submitted, instead move to completed
+						task.Status = PT_TASK_FUNCTION_STATUS_COMPLETED
+					}
+					task.StatusTimestampSubmitted.Valid = true
+					task.StatusTimestampSubmitted.Time = time.Now().UTC()
+					task.StatusTimestampProcessed.Valid = true
+					task.StatusTimestampProcessed.Time = task.StatusTimestampSubmitted.Time
+					if _, err := database.DB.NamedExec(`UPDATE task SET 
+                			status_timestamp_submitted=:status_timestamp_submitted,
+                			status_timestamp_processed=:status_timestamp_processed
+                			WHERE id=:id`, task); err != nil {
+						logging.LogError(err, "Failed to update submitted timestamp")
+					} else {
+						// check to potentially execute completion functions
+						go CheckAndProcessTaskCompletionHandlers(task.ID)
+					}
 				}
 			}
 			if _, err := database.DB.NamedExec(`UPDATE task SET
@@ -72,14 +89,19 @@ func processPtTaskOPSECPostMessages(msg amqp.Delivery) {
 				return
 			} else if task.Status == PT_TASK_FUNCTION_STATUS_SUBMITTED {
 				submittedTasksAwaitingFetching.addTaskById(task.ID)
+				task.StatusTimestampSubmitted.Valid = true
+				task.StatusTimestampSubmitted.Time = time.Now().UTC()
+				if _, err := database.DB.NamedExec(`UPDATE task SET 
+                status_timestamp_submitted=:status_timestamp_submitted WHERE id=:id`, task); err != nil {
+					logging.LogError(err, "Failed to update submitted timestamp")
+				}
 			}
 		} else {
 			task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST_ERROR
 			task.Stderr = payloadMsg.Error
 			if _, err := database.DB.NamedExec(`UPDATE task SET
 			status=:status, stderr=:stderr 
-			WHERE
-			id=:id`, task); err != nil {
+			WHERE id=:id`, task); err != nil {
 				logging.LogError(err, "Failed to update task status")
 				return
 			}
