@@ -12,6 +12,8 @@ venv/
 ENV/
 mythic-cli
 .DS_Store
+[0-9a-zA-Z]*-[0-9a-zA-Z]*-[0-9a-zA-Z]*-[0-9a-zA-Z]*-[0-9a-zA-Z]*
+*.svg
 env.bak/
 venv.bak/
 # pycharm
