@@ -4,12 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0rc10] - 2023-03-14
+## [3.0.0rc11] - 2023-03-14
 
 ### Changed
 
 - fixed an issue with RSA-based EKE where golang libraries require a slightly different format than before. Added code to auto-detect and fix
 - fixed an issue where status wouldn't get updated to submitted
+- fixed an issue with SOCKS reusing the same ports causing errors
+- fixed an issue with mythic-cli stopping all containers instead of just the specified ones
+
+### Added
+
+- added a function to mythic-cli to remove intermediate images
 
 ## [3.0.0rc8] - 2023-03-14
 

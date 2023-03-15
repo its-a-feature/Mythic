@@ -53,6 +53,7 @@ type callbackPortUsage struct {
 
 type callbackPortsInUse struct {
 	ports []callbackPortUsage
+	sync.RWMutex
 }
 
 var proxyPorts callbackPortsInUse
@@ -73,25 +74,11 @@ func ManuallyStopProxy(input ProxyStop) ProxyStopResponse {
 		Status: "error",
 		Error:  "callback and port not found",
 	}
-	for i := 0; i < len(proxyPorts.ports); i++ {
-		if proxyPorts.ports[i].CallbackID == input.CallbackID &&
-			proxyPorts.ports[i].OperationID == input.OperatorOperation.CurrentOperation.ID &&
-			proxyPorts.ports[i].PortType == input.PortType &&
-			proxyPorts.ports[i].Port == input.Port {
-			if err := proxyPorts.ports[i].Stop(); err != nil {
-				logging.LogError(err, "Failed to manually stop proxy")
-				resp.Error = err.Error()
-				return resp
-			} else if _, err := database.DB.Exec(`DELETE FROM callbackport WHERE
-				callback_id=$1 AND port=$2 AND port_type=$3 AND operation_id=$4`,
-				input.CallbackID, input.Port, input.PortType, input.OperatorOperation.CurrentOperation.ID); err != nil {
-				logging.LogError(err, "Failed to delete port mapping from database for proxy")
-			} else {
-				resp.Status = "success"
-				resp.Error = ""
-				return resp
-			}
-		}
+	if err := proxyPorts.Remove(input.CallbackID, input.PortType, input.Port, input.OperatorOperation.CurrentOperation.ID); err != nil {
+		resp.Error = err.Error()
+	} else {
+		resp.Status = "success"
+		resp.Error = ""
 	}
 	return resp
 }
@@ -175,6 +162,7 @@ func (c *callbackPortsInUse) Add(callbackId int, portType CallbackPortType, port
 	}
 }
 func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, port int, operationId int) error {
+	c.Lock()
 	for i := 0; i < len(c.ports); i++ {
 		if c.ports[i].CallbackID == callbackId &&
 			c.ports[i].OperationID == operationId &&
@@ -182,17 +170,22 @@ func (c *callbackPortsInUse) Remove(callbackId int, portType CallbackPortType, p
 			c.ports[i].Port == port {
 			if err := c.ports[i].Stop(); err != nil {
 				logging.LogError(err, "Failed to stop proxy")
+				c.Unlock()
 				return err
 			} else if _, err := database.DB.Exec(`DELETE FROM callbackport WHERE
 				callback_id=$1 AND port=$2 AND port_type=$3 AND operation_id=$4`,
 				callbackId, port, portType, operationId); err != nil {
 				logging.LogError(err, "Failed to delete port mapping from database for proxy")
+				c.Unlock()
 				return err
 			} else {
+				c.ports = append((c.ports)[:i], (c.ports)[i+1:]...)
+				c.Unlock()
 				return nil
 			}
 		}
 	}
+	c.Unlock()
 	return nil
 }
 func isPortExposedThroughDocker(portToCheck int) bool {
@@ -236,6 +229,7 @@ func (p *callbackPortUsage) Start() error {
 func (p *callbackPortUsage) Stop() error {
 	if err := (*p.listener).Close(); err != nil {
 		logging.LogError(err, "Error calling close for the listener in the Stop function")
+		return err
 	}
 	p.RLock()
 	for i := 0; i < len(*p.acceptedConnections); i++ {
@@ -276,6 +270,7 @@ func (p *callbackPortUsage) addAcceptedConnection(newConnection *acceptedConnect
 	p.Unlock()
 }
 func (p *callbackPortUsage) removeAcceptedConnection(newConnection *acceptedConnection) {
+	//logging.LogDebug("removingAcceptedConnection", "server_id", newConnection.ServerID)
 	p.Lock()
 	for i := 0; i < len(*p.acceptedConnections); i++ {
 		if (*p.acceptedConnections)[i].ServerID == newConnection.ServerID {
@@ -304,7 +299,7 @@ func (p *callbackPortUsage) handleConnections() {
 					if err := (*p.listener).Close(); err != nil {
 						logging.LogError(err, "Failed to close listener", "port", p.Port)
 					}
-					p.listener = nil
+					//p.listener = nil
 					return
 				} else {
 					// Handle connections in a new goroutine
@@ -326,15 +321,15 @@ func (p *callbackPortUsage) handleConnections() {
 					}
 					p.addAcceptedConnection(&newConnection)
 
-					logging.LogDebug("Got new connection", "server_id", newConnection.ServerID, "acceptedConnections", p.acceptedConnections)
+					logging.LogDebug("Got new connection", "server_id", newConnection.ServerID)
 					go func(conn net.Conn) {
 						// function for reading from agents to send to Mythic's connections
 						for {
 							select {
 							case <-newConnection.shouldClose:
-								logging.LogDebug("got message to close connection")
+								logging.LogDebug("got message to close connection", "server_id", newConnection.ServerID)
 								if err := conn.Close(); err != nil {
-									logging.LogError(err, "Failed to close a connection when tasked to via shouldClose")
+									logging.LogError(err, "Failed to close a connection when tasked to via shouldClose", "server_id", newConnection.ServerID)
 								}
 								newConnection.conn = nil
 								p.removeAcceptedConnection(&newConnection)
@@ -342,21 +337,23 @@ func (p *callbackPortUsage) handleConnections() {
 							case agentMessage := <-newConnection.messagesFromAgent:
 								//logging.LogDebug("Writing to connection from agent", "msg", agentMessage)
 								if dataBytes, err := base64.StdEncoding.DecodeString(agentMessage.Message); err != nil {
-									logging.LogError(err, "Failed to base64 decode agent socks message")
+									logging.LogError(err, "Failed to base64 decode agent socks message", "server_id", newConnection.ServerID)
 								} else if _, err := conn.Write(dataBytes); err != nil {
-									logging.LogError(err, "Failed to write to connection")
+									logging.LogError(err, "Failed to write to connection", "server_id", newConnection.ServerID)
 									if err := conn.Close(); err != nil {
-										logging.LogError(err, "Failed to close connection")
+										logging.LogError(err, "Failed to close connection", "server_id", newConnection.ServerID)
 									}
+									newConnection.shouldClose <- true
 									newConnection.conn = nil
 									p.removeAcceptedConnection(&newConnection)
 									return
 								} else if agentMessage.IsExit {
-									logging.LogDebug("got message isExit")
+									logging.LogDebug("got message isExit", "server_id", newConnection.ServerID)
 									if err := conn.Close(); err != nil {
-										logging.LogError(err, "Failed to close connection")
+										logging.LogError(err, "Failed to close connection", "server_id", newConnection.ServerID)
 									}
 									// cleanup the connection data
+									newConnection.shouldClose <- true
 									newConnection.conn = nil
 									p.removeAcceptedConnection(&newConnection)
 									return
@@ -370,7 +367,7 @@ func (p *callbackPortUsage) handleConnections() {
 						// function for reading from Mythic's connections to send to agents
 						for {
 							buf := make([]byte, 1024)
-							logging.LogDebug("looping to read from connection again")
+							logging.LogDebug("looping to read from connection again", "server_id", newConnection.ServerID)
 							if length, err := conn.Read(buf); err != nil {
 								logging.LogError(err, "Failed to read from connection", "server_id", newConnection.ServerID)
 								p.messagesToAgent <- proxyMessage{
@@ -378,6 +375,7 @@ func (p *callbackPortUsage) handleConnections() {
 									IsExit:   true,
 									ServerID: newConnection.ServerID,
 								}
+								newConnection.shouldClose <- true
 								p.removeAcceptedConnection(&newConnection)
 								return
 							} else {
@@ -395,7 +393,7 @@ func (p *callbackPortUsage) handleConnections() {
 					}(conn)
 				}
 			} else {
-				logging.LogError(nil, "Listener is nil, exiting the handleConnections loop")
+				logging.LogError(nil, "Listener is nil, exiting the handleConnections loop", "port", p.Port)
 				return
 			}
 

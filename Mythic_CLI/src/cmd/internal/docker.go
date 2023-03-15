@@ -1,7 +1,10 @@
 package internal
 
 import (
+	"context"
 	"fmt"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"io/ioutil"
 	"log"
 	"os"
@@ -126,7 +129,9 @@ func getElementsOnDisk() ([]string, error) {
 func DockerStart(containers []string) error {
 	// first stop everything that's currently running
 	buildArguments = getBuildArguments()
-	DockerStop(containers)
+	if err := DockerStop(containers); err != nil {
+		return err
+	}
 	// make sure that ports are available for us to use
 	if len(containers) == 0 {
 		if err := TestPorts(); err != nil {
@@ -194,7 +199,9 @@ func DockerStart(containers []string) error {
 			}
 		}
 		if mythicEnv.GetBool("REBUILD_ON_START") {
-			runDockerCompose(append([]string{"up", "--build", "-d"}, finalContainers...))
+			if err := runDockerCompose(append([]string{"up", "--build", "-d"}, finalContainers...)); err != nil {
+				return err
+			}
 		} else {
 			var needToBuild []string
 			var alreadyBuilt []string
@@ -206,10 +213,15 @@ func DockerStart(containers []string) error {
 				}
 			}
 			if len(needToBuild) > 0 {
-				runDockerCompose(append([]string{"up", "--build", "-d"}, needToBuild...))
+				if err := runDockerCompose(append([]string{"up", "--build", "-d"}, needToBuild...)); err != nil {
+					return err
+				}
 			}
-			runDockerCompose(append([]string{"up", "-d"}, alreadyBuilt...))
+			if err := runDockerCompose(append([]string{"up", "-d"}, alreadyBuilt...)); err != nil {
+				return err
+			}
 		}
+		DockerRemoveImages()
 		TestMythicRabbitmqConnection()
 		TestMythicConnection()
 		Status()
@@ -226,19 +238,47 @@ func DockerStop(containers []string) error {
 			containers = append(dockerComposeContainers, currentMythicServices...)
 		}
 		if mythicEnv.GetBool("REBUILD_ON_START") {
-			runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...))
+			return runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...))
 		} else {
-			runDockerCompose([]string{"down", "--volumes"})
+			return runDockerCompose(append([]string{"stop"}, containers...))
 		}
-		return nil
 	}
+
 }
 func DockerBuild(containers []string) error {
 	if len(containers) == 0 {
 		return nil
 	} else {
-		runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...))
-		runDockerCompose(append([]string{"up", "--build", "-d"}, containers...))
+		if err := runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...)); err != nil {
+			return err
+		} else if err := runDockerCompose(append([]string{"up", "--build", "-d"}, containers...)); err != nil {
+			return err
+		}
+		DockerRemoveImages()
 		return nil
 	}
+}
+func DockerRemoveImages() error {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+
+	images, err := cli.ImageList(ctx, types.ImageListOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, image := range images {
+		fmt.Printf("image: %v\n", image.RepoTags)
+		if stringInSlice("<none>:<none>", image.RepoTags) {
+			cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{
+				Force:         true,
+				PruneChildren: true,
+			})
+		}
+	}
+	return nil
 }

@@ -9,8 +9,8 @@ import (
 var buildCmd = &cobra.Command{
 	Use:   "build [container names]",
 	Short: "Build/rebuild a specific container",
-	Long: `Run this command to build or rebuild a specific container by specifying container names.`,
-	Run: buildContainer,
+	Long:  `Run this command to build or rebuild a specific container by specifying container names.`,
+	Run:   buildContainer,
 }
 
 func init() {
@@ -18,7 +18,6 @@ func init() {
 }
 
 func buildContainer(cmd *cobra.Command, args []string) {
-	// initialize tabwriter
 	if err := internal.DockerBuild(args); err != nil {
 
 	}

@@ -40,8 +40,13 @@ func handleAgentMessageStagingRSA(incoming *map[string]interface{}, uUIDInfo *ca
 		return nil, errors.New(errorString)
 	} else {
 		publicKeyToUse := agentMessage.PublicKey
-		if !strings.Contains(agentMessage.PublicKey, "BEGIN PUBLIC KEY") {
+		if !strings.HasPrefix(agentMessage.PublicKey, "LS0t") {
 			publicKeyToUse = "-----BEGIN PUBLIC KEY-----\n" + agentMessage.PublicKey + "\n-----END PUBLIC KEY-----"
+		} else if decodedBytes, err := base64.StdEncoding.DecodeString(publicKeyToUse); err != nil {
+			logging.LogError(err, "Failed to base64 provided public key")
+			return nil, err
+		} else {
+			publicKeyToUse = string(decodedBytes)
 		}
 		if encryptedNewKey, err := mythicCrypto.RsaEncryptBytes(*newKey.EncKey, []byte(publicKeyToUse)); err != nil {
 			logging.LogError(err, "Failed to encrypt new encryption key with RSA")
