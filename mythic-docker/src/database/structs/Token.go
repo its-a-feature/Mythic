@@ -12,7 +12,7 @@ type Token struct {
 	OperationID int       `db:"operation_id"`
 	Timestamp   time.Time `db:"timestamp"`
 	// agent supplied
-	TokenID            int    `db:"token_id"`
+	TokenID            uint64 `db:"token_id"`
 	User               string `db:"user"`
 	Groups             string `db:"groups"`
 	Privileges         string `db:"privileges"`

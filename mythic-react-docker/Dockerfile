@@ -1,5 +1,1 @@
-FROM nginx:1.21.4-alpine
-
-#From node:alpine
-#RUN npm install -g serve
-#WORKDIR /mythic
+FROM nginx:1.23-alpine

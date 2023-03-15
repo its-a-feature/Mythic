@@ -61,9 +61,9 @@ type agentMessagePostResponseFileBrowser struct {
 	Name          string                                         `json:"name" mapstructure:"name"`
 	ParentPath    string                                         `json:"parent_path" mapstructure:"parent_path"`
 	Success       bool                                           `json:"success" mapstructure:"success"`
-	AccessTime    int64                                          `json:"access_time" mapstructure:"access_time"`
-	ModifyTime    int64                                          `json:"modify_time" mapstructure:"modify_time"`
-	Size          int64                                          `json:"size" mapstructure:"size"`
+	AccessTime    uint64                                         `json:"access_time" mapstructure:"access_time"`
+	ModifyTime    uint64                                         `json:"modify_time" mapstructure:"modify_time"`
+	Size          uint64                                         `json:"size" mapstructure:"size"`
 	UpdateDeleted *bool                                          `json:"update_deleted,omitempty" mapstructure:"update_deleted,omitempty"` // option to treat this response as full source of truth
 	Files         *[]agentMessagePostResponseFileBrowserChildren `json:"files" mapstructure:"files"`
 }
@@ -71,9 +71,9 @@ type agentMessagePostResponseFileBrowserChildren struct {
 	IsFile      bool        `json:"is_file" mapstructure:"is_file"`
 	Permissions interface{} `json:"permissions" mapstructure:"permissions"`
 	Name        string      `json:"name" mapstructure:"name"`
-	AccessTime  int64       `json:"access_time" mapstructure:"access_time"`
-	ModifyTime  int64       `json:"modify_time" mapstructure:"modify_time"`
-	Size        int64       `json:"size" mapstructure:"size"`
+	AccessTime  uint64      `json:"access_time" mapstructure:"access_time"`
+	ModifyTime  uint64      `json:"modify_time" mapstructure:"modify_time"`
+	Size        uint64      `json:"size" mapstructure:"size"`
 }
 type agentMessagePostResponseRemovedFiles struct {
 	Host *string `json:"host,omitempty" mapstructure:"host,omitempty"`
@@ -102,7 +102,7 @@ type agentMessagePostResponseProcesses struct {
 	User                   string                 `mapstructure:"user" json:"user"`
 	CommandLine            string                 `mapstructure:"command_line" json:"command_line"`
 	IntegrityLevel         int                    `mapstructure:"integrity_level" json:"integrity_level"`
-	StartTime              int64                  `mapstructure:"start_time" json:"start_time"`
+	StartTime              uint64                 `mapstructure:"start_time" json:"start_time"`
 	Description            string                 `mapstructure:"description" json:"description"`
 	Signer                 string                 `mapstructure:"signer" json:"signer"`
 	ProtectionProcessLevel int                    `mapstructure:"protected_process_level" json:"protected_process_level"`
@@ -121,7 +121,7 @@ type agentMessagePostResponseKeylogs struct {
 }
 type agentMessagePostResponseToken struct {
 	Action             string `json:"action" mapstructure:"action"`
-	TokenID            int    `json:"token_id" mapstructure:"token_id"`
+	TokenID            uint64 `json:"token_id" mapstructure:"token_id"`
 	User               string `json:"user" mapstructure:"user"`
 	Groups             string `json:"groups" mapstructure:"groups"`
 	Privileges         string `json:"privileges" mapstructure:"privileges"`
@@ -140,7 +140,7 @@ type agentMessagePostResponseToken struct {
 type agentMessagePostResponseCallbackTokens struct {
 	Action  string  `json:"action" mapstructure:"action"`
 	Host    *string `json:"host,omitempty" mapstructure:"host,omitempty"`
-	TokenId int     `json:"token_id" mapstructure:"token_id"`
+	TokenId uint64  `json:"token_id" mapstructure:"token_id"`
 	// optionally also provide all the token information
 	TokenInfo *agentMessagePostResponseToken `mapstructure:"token"`
 }
