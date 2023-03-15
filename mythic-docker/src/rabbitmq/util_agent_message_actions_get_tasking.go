@@ -99,7 +99,7 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 	}
 }
 
-func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo) []delegateMessageResponse {
+func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []delegateMessageResponse {
 	// check to see if there's other submitted tasking that is routable through our callback
 	if !callbackGraph.CanHaveDelegates(uUIDInfo.CallbackID) {
 		return nil
@@ -148,7 +148,7 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo) []delegateMessageResponse
 							status=$2, status_timestamp_processing=$3
 							WHERE id=$1`, currentTasks[i].ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
 							logging.LogError(err, "Failed to update task status to processing")
-						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask); err != nil {
+						} else if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength); err != nil {
 							logging.LogError(err, "Failed to recursively encrypt message")
 						} else {
 							submittedTasksAwaitingFetching.removeTask(currentTasks[i].ID)
@@ -168,7 +168,7 @@ func getDelegateTaskMessages(uUIDInfo *cachedUUIDInfo) []delegateMessageResponse
 	return delegateMessages
 }
 
-func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo) []delegateMessageResponse {
+func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo, agentUUIDLength int) []delegateMessageResponse {
 	// check to see if there's other submitted tasking that is routable through our callback
 	if !callbackGraph.CanHaveDelegates(uUIDInfo.CallbackID) {
 		return nil
@@ -188,7 +188,7 @@ func getDelegateProxyMessages(uUIDInfo *cachedUUIDInfo) []delegateMessageRespons
 						"action":                 "get_tasking",
 						CALLBACK_PORT_TYPE_SOCKS: messages,
 					}
-					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask); err != nil {
+					if wrappedMessage, err := RecursivelyEncryptMessage(routablePath, newTask, agentUUIDLength); err != nil {
 						logging.LogError(err, "Failed to recursively encrypt message")
 					} else {
 						delegateMessages = append(delegateMessages, delegateMessageResponse{

@@ -272,7 +272,7 @@ func DockerRemoveImages() error {
 	}
 
 	for _, image := range images {
-		fmt.Printf("image: %v\n", image.RepoTags)
+		//fmt.Printf("image: %v\n", image.RepoTags)
 		if stringInSlice("<none>:<none>", image.RepoTags) {
 			cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{
 				Force:         true,
