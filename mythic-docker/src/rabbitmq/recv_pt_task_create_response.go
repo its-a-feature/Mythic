@@ -33,7 +33,12 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			// we ran into an error and couldn't even get the task information out
 			go database.SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
+		} else if err := database.DB.Get(&task, `SELECT status FROM task WHERE id=$1`, task.ID); err != nil {
+			logging.LogError(err, "Failed to find task from create_tasking")
+			go database.SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
+			return
 		}
+		logging.LogInfo("got response back from create message", "resp", payloadMsg, "original", string(msg.Body))
 		if payloadMsg.Success {
 			var updateColumns []string
 			if payloadMsg.CommandName != nil {
@@ -75,10 +80,12 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			}
 			if payloadMsg.TaskStatus != nil {
 				task.Status = *payloadMsg.TaskStatus
+				updateColumns = append(updateColumns, "status=:status")
 			}
 			if task.Completed {
 				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
 					task.Status = "completed"
+					updateColumns = append(updateColumns, "status=:status")
 				}
 				task.Timestamp = time.Now().UTC()
 				updateColumns = append(updateColumns, "timestamp=:timestamp")
@@ -91,9 +98,10 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			} else {
 				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
 					task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
+					updateColumns = append(updateColumns, "status=:status")
 				}
 			}
-			updateColumns = append(updateColumns, "status=:status")
+
 			updateString := fmt.Sprintf(`UPDATE task SET %s WHERE id=:id`, strings.Join(updateColumns, ","))
 			logging.LogDebug("update string for create tasking", "update string", updateString)
 			if _, err := database.DB.NamedExec(updateString, task); err != nil {
