@@ -35,6 +35,7 @@ RUN pip3 install -r /requirements.txt
 
 RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+RUN go install mvdan.cc/garble@latest
 
 RUN mkdir -p "/Windows/assembly/GAC_MSIL/System.Management.Automation/1.0.0.0__31bf3856ad364e35"
 COPY ["System.Management.Automation.dll", "/Windows/assembly/GAC_MSIL/System.Management.Automation/1.0.0.0__31bf3856ad364e35/System.Management.Automation.dll"]
@@ -56,6 +57,3 @@ RUN cd / && git clone --depth 1 https://github.com/tpoechtrager/osxcross.git && 
 
 ENV PATH /osxcross/target/bin:$PATH
 ENV LD_LIBRARY_PATH=/osxcross/target/lib
-
-# install garble support
-RUN go install mvdan.cc/garble@latest

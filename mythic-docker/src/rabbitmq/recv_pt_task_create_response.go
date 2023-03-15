@@ -80,12 +80,10 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			}
 			if payloadMsg.TaskStatus != nil {
 				task.Status = *payloadMsg.TaskStatus
-				updateColumns = append(updateColumns, "status=:status")
 			}
 			if task.Completed {
 				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
 					task.Status = "completed"
-					updateColumns = append(updateColumns, "status=:status")
 				}
 				task.Timestamp = time.Now().UTC()
 				updateColumns = append(updateColumns, "timestamp=:timestamp")
@@ -98,10 +96,9 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			} else {
 				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
 					task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
-					updateColumns = append(updateColumns, "status=:status")
 				}
 			}
-
+			updateColumns = append(updateColumns, "status=:status")
 			updateString := fmt.Sprintf(`UPDATE task SET %s WHERE id=:id`, strings.Join(updateColumns, ","))
 			logging.LogDebug("update string for create tasking", "update string", updateString)
 			if _, err := database.DB.NamedExec(updateString, task); err != nil {
