@@ -109,6 +109,11 @@ type agentMessagePostResponseProcesses struct {
 	Other                  map[string]interface{} `json:"-" mapstructure:",remain"`
 }
 type agentMessagePostResponseEdges struct {
+	Source      string `json:"source" mapstructure:"source"`
+	Destination string `json:"destination" mapstructure:"destination"`
+	Action      string `json:"action" mapstructure:"action"`
+	C2Profile   string `json:"c2_profile" mapstructure:"c2_profile"`
+	Metadata    string `json:"metadata" mapstructure:"metadata"`
 }
 type agentMessagePostResponseCommands struct {
 	Action  string `json:"action" mapstructure:"action"`
@@ -274,6 +279,9 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				}
 				if agentResponse.Commands != nil {
 					go handleAgentMessagePostResponseCommands(currentTask, agentResponse.Commands)
+				}
+				if agentResponse.Edges != nil {
+					go handleAgentMessagePostResponseEdges(agentResponse.Edges)
 				}
 				if agentResponse.Download != nil {
 					if newFileID, err := handleAgentMessagePostResponseDownload(currentTask, agentResponse); err != nil {
@@ -1065,7 +1073,7 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 			// we need to iterate over the children for this entry and potentially remove any that the database know of but that aren't in our `files` list
 			var existingTreeEntries []databaseStructs.MythicTree
 			if err = database.DB.Select(&existingTreeEntries, `SELECT id, "name", success, full_path, parent_path FROM mythictree WHERE
-			parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
+				parent_path=$1 AND operation_id=$2 AND host=$3 AND tree_type=$4`,
 				fullPath, task.OperationID, pathData.Host, databaseStructs.TREE_TYPE_FILE); err != nil {
 				logging.LogError(err, "Failed to fetch existing children")
 				return err
@@ -1319,5 +1327,16 @@ func createTreeNode(treeNode *databaseStructs.MythicTree) {
 		logging.LogError(err, "Failed to create new mythictree statement")
 	} else if err = statement.Get(&treeNode.ID, treeNode); err != nil {
 		logging.LogError(err, "Failed to create new mythictree entry")
+	}
+}
+func handleAgentMessagePostResponseEdges(edges *[]agentMessagePostResponseEdges) {
+	if edges != nil {
+		for _, edge := range *edges {
+			if edge.Action == "add" {
+				callbackGraph.AddByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
+			} else {
+				callbackGraph.RemoveByAgentIds(edge.Source, edge.Destination, edge.C2Profile)
+			}
+		}
 	}
 }

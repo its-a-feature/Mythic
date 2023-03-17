@@ -41,7 +41,10 @@ func InstallFolder(installPath string, overWrite bool) error {
 						if overWrite || askConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
 							fmt.Printf("[*] Stopping current container\n")
 							if isServiceRunning(strings.ToLower(f.Name())) {
-								DockerStop([]string{f.Name()})
+								if err := DockerStop([]string{f.Name()}); err != nil {
+									fmt.Printf("[-] Failed to stop current container: %v\n", err)
+									return err
+								}
 							}
 							fmt.Printf("[*] Removing current version\n")
 							err = os.RemoveAll(filepath.Join(workingPath, InstalledServicesFolder, f.Name()))
@@ -65,9 +68,17 @@ func InstallFolder(installPath string, overWrite bool) error {
 					}
 					fmt.Printf("[*] Adding service into docker-compose\n")
 					if config.IsSet("docker-compose") {
-						AddDockerComposeEntry(f.Name(), config.GetStringMap("docker-compose"))
+						if err := AddDockerComposeEntry(f.Name(), config.GetStringMap("docker-compose")); err != nil {
+							fmt.Printf("[-] Failed to add service to docker-compose: %v\n", err)
+						} else if err := DockerStart([]string{f.Name()}); err != nil {
+							fmt.Printf("[-] Failed to start service: %v\n", err)
+						}
 					} else {
-						AddDockerComposeEntry(f.Name(), make(map[string]interface{}))
+						if err := AddDockerComposeEntry(f.Name(), make(map[string]interface{})); err != nil {
+							fmt.Printf("[-] Failed to add service to docker-compose: %v\n", err)
+						} else if err := DockerStart([]string{f.Name()}); err != nil {
+							fmt.Printf("[-] Failed to start service: %v\n", err)
+						}
 					}
 
 				}
@@ -90,7 +101,10 @@ func InstallFolder(installPath string, overWrite bool) error {
 						if overWrite || askConfirm("[*] "+f.Name()+" already exists. Replace current version? ") {
 							fmt.Printf("[*] Stopping current container\n")
 							if isServiceRunning(strings.ToLower(f.Name())) {
-								DockerStop([]string{f.Name()})
+								if err := DockerStop([]string{f.Name()}); err != nil {
+									fmt.Printf("[-] Failed to stop container: %v\n", err)
+									return err
+								}
 							}
 							fmt.Printf("[*] Removing current version\n")
 							err = os.RemoveAll(filepath.Join(workingPath, InstalledServicesFolder, f.Name()))
@@ -112,23 +126,13 @@ func InstallFolder(installPath string, overWrite bool) error {
 						fmt.Printf("[-] Failed to copy directory over\n")
 						continue
 					}
-					// need to make sure the c2_service.sh file is executable
-					/*
-						if fileExists(filepath.Join(workingPath, "C2_Profiles", f.Name(), "mythic", "c2_service.sh")) {
-							err = os.Chmod(filepath.Join(workingPath, "C2_Profiles", f.Name(), "mythic", "c2_service.sh"), 0777)
-							if err != nil {
-								fmt.Printf("[-] Failed to make c2_service.sh file executable\n")
-								continue
-							}
-						} else {
-							fmt.Printf("[-] failed to find c2_service file for %s\n", f.Name())
-							continue
-						}
-
-					*/
 					// now add payload type to yaml config
 					fmt.Printf("[*] Adding c2, %s, into docker-compose\n", f.Name())
-					AddDockerComposeEntry(f.Name(), make(map[string]interface{}))
+					if err := AddDockerComposeEntry(f.Name(), make(map[string]interface{})); err != nil {
+						fmt.Printf("[-] Failed to add %s to docker-compose: %v\n", f.Name(), err)
+					} else if err := DockerStart([]string{f.Name()}); err != nil {
+						fmt.Printf("[-] Failed to start service: %v\n", err)
+					}
 				}
 			}
 			fmt.Printf("[+] Successfully installed c2\n")
@@ -139,7 +143,7 @@ func InstallFolder(installPath string, overWrite bool) error {
 			// handle payload documentation copying here
 			files, err := ioutil.ReadDir(filepath.Join(installPath, "documentation-payload"))
 			if err != nil {
-				fmt.Printf("[-] Failed to list contents of documentation_payload folder from clone\n")
+				fmt.Printf("[-] Failed to list contents of documentation_payload folder from clone: %v\n", err)
 				return err
 			}
 			for _, f := range files {
@@ -289,7 +293,10 @@ func InstallMythicSyncFolder(installPath string) error {
 	}
 	service := "mythic_sync"
 	if isServiceRunning(service) {
-		DockerStop([]string{service})
+		if err := DockerStop([]string{service}); err != nil {
+			fmt.Printf("[-] Failed to stop current docker container: %v\n", err)
+			return err
+		}
 	}
 	if dirExists(filepath.Join(workingPath, InstalledServicesFolder, service)) {
 		err := os.RemoveAll(filepath.Join(workingPath, InstalledServicesFolder, service))
@@ -305,7 +312,9 @@ func InstallMythicSyncFolder(installPath string) error {
 	addMythicServiceDockerComposeEntry(service)
 	fmt.Printf("[+] Successfully installed mythic_sync!\n")
 	if isServiceRunning("mythic_server") {
-		DockerStart([]string{strings.ToLower(service)})
+		if err := DockerStart([]string{strings.ToLower(service)}); err != nil {
+			fmt.Printf("[-] Failed to start mythic_sync: %v\n", err)
+		}
 	}
 	return nil
 }
@@ -368,10 +377,16 @@ func UninstallService(services []string) {
 		if dirExists(filepath.Join(workingPath, InstalledServicesFolder, service)) {
 			fmt.Printf("[*] Stopping and removing container\n")
 			if isServiceRunning(strings.ToLower(service)) {
-				DockerStop([]string{strings.ToLower(service)})
+				if err := DockerStop([]string{strings.ToLower(service)}); err != nil {
+					fmt.Printf("[-] Failed to stop container: %v\n", err)
+					return
+				}
 			}
 			fmt.Printf("[*] Removing %s from docker-compose\n", strings.ToLower(service))
-			RemoveDockerComposeEntry(strings.ToLower(service))
+			if err := RemoveDockerComposeEntry(strings.ToLower(service)); err != nil {
+				fmt.Printf("[-] Failed to remove docker compose entry: %v\n", err)
+				return
+			}
 			fmt.Printf("[*] Removing Payload Type folder from disk\n")
 			found = true
 			err := os.RemoveAll(filepath.Join(workingPath, InstalledServicesFolder, service))

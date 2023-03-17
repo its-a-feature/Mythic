@@ -4,7 +4,7 @@ package config
 
 var (
 	// Version Mythic CLI version
-	Version     string = "v0.1.2"
+	Version     string = "v0.1.3"
 	BuildDate   string
 	Name        string = "Mythic CLI"
 	DisplayName string = "Mythic CLI"

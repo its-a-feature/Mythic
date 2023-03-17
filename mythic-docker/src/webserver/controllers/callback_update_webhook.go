@@ -210,12 +210,13 @@ func updateCallbackActiveStatus(callback databaseStructs.Callback, active bool) 
 					return err
 				}
 			}
-
 		}
 		if callback.Active && !active {
 			if _, err := database.DB.Exec(`UPDATE callback SET active=false WHERE id=$1`, callback.ID); err != nil {
 				logging.LogError(err, "Failed to update callback active status to false")
 				return err
+			} else {
+				rabbitmq.MarkCallbackInfoInactive(callback.ID)
 			}
 		} else if !callback.Active && active {
 			if _, err := database.DB.Exec(`UPDATE callback SET active=true WHERE id=$1`, callback.ID); err != nil {

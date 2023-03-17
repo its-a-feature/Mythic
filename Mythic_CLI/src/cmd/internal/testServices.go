@@ -270,7 +270,7 @@ func Status() {
 		var installedServices []string
 		sort.Slice(containers[:], func(i, j int) bool {
 			return containers[i].Labels["name"] < containers[j].Labels["name"]
-		  })
+		})
 		for _, container := range containers {
 			if container.Labels["name"] == "" {
 				continue
@@ -281,7 +281,7 @@ func Status() {
 			if len(container.Ports) > 0 {
 				sort.Slice(container.Ports[:], func(i, j int) bool {
 					return container.Ports[i].PublicPort < container.Ports[j].PublicPort
-				  })
+				})
 				for _, port := range container.Ports {
 					if port.PublicPort > 0 {
 						if port.PrivatePort == port.PublicPort && port.IP == "0.0.0.0" {
@@ -317,7 +317,7 @@ func Status() {
 				}
 
 				for _, mnt := range container.Mounts {
-					if strings.HasPrefix(mnt.Source, installedServicesAbsPath) {
+					if strings.Contains(mnt.Source, installedServicesAbsPath) {
 						installedServices = append(installedServices, info)
 					}
 				}

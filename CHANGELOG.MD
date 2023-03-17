@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0rc12] - 20230-03-15
+## [3.0.0rc13] - 2023-03-17
+
+### Changed
+
+- fixed some issues with P2P connections and auto-adding routes
+
+## [3.0.0rc12] - 2023-03-15
 
 ### Changed
 

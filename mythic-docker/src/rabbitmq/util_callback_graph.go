@@ -33,6 +33,13 @@ type cbGraphBFSEntry struct {
 
 var c2profileNameToIdMap map[string]int
 
+type idAndOpId struct {
+	CallbackID  int
+	OperationID int
+}
+
+var uuidToIdAndOpId map[string]idAndOpId
+
 func (g *cbGraph) Initialize() {
 	edges := []databaseStructs.Callbackgraphedge{}
 	g.adjMatrix = make(map[int][]cbGraphAdjMatrixEntry, 0)
@@ -70,50 +77,87 @@ func (g *cbGraph) Add(source databaseStructs.Callback, destination databaseStruc
 		})
 
 	} else {
-		found := false
 		for _, dest := range g.adjMatrix[source.ID] {
 			if dest.DestinationId == destination.ID && dest.C2ProfileName == c2profileName {
-				found = true
-				break
+				//logging.LogDebug("Found existing p2p connection, not adding new one to memory")
+				return
 			}
 		}
-		if !found {
-			g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
-				DestinationId:      destination.ID,
-				DestinationAgentId: destination.AgentCallbackID,
-				SourceId:           source.ID,
-				SourceAgentId:      source.AgentCallbackID,
-				C2ProfileName:      c2profileName,
-			})
-		}
+		g.adjMatrix[source.ID] = append(g.adjMatrix[source.ID], cbGraphAdjMatrixEntry{
+			DestinationId:      destination.ID,
+			DestinationAgentId: destination.AgentCallbackID,
+			SourceId:           source.ID,
+			SourceAgentId:      source.AgentCallbackID,
+			C2ProfileName:      c2profileName,
+		})
 	}
+	return
 }
 func (g *cbGraph) AddByAgentIds(source string, destination string, c2profileName string) {
 	sourceCallback := databaseStructs.Callback{}
 	destinationCallback := databaseStructs.Callback{}
-	edge := databaseStructs.Callbackgraphedge{}
-	if err := database.DB.Get(&sourceCallback, `SELECT 
+	if val, ok := uuidToIdAndOpId[source]; ok {
+		sourceCallback.ID = val.CallbackID
+		sourceCallback.OperationID = val.OperationID
+		sourceCallback.AgentCallbackID = source
+	} else if err := database.DB.Get(&sourceCallback, `SELECT 
     	id, operation_id, agent_callback_id 
 		FROM callback WHERE agent_callback_id=$1`, source); err != nil {
 		logging.LogError(err, "Failed to find source callback for implicit P2P link")
+		return
+	}
+	if val, ok := uuidToIdAndOpId[destination]; ok {
+		destinationCallback.ID = val.CallbackID
+		destinationCallback.OperationID = val.OperationID
+		destinationCallback.AgentCallbackID = destination
 	} else if err := database.DB.Get(&destinationCallback, `SELECT 
     	id, operation_id, agent_callback_id 
 		FROM callback WHERE agent_callback_id=$1`, destination); err != nil {
 		logging.LogError(err, "Failed to find destination callback for implicit P2P link")
-	} else {
-		edge.SourceID = sourceCallback.ID
-		edge.DestinationID = destinationCallback.ID
-		edge.OperationID = sourceCallback.OperationID
-		edge.C2ProfileID = getC2ProfileIdForName(c2profileName)
-		if _, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge 
-		(operation_id, source_id, destination_id, c2_profile_id)
-		VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)
-		ON CONFLICT DO NOTHING`, edge); err != nil {
-			logging.LogError(err, "Failed to insert new edge for P2P connection")
-		} else {
-			g.Add(sourceCallback, destinationCallback, c2profileName)
-			g.Add(destinationCallback, sourceCallback, c2profileName)
-		}
+		return
+	}
+	edge := databaseStructs.Callbackgraphedge{}
+	edge.SourceID = sourceCallback.ID
+	edge.DestinationID = destinationCallback.ID
+	edge.OperationID = sourceCallback.OperationID
+	edge.C2ProfileID = getC2ProfileIdForName(c2profileName)
+	// only add / talk to database if the in-memory piece gets updated
+	g.Add(sourceCallback, destinationCallback, c2profileName)
+	g.Add(destinationCallback, sourceCallback, c2profileName)
+
+	if _, err := database.DB.NamedExec(`INSERT INTO callbackgraphedge
+			(operation_id, source_id, destination_id, c2_profile_id)
+			VALUES (:operation_id, :source_id, :destination_id, :c2_profile_id)
+			ON CONFLICT DO NOTHING`, edge); err != nil {
+		logging.LogError(err, "Failed to insert new edge for P2P connection")
+	}
+
+}
+func (g *cbGraph) RemoveByAgentIds(source string, destination string, c2profileName string) {
+	sourceCallback := databaseStructs.Callback{}
+	destinationCallback := databaseStructs.Callback{}
+	if val, ok := uuidToIdAndOpId[source]; ok {
+		sourceCallback.ID = val.CallbackID
+		sourceCallback.OperationID = val.OperationID
+		sourceCallback.AgentCallbackID = source
+	} else if err := database.DB.Get(&sourceCallback, `SELECT 
+    	id, operation_id, agent_callback_id 
+		FROM callback WHERE agent_callback_id=$1`, source); err != nil {
+		logging.LogError(err, "Failed to find source callback for implicit P2P link")
+		return
+	}
+	if val, ok := uuidToIdAndOpId[destination]; ok {
+		destinationCallback.ID = val.CallbackID
+		destinationCallback.OperationID = val.OperationID
+		destinationCallback.AgentCallbackID = destination
+	} else if err := database.DB.Get(&destinationCallback, `SELECT 
+    	id, operation_id, agent_callback_id 
+		FROM callback WHERE agent_callback_id=$1`, destination); err != nil {
+		logging.LogError(err, "Failed to find destination callback for implicit P2P link")
+		return
+	}
+	if err := RemoveEdgeByIds(sourceCallback.ID, destinationCallback.ID, c2profileName); err != nil {
+		logging.LogError(err, "Failed to remove edge")
 	}
 
 }
@@ -243,8 +287,8 @@ func getC2ProfileIdForName(c2profileName string) int {
 		return id
 	} else {
 		c2profile := databaseStructs.C2profile{}
-		if err := database.DB.Get(&c2profile, `SELECT id FROM c2profile WHERE name=$1`, c2profileName); err != nil {
-			logging.LogError(err, "Failed to find c2 profile")
+		if err := database.DB.Get(&c2profile, `SELECT id FROM c2profile WHERE "name"=$1 AND deleted=false`, c2profileName); err != nil {
+			logging.LogError(err, "Failed to find c2 profile", "c2profile", c2profileName)
 			return 0
 		} else {
 			c2profileNameToIdMap[c2profileName] = c2profile.ID

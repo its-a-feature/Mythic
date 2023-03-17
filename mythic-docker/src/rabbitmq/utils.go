@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -372,23 +373,29 @@ func getFinalStringForDatabaseInstanceValueFromDefaultDatabaseString(parameterTy
 	case BUILD_PARAMETER_TYPE_DICTIONARY:
 		// need to generate the base dictionary from the dictionary array choices and create a string
 		var dictionaryChoices []ParameterDictionary
-		if err := json.Unmarshal([]byte(defaultValue), &dictionaryChoices); err != nil {
+		if defaultValue == "" {
+			// use choices
+			if err := mapstructure.Decode(choices, &dictionaryChoices); err != nil {
+				logging.LogError(err, "Failed to decode mapstructure of base dictionary choices")
+				return "", err
+			}
+		} else if err := json.Unmarshal([]byte(defaultValue), &dictionaryChoices); err != nil {
 			logging.LogError(err, "Failed to unmarshal dictionary choices")
 			return "", err
-		} else {
-			var dictionary map[string]interface{}
-			for _, opt := range dictionaryChoices {
-				if opt.DefaultShow {
-					dictionary[opt.Name] = opt.DefaultValue
-				}
-			}
-			if dictionaryBytes, err := json.Marshal(dictionary); err != nil {
-				logging.LogError(err, "Failed to convert default dictionary to string")
-				return "", err
-			} else {
-				return string(dictionaryBytes), nil
+		}
+		var dictionary map[string]interface{}
+		for _, opt := range dictionaryChoices {
+			if opt.DefaultShow {
+				dictionary[opt.Name] = opt.DefaultValue
 			}
 		}
+		if dictionaryBytes, err := json.Marshal(dictionary); err != nil {
+			logging.LogError(err, "Failed to convert default dictionary to string")
+			return "", err
+		} else {
+			return string(dictionaryBytes), nil
+		}
+
 	case BUILD_PARAMETER_TYPE_DATE:
 		// date number is stored as the default value, so convert to new string
 		if number, err := strconv.Atoi(defaultValue); err != nil {

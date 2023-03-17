@@ -255,37 +255,37 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			Name:       c2.Name,
 			Parameters: c2.Parameters,
 		}); err != nil {
-			checksPassed = false
+			//checksPassed = false
 			buildOutput += err.Error() + "\n"
 		} else if !opsecCheckResponse.Success {
 			checksPassed = false
 			buildOutput += opsecCheckResponse.Message + "\n"
 		} else {
 			buildOutput += opsecCheckResponse.Message + "\n"
-			buildOutput += fmt.Sprintf("Step 2/%d - Issuing Config Check for\n", totalSteps)
-			if configCheckResponse, err := RabbitMQConnection.SendC2RPCConfigCheck(C2ConfigCheckMessage{
-				Name:       c2.Name,
-				Parameters: c2.Parameters,
+		}
+		buildOutput += fmt.Sprintf("Step 2/%d - Issuing Config Check for\n", totalSteps)
+		if configCheckResponse, err := RabbitMQConnection.SendC2RPCConfigCheck(C2ConfigCheckMessage{
+			Name:       c2.Name,
+			Parameters: c2.Parameters,
+		}); err != nil {
+			//checksPassed = false
+			buildOutput += err.Error() + "\n"
+		} else if !configCheckResponse.Success {
+			checksPassed = false
+			buildOutput += configCheckResponse.Message + "\n"
+		} else {
+			buildOutput += configCheckResponse.Message + "\n"
+		}
+		if !c2.IsP2P {
+			buildOutput += fmt.Sprintf("Step 3/%d - Issuing Start command\n", totalSteps)
+			if c2StartServerResponse, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{
+				Name: c2.Name,
 			}); err != nil {
-				checksPassed = false
 				buildOutput += err.Error() + "\n"
-			} else if !configCheckResponse.Success {
-				checksPassed = false
-				buildOutput += configCheckResponse.Message + "\n"
+			} else if !c2StartServerResponse.Success {
+				buildOutput += c2StartServerResponse.Message + "\n"
 			} else {
-				buildOutput += configCheckResponse.Message + "\n"
-				if !c2.IsP2P {
-					buildOutput += fmt.Sprintf("Step 3/%d - Issuing Start command\n", totalSteps)
-					if c2StartServerResponse, err := RabbitMQConnection.SendC2RPCStartServer(C2StartServerMessage{
-						Name: c2.Name,
-					}); err != nil {
-						buildOutput += err.Error() + "\n"
-					} else if !c2StartServerResponse.Success {
-						buildOutput += c2StartServerResponse.Message + "\n"
-					} else {
-						buildOutput += c2StartServerResponse.Message + "\n"
-					}
-				}
+				buildOutput += c2StartServerResponse.Message + "\n"
 			}
 		}
 	}
@@ -299,9 +299,11 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		buildMessage,
 	); err != nil {
 		logging.LogError(err, "Failed to send build message")
-		buildOutput += "\n" + err.Error()
+		buildOutput += fmt.Sprintf("\nSending Build command\n")
+		buildOutput += err.Error()
 		database.UpdatePayloadWithError(databasePayload, errors.New(buildOutput))
 	} else {
+		buildOutput += fmt.Sprintf("\nSending Build command\n")
 		databasePayload.BuildMessage += buildOutput
 		if _, updateError := database.DB.NamedExec(`UPDATE payload SET 
 			build_message=:build_message 

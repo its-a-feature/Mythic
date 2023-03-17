@@ -60,6 +60,10 @@ type cachedUUIDInfo struct {
 	LastCheckinTime          time.Time
 	CallbackID               int `json:"callback_id" db:"callback_id"`
 	OperationID              int `json:"operation_id" db:"operation_id"`
+	// Active - tracking if the callback is active or not in a cached way
+	Active bool
+	// EdgeId - tracking the edge id for this callback to make sure it's updated as needed
+	EdgeId int
 }
 
 func (cache *cachedUUIDInfo) getAllKeys() []mythicCrypto.CryptoKeys {
@@ -158,11 +162,20 @@ func (cache *cachedUUIDInfo) IterateAndAct(agentMessage []byte, action string) (
 	}
 	return modified, err
 }
+
 func InvalidateAllCachedUUIDInfo() {
 	cachedUUIDInfoMap = make(map[string]*cachedUUIDInfo)
 }
 
 var cachedUUIDInfoMap = make(map[string]*cachedUUIDInfo)
+
+func MarkCallbackInfoInactive(callbackID int) {
+	for k, _ := range cachedUUIDInfoMap {
+		if cachedUUIDInfoMap[k].CallbackID == callbackID {
+			cachedUUIDInfoMap[k].Active = false
+		}
+	}
+}
 
 // this is coming in from an agent in the delegates field
 type delegateMessage struct {
@@ -361,6 +374,15 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 				}
 			}
 		}
+		if _, ok := decryptedMessage["edges"]; ok {
+			// this means we have some sort of add/remove announcement
+			edges := []agentMessagePostResponseEdges{}
+			if err := mapstructure.Decode(decryptedMessage["edges"], &edges); err != nil {
+				logging.LogError(err, "Failed to process out edge information")
+			} else {
+				go handleAgentMessagePostResponseEdges(&edges)
+			}
+		}
 		if _, ok := decryptedMessage["delegates"]; ok {
 			// this means we have some delegate messages to process recursively
 			delegates := []delegateMessage{}
@@ -390,10 +412,16 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 							newResponse.NewUuid = delegateResponse.NewCallbackUUID
 							// we got an implicit new callback relationship, mark it
 							go callbackGraph.AddByAgentIds(outerUUID, delegateResponse.NewCallbackUUID, delegate.C2ProfileName)
-						} else if delegateResponse.OuterUuid != "" && delegateResponse.OuterUuid != delegate.SuppliedUuid {
-							newResponse.MythicUuid = delegateResponse.OuterUuid
-							newResponse.NewUuid = delegateResponse.OuterUuid
+						} else {
+							if delegateResponse.OuterUuid != "" && delegateResponse.OuterUuid != delegate.SuppliedUuid {
+								newResponse.MythicUuid = delegateResponse.OuterUuid
+								newResponse.NewUuid = delegateResponse.OuterUuid
+							} else {
+								newResponse.SuppliedUuid = delegate.SuppliedUuid
+							}
+							go callbackGraph.AddByAgentIds(outerUUID, delegateResponse.OuterUuid, delegate.C2ProfileName)
 						}
+						//go callbackGraph.AddByAgentIds(outerUUID, delegateResponse.OuterUuid, delegate.C2ProfileName)
 						delegateResponses = append(delegateResponses, newResponse)
 					}
 				}
@@ -863,6 +891,27 @@ func UpdateCallbackEdgesAndCheckinTime(uuidInfo *cachedUUIDInfo) {
 			logging.LogError(err, "Failed to update last_checkin time", "callback", uuidInfo.UUID)
 		} else {
 			callbackGraph.Add(callback, callback, uuidInfo.C2ProfileName)
+			//callbackGraph.AddByAgentIds(callback.AgentCallbackID, callback.AgentCallbackID, uuidInfo.C2ProfileName)
+			if uuidInfo.EdgeId == 0 {
+				if err := database.DB.Get(&uuidInfo.EdgeId, `SELECT id FROM callbackgraphedge
+						WHERE source_id=$1 AND destination_id=$2 AND c2_profile_id=$3`,
+					uuidInfo.CallbackID, uuidInfo.CallbackID, uuidInfo.C2ProfileID); err != nil {
+
+				}
+			}
+			if !uuidInfo.Active {
+				uuidInfo.Active = true
+				if _, err := database.DB.NamedExec(`UPDATE callback SET
+					active=true
+					WHERE id=:id`, callback); err != nil {
+					logging.LogError(err, "Failed to update active time", "callback", uuidInfo.UUID)
+				}
+				if _, err := database.DB.Exec(`UPDATE callbackgraphedge SET
+					end_timestamp=NULL
+					WHERE id=$1`, uuidInfo.EdgeId); err != nil {
+					logging.LogError(err, "Failed to callbackgraph edges time", "callback", uuidInfo.UUID)
+				}
+			}
 		}
 		uuidInfo.LastCheckinTime = callback.LastCheckin
 	}
