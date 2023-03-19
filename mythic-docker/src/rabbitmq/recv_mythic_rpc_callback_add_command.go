@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"database/sql"
 	"encoding/json"
-
+	"errors"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -59,17 +59,18 @@ func MythicRPCCallbackAddCommand(input MythicRPCCallbackAddCommandMessage) Mythi
 }
 func CallbackAddCommand(callbackID int, payloadtypeID int, operatorID int, commands []string) error {
 	for _, command := range commands {
+		logging.LogDebug("trying to add command", "cmd", command)
 		// first check if the command is already loaded
 		// if not, try to add it as a loaded command
 		databaseCommand := databaseStructs.Command{}
 		loadedCommand := databaseStructs.Loadedcommands{}
 		if err := database.DB.Get(&databaseCommand, `SELECT
-		id, version
+		id, "version"
 		FROM command
 		WHERE command.cmd=$1 AND command.payload_type_id=$2`,
 			command, payloadtypeID); err != nil {
 			logging.LogError(err, "Failed to find command to load")
-			return err
+			return errors.New("Failed to find command: " + command)
 		} else if err := database.DB.Get(&loadedCommand, `SELECT id
 		FROM loadedcommands
 		WHERE command_id=$1 AND callback_id=$2`,
@@ -88,7 +89,7 @@ func CallbackAddCommand(callbackID int, payloadtypeID int, operatorID int, comma
 				logging.LogError(err, "Failed to mark command as loaded in callback")
 				return err
 			} else {
-				return nil
+				continue
 			}
 		} else {
 			// we got some other sort of error

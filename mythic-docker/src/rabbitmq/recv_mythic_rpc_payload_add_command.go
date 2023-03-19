@@ -3,7 +3,7 @@ package rabbitmq
 import (
 	"database/sql"
 	"encoding/json"
-
+	"errors"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
@@ -64,7 +64,7 @@ func PayloadAddCommand(PayloadID int, payloadtypeID int, commands []string) erro
 		WHERE command.cmd=$1 AND command.payload_type_id=$2`,
 			command, payloadtypeID); err != nil {
 			logging.LogError(err, "Failed to find command to load")
-			return err
+			return errors.New("Failed to find command: " + command)
 		} else if err := database.DB.Get(&loadedCommand, `SELECT id
 		FROM payloadcommand
 		WHERE command_id=$1 AND payload_id=$2`,
@@ -82,7 +82,7 @@ func PayloadAddCommand(PayloadID int, payloadtypeID int, commands []string) erro
 				logging.LogError(err, "Failed to mark command as loaded in payload")
 				return err
 			} else {
-				return nil
+				continue
 			}
 		} else {
 			// we got some other sort of error
