@@ -15,7 +15,7 @@ type UpdateOperatorPasswordInput struct {
 type UpdateOperatorPassword struct {
 	UserID      int    `json:"user_id" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required"`
-	OldPassword string `json:"old_password" binding:"required"`
+	OldPassword string `json:"old_password"`
 }
 
 type UpdateOperatorPasswordResponse struct {

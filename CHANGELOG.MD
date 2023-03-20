@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc15] - 2023-03-20
+
+### Changed
+
+- Updated mythic-cli with mythic_postgres to offer a different postgres.conf file based on if postgres_debug is true
+
 ## [3.0.0rc14] - 2023-03-19
 
 ### Changed

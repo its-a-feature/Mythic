@@ -123,23 +123,18 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"retries":      5,
 			"start_period": "20s",
 		}
-		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT}"
+		pStruct["command"] = "postgres -c \"max_connections=100\" -p ${POSTGRES_PORT} -c config_file=/etc/postgresql.conf"
 		pStruct["volumes"] = []string{
 			"./postgres-docker/database:/var/lib/postgresql/data",
+			"./postgres-docker/postgres.conf:/etc/postgresql.conf",
 		}
 		if imageExists("mythic_postgres") {
 			if mythicEnv.GetBool("postgres_debug") {
 				pStruct["volumes"] = []string{
 					"./postgres-docker/database:/var/lib/postgresql/data",
-					"./postgres-docker/postgres.conf:/var/lib/postgresql/postgresql.conf",
-					"./postgres-docker/postgres.conf:/var/lib/postgresql/data/postgresql.conf",
-				}
-			} else {
-				pStruct["volumes"] = []string{
-					"./postgres-docker/database:/var/lib/postgresql/data",
+					"./postgres-docker/postgres_debug.conf:/etc/postgresql.conf",
 				}
 			}
-
 		}
 		pStruct["cpus"] = mythicEnv.GetInt("POSTGRES_CPUS")
 		if mythicEnv.GetBool("postgres_bind_localhost_only") {

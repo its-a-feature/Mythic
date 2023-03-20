@@ -68,7 +68,7 @@ func GetUserCurrentOperation(userID int) (*databaseStructs.Operatoroperation, er
 func GetUserFromID(userID int) (*databaseStructs.Operator, error) {
 	operator := databaseStructs.Operator{}
 	if err := DB.Get(&operator, `SELECT 
-	username, id, admin, last_login, failed_login_count, salt, password,
+	username, id, "admin", last_login, failed_login_count, salt, "password",
 	last_failed_login_timestamp, active, deleted, current_operation_id, view_utc_time, 
 	current_operation_id  
 	FROM operator 
