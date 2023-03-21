@@ -4575,6 +4575,7 @@
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
+        allow_aggregations: true
     - role: mythic_admin
       permission:
         columns:
@@ -4601,6 +4602,7 @@
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
+        allow_aggregations: true
     - role: operation_admin
       permission:
         columns:
@@ -4627,6 +4629,7 @@
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
+        allow_aggregations: true
     - role: operator
       permission:
         columns:
@@ -4653,6 +4656,7 @@
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
+        allow_aggregations: true
     - role: spectator
       permission:
         columns:
@@ -4679,6 +4683,7 @@
         filter:
           operation_id:
             _eq: X-Hasura-current-operation-id
+        allow_aggregations: true
   update_permissions:
     - role: developer
       permission:
