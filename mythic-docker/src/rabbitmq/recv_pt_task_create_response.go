@@ -39,88 +39,90 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			return
 		}
 		logging.LogInfo("got response back from create message", "resp", payloadMsg, "original", string(msg.Body))
-		if payloadMsg.Success {
-			var updateColumns []string
-			if payloadMsg.CommandName != nil {
-				task.CommandName = *payloadMsg.CommandName
-				updateColumns = append(updateColumns, "command_name=:command_name")
+
+		var updateColumns []string
+		if payloadMsg.CommandName != nil {
+			task.CommandName = *payloadMsg.CommandName
+			updateColumns = append(updateColumns, "command_name=:command_name")
+		}
+		if payloadMsg.ParameterGroupName != nil {
+			task.ParameterGroupName = *payloadMsg.ParameterGroupName
+			updateColumns = append(updateColumns, "parameter_group_name=:parameter_group_name")
+		}
+		if payloadMsg.Params != nil {
+			task.Params = *payloadMsg.Params
+			updateColumns = append(updateColumns, "params=:params")
+		}
+		if payloadMsg.DisplayParams != nil {
+			task.DisplayParams = *payloadMsg.DisplayParams
+			updateColumns = append(updateColumns, "display_params=:display_params")
+		}
+		if payloadMsg.Stdout != nil {
+			task.Stdout = *payloadMsg.Stdout
+			updateColumns = append(updateColumns, "stdout=:stdout")
+		}
+		if payloadMsg.Stderr != nil {
+			task.Stderr = *payloadMsg.Stderr
+			updateColumns = append(updateColumns, "stderr=:stderr")
+		}
+		if payloadMsg.Completed != nil {
+			task.Completed = *payloadMsg.Completed
+			updateColumns = append(updateColumns, "completed=:completed")
+		}
+		if payloadMsg.TokenID != nil {
+			task.TokenID.Int64 = int64(*payloadMsg.TokenID)
+			task.TokenID.Valid = true
+			updateColumns = append(updateColumns, "token_id=:token_id")
+		}
+		if payloadMsg.CompletionFunctionName != nil {
+			task.CompletedCallbackFunction = *payloadMsg.CompletionFunctionName
+			updateColumns = append(updateColumns, "completed_callback_function=:completed_callback_function")
+		}
+		if payloadMsg.TaskStatus != nil {
+			task.Status = *payloadMsg.TaskStatus
+		}
+		if task.Completed {
+			if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
+				task.Status = "completed"
 			}
-			if payloadMsg.ParameterGroupName != nil {
-				task.ParameterGroupName = *payloadMsg.ParameterGroupName
-				updateColumns = append(updateColumns, "parameter_group_name=:parameter_group_name")
+			task.Timestamp = time.Now().UTC()
+			updateColumns = append(updateColumns, "timestamp=:timestamp")
+			task.StatusTimestampSubmitted.Valid = true
+			task.StatusTimestampSubmitted.Time = task.Timestamp
+			updateColumns = append(updateColumns, "status_timestamp_submitted=:status_timestamp_submitted")
+			task.StatusTimestampProcessed.Valid = true
+			task.StatusTimestampProcessed.Time = task.Timestamp
+			updateColumns = append(updateColumns, "status_timestamp_processed=:status_timestamp_processed")
+		} else {
+			if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING && payloadMsg.Success {
+				task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
+			} else if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING && !payloadMsg.Success {
+				task.Status = PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR
 			}
-			if payloadMsg.Params != nil {
-				task.Params = *payloadMsg.Params
-				updateColumns = append(updateColumns, "params=:params")
-			}
-			if payloadMsg.DisplayParams != nil {
-				task.DisplayParams = *payloadMsg.DisplayParams
-				updateColumns = append(updateColumns, "display_params=:display_params")
-			}
-			if payloadMsg.Stdout != nil {
-				task.Stdout = *payloadMsg.Stdout
-				updateColumns = append(updateColumns, "stdout=:stdout")
-			}
-			if payloadMsg.Stderr != nil {
-				task.Stderr = *payloadMsg.Stderr
-				updateColumns = append(updateColumns, "stderr=:stderr")
-			}
-			if payloadMsg.Completed != nil {
-				task.Completed = *payloadMsg.Completed
-				updateColumns = append(updateColumns, "completed=:completed")
-			}
-			if payloadMsg.TokenID != nil {
-				task.TokenID.Int64 = int64(*payloadMsg.TokenID)
-				task.TokenID.Valid = true
-				updateColumns = append(updateColumns, "token_id=:token_id")
-			}
-			if payloadMsg.CompletionFunctionName != nil {
-				task.CompletedCallbackFunction = *payloadMsg.CompletionFunctionName
-				updateColumns = append(updateColumns, "completed_callback_function=:completed_callback_function")
-			}
-			if payloadMsg.TaskStatus != nil {
-				task.Status = *payloadMsg.TaskStatus
-			}
-			if task.Completed {
-				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
-					task.Status = "completed"
-				}
-				task.Timestamp = time.Now().UTC()
-				updateColumns = append(updateColumns, "timestamp=:timestamp")
-				task.StatusTimestampSubmitted.Valid = true
-				task.StatusTimestampSubmitted.Time = task.Timestamp
-				updateColumns = append(updateColumns, "status_timestamp_submitted=:status_timestamp_submitted")
-				task.StatusTimestampProcessed.Valid = true
-				task.StatusTimestampProcessed.Time = task.Timestamp
-				updateColumns = append(updateColumns, "status_timestamp_processed=:status_timestamp_processed")
-			} else {
-				if task.Status == PT_TASK_FUNCTION_STATUS_PREPROCESSING {
-					task.Status = PT_TASK_FUNCTION_STATUS_OPSEC_POST
-				}
-			}
-			updateColumns = append(updateColumns, "status=:status")
-			updateString := fmt.Sprintf(`UPDATE task SET %s WHERE id=:id`, strings.Join(updateColumns, ","))
-			logging.LogDebug("update string for create tasking", "update string", updateString)
-			if _, err := database.DB.NamedExec(updateString, task); err != nil {
-				logging.LogError(err, "Failed to update task status")
-				return
-			} else {
+		}
+		updateColumns = append(updateColumns, "status=:status")
+		updateString := fmt.Sprintf(`UPDATE task SET %s WHERE id=:id`, strings.Join(updateColumns, ","))
+		//logging.LogDebug("update string for create tasking", "update string", updateString)
+		if _, err := database.DB.NamedExec(updateString, task); err != nil {
+			logging.LogError(err, "Failed to update task status")
+			return
+		} else {
+			if payloadMsg.Success {
 				if task.Status == PT_TASK_FUNCTION_STATUS_OPSEC_POST {
 					allTaskData := GetTaskConfigurationForContainer(task.ID)
 					if err := RabbitMQConnection.SendPtTaskOPSECPost(allTaskData); err != nil {
 						logging.LogError(err, "In processPtTaskCreateMessages, but failed to SendPtTaskOPSECPost ")
 					}
 				}
-			}
-		} else {
-			task.Status = PT_TASK_FUNCTION_STATUS_PREPROCESSING_ERROR
-			task.Stderr = payloadMsg.Error
-			if _, err := database.DB.NamedExec(`UPDATE task SET
-			status=:status, stderr=:stderr 
-			WHERE
-			id=:id`, task); err != nil {
-				logging.LogError(err, "Failed to update task status")
-				return
+			} else {
+				task.Stderr += payloadMsg.Error
+				if _, err := database.DB.NamedExec(`UPDATE task SET
+					status=:status, stderr=:stderr 
+					WHERE
+					id=:id`, task); err != nil {
+					logging.LogError(err, "Failed to update task status")
+					return
+				}
 			}
 		}
 	}

@@ -158,11 +158,7 @@ func Initialize() {
 	// initialize the clients
 	TranslationContainerServer.clients = make(map[string]*grpcClientConnections)
 	TranslationContainerServer.connectionTimeout = connectionTimeoutSeconds * time.Second
-	if utils.MythicConfig.ServerBindLocalhostOnly {
-		connectString = fmt.Sprintf("127.0.0.1:%d", utils.MythicConfig.ServerGRPCPort)
-	} else {
-		connectString = fmt.Sprintf("0.0.0.0:%d", utils.MythicConfig.ServerGRPCPort)
-	}
+	connectString = fmt.Sprintf("0.0.0.0:%d", utils.MythicConfig.ServerGRPCPort)
 	go serveInBackground(connectString)
 
 }

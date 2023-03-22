@@ -14,7 +14,7 @@ type CreateTaskInput struct {
 }
 
 type CreateTask struct {
-	CallbackID         int      `json:"callback_id" binding:"required"`
+	CallbackDisplayID  int      `json:"callback_id" binding:"required"`
 	Command            string   `json:"command" binding:"required"`
 	Params             string   `json:"params"`
 	Files              []string `json:"files"`
@@ -46,7 +46,7 @@ func CreateTaskWebhook(c *gin.Context) {
 
 		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 		createTaskInput := rabbitmq.CreateTaskInput{
-			CallbackID:         input.Input.CallbackID,
+			CallbackDisplayID:  input.Input.CallbackDisplayID,
 			CurrentOperationID: operatorOperation.CurrentOperation.ID,
 			OperatorID:         operatorOperation.CurrentOperator.ID,
 			IsOperatorAdmin:    operatorOperation.CurrentOperator.Admin,

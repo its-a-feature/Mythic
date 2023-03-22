@@ -386,17 +386,16 @@ $$;
 -- Name: new_callback_display_id(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.new_callback_display_id() RETURNS trigger
+CREATE OR REPLACE FUNCTION public.new_callback_display_id() RETURNS trigger
     LANGUAGE plpgsql
     AS $$ 
 DECLARE
    current_max integer;
 BEGIN 
-    SELECT COUNT(*) 
+    SELECT GREATEST(0, Max(display_id) )
     INTO current_max
     FROM callback
     WHERE operation_id = NEW.operation_id;
-
     NEW.display_id := current_max + 1; 
 RETURN NEW; 
 END; 
@@ -413,7 +412,7 @@ CREATE FUNCTION public.new_task_display_id() RETURNS trigger
 DECLARE
    current_max integer;
 BEGIN 
-    SELECT COUNT(*) 
+    SELECT GREATEST(0, Max(display_id) )
     INTO current_max
     FROM task
     WHERE operation_id = NEW.operation_id;
@@ -4047,7 +4046,7 @@ CREATE TRIGGER update_task_response_count_trigger AFTER INSERT ON public.respons
 --
 
 ALTER TABLE ONLY public.apitokens
-    ADD CONSTRAINT apitokens_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT apitokens_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4055,7 +4054,7 @@ ALTER TABLE ONLY public.apitokens
 --
 
 ALTER TABLE ONLY public.attackcommand
-    ADD CONSTRAINT attackcommand_attack_id_fkey FOREIGN KEY (attack_id) REFERENCES public.attack(id);
+    ADD CONSTRAINT attackcommand_attack_id_fkey FOREIGN KEY (attack_id) REFERENCES public.attack(id) ON DELETE CASCADE;
 
 
 --
@@ -4063,7 +4062,7 @@ ALTER TABLE ONLY public.attackcommand
 --
 
 ALTER TABLE ONLY public.attackcommand
-    ADD CONSTRAINT attackcommand_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id);
+    ADD CONSTRAINT attackcommand_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id) ON DELETE CASCADE;
 
 
 --
@@ -4071,7 +4070,7 @@ ALTER TABLE ONLY public.attackcommand
 --
 
 ALTER TABLE ONLY public.attacktask
-    ADD CONSTRAINT attacktask_attack_id_fkey FOREIGN KEY (attack_id) REFERENCES public.attack(id);
+    ADD CONSTRAINT attacktask_attack_id_fkey FOREIGN KEY (attack_id) REFERENCES public.attack(id) ON DELETE CASCADE;
 
 
 --
@@ -4079,7 +4078,7 @@ ALTER TABLE ONLY public.attacktask
 --
 
 ALTER TABLE ONLY public.attacktask
-    ADD CONSTRAINT attacktask_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT attacktask_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4087,7 +4086,7 @@ ALTER TABLE ONLY public.attacktask
 --
 
 ALTER TABLE ONLY public.browserscript
-    ADD CONSTRAINT browserscript_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id);
+    ADD CONSTRAINT browserscript_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id) ON DELETE CASCADE;
 
 
 --
@@ -4095,7 +4094,7 @@ ALTER TABLE ONLY public.browserscript
 --
 
 ALTER TABLE ONLY public.browserscript
-    ADD CONSTRAINT browserscript_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT browserscript_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4103,7 +4102,7 @@ ALTER TABLE ONLY public.browserscript
 --
 
 ALTER TABLE ONLY public.browserscript
-    ADD CONSTRAINT browserscript_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id);
+    ADD CONSTRAINT browserscript_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
 
 --
@@ -4111,7 +4110,7 @@ ALTER TABLE ONLY public.browserscript
 --
 
 ALTER TABLE ONLY public.browserscriptoperation
-    ADD CONSTRAINT browserscriptoperation_browserscript_id_fkey FOREIGN KEY (browserscript_id) REFERENCES public.browserscript(id);
+    ADD CONSTRAINT browserscriptoperation_browserscript_id_fkey FOREIGN KEY (browserscript_id) REFERENCES public.browserscript(id) ON DELETE CASCADE;
 
 
 --
@@ -4119,7 +4118,7 @@ ALTER TABLE ONLY public.browserscriptoperation
 --
 
 ALTER TABLE ONLY public.browserscriptoperation
-    ADD CONSTRAINT browserscriptoperation_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT browserscriptoperation_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4127,7 +4126,7 @@ ALTER TABLE ONLY public.browserscriptoperation
 --
 
 ALTER TABLE ONLY public.buildparameter
-    ADD CONSTRAINT buildparameter_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id);
+    ADD CONSTRAINT buildparameter_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
 
 --
@@ -4135,7 +4134,7 @@ ALTER TABLE ONLY public.buildparameter
 --
 
 ALTER TABLE ONLY public.buildparameterinstance
-    ADD CONSTRAINT buildparameterinstance_build_parameter_id_fkey FOREIGN KEY (build_parameter_id) REFERENCES public.buildparameter(id);
+    ADD CONSTRAINT buildparameterinstance_build_parameter_id_fkey FOREIGN KEY (build_parameter_id) REFERENCES public.buildparameter(id) ON DELETE CASCADE;
 
 
 --
@@ -4143,7 +4142,7 @@ ALTER TABLE ONLY public.buildparameterinstance
 --
 
 ALTER TABLE ONLY public.buildparameterinstance
-    ADD CONSTRAINT buildparameterinstance_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT buildparameterinstance_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4151,7 +4150,7 @@ ALTER TABLE ONLY public.buildparameterinstance
 --
 
 ALTER TABLE ONLY public.c2profileparameters
-    ADD CONSTRAINT c2profileparameters_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id);
+    ADD CONSTRAINT c2profileparameters_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id) ON DELETE CASCADE;
 
 
 --
@@ -4159,7 +4158,7 @@ ALTER TABLE ONLY public.c2profileparameters
 --
 
 ALTER TABLE ONLY public.c2profileparametersinstance
-    ADD CONSTRAINT c2profileparametersinstance_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id);
+    ADD CONSTRAINT c2profileparametersinstance_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id) ON DELETE CASCADE;
 
 
 --
@@ -4167,7 +4166,7 @@ ALTER TABLE ONLY public.c2profileparametersinstance
 --
 
 ALTER TABLE ONLY public.c2profileparametersinstance
-    ADD CONSTRAINT c2profileparametersinstance_c2_profile_parameters_id_fkey FOREIGN KEY (c2_profile_parameters_id) REFERENCES public.c2profileparameters(id);
+    ADD CONSTRAINT c2profileparametersinstance_c2_profile_parameters_id_fkey FOREIGN KEY (c2_profile_parameters_id) REFERENCES public.c2profileparameters(id) ON DELETE CASCADE;
 
 
 --
@@ -4175,7 +4174,7 @@ ALTER TABLE ONLY public.c2profileparametersinstance
 --
 
 ALTER TABLE ONLY public.c2profileparametersinstance
-    ADD CONSTRAINT c2profileparametersinstance_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id);
+    ADD CONSTRAINT c2profileparametersinstance_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id) ON DELETE CASCADE;
 
 
 --
@@ -4183,7 +4182,7 @@ ALTER TABLE ONLY public.c2profileparametersinstance
 --
 
 ALTER TABLE ONLY public.c2profileparametersinstance
-    ADD CONSTRAINT c2profileparametersinstance_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT c2profileparametersinstance_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4191,7 +4190,7 @@ ALTER TABLE ONLY public.c2profileparametersinstance
 --
 
 ALTER TABLE ONLY public.c2profileparametersinstance
-    ADD CONSTRAINT c2profileparametersinstance_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT c2profileparametersinstance_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4199,7 +4198,7 @@ ALTER TABLE ONLY public.c2profileparametersinstance
 --
 
 ALTER TABLE ONLY public.callback
-    ADD CONSTRAINT callback_locked_operator_id_fkey FOREIGN KEY (locked_operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT callback_locked_operator_id_fkey FOREIGN KEY (locked_operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4207,7 +4206,7 @@ ALTER TABLE ONLY public.callback
 --
 
 ALTER TABLE ONLY public.callback
-    ADD CONSTRAINT callback_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT callback_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4215,7 +4214,7 @@ ALTER TABLE ONLY public.callback
 --
 
 ALTER TABLE ONLY public.callback
-    ADD CONSTRAINT callback_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT callback_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4223,7 +4222,7 @@ ALTER TABLE ONLY public.callback
 --
 
 ALTER TABLE ONLY public.callback
-    ADD CONSTRAINT callback_registered_payload_id_fkey FOREIGN KEY (registered_payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT callback_registered_payload_id_fkey FOREIGN KEY (registered_payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4231,7 +4230,7 @@ ALTER TABLE ONLY public.callback
 --
 
 ALTER TABLE ONLY public.callbackc2profiles
-    ADD CONSTRAINT callbackc2profiles_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id);
+    ADD CONSTRAINT callbackc2profiles_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id) ON DELETE CASCADE;
 
 
 --
@@ -4239,7 +4238,7 @@ ALTER TABLE ONLY public.callbackc2profiles
 --
 
 ALTER TABLE ONLY public.callbackc2profiles
-    ADD CONSTRAINT callbackc2profiles_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id);
+    ADD CONSTRAINT callbackc2profiles_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id) ON DELETE CASCADE;
 
 
 --
@@ -4247,7 +4246,7 @@ ALTER TABLE ONLY public.callbackc2profiles
 --
 
 ALTER TABLE ONLY public.callbackgraphedge
-    ADD CONSTRAINT callbackgraphedge_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id);
+    ADD CONSTRAINT callbackgraphedge_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id) ON DELETE CASCADE;
 
 
 --
@@ -4255,7 +4254,7 @@ ALTER TABLE ONLY public.callbackgraphedge
 --
 
 ALTER TABLE ONLY public.callbackgraphedge
-    ADD CONSTRAINT callbackgraphedge_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.callback(id);
+    ADD CONSTRAINT callbackgraphedge_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.callback(id) ON DELETE CASCADE;
 
 
 --
@@ -4263,7 +4262,7 @@ ALTER TABLE ONLY public.callbackgraphedge
 --
 
 ALTER TABLE ONLY public.callbackgraphedge
-    ADD CONSTRAINT callbackgraphedge_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT callbackgraphedge_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4271,7 +4270,7 @@ ALTER TABLE ONLY public.callbackgraphedge
 --
 
 ALTER TABLE ONLY public.callbackgraphedge
-    ADD CONSTRAINT callbackgraphedge_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.callback(id);
+    ADD CONSTRAINT callbackgraphedge_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.callback(id) ON DELETE CASCADE;
 
 
 --
@@ -4303,7 +4302,7 @@ ALTER TABLE ONLY public.callbackport
 --
 
 ALTER TABLE ONLY public.callbacktoken
-    ADD CONSTRAINT callbacktoken_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id);
+    ADD CONSTRAINT callbacktoken_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id) ON DELETE CASCADE;
 
 
 --
@@ -4311,7 +4310,7 @@ ALTER TABLE ONLY public.callbacktoken
 --
 
 ALTER TABLE ONLY public.callbacktoken
-    ADD CONSTRAINT callbacktoken_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT callbacktoken_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4319,7 +4318,7 @@ ALTER TABLE ONLY public.callbacktoken
 --
 
 ALTER TABLE ONLY public.callbacktoken
-    ADD CONSTRAINT callbacktoken_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.token(id);
+    ADD CONSTRAINT callbacktoken_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.token(id) ON DELETE CASCADE;
 
 
 --
@@ -4327,7 +4326,7 @@ ALTER TABLE ONLY public.callbacktoken
 --
 
 ALTER TABLE ONLY public.command
-    ADD CONSTRAINT command_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id);
+    ADD CONSTRAINT command_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
 
 --
@@ -4335,7 +4334,7 @@ ALTER TABLE ONLY public.command
 --
 
 ALTER TABLE ONLY public.commandparameters
-    ADD CONSTRAINT commandparameters_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id);
+    ADD CONSTRAINT commandparameters_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id) ON DELETE CASCADE;
 
 
 --
@@ -4343,7 +4342,7 @@ ALTER TABLE ONLY public.commandparameters
 --
 
 ALTER TABLE ONLY public.credential
-    ADD CONSTRAINT credential_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT credential_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4351,7 +4350,7 @@ ALTER TABLE ONLY public.credential
 --
 
 ALTER TABLE ONLY public.credential
-    ADD CONSTRAINT credential_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT credential_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4359,7 +4358,7 @@ ALTER TABLE ONLY public.credential
 --
 
 ALTER TABLE ONLY public.credential
-    ADD CONSTRAINT credential_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT credential_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4367,7 +4366,7 @@ ALTER TABLE ONLY public.credential
 --
 
 ALTER TABLE ONLY public.disabledcommandsprofile
-    ADD CONSTRAINT disabledcommandsprofile_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id);
+    ADD CONSTRAINT disabledcommandsprofile_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id) ON DELETE CASCADE;
 
 
 --
@@ -4375,7 +4374,7 @@ ALTER TABLE ONLY public.disabledcommandsprofile
 --
 
 ALTER TABLE ONLY public.disabledcommandsprofile
-    ADD CONSTRAINT disabledcommandsprofile_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT disabledcommandsprofile_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4383,7 +4382,7 @@ ALTER TABLE ONLY public.disabledcommandsprofile
 --
 
 ALTER TABLE ONLY public.filemeta
-    ADD CONSTRAINT filemeta_mythictree_id_fkey FOREIGN KEY (mythictree_id) REFERENCES public.mythictree(id);
+    ADD CONSTRAINT filemeta_mythictree_id_fkey FOREIGN KEY (mythictree_id) REFERENCES public.mythictree(id) ON DELETE CASCADE;
 
 
 --
@@ -4391,7 +4390,7 @@ ALTER TABLE ONLY public.filemeta
 --
 
 ALTER TABLE ONLY public.filemeta
-    ADD CONSTRAINT filemeta_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT filemeta_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4399,7 +4398,7 @@ ALTER TABLE ONLY public.filemeta
 --
 
 ALTER TABLE ONLY public.filemeta
-    ADD CONSTRAINT filemeta_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT filemeta_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4407,7 +4406,7 @@ ALTER TABLE ONLY public.filemeta
 --
 
 ALTER TABLE ONLY public.filemeta
-    ADD CONSTRAINT filemeta_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT filemeta_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4415,7 +4414,7 @@ ALTER TABLE ONLY public.filemeta
 --
 
 ALTER TABLE ONLY public.operator
-    ADD CONSTRAINT fk_operator_current_operation_id_refs_operation FOREIGN KEY (current_operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT fk_operator_current_operation_id_refs_operation FOREIGN KEY (current_operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4423,7 +4422,7 @@ ALTER TABLE ONLY public.operator
 --
 
 ALTER TABLE ONLY public.payload
-    ADD CONSTRAINT fk_payload_file_id_refs_filemeta FOREIGN KEY (file_id) REFERENCES public.filemeta(id);
+    ADD CONSTRAINT fk_payload_file_id_refs_filemeta FOREIGN KEY (file_id) REFERENCES public.filemeta(id) ON DELETE CASCADE;
 
 
 --
@@ -4431,7 +4430,7 @@ ALTER TABLE ONLY public.payload
 --
 
 ALTER TABLE ONLY public.payload
-    ADD CONSTRAINT fk_payload_task_id_refs_task FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT fk_payload_task_id_refs_task FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4439,7 +4438,7 @@ ALTER TABLE ONLY public.payload
 --
 
 ALTER TABLE ONLY public.payloadonhost
-    ADD CONSTRAINT fk_payloadonhost_task_id_refs_task FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT fk_payloadonhost_task_id_refs_task FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4447,7 +4446,7 @@ ALTER TABLE ONLY public.payloadonhost
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT fk_task_token_id_refs_token FOREIGN KEY (token_id) REFERENCES public.token(id);
+    ADD CONSTRAINT fk_task_token_id_refs_token FOREIGN KEY (token_id) REFERENCES public.token(id) ON DELETE CASCADE;
 
 
 --
@@ -4455,7 +4454,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.keylog
-    ADD CONSTRAINT keylog_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT keylog_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4463,7 +4462,7 @@ ALTER TABLE ONLY public.keylog
 --
 
 ALTER TABLE ONLY public.keylog
-    ADD CONSTRAINT keylog_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT keylog_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4471,7 +4470,7 @@ ALTER TABLE ONLY public.keylog
 --
 
 ALTER TABLE ONLY public.loadedcommands
-    ADD CONSTRAINT loadedcommands_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id);
+    ADD CONSTRAINT loadedcommands_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id) ON DELETE CASCADE;
 
 
 --
@@ -4479,7 +4478,7 @@ ALTER TABLE ONLY public.loadedcommands
 --
 
 ALTER TABLE ONLY public.loadedcommands
-    ADD CONSTRAINT loadedcommands_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id);
+    ADD CONSTRAINT loadedcommands_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id) ON DELETE CASCADE;
 
 
 --
@@ -4487,7 +4486,7 @@ ALTER TABLE ONLY public.loadedcommands
 --
 
 ALTER TABLE ONLY public.loadedcommands
-    ADD CONSTRAINT loadedcommands_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT loadedcommands_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4495,7 +4494,7 @@ ALTER TABLE ONLY public.loadedcommands
 --
 
 ALTER TABLE ONLY public.mythictree
-    ADD CONSTRAINT mythictree_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT mythictree_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4503,7 +4502,7 @@ ALTER TABLE ONLY public.mythictree
 --
 
 ALTER TABLE ONLY public.mythictree
-    ADD CONSTRAINT mythictree_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT mythictree_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4511,7 +4510,7 @@ ALTER TABLE ONLY public.mythictree
 --
 
 ALTER TABLE ONLY public.operation
-    ADD CONSTRAINT operation_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT operation_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4519,7 +4518,7 @@ ALTER TABLE ONLY public.operation
 --
 
 ALTER TABLE ONLY public.operationeventlog
-    ADD CONSTRAINT operationeventlog_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT operationeventlog_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4527,7 +4526,7 @@ ALTER TABLE ONLY public.operationeventlog
 --
 
 ALTER TABLE ONLY public.operationeventlog
-    ADD CONSTRAINT operationeventlog_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT operationeventlog_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4535,7 +4534,7 @@ ALTER TABLE ONLY public.operationeventlog
 --
 
 ALTER TABLE ONLY public.operatoroperation
-    ADD CONSTRAINT operatoroperation_base_disabled_commands_id_fkey FOREIGN KEY (base_disabled_commands_id) REFERENCES public.disabledcommandsprofile(id);
+    ADD CONSTRAINT operatoroperation_base_disabled_commands_id_fkey FOREIGN KEY (base_disabled_commands_id) REFERENCES public.disabledcommandsprofile(id) ON DELETE CASCADE;
 
 
 --
@@ -4543,7 +4542,7 @@ ALTER TABLE ONLY public.operatoroperation
 --
 
 ALTER TABLE ONLY public.operatoroperation
-    ADD CONSTRAINT operatoroperation_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT operatoroperation_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4551,7 +4550,7 @@ ALTER TABLE ONLY public.operatoroperation
 --
 
 ALTER TABLE ONLY public.operatoroperation
-    ADD CONSTRAINT operatoroperation_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT operatoroperation_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4559,7 +4558,7 @@ ALTER TABLE ONLY public.operatoroperation
 --
 
 ALTER TABLE ONLY public.payload_build_step
-    ADD CONSTRAINT payload_build_step_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT payload_build_step_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4575,7 +4574,7 @@ ALTER TABLE ONLY public.payload_build_step
 --
 
 ALTER TABLE ONLY public.payload
-    ADD CONSTRAINT payload_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT payload_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4583,7 +4582,7 @@ ALTER TABLE ONLY public.payload
 --
 
 ALTER TABLE ONLY public.payload
-    ADD CONSTRAINT payload_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT payload_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4591,7 +4590,7 @@ ALTER TABLE ONLY public.payload
 --
 
 ALTER TABLE ONLY public.payload
-    ADD CONSTRAINT payload_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id);
+    ADD CONSTRAINT payload_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
 
 --
@@ -4599,7 +4598,7 @@ ALTER TABLE ONLY public.payload
 --
 
 ALTER TABLE ONLY public.payload
-    ADD CONSTRAINT payload_wrapped_payload_id_fkey FOREIGN KEY (wrapped_payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT payload_wrapped_payload_id_fkey FOREIGN KEY (wrapped_payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4607,7 +4606,7 @@ ALTER TABLE ONLY public.payload
 --
 
 ALTER TABLE ONLY public.payloadc2profiles
-    ADD CONSTRAINT payloadc2profiles_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id);
+    ADD CONSTRAINT payloadc2profiles_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id) ON DELETE CASCADE;
 
 
 --
@@ -4615,7 +4614,7 @@ ALTER TABLE ONLY public.payloadc2profiles
 --
 
 ALTER TABLE ONLY public.payloadc2profiles
-    ADD CONSTRAINT payloadc2profiles_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT payloadc2profiles_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4623,7 +4622,7 @@ ALTER TABLE ONLY public.payloadc2profiles
 --
 
 ALTER TABLE ONLY public.payloadcommand
-    ADD CONSTRAINT payloadcommand_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id);
+    ADD CONSTRAINT payloadcommand_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id) ON DELETE CASCADE;
 
 
 --
@@ -4631,7 +4630,7 @@ ALTER TABLE ONLY public.payloadcommand
 --
 
 ALTER TABLE ONLY public.payloadcommand
-    ADD CONSTRAINT payloadcommand_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT payloadcommand_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4639,7 +4638,7 @@ ALTER TABLE ONLY public.payloadcommand
 --
 
 ALTER TABLE ONLY public.payloadonhost
-    ADD CONSTRAINT payloadonhost_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT payloadonhost_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4647,7 +4646,7 @@ ALTER TABLE ONLY public.payloadonhost
 --
 
 ALTER TABLE ONLY public.payloadonhost
-    ADD CONSTRAINT payloadonhost_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT payloadonhost_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4655,7 +4654,7 @@ ALTER TABLE ONLY public.payloadonhost
 --
 
 ALTER TABLE ONLY public.payloadtype
-    ADD CONSTRAINT payloadtype_translation_container_id_fkey FOREIGN KEY (translation_container_id) REFERENCES public.translationcontainer(id);
+    ADD CONSTRAINT payloadtype_translation_container_id_fkey FOREIGN KEY (translation_container_id) REFERENCES public.translationcontainer(id) ON DELETE CASCADE;
 
 
 --
@@ -4663,7 +4662,7 @@ ALTER TABLE ONLY public.payloadtype
 --
 
 ALTER TABLE ONLY public.payloadtypec2profile
-    ADD CONSTRAINT payloadtypec2profile_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id);
+    ADD CONSTRAINT payloadtypec2profile_c2_profile_id_fkey FOREIGN KEY (c2_profile_id) REFERENCES public.c2profile(id) ON DELETE CASCADE;
 
 
 --
@@ -4671,7 +4670,7 @@ ALTER TABLE ONLY public.payloadtypec2profile
 --
 
 ALTER TABLE ONLY public.payloadtypec2profile
-    ADD CONSTRAINT payloadtypec2profile_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id);
+    ADD CONSTRAINT payloadtypec2profile_payload_type_id_fkey FOREIGN KEY (payload_type_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
 
 --
@@ -4679,7 +4678,7 @@ ALTER TABLE ONLY public.payloadtypec2profile
 --
 
 ALTER TABLE ONLY public.response
-    ADD CONSTRAINT response_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+    ADD CONSTRAINT response_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 
 --
@@ -4687,7 +4686,7 @@ ALTER TABLE ONLY public.response
 --
 
 ALTER TABLE ONLY public.response
-    ADD CONSTRAINT response_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT response_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4695,7 +4694,7 @@ ALTER TABLE ONLY public.response
 --
 
 ALTER TABLE ONLY public.staginginfo
-    ADD CONSTRAINT staginginfo_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id);
+    ADD CONSTRAINT staginginfo_payload_id_fkey FOREIGN KEY (payload_id) REFERENCES public.payload(id) ON DELETE CASCADE;
 
 
 --
@@ -4783,7 +4782,7 @@ ALTER TABLE ONLY public.tagtype
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT task_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id);
+    ADD CONSTRAINT task_callback_id_fkey FOREIGN KEY (callback_id) REFERENCES public.callback(id) ON DELETE CASCADE;
 
 
 --
@@ -4791,7 +4790,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT task_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id);
+    ADD CONSTRAINT task_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.command(id) ON DELETE CASCADE;
 
 
 --
@@ -4799,7 +4798,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT task_comment_operator_id_fkey FOREIGN KEY (comment_operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT task_comment_operator_id_fkey FOREIGN KEY (comment_operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4807,7 +4806,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT task_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT task_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4815,7 +4814,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT task_opsec_post_bypass_user_id_fkey FOREIGN KEY (opsec_post_bypass_user_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT task_opsec_post_bypass_user_id_fkey FOREIGN KEY (opsec_post_bypass_user_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4823,7 +4822,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT task_opsec_pre_bypass_user_id_fkey FOREIGN KEY (opsec_pre_bypass_user_id) REFERENCES public.operator(id);
+    ADD CONSTRAINT task_opsec_pre_bypass_user_id_fkey FOREIGN KEY (opsec_pre_bypass_user_id) REFERENCES public.operator(id) ON DELETE CASCADE;
 
 
 --
@@ -4831,7 +4830,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.task
-    ADD CONSTRAINT task_parent_task_id_fkey FOREIGN KEY (parent_task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT task_parent_task_id_fkey FOREIGN KEY (parent_task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4839,7 +4838,7 @@ ALTER TABLE ONLY public.task
 --
 
 ALTER TABLE ONLY public.taskartifact
-    ADD CONSTRAINT taskartifact_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id);
+    ADD CONSTRAINT taskartifact_operation_id_fkey FOREIGN KEY (operation_id) REFERENCES public.operation(id) ON DELETE CASCADE;
 
 
 --
@@ -4847,7 +4846,7 @@ ALTER TABLE ONLY public.taskartifact
 --
 
 ALTER TABLE ONLY public.taskartifact
-    ADD CONSTRAINT taskartifact_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT taskartifact_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4855,7 +4854,7 @@ ALTER TABLE ONLY public.taskartifact
 --
 
 ALTER TABLE ONLY public.token
-    ADD CONSTRAINT token_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id);
+    ADD CONSTRAINT token_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.task(id) ON DELETE CASCADE;
 
 
 --
@@ -4863,7 +4862,7 @@ ALTER TABLE ONLY public.token
 --
 
 ALTER TABLE ONLY public.wrappedpayloadtypes
-    ADD CONSTRAINT wrappedpayloadtypes_wrapped_id_fkey FOREIGN KEY (wrapped_id) REFERENCES public.payloadtype(id);
+    ADD CONSTRAINT wrappedpayloadtypes_wrapped_id_fkey FOREIGN KEY (wrapped_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
 
 --
@@ -4871,8 +4870,9 @@ ALTER TABLE ONLY public.wrappedpayloadtypes
 --
 
 ALTER TABLE ONLY public.wrappedpayloadtypes
-    ADD CONSTRAINT wrappedpayloadtypes_wrapper_id_fkey FOREIGN KEY (wrapper_id) REFERENCES public.payloadtype(id);
+    ADD CONSTRAINT wrappedpayloadtypes_wrapper_id_fkey FOREIGN KEY (wrapper_id) REFERENCES public.payloadtype(id) ON DELETE CASCADE;
 
+CREATE EXTENSION pg_stat_statements SCHEMA public;
 
 --
 -- PostgreSQL database dump complete

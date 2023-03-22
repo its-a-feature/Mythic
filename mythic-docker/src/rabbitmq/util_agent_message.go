@@ -351,11 +351,19 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			}
 		case "staging_translation":
 			{
-
+				if finalBytes, err := handleAgentMessageStagingTranslation(&decryptedMessage, uuidInfo); err != nil {
+					logging.LogError(err, "Failed to handle translation staging function")
+					instanceResponse.Err = err
+					return instanceResponse
+				} else {
+					instanceResponse.Message = *finalBytes
+					return instanceResponse
+				}
 			}
 		default:
 			{
 				logging.LogError(nil, "Unknown action in message from agent", "action", decryptedMessage["action"])
+				instanceResponse.Err = errors.New("unknown action in message from agent")
 			}
 		}
 		if err != nil {
@@ -503,7 +511,7 @@ func LookupEncryptionData(c2profile string, messageUUID string) (*cachedUUIDInfo
 	// get the associated c2 profile
 	databaseC2Profile := databaseStructs.C2profile{}
 	if err := database.DB.Get(&databaseC2Profile, `SELECT id, "name", is_p2p FROM c2profile
-		WHERE name=$1`, c2profile); err != nil {
+		WHERE "name"=$1`, c2profile); err != nil {
 		logging.LogError(err, "Failed to get c2 profile in LookupEncryptionData", "c2profile", c2profile, "uuid", messageUUID)
 		errorMessage := fmt.Sprintf("Failed to find agent's C2 profile: %s\n", c2profile)
 		errorMessage += fmt.Sprintf("This could be from a C2 Profile forwarding traffic to Mythic that Mythic isn't tracking.\n")

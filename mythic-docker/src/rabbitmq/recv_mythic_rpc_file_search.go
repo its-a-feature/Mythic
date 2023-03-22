@@ -67,11 +67,8 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		// the search is for a specific fileID, so just fetch it and return
 		fileMeta := databaseStructs.Filemeta{}
 		if err := database.DB.Get(&fileMeta, `SELECT 
-    		filemeta.*,
-    		task.command_name "task.command_name",
-    		task.callback_id "task.callback_id"
+    		filemeta.*
 			FROM filemeta 
-			LEFT OUTER JOIN task on filemeta.task_id = task.id
 			WHERE filemeta.agent_file_id=$1`, input.AgentFileID); err != nil {
 			logging.LogError(err, "Failed to get specified file in MythicRPCFileSearch")
 			response.Error = err.Error()
@@ -117,11 +114,8 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 			input.Comment = "%" + input.Comment + "%"
 		}
 		searchString := `SELECT 
-    		filemeta.*,
-    		task.command_name "task.command_name",
-    		task.callback_id "task.callback_id"
+    		filemeta.*
 			FROM filemeta 
-			LEFT OUTER JOIN task on filemeta.task_id = task.id 
 			WHERE filemeta.comment LIKE $1 AND is_payload=$2 AND is_download_from_agent=$3 AND is_screenshot=$4 AND deleted=false and filemeta.operation_id=$5
 			ORDER BY id DESC`
 		searchParameters := []interface{}{
@@ -143,11 +137,8 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 			input.Filename = "%" + input.Filename + "%"
 		}
 		searchString := `SELECT 
-			filemeta.*,
-    		task.command_name "task.command_name",
-    		task.callback_id "task.callback_id"
+			filemeta.*
 			FROM filemeta 
-			LEFT OUTER JOIN task on filemeta.task_id = task.id
 			WHERE filename LIKE $1 AND is_payload=$2 AND is_download_from_agent=$3 AND is_screenshot=$4 AND deleted=false AND filemeta.operation_id=$5
 			ORDER BY id DESC `
 		searchParameters := []interface{}{
@@ -193,8 +184,13 @@ func convertFileMetaToFileData(filemeta databaseStructs.Filemeta) FileData {
 	data.Md5 = filemeta.Md5
 	data.Sha1 = filemeta.Sha1
 	data.Timestamp = filemeta.Timestamp
-	if filemeta.Task != nil {
-		data.Command = filemeta.Task.CommandName
+	if filemeta.TaskID.Valid {
+		if err := database.DB.Get(&data.Command, `SELECT
+    		command_name
+    		FROM task
+    		WHERE id=$1`, filemeta.TaskID.Int64); err != nil {
+			logging.LogError(err, "Failed to get command name from task associated with file")
+		}
 	}
 	return data
 }

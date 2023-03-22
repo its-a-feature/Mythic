@@ -19,7 +19,7 @@ var (
 )
 
 type CreateTaskInput struct {
-	CallbackID              int
+	CallbackDisplayID       int
 	CurrentOperationID      int
 	OperatorID              int
 	IsOperatorAdmin         bool
@@ -148,10 +148,10 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 		FROM callback
 		JOIN payload ON callback.registered_payload_id = payload.id
 		WHERE
-		callback.id=$1 and callback.operation_id=$2`,
-		createTaskInput.CallbackID,
+		callback.display_id=$1 and callback.operation_id=$2`,
+		createTaskInput.CallbackDisplayID,
 		createTaskInput.CurrentOperationID); err != nil {
-		logging.LogError(err, "Failed to get callback")
+		logging.LogError(err, "Failed to get callback", "callback_id", createTaskInput.CallbackDisplayID)
 		response.Error = "Failed to get callback information"
 		return response
 	} else if err := database.DB.Get(&callback.Payload.Payloadtype, `SELECT
@@ -210,7 +210,7 @@ func CreateTask(createTaskInput CreateTaskInput) CreateTaskResponse {
 	// set up the new task for the database
 	task.AgentTaskID = uuid.New().String()
 	task.CommandName = createTaskInput.CommandName
-	task.CallbackID = createTaskInput.CallbackID
+	task.CallbackID = callback.ID
 	task.Callback = callback
 	task.OperatorID = createTaskInput.OperatorID
 	task.OperationID = createTaskInput.CurrentOperationID
@@ -364,9 +364,9 @@ func handleClearCommand(createTaskInput CreateTaskInput, callback databaseStruct
 	output.Error = ""
 	return output
 }
-func addOutputToTask(taskId int, output string, operation_id int) {
+func addOutputToTask(taskId int, output string, operationId int) {
 	if _, err := database.DB.Exec(`INSERT INTO response (task_id, response, operation_id)
-		VALUES ($1, $2, $3)`, taskId, output, operation_id); err != nil {
+		VALUES ($1, $2, $3)`, taskId, output, operationId); err != nil {
 		logging.LogError(err, "Failed to add output to task")
 	}
 }

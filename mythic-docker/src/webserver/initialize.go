@@ -209,6 +209,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("callbackgraphedge_remove_webhook", webcontroller.CallbackgraphedgeRemoveWebhook)
 				// callback
 				noSpectators.POST("create_callback_webhook", webcontroller.CreateCallbackWebhook)
+				noSpectators.POST("delete_tasks_and_callbacks_webhook", webcontroller.DeleteTasksAndCallbacks)
 			}
 			operationAdminsOnly := protected.Group("/api/v1.4/")
 			operationAdminsOnly.Use(authentication.RBACMiddlewareOperationAdmin())

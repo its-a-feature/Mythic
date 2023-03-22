@@ -34,7 +34,7 @@ func init() {
 	})
 }
 
-//MYTHIC_RPC_OBJECT_ACTION - Say what the function does
+// MYTHIC_RPC_OBJECT_ACTION - Say what the function does
 func MythicRPCTaskCreateSubtask(input MythicRPCTaskCreateSubtaskMessage) MythicRPCTaskCreateSubtaskMessageResponse {
 	response := MythicRPCTaskCreateSubtaskMessageResponse{
 		Success: false,
@@ -51,6 +51,7 @@ func MythicRPCTaskCreateSubtask(input MythicRPCTaskCreateSubtaskMessage) MythicR
 	operatorOperation := databaseStructs.Operatoroperation{}
 	if err := database.DB.Get(&task, `SELECT 
 	callback.id "callback.id",
+	callback.display_id "callback.display_id",
 	callback.operation_id "callback.operation_id",
 	operator.id "operator.id",
 	operator.admin "operator.admin" 
@@ -71,7 +72,7 @@ func MythicRPCTaskCreateSubtask(input MythicRPCTaskCreateSubtaskMessage) MythicR
 		return response
 	} else {
 		createTaskInput.IsOperatorAdmin = task.Operator.Admin
-		createTaskInput.CallbackID = task.Callback.ID
+		createTaskInput.CallbackDisplayID = task.Callback.DisplayID
 		createTaskInput.CurrentOperationID = task.Callback.OperationID
 		if operatorOperation.BaseDisabledCommandsID.Valid {
 			baseDisabledCommandsID := int(operatorOperation.BaseDisabledCommandsID.Int64)
