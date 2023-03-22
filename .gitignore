@@ -7,6 +7,7 @@ docs/_build/
 .venv
 mythic_server
 docker-compose.yml
+.ipynb_checkpoints/
 env/
 venv/
 ENV/
@@ -156,3 +157,5 @@ _ReSharper*/
 
 # vscode
 .vscode/
+
+jupyter-docker/jupyter/MythicExamples/.ipynb_checkpoints/
