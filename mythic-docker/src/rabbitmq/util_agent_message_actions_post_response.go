@@ -521,8 +521,7 @@ func addToken(task databaseStructs.Task, token agentMessagePostResponseToken) (i
          (:task_id, :host, :operation_id, :token_id, :user, :groups, :privileges,
           :thread_id, :process_id, :session_id, :logon_sid, :integrity_level_sid,
           :app_container_sid, :app_container_number, :default_dacl, :restricted, :handle, :capabilities)
-    	RETURNING id
-	  ON CONFLICT (host, operation_id, token_id)
+     ON CONFLICT (host, operation_id, token_id)
      DO UPDATE SET
      task_id=:task_id, "user"=:user, "groups"=:groups, "privileges"=:privileges,
          thread_id=:thread_id, process_id=:process_id, session_id=:session_id,
@@ -541,7 +540,7 @@ func addToken(task databaseStructs.Task, token agentMessagePostResponseToken) (i
 	}
 }
 func removeToken(task databaseStructs.Task, token agentMessagePostResponseToken) error {
-	if _, err := database.DB.Exec(`UPDATE token SET deleted=true WHERE token_id=$1 AND operation=$2 AND host=$3`,
+	if _, err := database.DB.Exec(`UPDATE token SET deleted=true WHERE token_id=$1 AND operation_id=$2 AND host=$3`,
 		token.TokenID, task.OperationID, task.Callback.Host); err != nil {
 		logging.LogError(err, "Failed to mark token as deleted")
 		return err
@@ -555,8 +554,10 @@ func handleAgentMessagePostResponseTokens(task databaseStructs.Task, tokens *[]a
 	for _, token := range *tokens {
 		if token.Action == "add" {
 			_, err = addToken(task, token)
-		} else {
+		} else if token.Action == "remove" {
 			err = removeToken(task, token)
+		} else {
+			logging.LogError(err, "Unknown action with token", "action", token.Action)
 		}
 
 	}
@@ -580,7 +581,7 @@ func handleAgentMessagePostResponseCallbackTokens(task databaseStructs.Task, cal
 			} else {
 				logging.LogDebug("Successfully removed token from callback")
 			}
-		} else {
+		} else if callbackToken.Action == "add" {
 			// we want to associate a new token with the callback (one that already exists or create one)
 			if callbackToken.TokenInfo != nil {
 				// we'll create a new token and associate it with this callback
@@ -611,6 +612,8 @@ func handleAgentMessagePostResponseCallbackTokens(task databaseStructs.Task, cal
 			} else {
 				logging.LogDebug("Successfully associated token with callback", "token_id", databaseToken.TokenID, "callback", task.Callback.DisplayID)
 			}
+		} else {
+			logging.LogError(nil, "unknown action for callback token", "action", callbackToken.Action)
 		}
 	}
 	return nil

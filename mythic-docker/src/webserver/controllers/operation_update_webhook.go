@@ -1,6 +1,8 @@
 package webcontroller
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,17 +16,25 @@ type UpdateOperationInput struct {
 }
 
 type UpdateOperation struct {
-	OperationID   int     `json:"operation_id" binding:"required"`
-	Name          *string `json:"name,omitempty"`
-	Channel       *string `json:"channel,omitempty"`
-	Complete      *bool   `json:"complete,omitempty"`
-	Webhook       *string `json:"webhook,omitempty"`
-	AdminUsername *string `json:"admin_username,omitempty"`
+	OperationID int     `json:"operation_id" binding:"required"`
+	Name        *string `json:"name,omitempty"`
+	Channel     *string `json:"channel,omitempty"`
+	Complete    *bool   `json:"complete,omitempty"`
+	Webhook     *string `json:"webhook,omitempty"`
+	AdminID     *int    `json:"admin_id,omitempty"`
+	Deleted     *bool   `json:"deleted,omitempty"`
 }
 
 type UpdateOperationResponse struct {
-	Status string `json:"status"`
-	Error  string `json:"error"`
+	Status   string `json:"status"`
+	Error    string `json:"error"`
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Channel  string `json:"channel"`
+	Complete bool   `json:"complete"`
+	Webhook  string `json:"webhook"`
+	AdminID  int    `json:"admin_id"`
+	Deleted  bool   `json:"deleted"`
 }
 
 func UpdateOperationWebhook(c *gin.Context) {
@@ -55,13 +65,14 @@ func UpdateOperationWebhook(c *gin.Context) {
 		})
 		return
 	} else if err := database.DB.Get(&operatorRole, `SELECT * FROM operatoroperation WHERE 
-		operator_id=$1 AND operation_id=$2`, operator.ID, input.Input.OperationID); err != nil {
+		operator_id=$1 AND operation_id=$2`, operator.ID, input.Input.OperationID); err != sql.ErrNoRows && err != nil {
 		logging.LogError(err, "Failed to get information about operator's role in operation")
 		c.JSON(http.StatusOK, UpdateOperationResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
+
 	} else if !operator.Admin && operatorRole.ViewMode != database.OPERATOR_OPERATION_VIEW_MODE_LEAD {
 		logging.LogError(nil, "Tried to update operation, but not admin or operation lead")
 		c.JSON(http.StatusOK, UpdateOperationResponse{
@@ -85,6 +96,9 @@ func UpdateOperationWebhook(c *gin.Context) {
 			if input.Input.Name != nil {
 				currentOperation.Name = *input.Input.Name
 			}
+			if input.Input.Deleted != nil {
+				currentOperation.Deleted = *input.Input.Deleted
+			}
 			if input.Input.Webhook != nil {
 				currentOperation.Webhook = *input.Input.Webhook
 			}
@@ -94,16 +108,8 @@ func UpdateOperationWebhook(c *gin.Context) {
 			if input.Input.Channel != nil {
 				currentOperation.Channel = *input.Input.Channel
 			}
-			if input.Input.AdminUsername != nil {
-				newOperator := databaseStructs.Operator{}
-				if err := database.DB.Get(&newOperator.ID, `SELECT id FROM operator WHERE username=$1`, *input.Input.AdminUsername); err != nil {
-					logging.LogError(err, "Failed to find operator")
-					c.JSON(http.StatusOK, UpdateOperationResponse{
-						Status: "error",
-						Error:  "Failed to find operator",
-					})
-					return
-				} else if _, err := database.DB.Exec(`UPDATE operatoroperation SET view_mode=$1
+			if input.Input.AdminID != nil {
+				if _, err := database.DB.Exec(`UPDATE operatoroperation SET view_mode=$1
 					WHERE view_mode=$2 AND operation_id=$3`,
 					database.OPERATOR_OPERATION_VIEW_MODE_OPERATOR, database.OPERATOR_OPERATION_VIEW_MODE_LEAD,
 					input.Input.OperationID); err != nil {
@@ -114,20 +120,30 @@ func UpdateOperationWebhook(c *gin.Context) {
 					})
 					return
 				} else {
-					currentOperation.AdminID = newOperator.ID
+					currentOperation.AdminID = *input.Input.AdminID
+					newUser := databaseStructs.Operator{ID: *input.Input.AdminID}
 					if _, err := database.DB.NamedExec(`UPDATE operation SET 
-		 				admin_id=:admin_id`, currentOperation); err != nil {
+		 				admin_id=:admin_id WHERE id=:id`, currentOperation); err != nil {
 						logging.LogError(err, "Failed to update admin")
 						c.JSON(http.StatusOK, UpdateOperationResponse{
 							Status: "error",
 							Error:  err.Error(),
 						})
 						return
+					} else if _, err := database.DB.Exec(`UPDATE operatoroperation SET 
+						 view_mode=$1 WHERE operator_id=$2 AND operation_id=$3`,
+						database.OPERATOR_OPERATION_VIEW_MODE_LEAD, currentOperation.AdminID, currentOperation.ID); err != nil {
+						logging.LogError(err, "Failed to update the view_mode of the admin to lead")
+					} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
+						logging.LogError(err, "Failed to lookup operator username")
+					} else {
+						go database.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
+							currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
 					}
 				}
 			}
 			if _, err := database.DB.NamedExec(`UPDATE operation SET 
-		 	"name"=:name, complete=:complete, webhook=:webhook, channel=:channel`,
+		 	"name"=:name, complete=:complete, webhook=:webhook, channel=:channel, deleted=:deleted WHERE id=:id`,
 				currentOperation); err != nil {
 				logging.LogError(err, "Failed to update operation data")
 				c.JSON(http.StatusOK, UpdateOperationResponse{
@@ -135,11 +151,20 @@ func UpdateOperationWebhook(c *gin.Context) {
 					Error:  err.Error(),
 				})
 				return
+			} else {
+				c.JSON(http.StatusOK, UpdateOperationResponse{
+					Status:   "success",
+					Name:     currentOperation.Name,
+					Channel:  currentOperation.Channel,
+					Complete: currentOperation.Complete,
+					Webhook:  currentOperation.Webhook,
+					Deleted:  currentOperation.Deleted,
+					ID:       currentOperation.ID,
+					AdminID:  currentOperation.AdminID,
+				})
+				return
 			}
 		}
 	}
-	c.JSON(http.StatusOK, UpdateOperationResponse{
-		Status: "success",
-	})
-	return
+
 }

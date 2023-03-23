@@ -195,6 +195,7 @@ func setRoutes(r *gin.Engine) {
 				// operation
 				noSpectators.POST("create_operation_webhook", webcontroller.CreateOperationWebhook)
 				noSpectators.POST("update_operation_webhook", webcontroller.UpdateOperationWebhook)
+				noSpectators.POST("update_operatoroperation_webhook", webcontroller.UpdateOperatorOperationWebhook)
 				// file
 				noSpectators.POST("delete_file_webhook", webcontroller.DeleteFileWebhook)
 				// callback

@@ -3773,9 +3773,7 @@
           - channel
           - alert_count
           - deleted
-        filter:
-          id:
-            _in: X-Hasura-operations
+        filter: {}
     - role: operation_admin
       permission:
         columns:
@@ -3818,46 +3816,6 @@
         filter:
           id:
             _in: X-Hasura-operations
-  update_permissions:
-    - role: developer
-      permission:
-        columns:
-          - admin_id
-          - channel
-          - complete
-          - deleted
-          - name
-          - webhook
-        filter:
-          id:
-            _in: X-Hasura-operations
-        check: null
-    - role: mythic_admin
-      permission:
-        columns:
-          - admin_id
-          - channel
-          - complete
-          - deleted
-          - name
-          - webhook
-        filter:
-          id:
-            _in: X-Hasura-operations
-        check: null
-    - role: operation_admin
-      permission:
-        columns:
-          - admin_id
-          - channel
-          - complete
-          - deleted
-          - name
-          - webhook
-        filter:
-          id:
-            _in: X-Hasura-operations
-        check: null
 - table:
     name: operationeventlog
     schema: public
@@ -4306,25 +4264,6 @@
     - name: operator
       using:
         foreign_key_constraint_on: operator_id
-  insert_permissions:
-    - role: mythic_admin
-      permission:
-        check: {}
-        columns:
-          - base_disabled_commands_id
-          - operation_id
-          - operator_id
-          - view_mode
-    - role: operation_admin
-      permission:
-        check:
-          operation_id:
-            _in: X-Hasura-admin-operations
-        columns:
-          - base_disabled_commands_id
-          - operation_id
-          - operator_id
-          - view_mode
   select_permissions:
     - role: developer
       permission:
@@ -4384,36 +4323,10 @@
         filter:
           operation_id:
             _in: X-Hasura-operations
-  update_permissions:
-    - role: mythic_admin
-      permission:
-        columns:
-          - base_disabled_commands_id
-          - operation_id
-          - operator_id
-          - view_mode
-        filter: {}
-        check: {}
-    - role: operation_admin
-      permission:
-        columns:
-          - base_disabled_commands_id
-          - view_mode
-        filter:
-          operation_id:
-            _in: X-Hasura-admin-operations
-        check:
-          operation_id:
-            _in: X-Hasura-admin-operations
   delete_permissions:
     - role: mythic_admin
       permission:
         filter: {}
-    - role: operation_admin
-      permission:
-        filter:
-          operation_id:
-            _in: X-Hasura-admin-operations
 - table:
     name: payload
     schema: public

@@ -20,9 +20,9 @@ type MythicRPCKeylogSearchMessageResponse struct {
 	Keylogs []MythicRPCKeylogSearchKeylogData `json:"keylogs"`
 }
 type MythicRPCKeylogSearchKeylogData struct {
-	User        *string `json:"user" `                              // optional
-	WindowTitle *string `json:"window_title" mapstructure:"window"` // optional
-	Keystrokes  *[]byte `json:"keystrokes" `                        // optional
+	User        *string `json:"user" mapstructure:"user"`             // optional
+	WindowTitle *string `json:"window_title" mapstructure:"window"`   // optional
+	Keystrokes  *[]byte `json:"keystrokes" mapstructure:"keystrokes"` // optional
 }
 
 func init() {

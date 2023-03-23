@@ -274,8 +274,20 @@ type Mutation {
     channel: String
     complete: Boolean
     webhook: String
-    admin_username: String
+    admin_id: Int
+    deleted: Boolean
   ): updateOperationOutput
+}
+
+type Mutation {
+  updateOperatorOperation(
+    operation_id: Int!
+    add_users: [Int]
+    remove_users: [Int]
+    view_mode_operators: [Int]
+    view_mode_spectators: [Int]
+    disabled_command_map: [disabledCommand]
+  ): updateOperatorOperationOutput
 }
 
 type Mutation {
@@ -344,6 +356,11 @@ input newCallbackConfig {
   processName: String
   sleepInfo: String
   extraInfo: String
+}
+
+input disabledCommand {
+  user_id: Int!
+  disabled_command_profile_id: Int!
 }
 
 type createAPITokenResponse {
@@ -629,6 +646,18 @@ type addAttackToTaskOutput {
 }
 
 type updateOperationOutput {
+  status: String!
+  error: String
+  name: String
+  channel: String
+  complete: Boolean
+  webhook: String
+  admin_id: Int
+  deleted: Boolean
+  id: Int
+}
+
+type updateOperatorOperationOutput {
   status: String!
   error: String
 }

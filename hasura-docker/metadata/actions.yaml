@@ -415,6 +415,15 @@ actions:
     permissions:
       - role: operation_admin
       - role: mythic_admin
+  - name: updateOperatorOperation
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_operatoroperation_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: updatePassword
     definition:
       kind: synchronous
@@ -446,6 +455,7 @@ custom_types:
     - name: tagtypeInput
     - name: NewCallbackConfig
     - name: newCallbackConfig
+    - name: disabledCommand
   objects:
     - name: createAPITokenResponse
     - name: OperatorOutput
@@ -519,4 +529,5 @@ custom_types:
     - name: removeContainerFileOutput
     - name: addAttackToTaskOutput
     - name: updateOperationOutput
+    - name: updateOperatorOperationOutput
   scalars: []

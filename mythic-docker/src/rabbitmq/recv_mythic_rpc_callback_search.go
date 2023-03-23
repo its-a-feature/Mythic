@@ -180,6 +180,7 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 					return response
 				} else {
 					result.RegisteredPayloadUUID = searchResults.Payload.UuID
+					result.LockedOperatorID = int(searchResults.LockedOperatorID.Int64)
 					response.Results = append(response.Results, result)
 				}
 			}
