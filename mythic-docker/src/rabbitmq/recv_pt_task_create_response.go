@@ -33,7 +33,7 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			// we ran into an error and couldn't even get the task information out
 			go database.SendAllOperationsMessage(payloadMsg.Error, 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
-		} else if err := database.DB.Get(&task, `SELECT status FROM task WHERE id=$1`, task.ID); err != nil {
+		} else if err := database.DB.Get(&task, `SELECT status, operation_id FROM task WHERE id=$1`, task.ID); err != nil {
 			logging.LogError(err, "Failed to find task from create_tasking")
 			go database.SendAllOperationsMessage(err.Error(), 0, "", database.MESSAGE_LEVEL_WARNING)
 			return
@@ -70,9 +70,14 @@ func processPtTaskCreateMessages(msg amqp.Delivery) {
 			updateColumns = append(updateColumns, "completed=:completed")
 		}
 		if payloadMsg.TokenID != nil {
-			task.TokenID.Int64 = int64(*payloadMsg.TokenID)
-			task.TokenID.Valid = true
-			updateColumns = append(updateColumns, "token_id=:token_id")
+			if err := database.DB.Get(&task.TokenID.Int64, `SELECT id FROM token WHERE token_id=$1 AND operation_id=$2`,
+				*payloadMsg.TokenID, task.OperationID); err != nil {
+				logging.LogError(err, "Failed to find token to update in tasking")
+			} else {
+				task.TokenID.Valid = true
+				updateColumns = append(updateColumns, "token_id=:token_id")
+			}
+
 		}
 		if payloadMsg.CompletionFunctionName != nil {
 			task.CompletedCallbackFunction = *payloadMsg.CompletionFunctionName

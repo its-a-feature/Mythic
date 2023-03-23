@@ -45,7 +45,7 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 	currentTasks := []databaseStructs.Task{}
 	if taskIDs := submittedTasksAwaitingFetching.getTasksForCallbackId(uUIDInfo.CallbackID); len(taskIDs) > 0 {
 		if query, args, err := sqlx.Named(`SELECT 
-    		agent_task_id, "timestamp", command_name, params, id
+    		agent_task_id, "timestamp", command_name, params, id, token_id
 			FROM task WHERE id IN (:ids) ORDER BY id ASC`, map[string]interface{}{
 			"ids": taskIDs,
 		}); err != nil {
@@ -71,12 +71,21 @@ func handleAgentMessageGetTasking(incoming *map[string]interface{}, uUIDInfo *ca
 		currentTaskCount := 0
 		for _, task := range currentTasks {
 			if currentTaskCount < agentMessage.TaskingSize || agentMessage.TaskingSize < 0 {
-				tasksToIssue = append(tasksToIssue, agentMessageGetTaskingTask{
+				newTask := agentMessageGetTaskingTask{
 					Command:    task.CommandName,
 					Parameters: task.Params,
 					ID:         task.AgentTaskID,
 					Timestamp:  task.Timestamp.Unix(),
-				})
+				}
+				if task.TokenID.Valid {
+					var tokenID int
+					if err := database.DB.Get(&tokenID, `SELECT token_id FROM token WHERE id=$1`, task.TokenID.Int64); err != nil {
+						logging.LogError(err, "failed to get token information")
+					} else {
+						newTask.Token = &tokenID
+					}
+				}
+				tasksToIssue = append(tasksToIssue, newTask)
 				if _, err := database.DB.Exec(`UPDATE task SET
 					status=$2, status_timestamp_processing=$3
 					WHERE id=$1`, task.ID, PT_TASK_FUNCTION_STATUS_PROCESSING, time.Now().UTC()); err != nil {
