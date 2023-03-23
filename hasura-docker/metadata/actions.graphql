@@ -86,7 +86,7 @@ type Mutation {
     params: String!
     files: [String]
     callback_id: Int!
-    token: Int
+    token_id: Int
     tasking_location: String
     original_params: String
     parameter_group_name: String
