@@ -814,6 +814,10 @@ func GetTaskMessageTaskInformation(taskID int) PTTaskMessageTaskData {
 		return data
 	} else if err := json.Unmarshal(taskJSON, &data); err != nil {
 		logging.LogError(err, "Failed to unmarshal task JSON data to GetTaskMessageTaskInformation ")
+	} else if databaseTask.TokenID.Valid {
+		if err := database.DB.Get(&data.TokenID, `SELECT token_id FROM token WHERE id=$1`, databaseTask.TokenID.Int64); err != nil {
+			logging.LogError(err, "Failed to get token information")
+		}
 	}
 	data.OperatorUsername = databaseTask.Operator.Username
 	return data

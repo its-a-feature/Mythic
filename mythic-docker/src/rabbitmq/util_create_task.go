@@ -292,6 +292,7 @@ func associateUploadedFilesWithTask(task *databaseStructs.Task, files []string) 
 }
 func addTaskToDatabase(task *databaseStructs.Task) error {
 	// create the task in the database
+	logging.LogInfo("adding task to database", "task", task)
 	if statement, err := database.DB.PrepareNamed(`INSERT INTO task 
 	(agent_task_id,command_name,callback_id,operator_id,command_id,token_id,params,
 		original_params,display_params,status,tasking_location,parameter_group_name,

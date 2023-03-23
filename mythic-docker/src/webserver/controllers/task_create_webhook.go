@@ -18,7 +18,7 @@ type CreateTask struct {
 	Command            string   `json:"command" binding:"required"`
 	Params             string   `json:"params"`
 	Files              []string `json:"files"`
-	Token              *int     `json:"token,omitempty"`
+	Token              *int     `json:"token_id,omitempty"`
 	TaskingLocation    *string  `json:"tasking_location,omitempty"`
 	OriginalParams     *string  `json:"original_params,omitempty"`
 	ParameterGroupName *string  `json:"parameter_group_name,omitempty"`
@@ -56,11 +56,13 @@ func CreateTaskWebhook(c *gin.Context) {
 			OriginalParams:     input.Input.OriginalParams,
 			ParameterGroupName: input.Input.ParameterGroupName,
 			FileIDs:            input.Input.Files,
+			Token:              input.Input.Token,
 		}
 		if operatorOperation.BaseDisabledCommandsID.Valid {
 			baseDisabledCommandsId := int(operatorOperation.BaseDisabledCommandsID.Int64)
 			createTaskInput.DisabledCommandID = &baseDisabledCommandsId
 		}
+		logging.LogDebug("got creating tasking from web", "createTasking", createTaskInput)
 		c.JSON(http.StatusOK, rabbitmq.CreateTask(createTaskInput))
 		return
 	}
