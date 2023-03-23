@@ -6,6 +6,7 @@ import (
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/grpc"
 	"sync"
+	"time"
 
 	"github.com/its-a-feature/Mythic/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -81,7 +82,11 @@ func Initialize() {
 			// start tracking tasks wait to be fetched
 			submittedTasksAwaitingFetching.Initialize()
 			grpc.Initialize()
-			go emitStartupMessages()
+			go func() {
+				// wait 20s for things to stabilize a bit, then send a startup message
+				time.Sleep(time.Second * 30)
+				go emitStartupMessages()
+			}()
 			logging.LogInfo("RabbitMQ Initialized")
 			return
 		}

@@ -1,3 +1,10 @@
+type Mutation {
+  addAttackToTask(
+    t_num: String!
+    task_display_id: Int!
+  ): addAttackToTaskOutput
+}
+
 type Query {
   c2profileListFiles(
     id: Int!
@@ -258,6 +265,17 @@ type Mutation {
     user_id: Int!
     operation_id: Int!
   ): updateCurrentOperationOutput
+}
+
+type Mutation {
+  updateOperation(
+    operation_id: Int!
+    name: String
+    channel: String
+    complete: Boolean
+    webhook: String
+    admin_username: String
+  ): updateOperationOutput
 }
 
 type Mutation {
@@ -601,6 +619,16 @@ type c2ProfileListFilesOutput {
 }
 
 type removeContainerFileOutput {
+  status: String!
+  error: String
+}
+
+type addAttackToTaskOutput {
+  status: String!
+  error: String
+}
+
+type updateOperationOutput {
   status: String!
   error: String
 }

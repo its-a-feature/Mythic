@@ -1,4 +1,14 @@
 actions:
+  - name: addAttackToTask
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/add_attack_to_task_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: c2profileListFiles
     definition:
       kind: ""
@@ -397,6 +407,14 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: updateOperation
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/update_operation_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operation_admin
+      - role: mythic_admin
   - name: updatePassword
     definition:
       kind: synchronous
@@ -499,4 +517,6 @@ custom_types:
     - name: consumingServicesTestLogOutput
     - name: c2ProfileListFilesOutput
     - name: removeContainerFileOutput
+    - name: addAttackToTaskOutput
+    - name: updateOperationOutput
   scalars: []

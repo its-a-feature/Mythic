@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc18] - 2023-03-23
+
+### Changed
+
+- updated the mythic rpc callback search functionality to require a callback uuid instead of the callback id since the int id isn't available to translation containers
+
+### Added
+
+- Added new graphql endpoints for adding mitre attack to tasks and updating operations
+
 ## [3.0.0rc17] - 2023-03-22
 
 ### Changed

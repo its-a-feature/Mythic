@@ -13,7 +13,7 @@ import (
 )
 
 type MythicRPCCallbackSearchMessage struct {
-	AgentCallbackID              int     `json:"callback_id"` // required
+	AgentCallbackUUID            string  `json:"agent_callback_id"`
 	SearchCallbackID             *int    `json:"search_callback_id"`
 	SearchCallbackDisplayID      *int    `json:"search_callback_display_id"`
 	SearchCallbackUUID           *string `json:"search_callback_uuid"`
@@ -31,34 +31,34 @@ type MythicRPCCallbackSearchMessage struct {
 	SearchCallbackDescription    *string `json:"description,omitempty"`
 }
 type MythicRPCCallbackSearchMessageResult struct {
-	ID                  int       `mapstructure:"id" json:"id"`
-	DisplayID           int       `mapstructure:"display_id" json:"display_id"`
-	AgentCallbackID     string    `mapstructure:"agent_callback_id" json:"agent_callback_id"`
-	InitCallback        time.Time `mapstructure:"init_callback" json:"init_callback"`
-	LastCheckin         time.Time `mapstructure:"last_checkin" json:"last_checkin"`
-	User                string    `mapstructure:"user" json:"user"`
-	Host                string    `mapstructure:"host" json:"host"`
-	PID                 int       `mapstructure:"pid" json:"pid"`
-	Ip                  string    `mapstructure:"ip" json:"ip"`
-	ExternalIp          string    `mapstructure:"external_ip" json:"external_ip"`
-	ProcessName         string    `mapstructure:"process_name" json:"process_name"`
-	Description         string    `mapstructure:"description" json:"description"`
-	OperatorID          int       `mapstructure:"operator_id" json:"operator_id"`
-	Active              bool      `mapstructure:"active" json:"active"`
-	RegisteredPayloadID int       `mapstructure:"registered_payload_id" json:"registered_payload_id"`
-	IntegrityLevel      int       `mapstructure:"integrity_level" json:"integrity_level"`
-	Locked              bool      `mapstructure:"locked" json:"locked"`
-	LockedOperatorID    int       `mapstructure:"locked_operator_id" json:"locked_operator_id"`
-	OperationID         int       `mapstructure:"operation_id" json:"operation_id"`
-	CryptoType          string    `mapstructure:"crypto_type" json:"crypto_type"`
-	DecKey              *[]byte   `mapstructure:"dec_key" json:"dec_key"`
-	EncKey              *[]byte   `mapstructure:"enc_key" json:"enc_key"`
-	Os                  string    `mapstructure:"os" json:"os"`
-	Architecture        string    `mapstructure:"architecture" json:"architecture"`
-	Domain              string    `mapstructure:"domain" json:"domain"`
-	ExtraInfo           string    `mapstructure:"extra_info" json:"extra_info"`
-	SleepInfo           string    `mapstructure:"sleep_info" json:"sleep_info"`
-	Timestamp           time.Time `mapstructure:"timestamp" json:"timestamp"`
+	ID                    int       `mapstructure:"id" json:"id"`
+	DisplayID             int       `mapstructure:"display_id" json:"display_id"`
+	AgentCallbackID       string    `mapstructure:"agent_callback_id" json:"agent_callback_id"`
+	InitCallback          time.Time `mapstructure:"init_callback" json:"init_callback"`
+	LastCheckin           time.Time `mapstructure:"last_checkin" json:"last_checkin"`
+	User                  string    `mapstructure:"user" json:"user"`
+	Host                  string    `mapstructure:"host" json:"host"`
+	PID                   int       `mapstructure:"pid" json:"pid"`
+	Ip                    string    `mapstructure:"ip" json:"ip"`
+	ExternalIp            string    `mapstructure:"external_ip" json:"external_ip"`
+	ProcessName           string    `mapstructure:"process_name" json:"process_name"`
+	Description           string    `mapstructure:"description" json:"description"`
+	OperatorID            int       `mapstructure:"operator_id" json:"operator_id"`
+	Active                bool      `mapstructure:"active" json:"active"`
+	RegisteredPayloadUUID string    `mapstructure:"registered_payload_uuid" json:"registered_payload_uuid"`
+	IntegrityLevel        int       `mapstructure:"integrity_level" json:"integrity_level"`
+	Locked                bool      `mapstructure:"locked" json:"locked"`
+	LockedOperatorID      int       `mapstructure:"locked_operator_id" json:"locked_operator_id"`
+	OperationID           int       `mapstructure:"operation_id" json:"operation_id"`
+	CryptoType            string    `mapstructure:"crypto_type" json:"crypto_type"`
+	DecKey                *[]byte   `mapstructure:"dec_key" json:"dec_key"`
+	EncKey                *[]byte   `mapstructure:"enc_key" json:"enc_key"`
+	Os                    string    `mapstructure:"os" json:"os"`
+	Architecture          string    `mapstructure:"architecture" json:"architecture"`
+	Domain                string    `mapstructure:"domain" json:"domain"`
+	ExtraInfo             string    `mapstructure:"extra_info" json:"extra_info"`
+	SleepInfo             string    `mapstructure:"sleep_info" json:"sleep_info"`
+	Timestamp             time.Time `mapstructure:"timestamp" json:"timestamp"`
 }
 type MythicRPCCallbackSearchMessageResponse struct {
 	Success bool                                   `json:"success"`
@@ -80,12 +80,12 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 	response := MythicRPCCallbackSearchMessageResponse{
 		Success: false,
 	}
-	searchResults := []databaseStructs.Callback{}
+	searchResults := databaseStructs.Callback{}
 	callback := databaseStructs.Callback{}
 	if err := database.DB.Get(&callback, `SELECT
-	operation_id
-	FROM callback
-	WHERE id=$1`, input.AgentCallbackID); err != nil {
+		operation_id
+		FROM callback
+		WHERE agent_callback_id=$1`, input.AgentCallbackUUID); err != nil {
 		logging.LogError(err, "Failed to find callback UUID")
 		response.Error = err.Error()
 		return response
@@ -102,70 +102,87 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 		if input.SearchCallbackDisplayID != nil {
 			targetCallback.DisplayID = *input.SearchCallbackDisplayID
 		}
-		searchString := `SELECT * FROM callback WHERE 
-                           (id=:callback_id OR 
-                            agent_callback_id=:agent_callback_id OR 
-                            display_id=:display_id) AND operation_id=:operation_id `
+		searchString := `SELECT 
+    		callback.*,
+    		payload.uuid "payload.uuid"
+			FROM callback 
+			JOIN payload on callback.registered_payload_id = payload.id
+			WHERE callback.operation_id=:operation_id `
+		// if we're not actually searching for another callback, just set ours
+		if input.SearchCallbackDisplayID != nil || input.SearchCallbackID != nil || input.SearchCallbackUUID != nil {
+			searchString += ` AND (callback.id=:id OR
+			callback.agent_callback_id=:agent_callback_id OR
+			callback.display_id=:display_id)`
+		}
 		if input.SearchCallbackUser != nil {
-			callback.User = *input.SearchCallbackUser
+			targetCallback.User = *input.SearchCallbackUser
 			searchString += `AND user=:user `
 		}
 		if input.SearchCallbackHost != nil {
-			callback.Host = strings.ToUpper(*input.SearchCallbackHost)
-			if callback.Host == "" {
-				callback.Host = "UNKNOWN"
+			targetCallback.Host = strings.ToUpper(*input.SearchCallbackHost)
+			if targetCallback.Host == "" {
+				targetCallback.Host = "UNKNOWN"
 			}
 			searchString += `AND host=:host `
 		}
 		if input.SearchCallbackPID != nil {
-			callback.PID = *input.SearchCallbackPID
+			targetCallback.PID = *input.SearchCallbackPID
 			searchString += `AND pid=:pid `
 		}
 		if input.SearchCallbackIP != nil {
-			callback.Ip = *input.SearchCallbackIP
+			targetCallback.Ip = *input.SearchCallbackIP
 			searchString += `AND ip ILIKE :ip `
 		}
 		if input.SearchCallbackExtraInfo != nil {
-			callback.ExtraInfo = *input.SearchCallbackExtraInfo
+			targetCallback.ExtraInfo = *input.SearchCallbackExtraInfo
 			searchString += `AND extra_info ILIKE :extra_info `
 		}
 		if input.SearchCallbackSleepInfo != nil {
-			callback.SleepInfo = *input.SearchCallbackSleepInfo
+			targetCallback.SleepInfo = *input.SearchCallbackSleepInfo
 			searchString += `AND sleep_info ILIKE :sleep_info `
 		}
 		if input.SearchCallbackExternalIP != nil {
-			callback.ExternalIp = *input.SearchCallbackExternalIP
+			targetCallback.ExternalIp = *input.SearchCallbackExternalIP
 			searchString += `AND external_ip ILIKE :external_ip `
 		}
 		if input.SearchCallbackIntegrityLevel != nil {
-			callback.IntegrityLevel = *input.SearchCallbackIntegrityLevel
+			targetCallback.IntegrityLevel = *input.SearchCallbackIntegrityLevel
 			searchString += `AND integrity_level=:integrity_level `
 		}
 		if input.SearchCallbackOs != nil {
-			callback.Os = *input.SearchCallbackOs
-			searchString += `AND os ILIKE :os `
+			targetCallback.Os = *input.SearchCallbackOs
+			searchString += `AND callback.os ILIKE :os `
 		}
 		if input.SearchCallbackDomain != nil {
-			callback.Domain = *input.SearchCallbackDomain
+			targetCallback.Domain = *input.SearchCallbackDomain
 			searchString += `AND domain ILIKE :domain `
 		}
 		if input.SearchCallbackArchitecture != nil {
-			callback.Architecture = *input.SearchCallbackArchitecture
+			targetCallback.Architecture = *input.SearchCallbackArchitecture
 			searchString += `AND architecture ILIKE :architecture`
 		}
 		if input.SearchCallbackDescription != nil {
-			callback.Description = *input.SearchCallbackDescription
-			searchString += `AND description ILIKE :description`
+			targetCallback.Description = *input.SearchCallbackDescription
+			searchString += `AND callback.description ILIKE :description`
 		}
-		if err := database.DB.Select(&searchResults, searchString, callback); err != nil {
+		if rows, err := database.DB.NamedQuery(searchString, targetCallback); err != nil {
 			logging.LogError(err, "Failed to search callback information")
 			response.Error = err.Error()
 			return response
-		} else if err = mapstructure.Decode(searchResults, &response.Results); err != nil {
-			logging.LogError(err, "Failed to map callback search results into array")
-			response.Error = err.Error()
-			return response
 		} else {
+			for rows.Next() {
+				result := MythicRPCCallbackSearchMessageResult{}
+				if err = rows.StructScan(&searchResults); err != nil {
+					logging.LogError(err, "Failed to get row from callbacks for search")
+				} else if err = mapstructure.Decode(searchResults, &result); err != nil {
+					logging.LogError(err, "Failed to map callback search results into array")
+					response.Error = err.Error()
+					return response
+				} else {
+					result.RegisteredPayloadUUID = searchResults.Payload.UuID
+					response.Results = append(response.Results, result)
+				}
+			}
 			response.Success = true
 			return response
 		}

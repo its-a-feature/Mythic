@@ -175,11 +175,11 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("consuming_services_test_log", webcontroller.ConsumingServicesTestLog)
 				// creating a payload
 				noSpectators.POST("createpayload_webhook", webcontroller.CreatePayloadWebhook)
-
 				// tasking
 				noSpectators.POST("task_upload_file_webhook", webcontroller.TaskUploadFileWebhook)
 				noSpectators.POST("create_task_webhook", webcontroller.CreateTaskWebhook)
 				noSpectators.POST("dynamic_query_webhook", webcontroller.PayloadTypeDynamicQueryFunctionWebhook)
+				noSpectators.POST("add_attack_to_task_webhook", webcontroller.AddAttackToTaskWebhook)
 				noSpectators.POST("reissue_task_webhook", blank)
 				noSpectators.POST("reissue_task_handler_webhook", blank)
 				noSpectators.POST("request_opsec_bypass_webhook", webcontroller.RequestOpsecBypassWebhook)
@@ -194,6 +194,7 @@ func setRoutes(r *gin.Engine) {
 				noSpectators.POST("create_operator", webcontroller.CreateOperatorWebhook)
 				// operation
 				noSpectators.POST("create_operation_webhook", webcontroller.CreateOperationWebhook)
+				noSpectators.POST("update_operation_webhook", webcontroller.UpdateOperationWebhook)
 				// file
 				noSpectators.POST("delete_file_webhook", webcontroller.DeleteFileWebhook)
 				// callback
