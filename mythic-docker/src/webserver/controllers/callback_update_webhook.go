@@ -20,11 +20,21 @@ type UpdateCallbackInput struct {
 }
 
 type UpdateCallback struct {
-	CallbackID  int       `json:"callback_id" binding:"required"`
-	Active      *bool     `json:"active,omitempty"`
-	Locked      *bool     `json:"locked,omitempty"`
-	Description *string   `json:"description,omitempty"`
-	IPs         *[]string `json:"ips,omitempty"`
+	CallbackDisplayID int       `json:"callback_display_id" binding:"required"`
+	Active            *bool     `json:"active,omitempty"`
+	Locked            *bool     `json:"locked,omitempty"`
+	Description       *string   `json:"description,omitempty"`
+	IPs               *[]string `json:"ips,omitempty"`
+	Host              *string   `json:"host,omitempty"`
+	User              *string   `json:"user,omitempty"`
+	OS                *string   `json:"os,omitempty"`
+	Architecture      *string   `json:"architecture,omitempty"`
+	ExtraInfo         *string   `json:"extra_info,omitempty"`
+	SleepInfo         *string   `json:"sleep_info,omitempty"`
+	PID               *int      `json:"pid,omitempty"`
+	ProcessName       *string   `json:"process_name,omitempty"`
+	IntegrityLevel    *int      `json:"integrity_level,omitempty"`
+	Domain            *string   `json:"domain,omitempty"`
 }
 
 type UpdateCallbackResponse struct {
@@ -53,22 +63,14 @@ func UpdateCallbackWebhook(c *gin.Context) {
 		operatorOperation := ginOperatorOperation.(*databaseStructs.Operatoroperation)
 		callback := databaseStructs.Callback{}
 		if err := database.DB.Get(&callback, `SELECT 
-		id, active, description, locked, locked_operator_id, registered_payload_id, operation_id, ip
-		FROM callback
-		WHERE
-		id=$1 and operation_id=$2`,
-			input.Input.Input.CallbackID,
+			*
+			FROM callback
+			WHERE display_id=$1 and operation_id=$2`, input.Input.Input.CallbackDisplayID,
 			operatorOperation.CurrentOperation.ID); err != nil {
 			logging.LogError(err, "Failed to get callback")
 			c.JSON(http.StatusOK, UpdateCallbackResponse{
 				Status: "error",
 				Error:  "Failed to get callback",
-			})
-			return
-		} else if operatorOperation.CurrentOperation.ID != callback.OperationID {
-			c.JSON(http.StatusOK, UpdateCallbackResponse{
-				Status: "error",
-				Error:  "Cannot update callback that's not in your current operation",
 			})
 			return
 		} else {
@@ -103,6 +105,46 @@ func UpdateCallbackWebhook(c *gin.Context) {
 				if err := updateCallbackIPs(callback, *input.Input.Input.IPs); err != nil {
 
 				}
+			}
+			if input.Input.Input.Host != nil {
+				callback.Host = *input.Input.Input.Host
+			}
+			if input.Input.Input.User != nil {
+				callback.User = *input.Input.Input.User
+			}
+			if input.Input.Input.OS != nil {
+				callback.Os = *input.Input.Input.OS
+			}
+			if input.Input.Input.Architecture != nil {
+				callback.Architecture = *input.Input.Input.Architecture
+			}
+			if input.Input.Input.ExtraInfo != nil {
+				callback.ExtraInfo = *input.Input.Input.ExtraInfo
+			}
+			if input.Input.Input.SleepInfo != nil {
+				callback.SleepInfo = *input.Input.Input.SleepInfo
+			}
+			if input.Input.Input.PID != nil {
+				callback.PID = *input.Input.Input.PID
+			}
+			if input.Input.Input.ProcessName != nil {
+				callback.ProcessName = *input.Input.Input.ProcessName
+			}
+			if input.Input.Input.IntegrityLevel != nil {
+				callback.IntegrityLevel = *input.Input.Input.IntegrityLevel
+			}
+			if input.Input.Input.Domain != nil {
+				callback.Domain = *input.Input.Input.Domain
+			}
+			if _, err := database.DB.NamedExec(`UPDATE callback SET 
+				host=:host, "user"=:user, os=:os, architecture=:architecture, extra_info=:extra_info,
+				sleep_info=:sleep_info, pid=:pid, process_name=:process_name, integrity_level=:integrity_level,
+				"domain"=:domain WHERE id=:id`, callback); err != nil {
+				logging.LogError(err, "failed to update callback information")
+				c.JSON(http.StatusOK, UpdateCallbackResponse{
+					Status: "error",
+					Error:  err.Error(),
+				})
 			}
 		}
 

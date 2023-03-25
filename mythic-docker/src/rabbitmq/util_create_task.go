@@ -38,9 +38,10 @@ type CreateTaskInput struct {
 }
 
 type CreateTaskResponse struct {
-	Status string `json:"status"`
-	Error  string `json:"error"`
-	TaskID int    `json:"id"`
+	Status        string `json:"status"`
+	Error         string `json:"error"`
+	TaskID        int    `json:"id"`
+	TaskDisplayID int    `json:"display_id"`
 }
 
 type submittedTask struct {
@@ -531,6 +532,7 @@ func submitTaskToContainer(taskID int) CreateTaskResponse {
 		output.Status = "success"
 		output.Error = ""
 		output.TaskID = taskID
+		output.TaskDisplayID = taskMessage.Task.DisplayID
 	}
 	return output
 }

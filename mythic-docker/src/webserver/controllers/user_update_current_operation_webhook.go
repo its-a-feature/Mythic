@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"github.com/its-a-feature/Mythic/logging"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,22 +36,25 @@ func UpdateCurrentOperationWebhook(c *gin.Context) {
 	}
 	// get the associated database information
 	operatorOperation := databaseStructs.Operatoroperation{}
+	issuingOperator := databaseStructs.Operator{}
 	if userID, err := GetUserIDFromGin(c); err != nil {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
 			Error:  err.Error(),
 		})
 		return
-	} else if userID != input.Input.UserID {
+	} else if err := database.DB.Get(&issuingOperator, `SELECT id, admin FROM operator WHERE id=$1`, userID); err != nil {
+		logging.LogError(err, "Failed to get information about issuing user")
+	} else if userID != input.Input.UserID && !issuingOperator.Admin {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",
 			Error:  "Cannot set the current operation for another user",
 		})
 		return
 	} else if err := database.DB.Get(&operatorOperation, `SELECT
-	id 
-	FROM operatoroperation 
-	WHERE operatoroperation.operator_id=$1 and operatoroperation.operation_id=$2`,
+		id 
+		FROM operatoroperation 
+		WHERE operatoroperation.operator_id=$1 and operatoroperation.operation_id=$2`,
 		input.Input.UserID, input.Input.OperationID); err != nil {
 		c.JSON(http.StatusOK, UpdateCurrentOperationResponse{
 			Status: "error",

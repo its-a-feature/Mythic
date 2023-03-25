@@ -122,6 +122,7 @@ func UpdateOperationWebhook(c *gin.Context) {
 				} else {
 					currentOperation.AdminID = *input.Input.AdminID
 					newUser := databaseStructs.Operator{ID: *input.Input.AdminID}
+					var currentOperatorOperationID int
 					if _, err := database.DB.NamedExec(`UPDATE operation SET 
 		 				admin_id=:admin_id WHERE id=:id`, currentOperation); err != nil {
 						logging.LogError(err, "Failed to update admin")
@@ -130,6 +131,19 @@ func UpdateOperationWebhook(c *gin.Context) {
 							Error:  err.Error(),
 						})
 						return
+					} else if err := database.DB.Get(&currentOperatorOperationID, `SELECT id FROM
+              operatoroperation WHERE operator_id=$1 AND operation_id=$2`, currentOperation.AdminID, currentOperation.ID); err == sql.ErrNoRows {
+						// admin was set and they were never a member, so add them
+						if _, err := database.DB.Exec(`INSERT INTO operatoroperation (operator_id, operation_id, view_mode)
+							VALUES ($1, $2, $3)`, currentOperation.AdminID, currentOperation.ID,
+							database.OPERATOR_OPERATION_VIEW_MODE_LEAD); err != nil {
+							logging.LogError(err, "Failed to add operator to operation")
+						} else if err := database.DB.Get(&newUser, `SELECT username FROM operator WHERE id=$1`, newUser.ID); err != nil {
+							logging.LogError(err, "Failed to lookup operator username")
+						} else {
+							go database.SendAllOperationsMessage(fmt.Sprintf("Updated %s to lead", newUser.Username),
+								currentOperation.ID, "", database.MESSAGE_LEVEL_INFO)
+						}
 					} else if _, err := database.DB.Exec(`UPDATE operatoroperation SET 
 						 view_mode=$1 WHERE operator_id=$2 AND operation_id=$3`,
 						database.OPERATOR_OPERATION_VIEW_MODE_LEAD, currentOperation.AdminID, currentOperation.ID); err != nil {
