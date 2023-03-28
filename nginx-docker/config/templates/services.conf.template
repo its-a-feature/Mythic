@@ -1,5 +1,6 @@
 server {
     listen      0.0.0.0:${NGINX_PORT} ${NGINX_USE_SSL};
+    listen      [::]:${NGINX_PORT} ${NGINX_USE_SSL};
     ssl_certificate      /etc/ssl/private/mythic-cert.crt;
     ssl_certificate_key  /etc/ssl/private/mythic-ssl.key;
     client_max_body_size 500M; # allows file uploads up to 500 megabytes
@@ -7,6 +8,13 @@ server {
     # proxy connections to the new mythic_server
     rewrite ^/login$ /new/login permanent;
     rewrite ^/$ /new/login permanent;
+    include /etc/nginx/blockips.conf;
+    error_page 403 /error403.html;
+    location = /error403.html {
+        ssi on;
+        root /usr/share/nginx/html;
+        allow all;  # this is needed to render the page itself
+    }
     location ~(/sockjs-node|/new/worker-javascript.js)  {
         proxy_pass http://${MYTHIC_REACT_HOST}:${MYTHIC_REACT_PORT};
          proxy_http_version 1.1;

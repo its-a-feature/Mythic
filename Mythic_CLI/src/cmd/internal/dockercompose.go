@@ -357,7 +357,8 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"context": "./jupyter-docker",
 			"args":    buildArguments,
 		}
-		pStruct["command"] = "start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='mythic' --ServerApp.base_url=\"/jupyter\" --ServerApp.default_url=\"/jupyter\""
+		pStruct["cpus"] = mythicEnv.GetInt("JUPYTER_CPUS")
+		pStruct["command"] = "start.sh jupyter lab --ServerApp.open_browser=false --IdentityProvider.token='${JUPYTER_TOKEN}' --ServerApp.base_url=\"/jupyter\" --ServerApp.default_url=\"/jupyter\""
 		if mythicEnv.GetBool("jupyter_bind_localhost_only") {
 			pStruct["ports"] = []string{
 				"127.0.0.1:${JUPYTER_PORT}:${JUPYTER_PORT}",
@@ -370,11 +371,15 @@ func addMythicServiceDockerComposeEntry(service string) {
 		pStruct["volumes"] = []string{
 			"./jupyter-docker/jupyter:/projects",
 		}
+		pStruct["environment"] = []string{
+			"JUPYTER_TOKEN=${JUPYTER_TOKEN}",
+		}
 	case "mythic_server":
 		pStruct["build"] = map[string]interface{}{
 			"context": "./mythic-docker",
 			"args":    buildArguments,
 		}
+		pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SERVER_CPUS")
 		pStruct["volumes"] = []string{
 			"./mythic-docker/src:/usr/src/app",
 		}
@@ -436,6 +441,7 @@ func addMythicServiceDockerComposeEntry(service string) {
 				"context": absPath,
 				"args":    buildArguments,
 			}
+			pStruct["cpus"] = mythicEnv.GetInt("MYTHIC_SYNC_CPUS")
 			pStruct["environment"] = []string{
 				"MYTHIC_IP=${NGINX_HOST}",
 				"MYTHIC_PORT=${NGINX_PORT}",

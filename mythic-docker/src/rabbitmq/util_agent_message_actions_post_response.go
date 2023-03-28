@@ -52,7 +52,7 @@ type agentMessagePostResponse struct {
 	Other           map[string]interface{}                    `json:"-" mapstructure:",remain"` // capture any 'other' keys that were passed in so we can reply back with them
 }
 
-var validCredentialTypesList = []string{"plaintext", "certificate", "hash", "key", "ticket", "cookie", "hex"}
+var ValidCredentialTypesList = []string{"plaintext", "certificate", "hash", "key", "ticket", "cookie", "hex"}
 
 type agentMessagePostResponseFileBrowser struct {
 	Host          string                                         `json:"host" mapstructure:"host"`
@@ -396,7 +396,7 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 		}
 		databaseCred.TaskID.Valid = true
 		databaseCred.TaskID.Int64 = int64(task.ID)
-		if utils.SliceContains(validCredentialTypesList, newCred.CredentialType) {
+		if utils.SliceContains(ValidCredentialTypesList, newCred.CredentialType) {
 			databaseCred.Type = newCred.CredentialType
 		} else {
 			databaseCred.Type = "plaintext"
@@ -417,14 +417,14 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 				logging.LogError(err, "Failed to create new credential")
 				return err
 			}
-			go emitCredentialLog(databaseCred.ID)
+			go EmitCredentialLog(databaseCred.ID)
 		} else if err != nil {
 			// ran into an issue doing the query
 			logging.LogError(err, "Failed to query for credential")
 			return err
 		} else if databaseCred.Deleted || !databaseCred.TaskID.Valid {
 			// the credential exists, make sure it's marked as not deleted
-			if _, err := database.DB.Exec(`UPDATE credential SET deleted=false, task_id=$1`, task.ID); err != nil {
+			if _, err := database.DB.Exec(`UPDATE credential SET deleted=false WHERE id=$1`, databaseCred.ID); err != nil {
 				logging.LogError(err, "failed to update credential that already exists")
 			}
 		}

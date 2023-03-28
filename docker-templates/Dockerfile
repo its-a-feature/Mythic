@@ -9,26 +9,27 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 
 # install .net core
-RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-RUN dpkg -i packages-microsoft-prod.deb
-RUN rm packages-microsoft-prod.deb
+RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    rm packages-microsoft-prod.deb
 
 # install mono, protoc protobufs, and .net core 
 RUN apt-get -y update && \
-apt-get -y autoremove && \
-apt-get clean && \
-apt install --no-install-recommends -y apt-transport-https dirmngr gnupg ca-certificates && \
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
-echo "deb https://download.mono-project.com/repo/debian stable-buster main" | tee /etc/apt/sources.list.d/mono-official-stable.list && \
-apt update && apt-get install --no-install-recommends software-properties-common apt-utils make build-essential libssl-dev zlib1g-dev libbz2-dev nuget \
-libreadline-dev libsqlite3-dev llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev mono-complete protobuf-compiler dotnet-sdk-7.0 gcc-mingw-w64  -y
+    apt-get -y autoremove && \
+    apt-get clean && \
+    apt install --no-install-recommends -y apt-transport-https dirmngr gnupg ca-certificates && \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
+    echo "deb https://download.mono-project.com/repo/debian stable-buster main" | tee /etc/apt/sources.list.d/mono-official-stable.list && \
+    apt update && apt-get install --no-install-recommends software-properties-common apt-utils make build-essential libssl-dev zlib1g-dev libbz2-dev nuget \
+    libreadline-dev libsqlite3-dev llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev mono-complete protobuf-compiler dotnet-sdk-7.0 gcc-mingw-w64  -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # install python 3.11
-RUN wget https://www.python.org/ftp/python/3.11.1/Python-3.11.1.tgz
-RUN tar xvf Python-3.11.1.tgz
-RUN Python-3.11.1/configure --with-ensurepip=install
-RUN make -j8
-RUN make install
+RUN wget https://www.python.org/ftp/python/3.11.1/Python-3.11.1.tgz && \
+    tar xvf Python-3.11.1.tgz && \
+    Python-3.11.1/configure --with-ensurepip=install && \
+    make -j8 && \
+    make install
 
 COPY requirements.txt /
 RUN pip3 install -r /requirements.txt
@@ -47,7 +48,7 @@ COPY ["System.Management.Automation.dll-v4", "/Windows/Microsoft.NET/assembly/GA
 RUN ln -s /usr/include/asm-generic /usr/include/asm
 
 RUN bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-RUN apt-get install clang-15 clang-15++ cmake -y
+RUN apt-get install --no-install-recommends clang-15 clang-15++ cmake -y
 RUN ln -s /usr/bin/clang-15 /usr/bin/clang
 RUN ln -s /usr/bin/clang++-15 /usr/bin/clang++
 ENV OSX_SDK 12.1

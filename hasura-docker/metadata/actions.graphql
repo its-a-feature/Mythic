@@ -57,6 +57,16 @@ type Mutation {
 }
 
 type Mutation {
+  createCredential(
+    realm: String
+    account: String
+    credential: String!
+    comment: String
+    credential_type: String!
+  ): createCredentialOutput
+}
+
+type Mutation {
   createOperation(
     name: String
   ): createOperationOutput
@@ -316,11 +326,21 @@ input CreatePayloadInput {
 }
 
 input updateCallbackInput {
-  callback_id: Int!
+  callback_display_id: Int!
   active: Boolean
   locked: Boolean
   description: String
   ips: [String]
+  host: String
+  user: String
+  os: String
+  architecture: String
+  extra_info: String
+  sleep_info: String
+  pid: Int
+  process_name: String
+  integrity_level: Int
+  domain: String
 }
 
 input DictionaryEntry {
@@ -440,6 +460,7 @@ type createTaskOutput {
   status: String!
   error: String
   id: Int
+  display_id: Int
 }
 
 type BypassOutput {
@@ -660,5 +681,11 @@ type updateOperationOutput {
 type updateOperatorOperationOutput {
   status: String!
   error: String
+}
+
+type createCredentialOutput {
+  status: String!
+  error: String
+  id: Int
 }
 

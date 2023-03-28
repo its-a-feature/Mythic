@@ -212,6 +212,8 @@ func setRoutes(r *gin.Engine) {
 				// callback
 				noSpectators.POST("create_callback_webhook", webcontroller.CreateCallbackWebhook)
 				noSpectators.POST("delete_tasks_and_callbacks_webhook", webcontroller.DeleteTasksAndCallbacks)
+				// credentials
+				noSpectators.POST("create_credential_webhook", webcontroller.CreateCredentialWebhook)
 			}
 			operationAdminsOnly := protected.Group("/api/v1.4/")
 			operationAdminsOnly.Use(authentication.RBACMiddlewareOperationAdmin())

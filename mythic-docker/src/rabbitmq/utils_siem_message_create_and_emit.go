@@ -74,7 +74,7 @@ func emitKeylogLog(keylogId int) {
 		})
 	}
 }
-func emitCredentialLog(credentialId int) {
+func EmitCredentialLog(credentialId int) {
 	credential := databaseStructs.Credential{}
 	if err := database.DB.Get(&credential, `SELECT
 		credential.*,

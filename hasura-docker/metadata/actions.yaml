@@ -91,6 +91,16 @@ actions:
       - role: operation_admin
       - role: mythic_admin
       - role: developer
+  - name: createCredential
+    definition:
+      kind: synchronous
+      handler: '{{MYTHIC_ACTIONS_URL_BASE}}/create_credential_webhook'
+      forward_client_headers: true
+    permissions:
+      - role: operator
+      - role: operation_admin
+      - role: mythic_admin
+      - role: developer
   - name: createOperation
     definition:
       kind: synchronous
@@ -530,4 +540,5 @@ custom_types:
     - name: addAttackToTaskOutput
     - name: updateOperationOutput
     - name: updateOperatorOperationOutput
+    - name: createCredentialOutput
   scalars: []

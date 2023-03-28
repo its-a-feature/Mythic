@@ -243,3 +243,19 @@ func generateCerts() error {
 	fmt.Printf("[+] Successfully generated new SSL certs\n")
 	return nil
 }
+
+// generate allow/block lists for nginx from environment variables
+func updateNginxBlockLists() {
+	ipString := mythicEnv.GetString("allowed_ip_blocks")
+	ipList := strings.Split(ipString, ",")
+	outputString := ""
+	for _, ip := range ipList {
+		outputString += fmt.Sprintf("allow %s;\n", ip)
+	}
+	outputString += "deny all;"
+	ipFilePath := filepath.Join(getCwdFromExe(), "nginx-docker", "config", "blockips.conf")
+	if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
+		fmt.Printf("[-] Failed to write out block list file")
+		os.Exit(1)
+	}
+}

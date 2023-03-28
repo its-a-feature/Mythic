@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc23] - 2023-03-27
+
+### Changed
+
+- fixed a few pieces of the UI for credentials and callbacks searching
+- updated the graphql action for creating credentials so they get emitted to logging as well
+- updated nginx reverse proxy to handle ip allow lists as well (so jupyter/docs/graphql all get protection too)
+- added cpu limits for a few other services
+
 ## [3.0.0rc22] - 2023-03-25
 
 ### Changed

@@ -12,8 +12,9 @@ import (
 )
 
 type LoginInput struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username         string `json:"username" binding:"required"`
+	Password         string `json:"password" binding:"required"`
+	ScriptingVersion string `json:"scripting_version"`
 }
 
 func Login(c *gin.Context) {
@@ -21,7 +22,7 @@ func Login(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-	} else if access_token, refresh_token, userID, err := authentication.ValidateLogin(input.Username, input.Password); err != nil {
+	} else if accessToken, refreshToken, userID, err := authentication.ValidateLogin(input.Username, input.Password, input.ScriptingVersion, c.ClientIP()); err != nil {
 		logging.LogError(err, "Failed Authentication")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Authentication Failed"})
 		return
@@ -38,8 +39,8 @@ func Login(c *gin.Context) {
 			"user_id":              currentOperation.CurrentOperator.ID,
 		}
 		// setting cookie max age to 2 days
-		c.SetCookie("mythic", access_token, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], false, false)
-		c.JSON(http.StatusOK, gin.H{"access_token": access_token, "refresh_token": refresh_token, "user": user})
+		c.SetCookie("mythic", accessToken, 60*60*24*2, "/", strings.Split(c.Request.Host, ":")[0], false, false)
+		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "user": user})
 		return
 	}
 

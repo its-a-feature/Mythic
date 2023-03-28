@@ -138,6 +138,7 @@ func DockerStart(containers []string) error {
 			return err
 		}
 	}
+	updateNginxBlockLists()
 	// get all the services on disk and in docker-compose currently
 	if diskAgents, err := getElementsOnDisk(); err != nil {
 		return err

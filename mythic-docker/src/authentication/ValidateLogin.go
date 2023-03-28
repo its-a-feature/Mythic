@@ -11,31 +11,37 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 )
 
-func ValidateLogin(username string, password string) (string, string, int, error) {
+func ValidateLogin(username string, password string, scriptingVersion string, fromIP string) (string, string, int, error) {
 	user := databaseStructs.Operator{}
 	if username == "" || password == "" {
 		return "", "", 0, errors.New("Must supply both username and password")
 	}
 	if err := database.DB.Get(&user, `SELECT
-	*
-	FROM operator
-	WHERE username=$1`, username); err != nil {
+		*
+		FROM operator
+		WHERE username=$1`, username); err != nil {
 		logging.LogError(err, "Failed to find username", "username", username)
 		return "", "", 0, err
 	} else {
 		if user.Deleted {
 			err = errors.New("Trying to log in with a deleted user")
 			logging.LogError(err, "username", username)
+			go database.SendAllOperationsMessage(fmt.Sprintf("Tried to log in with deleted user, %s, from %s", user.Username, fromIP),
+				0, "", database.MESSAGE_LEVEL_WARNING)
 			return "", "", 0, err
 		} else if !user.Active {
 			err = errors.New("Trying to log in with an inactive user")
 			logging.LogError(err, "username", username)
+			go database.SendAllOperationsMessage(fmt.Sprintf("Tried to log in with inactive user, %s, from %s", user.Username, fromIP),
+				0, "", database.MESSAGE_LEVEL_WARNING)
 			return "", "", 0, err
 		} else if user.ID == 1 &&
 			user.FailedLoginCount >= 10 &&
 			(time.Now().UTC().Sub(user.LastFailedLoginTimestamp.Time) > time.Duration(60*time.Second)) {
 			err = errors.New("Throttling login attempts of default account")
 			logging.LogError(err, "Throttling login attempts of default account", "username", username)
+			go database.SendAllOperationsMessage(fmt.Sprintf("Throttling login attempts of account, %s, from %s", user.Username, fromIP),
+				0, "", database.MESSAGE_LEVEL_WARNING)
 			return "", "", 0, err
 		} else if !database.CheckUserPassword(user, password) {
 			// failed to log in = valid username, bad password
@@ -46,6 +52,8 @@ func ValidateLogin(username string, password string) (string, string, int, error
 					// normal user
 					user.Active = false
 					logging.LogError(nil, "Deactivating user over too many failed login attempts", "username", username)
+					go database.SendAllOperationsMessage(fmt.Sprintf("Deactivating account due to failed attempts, %s, from %s", user.Username, fromIP),
+						0, "", database.MESSAGE_LEVEL_WARNING)
 				}
 			}
 			updateUserLoginStatus(user)
@@ -55,7 +63,11 @@ func ValidateLogin(username string, password string) (string, string, int, error
 			user.LastLogin = sql.NullTime{Valid: true, Time: time.Now().UTC()}
 			user.FailedLoginCount = 0
 			updateUserLoginStatus(user)
-			database.SendAllOperationsMessage(fmt.Sprintf("%s logged in", username), 0, "", "info")
+			if scriptingVersion == "" {
+				go database.SendAllOperationsMessage(fmt.Sprintf("%s logged in from %s", username, fromIP), 0, "", "info")
+			} else {
+				go database.SendAllOperationsMessage(fmt.Sprintf("%s connected via Mythic Scripting (v%s) from %s", username, scriptingVersion, fromIP), 0, "", "info")
+			}
 			return GenerateJWT(user, AUTH_METHOD_USER)
 		}
 	}

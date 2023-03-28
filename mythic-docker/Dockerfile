@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 COPY ["src/", "."]
 
-RUN go mod download && go mod verify
+#RUN go mod download && go mod verify
 
 RUN make build_final
 

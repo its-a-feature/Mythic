@@ -33,8 +33,10 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_server_grpc_port", 17444)
 	mythicEnv.SetDefault("mythic_server_host", "mythic_server")
 	mythicEnv.SetDefault("mythic_server_bind_localhost_only", true)
+	mythicEnv.SetDefault("mythic_server_cpus", "2")
 	mythicEnv.SetDefault("mythic_server_dynamic_ports", "7000-7010")
 	mythicEnv.SetDefault("mythic_server_command", "")
+	mythicEnv.SetDefault("mythic_sync_cpus", "2")
 	// postgres configuration
 	mythicEnv.SetDefault("postgres_host", "mythic_postgres")
 	mythicEnv.SetDefault("postgres_port", 5432)
@@ -66,10 +68,12 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_admin_user", "mythic_admin")
 	mythicEnv.SetDefault("mythic_admin_password", generateRandomPassword(30))
 	mythicEnv.SetDefault("default_operation_name", "Operation Chimera")
-	mythicEnv.SetDefault("allowed_ip_blocks", "0.0.0.0/0")
+	mythicEnv.SetDefault("allowed_ip_blocks", "0.0.0.0/0,::/0")
 	// jupyter configuration
 	mythicEnv.SetDefault("jupyter_port", 8888)
 	mythicEnv.SetDefault("jupyter_host", "mythic_jupyter")
+	mythicEnv.SetDefault("jupyter_token", "mythic")
+	mythicEnv.SetDefault("jupyter_cpus", "2")
 	mythicEnv.SetDefault("jupyter_bind_localhost_only", true)
 	// debugging help
 	mythicEnv.SetDefault("postgres_debug", false)

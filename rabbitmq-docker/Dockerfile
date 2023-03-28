@@ -1,1 +1,2 @@
-From itsafeaturemythic/mythic_rabbitmq:0.0.3
+FROM rabbitmq:3-alpine
+ADD rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
