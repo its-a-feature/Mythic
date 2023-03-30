@@ -38,7 +38,8 @@ func GetUserCurrentOperation(userID int) (*databaseStructs.Operatoroperation, er
 	operation.id "operation.id",
 	operation.name "operation.name", 
 	operation.admin_id "operation.admin_id",
-	operation.webhook "operation.webhook"
+	operation.webhook "operation.webhook",
+	operation.channel "operation.channel"
 	FROM operatoroperation
 	JOIN operation ON operatoroperation.operation_id = operation.id 
 	JOIN operator ON operatoroperation.operator_id = operator.id 

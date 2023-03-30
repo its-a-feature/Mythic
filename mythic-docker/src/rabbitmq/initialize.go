@@ -96,13 +96,14 @@ func Initialize() {
 
 func emitStartupMessages() {
 	operations := []databaseStructs.Operation{}
-	if err := database.DB.Select(&operations, `SELECT "name", webhook, id 
+	if err := database.DB.Select(&operations, `SELECT "name", webhook, id, channel
 		FROM operation WHERE complete=false AND deleted=false`); err != nil {
 		logging.LogError(err, "Failed to fetch operations, so sending a generic one to everybody")
 		RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
 			OperationID:      0,
 			OperationName:    "",
 			OperationWebhook: "",
+			OperationChannel: "",
 			OperatorUsername: "Mythic",
 			Action:           WEBHOOK_TYPE_NEW_STARTUP,
 			Data: map[string]interface{}{
@@ -115,6 +116,7 @@ func emitStartupMessages() {
 				OperationID:      op.ID,
 				OperationName:    op.Name,
 				OperationWebhook: op.Webhook,
+				OperationChannel: op.Channel,
 				OperatorUsername: "Mythic",
 				Action:           WEBHOOK_TYPE_NEW_STARTUP,
 				Data: map[string]interface{}{

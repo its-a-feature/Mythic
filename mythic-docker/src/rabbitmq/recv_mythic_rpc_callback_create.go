@@ -256,25 +256,13 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 				if err := mapstructure.Decode(webhookData, &webhookMapData); err != nil {
 					logging.LogError(err, "Failed to convert struct to map for sending callback webhook")
 				}
-				/*
-					go RabbitMQConnection.EmitSiemMessage(LoggingMessage{
-						OperationID:       callback.OperationID,
-						OperationName:     payload.Operation.Name,
-						OperatorName:      payload.Operator.Username,
-						Timestamp:         time.Now().UTC(),
-						CallbackID:        callback.ID,
-						CallbackDisplayID: callback.DisplayID,
-						Action:            LOG_TYPE_CALLBACK,
-						Data:              webhookMapData,
-					})
-
-				*/
 				go emitCallbackLog(callback.ID)
 				if payload.CallbackAlert {
 					go RabbitMQConnection.EmitWebhookMessage(WebhookMessage{
 						OperationID:      callback.OperationID,
 						OperationName:    payload.Operation.Name,
 						OperationWebhook: payload.Operation.Webhook,
+						OperationChannel: payload.Operation.Channel,
 						OperatorUsername: payload.Operator.Username,
 						Action:           WEBHOOK_TYPE_NEW_CALLBACK,
 						Data:             webhookMapData,

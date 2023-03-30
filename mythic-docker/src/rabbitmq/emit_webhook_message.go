@@ -21,6 +21,7 @@ type WebhookMessage struct {
 	OperationID      int                    `json:"operation_id"`
 	OperationName    string                 `json:"operation_name"`
 	OperationWebhook string                 `json:"operation_webhook"`
+	OperationChannel string                 `json:"operation_channel"`
 	OperatorUsername string                 `json:"operator_username,omitempty"`
 	Action           WEBHOOK_TYPE           `json:"action"`
 	Data             map[string]interface{} `json:"data"`

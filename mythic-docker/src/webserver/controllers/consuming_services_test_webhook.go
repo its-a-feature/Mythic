@@ -46,6 +46,7 @@ func ConsumingServicesTestWebhook(c *gin.Context) {
 			OperationID:      operatorOperation.CurrentOperation.ID,
 			OperationName:    operatorOperation.CurrentOperation.Name,
 			OperationWebhook: operatorOperation.CurrentOperation.Webhook,
+			OperationChannel: operatorOperation.CurrentOperation.Channel,
 			OperatorUsername: operatorOperation.CurrentOperator.Username,
 			Action:           input.Input.ServiceType,
 			Data:             messageData,
