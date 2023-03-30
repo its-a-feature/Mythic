@@ -259,7 +259,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			buildOutput += err.Error() + "\n"
 		} else if !opsecCheckResponse.Success {
 			checksPassed = false
-			buildOutput += opsecCheckResponse.Message + "\n"
+			buildOutput += opsecCheckResponse.Error + "\n"
 		} else {
 			buildOutput += opsecCheckResponse.Message + "\n"
 		}
@@ -272,7 +272,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			buildOutput += err.Error() + "\n"
 		} else if !configCheckResponse.Success {
 			checksPassed = false
-			buildOutput += configCheckResponse.Message + "\n"
+			buildOutput += configCheckResponse.Error + "\n"
 		} else {
 			buildOutput += configCheckResponse.Message + "\n"
 		}
@@ -283,7 +283,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 			}); err != nil {
 				buildOutput += err.Error() + "\n"
 			} else if !c2StartServerResponse.Success {
-				buildOutput += c2StartServerResponse.Message + "\n"
+				buildOutput += c2StartServerResponse.Error + "\n"
 			} else {
 				buildOutput += c2StartServerResponse.Message + "\n"
 			}

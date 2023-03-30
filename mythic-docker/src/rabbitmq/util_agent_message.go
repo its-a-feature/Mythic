@@ -439,7 +439,7 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 			socksMessages := []proxyFromAgentMessage{}
 			//logging.LogDebug("got socks data from agent", "data", decryptedMessage[CALLBACK_PORT_TYPE_SOCKS])
 			if err := mapstructure.Decode(decryptedMessage[CALLBACK_PORT_TYPE_SOCKS], &socksMessages); err != nil {
-				logging.LogError(err, "Failed to convert agent socks message to proxyMessage struct")
+				logging.LogError(err, "Failed to convert agent socks message to proxyToAgentMessage struct")
 			} else {
 				//logging.LogDebug("got socks data from agent mapped into struct", "data", socksMessages)
 				go proxyPorts.SendDataToCallbackIdPortType(uuidInfo.CallbackID, CALLBACK_PORT_TYPE_SOCKS, socksMessages)
