@@ -2,8 +2,6 @@ package rabbitmq
 
 import (
 	"fmt"
-
-	"github.com/its-a-feature/Mythic/logging"
 )
 
 type WEBHOOK_TYPE = string
@@ -56,8 +54,9 @@ func (r *rabbitMQConnection) EmitWebhookMessage(webhookMessage WebhookMessage) e
 		GetWebhookRoutingKey(webhookMessage.Action),
 		"",
 		webhookMessage,
+		true,
 	); err != nil {
-		logging.LogError(err, "Failed to emit webhook Message")
+		//logging.LogError(err, "Failed to emit webhook Message")
 		return err
 	} else {
 		return nil

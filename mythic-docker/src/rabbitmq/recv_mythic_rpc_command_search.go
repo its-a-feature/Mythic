@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"encoding/json"
 	"github.com/its-a-feature/Mythic/utils"
+	"reflect"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -94,7 +95,6 @@ func MythicRPCCommandSearch(input MythicRPCCommandSearchMessage) MythicRPCComman
 			}
 		}
 		if input.SearchOs != nil {
-
 			attributeSupportedOS := attributes["supported_os"].([]interface{})
 			supportedOS := make([]string, len(attributeSupportedOS))
 			for i := 0; i < len(attributeSupportedOS); i++ {
@@ -110,9 +110,21 @@ func MythicRPCCommandSearch(input MythicRPCCommandSearchMessage) MythicRPCComman
 			matchedValues := true
 			for searchKey, searchValue := range input.SearchAttributes {
 				if actualValue, ok := attributes[searchKey]; ok {
-					if searchValue != actualValue {
-						matchedValues = false
+					switch searchValue.(type) {
+					case []interface{}:
+						if !reflect.DeepEqual(searchValue, actualValue) {
+							matchedValues = false
+						}
+					case map[string]interface{}:
+						if !reflect.DeepEqual(searchValue, actualValue) {
+							matchedValues = false
+						}
+					default:
+						if searchValue != actualValue {
+							matchedValues = false
+						}
 					}
+
 				} else {
 					matchedValues = false
 				}

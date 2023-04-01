@@ -53,7 +53,10 @@ func MythicRPCPayloadCreateFromScratch(input MythicRPCPayloadCreateFromScratchMe
 	}); err != nil {
 		response.Error = err.Error()
 		return response
-
+	} else if _, err := database.DB.Exec(`UPDATE payload SET auto_generated=true WHERE id=$1`, newID); err != nil {
+		logging.LogError(err, "failed to update payload auto_generated status")
+		response.Error = err.Error()
+		return response
 	} else {
 		if input.RemoteHost != nil {
 			if _, err := database.DB.Exec(`INSERT INTO payloadonhost 

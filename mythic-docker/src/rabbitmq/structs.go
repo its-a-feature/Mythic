@@ -30,6 +30,7 @@ type PayloadConfiguration struct {
 	WrappedPayloadUUID string                                `json:"wrapped_payload,omitemtpy"`
 	UUID               string                                `json:"uuid,omitempty"`
 	AgentFileID        string                                `json:"agent_file_id,omitempty"`
+	BuildPhase         string                                `json:"build_phase,omitempty"`
 }
 type PayloadConfigurationC2Profile struct {
 	Name       string                 `json:"c2_profile"`

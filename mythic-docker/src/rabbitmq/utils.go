@@ -584,6 +584,7 @@ func GetPayloadCommandInformation(payload databaseStructs.Payload) []string {
 // Helper functions for getting information for sending Task data to a container
 func CheckAndProcessTaskCompletionHandlers(taskId int) {
 	// check if this task has a completion function
+	logging.LogInfo("kicking off CheckAndProcessTaskCompletionHandlers", "taskId", taskId)
 	task := databaseStructs.Task{}
 	parentTask := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
@@ -662,6 +663,7 @@ func CheckAndProcessTaskCompletionHandlers(taskId int) {
 			SubtaskGroup:           &task.SubtaskGroupName,
 		}
 		// only call this function to get executed if all within the group are done
+		logging.LogInfo("sending SendPtTaskCompletionFunction to container", "taskId", task.ParentTaskID.Int64, "subtaskid", task.ID)
 		groupTasks := []databaseStructs.Task{}
 		if err := database.DB.Select(&groupTasks, `SELECT id FROM task WHERE 
                         parent_task_id=$1 AND subtask_group_name=$2 AND completed=false`,

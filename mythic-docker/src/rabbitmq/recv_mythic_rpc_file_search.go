@@ -157,8 +157,13 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 	finalFiles := []FileData{}
 	for _, file := range files {
 		if input.LimitByCallback {
-			if file.Task != nil && file.Task.CallbackID == callbackId {
-				finalFiles = append(finalFiles, convertFileMetaToFileData(file))
+			if file.TaskID.Valid {
+				var fileCallbackID int
+				if err := database.DB.Get(&fileCallbackID, `SELECT callback_id FROM task WHERE id=$1`, file.TaskID.Int64); err != nil {
+					logging.LogError(err, "Failed to get the task information for callback")
+				} else if fileCallbackID == callbackId {
+					finalFiles = append(finalFiles, convertFileMetaToFileData(file))
+				}
 			}
 		} else {
 			finalFiles = append(finalFiles, convertFileMetaToFileData(file))

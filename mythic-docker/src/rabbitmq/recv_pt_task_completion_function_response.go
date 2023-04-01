@@ -93,7 +93,7 @@ func processPtTaskCompletionFunctionMessages(msg amqp.Delivery) {
 		}
 	}
 	// this stuff happens for all of these options
-	if payloadMsg.TaskStatus != nil {
+	if payloadMsg.TaskStatus != nil && *payloadMsg.TaskStatus != "" {
 		// called function in parent task's task, so these fields apply to the parent task, not the sub task
 		if payloadMsg.ParentTaskId != 0 {
 			parentTask.Status = *payloadMsg.TaskStatus

@@ -71,7 +71,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 	if err := json.Unmarshal(msg.Body, &payloadBuildResponse); err != nil {
 		logging.LogError(err, "Failed to process payload build response message")
 	} else {
-		logging.LogInfo("got build response", "buildMsg", payloadBuildResponse)
+		//logging.LogInfo("got build response", "buildMsg", payloadBuildResponse)
 		databasePayload := databaseStructs.Payload{}
 		if err := database.DB.Get(&databasePayload, `SELECT 
 			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase,

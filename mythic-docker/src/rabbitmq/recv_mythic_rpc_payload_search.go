@@ -63,7 +63,7 @@ func MythicRPCPayloadSearch(input MythicRPCPayloadSearchMessage) MythicRPCPayloa
 			response.Error = err.Error()
 			return response
 		} else if err := database.DB.Select(&payloads, `SELECT
-		payload.uuid, payload.auto_generated,
+		payload.uuid, payload.auto_generated, payload.id,
 		payloadtype.name "payloadtype.name",
 		payloadtype.id "payloadtype.id"
 		FROM payload
@@ -86,6 +86,7 @@ func MythicRPCPayloadSearch(input MythicRPCPayloadSearchMessage) MythicRPCPayloa
 							// only care about checking if it's the right type
 							// now we need to try to find the matching build parameter to see if the value matches
 							for key, val := range buildRequirement.BuildParameterValues {
+								logging.LogInfo("searching build param values", "search key", key, "search val", val)
 								buildParamInstance := databaseStructs.Buildparameterinstance{}
 								if err := database.DB.Get(&buildParamInstance, `
 								SELECT value,
@@ -119,8 +120,10 @@ func MythicRPCPayloadSearch(input MythicRPCPayloadSearchMessage) MythicRPCPayloa
 					finalPayloads = append(finalPayloads, finalPayload)
 				}
 			}
+			response.PayloadConfigurations = finalPayloads
 		}
 	}
+	response.Success = true
 	return response
 }
 func processMythicRPCPayloadSearch(msg amqp.Delivery) interface{} {
@@ -141,7 +144,7 @@ func getPayloadConfigFromUUID(payloadUUID string) (PayloadConfiguration, error) 
 	payloadConfiguration := PayloadConfiguration{}
 	payload := databaseStructs.Payload{}
 	if err := database.DB.Get(&payload, `SELECT
-	payload.id, payload.description, payload.uuid, payload.os, payload.wrapped_payload_id, 
+	payload.id, payload.description, payload.uuid, payload.os, payload.wrapped_payload_id, payload.build_phase,
 	payloadtype.name "payloadtype.name",
 	filemeta.filename "filemeta.filename",
 	filemeta.agent_file_id "filemeta.agent_file_id"
@@ -162,6 +165,8 @@ func getPayloadConfigFromUUID(payloadUUID string) (PayloadConfiguration, error) 
 		payloadConfiguration.Commands = GetPayloadCommandInformation(payload)
 		payloadConfiguration.Filename = string(payload.Filemeta.Filename)
 		payloadConfiguration.AgentFileID = payload.Filemeta.AgentFileID
+		payloadConfiguration.UUID = payload.UuID
+		payloadConfiguration.BuildPhase = payload.BuildPhase
 		if payload.WrappedPayloadID.Valid {
 			// get the associated UUID for the wrapped payload
 			wrappedPayload := databaseStructs.Payload{}

@@ -10,6 +10,7 @@ func (r *rabbitMQConnection) SendPtTaskCompletionFunction(taskMessage PTTaskComp
 		GetPtTaskCompletionHandlerRoutingKey(taskMessage.TaskData.PayloadType),
 		"",
 		taskMessage,
+		false,
 	); err != nil {
 		logging.LogError(err, "Failed to send message")
 		return err

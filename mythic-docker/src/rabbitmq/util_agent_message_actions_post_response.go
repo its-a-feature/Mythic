@@ -220,6 +220,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				continue
 			} else {
 				// always update the timestamp
+				updatedToCompleted := false
 				currentTask.Timestamp = time.Now().UTC()
 				// status_timestamp_processed might be updated if this is the first time we actually got something back from the agent
 				if !currentTask.StatusTimestampProcessed.Valid {
@@ -228,10 +229,13 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				}
 				if agentResponse.Completed != nil {
 					if *agentResponse.Completed {
+						if !currentTask.Completed {
+							updatedToCompleted = true
+						}
 						currentTask.Completed = *agentResponse.Completed
 					}
 				}
-				if agentResponse.Status != nil {
+				if agentResponse.Status != nil && *agentResponse.Status != "" {
 					if currentTask.Status != PT_TASK_FUNCTION_STATUS_COMPLETED {
 						currentTask.Status = *agentResponse.Status
 					}
@@ -242,7 +246,7 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 				}
 				if agentResponse.UserOutput != nil {
 					// do it in the background - the agent doesn't need the result of this directly
-					go handleAgentMessagePostResponseUserOutput(currentTask, agentResponse)
+					handleAgentMessagePostResponseUserOutput(currentTask, agentResponse)
 				}
 				if agentResponse.FileBrowser != nil {
 					// do it in the background - the agent doesn't need the result of this directly
@@ -313,7 +317,8 @@ func handleAgentMessagePostResponse(incoming *map[string]interface{}, uUIDInfo *
 					responses = append(responses, mythicResponse)
 				} else {
 					responses = append(responses, mythicResponse)
-					if currentTask.Completed {
+					if currentTask.Completed && updatedToCompleted {
+						// use updatedToCompleted to try to make sure we only do this once per task
 						go CheckAndProcessTaskCompletionHandlers(currentTask.ID)
 					}
 				}
@@ -336,7 +341,7 @@ func handleAgentMessagePostResponseUserOutput(task databaseStructs.Task, agentRe
 		OperationID: task.OperationID,
 	}
 	if len(*agentResponse.UserOutput) == 0 {
-		logging.LogError(nil, "Tried to add response of 0 bytes, returning")
+		//logging.LogError(nil, "Tried to add response of 0 bytes, returning")
 		return
 	}
 	if agentResponse.SequenceNumber != nil {

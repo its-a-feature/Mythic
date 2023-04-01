@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -854,10 +853,13 @@ func updatePayloadTypeCommandParameters(in PayloadTypeSyncMessage, payloadtype d
 
 func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncCommand Command, command databaseStructs.Command) error {
 	databaseBrowserScript := databaseStructs.Browserscript{}
-	if syncCommand.AssociatedBrowserScript != nil {
-		logging.LogDebug("syncing browser script", "raw script", syncCommand.AssociatedBrowserScript.Script, "encoded", base64.StdEncoding.EncodeToString([]byte(syncCommand.AssociatedBrowserScript.Script)))
-		//syncCommand.AssociatedBrowserScript.Script = base64.StdEncoding.EncodeToString([]byte(syncCommand.AssociatedBrowserScript.Script))
-	}
+	/*
+		if syncCommand.AssociatedBrowserScript != nil {
+			logging.LogDebug("syncing browser script", "raw script", syncCommand.AssociatedBrowserScript.Script, "encoded", base64.StdEncoding.EncodeToString([]byte(syncCommand.AssociatedBrowserScript.Script)))
+			//syncCommand.AssociatedBrowserScript.Script = base64.StdEncoding.EncodeToString([]byte(syncCommand.AssociatedBrowserScript.Script))
+		}
+
+	*/
 	if rows, err := database.DB.NamedQuery(`SELECT
 	*
 	FROM browserscript
@@ -872,7 +874,7 @@ func updatePayloadTypeCommandBrowserScripts(in PayloadTypeSyncMessage, syncComma
 				return err
 			} else {
 				found = true
-				logging.LogDebug("Got row for browserscript", "row", databaseBrowserScript)
+				//logging.LogDebug("Got row for browserscript", "row", databaseBrowserScript)
 				if syncCommand.AssociatedBrowserScript != nil {
 					databaseBrowserScript.Script = syncCommand.AssociatedBrowserScript.Script
 					databaseBrowserScript.ContainerVersion = syncCommand.AssociatedBrowserScript.Script
@@ -978,7 +980,7 @@ func updateBrowserScriptForAllOperators(browserscript databaseStructs.Browserscr
 				}
 				operatorScript.ContainerVersion = browserscript.Script
 				operatorScript.ContainerVersionAuthor = browserscript.Author
-				logging.LogDebug("updating browser script for user", "script", operatorScript.Script)
+				//logging.LogDebug("updating browser script for user", "script", operatorScript.Script)
 				if _, err := database.DB.NamedExec(`UPDATE browserscript SET
 					author=:author, script=:script, container_version=:container_version, container_version_author=:container_version_author
 					WHERE id=:id`,

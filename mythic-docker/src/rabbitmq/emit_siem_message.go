@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"fmt"
-	"github.com/its-a-feature/Mythic/logging"
 	"time"
 )
 
@@ -40,8 +39,9 @@ func (r *rabbitMQConnection) EmitSiemMessage(loggingMessage LoggingMessage) erro
 		GetLoggingRoutingKey(loggingMessage.Action),
 		"",
 		loggingMessage,
+		true,
 	); err != nil {
-		logging.LogError(err, "Failed to emit SIEM Message")
+		//logging.LogError(err, "Failed to emit SIEM Message")
 		return err
 	} else {
 		return nil

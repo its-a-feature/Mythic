@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc26] - 2023-04-1
+
+### Changed
+
+- Fixed many bugs in mythic_rpc_* functionality that was slightly broken with SQL queries
+- Prevented agents from auto-triggering their completion functions multiple times
+- Added a flag to not show webhook/logger rabbitmq errors on send
+- Updated the payload search rpc functionality to also return the build_phase
+- Fixed some UI bugs for various command parameter types
+
 ## [3.0.0rc25] - 2023-03-30
 
 ### Changed

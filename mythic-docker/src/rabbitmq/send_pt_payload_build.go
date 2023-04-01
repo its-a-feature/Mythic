@@ -297,6 +297,7 @@ func SendPayloadBuildMessage(databasePayload databaseStructs.Payload, buildMessa
 		GetPtBuildRoutingKey(buildMessage.PayloadType),
 		"",
 		buildMessage,
+		false,
 	); err != nil {
 		logging.LogError(err, "Failed to send build message")
 		buildOutput += fmt.Sprintf("\nSending Build command\n")

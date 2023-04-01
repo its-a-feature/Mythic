@@ -57,7 +57,16 @@ func MythicRPCCallbackSearchCommand(input MythicRPCCallbackSearchCommandMessage)
 	loadedCommands := []databaseStructs.Loadedcommands{}
 	if input.CallbackID != nil {
 		if err := database.DB.Select(&loadedCommands, `SELECT
-			command.*
+			command.needs_admin "command.needs_admin",
+			command.help_cmd "command.help_cmd",
+			command.description "command.description",
+			command.cmd "command.cmd",
+			command.payload_type_id "command.payload_type_id",
+			command.version "command.version",
+			command.supported_ui_features "command.supported_ui_features",
+			command.author "command.author",
+			command.attributes "command.attributes",
+			command.script_only "command.script_only"
 			FROM
 			loadedcommands
 			JOIN command on loadedcommands.command_id = command.id
@@ -73,7 +82,16 @@ func MythicRPCCallbackSearchCommand(input MythicRPCCallbackSearchCommandMessage)
 			response.Error = err.Error()
 			return response
 		} else if err := database.DB.Select(&loadedCommands, `SELECT
-			command.*
+			command.needs_admin "command.needs_admin",
+			command.help_cmd "command.help_cmd",
+			command.description "command.description",
+			command.cmd "command.cmd",
+			command.payload_type_id "command.payload_type_id",
+			command.version "command.version",
+			command.supported_ui_features "command.supported_ui_features",
+			command.author "command.author",
+			command.attributes "command.attributes",
+			command.script_only "command.script_only"
 			FROM
 			loadedcommands
 			JOIN command on loadedcommands.command_id = command.id

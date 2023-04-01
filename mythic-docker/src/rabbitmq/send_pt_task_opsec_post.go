@@ -10,6 +10,7 @@ func (r *rabbitMQConnection) SendPtTaskOPSECPost(taskMessage PTTaskMessageAllDat
 		GetPtTaskOpsecPostCheckRoutingKey(taskMessage.PayloadType),
 		"",
 		taskMessage,
+		false,
 	); err != nil {
 		logging.LogError(err, "Failed to send message")
 		return err

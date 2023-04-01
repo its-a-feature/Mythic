@@ -133,11 +133,11 @@ func (r *rabbitMQConnection) GetConnection() (*amqp.Connection, error) {
 		}
 	}
 }
-func (r *rabbitMQConnection) SendStructMessage(exchange string, queue string, correlationId string, body interface{}) error {
+func (r *rabbitMQConnection) SendStructMessage(exchange string, queue string, correlationId string, body interface{}, ignoreErrorMessage bool) error {
 	if jsonBody, err := json.Marshal(body); err != nil {
 		return err
 	} else {
-		return r.SendMessage(exchange, queue, correlationId, jsonBody)
+		return r.SendMessage(exchange, queue, correlationId, jsonBody, ignoreErrorMessage)
 	}
 }
 func (r *rabbitMQConnection) SendRPCStructMessage(exchange string, queue string, body interface{}) ([]byte, error) {
@@ -148,7 +148,7 @@ func (r *rabbitMQConnection) SendRPCStructMessage(exchange string, queue string,
 		return r.SendRPCMessage(exchange, queue, inputBytes, true)
 	}
 }
-func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlationId string, body []byte) error {
+func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlationId string, body []byte, ignoreErrormessage bool) error {
 	// to send a normal message out to a direct queue set:
 	// exchange: MYTHIC_EXCHANGE
 	// queue: which routing key is listening (this is the direct name)
@@ -186,7 +186,9 @@ func (r *rabbitMQConnection) SendMessage(exchange string, queue string, correlat
 			}
 		case ret := <-ch.NotifyReturn(make(chan amqp.Return)):
 			err := errors.New(getMeaningfulRabbitmqError(ret))
-			logging.LogError(err, "failed to deliver message to exchange/queue, NotifyReturn", "errorCode", ret.ReplyCode, "errorText", ret.ReplyText)
+			if !ignoreErrormessage {
+				logging.LogError(err, "failed to deliver message to exchange/queue, NotifyReturn", "errorCode", ret.ReplyCode, "errorText", ret.ReplyText)
+			}
 			return err
 		case <-time.After(RPC_TIMEOUT):
 			err := errors.New("Message delivery confirmation timed out")

@@ -41,21 +41,25 @@ func MythicRPCResponseSearch(input MythicRPCResponseSearchMessage) MythicRPCResp
 		Success: false,
 	}
 	results := []databaseStructs.Response{}
+	responseSearch := input.Response
+	if responseSearch == "" {
+		responseSearch = "%_%"
+	} else {
+		responseSearch = "%" + responseSearch + "%"
+	}
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT 
-	callback.operation_id "callback.operation_id"
+	operation_id, display_id, id
 	FROM task
-	JOIN callback ON task.callback_id = callback.id
-	WHERE task.id=$1`, input.TaskID); err != nil {
+	WHERE id=$1`, input.TaskID); err != nil {
 		logging.LogError(err, "Failed to fetch task for MythicRPCResponseSearch")
 		response.Error = err.Error()
 		return response
 	} else if err := database.DB.Select(&results, `SELECT 
-	response.id, response.response, response.task_id 
+	id, response, task_id 
 	FROM response
-	JOIN task ON response.task_id = task.id
-	WHERE task.operation_id=$1 AND response.response ILIKE %$2%`,
-		task.Callback.OperationID, input.Response); err != nil {
+	WHERE operation_id=$1 AND response LIKE $2 AND task_id=$3`,
+		task.OperationID, responseSearch, input.TaskID); err != nil {
 		logging.LogError(err, "Failed to fetch responses for MythicRPCResponseSearch")
 		response.Error = err.Error()
 		return response
