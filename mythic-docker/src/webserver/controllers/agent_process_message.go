@@ -1,6 +1,7 @@
 package webcontroller
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -49,9 +50,9 @@ func AgentMessageWebhook(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{})
 		return
 	} else if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
-		C2Profile:  c2Header,
-		RawMessage: agentMessage,
-		RemoteIP:   requestIp,
+		C2Profile:     c2Header,
+		Base64Message: &agentMessage,
+		RemoteIP:      requestIp,
 	}); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{})
 		return
@@ -80,9 +81,11 @@ func AgentMessageGetWebhook(c *gin.Context) {
 		params := c.Request.URL.Query()
 		for key, _ := range params {
 			agentMessage := params.Get(key)
-			if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
+			if base64Bytes, err := base64.URLEncoding.DecodeString(agentMessage); err != nil {
+
+			} else if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
 				C2Profile:  c2Header,
-				RawMessage: []byte(agentMessage),
+				RawMessage: &base64Bytes,
 				RemoteIP:   requestIp,
 			}); err != nil {
 				c.JSON(http.StatusNotFound, gin.H{})
