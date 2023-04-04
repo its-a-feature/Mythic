@@ -167,6 +167,7 @@ func c2Sync(in C2SyncMessage) error {
 	go database.ResolveAllOperationsMessage(getDownContainerMessage(c2Profile.Name), 0)
 	go autoStartC2Profile(c2Profile)
 	reSyncPayloadTypes()
+	checkContainerStatusAddC2Channel <- c2Profile
 	return nil
 }
 

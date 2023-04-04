@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc28] - 2023-04-04
+
+### Changed
+
+- Added more to the report generation for the XML side
+- Fixed an issue with bad hasura role for non-admins
+- Added caching for container information for checking if containers are online
+- Updated file tracking for newly created downloads to populate the file browser as well
+- Dynamically update file's chunk_size if none is set by the agent to the size of the first chunk
+
 ## [3.0.0rc27] - 2023-04-03
 
 ### Changed

@@ -283,7 +283,7 @@ func payloadTypeSync(in PayloadTypeSyncMessage) error {
 		}
 		go database.SendAllOperationsMessage(fmt.Sprintf("Successfully synced %s with container version %s", payloadtype.Name, in.ContainerVersion), 0, "", "info")
 		go database.ResolveAllOperationsMessage(getDownContainerMessage(payloadtype.Name), 0)
-
+		checkContainerStatusAddPtChannel <- payloadtype
 		return nil
 	}
 }

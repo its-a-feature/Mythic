@@ -164,6 +164,9 @@ func GetHasuraClaims(c *gin.Context) {
 				hasuraOperations = append(hasuraOperations, fmt.Sprintf("%d", operatorOperation.CurrentOperation.ID))
 				if operatorOperation.CurrentOperation.ID == int(user.CurrentOperationID.Int64) {
 					hasuraClaims["x-hasura-role"] = operatorOperation.ViewMode
+					if hasuraClaims["x-hasura-role"] == "lead" {
+						hasuraClaims["x-hasura-role"] = "operation_admin"
+					}
 				}
 				if user.CurrentOperationID.Valid && (int(user.CurrentOperationID.Int64) == operatorOperation.CurrentOperation.ID) {
 					hasuraClaims["x-hasura-current-operation-id"] = fmt.Sprintf("%d", user.CurrentOperationID.Int64)

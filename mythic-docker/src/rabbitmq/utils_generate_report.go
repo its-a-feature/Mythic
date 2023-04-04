@@ -1,6 +1,9 @@
 package rabbitmq
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
@@ -11,6 +14,7 @@ import (
 	"github.com/its-a-feature/Mythic/utils"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -80,8 +84,8 @@ type XMLH2Header struct {
 	Data    string   `xml:",chardata"`
 	Style   string   `xml:"style,attr"`
 }
-type XMLH4Header struct {
-	XMLName xml.Name `xml:"h4"`
+type XMLH3Header struct {
+	XMLName xml.Name `xml:"h3"`
 	Data    string   `xml:",chardata"`
 	Style   string   `xml:"style,attr"`
 }
@@ -94,8 +98,8 @@ type XMLPng struct {
 	Contents string   `xml:"src,attr"`
 }
 
-var tableHeaderColor = "#a6a8a9"
-var alternateRowColor = "lightgray"
+var tableHeaderColor = "#c0c0c0"
+var alternateRowColor = "#f0f0f0"
 
 func GenerateReport(reportConfig GenerateReportMessage) {
 
@@ -110,7 +114,7 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 	}
 	mythicSvgContents, _ := os.ReadFile(filepath.Join(".", "static", "red_blue_login.png"))
 	report := XMLDiv{
-		Style: `width: 50%`,
+		Style: ``,
 		Body: []interface{}{
 			XMLDiv{
 				Style: "display: flex",
@@ -124,9 +128,9 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 						Body: []interface{}{
 							XMLH2Header{
 								Data:  reportConfig.OperatorOperation.CurrentOperation.Name + " Report",
-								Style: ``,
+								Style: `margin-bottom: 0;`,
 							},
-							XMLH4Header{
+							XMLH3Header{
 								Data:  fmt.Sprintf("Date: %s", time.Now().UTC().Format(TIME_FORMAT_STRING_YYYY_MM_DD)),
 								Style: ``,
 							},
@@ -166,13 +170,25 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 		},
 	}
 	report.Body = append(report.Body, operatorTable...)
-
 	report.Body = append(report.Body, getOperationMetrics(reportConfig)...)
-	report.Body = append(report.Body, getCallbacksAndTasking(reportConfig)...)
-	if reportConfig.IncludeMITREOverall {
-
+	report.Body = append(report.Body, getCallbacksTaskingMitre(reportConfig)...)
+	newFileMeta := databaseStructs.Filemeta{
+		IsPayload:           false,
+		IsScreenshot:        false,
+		IsDownloadFromAgent: false,
+		Complete:            true,
+		Filename:            []byte("operation-report.html"),
+		Comment:             "Generated Operation Report",
 	}
-	if xmlFile, err := os.Create("test_report.html"); err != nil {
+	if newUUID, newPath, err := GetSaveFilePath(); err != nil {
+		logging.LogError(err, "Failed to save file to disk")
+	} else {
+		newFileMeta.Path = newPath
+		newFileMeta.AgentFileID = newUUID
+	}
+	if absPath, err := filepath.Abs(newFileMeta.Path); err != nil {
+		logging.LogError(err, "Failed to get absolute path to file on disk")
+	} else if xmlFile, err := os.OpenFile(absPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend); err != nil {
 		logging.LogError(err, "failed to create report file")
 	} else {
 		defer xmlFile.Close()
@@ -181,6 +197,24 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 		fileEncoder.Indent("", "\t")
 		if err := fileEncoder.Encode(&report); err != nil {
 			logging.LogError(err, "failed to encode xml data to file")
+		} else if fileBytes, err := os.ReadFile(newFileMeta.Path); err != nil {
+			logging.LogError(err, "Failed to open file to read to generate hashes")
+		} else {
+			sha1Sum := sha1.Sum(fileBytes)
+			newFileMeta.Sha1 = fmt.Sprintf("%x", sha1Sum)
+			md5Sum := md5.Sum(fileBytes)
+			newFileMeta.Md5 = fmt.Sprintf("%x", md5Sum)
+			newFileMeta.ChunkSize = len(fileBytes)
+			newFileMeta.TotalChunks = 1
+			newFileMeta.ChunksReceived = 1
+			newFileMeta.OperatorID = reportConfig.OperatorOperation.CurrentOperator.ID
+			newFileMeta.OperationID = reportConfig.OperatorOperation.CurrentOperation.ID
+			if _, err := database.DB.NamedExec(`INSERT INTO filemeta 
+				(agent_file_id, "path", operation_id, operator_id, sha1, md5, complete, filename, comment, chunk_size, total_chunks, chunks_received)
+				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received)`,
+				newFileMeta); err != nil {
+				logging.LogError(err, "Failed to create new filemeta data")
+			}
 		}
 	}
 }
@@ -194,7 +228,8 @@ func getOperatorsAndRoles(reportConfig GenerateReportMessage) [][]interface{} {
 		FROM
         operatoroperation
         JOIN operator on operatoroperation.operator_id = operator.id
-        WHERE operatoroperation.operation_id=$1`, reportConfig.OperatorOperation.CurrentOperation.ID); err != nil {
+        WHERE operatoroperation.operation_id=$1
+        ORDER BY view_mode ASC`, reportConfig.OperatorOperation.CurrentOperation.ID); err != nil {
 		logging.LogError(err, "Failed to get other view operators for reporting")
 	}
 	operatorRoleValues := [][]interface{}{}
@@ -297,7 +332,7 @@ func getOperationMetrics(reportConfig GenerateReportMessage) []interface{} {
 	}
 	return []interface{}{}
 }
-func getCallbacksAndTasking(reportConfig GenerateReportMessage) []interface{} {
+func getCallbacksTaskingMitre(reportConfig GenerateReportMessage) []interface{} {
 	callbacks := []databaseStructs.Callback{}
 	header := XMLH2Header{
 		Data: "3. Callbacks",
@@ -306,12 +341,23 @@ func getCallbacksAndTasking(reportConfig GenerateReportMessage) []interface{} {
 		Data: "The following sections list out all of the callbacks in order, their callback information, and their associated tasks.",
 	}
 	responsePieces := []interface{}{header, paragraph}
+	mitreTechCounts := map[string]uint32{}
+	tNumToName := map[string]string{}
+	artifactTypeCounts := map[string]uint32{}
+	artifactRows := []XMLTableRows{}
 	// now to make a subsection for each callback
 	excludedIDs := strings.Split(reportConfig.ExcludedIDs, ",")
 	excludedUsers := strings.Split(reportConfig.ExcludedUsers, ",")
 	excludedHosts := strings.Split(reportConfig.ExcludedHosts, ",")
-	if err := database.DB.Select(&callbacks, `SELECT * FROM callback WHERE operation_id=$1
-		ORDER BY id ASC`,
+	if err := database.DB.Select(&callbacks, `SELECT 
+    	callback.*,
+    	p.id "payload.id",
+    	p2.name "payload.payloadtype.name"
+    	FROM callback 
+    	JOIN payload p on callback.registered_payload_id = p.id
+    	JOIN payloadtype p2 on p.payload_type_id = p2.id
+    	WHERE callback.operation_id=$1
+		ORDER BY callback.id ASC`,
 		reportConfig.OperatorOperation.CurrentOperation.ID); err != nil {
 		logging.LogError(err, "Failed to get callback information")
 		return responsePieces
@@ -349,9 +395,22 @@ func getCallbacksAndTasking(reportConfig GenerateReportMessage) []interface{} {
 				if err := json.Unmarshal([]byte(callback.Ip), &ips); err != nil {
 					logging.LogError(err, "failed to parse out IP addresses for callback", "callback id", callback.ID)
 				}
+				c2Profiles := []databaseStructs.Callbackc2profiles{}
+				if err := database.DB.Select(&c2Profiles, `SELECT
+					c2p.name "c2profile.name"
+					FROM callbackc2profiles
+					JOIN c2profile c2p on callbackc2profiles.c2_profile_id = c2p.id
+					WHERE callbackc2profiles.callback_id=$1`, callback.ID); err != nil {
+					logging.LogError(err, "Failed to fetch c2 profile information for callback")
+				}
+				c2ProfileString := ""
+				for _, c2 := range c2Profiles {
+					c2ProfileString += c2.C2Profile.Name + " "
+				}
 				responsePieces = append(responsePieces,
-					XMLH4Header{
-						Data: fmt.Sprintf("3.%d Callback %d", includedIdCount, callback.DisplayID),
+					XMLH3Header{
+						Data:  fmt.Sprintf("3.%d New Callback %d", includedIdCount, includedIdCount),
+						Style: `page-break-before: always;`,
 					},
 					XMLTable{
 						Style: `width: 100%;table-layout: fixed;`,
@@ -420,6 +479,14 @@ func getCallbacksAndTasking(reportConfig GenerateReportMessage) []interface{} {
 									Style: `word-break: break-all;background-color:` + alternateRowColor,
 									Data:  []interface{}{"Last Checkin", callback.LastCheckin.Format(TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS)},
 								},
+								{
+									Style: `word-break: break-all;`,
+									Data:  []interface{}{"C2 Channels", c2ProfileString},
+								},
+								{
+									Style: `word-break: break-all;background-color:` + alternateRowColor,
+									Data:  []interface{}{"Agent Type", callback.Payload.Payloadtype.Name},
+								},
 							},
 						},
 					})
@@ -456,11 +523,11 @@ func getCallbacksAndTasking(reportConfig GenerateReportMessage) []interface{} {
 					}
 					taskRows := make([]XMLTableRows, len(tasks))
 					for i, _ := range tasks {
-						startTime := "Not Sent To Agent"
+						startTime := "N/A"
 						if tasks[i].StatusTimestampProcessing.Valid {
 							startTime = tasks[i].StatusTimestampProcessing.Time.Format(TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS)
 						}
-						endTime := "Not Sent To Agent"
+						endTime := "N/A"
 						if tasks[i].StatusTimestampProcessing.Valid {
 							endTime = tasks[i].Timestamp.Format(TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS)
 						}
@@ -473,25 +540,65 @@ func getCallbacksAndTasking(reportConfig GenerateReportMessage) []interface{} {
 						if i%2 != 0 {
 							taskRows[i].Style += `;background-color:` + alternateRowColor
 						}
-						if reportConfig.IncludeMITREPerTask {
-							attackTasks := []databaseStructs.Attacktask{}
-							if err := database.DB.Select(&attackTasks, `SELECT 
-    							a.t_num "attack.t_num"
+						attackTasks := []databaseStructs.Attacktask{}
+						if err := database.DB.Select(&attackTasks, `SELECT 
+    							a.t_num "attack.t_num",
+    							a.name "attack.name"
     							FROM attacktask
     							JOIN attack a on attacktask.attack_id = a.id
 								WHERE task_id=$1`, tasks[i].ID); err != nil {
-								logging.LogError(err, "Failed to fetch ATT&CK data")
-							} else {
-								links := make([]Link, len(attackTasks))
-								for j, _ := range attackTasks {
-									links[j].Data = attackTasks[j].Attack.TNum
-									links[j].Href = `https://attack.mitre.org/techniques/` + attackTasks[j].Attack.TNum
-									links[j].Target = "_blank"
+							logging.LogError(err, "Failed to fetch ATT&CK data")
+						} else {
+							links := make([]Link, len(attackTasks))
+							for j, _ := range attackTasks {
+								links[j].Data = attackTasks[j].Attack.TNum
+								tNumPieces := strings.Split(attackTasks[j].Attack.TNum, ".")
+								links[j].Href = `https://attack.mitre.org/techniques/` + strings.Join(tNumPieces, "/")
+								links[j].Target = "_blank"
+								links[j].Style = "display: block"
+								// track some overall stats for the mitre section
+								if _, ok := mitreTechCounts[attackTasks[j].Attack.TNum]; !ok {
+									mitreTechCounts[attackTasks[j].Attack.TNum] = 1
+									tNumToName[attackTasks[j].Attack.TNum] = attackTasks[j].Attack.Name
+								} else {
+									mitreTechCounts[attackTasks[j].Attack.TNum] += 1
 								}
+							}
+							if reportConfig.IncludeMITREPerTask {
 								rowData = append(rowData, LinkCell{Data: links})
 							}
+
 						}
 						taskRows[i].Data = rowData
+						taskArtifacts := []databaseStructs.Taskartifact{}
+						if err := database.DB.Select(&taskArtifacts, `SELECT
+    						artifact, base_artifact, host, "timestamp"
+							FROM taskartifact
+							WHERE task_id=$1`, tasks[i].ID); err == sql.ErrNoRows {
+							continue
+						} else if err != nil {
+							logging.LogError(err, "Failed to search for artifacts from task")
+						} else {
+							for j, _ := range taskArtifacts {
+								if _, ok := artifactTypeCounts[taskArtifacts[j].BaseArtifact]; !ok {
+									artifactTypeCounts[taskArtifacts[j].BaseArtifact] = 1
+								} else {
+									artifactTypeCounts[taskArtifacts[j].BaseArtifact] += 1
+								}
+								rowStyle := `word-break: break-all;`
+
+								artifactRows = append(artifactRows, XMLTableRows{
+									Data: []interface{}{
+										taskArtifacts[j].Timestamp,
+										taskArtifacts[j].BaseArtifact,
+										taskArtifacts[j].Host,
+										string(taskArtifacts[j].Artifact),
+									},
+									Style: rowStyle,
+								})
+							}
+
+						}
 					}
 					taskingTable.Body.Row = taskRows
 					responsePieces = append(responsePieces, XMLBr{}, taskingTable)
@@ -500,6 +607,160 @@ func getCallbacksAndTasking(reportConfig GenerateReportMessage) []interface{} {
 				includedIdCount += 1
 			}
 		}
+		// set up the MITRE section
+		mitreHeader := XMLH2Header{
+			Data: "4. MITRE ATT&CK Overview",
+		}
+		mitreParagraph := XMLParagraph{
+			Data: "The following section gives an overview of the amount of coverage for MITRE ATT&CK across all tasks issued.",
+		}
+		mitreTaskingTable := XMLTable{
+			Style: `width: 100%;table-layout: fixed;`,
+			Head: XMLTableHead{
+				Row: XMLTableHeadRowCells{
+					Style: `background-color: ` + tableHeaderColor,
+					Data: []XMLTableHeadRowCell{
+						{
+							Data:  "ATT&CK",
+							Style: `width: 6rem; text-align: left; padding: 5px`,
+						},
+						{
+							Data:  "Count",
+							Style: `width: 6rem; text-align: left; padding: 5px`,
+						},
+						{
+							Data:  "Name",
+							Style: `text-align: left; padding: 5px`,
+						},
+					},
+				},
+			},
+		}
+		mitreKeys := make([]string, len(mitreTechCounts))
+		i := 0
+		for key := range mitreTechCounts {
+			mitreKeys[i] = key
+			i++
+		}
+		// sort descending, the largest first
+		sort.SliceStable(mitreKeys, func(i, j int) bool {
+			return mitreTechCounts[mitreKeys[i]] > mitreTechCounts[mitreKeys[j]]
+		})
+		mitreTaskRows := make([]XMLTableRows, len(mitreKeys))
+		for i, _ = range mitreKeys {
+			mitreTaskRows[i].Data = []interface{}{mitreKeys[i], mitreTechCounts[mitreKeys[i]], tNumToName[mitreKeys[i]]}
+			if i%2 == 0 {
+				mitreTaskRows[i].Style += `background-color: ` + alternateRowColor
+			}
+		}
+		mitreTaskingTable.Body.Row = mitreTaskRows
+		responsePieces = append(responsePieces, mitreHeader, mitreParagraph, mitreTaskingTable, XMLParagraph{
+			Data: `LICENSE
+The MITRE Corporation (MITRE) hereby grants you a non-exclusive, royalty-free license to use ATT&CK™ for research,
+development, and commercial purposes. Any copy you make for such purposes is authorized provided that you reproduce
+MITRE’s copyright designation and this license in any such copy.
+"© 2018 The MITRE Corporation. This work is reproduced and distributed with the permission of The MITRE Corporation."
+DISCLAIMERS
+MITRE does not claim ATT&CK enumerates all possibilities for the types of actions and behaviors documented as part of
+its adversary model and framework of techniques. Using the information contained within ATT&CK to address or cover full
+categories of techniques will not guarantee full defensive coverage as there may be undisclosed techniques or variations on
+existing techniques not documented by ATT&CK.
+ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" BASIS
+AND THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS OR IS SPONSORED BY (IF ANY), THE
+MITRE CORPORATION, ITS BOARD OF TRUSTEES, OFFICERS, AGENTS, AND EMPLOYEES, DISCLAIM ALL
+WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE
+OF THE INFORMATION THEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE`,
+		})
+		// set up the Artifacts section
+		artifactHeader := XMLH2Header{
+			Data: "5. Artifacts Overview",
+		}
+		artifactParagraph := XMLParagraph{
+			Data: "The following section gives an overview of the artifacts created throughout the operation and their counts.",
+		}
+		artifactTaskingTable := XMLTable{
+			Style: `width: 100%;table-layout: fixed;`,
+			Head: XMLTableHead{
+				Row: XMLTableHeadRowCells{
+					Style: `background-color: ` + tableHeaderColor,
+					Data: []XMLTableHeadRowCell{
+						{
+							Data:  "Artifact",
+							Style: `width: 30%; text-align: left; padding: 5px`,
+						},
+						{
+							Data:  "Count",
+							Style: `text-align: left; padding: 5px`,
+						},
+					},
+				},
+			},
+		}
+		artifactKeys := make([]string, len(artifactTypeCounts))
+		i = 0
+		for key := range artifactTypeCounts {
+			artifactKeys[i] = key
+			i++
+		}
+		// sort descending, the largest first
+		sort.SliceStable(artifactKeys, func(i, j int) bool {
+			return artifactTypeCounts[artifactKeys[i]] > artifactTypeCounts[artifactKeys[j]]
+		})
+		artifactSummaryTaskRows := make([]XMLTableRows, len(artifactKeys))
+		for i, _ = range artifactKeys {
+			artifactSummaryTaskRows[i].Data = []interface{}{artifactKeys[i], artifactTypeCounts[artifactKeys[i]]}
+			if i%2 == 0 {
+				artifactSummaryTaskRows[i].Style += `background-color: ` + alternateRowColor
+			}
+		}
+		artifactTaskingTable.Body.Row = artifactSummaryTaskRows
+		responsePieces = append(responsePieces, XMLBr{}, artifactHeader, artifactParagraph, artifactTaskingTable)
+		artifactBreakdownHeader := XMLH2Header{
+			Data: "5.1 Artifacts Breakdown",
+		}
+		artifactBreakdownParagraph := XMLParagraph{
+			Data: "The following section gives a breakdown of each artifact, when it happened, and any detailed provided.",
+		}
+		sort.SliceStable(artifactRows, func(i, j int) bool {
+			return artifactRows[j].Data[0].(time.Time).After(artifactRows[i].Data[0].(time.Time))
+		})
+		for i, _ = range artifactRows {
+			if i%2 == 0 {
+				artifactRows[i].Style += `background-color: ` + alternateRowColor
+			}
+			artifactRows[i].Data[0] = artifactRows[i].Data[0].(time.Time).Format(TIME_FORMAT_STRING_YYYY_MM_DD_HH_MM_SS)
+		}
+		artifactBreakdownTaskingTable := XMLTable{
+			Style: `width: 100%;table-layout: fixed;`,
+			Head: XMLTableHead{
+				Row: XMLTableHeadRowCells{
+					Style: `background-color: ` + tableHeaderColor,
+					Data: []XMLTableHeadRowCell{
+						{
+							Data:  "Time",
+							Style: `width: 12rem; text-align: left; padding: 5px`,
+						},
+						{
+							Data:  "Type",
+							Style: `width: 12rem; text-align: left; padding: 5px`,
+						},
+						{
+							Data:  "Host",
+							Style: `text-align: left; padding: 5px`,
+						},
+						{
+							Data:  "Artifact",
+							Style: `text-align: left; padding: 5px`,
+						},
+					},
+				},
+			},
+			Body: XMLTableBody{
+				Row: artifactRows,
+			},
+		}
+		responsePieces = append(responsePieces, XMLBr{}, artifactBreakdownHeader, artifactBreakdownParagraph, artifactBreakdownTaskingTable)
 		return responsePieces
 	}
 }

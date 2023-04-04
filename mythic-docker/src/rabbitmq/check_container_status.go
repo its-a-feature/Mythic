@@ -10,108 +10,139 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 )
 
+var checkContainerStatusAddPtChannel chan databaseStructs.Payloadtype
+var payloadTypesToCheck = map[string]databaseStructs.Payloadtype{}
+var checkContainerStatusAddC2Channel chan databaseStructs.C2profile
+var c2profilesToCheck = map[string]databaseStructs.C2profile{}
+var checkContainerStatusAddTrChannel chan databaseStructs.Translationcontainer
+var translationContainersToCheck = map[string]databaseStructs.Translationcontainer{}
+
+func checkContainerStatusAddPT() {
+	for {
+		pt := <-checkContainerStatusAddPtChannel
+		payloadTypesToCheck[pt.Name] = pt
+	}
+}
+func checkContainerStatusAddC2() {
+	for {
+		pt := <-checkContainerStatusAddC2Channel
+		c2profilesToCheck[pt.Name] = pt
+	}
+}
+func checkContainerStatusAddTR() {
+	for {
+		pt := <-checkContainerStatusAddTrChannel
+		translationContainersToCheck[pt.Name] = pt
+	}
+}
+func initializeContainers() {
+	payloadtypes := []databaseStructs.Payloadtype{}
+	if err := database.DB.Select(&payloadtypes, `SELECT * FROM payloadtype`); err != nil {
+		logging.LogError(err, "Failed to fetch payloadtypes")
+	} else {
+		for i, _ := range payloadtypes {
+			checkContainerStatusAddPtChannel <- payloadtypes[i]
+		}
+	}
+	c2profiles := []databaseStructs.C2profile{}
+	if err := database.DB.Select(&c2profiles, `SELECT * from c2profile`); err != nil {
+		logging.LogError(err, "Failed to fetch c2 profiles")
+	} else {
+		for i, _ := range c2profiles {
+			checkContainerStatusAddC2Channel <- c2profiles[i]
+		}
+	}
+	translations := []databaseStructs.Translationcontainer{}
+	if err := database.DB.Select(&translations, `SELECT * from translation_container`); err != nil {
+		logging.LogError(err, "Failed to fetch translation containers")
+	} else {
+		for i, _ := range translations {
+			checkContainerStatusAddTrChannel <- translations[i]
+		}
+	}
+}
 func checkContainerStatus() {
+	go initializeContainers()
+	go checkContainerStatusAddPT()
+	go checkContainerStatusAddC2()
+	go checkContainerStatusAddTR()
 	for {
 		time.Sleep(RETRY_CONNECT_DELAY)
 		// loop through payload types
-		container := databaseStructs.Payloadtype{}
-		if rows, err := database.DB.NamedQuery(`SELECT
-			id, container_running, "name"
-			FROM payloadtype
-		`, container); err != nil {
-			logging.LogError(err, "Failed to get payloadtypes from database")
-		} else {
-			for rows.Next() {
-				if err = rows.StructScan(&container); err != nil {
-					logging.LogError(err, "Failed to get row from payloadtypes for checking online status")
+		for container := range payloadTypesToCheck {
+			// check that a container is online
+			if running, err := RabbitMQConnection.CheckPayloadTypeContainerExists(payloadTypesToCheck[container].Name); err != nil {
+				logging.LogError(err, "Failed to check for payloadtype container existence")
+			} else if running != payloadTypesToCheck[container].ContainerRunning {
+				if entry, ok := payloadTypesToCheck[container]; ok {
+					entry.ContainerRunning = running
+					payloadTypesToCheck[container] = entry
 				} else {
-					// check that a container is online
-					if running, err := RabbitMQConnection.CheckPayloadTypeContainerExists(container.Name); err != nil {
-						logging.LogError(err, "Failed to check for payloadtype container existence")
-					} else if running != container.ContainerRunning {
-						container.ContainerRunning = running
-						if _, err = database.DB.NamedExec(`UPDATE payloadtype SET 
+					logging.LogError(nil, "Failed to get payload type from map for updating running status")
+				}
+				if _, err = database.DB.NamedExec(`UPDATE payloadtype SET 
 							container_running=:container_running, deleted=false 
-							WHERE id=:id`, container,
-						); err != nil {
-							logging.LogError(err, "Failed to set container running status", "container_running", container.ContainerRunning, "container", container.Name)
-						}
-						if !running {
-							database.SendAllOperationsMessage(
-								getDownContainerMessage(container.Name),
-								0, fmt.Sprintf("%s_container_down", container.Name), "warning")
-							go updateDownContainerBuildingPayloads(container.Name)
-						}
-					}
+							WHERE id=:id`, payloadTypesToCheck[container],
+				); err != nil {
+					logging.LogError(err, "Failed to set container running status", "container_running", payloadTypesToCheck[container].ContainerRunning, "container", container)
+				}
+				if !running {
+					database.SendAllOperationsMessage(
+						getDownContainerMessage(container),
+						0, fmt.Sprintf("%s_container_down", container), "warning")
+					go updateDownContainerBuildingPayloads(container)
 				}
 			}
+
 		}
 		// loop through c2 profiles
-		c2Container := databaseStructs.C2profile{}
-		if rows, err := database.DB.NamedQuery(`SELECT
-			id, container_running, "name"
-			FROM c2profile
-		`, c2Container); err != nil {
-			logging.LogError(err, "Failed to get c2profiles from database")
-			continue
-		} else {
-			for rows.Next() {
-				if err = rows.StructScan(&c2Container); err != nil {
-					logging.LogError(err, "Failed to get row from c2profiles for checking online status")
-					continue
+		for container := range c2profilesToCheck {
+			// check that a container is online
+			if running, err := RabbitMQConnection.CheckC2ProfileContainerExists(container); err != nil {
+				logging.LogError(err, "Failed to check for c2 container existence")
+			} else if running != c2profilesToCheck[container].ContainerRunning {
+				if entry, ok := c2profilesToCheck[container]; ok {
+					entry.ContainerRunning = running
+					c2profilesToCheck[container] = entry
 				} else {
-					// check that a container is online
-					if running, err := RabbitMQConnection.CheckC2ProfileContainerExists(c2Container.Name); err != nil {
-						logging.LogError(err, "Failed to check for c2 container existence")
-					} else if running != c2Container.ContainerRunning {
-						c2Container.ContainerRunning = running
-						if !running {
-							UpdateC2ProfileRunningStatus(c2Container, false)
-							database.SendAllOperationsMessage(
-								getDownContainerMessage(c2Container.Name),
-								0, fmt.Sprintf("%s_container_down", c2Container.Name), "warning")
-						}
-						if _, err = database.DB.NamedExec(`UPDATE c2profile SET 
-							container_running=:container_running, deleted=false 
-							WHERE id=:id`, c2Container,
-						); err != nil {
-							logging.LogError(err, "Failed to set container running status", "container_running", c2Container.ContainerRunning, "container", c2Container.Name)
-						}
-
-					}
+					logging.LogError(nil, "Failed to get c2 profile from map for updating running status")
 				}
+				if !running {
+					UpdateC2ProfileRunningStatus(c2profilesToCheck[container], false)
+					database.SendAllOperationsMessage(
+						getDownContainerMessage(container),
+						0, fmt.Sprintf("%s_container_down", container), "warning")
+				}
+				if _, err = database.DB.NamedExec(`UPDATE c2profile SET 
+							container_running=:container_running, deleted=false 
+							WHERE id=:id`, c2profilesToCheck[container],
+				); err != nil {
+					logging.LogError(err, "Failed to set container running status", "container_running", c2profilesToCheck[container].ContainerRunning, "container", container)
+				}
+
 			}
 		}
 		// loop through translation containers
-		translationContainer := databaseStructs.Translationcontainer{}
-		if rows, err := database.DB.NamedQuery(`SELECT
-			id, container_running, "name"
-			FROM translationcontainer
-		`, translationContainer); err != nil {
-			logging.LogError(err, "Failed to get translationcontainer from database")
-			continue
-		} else {
-			for rows.Next() {
-				if err = rows.StructScan(&translationContainer); err != nil {
-					logging.LogError(err, "Failed to get row from translationcontainer for checking online status")
-					continue
+		for container := range translationContainersToCheck {
+			// check that a container is online
+			running := checkTranslationContainerGRPCOnline(container)
+			if running != translationContainersToCheck[container].ContainerRunning {
+				if entry, ok := translationContainersToCheck[container]; ok {
+					entry.ContainerRunning = running
+					translationContainersToCheck[container] = entry
 				} else {
-					// check that a container is online
-					running := checkTranslationContainerGRPCOnline(translationContainer.Name)
-					if running != translationContainer.ContainerRunning {
-						translationContainer.ContainerRunning = running
-						if !running {
-							database.SendAllOperationsMessage(
-								getDownContainerMessage(translationContainer.Name),
-								0, fmt.Sprintf("%s_container_down", translationContainer.Name), "warning")
-						}
-						if _, err = database.DB.NamedExec(`UPDATE translationcontainer SET
+					logging.LogError(nil, "Failed to get translation container from map for updating running status")
+				}
+				if !running {
+					database.SendAllOperationsMessage(
+						getDownContainerMessage(container),
+						0, fmt.Sprintf("%s_container_down", container), "warning")
+				}
+				if _, err := database.DB.NamedExec(`UPDATE translationcontainer SET
 							container_running=:container_running, deleted=false
-							WHERE id=:id`, translationContainer,
-						); err != nil {
-							logging.LogError(err, "Failed to set container running status", "container_running", translationContainer.ContainerRunning, "container", translationContainer.Name)
-						}
-					}
+							WHERE id=:id`, translationContainersToCheck[container],
+				); err != nil {
+					logging.LogError(err, "Failed to set container running status", "container_running", translationContainersToCheck[container].ContainerRunning, "container", container)
 				}
 			}
 		}

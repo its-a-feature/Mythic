@@ -1,16 +1,12 @@
 package rabbitmq
 
 import (
-	"crypto/md5"
-	"crypto/sha1"
 	"encoding/json"
-	"fmt"
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
 	"github.com/its-a-feature/Mythic/logging"
 	"github.com/its-a-feature/Mythic/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"os"
 )
 
 // PAYLOAD_BUILD STRUCTS
@@ -75,10 +71,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 		databasePayload := databaseStructs.Payload{}
 		if err := database.DB.Get(&databasePayload, `SELECT 
 			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase,
-			filemeta.id "filemeta.id",
-			filemeta.path "filemeta.path" 
 			FROM payload 
-			JOIN filemeta ON payload.file_id = filemeta.id 
 			WHERE uuid=$1 
 			LIMIT 1`, payloadBuildResponse.PayloadUUID); err != nil {
 			logging.LogError(err, "Failed to get payload from the database")
@@ -91,8 +84,8 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 			} else {
 				databasePayload.BuildPhase = PAYLOAD_BUILD_STATUS_ERROR
 			}
-
-			if payloadBuildResponse.Payload != nil {
+			/* Payload should be uploaded separately
+			if payloadBuildResponse.Payload != nil && len(*payloadBuildResponse.Payload) > 0 {
 				if err := os.WriteFile(databasePayload.Filemeta.Path, *payloadBuildResponse.Payload, 0600); err != nil {
 					databasePayload.BuildStderr += "\nFailed to write file to disk"
 					logging.LogError(err, "Failed to write payload to disk")
@@ -101,8 +94,13 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 					databasePayload.Filemeta.Sha1 = fmt.Sprintf("%x", sha1Sum)
 					md5Sum := md5.Sum(*payloadBuildResponse.Payload)
 					databasePayload.Filemeta.Md5 = fmt.Sprintf("%x", md5Sum)
+					databasePayload.Filemeta.ChunkSize = len(*payloadBuildResponse.Payload)
+					databasePayload.Filemeta.TotalChunks = 1
+					databasePayload.Filemeta.ChunksReceived = 1
 				}
 			}
+
+			*/
 			// update the payload in the database
 			if _, updateError := database.DB.NamedExec(`UPDATE payload SET 
 				build_phase=:build_phase, build_stderr=:build_stderr, build_message=:build_message, build_stdout=:build_stdout
@@ -112,15 +110,18 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 				return
 			}
 			database.UpdateRemainingBuildSteps(databasePayload)
+			/* Payload should be uploaded separately
 			if databasePayload.BuildPhase == PAYLOAD_BUILD_STATUS_SUCCESS {
-				if _, updateError := database.DB.NamedExec(`UPDATE filemeta SET 
-					sha1=:sha1, md5=:md5 
+				if _, updateError := database.DB.NamedExec(`UPDATE filemeta SET
+					sha1=:sha1, md5=:md5, chunk_size=:chunk_size, total_chunks=:total_chunks, chunks_received=:chunks_received
 					WHERE id=:id`, databasePayload.Filemeta,
 				); updateError != nil {
 					logging.LogError(updateError, "Failed to update payload's file hashes")
 					return
 				}
 			}
+
+			*/
 			if databasePayload.BuildPhase == PAYLOAD_BUILD_STATUS_SUCCESS {
 				// process the additional UpdatedCommands
 				if err := updateLoadedCommandsFromPayloadBuild(databasePayload, payloadBuildResponse.UpdatedCommandList); err != nil {
