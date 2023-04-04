@@ -10,11 +10,11 @@ import (
 	"github.com/its-a-feature/Mythic/logging"
 )
 
-var checkContainerStatusAddPtChannel chan databaseStructs.Payloadtype
+var checkContainerStatusAddPtChannel = make(chan databaseStructs.Payloadtype)
 var payloadTypesToCheck = map[string]databaseStructs.Payloadtype{}
-var checkContainerStatusAddC2Channel chan databaseStructs.C2profile
+var checkContainerStatusAddC2Channel = make(chan databaseStructs.C2profile)
 var c2profilesToCheck = map[string]databaseStructs.C2profile{}
-var checkContainerStatusAddTrChannel chan databaseStructs.Translationcontainer
+var checkContainerStatusAddTrChannel = make(chan databaseStructs.Translationcontainer)
 var translationContainersToCheck = map[string]databaseStructs.Translationcontainer{}
 
 func checkContainerStatusAddPT() {
@@ -53,7 +53,7 @@ func initializeContainers() {
 		}
 	}
 	translations := []databaseStructs.Translationcontainer{}
-	if err := database.DB.Select(&translations, `SELECT * from translation_container`); err != nil {
+	if err := database.DB.Select(&translations, `SELECT * from translationcontainer`); err != nil {
 		logging.LogError(err, "Failed to fetch translation containers")
 	} else {
 		for i, _ := range translations {
@@ -62,10 +62,10 @@ func initializeContainers() {
 	}
 }
 func checkContainerStatus() {
-	go initializeContainers()
 	go checkContainerStatusAddPT()
 	go checkContainerStatusAddC2()
 	go checkContainerStatusAddTR()
+	go initializeContainers()
 	for {
 		time.Sleep(RETRY_CONNECT_DELAY)
 		// loop through payload types

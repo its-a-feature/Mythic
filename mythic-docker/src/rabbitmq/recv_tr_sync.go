@@ -75,14 +75,13 @@ func trSync(in TrSyncMessage) error {
 		logging.LogError(nil, "attempting to sync bad translation container version")
 		return errors.New(fmt.Sprintf("Version, %s, isn't supported. The max supported version is %s. \nThis likely means your PyPi or Golang library is out of date and should be updated.", in.ContainerVersion, validContainerVersionMax))
 	}
-	if statement, err := database.DB.PrepareNamed(`INSERT INTO translationcontainer 
-    ("name", deleted, container_running, description, author) VALUES (:name, :deleted, :container_running, :description, :author)
-    RETURNING id
-    ON CONFLICT ("name") DO UPDATE SET deleted=false, container_running=true, description=:description, author=:author`); err != nil {
+	if _, err := database.DB.NamedExec(`INSERT INTO translationcontainer 
+    	("name", deleted, container_running, description, author) VALUES (:name, :deleted, :container_running, :description, :author)
+    	ON CONFLICT ("name") DO UPDATE SET deleted=false, container_running=true, description=:description, author=:author`, translationDatabase); err != nil {
 		logging.LogError(err, "Failed to sync translation container")
 		return err
-	} else if err := statement.Get(&translationDatabase, translationDatabase); err != nil {
-		logging.LogError(err, "Failed to get back translation container id")
+	} else if err := database.DB.Get(&translationDatabase.ID, `SELECT id FROM translationcontainer WHERE "name"=$1`, translationDatabase.Name); err != nil {
+		logging.LogError(err, "Failed to get translation information back after creation")
 		return err
 	} else {
 		checkContainerStatusAddTrChannel <- translationDatabase
