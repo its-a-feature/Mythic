@@ -29,9 +29,10 @@ const (
 )
 
 type AgentMessageRawInput struct {
-	RawMessage []byte
-	C2Profile  string
-	RemoteIP   string
+	RawMessage    *[]byte
+	Base64Message *[]byte
+	C2Profile     string
+	RemoteIP      string
 }
 
 type cachedUUIDInfo struct {
@@ -218,25 +219,42 @@ type recursiveProcessAgentMessageResponse struct {
 func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recursiveProcessAgentMessageResponse {
 	instanceResponse := recursiveProcessAgentMessageResponse{}
 	var messageUUID uuid.UUID
-	base64DecodedMessage := make([]byte, base64.StdEncoding.DecodedLen(len(agentMessageInput.RawMessage)))
+	var base64DecodedMessage []byte
+	if agentMessageInput.Base64Message != nil {
+		base64DecodedMessage = make([]byte, base64.StdEncoding.DecodedLen(len(*agentMessageInput.Base64Message)))
+	} else {
+		base64DecodedMessage = *agentMessageInput.RawMessage
+	}
 	var totalBase64Bytes int
 	var agentUUIDLength = 36
 	var err error
 	if utils.MythicConfig.DebugAgentMessage {
 		logging.LogDebug("Parsing agent message", "step 1", agentMessageInput)
-		database.SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
-			string(agentMessageInput.RawMessage)),
-			0, "debug", database.MESSAGE_LEVEL_INFO)
+		if agentMessageInput.Base64Message != nil {
+			database.SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
+				string(*agentMessageInput.Base64Message)),
+				0, "debug", database.MESSAGE_LEVEL_INFO)
+		} else {
+			database.SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 1 (get data): \n%s",
+				string(*agentMessageInput.RawMessage)),
+				0, "debug", database.MESSAGE_LEVEL_INFO)
+		}
+
 	}
 	// 2. Base64 decode agent message
-	if totalBase64Bytes, err = base64.StdEncoding.Decode(base64DecodedMessage, agentMessageInput.RawMessage); err != nil {
-		errorMessage := "Failed to base64 decode message\n"
-		errorMessage += fmt.Sprintf("message: %s\n", string(agentMessageInput.RawMessage))
-		logging.LogError(err, "Failed to base64 decode agent message")
-		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_WARNING)
-		instanceResponse.Err = err
-		return instanceResponse
-	} else if len(base64DecodedMessage) <= 36 {
+	if agentMessageInput.Base64Message != nil {
+		if totalBase64Bytes, err = base64.StdEncoding.Decode(base64DecodedMessage, *agentMessageInput.Base64Message); err != nil {
+			errorMessage := "Failed to base64 decode message\n"
+			errorMessage += fmt.Sprintf("message: %s\n", string(*agentMessageInput.Base64Message))
+			logging.LogError(err, "Failed to base64 decode agent message")
+			go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_base64", database.MESSAGE_LEVEL_WARNING)
+			instanceResponse.Err = err
+			return instanceResponse
+		}
+	} else {
+		totalBase64Bytes = len(*agentMessageInput.RawMessage)
+	}
+	if len(base64DecodedMessage) <= 36 {
 		errorMessage := "Message length too short\n"
 		errorMessage += fmt.Sprintf("message: %s\n", string(base64DecodedMessage))
 		go database.SendAllOperationsMessage(errorMessage, 0, "agent_message_length", database.MESSAGE_LEVEL_WARNING)
@@ -403,11 +421,13 @@ func recursiveProcessAgentMessage(agentMessageInput AgentMessageRawInput) recurs
 						database.SendAllOperationsMessage(fmt.Sprintf("Parsing agent message - step 7 (delegate messages): \n%v", delegate),
 							0, "debug", database.MESSAGE_LEVEL_INFO)
 					}
-					if delegateResponse := recursiveProcessAgentMessage(AgentMessageRawInput{
-						RawMessage: []byte(delegate.Message),
-						C2Profile:  delegate.C2ProfileName,
-						RemoteIP:   agentMessageInput.RemoteIP,
-					}); delegateResponse.Err != nil {
+					currentDelegateMessage := AgentMessageRawInput{
+						C2Profile: delegate.C2ProfileName,
+						RemoteIP:  agentMessageInput.RemoteIP,
+					}
+					currentDelegateMessageBytes := []byte(delegate.Message)
+					currentDelegateMessage.Base64Message = &currentDelegateMessageBytes
+					if delegateResponse := recursiveProcessAgentMessage(currentDelegateMessage); delegateResponse.Err != nil {
 						logging.LogError(delegateResponse.Err, "Failed to process delegate message")
 					} else {
 						newResponse := delegateMessageResponse{
