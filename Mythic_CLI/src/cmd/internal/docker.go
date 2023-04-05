@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -113,7 +112,7 @@ func getElementsOnDisk() ([]string, error) {
 			return nil, err
 		}
 	}
-	if files, err := ioutil.ReadDir(installedServicesFilePath); err != nil {
+	if files, err := os.ReadDir(installedServicesFilePath); err != nil {
 		log.Printf("[-] Failed to list contents of %s folder\n", InstalledServicesFolder)
 		return nil, err
 	} else {
@@ -244,7 +243,6 @@ func DockerStop(containers []string) error {
 			return runDockerCompose(append([]string{"stop"}, containers...))
 		}
 	}
-
 }
 func DockerBuild(containers []string) error {
 	if len(containers) == 0 {

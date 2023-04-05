@@ -7,7 +7,7 @@ import (
 // installCmd represents the config command
 var mythicSyncCmd = &cobra.Command{
 	Use:   "mythic_sync",
-	Short: "work to mythic_sync install/uninstall",
+	Short: "Install/Uninstall mythic_sync",
 	Long:  `Run this command's subcommands to install/uninstall mythic_sync `,
 	Run:   mythicSync,
 }

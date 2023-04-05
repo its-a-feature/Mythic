@@ -36,7 +36,6 @@ func isServiceRunning(service string) bool {
 	}
 	return false
 }
-
 func addMythicServiceDockerComposeEntry(service string) {
 	var curConfig = viper.New()
 	curConfig.SetConfigName("docker-compose")
@@ -578,7 +577,12 @@ func removeMythicServiceDockerComposeEntry(service string) {
 	}
 	if curConfig.IsSet("services." + strings.ToLower(service)) {
 		delete(curConfig.Get("services").(map[string]interface{}), strings.ToLower(service))
-		fmt.Printf("[+] Removed %s from docker-compose because it's running on a different host\n", strings.ToLower(service))
+		if stringInSlice(service, []string{"mythic_grafana", "mythic_prometheus", "mythic_postgres_exporter"}) {
+			fmt.Printf("[+] Removed %s from docker-compose because postgres_debug is set to false\n", strings.ToLower(service))
+		} else {
+			fmt.Printf("[+] Removed %s from docker-compose because it's running on a different host\n", strings.ToLower(service))
+		}
+
 	}
 	if !curConfig.IsSet("networks") {
 		curConfig.Set("networks", networkInfo)
@@ -808,6 +812,7 @@ func runDockerCompose(args []string) error {
 	err = command.Wait()
 	if err != nil {
 		fmt.Printf("[-] Error from docker-compose: %v\n", err)
+		fmt.Printf("[*] Docker compose command: %v\n", args)
 		return err
 	}
 	return nil

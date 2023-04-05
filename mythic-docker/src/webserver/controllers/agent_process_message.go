@@ -3,7 +3,7 @@ package webcontroller
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,7 +34,7 @@ func AgentMessageWebhook(c *gin.Context) {
 		requestUrl = forwardedURL
 	}
 	requestIp := c.ClientIP()
-	if agentMessage, err := ioutil.ReadAll(c.Request.Body); err != nil {
+	if agentMessage, err := io.ReadAll(c.Request.Body); err != nil {
 		logging.LogError(err, "Failed to read body of agent message")
 		errorMessage := "Error! Failed to read body of agent message. Check the following details for more information about the request:\nConnection to: "
 		errorMessage += fmt.Sprintf("%s via HTTP %s\nFrom: %s\n", requestUrl, c.Request.Method, requestIp)
@@ -63,7 +63,10 @@ func AgentMessageWebhook(c *gin.Context) {
 }
 
 func AgentMessageGetWebhook(c *gin.Context) {
-	// get variables from the POST request
+	// get variables from the GET request
+	// first check for first query param
+	// then check for first cookie
+	// finally check for request body
 	requestUrl := c.Request.URL.RawPath
 	if forwardedURL := c.GetHeader("x-forwarded-url"); forwardedURL != "" {
 		requestUrl = forwardedURL
@@ -79,14 +82,52 @@ func AgentMessageGetWebhook(c *gin.Context) {
 		return
 	} else {
 		params := c.Request.URL.Query()
-		for key, _ := range params {
-			agentMessage := params.Get(key)
-			if base64Bytes, err := base64.URLEncoding.DecodeString(agentMessage); err != nil {
-
-			} else if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
-				C2Profile:  c2Header,
-				RawMessage: &base64Bytes,
-				RemoteIP:   requestIp,
+		cookies := c.Request.Cookies()
+		if len(params) > 0 {
+			for key, _ := range params {
+				agentMessage := params.Get(key)
+				if base64Bytes, err := base64.URLEncoding.DecodeString(agentMessage); err != nil {
+					logging.LogError(err, "Failed to base64 decode url encoded query parameter", "param key", key)
+					c.JSON(http.StatusNotFound, gin.H{})
+					return
+				} else {
+					if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
+						C2Profile:  c2Header,
+						RawMessage: &base64Bytes,
+						RemoteIP:   requestIp,
+					}); err != nil {
+						c.JSON(http.StatusNotFound, gin.H{})
+						return
+					} else {
+						c.Data(http.StatusOK, "application/octet-stream", response)
+						return
+					}
+				}
+			}
+		} else if len(cookies) > 0 {
+			agentMessage := cookies[0].Value
+			if base64Bytes, err := base64.StdEncoding.DecodeString(agentMessage); err != nil {
+				logging.LogError(err, "Failed to base64 decode cookie value", "cookie key", cookies[0].Name)
+				c.JSON(http.StatusNotFound, gin.H{})
+				return
+			} else {
+				if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
+					C2Profile:  c2Header,
+					RawMessage: &base64Bytes,
+					RemoteIP:   requestIp,
+				}); err != nil {
+					c.JSON(http.StatusNotFound, gin.H{})
+					return
+				} else {
+					c.Data(http.StatusOK, "application/octet-stream", response)
+					return
+				}
+			}
+		} else if agentMessage, err := io.ReadAll(c.Request.Body); err != nil {
+			if response, err := rabbitmq.ProcessAgentMessage(rabbitmq.AgentMessageRawInput{
+				C2Profile:     c2Header,
+				Base64Message: &agentMessage,
+				RemoteIP:      requestIp,
 			}); err != nil {
 				c.JSON(http.StatusNotFound, gin.H{})
 				return
@@ -94,7 +135,10 @@ func AgentMessageGetWebhook(c *gin.Context) {
 				c.Data(http.StatusOK, "application/octet-stream", response)
 				return
 			}
+		} else {
+			logging.LogError(nil, "Failed to find query param, cookie, or message body ")
+			c.JSON(http.StatusNotFound, gin.H{})
+			return
 		}
 	}
-
 }

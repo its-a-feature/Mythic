@@ -7,7 +7,7 @@ import (
 // configCmd represents the config command
 var rabbitmqCmd = &cobra.Command{
 	Use:   "rabbitmq",
-	Short: "interact with the rabbitmq",
+	Short: "Interact with the rabbitmq service",
 	Long:  `Run this command to interact with rabbitmq`,
 	Run:   rabbitmqCommand,
 }

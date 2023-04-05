@@ -140,20 +140,23 @@ func parseMythicEnvironmentVariables() {
 		}
 	}
 	writeMythicEnvironmentVariables()
-	if !mythicEnv.GetBool("postgres_debug") {
-		// update the MythicPossibleServices to not include the two debugging services of grafana and postgres_exporter
-		MythicPossibleServices = []string{
-			"mythic_postgres",
-			"mythic_react",
-			"mythic_server",
-			"mythic_nginx",
-			"mythic_rabbitmq",
-			"mythic_graphql",
-			"mythic_documentation",
-			"mythic_jupyter",
-			"mythic_sync",
+	/*
+		if !mythicEnv.GetBool("postgres_debug") {
+			// update the MythicPossibleServices to not include the two debugging services of grafana and postgres_exporter
+			MythicPossibleServices = []string{
+				"mythic_postgres",
+				"mythic_react",
+				"mythic_server",
+				"mythic_nginx",
+				"mythic_rabbitmq",
+				"mythic_graphql",
+				"mythic_documentation",
+				"mythic_jupyter",
+				"mythic_sync",
+			}
 		}
-	}
+
+	*/
 }
 func writeMythicEnvironmentVariables() {
 	c := mythicEnv.AllSettings()

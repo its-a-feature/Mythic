@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+	"github.com/MythicMeta/Mythic_CLI/cmd/config"
 	"github.com/MythicMeta/Mythic_CLI/cmd/internal"
 	"os"
 )
@@ -12,9 +14,9 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "mythic-cli",
-	Short: "A command line interface for managing Mythic.",
-	Long: `Mythic CLI is a command line interface for managing the Mythic
-application and associated containers and services. Commands are grouped by their use.`,
+	Short: fmt.Sprintf("A command line interface for managing Mythic. Version: %s", config.Version),
+	Long: `Mythic CLI is a command line interface for managing the Mythic application and associated containers and services.
+Commands are grouped by their use and all support '-h' for help.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -28,5 +30,4 @@ func Execute() {
 func init() {
 	// Create or parse the Docker ``.env`` file
 	internal.Initialize()
-
 }

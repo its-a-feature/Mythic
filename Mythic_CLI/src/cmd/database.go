@@ -7,7 +7,7 @@ import (
 // configCmd represents the config command
 var databaseCmd = &cobra.Command{
 	Use:   "database",
-	Short: "interact with the database",
+	Short: "Interact with the database",
 	Long:  `Run this command to interact with the database`,
 	Run:   database,
 }

@@ -7,7 +7,7 @@ import (
 // installCmd represents the config command
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "install services from GitHub or local folders",
+	Short: "Install services from GitHub or local folders",
 	Long: `Run this command to install services. Use subcommands to
 adjust the URLs / paths of where to pull from.`,
 	Run: installDisplay,

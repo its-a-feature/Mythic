@@ -8,7 +8,7 @@ import (
 // configCmd represents the config command
 var testCmd = &cobra.Command{
 	Use:   "test",
-	Short: "test mythic service connections",
+	Short: "Test mythic service connections",
 	Long:  `Run this command to test mythic connections to RabbitMQ and the Mythic UI`,
 	Run:   test,
 }
