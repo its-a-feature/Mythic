@@ -817,6 +817,49 @@ func runDockerCompose(args []string) error {
 	}
 	return nil
 }
+func runDocker(args []string) (string, error) {
+	if lookPath, err := exec.LookPath("docker"); err != nil {
+		log.Fatalf("[-] docker is not installed or available in the current PATH")
+	} else if exe, err := os.Executable(); err != nil {
+		log.Fatalf("[-] Failed to get lookPath to current executable")
+	} else {
+		exePath := filepath.Dir(exe)
+		command := exec.Command(lookPath, args...)
+		command.Dir = exePath
+		command.Env = getMythicEnvList()
+		stdout, err := command.StdoutPipe()
+		if err != nil {
+			log.Fatalf("[-] Failed to get stdout pipe for running docker-compose")
+		}
+		stderr, err := command.StderrPipe()
+		if err != nil {
+			log.Fatalf("[-] Failed to get stderr pipe for running docker-compose")
+		}
+		stdoutScanner := bufio.NewScanner(stdout)
+		stderrScanner := bufio.NewScanner(stderr)
+		outputString := ""
+		go func() {
+			for stdoutScanner.Scan() {
+				outputString += stdoutScanner.Text()
+			}
+		}()
+		go func() {
+			for stderrScanner.Scan() {
+				fmt.Printf("%s\n", stderrScanner.Text())
+			}
+		}()
+		if err = command.Start(); err != nil {
+			log.Fatalf("[-] Error trying to start docker: %v\n", err)
+		} else if err = command.Wait(); err != nil {
+			fmt.Printf("[-] Error from docker: %v\n", err)
+			fmt.Printf("[*] Docker command: %v\n", args)
+			return "", err
+		} else {
+			return outputString, nil
+		}
+	}
+	return "", nil
+}
 func GetAllExistingNonMythicServiceNames() ([]string, error) {
 	// get all services that exist within the loaded config
 	groupNameConfig := viper.New()
@@ -949,5 +992,8 @@ func CheckDockerCompose() {
 		for _, container := range intendedMythicContainers {
 			addMythicServiceDockerComposeEntry(container)
 		}
+	}
+	if !checkDockerVersion() {
+		log.Fatalf("[-] Bad docker version\n")
 	}
 }

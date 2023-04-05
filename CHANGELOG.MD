@@ -4,12 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0rc29] - 2023-04-5
+## [3.0.0rc30] - 2023-04-5
 
 ### Changed
 
 - Updated mythic-cli to include a version command
 - Updated the agent message Get handler to look at first query parameter, first cookie value, and then message body
+- Updated mythic-cli to include a check for the docker version >= 20.10.22
 
 ## [3.0.0rc28] - 2023-04-04
 

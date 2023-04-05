@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"golang.org/x/mod/semver"
 	"io"
 	"io/ioutil"
 	"log"
@@ -257,5 +258,21 @@ func updateNginxBlockLists() {
 	if err := os.WriteFile(ipFilePath, []byte(outputString), 0600); err != nil {
 		fmt.Printf("[-] Failed to write out block list file")
 		os.Exit(1)
+	}
+}
+
+// check docker version to make sure it's high enough for Mythic's features
+func checkDockerVersion() bool {
+	if outputString, err := runDocker([]string{"version", "--format", "{{.Server.Version}}"}); err != nil {
+		fmt.Printf("[-] Failed to get docker version")
+		return false
+	} else if !semver.IsValid("v" + outputString) {
+		fmt.Printf("[-] Invalid version string: %s\n", outputString)
+		return false
+	} else if semver.Compare("v"+outputString, "v20.10.22") >= 0 {
+		return true
+	} else {
+		fmt.Printf("[-] Docker version is too old, %s, for Mythic. Please update\n", outputString)
+		return false
 	}
 }

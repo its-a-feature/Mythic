@@ -7,6 +7,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.12.0
 	github.com/streadway/amqp v1.0.0
+	golang.org/x/mod v0.10.0
 )
 
 require (
