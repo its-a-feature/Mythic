@@ -70,7 +70,7 @@ func processPayloadBuildResponse(msg amqp.Delivery) {
 		//logging.LogInfo("got build response", "buildMsg", payloadBuildResponse)
 		databasePayload := databaseStructs.Payload{}
 		if err := database.DB.Get(&databasePayload, `SELECT 
-			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase,
+			payload.build_message, payload.build_stderr, payload.build_stdout, payload.id, payload.build_phase
 			FROM payload 
 			WHERE uuid=$1 
 			LIMIT 1`, payloadBuildResponse.PayloadUUID); err != nil {
