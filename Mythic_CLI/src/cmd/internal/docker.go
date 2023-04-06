@@ -237,6 +237,15 @@ func DockerStop(containers []string) error {
 		if len(containers) == 0 {
 			containers = append(dockerComposeContainers, currentMythicServices...)
 		}
+		if stringInSlice("mythic_react", containers) {
+			if mythicEnv.GetBool("mythic_react_debug") {
+				// only need to remove the container if we're switching between debug and regular
+				if err = runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, "mythic_react")); err != nil {
+					fmt.Printf("[-] Failed to remove mythic_react")
+					return err
+				}
+			}
+		}
 		if mythicEnv.GetBool("REBUILD_ON_START") {
 			return runDockerCompose(append([]string{"rm", "-s", "-v", "-f"}, containers...))
 		} else {
@@ -278,6 +287,12 @@ func DockerRemoveImages() error {
 				PruneChildren: true,
 			})
 		}
+	}
+	return nil
+}
+func DockerBuildReactUI() error {
+	if _, err := runDocker([]string{"exec", "mythic_react", "/bin/sh", "-c", "npm run react-build"}); err != nil {
+		return err
 	}
 	return nil
 }

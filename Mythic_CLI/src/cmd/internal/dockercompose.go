@@ -324,9 +324,27 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"./rabbitmq-docker/rabbitmq.conf:/tmp/base_rabbitmq.conf",
 		}
 	case "mythic_react":
-		pStruct["build"] = map[string]interface{}{
-			"context": "./mythic-react-docker",
-			"args":    buildArguments,
+		if mythicEnv.GetBool("mythic_react_debug") {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./MythicReactUI",
+				"args":    buildArguments,
+			}
+			pStruct["volumes"] = []string{
+				"./MythicReactUI/src:/app/src",
+				"./MythicReactUI/public:/app/public",
+				"./MythicReactUI/package.json:/app/package.json",
+				"./MythicReactUI/package-lock.json:/app/package-lock.json",
+				"./mythic-react-docker/mythic/public:/app/build",
+			}
+		} else {
+			pStruct["build"] = map[string]interface{}{
+				"context": "./mythic-react-docker",
+				"args":    buildArguments,
+			}
+			pStruct["volumes"] = []string{
+				"./mythic-react-docker/config:/etc/nginx",
+				"./mythic-react-docker/mythic/public:/mythic/new",
+			}
 		}
 		if mythicEnv.GetBool("mythic_react_bind_localhost_only") {
 			pStruct["ports"] = []string{
@@ -343,10 +361,6 @@ func addMythicServiceDockerComposeEntry(service string) {
 			"timeout":      "60s",
 			"retries":      3,
 			"start_period": "15s",
-		}
-		pStruct["volumes"] = []string{
-			"./mythic-react-docker/config:/etc/nginx",
-			"./mythic-react-docker/mythic/public:/mythic/new",
 		}
 		pStruct["environment"] = []string{
 			"MYTHIC_REACT_PORT=${MYTHIC_REACT_PORT}",

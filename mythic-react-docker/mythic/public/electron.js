@@ -1,4 +1,4 @@
-const electron = require("electron");
+const electron = require("MythicReactUI/public/electron");
 const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const path = require("path");

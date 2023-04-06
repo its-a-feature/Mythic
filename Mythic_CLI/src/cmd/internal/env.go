@@ -77,6 +77,7 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("jupyter_bind_localhost_only", true)
 	// debugging help
 	mythicEnv.SetDefault("postgres_debug", false)
+	mythicEnv.SetDefault("mythic_react_debug", false)
 	// installed service configuration
 	mythicEnv.SetDefault("installed_service_cpus", "1")
 

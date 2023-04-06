@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc31] - 2023-04-6
+
+### Added
+
+- Added new configuration variable for `mythic_react_debug`
+- Added MythicReactUI code to this repository for easier control and development for the community. 
+- New image and container are only used when `mythic_react_debug` is set to `true`, otherwise normal nginx container serving static files is used.
+- Updated scripting package for Jupyter to mythic==0.1.0rc3
+
 ## [3.0.0rc30] - 2023-04-5
 
 ### Changed
