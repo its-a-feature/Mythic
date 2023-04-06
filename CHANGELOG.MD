@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added MythicReactUI code to this repository for easier control and development for the community. 
 - New image and container are only used when `mythic_react_debug` is set to `true`, otherwise normal nginx container serving static files is used.
 - Updated scripting package for Jupyter to mythic==0.1.0rc3
+- Updated MythicUI tags to treat http* json fields as clickable links
 
 ## [3.0.0rc30] - 2023-04-5
 

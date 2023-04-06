@@ -173,7 +173,7 @@ return (
                   </TableCell>
                 </TableRow>
                 <TableRow hover>
-                  <TableCell>External URL</TableCell>
+                  <TableCell>Reference URL</TableCell>
                   <TableCell>
                     <Link href={selectedTag?.url || "#"} target="_blank" referrerPolicy='no'>{selectedTag?.url ? "click here" : "No link provided"}</Link>
                   </TableCell>
@@ -188,7 +188,12 @@ return (
                             {Object.keys(selectedTag.data).map( key => (
                               <TableRow key={key} hover>
                                 <TableCell>{key}</TableCell>
-                                <TableCell>{selectedTag.data[key]}</TableCell>
+                                <TableCell>{selectedTag.data[key].startsWith("http") ? (
+                                    <>
+                                      {"Click for: "}
+                                      <Link href={selectedTag.data[key]} target="_blank" referrerPolicy='no'>{key}</Link>
+                                    </>
+                                ) : (selectedTag.data[key])}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
