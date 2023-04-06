@@ -5,6 +5,7 @@ docs/_build/
 # Environments
 .env
 .venv
+*.swp
 mythic_server
 docker-compose.yml
 .ipynb_checkpoints/
