@@ -96,6 +96,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 						RawMessage: &base64Bytes,
 						RemoteIP:   requestIp,
 					}); err != nil {
+						logging.LogError(err, "Failed to process url encoded agent message")
 						c.JSON(http.StatusNotFound, gin.H{})
 						return
 					} else {
@@ -116,6 +117,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 					RawMessage: &base64Bytes,
 					RemoteIP:   requestIp,
 				}); err != nil {
+					logging.LogError(err, "Failed to process agent message from cookie")
 					c.JSON(http.StatusNotFound, gin.H{})
 					return
 				} else {
@@ -129,6 +131,7 @@ func AgentMessageGetWebhook(c *gin.Context) {
 				Base64Message: &agentMessage,
 				RemoteIP:      requestIp,
 			}); err != nil {
+				logging.LogError(err, "Failed to process agent message in body of get request")
 				c.JSON(http.StatusNotFound, gin.H{})
 				return
 			} else {
