@@ -29,8 +29,8 @@ const importTagtypesMutation = gql`
  `;
 
 const exportTagtypesQuery = gql`
-query getAllTagTypes($operation_id: Int!) {
-    tagtype(where: {operation_id: {_eq: $operation_id}}) {
+query getAllTagTypes {
+    tagtype {
         color
         description
         name
@@ -106,11 +106,11 @@ export function TagtypesTable({tagtypes, onDeleteTagtype, onNewTag, onUpdateTagt
                     <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
                         <TableHead>
                             <TableRow>
-                                <TableCell style={{width: "4rem"}}>Delete</TableCell>
-                                <TableCell style={{width: "6rem"}}>Modify</TableCell>
+                                <TableCell style={{width: "3rem"}}>Delete</TableCell>
+                                <TableCell style={{width: "3rem"}}>Modify</TableCell>
                                 <TableCell>Name</TableCell>
                                 <TableCell>Description</TableCell>
-                                <TableCell>Tag Number</TableCell>
+                                <TableCell style={{width: "7rem"}}>Instances</TableCell>
                                 <TableCell>Color</TableCell>
                             </TableRow>
                         </TableHead>

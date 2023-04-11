@@ -51,7 +51,7 @@ subscription CallbacksSubscription ($callback_id: Int!){
     }
 }
  `;
-export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDescription}) =>{
+export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDescription, setOpenHideMultipleDialog}) =>{
     const dropdownAnchorRef = React.useRef(null);
     const theme = useTheme();
     const [openMetaDialog, setOpenMetaDialog] = React.useState(false);
@@ -60,23 +60,23 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
     const [openTaskingButton, setOpenTaskingButton] = React.useState(false);
     const taskingData = React.useRef({"parameters": "", "ui_feature": "callback_table:exit"});
     const [openTaskMultipleDialog, setOpenTaskMultipleDialog] = React.useState(false);
-    const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
+
     const [rowDataStatic, setRowDataStatic] = React.useState(rowData);
     React.useEffect( () => {
         let update = false;
-        if(rowData.locked != rowDataStatic.locked){
+        if(rowData.locked !== rowDataStatic.locked){
             update = true;
         }
-        if(rowData.integrity_level != rowDataStatic.integrity_level){
+        if(rowData.integrity_level !== rowDataStatic.integrity_level){
             update = true;
         }
-        if(rowData.host != rowDataStatic.host){
+        if(rowData.host !== rowDataStatic.host){
             update = true;
         }
-        if(rowData.locked_operator != rowDataStatic.locked_operator){
+        if(rowData.locked_operator !== rowDataStatic.locked_operator){
             update = true;
         }
-        if(rowData.description != rowDataStatic.description){
+        if(rowData.description !== rowDataStatic.description){
             update = true;
         }
         if(update){
@@ -265,17 +265,6 @@ export const CallbacksTableIDCell = ({rowData, onOpenTab, toggleLock, updateDesc
                     onClose={() => {setOpenTaskMultipleDialog(false);}}
                     innerDialog={
                         <CallbacksTabsTaskMultipleDialog callback={rowDataStatic} onClose={() => {setOpenTaskMultipleDialog(false);}} />
-                    }
-                />
-            }
-            {openHideMultipleDialog &&
-                <MythicDialog 
-                    fullWidth={true} 
-                    maxWidth="lg"
-                    open={openHideMultipleDialog}  
-                    onClose={() => {setOpenHideMultipleDialog(false);}}
-                    innerDialog={
-                        <CallbacksTabsHideMultipleDialog onClose={() => {setOpenHideMultipleDialog(false);}} />
                     }
                 />
             }

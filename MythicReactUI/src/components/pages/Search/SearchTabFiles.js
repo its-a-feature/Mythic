@@ -239,6 +239,68 @@ query commentFileMetaScreenshotQuery($operation_id: Int!, $comment: String!, $ho
     }
   }
 `;
+const tagFileMetaUploadSearch = gql`
+${fileMetaFragment}
+query tagFileMetaUploadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+      aggregate {
+        count
+      }
+    }
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: false}, is_screenshot: {_eq: false}}}) {
+      filemetum{
+        ...filemetaData
+      }
+    }
+  }
+`;
+const tagFileMetaDownloadSearch = gql`
+${fileMetaFragment}
+query tagFileMetaDownloadQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+      aggregate {
+        count
+      }
+    }
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_download_from_agent: {_eq: true}, is_screenshot: {_eq: false}}}) {
+      filemetum {
+        ...filemetaData
+      }
+      
+    }
+  }
+`;
+const tagFileBrowserSearch = gql`
+${mythictreeFragment}
+query tagFileBrowserQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
+    tag_aggregate(distinct_on: id, where: {mythictree_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
+      aggregate {
+        count
+      }
+    }
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {mythictree_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, mythictree: {host: {_ilike: $host}, tree_type: {_eq: "file"}}}) {
+      mythictree {
+        ...mythictreeData
+      }
+      
+    }
+  }
+`;
+const tagFileMetaScreenshotSearch = gql`
+${fileMetaFragment}
+query tagFileMetaScreenshotQuery($tag: String!, $host: String!, $offset: Int!, $fetchLimit: Int!) {
+    tag_aggregate(distinct_on: id, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
+      aggregate {
+        count
+      }
+    }
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {filemeta_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}, filemetum: {host: {_ilike: $host}, is_screenshot: {_eq: true}}}) {
+      filemetum{
+        ...filemetaData
+      }
+    }
+  }
+`;
 export function SearchTabFilesLabel(props){
     return (
         <MythicSearchTabLabel label={"Files"} iconComponent={<AttachmentIcon />} {...props}/>
@@ -250,10 +312,9 @@ const SearchTabFilesSearchPanel = (props) => {
     const [searchHost, setSearchHost] = React.useState("");
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Filename");
-    const searchFieldOptions = ["Filename", "Hash", "Comment"];
+    const searchFieldOptions = ["Filename", "Hash", "Comment", "Tag"];
     const [searchLocation, setSearchLocation] = React.useState("Downloads");
     const searchLocationOptions = ["Uploads", "Downloads", "FileBrowser", "Screenshots"];
-    const [parsedSearch, setParsedSearch] = React.useState(false);
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
         props.onChangeSearchField(event.target.value);
@@ -286,6 +347,9 @@ const SearchTabFilesSearchPanel = (props) => {
                 break;
             case "Comment":
                 props.onCommentSearch({search:adjustedSearch, searchHost:adjustedSearchHost, offset: 0, adjustedSearchLocation})
+                break;
+            case "Tag":
+                props.onTagSearch({search:adjustedSearch, searchHost:adjustedSearchHost, offset: 0, adjustedSearchLocation});
                 break;
             default:
                 break;
@@ -326,7 +390,6 @@ const SearchTabFilesSearchPanel = (props) => {
                 setSearchHost(queryParams.get("host"));
                 adjustedSearchHost = queryParams.get("host")
             }
-            setParsedSearch(!parsedSearch);
             submitSearch(null, adjustedSearch, adjustedSearchHost, adjustedSearchField, adjustedSearchLocation);
         }
     }, [props.value, props.index]);
@@ -404,6 +467,9 @@ export const SearchTabFilesPanel = (props) =>{
             case "Comments":
                 onCommentSearch({search, searchHost, offset: 0, adjustedSearchLocation: searchLocation});
                 break;
+            case "Tag":
+                onTagSearch({search, searchHost, offset: 0, adjustedSearchLocation: searchLocation});
+                break;
             default:
                 break;
         }
@@ -420,39 +486,67 @@ export const SearchTabFilesPanel = (props) =>{
             case "Comments":
                 onCommentSearch({search, searchHost, offset: 0, adjustedSearchLocation: field});
                 break;
+            case "Tag":
+                onTagSearch({search, searchHost, offset: 0, adjustedSearchLocation: field});
+                break;
             default:
                 break;
         }
     }
     const handleFileMetaDownloadSearchResults = (data) => {
         snackActions.dismiss();
-        setTotalCount(data.filemeta_aggregate.aggregate.count);
+        if(searchField === "Tag"){
+            setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
+            setFileMetaDownloadData(data?.tag?.map(t => t.filemetum) || []);
+        } else {
+            setTotalCount(data.filemeta_aggregate.aggregate.count);
+            setFileMetaDownloadData(data.filemeta);
+        }
+
         setFileBrowserData([]);
         setFileMetaUploadData([]);
         setFileMetaScreenshotData([]);
-        setFileMetaDownloadData(data.filemeta);
+
     }
     const handleFileMetaUploadSearchResults = (data) => {
         snackActions.dismiss();
-        console.log(data.filemeta_aggregate)
-        setTotalCount(data.filemeta_aggregate.aggregate.count);
+        if(searchField === "Tag"){
+            setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
+            setFileMetaUploadData(data?.tag?.map(t => t.filemetum) || []);
+        } else {
+            setFileMetaUploadData(data.filemeta);
+            setTotalCount(data.filemeta_aggregate.aggregate.count);
+        }
+
         setFileBrowserData([]);
         setFileMetaDownloadData([]);
         setFileMetaScreenshotData([]);
-        setFileMetaUploadData(data.filemeta);
+
     }
     const handleFileMetaScrenshotSearchResults = (data) => {
         snackActions.dismiss();
-        setTotalCount(data.filemeta_aggregate.aggregate.count);
+        if(searchField === "Tag"){
+            setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
+            setFileMetaScreenshotData(data?.tag?.map(t => t.filemetum) || []);
+        } else {
+            setTotalCount(data.filemeta_aggregate.aggregate.count);
+            setFileMetaScreenshotData(data.filemeta);
+        }
+
         setFileBrowserData([]);
         setFileMetaDownloadData([]);
         setFileMetaUploadData([]);
-        setFileMetaScreenshotData(data.filemeta);
     }
     const handleFileBrowserSearchResults = (data) => {
         snackActions.dismiss();
-        setTotalCount(data.mythictree_aggregate.aggregate.count);
-        setFileBrowserData(data.mythictree);
+        if(searchField === "Tag"){
+            setTotalCount(data?.tag_aggregate?.aggregate?.count || 0);
+            setFileBrowserData(data?.tag?.map(t => t.mythictree) || []);
+        } else {
+            setTotalCount(data.mythictree_aggregate.aggregate.count);
+            setFileBrowserData(data.mythictree);
+        }
+
         setFileMetaUploadData([]);
         setFileMetaDownloadData([]);
         setFileMetaScreenshotData([]);
@@ -513,6 +607,26 @@ export const SearchTabFilesPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const [getcommentFileMetaScreenshotSearch] = useLazyQuery(commentFileMetaScreenshotSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleFileMetaScrenshotSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [gettagFileMetaUploadSearch] = useLazyQuery(tagFileMetaUploadSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleFileMetaUploadSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [gettagFileMetaDownloadSearch] = useLazyQuery(tagFileMetaDownloadSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleFileMetaDownloadSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [gettagFileBrowserSearch] = useLazyQuery(tagFileBrowserSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleFileBrowserSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [gettagFileMetaScreenshotSearch] = useLazyQuery(tagFileMetaScreenshotSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleFileMetaScrenshotSearchResults,
         onError: handleCallbackSearchFailure
@@ -635,6 +749,44 @@ export const SearchTabFilesPanel = (props) =>{
             }})
         }
     }
+    const onTagSearch = ({search, searchHost, offset, adjustedSearchLocation}) => {
+        //snackActions.info("Searching...", {persist:true});
+        let new_search = search;
+        if(search === ""){
+            new_search = "_";
+        }
+        setSearch(new_search);
+        setSearchHost(searchHost);
+        if(adjustedSearchLocation === "FileBrowser"){
+            gettagFileBrowserSearch({variables:{
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    tag: "%" + new_search + "%",
+                    host: "%" + searchHost + "%"
+                }})
+        }else if(adjustedSearchLocation === "Uploads"){
+            gettagFileMetaUploadSearch({variables:{
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    tag: "%" + new_search + "%",
+                    host: "%" + searchHost + "%"
+                }})
+        }else if(adjustedSearchLocation === "Downloads"){
+            gettagFileMetaDownloadSearch({variables:{
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    tag: "%" + new_search + "%",
+                    host: "%" + searchHost + "%"
+                }})
+        }else{
+            gettagFileMetaScreenshotSearch({variables:{
+                    offset: offset,
+                    fetchLimit: fetchLimit,
+                    tag: "%" + new_search + "%",
+                    host: "%" + searchHost + "%"
+                }})
+        }
+    }
     const onChangePage = (event, value) => {
 
         switch(searchField){
@@ -647,6 +799,9 @@ export const SearchTabFilesPanel = (props) =>{
             case "Comments":
                 onCommentSearch({search: search, searchHost:searchHost, offset: (value - 1) * fetchLimit, adjustedSearchLocation: searchLocation });
                 break;
+            case "Tag":
+                onTagSearch({search:search, searchHost: searchHost, offset: (value-1) * fetchLimit, adjustedSearchLocation: searchLocation});
+                break;
             default:
                 break;
         }
@@ -654,8 +809,12 @@ export const SearchTabFilesPanel = (props) =>{
     
     return (
         <MythicTabPanel {...props} >
-            <SearchTabFilesSearchPanel onChangeSearchField={onChangeSearchField} onFilenameSearch={onFilenameSearch} value={props.value} index={props.index} queryParams={props.queryParams}
-                onHashSearch={onHashSearch} onCommentSearch={onCommentSearch} onChangeSearchLocation={onChangeSearchLocation} changeSearchParam={props.changeSearchParam}/>
+            <SearchTabFilesSearchPanel onChangeSearchField={onChangeSearchField} onFilenameSearch={onFilenameSearch}
+                                       value={props.value} index={props.index} queryParams={props.queryParams}
+                                        onHashSearch={onHashSearch} onCommentSearch={onCommentSearch}
+                                       onTagSearch={onTagSearch}
+                                       onChangeSearchLocation={onChangeSearchLocation}
+                                       changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {searchLocation === "Uploads" ? ( <FileMetaUploadTable me={me} files={fileMetaUploadData} /> ) : (null)}
                 {searchLocation === "Downloads" ? ( <FileMetaDownloadTable me={me} files={fileMetaDownloadData} /> ) : (null) }

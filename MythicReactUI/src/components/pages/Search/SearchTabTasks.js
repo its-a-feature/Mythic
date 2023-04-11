@@ -19,53 +19,68 @@ import Select from '@mui/material/Select';
 const fetchLimit = 20;
 const responseSearch = gql`
 ${taskingDataFragment}
-query responseQuery($operation_id: Int!, $search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, responses: {response_escape: {_ilike: $search}}, callback: {operation_id: {_eq: $operation_id}}}) {
+query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, responses: {response_escape: {_ilike: $search}}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, responses: {response_escape: {_ilike: $search}}, callback: {operation_id: {_eq: $operation_id}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, responses: {response_escape: {_ilike: $search}}}) {
       ...taskData
     }
   }
 `;
 const parameterSearch = gql`
 ${taskingDataFragment}
-query parametersQuery($operation_id: Int!, $search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}, callback: {operation_id: {_eq: $operation_id}}}) {
+query parametersQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}, callback: {operation_id: {_eq: $operation_id}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, original_params: {_ilike: $search}}) {
       ...taskData
     }
   }
 `;
 const commentSearch = gql`
 ${taskingDataFragment}
-query responseQuery($operation_id: Int!, $search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}, callback: {operation_id: {_eq: $operation_id}}}) {
+query responseQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}, callback: {operation_id: {_eq: $operation_id}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, comment: {_ilike: $search}}) {
       ...taskData
     }
   }
 `;
 const commandSearch = gql`
 ${taskingDataFragment}
-query commandQuery($operation_id: Int!, $search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
-    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}, callback: {operation_id: {_eq: $operation_id}}}) {
+query commandQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    task_aggregate(distinct_on: id, order_by: {id: asc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
       aggregate {
         count(columns: id)
       }
     }
-    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}, callback: {operation_id: {_eq: $operation_id}}}) {
+    task(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {status: {_ilike: $status}, command_name: {_ilike: $search}}) {
       ...taskData
+    }
+  }
+`;
+const tagSearch = gql`
+${taskingDataFragment}
+query tagQuery($search: String!, $offset: Int!, $fetchLimit: Int!, $status: String!) {
+    tag_aggregate(distinct_on: id, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, data: {_cast: {String: {_ilike: $search}}}}) {
+      aggregate {
+        count
+      }
+    }
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: asc}, where: {task_id: {_is_null: false}, task: {status: {_ilike: $status}}, data: {_cast: {String: {_ilike: $search}}}}) {
+      task{
+        ...taskData
+      }
     }
   }
 `;
@@ -80,7 +95,7 @@ const SearchTabTasksSearchPanel = (props) => {
     const theme = useTheme();
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Output");
-    const searchFieldOptions = ["Output","Command", "Parameters", "Comment"];
+    const searchFieldOptions = ["Output","Command", "Parameters", "Comment", "Tag"];
     const [filterTaskStatus, setFilterTaskStatus] = React.useState("");
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
@@ -112,6 +127,9 @@ const SearchTabTasksSearchPanel = (props) => {
                 break;
             case "Command":
                 props.onCommandSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus})
+                break;
+            case "Tag":
+                props.onTagSearch({search:adjustedSearch, offset: 0, taskStatus: adjustedTaskStatus});
                 break;
             default:
                 break;
@@ -184,7 +202,6 @@ export const SearchTabTasksPanel = (props) =>{
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Output");
     const [taskStatus, setTaskStatus] = React.useState("");
-    const me = props.me;
     const onChangeSearchField = (field) => {
         setSearchField(field);
         switch(field){
@@ -199,6 +216,10 @@ export const SearchTabTasksPanel = (props) =>{
                 break;
             case "Command":
                 onCommandSearch({search, offset: 0, taskStatus});
+                break;
+            case "Tag":
+                onTagSearch({search, offset: 0, taskStatus});
+                break;
             default:
                 break;
         }
@@ -208,8 +229,14 @@ export const SearchTabTasksPanel = (props) =>{
     }
     const handleCallbackSearchSuccess = (data) => {
         snackActions.dismiss();
-        setTotalCount(data.task_aggregate.aggregate.count);
-        setTaskingData({task: data.task});
+        if(searchField === "Tag"){
+            setTotalCount(data.tag_aggregate.aggregate.count);
+            setTaskingData({task: data.tag.map(t => t.task)});
+        } else {
+            setTotalCount(data.task_aggregate.aggregate.count);
+            setTaskingData({task: data.task});
+        }
+
     }
     const handleCallbackSearchFailure = (data) => {
         snackActions.dismiss();
@@ -236,6 +263,11 @@ export const SearchTabTasksPanel = (props) =>{
         onCompleted: handleCallbackSearchSuccess,
         onError: handleCallbackSearchFailure
     })
+    const [getTagSearch] = useLazyQuery(tagSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCallbackSearchSuccess,
+        onError: handleCallbackSearchFailure
+    })
     const onOutputSearch = ({search, offset, taskStatus}) => {
         //snackActions.info("Searching...", {persist:true});
         setSearch(search);
@@ -248,7 +280,6 @@ export const SearchTabTasksPanel = (props) =>{
             newTaskStatus = "_";
         }
         getOutputSearch({variables:{
-            operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
@@ -267,7 +298,6 @@ export const SearchTabTasksPanel = (props) =>{
             newTaskStatus = "_";
         }
         getParameterSearch({variables:{
-            operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
@@ -286,7 +316,6 @@ export const SearchTabTasksPanel = (props) =>{
         }
         setSearch(search);
         getCommentSearch({variables:{
-            operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
@@ -305,12 +334,29 @@ export const SearchTabTasksPanel = (props) =>{
         }
         setSearch(search);
         getCommandSearch({variables:{
-            operation_id: me?.user?.current_operation_id || 0,
             offset: offset,
             fetchLimit: fetchLimit,
             search: "%" + new_search + "%",
             status: "%" + newTaskStatus + "%"
         }})
+    }
+    const onTagSearch = ({search, offset, taskStatus}) => {
+        //snackActions.info("Searching...", {persist:true});
+        let new_search = search;
+        if(search === ""){
+            new_search = "_";
+        }
+        let newTaskStatus = taskStatus;
+        if(newTaskStatus === ""){
+            newTaskStatus = "_";
+        }
+        setSearch(search);
+        getTagSearch({variables:{
+                offset: offset,
+                fetchLimit: fetchLimit,
+                search: "%" + new_search + "%",
+                status: "%" + newTaskStatus + "%"
+            }})
     }
     const onChangePage = (event, value) => {
 
@@ -327,6 +373,9 @@ export const SearchTabTasksPanel = (props) =>{
             case "Command":
                 onCommandSearch({search, offset: (value - 1) * fetchLimit, taskStatus });
                 break;
+            case "Tag":
+                onTagSearch({search, offset: (value-1) *fetchLimit, taskStatus});
+                break;
             default:
                 break;
         }
@@ -337,6 +386,7 @@ export const SearchTabTasksPanel = (props) =>{
                 onChangeSearchField={onChangeSearchField} 
                 onCommandSearch={onCommandSearch} 
                 onOutputSearch={onOutputSearch} value={props.value} index={props.index} onChangeTaskStatus={onChangeTaskStatus}
+                onTagSearch={onTagSearch}
                 onParameterSearch={onParameterSearch} onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}/>
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 

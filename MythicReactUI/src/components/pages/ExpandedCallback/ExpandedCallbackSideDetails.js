@@ -29,7 +29,7 @@ export function ExpandedCallbackSideDetails(props){
         <div style={{maxWidth, width: maxWidth, display: "inline-flex", height: "calc(94vh)", flexDirection: "column"}}>
             <Paper elevation={5} style={{backgroundColor: theme.pageHeader.main, color: theme.pageHeaderText.main, marginBottom: "5px", marginTop: "10px"}} variant={"elevation"}>
                 <Typography variant="h3" style={{textAlign: "left", display: "inline-block", marginLeft: "20px"}}>
-                    Callback {props.callback.id}
+                    Callback {props.callback.display_id}
                 </Typography>
             </Paper>
             <TableContainer component={Paper} className="mythicElement">   

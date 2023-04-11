@@ -169,8 +169,8 @@ export function MythicViewJSONAsTableDialog(props) {
                                         {element.is_dictionary ? (
                                           Object.keys(element.value).map( (key, dictIndex) => (
                                             <TableRow key={'element' + dictIndex + "dictheader"}>
-                                              <TableCell  style={{width: "30%"}}>{key}</TableCell>
-                                              <TableCell >{convertValueToContextValue(key, element.value[key])}</TableCell>
+                                              <TableCell  style={{width: "30%", wordBreak: "break-all"}}>{key}</TableCell>
+                                              <TableCell style={{wordBreak: "break-all"}}>{convertValueToContextValue(key, element.value[key])}</TableCell>
                                             </TableRow>
                                           ))
                                         ): (

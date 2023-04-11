@@ -12,6 +12,7 @@ import MythicStyledTableCell from '../../MythicComponents/MythicTableCell';
 import { createTheme } from '@mui/material/styles';
 import {NewTagtypesDialog} from './NewTagtypesDialog';
 import Chip from '@mui/material/Chip';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 
 export function TagtypesTableRow(props){
@@ -47,7 +48,7 @@ export function TagtypesTableRow(props){
                   
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                  <Button variant='contained' color="primary" onClick={() => setOpenUpdateDialog(true)}>Modify</Button>
+                    <IconButton size="small" onClick={()=>{setOpenUpdateDialog(true);}} color="info" variant="contained"><SettingsIcon color="warning" /></IconButton>
                   {openUpdate && 
                     <MythicDialog fullWidth={true} maxWidth="sm" open={openUpdate} 
                       onClose={()=>{setOpenUpdateDialog(false);}} 

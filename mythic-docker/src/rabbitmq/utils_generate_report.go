@@ -214,6 +214,9 @@ func GenerateReport(reportConfig GenerateReportMessage) {
 				VALUES (:agent_file_id, :path, :operation_id, :operator_id, :sha1, :md5, :complete, :filename, :comment, :chunk_size, :total_chunks, :chunks_received)`,
 				newFileMeta); err != nil {
 				logging.LogError(err, "Failed to create new filemeta data")
+				go database.SendAllOperationsMessage("Failed to create report", newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_WARNING)
+			} else {
+				go database.SendAllOperationsMessage("created report:"+newFileMeta.AgentFileID, newFileMeta.OperationID, "generated_report", database.MESSAGE_LEVEL_INFO)
 			}
 		}
 	}
@@ -252,6 +255,7 @@ func getOperationMetrics(reportConfig GenerateReportMessage) []interface{} {
 		uniqueDomains := []string{}
 		totalCallbacks := 0
 		totalHighIntegrityCallbacks := 0
+		totalTasks := 0
 		excludedIDs := strings.Split(reportConfig.ExcludedIDs, ",")
 		excludedUsers := strings.Split(reportConfig.ExcludedUsers, ",")
 		excludedHosts := strings.Split(reportConfig.ExcludedHosts, ",")
@@ -268,18 +272,34 @@ func getOperationMetrics(reportConfig GenerateReportMessage) []interface{} {
 				continue
 			} else {
 				if !utils.SliceContains(uniqueUsers, currentUser) {
-					uniqueUsers = append(uniqueUsers, currentUser)
+					if callbacks[i].User != "" {
+						uniqueUsers = append(uniqueUsers, currentUser)
+					}
+
 				}
 				if !utils.SliceContains(uniqueHosts, callbacks[i].Host) {
-					uniqueHosts = append(uniqueHosts, callbacks[i].Host)
+					if callbacks[i].Host != "" && callbacks[i].Host != "UNKNOWN" {
+						uniqueHosts = append(uniqueHosts, callbacks[i].Host)
+					}
+
 				}
 				if !utils.SliceContains(uniqueDomains, callbacks[i].Domain) {
-					uniqueDomains = append(uniqueDomains, callbacks[i].Domain)
+					if callbacks[i].Domain != "" {
+						uniqueDomains = append(uniqueDomains, callbacks[i].Domain)
+					}
+
 				}
 				totalCallbacks += 1
 				if callbacks[i].IntegrityLevel > 2 {
 					totalHighIntegrityCallbacks += 1
 				}
+				tasksPerCallback := 0
+				if err := database.DB.Get(&tasksPerCallback, `SELECT Count(*) FROM task WHERE callback_id=$1`, callbacks[i].ID); err != nil {
+					logging.LogError(err, "Failed to get tasks count from callback id")
+				} else {
+					totalTasks += tasksPerCallback
+				}
+
 			}
 		}
 		metrics := [][]interface{}{
@@ -288,8 +308,7 @@ func getOperationMetrics(reportConfig GenerateReportMessage) []interface{} {
 			{"Domains Accessed", strings.Join(uniqueDomains, "\n")},
 			{"Total Callbacks", strconv.Itoa(totalCallbacks)},
 			{"Total High Integrity Callbacks", strconv.Itoa(totalHighIntegrityCallbacks)},
-			{"Total Tasks Issued", "0"},
-			{"Credentials Compromised", "0"},
+			{"Total Tasks Issued", strconv.Itoa(totalTasks)},
 		}
 		metricsRows := make([]XMLTableRows, len(metrics))
 		for i := 0; i < len(metrics); i++ {

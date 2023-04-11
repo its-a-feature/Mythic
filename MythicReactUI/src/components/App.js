@@ -145,7 +145,7 @@ export function App(props) {
                                 <LoggedInRoute exact path='/new/task/:taskId' component={SingleTaskView} />
                                 <LoggedInRoute exact path='/new/tasks/by_range' component={SingleTaskView} />
                                 <LoggedInRoute exact path='/new/operations' component={Operations} />
-                                <LoggedInRoute exact path='/new/callbacks/:callbackId' component={ExpandedCallback} />
+                                <LoggedInRoute exact path='/new/callbacks/:callbackDisplayId' component={ExpandedCallback} />
                                 <LoggedInRoute exact path='/new/reporting' component={Reporting} />
                                 <LoggedInRoute exact path='/new/mitre' component={MitreAttack} />
                                 <LoggedInRoute exact path='/new/tagtypes' component={Tags} />

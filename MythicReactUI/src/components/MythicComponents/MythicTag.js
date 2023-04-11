@@ -44,8 +44,8 @@ const updateTagMutationTemplate = gql`
   `;
 const getObjectTagsQueryTemplate = ({target_object}) => {
 return gql`
-query getObjectTags ($operation_id: Int!, $${target_object}: Int!) {
-  tag(where: {operation_id: {_eq: $operation_id}, ${target_object}: {_eq: $${target_object}}}) {
+query getObjectTags ($${target_object}: Int!) {
+  tag(where: {${target_object}: {_eq: $${target_object}}}) {
     source
     url
     id
@@ -61,8 +61,8 @@ query getObjectTags ($operation_id: Int!, $${target_object}: Int!) {
 `;
 }
 const getTagtypesQuery = gql`
-query getTagtype ($operation_id: Int!) {
-  tagtype(where: {operation_id: {_eq: $operation_id}}) {
+query getTagtype {
+  tagtype {
     name
     color
     description
@@ -70,7 +70,7 @@ query getTagtype ($operation_id: Int!) {
   }
 }
 `;
-const deleteTagMutation = gql`
+export const deleteTagMutation = gql`
 mutation deleteTag($tag_id: Int!){
   delete_tag_by_pk(id: $tag_id){
     id
@@ -238,7 +238,7 @@ export function ViewEditTagsDialog(props) {
   const [openNewDialog, setOpenNewDialog] = React.useState(false);
   const [openDelete, setOpenDeleteDialog] = React.useState(false);
   const {} = useQuery(getObjectTagsQueryTemplate({target_object: props.target_object}), {
-    variables: {operation_id: props.me?.user?.current_operation_id || 0, [props.target_object]: props.target_object_id},
+    variables: {[props.target_object]: props.target_object_id},
     onCompleted: data => {
       setExistingTags(data.tag);
       if(data.tag.length > 0){
@@ -414,7 +414,6 @@ export function NewTagDialog(props) {
     const [selectedTagType, setSelectedTagType] = React.useState("");
     const [existingTagTypes, setExistingTagTypes] = React.useState([]);
     const { loading, error } = useQuery(getTagtypesQuery, {
-        variables: {operation_id: props.me?.user?.current_operation_id || 0},
         onCompleted: data => {
           setExistingTagTypes(data.tagtype);
           if(data.tagtype.length > 0){

@@ -56,7 +56,7 @@ query accountQuery($operation_id: Int!, $account: String!, $offset: Int!, $fetch
 `;
 const realmSearch = gql`
 ${credentialFragment}
-query accountQuery($operation_id: Int!, $realm: String!, $offset: Int!, $fetchLimit: Int!) {
+query realmQuery($operation_id: Int!, $realm: String!, $offset: Int!, $fetchLimit: Int!) {
     credential_aggregate(distinct_on: id, where: {realm: {_ilike: $realm}, operation_id: {_eq: $operation_id}}) {
       aggregate {
         count
@@ -69,7 +69,7 @@ query accountQuery($operation_id: Int!, $realm: String!, $offset: Int!, $fetchLi
 `;
 const credentialSearch = gql`
 ${credentialFragment}
-query accountQuery($operation_id: Int!, $credential: String!, $offset: Int!, $fetchLimit: Int!) {
+query credQuery($operation_id: Int!, $credential: String!, $offset: Int!, $fetchLimit: Int!) {
     credential_aggregate(distinct_on: id, where: {credential_text: {_ilike: $credential}, operation_id: {_eq: $operation_id}}) {
       aggregate {
         count
@@ -82,7 +82,7 @@ query accountQuery($operation_id: Int!, $credential: String!, $offset: Int!, $fe
 `;
 const commentSearch = gql`
 ${credentialFragment}
-query accountQuery($operation_id: Int!, $comment: String!, $offset: Int!, $fetchLimit: Int!) {
+query commentQuery($operation_id: Int!, $comment: String!, $offset: Int!, $fetchLimit: Int!) {
     credential_aggregate(distinct_on: id, where: {comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}}) {
       aggregate {
         count
@@ -90,6 +90,21 @@ query accountQuery($operation_id: Int!, $comment: String!, $offset: Int!, $fetch
     }
     credential(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {comment: {_ilike: $comment}, operation_id: {_eq: $operation_id}}) {
       ...credentialData
+    }
+  }
+`;
+const tagSearch = gql`
+${credentialFragment}
+query tagQuery($tag: String!, $offset: Int!, $fetchLimit: Int!) {
+    tag_aggregate(distinct_on: id, where: {credential_id: {_is_null: false}, data: {_cast: {String: {_ilike: $tag}}}}) {
+      aggregate {
+        count
+      }
+    }
+    tag(limit: $fetchLimit, distinct_on: id, offset: $offset, order_by: {id: desc}, where: {credential_id: {_is_null: false}, data: {_cast: {String: {_ilike:$tag}}}}) {
+        credential {
+            ...credentialData
+        }
     }
   }
 `;
@@ -113,7 +128,7 @@ export function SearchTabCredentialsLabel(props){
 const SearchTabCredentialsSearchPanel = (props) => {
     const [search, setSearch] = React.useState("");
     const [searchField, setSearchField] = React.useState("Account");
-    const searchFieldOptions = ["Account", "Realm", "Comment", "Credential"];
+    const searchFieldOptions = ["Account", "Realm", "Comment", "Credential", "Tag"];
     const [createCredentialDialogOpen, setCreateCredentialDialogOpen] = React.useState(false);
     const handleSearchFieldChange = (event) => {
         setSearchField(event.target.value);
@@ -156,8 +171,8 @@ const SearchTabCredentialsSearchPanel = (props) => {
             case "Credential":
                 props.onCredentialSearch({search:adjustedSearch, offset: 0})
                 break;
-            case "Type":
-                props.OnTypeSearch({search:adjustedSearch, offset: 0})
+            case "Tag":
+                props.onTagSearch({search:adjustedSearch, offset: 0})
                 break;
             default:
                 break;
@@ -249,14 +264,23 @@ export const SearchTabCredentialsPanel = (props) =>{
             case "Comment":
                 onCommentSearch({search, offset: 0});
                 break;
+            case "Tag":
+                onTagSearch({search, offset: 0});
+                break;
             default:
                 break;
         }
     }
     const handleCredentialSearchResults = (data) => {
         snackActions.dismiss();
-        setTotalCount(data.credential_aggregate.aggregate.count);
-        setCredentialData(data.credential);
+        if(searchField === "Tag"){
+            setTotalCount(data.tag_aggregate.aggregate.count);
+            setCredentialData(data.tag.map(c => c.credential));
+        } else {
+            setTotalCount(data.credential_aggregate.aggregate.count);
+            setCredentialData(data.credential);
+        }
+
     }
     const handleCallbackSearchFailure = (data) => {
         snackActions.dismiss();
@@ -279,6 +303,11 @@ export const SearchTabCredentialsPanel = (props) =>{
         onError: handleCallbackSearchFailure
     })
     const [getCommentSearch] = useLazyQuery(commentSearch, {
+        fetchPolicy: "no-cache",
+        onCompleted: handleCredentialSearchResults,
+        onError: handleCallbackSearchFailure
+    })
+    const [getTagSearch] = useLazyQuery(tagSearch, {
         fetchPolicy: "no-cache",
         onCompleted: handleCredentialSearchResults,
         onError: handleCallbackSearchFailure
@@ -327,6 +356,20 @@ export const SearchTabCredentialsPanel = (props) =>{
             comment: "%" + new_search + "%",
         }})
     }
+    const onTagSearch = ({search, offset}) => {
+        //snackActions.info("Searching...", {persist:true});
+        setSearch(search);
+        let new_search = search;
+        if(new_search === ""){
+            new_search = "_";
+        }
+        getTagSearch({variables:{
+                operation_id: me?.user?.current_operation_id || 0,
+                offset: offset,
+                fetchLimit: fetchLimit,
+                tag:  "%" + new_search + "%",
+            }})
+    }
     const onChangePage = (event, value) => {
         if(value === 1){
             switch(searchField){
@@ -341,6 +384,9 @@ export const SearchTabCredentialsPanel = (props) =>{
                     break;
                 case "Comment":
                     onCommentSearch({search, offset: 0});
+                    break;
+                case "Tag":
+                    onTagSearch({search, offset: 0});
                     break;
                 default:
                     break;
@@ -360,6 +406,9 @@ export const SearchTabCredentialsPanel = (props) =>{
                 case "Comment":
                     onCommentSearch({search, offset: (value - 1) * fetchLimit});
                     break;
+                case "Tag":
+                    onTagSearch({search, offset: (value-1) * fetchLimit});
+                    break;
                 default:
                     break;
             }
@@ -368,8 +417,11 @@ export const SearchTabCredentialsPanel = (props) =>{
     }
     return (
         <MythicTabPanel {...props} >
-            <SearchTabCredentialsSearchPanel me={me} onChangeSearchField={onChangeSearchField} onAccountSearch={onAccountSearch} value={props.value} index={props.index}
-                onRealmSearch={onRealmSearch} onCredentialSearch={onCredentialSearch} onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}
+            <SearchTabCredentialsSearchPanel me={me} onChangeSearchField={onChangeSearchField}
+                                             onAccountSearch={onAccountSearch} value={props.value} index={props.index}
+                                             onRealmSearch={onRealmSearch} onCredentialSearch={onCredentialSearch}
+                                             onCommentSearch={onCommentSearch} changeSearchParam={props.changeSearchParam}
+                                             onTagSearch={onTagSearch}
                 />
             <div style={{overflowY: "auto", flexGrow: 1}}>
                 {credentialaData.length > 0 ? (

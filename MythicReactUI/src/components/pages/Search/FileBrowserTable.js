@@ -103,18 +103,21 @@ function FileBrowserTableRow(props){
     return (
         <React.Fragment>
             <TableRow hover>
-                <MythicDialog fullWidth={true} maxWidth="md" open={viewPermissionsDialogOpen} 
+                {viewPermissionsDialogOpen && <MythicDialog fullWidth={true} maxWidth="md" open={viewPermissionsDialogOpen}
                     onClose={()=>{setViewPermissionsDialogOpen(false);}} 
                     innerDialog={<MythicViewJSONAsTableDialog title="View Permissions Data" leftColumn="Permission" rightColumn="Value" value={props.metadata} onClose={()=>{setViewPermissionsDialogOpen(false);}} />}
                     />
-                <MythicDialog fullWidth={true} maxWidth="md" open={fileHistoryDialogOpen} 
+                }
+                {fileHistoryDialogOpen && <MythicDialog fullWidth={true} maxWidth="md" open={fileHistoryDialogOpen}
                     onClose={()=>{setFileHistoryDialogOpen(false);}} 
                     innerDialog={<DownloadHistoryDialog title="Download History" value={props.filemeta} onClose={()=>{setFileHistoryDialogOpen(false);}} />}
                 />
-                <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen} 
+                }
+                {editCommentDialogOpen && <MythicDialog fullWidth={true} maxWidth="md" open={editCommentDialogOpen}
                     onClose={()=>{setEditCommentDialogOpen(false);}} 
                     innerDialog={<MythicModifyStringDialog title="Edit File Browser Comment" onSubmit={onSubmitUpdatedComment} value={props.comment} onClose={()=>{setEditCommentDialogOpen(false);}} />}
                 />
+                }
                 <MythicStyledTableCell>
                 <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.host}</Typography>
                 <Typography variant="body2" style={{wordBreak: "break-all", textDecoration: props.deleted ? "strike-through" : ""}}>{props.full_path_text}</Typography>

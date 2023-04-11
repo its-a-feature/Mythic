@@ -3,34 +3,35 @@ import Button from '@mui/material/Button';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Grid from '@mui/material/Grid';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
-import Paper from '@mui/material/Paper';
-import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 import ListItemText from '@mui/material/ListItemText';
 import makeStyles from '@mui/styles/makeStyles';
 import {useQuery, gql } from '@apollo/client';
-import { meState } from '../../../cache';
-import {useReactiveVar, useMutation} from '@apollo/client';
+import {useMutation} from '@apollo/client';
 import {hideCallbackMutation} from './CallbackMutations';
-import {snackActions} from '../../utilities/Snackbar';
 import { CardContent } from '@mui/material';
+import LinearProgress from '@mui/material/LinearProgress';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Dialog from '@mui/material/Dialog';
+import {snackActions} from "../../utilities/Snackbar";
 
 
 const callbacksAndFeaturesQuery = gql`
-query callbacksAndFeatures($operation_id: Int!) {
-  callback(where: {operation_id: {_eq: $operation_id}, active: {_eq: true}}, order_by: {id: asc}) {
+query callbacksAndFeatures{
+  callback(where: {active: {_eq: true}}, order_by: {id: asc}) {
     id
     display_id
     host
     user
     process_name
     pid
+    description
   }
 }`;
 
@@ -60,38 +61,32 @@ function intersection(a, b) {
 }
 
 export function CallbacksTabsHideMultipleDialog({onClose}) {
-    const me = useReactiveVar(meState);
     const classes = useStyles();
     const [checked, setChecked] = React.useState([]);
     const [left, setLeft] = React.useState([]);
     const [right, setRight] = React.useState([]);
     const leftChecked = intersection(checked, left);
     const rightChecked = intersection(checked, right);
-    const updatedCallbacksSuccess = React.useRef(0);
-    const updatedCallbacks = React.useRef(0);
+    const [openProgressIndicator, setOpenProgressIndicator] = React.useState(false);
+    const [progress, setProgress] = React.useState(0);
+    const totalToTask = React.useRef(1);
+    const leftToTask = React.useRef([]);
+    const normalize = (value) => ((value - 0) * 100) / (totalToTask.current - 0);
     const [hideCallback] = useMutation(hideCallbackMutation, {
-      update: (cache, {data}) => {
-          updatedCallbacks.current += 1;
-          if(data.updateCallback.status === "success"){
-            updatedCallbacksSuccess.current += 1;
-          }else{
-              snackActions.warning(data.updateCallback.error);
-          }
-          if(updatedCallbacks.current === right.length){
-            snackActions.success("Successfully updated " + updatedCallbacksSuccess.current + " callbacks status");
-          }
-          
-      },
-      onError: data => {
-          console.log(data);
-      }
+        onCompleted: data => {
+            setProgress(progress + 1);
+            issueNextTasking();
+        },
+        onError: data => {
+            console.log(data);
+        }
     });
-    useQuery(callbacksAndFeaturesQuery, {variables: {operation_id: me?.user?.current_operation_id || 0},
+    useQuery(callbacksAndFeaturesQuery,{
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
         const callbackData = data.callback.map( c => {
           // for each callback, get a unique set of supported features
-          const display = `${c.id} - ${c.user}@${c.host} (${c.pid})`;
+          const display = `${c.display_id} - ${c.user}@${c.host} (${c.pid}) - ${c.description}`;
           return {...c, display};
         });
         setLeft(callbackData);
@@ -131,17 +126,29 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
       setLeft(left.concat(right));
       setRight([]);
     };
-
+    const issueNextTasking = () => {
+        let callback = leftToTask.current.shift(1);
+        if(callback){
+            hideCallback({variables: {callback_display_id: callback.display_id}});
+        }else{
+            snackActions.success("Finished!")
+        }
+    }
     const submitTasking = () => {
       if(right.length === 0){
         onClose();
         return;
       }
-      for(let i = 0; i < right.length; i++){
-        hideCallback({variables: {callback_display_id: right[i].display_id}});
-      }
-      
+      leftToTask.current = [...right];
+      totalToTask.current = right.length;
+      setOpenProgressIndicator(true);
+      issueNextTasking();
     }
+    React.useEffect( () => {
+        if(!openProgressIndicator){
+            setProgress(0);
+        }
+    }, [openProgressIndicator])
     const customList = (title, items) => (
       <React.Fragment>
           <CardHeader
@@ -229,6 +236,31 @@ export function CallbacksTabsHideMultipleDialog({onClose}) {
             </div>
         </div>
         </DialogContent>
+        {openProgressIndicator &&
+            <Dialog
+                open={openProgressIndicator}
+                onClose={() => {setOpenProgressIndicator(false)}}
+                scroll="paper"
+                fullWidth={true}
+                aria-labelledby="scroll-dialog-title"
+                aria-describedby="scroll-dialog-description"
+            >
+                <DialogContent>
+                    {progress === totalToTask.current ? (
+                        "Complete!"
+                    ) : (
+                        "Hiding Callbacks..."
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box sx={{ width: '100%', mr: 1 }}>
+                            <LinearProgress variant="determinate" value={normalize(progress)} valueBuffer={progress + 1} />
+                        </Box>
+                        <Typography style={{width: "5rem"}} variant="body2" color="text.secondary">{progress} / {totalToTask.current} </Typography>
+                    </Box>
+                </DialogContent>
+            </Dialog>
+
+        }
         <DialogActions>
           <Button onClick={onClose} variant="contained" color="primary">
             Close

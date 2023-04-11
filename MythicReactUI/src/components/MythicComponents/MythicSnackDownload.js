@@ -1,18 +1,8 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {useTheme} from '@mui/material/styles';
-import { useSnackbar, SnackbarContent } from 'notistack';
-import Button from '@mui/material/Button';
-import clsx from 'clsx';
 import makeStyles from '@mui/styles/makeStyles';
-import Collapse from '@mui/material/Collapse';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { Link } from '@mui/material';
 
 const useStyles =  makeStyles(theme => ({
   root: {
@@ -54,49 +44,22 @@ const useStyles =  makeStyles(theme => ({
   },
 }));
 
-export const MythicSnackDownload = React.forwardRef((props, ref) => {
-  const theme = useTheme();
-  const classes = useStyles(theme);
-  
-  const { closeSnackbar } = useSnackbar();
-  const [expanded, setExpanded] = useState(true);
+export const MythicSnackDownload = (props) => {
 
-  const handleExpandClick = () => {
-      setExpanded(!expanded);
-  };
+    const theme = useTheme();
+    const classes = useStyles(theme);
+    return (
+        <React.Fragment>
+            <Typography variant="subtitle2" className={classes.typography}>
+                {props.title}
+            </Typography>
+                <React.Fragment>
+                    <Typography gutterBottom>File ready for download</Typography>
+                    <Link download={true} href={"/direct/download/" + props.file_id} target="_blank">
+                        Download here
+                    </Link>
+                </React.Fragment>
+        </React.Fragment>
 
-  const handleDismiss = () => {
-      closeSnackbar(props.id);
-  };
-
-  return (
-      <SnackbarContent ref={ref} className={classes.root}>
-          <Card style={{backgroundColor: theme.palette.success.main}} >
-              <CardActions classes={{ root: classes.actionRoot }}>
-                  <Typography variant="subtitle2" className={classes.typography}>{props.title}</Typography>
-                  <div className={classes.icons}>
-                      <IconButton
-                          aria-label="Show more"
-                          className={clsx(classes.expand, { [classes.expandOpen]: expanded })}
-                          onClick={handleExpandClick}
-                          size="large">
-                          <ExpandMoreIcon />
-                      </IconButton>
-                      <IconButton className={classes.expand} onClick={handleDismiss} size="large">
-                          <CloseIcon />
-                      </IconButton>
-                  </div>
-              </CardActions>
-              <Collapse in={expanded} timeout="auto" unmountOnExit>
-                  <Paper className={classes.collapse}>
-                      <Typography gutterBottom>{props.innerText}</Typography>
-                      <Button size="small" className={classes.button} download href={props.downloadLink}>
-                          <CheckCircleIcon className={classes.checkIcon} />
-                          Download now
-                      </Button>
-                  </Paper>
-              </Collapse>
-          </Card>
-      </SnackbarContent>
-  );
-});
+    );
+};

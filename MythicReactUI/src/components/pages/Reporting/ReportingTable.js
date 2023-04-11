@@ -14,8 +14,6 @@ import Paper from '@mui/material/Paper';
 import {useTheme} from '@mui/material/styles';
 import {snackActions} from '../../utilities/Snackbar';
 import {useMutation, gql, useSubscription} from '@apollo/client';
-import { meState } from '../../../cache';
-import { useReactiveVar } from '@apollo/client';
 import {MythicSnackDownload} from '../../MythicComponents/MythicSnackDownload';
 
 const generateReportMutation = gql`
@@ -27,19 +25,14 @@ mutation generateReportMutation($outputFormat: String!, $includeMITREPerTask: Bo
 }
 `;
 const generatedReportSubscription = gql`
-subscription generatedReportEventSubscription($fromNow: timestamp!, $operation_id: Int!){
-    operationeventlog(limit: 1, where: {deleted: {_eq: false}, timestamp: {_gte: $fromNow}, operation_id: {_eq: $operation_id}, source: {_eq: "generated_report"}}, order_by: {id: desc}) {
-        operator {
-            username
-        }
+subscription generatedReportEventSubscription($fromNow: timestamp!){
+    operationeventlog_stream(batch_size: 1, where: {source: {_eq: "generated_report"}}, cursor: {initial_value: {timestamp: $fromNow}}) {
         message
-        level
-      }
+    }
 }
 `;
 export function ReportingTable(props){
     const theme = useTheme();
-    const me = useReactiveVar(meState);
     const fromNow = React.useRef( (new Date()).toISOString() );
     const [selectedOutputFormat, setSelectedOutputFormat] = React.useState("html");
     const outputOptions = ["html", "json"];
@@ -62,11 +55,17 @@ export function ReportingTable(props){
             snackActions.error(data);
         }
     });
-    const { data } = useSubscription(generatedReportSubscription, {
-        variables: {fromNow: fromNow.current, operation_id: me?.user?.current_operation_id || 0}, 
+    useSubscription(generatedReportSubscription, {
+        variables: {fromNow: fromNow.current},
         fetchPolicy: "no-cache",
         onError: (errorData) => {
             snackActions.warning("Failed to get notifications for generated payloads");
+        },
+        onSubscriptionData: ({subscriptionData}) => {
+            if(subscriptionData?.data?.operationeventlog_stream?.length > 0){
+                const dataUUID = subscriptionData.data.operationeventlog_stream[0].message.split(":").pop().trim();
+                snackActions.success(<MythicSnackDownload title="Download Generated Report" file_id={dataUUID} />, {toastId: dataUUID, autoClose: false, closeOnClick: false});
+            }
         }
     });
     const setOutputFormat = (evt) => {
@@ -95,12 +94,6 @@ export function ReportingTable(props){
             excludedIDs: excludedCallbackID
         }})
     }
-    useEffect( () => {
-        if(data?.operationeventlog?.length > 0){
-            const dataUUID = data.operationeventlog[0].message.split(":").pop().trim();
-            snackActions.success("", {persist: true, content: key => <MythicSnackDownload id={key} title="Download Generated Report" downloadLink={window.location.origin + "/api/v1.4/files/download/" + dataUUID} />});
-        }
-    }, [data])
     return (
         <React.Fragment>
 

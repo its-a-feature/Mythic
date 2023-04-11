@@ -10,6 +10,8 @@ import {SearchTabTokensLabel, SearchTabTokensPanel} from './SearchTabTokens';
 import {SearchTabCallbacksLabel, SearchTabCallbacksPanel} from './SearchTabCallbacks';
 import {SearchTabArtifactsLabel, SearchTabArtifactsPanel} from './SearchTabArtifacts';
 import {SearchTabSocksLabel, SearchTabSocksPanel} from './SearchTabSocks';
+import {SearchTabProcessesLabel, SearchTabProcessPanel} from "./SearchTabProcesses";
+import {SearchTabTagsLabel, SearchTabTagsPanel} from "./SearchTabTags";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -20,7 +22,7 @@ const useStyles = makeStyles((theme) => ({
 
 export function Search(props){
   const classes = useStyles();
-  const tabTypes = ["callbacks", "tasks", "files", "credentials", "keylogs", "artifacts", "tokens", "socks"];
+  const tabTypes = ["callbacks", "tasks", "files", "credentials", "keylogs", "artifacts", "tokens", "socks", "processes", "tags"];
   var params = new URLSearchParams(window.location.search);
   var valueString = params.get("tab");
   var valueIndex = tabTypes.findIndex(t => t === valueString);
@@ -68,6 +70,10 @@ return (
                   return <SearchTabArtifactsLabel key={"artifactstab"} me={props.me}/>;
                 case "socks":
                   return <SearchTabSocksLabel key={"sockstab"} me={props.me}/>;
+                case "processes":
+                  return <SearchTabProcessesLabel key={"processtab"} me={props.me}/>;
+                case "tags":
+                  return <SearchTabTagsLabel key={"tagstab"} me={props.me} />;
                 default:
                   return (null);
               }
@@ -94,6 +100,10 @@ return (
                 return <SearchTabArtifactsPanel key={"artifactspanel"} index={index} me={props.me} value={value}  changeSearchParam={changeSearchParam} />
               case "socks":
                 return <SearchTabSocksPanel key={"sockspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+              case "processes":
+                return <SearchTabProcessPanel key={"processpanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
+              case "tags":
+                return <SearchTabTagsPanel key={"tagspanel"} index={index} me={props.me} value={value} changeSearchParam={changeSearchParam} />
               default:
                 return (null);
           }

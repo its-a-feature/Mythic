@@ -21,6 +21,7 @@ import {
 } from './CallbacksTableRow';
 import MythicResizableGrid from '../../MythicComponents/MythicResizableGrid';
 import {TableFilterDialog} from './TableFilterDialog';
+import {CallbacksTabsHideMultipleDialog} from "./CallbacksTabsHideMultipleDialog";
 
 function CallbacksTablePreMemo(props){
     
@@ -28,11 +29,12 @@ function CallbacksTablePreMemo(props){
     const [sortData, setSortData] = React.useState({"sortKey": null, "sortDirection": null, "sortType": null});
     const [openContextMenu, setOpenContextMenu] = React.useState(false);
     const [openAdjustColumnsDialog, setOpenAdjustColumnsDialog] = React.useState(false);
+    const [openHideMultipleDialog, setOpenHideMultipleDialog] = React.useState(false);
     const [filterOptions, setFilterOptions] = React.useState({});
     const [selectedColumn, setSelectedColumn] = React.useState({});
     const [columnVisibility, setColumnVisibility] = React.useState({
-        "visible": ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent", "C2", "IP", "OS"],
-        "hidden": ["Arch", "PID", "Sleep", "Process Name", "External IP"]
+        "visible": ["Interact", "Host", "Domain", "User", "Description", "Last Checkin", "Agent",  "IP", "PID"],
+        "hidden": ["Arch", "Sleep", "Process Name", "External IP", "C2",  "OS"]
     });
     const [lockCallback] = useMutation(lockCallbackMutation, {
       update: (cache, {data}) => {
@@ -265,6 +267,7 @@ function CallbacksTablePreMemo(props){
                                 onOpenTab={props.onOpenTab} 
                                 toggleLock={toggleLock}
                                 updateDescription={updateDescriptionSubmit}
+                                setOpenHideMultipleDialog={setOpenHideMultipleDialog}
                                 />;
                           case "IP":
                               return <CallbacksTableIPCell cellData={row.ip} rowData={row} callback_id={row.id} updateIPs={updateIPsInfo} />;
@@ -337,7 +340,18 @@ function CallbacksTablePreMemo(props){
                     onSubmit={onSubmitAdjustColumns} right={columnVisibility.visible} rightTitle="Show these columns"
                     leftTitle={"Hidden Columns"} left={columnVisibility.hidden} dialogTitle={"Edit which columns are shown"}/>}
               />
-          }       
+          }
+            {openHideMultipleDialog &&
+                <MythicDialog
+                    fullWidth={true}
+                    maxWidth="lg"
+                    open={openHideMultipleDialog}
+                    onClose={() => {setOpenHideMultipleDialog(false);}}
+                    innerDialog={
+                        <CallbacksTabsHideMultipleDialog onClose={() => {setOpenHideMultipleDialog(false);}} />
+                    }
+                />
+            }
         </div>             
     )
 }

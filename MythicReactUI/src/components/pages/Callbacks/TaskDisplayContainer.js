@@ -160,22 +160,6 @@ const SpeedDialDisplay = ({toggleViewBrowserScript, toggleSelectAllOutput, toggl
           return prev + b64DecodeUnicode(cur.response);
         }, b64DecodeUnicode(""));
         downloadFileFromMemory(output, "task_" + task.id + ".txt");
-        /*
-        const dataBlob = new Blob([output], {type: 'application/octet-stream'});
-        const ele = document.getElementById("download_config");
-        if(ele !== null){
-          ele.href = URL.createObjectURL(dataBlob);
-          ele.download = "task_" + task.id + ".txt";
-          ele.click();
-        }else{
-          const element = document.createElement("a");
-          element.id = "download_config";
-          element.href = URL.createObjectURL(dataBlob);
-          element.download = "task_" + task.id + ".txt";
-          document.body.appendChild(element);
-          element.click();
-        }
-        */
     },
     onError: (data) => {
 
@@ -325,7 +309,7 @@ const SpeedDialDisplay = ({toggleViewBrowserScript, toggleSelectAllOutput, toggl
           TooltipClasses={{tooltip: classes.tooltip, arrow: classes.arrow}}
           tooltipPlacement={tooltipPlacement}
           tooltipTitle={"Open Task in New Window"}
-          onClick={()=> {window.open('/new/task/' + task.id, "_blank")}}
+          onClick={()=> {window.open('/new/task/' + task.display_id, "_blank")}}
         />
         <SpeedDialAction
           icon={<FileCopyOutlinedIcon/>}

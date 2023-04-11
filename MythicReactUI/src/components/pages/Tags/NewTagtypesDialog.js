@@ -100,7 +100,7 @@ export function NewTagtypesDialog(props) {
   return (
     <React.Fragment>
         <DialogTitle id="form-dialog-title">Create a new type of tag</DialogTitle>
-        <DialogContent dividers={true}>
+
         <TableContainer component={Paper} className="mythicElement">
           <Table size="small" style={{ "maxWidth": "100%", "overflow": "scroll"}}>
               <TableHead>
@@ -142,7 +142,6 @@ export function NewTagtypesDialog(props) {
               </TableBody>
             </Table>
         </TableContainer>
-        </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={props.onClose} color="primary">
             Close

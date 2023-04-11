@@ -68,8 +68,6 @@ mutation previewFile($file_id: String!){
 }
 `;
 const SnackMessage = (props) => {
-    
-    const theme = useTheme();
     return (
         <React.Fragment>                    
             <Typography variant="subtitle2" >
@@ -409,7 +407,7 @@ export function FileMetaUploadTable(props){
         onCompleted: (data) => {
             snackActions.dismiss();
             if(data.download_bulk.status === "success"){
-                snackActions.success("", {persist: true, content: key => <MythicSnackDownload id={key} title="Download Zip File" innerText="Filenames are random UUIDs, so a JSON file is included with a mapping of UUID to real filename" downloadLink={window.location.origin + "/api/v1.4/files/download/" + data.download_bulk.file_id} />});
+                snackActions.success(<MythicSnackDownload title="Download Zip File" file_id={data.download_bulk.file_id} />, {toastId: data.download_bulk.file_id, autoClose: false, closeOnClick: false});
             }else{
                 snackActions.error(data.error);
             }
@@ -461,7 +459,7 @@ export function FileMetaUploadTable(props){
                     <TableRow>
                         <TableCell style={{width: "3rem"}}></TableCell>
                         <TableCell style={{width: "4rem"}}>Delete</TableCell>
-                        <TableCell style={{width: "15rem"}}>Source</TableCell>
+                        <TableCell style={{width: "16rem"}}>Source</TableCell>
                         <TableCell >Destination</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
                         <TableCell style={{width: "15rem"}}>Tags</TableCell>
@@ -579,13 +577,17 @@ function FileMetaUploadTableRow(props){
                     )}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" download underline="always" target="_blank" href={window.location.origin + "/api/v1.4/files/download/" + props.agent_file_id}>{props.filename_text}</Link>
+                    <Link style={{wordBreak: "break-all"}} color="textPrimary" download underline="always" target="_blank" href={"/direct/download/" + props.agent_file_id}>{props.filename_text}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell  style={{wordBreak: "break-all"}}>
-                <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Host: </b>{props.host}</Typography>
+                    <Typography variant="body2" style={{wordBreak: "break-all"}}>
+                        {props.host !== "" ? (
+                            <><b>Host: </b>{props.host}</>
+                        ) : ("")}
+                    </Typography>
                     {props.deleted ? (<Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography>) : (
                         props.complete ? (
-                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={window.location.origin + "/api/v1.4/files/download/" + props.agent_file_id}>{props.full_remote_path_text}</Link>
+                            <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" href={"/direct/download/" +  props.agent_file_id}>{props.full_remote_path_text}</Link>
                         ) : (
                             <React.Fragment>
                                 <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.full_remote_path_text}</Typography> <Typography color="secondary" style={{wordBreak: "break-all"}} >{props.chunks_received} / {props.total_chunks} Chunks Received</Typography>
@@ -632,7 +634,8 @@ function FileMetaUploadTableRow(props){
                                                 <MythicStyledTableCell>
                                                     <Typography variant="body2" style={{wordBreak: "break-all"}}>MD5: {props.md5}</Typography>
                                                     <Typography variant="body2" style={{wordBreak: "break-all"}}>SHA1: {props.sha1}</Typography>
-                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.agent_file_id}</Typography></MythicStyledTableCell>
+                                                    <Typography variant="body2" style={{wordBreak: "break-all"}}>UUID: {props.agent_file_id}</Typography>
+                                                </MythicStyledTableCell>
                                                 <MythicStyledTableCell><Typography variant="body2" style={{wordBreak: "break-all"}}>{props.operator.username}</Typography></MythicStyledTableCell>
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? (null) : (

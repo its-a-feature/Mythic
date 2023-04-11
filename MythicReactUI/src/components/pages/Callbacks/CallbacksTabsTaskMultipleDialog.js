@@ -26,8 +26,8 @@ import Dialog from '@mui/material/Dialog';
 
 
 const callbacksAndFeaturesQuery = gql`
-query callbacksAndFeatures($operation_id: Int!, $payloadtype_id: Int!) {
-  callback(where: {operation_id: {_eq: $operation_id}, active: {_eq: true}, payload: {payloadtype: { id: {_eq: $payloadtype_id}}}}, order_by: {id: asc}) {
+query callbacksAndFeatures($payloadtype_id: Int!) {
+  callback(where: {active: {_eq: true}, payload: {payloadtype: { id: {_eq: $payloadtype_id}}}}, order_by: {id: asc}) {
     loadedcommands {
       command {
         cmd
@@ -88,7 +88,7 @@ export function CallbacksTabsTaskMultipleDialog({onClose, callback}) {
     const [progress, setProgress] = React.useState(0);
     const totalToTask = React.useRef(1);
     const normalize = (value) => ((value - 0) * 100) / (totalToTask.current - 0);
-    useQuery(callbacksAndFeaturesQuery, {variables: {operation_id: callback.operation_id, payloadtype_id: callback.payload.payloadtype.id},
+    useQuery(callbacksAndFeaturesQuery, {variables: {payloadtype_id: callback.payload.payloadtype.id},
       fetchPolicy: "no-cache",
       onCompleted: (data) => {
         const callbackData = data.callback.map( c => {

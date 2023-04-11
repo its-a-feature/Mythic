@@ -17,8 +17,8 @@ fragment tagtypeData on tagtype {
 `;
 const tagQuery = gql`
 ${tagtypeFragment}
-query getOperationTags($operation_id: Int!) {
-  tagtype(where: {operation_id: {_eq: $operation_id}}, order_by: {name: asc}) {
+query getOperationTags {
+  tagtype(order_by: {name: asc}) {
     ...tagtypeData
   }
 }
@@ -34,11 +34,9 @@ mutation tagtypeDeleteMutation($id: Int!) {
 `;
 
 export function Tags(props){
-    const me = props.me;
     const [tagtypes, setTagtypes] = React.useState([]);
     const mountedRef = React.useRef(true);
     useQuery(tagQuery, {
-      variables: {operation_id: me?.user?.current_operation_id || 0},
       fetchPolicy: "no-cache",
       onCompleted: data => {
         if(!mountedRef.current){

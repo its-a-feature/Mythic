@@ -7,8 +7,8 @@ import { snackActions } from '../../utilities/Snackbar';
 
 
 const SUB_Callbacks = gql`
-subscription CallbacksSubscription ($callback_id: Int!){
-  callback_stream(batch_size: 1, cursor: {initial_value: {last_checkin: "1970-01-01"}}, where: {display_id: {_eq: $callback_id}}) {
+subscription CallbacksSubscription ($callback_display_id: Int!){
+  callback_stream(batch_size: 1, cursor: {initial_value: {last_checkin: "1970-01-01"}}, where: {display_id: {_eq: $callback_display_id}}) {
     architecture
     description
     display_id
@@ -61,11 +61,11 @@ subscription CallbacksSubscription ($callback_id: Int!){
 
 export function ExpandedCallback(props){
     
-    const {callbackId} = useParams();
+    const {callbackDisplayId} = useParams();
     const [callback, setCallbacks] = React.useState({"payload": {"payloadtype": {"name": ""}}, "callbacktokens": []});
-    const [tabInfo, setTabInfo] = React.useState({callbackID: parseInt(callbackId)});
+    const [tabInfo, setTabInfo] = React.useState({callbackDisplayID: parseInt(callbackDisplayId)});
     useSubscription(SUB_Callbacks, {
-        variables: {callback_id: callbackId}, fetchPolicy: "network-only",
+        variables: {callback_display_id: tabInfo.callbackDisplayID}, fetchPolicy: "network-only",
         shouldResubscribe: true,
         onSubscriptionData: ({subscriptionData}) => {
           if(subscriptionData.data.callback_stream.length === 0){
@@ -73,7 +73,8 @@ export function ExpandedCallback(props){
             return;
           }
           setCallbacks(subscriptionData.data.callback_stream[0]);
-          setTabInfo({tabID: "interact", tabType: "interact", callbackID: parseInt(callbackId), 
+          setTabInfo({tabID: "interact", tabType: "interact", callbackDisplayID: callbackDisplayId,
+          callbackID: subscriptionData.data.callback_stream[0]["id"],
           payloadtype: subscriptionData.data.callback_stream[0]["payload"]["payloadtype"]["name"],
           payloadDescription: subscriptionData.data.callback_stream[0]["payload"]["description"],
           callbackDescription: subscriptionData.data.callback_stream[0]["description"],
