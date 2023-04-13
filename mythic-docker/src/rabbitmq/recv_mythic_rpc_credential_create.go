@@ -38,7 +38,9 @@ func MythicRPCCredentialCreate(input MythicRPCCredentialCreateMessage) MythicRPC
 	}
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT
-	callback.operation_id "callback.operation_id",
+	task.operation_id,
+	task.operator_id,
+	task.id,
 	callback.host "callback.host"
 	FROM task
 	JOIN callback ON task.callback_id = callback.id
@@ -47,7 +49,7 @@ func MythicRPCCredentialCreate(input MythicRPCCredentialCreateMessage) MythicRPC
 		response.Error = err.Error()
 		return response
 	} else if err := handleAgentMessagePostResponseCredentials(task, &input.Credentials); err != nil {
-		logging.LogError(err, "Failed to create processes in MythicRPCProcessCreate")
+		logging.LogError(err, "Failed to create credentials in MythicRPCCredentialCreate")
 		response.Error = err.Error()
 		return response
 	} else {

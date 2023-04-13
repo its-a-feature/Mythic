@@ -141,16 +141,16 @@ export function CredentialTable(props){
 
     return (
         <TableContainer component={Paper} className="mythicElement" >
-            <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll"}}>
+            <Table stickyHeader size="small" style={{"maxWidth": "100%", "overflow": "scroll", tableLayout: "fixed"}}>
                 <TableHead>
                     <TableRow>
-                        <TableCell style={{width: "2rem"}}>Delete</TableCell>
-                        <TableCell style={{width: "4rem"}}>Edit</TableCell>
+                        <TableCell style={{width: "2rem"}}></TableCell>
+                        <TableCell style={{width: "5rem"}}>Edit</TableCell>
                         <TableCell >Credential</TableCell>
                         <TableCell style={{width: "15rem"}}>Comment</TableCell>
-                        <TableCell style={{width: "10rem"}}>Task / Operator</TableCell>
+                        <TableCell style={{width: "8rem"}}>Task / Operator</TableCell>
                         <TableCell style={{width: "5rem"}}>Type</TableCell>
-                        <TableCell >Tags</TableCell>
+                        <TableCell style={{width: "15rem"}}>Tags</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -341,31 +341,22 @@ function CredentialTableRow(props){
                     )}
                     </Popper>
                 </TableCell>
-                <MythicStyledTableCell style={{whiteSpace: "pre"}}>
+                <MythicStyledTableCell style={{ whiteSpace: "pre-line",wordBreak: "break-all",}}>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Account: </b>{props.account}</Typography>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}><b>Realm: </b>{props.realm}</Typography>
-                    {props.credential_text.length > 64 ? 
-                    (
-                        <React.Fragment>
-                            <MythicStyledTooltip title={"Copy to clipboard"}>
-                                <IconButton onClick={() => onCopyToClipboard(props.credential_text)} size="small">
-                                    <FontAwesomeIcon icon={faCopy} />
-                                </IconButton>
-                            </MythicStyledTooltip>
-                            <Typography variant="body2" style={{wordBreak: "break-all", maxWidth: "40rem"}}><b>Credential: </b>{displayCred}</Typography>
-                        </React.Fragment>
-                    )
-                    :
-                    (
-                        <React.Fragment>
-                            <Typography variant="body2" style={{wordBreak: "break-all", maxWidth: "40rem"}}><b>Credential: </b>{displayCred}</Typography>
-                        </React.Fragment>   
-                    )}
-                    
+                    <React.Fragment>
+                        <MythicStyledTooltip title={"Copy to clipboard"}>
+                            <IconButton onClick={() => onCopyToClipboard(props.credential_text)} size="small">
+                                <FontAwesomeIcon icon={faCopy} />
+                            </IconButton>
+                        </MythicStyledTooltip>
+                        <Typography variant="body2" style={{wordBreak: "break-all", }}><b>Credential: </b>{displayCred}</Typography>
+                    </React.Fragment>
+
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.comment}</Typography>
-                    </MythicStyledTableCell>
+                    <Typography variant="body2" style={{whiteSpace: "pre-line",wordBreak: "break-all",}}>{props.comment}</Typography>
+                </MythicStyledTableCell>
 
                 <MythicStyledTableCell>
                     {props.task !== null ? (

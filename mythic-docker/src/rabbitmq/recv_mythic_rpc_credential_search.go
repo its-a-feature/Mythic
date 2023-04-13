@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/its-a-feature/Mythic/database"
 	databaseStructs "github.com/its-a-feature/Mythic/database/structs"
@@ -41,60 +42,61 @@ func MythicRPCCredentialSearch(input MythicRPCCredentialSearchMessage) MythicRPC
 	response := MythicRPCCredentialSearchMessageResponse{
 		Success: false,
 	}
-	paramDict := make(map[string]interface{})
+	params := []interface{}{}
 	task := databaseStructs.Task{}
 	if err := database.DB.Get(&task, `SELECT 
 	task.id,
-	callback.operation_id "callback.operation_id",
-	callback.host "callback.host"
+	task.operation_id
 	FROM task
-	JOIN callback ON task.callback_id = callback.id
 	WHERE task.id=$1`, input.TaskID); err != nil {
 		response.Error = err.Error()
 		return response
 	} else {
 		credentials := []databaseStructs.Credential{}
-		paramDict["operation_id"] = task.Callback.OperationID
-		searchString := `SELECT * FROM credential WHERE operation_id=:operation_id  `
+		params = append(params, task.OperationID)
+		searchString := fmt.Sprintf(`SELECT * FROM credential WHERE operation_id=$%d `, len(params))
+
 		if input.SearchCredentials.Type != nil {
-			paramDict["type"] = *input.SearchCredentials.Type
-			searchString += "AND \"type\" ILIKE %:type% "
+			params = append(params, "%"+*input.SearchCredentials.Type+"%")
+			searchString += fmt.Sprintf("AND \"type\" ILIKE $%d ", len(params))
 		}
 		if input.SearchCredentials.Credential != nil {
-			paramDict["credential"] = *input.SearchCredentials.Credential
-			searchString += "AND credential ILIKE %:credential% "
+			params = append(params, "%"+*input.SearchCredentials.Credential+"%")
+			searchString += fmt.Sprintf("AND credential ILIKE $%d ", len(params))
 		}
 		if input.SearchCredentials.Account != nil {
-			paramDict["account"] = *input.SearchCredentials.Account
-			searchString += "AND account LIKE %:account% "
+			params = append(params, "%"+*input.SearchCredentials.Account+"%")
+			searchString += fmt.Sprintf("AND account ILIKE $%d ", len(params))
 		}
 		if input.SearchCredentials.Realm != nil {
-			paramDict["realm"] = *input.SearchCredentials.Realm
-			searchString += "AND realm LIKE %:realm% "
+			params = append(params, "%"+*input.SearchCredentials.Realm+"%")
+			searchString += fmt.Sprintf("AND realm ILIKE $%d ", len(params))
 		}
 		if input.SearchCredentials.Comment != nil {
-			paramDict["comment"] = *input.SearchCredentials.Comment
-			searchString += "AND comment LIKE %:comment% "
+			params = append(params, "%"+*input.SearchCredentials.Comment+"%")
+			searchString += fmt.Sprintf("AND comment ILIKE $%d ", len(params))
 		}
 		if input.SearchCredentials.Metadata != nil {
-			paramDict["metadata"] = *input.SearchCredentials.Metadata
-			searchString += "AND metadata LIKE %:metadata% "
+			params = append(params, "%"+*input.SearchCredentials.Metadata+"%")
+			searchString += fmt.Sprintf("AND metadata ILIKE $%d ", len(params))
 		}
-
-		if err := database.DB.Select(&credentials, searchString, paramDict); err != nil {
+		if err := database.DB.Select(&credentials, searchString, params...); err != nil {
+			logging.LogError(err, "Failed to search for credentials")
 			response.Error = err.Error()
 			return response
 		} else {
-			returnedProcesses := []MythicRPCCredentialSearchCredentialData{}
+			returnedCredentials := []MythicRPCCredentialSearchCredentialData{}
 			if marshalledBytes, err := json.Marshal(credentials); err != nil {
+				logging.LogError(err, "Failed to marshal credential result")
 				response.Error = err.Error()
 				return response
-			} else if err := json.Unmarshal(marshalledBytes, &returnedProcesses); err != nil {
+			} else if err := json.Unmarshal(marshalledBytes, &returnedCredentials); err != nil {
+				logging.LogError(err, "Failed to unmarshal credential results")
 				response.Error = err.Error()
 				return response
 			} else {
 				response.Success = true
-				response.Credentials = returnedProcesses
+				response.Credentials = returnedCredentials
 				return response
 			}
 

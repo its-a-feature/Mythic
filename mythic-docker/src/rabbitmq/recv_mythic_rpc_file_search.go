@@ -106,7 +106,7 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 		operationId = input.OperationId
 		callbackId = 0
 	}
-	var files []databaseStructs.Filemeta
+	files := []databaseStructs.Filemeta{}
 	if input.Comment != "" {
 		if input.Comment == "*" {
 			input.Comment = "%_%"
@@ -137,9 +137,9 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 			input.Filename = "%" + input.Filename + "%"
 		}
 		searchString := `SELECT 
-			filemeta.*
+			*
 			FROM filemeta 
-			WHERE filename LIKE $1 AND is_payload=$2 AND is_download_from_agent=$3 AND is_screenshot=$4 AND deleted=false AND filemeta.operation_id=$5
+			WHERE filename LIKE $1 AND is_payload=$2 AND is_download_from_agent=$3 AND is_screenshot=$4 AND deleted=false AND operation_id=$5
 			ORDER BY id DESC `
 		searchParameters := []interface{}{
 			input.Filename, input.IsPayload, input.IsDownloadFromAgent, input.IsScreenshot, operationId,
@@ -154,6 +154,7 @@ func MythicRPCFileSearch(input MythicRPCFileSearchMessage) MythicRPCFileSearchMe
 			return response
 		}
 	}
+
 	finalFiles := []FileData{}
 	for _, file := range files {
 		if input.LimitByCallback {

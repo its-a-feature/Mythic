@@ -405,7 +405,6 @@ func handleAgentMessagePostResponseCredentials(task databaseStructs.Task, creden
 			databaseCred.Type = newCred.CredentialType
 		} else {
 			databaseCred.Type = "plaintext"
-			logging.LogError(nil, "Attempt to create new cred of unknown type, setting to plaintext", "cred type", newCred.CredentialType)
 		}
 		// check if the cred already exists. If it does, move on. If it doesn't, create it
 		if err := database.DB.Get(&databaseCred, `SELECT * FROM credential WHERE
