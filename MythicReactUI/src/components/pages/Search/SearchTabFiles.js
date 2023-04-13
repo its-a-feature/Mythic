@@ -50,9 +50,11 @@ fragment filemetaData on filemeta{
     }
     task {
         id
+        display_id
         comment
         callback {
             id
+            display_id
         }
         command {
             cmd

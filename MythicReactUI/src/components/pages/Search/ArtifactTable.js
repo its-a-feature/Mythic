@@ -56,14 +56,14 @@ function ArtifactTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
-                        href={"/new/task/" + props.task.id}>
-                            {props.task.id}
+                        href={"/new/task/" + props.task.display_id}>
+                            {props.task.display_id}
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
-                        href={"/new/callbacks/" + props.task.callback_id}>
-                            {props.task.callback_id}
+                        href={"/new/callbacks/" + props.task.callback.display_id}>
+                            {props.task.callback.display_id}
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>

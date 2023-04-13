@@ -368,8 +368,8 @@ function CredentialTableRow(props){
                     </MythicStyledTableCell>
 
                 <MythicStyledTableCell>
-                    {props.task_id !== null ? (
-                        <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task_id}>{props.task_id}</Link>
+                    {props.task !== null ? (
+                        <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>
                     ): (props.operator.username)}
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>{props.type}</MythicStyledTableCell>

@@ -143,10 +143,10 @@ function KeylogTableRow(props){
         <React.Fragment>
             <TableRow hover>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.id}>{props.task.callback.id}</Link>
+                    <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
-                    <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.id}>{props.task.id}</Link>
+                    <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                     <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me?.user?.view_utc_time || false)}</Typography>
@@ -172,21 +172,3 @@ function KeylogTableRow(props){
         </React.Fragment>
     )
 }
-
-/*
-    <TableCell>
-                    <Typography variant="body2" style={{wordBreak: "break-all"}}>{toLocalTime(props.timestamp, me.user.view_utc_time)}</Typography>
-                </TableCell>
-                <TableCell >
-                    <Typography variant="body2" style={{wordBreak: "break-all", display: "inline-block"}}>{props.task.callback.host}</Typography>
-                </TableCell>
-                <TableCell >
-                    <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
-                        href={"/new/task/" + props.task.id}>
-                            {props.task.id}
-                    </Link>
-                </TableCell>
-                <TableCell>
-                <Typography variant="body2" style={{wordBreak: "break-all", maxWidth: "40rem"}}>{props.keystrokes_text}</Typography>
-                </TableCell>
-*/

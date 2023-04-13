@@ -894,7 +894,9 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 					uploadResponse.TotalChunks = totalChunks
 					uploadResponse.ChunkNum = agentResponse.Upload.ChunkNum
 					uploadResponse.FileID = *agentResponse.Upload.FileID
-
+					if uploadResponse.TotalChunks == uploadResponse.ChunkNum && fileMeta.DeleteAfterFetch {
+						go uploadDeleteAfterFetch(fileMeta)
+					}
 					return uploadResponse, nil
 				}
 			}
@@ -902,6 +904,14 @@ func handleAgentMessagePostResponseUpload(task databaseStructs.Task, agentRespon
 	} else {
 		logging.LogError(nil, "Trying to upload a file, but no file_id specified for the transfer")
 		return uploadResponse, errors.New("no file_id specified")
+	}
+}
+func uploadDeleteAfterFetch(fileMeta databaseStructs.Filemeta) {
+	fileMeta.Deleted = true
+	if err := os.Remove(fileMeta.Path); err != nil {
+		logging.LogError(err, "Failed to remove file after an agent fetched it with delete after fetch set to true")
+	} else if _, err = database.DB.NamedExec(`UPDATE filemeta SET deleted=true WHERE id=:id`, fileMeta); err != nil {
+		logging.LogError(err, "Failed to mark file as deleted in database")
 	}
 }
 func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseStructs.Task, agentResponse agentMessagePostResponse, uploadResponse agentMessagePostResponseUploadResponse) {

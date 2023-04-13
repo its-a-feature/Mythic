@@ -21,9 +21,11 @@ fragment keylogData on keylog{
     keystrokes_text
     task {
         id
+        display_id
         callback {
             host
             id
+            display_id
         }
     }
     user

@@ -25,7 +25,10 @@ fragment artifactData on taskartifact{
     base_artifact
     task {
         id
-        callback_id
+        display_id
+        callback{
+            display_id
+        }
         command {
             cmd
             id

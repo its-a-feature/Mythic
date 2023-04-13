@@ -24,7 +24,10 @@ fragment credentialData on credential{
     id
     realm
     type
-    task_id
+    task {
+        display_id
+        id
+    }
     timestamp
     deleted
     operator {

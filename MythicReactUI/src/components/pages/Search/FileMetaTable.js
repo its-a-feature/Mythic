@@ -333,8 +333,8 @@ function FileMetaDownloadTableRow(props){
                                                     {props.task === null ? (
                                                         null
                                                     ) : (<>
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.id}>{props.task.id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.id}>{props.task.callback.id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
+                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
                                                             <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
                                                         </>
                                                         
@@ -640,8 +640,8 @@ function FileMetaUploadTableRow(props){
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? (null) : (
                                                         <>
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.id}>{props.task.id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.id}>{props.task.callback.id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
+                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
                                                             <Typography variant="body2" style={{wordBreak: "break-all"}}>{props.task.comment}</Typography>
                                                         </>
                                                     )}
@@ -819,8 +819,8 @@ function FileMetaScreenshotTableRow(props){
                                                 <MythicStyledTableCell>
                                                     {props.task === null ? (null) : (
                                                         <>
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.id}>{props.task.id}</Link>&nbsp;(
-                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.id}>{props.task.callback.id}</Link>)
+                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/task/" + props.task.display_id}>{props.task.display_id}</Link>&nbsp;(
+                                                            <Link style={{wordBreak: "break-all"}} underline="always" target="_blank" href={"/new/callbacks/" + props.task.callback.display_id}>{props.task.callback.display_id}</Link>)
                                                         </>
                                                     )}
                                                     
