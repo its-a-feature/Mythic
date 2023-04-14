@@ -176,7 +176,7 @@ export const CallbacksTabsProcessBrowserPanel = ({index, value, tabInfo, me}) =>
         setOpenTaskingButton(true);
     }
     const onTaskRowAction = ({process_id, architecture, uifeature, openDialog, getConfirmation}) => {
-        taskingData.current = {"parameters": {host: tabInfo.host, process_id, architecture}, "ui_feature": uifeature, openDialog, getConfirmation};
+        taskingData.current = {"parameters": {host: selectedHost, process_id, architecture}, "ui_feature": uifeature, openDialog, getConfirmation};
         setOpenTaskingButton(true);
     }
     const toggleShowDeletedFiles = (showStatus) => {
