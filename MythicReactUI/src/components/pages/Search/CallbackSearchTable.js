@@ -9,11 +9,8 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import {MythicConfirmDialog} from '../../MythicComponents/MythicConfirmDialog';
-import { toLocalTime } from '../../utilities/Time';
 import {  useMutation } from '@apollo/client';
 import {snackActions} from '../../utilities/Snackbar';
-import { meState } from '../../../cache';
-import {useReactiveVar} from '@apollo/client';
 import {useTheme} from '@mui/material/styles';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -88,7 +85,7 @@ function CallbackSearchTableRow(props){
     });
     const ips = JSON.parse(props.ip);
     const onAcceptDelete = () => {
-        updateDeleted({variables: {callback_id: props.id, active: !props.active}})
+        updateDeleted({variables: {callback_display_id: props.display_id, active: !props.active}})
     }
     return (
         <React.Fragment>
@@ -119,8 +116,8 @@ function CallbackSearchTableRow(props){
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>
                 <Link style={{wordBreak: "break-all"}} color="textPrimary" underline="always" target="_blank" 
-                        href={"/new/callbacks/" + props.id}>
-                            {props.id}
+                        href={"/new/callbacks/" + props.display_id}>
+                            {props.display_id}
                     </Link>
                 </MythicStyledTableCell>
                 <MythicStyledTableCell>

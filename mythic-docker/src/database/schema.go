@@ -2677,10 +2677,6 @@ ALTER TABLE ONLY public.credential
 -- Name: credential credential_type_account_realm_credential_operation_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.credential
-    ADD CONSTRAINT credential_type_account_realm_credential_operation_id_key UNIQUE (type, account, realm, credential, operation_id);
-
-
 --
 -- Name: disabledcommandsprofile disabledcommandsprofile_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
