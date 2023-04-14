@@ -262,7 +262,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
             file: filename,
         }, "ui_feature": uifeature, openDialog, getConfirmation});
         setOpenTaskingButton(true);
-    }, []);
+    }, [selectedFolderData]);
     const toggleShowDeletedFiles = (showStatus) => {
         setShowDeletedFiles(showStatus);
     };

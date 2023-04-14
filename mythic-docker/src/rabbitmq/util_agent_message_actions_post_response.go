@@ -1032,6 +1032,7 @@ func addFilePermissions(fileBrowser *agentMessagePostResponseFileBrowser) map[st
 	case map[string]interface{}:
 		fileMetaData["permissions"] = []interface{}{x}
 	default:
+		fileMetaData["permissions"] = []interface{}{}
 		logging.LogError(nil, "Unknown permissions type", "data", fileBrowser.Permissions)
 	}
 	return fileMetaData
@@ -1104,60 +1105,66 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 			} else {
 				var namesToDeleteAndUpdate []string // will get existing database IDs for things that aren't in the files list
 				for _, existingEntry := range existingTreeEntries {
-					existingEntryStillExists := false
+					if fileBrowser.Files != nil {
+						existingEntryStillExists := false
+						for _, newEntry := range *fileBrowser.Files {
+							if bytes.Equal([]byte(newEntry.Name), existingEntry.Name) {
+								namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, newEntry.Name)
+								existingEntryStillExists = true
+								// update the entry in the database
+								newTreeChild := databaseStructs.MythicTree{
+									Host:            pathData.Host,
+									TaskID:          task.ID,
+									OperationID:     task.OperationID,
+									Name:            []byte(newEntry.Name),
+									ParentPath:      existingEntry.ParentPath,
+									FullPath:        existingEntry.FullPath,
+									TreeType:        databaseStructs.TREE_TYPE_FILE,
+									CanHaveChildren: !newEntry.IsFile,
+									Deleted:         false,
+									Success:         existingEntry.Success,
+									ID:              existingEntry.ID,
+									Os:              newTree.Os,
+								}
+								fileMetaData = addChildFilePermissions(&newEntry)
+								newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
+								updateTreeNode(newTreeChild)
+							}
+						}
+						if !existingEntryStillExists {
+							namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
+							existingEntry.Deleted = true
+							deleteTreeNode(existingEntry)
+						}
+					}
+
+				}
+				// now all existing ones have been updated or deleted, so it's time to add new ones
+				if fileBrowser.Files != nil {
 					for _, newEntry := range *fileBrowser.Files {
-						if bytes.Equal([]byte(newEntry.Name), existingEntry.Name) {
-							namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, newEntry.Name)
-							existingEntryStillExists = true
-							// update the entry in the database
+						if !utils.SliceContains(namesToDeleteAndUpdate, newEntry.Name) {
+							// this isn't marked as updated or deleted, so let's create it
 							newTreeChild := databaseStructs.MythicTree{
 								Host:            pathData.Host,
 								TaskID:          task.ID,
 								OperationID:     task.OperationID,
 								Name:            []byte(newEntry.Name),
-								ParentPath:      existingEntry.ParentPath,
-								FullPath:        existingEntry.FullPath,
+								ParentPath:      fullPath,
 								TreeType:        databaseStructs.TREE_TYPE_FILE,
 								CanHaveChildren: !newEntry.IsFile,
 								Deleted:         false,
-								Success:         existingEntry.Success,
-								ID:              existingEntry.ID,
 								Os:              newTree.Os,
 							}
+							newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
 							fileMetaData = addChildFilePermissions(&newEntry)
 							newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
-							updateTreeNode(newTreeChild)
+							createTreeNode(&newTreeChild)
 						}
 					}
-					if !existingEntryStillExists {
-						namesToDeleteAndUpdate = append(namesToDeleteAndUpdate, string(existingEntry.Name))
-						existingEntry.Deleted = true
-						deleteTreeNode(existingEntry)
-					}
 				}
-				// now all existing ones have been updated or deleted, so it's time to add new ones
-				for _, newEntry := range *fileBrowser.Files {
-					if !utils.SliceContains(namesToDeleteAndUpdate, newEntry.Name) {
-						// this isn't marked as updated or deleted, so let's create it
-						newTreeChild := databaseStructs.MythicTree{
-							Host:            pathData.Host,
-							TaskID:          task.ID,
-							OperationID:     task.OperationID,
-							Name:            []byte(newEntry.Name),
-							ParentPath:      fullPath,
-							TreeType:        databaseStructs.TREE_TYPE_FILE,
-							CanHaveChildren: !newEntry.IsFile,
-							Deleted:         false,
-							Os:              newTree.Os,
-						}
-						newTreeChild.FullPath = treeNodeGetFullPath(fullPath, []byte(newEntry.Name), []byte(pathData.PathSeparator), databaseStructs.TREE_TYPE_FILE)
-						fileMetaData = addChildFilePermissions(&newEntry)
-						newTreeChild.Metadata = GetMythicJSONTextFromStruct(fileMetaData)
-						createTreeNode(&newTreeChild)
-					}
-				}
+
 			}
-		} else {
+		} else if fileBrowser.Files != nil {
 			// we're not automatically updating deleted children, so just iterate over the files and insert/update them
 			for _, newEntry := range *fileBrowser.Files {
 				newTreeChild := databaseStructs.MythicTree{
