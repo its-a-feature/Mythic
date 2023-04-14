@@ -82,11 +82,11 @@ func SplitFilePathGetHost(parentPath string, currentPath string, additionalPaths
 		// means we can't learn anything about the path from the parent though, so need the current path to try to decide
 		if strings.Contains(currentPath, ":") || strings.Contains(currentPath, "$") {
 			returnedPathInfo.PathSeparator = "\\"
-		} else if strings.HasPrefix(currentPath, "/") {
+		} else if strings.Contains(currentPath, "/") {
 			returnedPathInfo.PathSeparator = "/"
 		} else {
-			err := errors.New(fmt.Sprintf("invalid absolute path format: %s, and current path format: %s", parentPath, currentPath))
-			return returnedPathInfo, err
+			// unable to determine, so assuming parent path is windodws
+			returnedPathInfo.PathSeparator = "\\"
 		}
 	} else {
 		err := errors.New(fmt.Sprintf("invalid absolute path format: %s", parentPath))

@@ -1062,6 +1062,9 @@ func handleAgentMessagePostResponseFileBrowser(task databaseStructs.Task, fileBr
 		if pathData.Host == "" {
 			pathData.Host = strings.ToUpper(task.Callback.Host)
 		}
+		if fileBrowser.Host != "" {
+			pathData.Host = strings.ToUpper(fileBrowser.Host)
+		}
 		go resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
 		// now that the parents and all ancestors are resolved, process the current path and all children
 
