@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0rc36] - 2023-04-14
+## [3.0.0rc37] - 2023-04-14
 
 ### Changed
 
 - For file browsing, if an OS type cannot be inferred based on host, path, and parent path, OS is assumed as Windows
+- Fixed an issue with the UI sending the wrong host name for file listings
+- Fixed an issue with uploaded files treated like folders in the file browser
 
 ## [3.0.0rc35] - 2023-04-13
 

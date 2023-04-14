@@ -19,8 +19,8 @@ import { MythicDialog } from '../../MythicComponents/MythicDialog';
 //fromNow must be in ISO format for hasura/postgres stuff
 //new Date().toISOString() will do it
 const subscribe_payloads = gql`
-subscription NewPayloadsSubscription($fromNow: timestamp!, $operation_id: Int!) {
-  payload_stream(batch_size: 1, cursor: {initial_value: {timestamp: $fromNow}, ordering: ASC}, where: { operation_id: {_eq: $operation_id}, deleted: {_eq: false}}) {
+subscription NewPayloadsSubscription($fromNow: timestamp!) {
+  payload_stream(batch_size: 1, cursor: {initial_value: {timestamp: $fromNow}, ordering: ASC}, where: { deleted: {_eq: false}}) {
     build_message
     build_phase
     build_stderr
@@ -181,10 +181,12 @@ export function PayloadSubscriptionNotification(props) {
         }
         
     }, [payloadData, getSnackMessage]);
-    const {  } = useSubscription(subscribe_payloads, {variables: {fromNow: props.fromNow, operation_id: props.me?.user?.current_operation_id || 0},
+    const {  } = useSubscription(subscribe_payloads, {variables: {fromNow: props.fromNow},
     onSubscriptionData: ({subscriptionData}) => {
         if(subscriptionData.data.payload_stream[0].uuid === props.subscriptionID){
             setPayloadData({...subscriptionData.data.payload_stream[0]});
+        } else {
+            console.log(subscriptionData.data.payload_stream[0])
         }
     }
     });

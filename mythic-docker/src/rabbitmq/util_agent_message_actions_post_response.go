@@ -985,7 +985,7 @@ func updateFileMetaFromUpload(fileMeta databaseStructs.Filemeta, task databaseSt
 	}
 }
 func associateFileMetaWithMythicTree(pathData utils.AnalyzedPath, fileMeta databaseStructs.Filemeta, task databaseStructs.Task) {
-	go resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
+	resolveAndCreateParentPathsForTreeNode(pathData, task, databaseStructs.TREE_TYPE_FILE)
 	newTree := databaseStructs.MythicTree{
 		Host:            pathData.Host,
 		TaskID:          task.ID,

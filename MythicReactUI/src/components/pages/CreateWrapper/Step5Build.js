@@ -18,11 +18,18 @@ import {snackActions} from '../../utilities/Snackbar';
 
 
 export function Step5Build(props){
+    const [fromNow, setFromNow] = React.useState( (new Date().toISOString()));
     const [filename, setFilename] = React.useState("");
     const [description, setDescription] = React.useState("");
+    const [startSubscription, setStartSubscription] = React.useState(false);
+    const [subscriptionID, setSubscriptionID] = React.useState("");
     const [createPayloadMutation] = useMutation(create_payload, {
         update: (cache, {data}) => {
             if(data.createPayload.status === "success"){
+                setSubscriptionID(data.createPayload.uuid);
+                if(!startSubscription){
+                    setStartSubscription(true);
+                }
                 snackActions.info("Submitted payload to build pipeline");
             }else{
                 snackActions.error(data.createPayload.error);
@@ -75,7 +82,7 @@ export function Step5Build(props){
             <MythicTextField onEnter={finished} required={false} placeholder={"description"} value={description} multiline={false} onChange={onChangeDescription} display="inline-block"/>
             <CreatePayloadNavigationButtons first={props.first} last={props.last} canceled={canceled} finished={finished} startOver={props.startOver} />
             <br/><br/>
-            <PayloadSubscriptionNotification/>
+            {startSubscription && <PayloadSubscriptionNotification me={props.me} subscriptionID={subscriptionID} fromNow={fromNow}/>}
         </div>
     );
 } 

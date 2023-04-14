@@ -247,16 +247,16 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
         setSelectedFolderData(nodeData);
     }, []);
     const onListFilesButton = ({ fullPath }) => {
-        taskingData.current = ({"parameters": {path: fullPath, full_path: fullPath, host: tabInfo.host, file: ""}, "ui_feature": "file_browser:list"});
+        taskingData.current = ({"parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host, file: ""}, "ui_feature": "file_browser:list"});
         setOpenTaskingButton(true);
     };
     const onUploadFileButton = ({ fullPath }) => {
-        taskingData.current = ({"parameters": {path: fullPath, full_path: fullPath, host: tabInfo.host}, "ui_feature": "file_browser:upload", "openDialog": true});
+        taskingData.current = ({"parameters": {path: fullPath, full_path: fullPath, host: selectedFolderData.host}, "ui_feature": "file_browser:upload", "openDialog": true});
         setOpenTaskingButton(true);
     };
     const onTaskRowAction = useCallback(({ path, full_path, filename, uifeature, openDialog, getConfirmation }) => {
         taskingData.current = ({"parameters": {
-            host: tabInfo.host,
+            host: selectedFolderData.host,
             path: path,
             full_path: full_path,
             file: filename,
@@ -273,7 +273,7 @@ export const CallbacksTabsFileBrowserPanel = ({ index, value, tabInfo, me }) => 
          // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     const taskListing = (nodeData) => {
-        taskingData.current = ({"parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: tabInfo.host, file: ""}, "ui_feature": "file_browser:list"});
+        taskingData.current = ({"parameters": {path: nodeData.full_path_text, full_path: nodeData.full_path_text, host: selectedFolderData.host, file: ""}, "ui_feature": "file_browser:list"});
         setOpenTaskingButton(true);
     }
     return (
