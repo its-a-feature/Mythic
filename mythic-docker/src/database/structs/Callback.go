@@ -14,7 +14,7 @@ type Callback struct {
 	User                string            `db:"user" json:"user" mapstructure:"user"`
 	Host                string            `db:"host" json:"host" mapstructure:"host"`
 	PID                 int               `db:"pid" json:"pid" mapstructure:"pid"`
-	Ip                  string            `db:"ip" json:"ip" mapstructure:"ip"`
+	IP                  string            `db:"ip" json:"ip" mapstructure:"ip"`
 	ExternalIp          string            `db:"external_ip" json:"external_ip" mapstructure:"external_ip"`
 	ProcessName         string            `db:"process_name" json:"process_name" mapstructure:"process_name"`
 	Description         string            `db:"description" json:"description" mapstructure:"description"`

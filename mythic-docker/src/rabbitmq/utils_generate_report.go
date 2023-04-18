@@ -411,7 +411,7 @@ func getCallbacksTaskingMitre(reportConfig GenerateReportMessage) []interface{} 
 					integrityLevelString = "SYSTEM"
 				}
 				var ips []string
-				if err := json.Unmarshal([]byte(callback.Ip), &ips); err != nil {
+				if err := json.Unmarshal([]byte(callback.IP), &ips); err != nil {
 					logging.LogError(err, "failed to parse out IP addresses for callback", "callback id", callback.ID)
 				}
 				c2Profiles := []databaseStructs.Callbackc2profiles{}

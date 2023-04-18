@@ -102,14 +102,14 @@ func MythicRPCCallbackUpdate(input MythicRPCCallbackUpdateMessage) MythicRPCCall
 		callback.PID = *input.PID
 	}
 	if input.Ip != nil {
-		callback.Ip = "[" + *input.Ip + "]"
+		callback.IP = "[" + *input.Ip + "]"
 	}
 	if input.IPs != nil {
 		if ipArrayBytes, err := json.Marshal(*input.IPs); err != nil {
 			logging.LogError(err, "Failed to marshal callback ip array")
-			callback.Ip = "[]"
+			callback.IP = "[]"
 		} else {
-			callback.Ip = string(ipArrayBytes)
+			callback.IP = string(ipArrayBytes)
 		}
 	}
 	if input.ExtraInfo != nil {

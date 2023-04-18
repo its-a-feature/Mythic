@@ -70,9 +70,9 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 	}
 	if ipArrayBytes, err := json.Marshal(input.IPs); err != nil {
 		logging.LogError(err, "Failed to marshal callback ip array")
-		callback.Ip = "[]"
+		callback.IP = "[]"
 	} else {
-		callback.Ip = string(ipArrayBytes)
+		callback.IP = string(ipArrayBytes)
 	}
 	callback.ExternalIp = input.ExternalIP
 	if input.IntegrityLevel != nil {
@@ -237,7 +237,7 @@ func MythicRPCCallbackCreate(input MythicRPCCallbackCreateMessage) MythicRPCCall
 				webhookData := NewCallbackWebhookData{
 					User:           callback.User,
 					Host:           callback.Host,
-					IPs:            callback.Ip,
+					IPs:            callback.IP,
 					Domain:         callback.Domain,
 					ExternalIP:     callback.ExternalIp,
 					ProcessName:    callback.ProcessName,

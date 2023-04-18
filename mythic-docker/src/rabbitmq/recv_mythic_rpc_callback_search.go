@@ -130,7 +130,7 @@ func MythicRPCCallbackSearch(input MythicRPCCallbackSearchMessage) MythicRPCCall
 			searchString += `AND pid=:pid `
 		}
 		if input.SearchCallbackIP != nil {
-			targetCallback.Ip = *input.SearchCallbackIP
+			targetCallback.IP = *input.SearchCallbackIP
 			searchString += `AND ip ILIKE :ip `
 		}
 		if input.SearchCallbackExtraInfo != nil {

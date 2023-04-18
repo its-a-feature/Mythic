@@ -791,6 +791,8 @@ func GetTaskMessageCallbackInformation(callbackID int) PTTaskMessageCallbackData
 	} else {
 		if err := json.Unmarshal(callbackJSON, &data); err != nil {
 			logging.LogError(err, "Failed to unmarshal callback JSON data to PTTaskMessageCallbackData ")
+		} else if err := json.Unmarshal([]byte(databaseData.IP), &data.IPs); err != nil {
+			logging.LogError(err, "Failed to unmarshal IP string back to array")
 		}
 		//logging.LogDebug("converted back to struct", "struct", data)
 	}

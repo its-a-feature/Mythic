@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 
@@ -47,7 +48,6 @@ func IPBlockMiddleware() gin.HandlerFunc {
 		} else {
 			// make sure the ipAddr is in at least one of the alowed IP blocks
 			for _, subnet := range utils.MythicConfig.AllowedIPBlocks {
-				logging.LogTrace("Checking if IP in allowed IP blocks", "client_ip", ipAddr, "current IP Block", subnet)
 				if subnet.Contains(ipAddr) {
 					c.Next()
 					return
@@ -55,6 +55,8 @@ func IPBlockMiddleware() gin.HandlerFunc {
 			}
 		}
 		logging.LogError(nil, "Client IP not in allowed IP blocks", "client_ip", ipAddr)
+		go database.SendAllOperationsMessage(fmt.Sprintf("Client IP, %s, not in allowed IP blocks: %v", ipAddr.String(), utils.MythicConfig.AllowedIPBlocks),
+			0, ipAddr.String(), database.MESSAGE_LEVEL_WARNING)
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		c.Abort()
 	}

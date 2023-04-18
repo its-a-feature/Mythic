@@ -146,8 +146,7 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.DefaultOperationChannel = mythicEnv.GetString("default_operation_channel")
 	allowedIPBlocks := []*net.IPNet{}
 	for _, ipBlock := range strings.Split(mythicEnv.GetString("allowed_ip_blocks"), ",") {
-		_, subnet, err := net.ParseCIDR(ipBlock)
-		if err != nil {
+		if _, subnet, err := net.ParseCIDR(ipBlock); err != nil {
 			log.Printf("[-] Failed to parse CIDR block: %s\n", ipBlock)
 		} else {
 			allowedIPBlocks = append(allowedIPBlocks, subnet)

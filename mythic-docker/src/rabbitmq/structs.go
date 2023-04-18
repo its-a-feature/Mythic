@@ -91,36 +91,38 @@ type PTTaskMessageTaskData struct {
 }
 
 type PTTaskMessageCallbackData struct {
-	ID                  int    `json:"id"`
-	AgentCallbackID     string `json:"agent_callback_id"`
-	InitCallback        string `json:"init_callback"`
-	LastCheckin         string `json:"last_checkin"`
-	User                string `json:"user"`
-	Host                string `json:"host"`
-	PID                 int    `json:"pid"`
-	Ip                  string `json:"ip"`
-	ExternalIp          string `json:"external_ip"`
-	ProcessName         string `json:"process_name"`
-	Description         string `json:"description"`
-	OperatorID          int    `json:"operator_id"`
-	Active              bool   `json:"active"`
-	RegisteredPayloadID int    `json:"registered_payload_id"`
-	IntegrityLevel      int    `json:"integrity_level"`
-	Locked              bool   `json:"locked"`
-	OperationID         int    `json:"operation_id"`
-	CryptoType          string `json:"crypto_type"`
-	DecKey              []byte `json:"dec_key"`
-	EncKey              []byte `json:"enc_key"`
-	Os                  string `json:"os"`
-	Architecture        string `json:"architecture"`
-	Domain              string `json:"domain"`
-	ExtraInfo           string `json:"extra_info"`
-	SleepInfo           string `json:"sleep_info"`
+	ID                  int      `json:"id"`
+	DisplayID           int      `json:"display_id"`
+	AgentCallbackID     string   `json:"agent_callback_id"`
+	InitCallback        string   `json:"init_callback"`
+	LastCheckin         string   `json:"last_checkin"`
+	User                string   `json:"user"`
+	Host                string   `json:"host"`
+	PID                 int      `json:"pid"`
+	IP                  string   `json:"ip"`
+	IPs                 []string `json:"ips"`
+	ExternalIp          string   `json:"external_ip"`
+	ProcessName         string   `json:"process_name"`
+	Description         string   `json:"description"`
+	OperatorID          int      `json:"operator_id"`
+	Active              bool     `json:"active"`
+	RegisteredPayloadID int      `json:"registered_payload_id"`
+	IntegrityLevel      int      `json:"integrity_level"`
+	Locked              bool     `json:"locked"`
+	OperationID         int      `json:"operation_id"`
+	CryptoType          string   `json:"crypto_type"`
+	DecKey              []byte   `json:"dec_key"`
+	EncKey              []byte   `json:"enc_key"`
+	Os                  string   `json:"os"`
+	Architecture        string   `json:"architecture"`
+	Domain              string   `json:"domain"`
+	ExtraInfo           string   `json:"extra_info"`
+	SleepInfo           string   `json:"sleep_info"`
 }
 
 type PTTaskMessagePayloadData struct {
-	Os          string `json:"os"`
-	UuID        string `json:"uuid"`
+	OS          string `json:"os"`
+	UUID        string `json:"uuid"`
 	PayloadType string `json:"payload_type"`
 }
 
