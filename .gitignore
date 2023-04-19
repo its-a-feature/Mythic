@@ -4,6 +4,7 @@ __pycache__/
 docs/_build/
 # Environments
 .env
+tmp
 .venv
 *.swp
 mythic_server

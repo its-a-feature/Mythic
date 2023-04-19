@@ -69,6 +69,8 @@ func setMythicConfigDefaultValues() {
 	mythicEnv.SetDefault("mythic_admin_password", generateRandomPassword(30))
 	mythicEnv.SetDefault("default_operation_name", "Operation Chimera")
 	mythicEnv.SetDefault("allowed_ip_blocks", "0.0.0.0/0,::/0")
+	mythicEnv.SetDefault("default_operation_webhook_url", "")
+	mythicEnv.SetDefault("default_operation_webhook_channel", "")
 	// jupyter configuration
 	mythicEnv.SetDefault("jupyter_port", 8888)
 	mythicEnv.SetDefault("jupyter_host", "mythic_jupyter")

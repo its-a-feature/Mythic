@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0rc40] - 2023-04-19
+
+### Added
+
+- Updated MythicCLI to allow setting default operation webhook url and webhook channel in addition to operation name from .env file
+- Updated MythicCLI to support `-b` and `--branch` flags when installing from GitHub
 ## [3.0.0rc38] - 2023-04-18
 
 ### Changed

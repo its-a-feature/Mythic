@@ -15,6 +15,7 @@ var installGitHubCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(1, 2),
 }
 var force bool
+var branch string
 
 func init() {
 	installCmd.AddCommand(installGitHubCmd)
@@ -25,11 +26,16 @@ func init() {
 		false,
 		`Force installing from GitHub and don't prompt to overwrite files if an older version is already installed'`,
 	)
+	installGitHubCmd.Flags().StringVarP(
+		&branch,
+		"branch",
+		"b",
+		"",
+		`Install a specific branch from GitHub instead of the main/master branch`,
+	)
 }
 
 func installGitHub(cmd *cobra.Command, args []string) {
-	var branch = ""
-
 	if len(args) == 2 {
 		branch = args[1]
 	}

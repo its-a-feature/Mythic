@@ -55,9 +55,9 @@ func Initialize() {
 				} else {
 					newOperation.AdminID = newUser.ID
 					if statement, err = DB.PrepareNamed(`INSERT INTO operation
-					("name", admin_id)
+					("name", admin_id, webhook, channel)
 					VALUES
-					(:name, :admin_id)
+					(:name, :admin_id, :webhook, :channel)
 					RETURNING id`); err != nil {
 						logging.LogError(err, "Failed to create initial operation statement")
 					} else if err := statement.Get(&newOperation.ID, newOperation); err != nil {

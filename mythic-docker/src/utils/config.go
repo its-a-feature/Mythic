@@ -76,8 +76,8 @@ func Initialize() {
 	mythicEnv.SetDefault("jwt_secret", "")
 	// default operation configuration
 	mythicEnv.SetDefault("default_operation_name", "Operation Chimera")
-	mythicEnv.SetDefault("default_operation_webhook", "")
-	mythicEnv.SetDefault("default_operation_channel", "")
+	mythicEnv.SetDefault("default_operation_webhook_url", "")
+	mythicEnv.SetDefault("default_operation_webhook_channel", "")
 	// pull in environment variables and configuration from .env if needed
 	mythicEnv.SetConfigName(".env")
 	mythicEnv.SetConfigType("env")
@@ -143,7 +143,8 @@ func setConfigFromEnv(mythicEnv *viper.Viper) {
 	MythicConfig.AdminUser = mythicEnv.GetString("mythic_admin_user")
 	MythicConfig.AdminPassword = mythicEnv.GetString("mythic_admin_password")
 	MythicConfig.DefaultOperationName = mythicEnv.GetString("default_operation_name")
-	MythicConfig.DefaultOperationChannel = mythicEnv.GetString("default_operation_channel")
+	MythicConfig.DefaultOperationWebhook = mythicEnv.GetString("default_operation_webhook_url")
+	MythicConfig.DefaultOperationChannel = mythicEnv.GetString("default_operation_webhook_channel")
 	allowedIPBlocks := []*net.IPNet{}
 	for _, ipBlock := range strings.Split(mythicEnv.GetString("allowed_ip_blocks"), ",") {
 		if _, subnet, err := net.ParseCIDR(ipBlock); err != nil {
